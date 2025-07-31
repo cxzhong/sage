@@ -293,11 +293,16 @@ cdef class IntegerRing_class(Ring):
 
             sage: A in InfiniteEnumeratedSets()
             True
+
+            sage: ZZ.variable_names()
+            ()
+
         """
         cat = (EuclideanDomains(), DedekindDomains(),
                InfiniteEnumeratedSets().Metric(), NoetherianRings())
-        Parent.__init__(self, base=self, names=('x',), normalize=False,
+        Parent.__init__(self, base=self, normalize=False,
                         category=cat)
+        self._assign_names(())
         self._populate_coercion_lists_(init_no_parent=True,
                                        convert_method_name='_integer_')
 

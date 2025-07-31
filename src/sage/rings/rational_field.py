@@ -216,10 +216,10 @@ class RationalField(Singleton, number_field_base.NumberField):
         TESTS::
 
             sage: TestSuite(QQ).run()
-            sage: QQ.variable_name()
-            'x'
+
             sage: QQ.variable_names()
-            ('x',)
+            ()
+
             sage: QQ._element_constructor_((2, 3))
             2/3
 
@@ -234,7 +234,7 @@ class RationalField(Singleton, number_field_base.NumberField):
         Parent.__init__(self, base=self,
                         category=[QuotientFields().Metric(),
                                   NumberFields()])
-        self._assign_names(('x',), normalize=False)  # ?????
+        self._assign_names(())
         self._populate_coercion_lists_(init_no_parent=True)
 
     _element_constructor_ = Rational
