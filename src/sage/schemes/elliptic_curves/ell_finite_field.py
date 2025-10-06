@@ -2898,7 +2898,7 @@ def is_j_supersingular(j, proof=True):
     return E.trace_of_frobenius() % p == 0
 
 
-def special_supersingular_curve(F, q=None, *, endomorphism=False):
+def special_supersingular_curve(F, q=None, *, endomorphism=False, maximal_order=False):
     r"""
     Given a finite field ``F`` of characteristic `p`, and optionally
     a positive integer `q < p/4` such that the Hilbert conductor of `-q`
@@ -2931,6 +2931,13 @@ def special_supersingular_curve(F, q=None, *, endomorphism=False):
     - ``endomorphism`` -- boolean (default: ``False``); when set to ``True``,
       it is required that `2 \mid r`, and the function then additionally
       returns `\vartheta`
+
+    - ``maximal_order`` -- boolean (default: ``False``); when set to ``True``,
+      requires that ``endomorphism`` is also set to ``True``, and returns a
+      maximal order in the quaternion algebra `B_{p,\infty}` ramified at `p`
+      and `\infty` such that `\vartheta\mapsto\mathbf i` and `\pi\mapsto\mathbf j`,
+      where `\pi` is the `p`‑power Frobenius, defines an embedding of the
+      endomorphism ring of the constructed curve into `B_{p,\infty}`.
 
     EXAMPLES::
 
@@ -2983,6 +2990,11 @@ def special_supersingular_curve(F, q=None, *, endomorphism=False):
         Traceback (most recent call last):
         ...
         ValueError: invalid choice of q
+
+    If ``maximal_order`` is set to ``True``, the function also returns
+    a quaternion maximal order which corresponds to the endomorphism ring::
+
+        sage: TODO
 
     TESTS::
 
@@ -3063,11 +3075,15 @@ def special_supersingular_curve(F, q=None, *, endomorphism=False):
 
     .. NOTE::
 
-        This function makes no guarantees about the distribution of
-        the output. The current implementation is deterministic in
-        many cases.
+        This function makes no guarantees about the distribution of the output.
+        The current implementation is deterministic in many cases.
 
-    ALGORITHM: [Bro2009]_, Algorithm 2.4
+    ALGORITHM:
+
+    - (Some code copied and adjusted from the implementation of [EPSV2023]_.)
+    - For the curves: [Bro2009]_, Algorithm 2.4.
+    - For the maximal orders: Searching for endomorphisms divisible by integers
+      by using discrete logarithms and linear algebra.
     """
     if not isinstance(F, FiniteField):
         raise TypeError('input must be a finite field')
@@ -3076,6 +3092,9 @@ def special_supersingular_curve(F, q=None, *, endomorphism=False):
 
     if endomorphism and deg % 2:
         raise ValueError('endomorphism was requested but is not defined over given field')
+
+    if maximal_order and not endomorphism:
+        raise ValueError('maximal_order can only be returned if endomorphism is, too')
 
     if q is not None:
         from sage.arith.misc import hilbert_conductor
@@ -3143,7 +3162,11 @@ def special_supersingular_curve(F, q=None, *, endomorphism=False):
 
     endo._degree = ZZ(q)
     endo.trace.set_cache(ZZ.zero())
-    return E, endo
+
+    if not maximal_order:
+        return E, endo
+
+    ...
 
 
 def EllipticCurve_with_order(m, *, D=None):
