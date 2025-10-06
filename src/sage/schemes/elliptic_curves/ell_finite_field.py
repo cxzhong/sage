@@ -3166,7 +3166,54 @@ def special_supersingular_curve(F, q=None, *, endomorphism=False, maximal_order=
     if not maximal_order:
         return E, endo
 
-    ...
+    from sage.algebras.quatalg.quaternion_algebra import QuaternionAlgebra
+
+    Quat, (i,j,k) = QuaternionAlgebra(-q, -p).objgens()
+    assert Quat.discriminant() == p
+
+    if q == 1:
+        O = Quat.quaternion_order([1, i, (i+j)/2, (1+k)/2])
+
+    elif q == 3:
+        O = Quat.quaternion_order([1, (1+i)/2, (j+k)/2, (i+k)/3])
+
+    else:
+        from sage.matrix.constructor import matrix
+        from sage.algebras.quatalg.quaternion_algebra import basis_for_quaternion_lattice as bfql
+        from sage.schemes.elliptic_curves.hom_fractional import EllipticCurveHom_fractional
+
+        maps = [E.identity_morphism(), endo, E.frobenius_isogeny(), endo * E.frobenius_isogeny()]
+        def matrix_of_quat(quat, PQ):
+            denom = quat.denominator()
+            numer = sum(ZZ(c) * phi for c, phi in zip(quat * denom, maps))
+            numer._degree = (quat * denom).reduced_norm()
+            endo = EllipticCurveHom_fractional(numer, denom, check=False)
+            return endo.matrix_on_subgroup(PQ)
+
+        gens = []
+
+        # saturate for each prime power in 4q separately
+        assert Quat.quaternion_order([Quat.one(), i, j, i * j]).discriminant() == 4 * q * p
+        for l in (2 * q).prime_factors():
+            lgens = [Quat.one(), i, j, i * j]
+
+            tors = E.torsion_basis(l, extend=True)
+
+            while l.divides(Quat.quaternion_order(lgens).discriminant()):
+                mat = matrix(matrix_of_quat(gen, tors).list() for gen in lgens)
+
+                for vec in mat.left_kernel_matrix().change_ring(ZZ):
+                    gen = sum(c * g for c, g in zip(vec, lgens)) / l
+                    lgens.append(gen)
+
+                lgens = bfql([g * h for g in lgens for h in lgens])
+
+            gens = bfql(gens + lgens)
+
+        O = Quat.quaternion_order(gens)
+        assert O.discriminant() == p
+
+    return E, endo, O
 
 
 def EllipticCurve_with_order(m, *, D=None):
