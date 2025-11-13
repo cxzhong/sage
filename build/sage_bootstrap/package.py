@@ -793,4 +793,3 @@ print(json.dumps(results))
                 self.__trees = f.readline().partition('#')[0].strip()
         except IOError:
             self.__trees = None
-# marker
