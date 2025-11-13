@@ -323,6 +323,45 @@ class Package(object):
         # Lower index = higher priority
         tag_priority = {tag: idx for idx, tag in enumerate(compatible_tags)}
         
+        # Batch parse all wheel filenames in a single subprocess call
+        # This significantly reduces overhead for packages with many wheels
+        wheel_tarballs = [(i, info) for i, info in enumerate(self.__tarballs_info) 
+                         if info['tarball'].endswith('.whl')]
+        
+        # Parse all wheel filenames at once
+        wheel_tags_map = {}  # Maps tarball index to its tags
+        if wheel_tarballs:
+            try:
+                # Create a Python script that parses all wheel filenames at once
+                wheel_filenames = [info['tarball'] for _, info in wheel_tarballs]
+                python_code = '''
+import packaging.utils, json, sys
+results = {}
+for filename in sys.argv[1:]:
+    try:
+        _, _, _, tags = packaging.utils.parse_wheel_filename(filename)
+        results[filename] = [str(t) for t in tags]
+    except Exception:
+        results[filename] = None
+print(json.dumps(results))
+'''
+                result = subprocess.run(
+                    [sage_script, '-python', '-c', python_code] + wheel_filenames,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    universal_newlines=True,
+                    timeout=10,
+                    cwd=SAGE_ROOT
+                )
+                if result.returncode == 0:
+                    wheel_tags_map = json.loads(result.stdout.strip())
+                else:
+                    log.warning('Failed to batch parse wheel filenames')
+            except subprocess.TimeoutExpired:
+                log.warning('Timeout while batch parsing wheel filenames')
+            except Exception as e:
+                log.warning(f'Error batch parsing wheel filenames: {e}')
+        
         # Find the best matching tarball
         best_match = None
         best_priority = float('inf')
@@ -338,30 +377,10 @@ class Package(object):
                     best_priority = len(compatible_tags) + 1000
                 continue
             
-            # Parse wheel filename using packaging.utils via Sage's Python
-            # This properly handles multi-platform wheels like:
-            # rpds_py-0.28.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
-            try:
-                python_code = 'import packaging.utils, json, sys; _, _, _, tags = packaging.utils.parse_wheel_filename(sys.argv[1]); print(json.dumps([str(t) for t in tags]))'
-                result = subprocess.run(
-                    [sage_script, '-python', '-c', python_code, tarball],
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                    universal_newlines=True,
-                    timeout=10,
-                    cwd=SAGE_ROOT
-                )
-                if result.returncode != 0:
-                    log.warning(f'Could not parse wheel filename {tarball}')
-                    continue
-                
-                wheel_tags_str = json.loads(result.stdout.strip())
-                
-            except subprocess.TimeoutExpired:
-                log.warning(f'Timeout while parsing wheel filename {tarball}')
-                continue
-            except Exception as e:
-                log.warning(f'Could not parse wheel filename {tarball}: {e}')
+            # Get tags from batch parsing results
+            wheel_tags_str = wheel_tags_map.get(tarball)
+            if wheel_tags_str is None:
+                log.warning(f'Could not parse wheel filename {tarball}')
                 continue
             
             # Check each tag in the wheel (multi-platform wheels have multiple tags)

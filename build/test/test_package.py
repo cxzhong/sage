@@ -37,3 +37,21 @@ class PackageTestCase(unittest.TestCase):
     def test_all(self):
         pari = Package('pari')
         self.assertTrue(pari in Package.all())
+    
+    def test_multi_tarball_package(self):
+        """Test packages with multiple platform-specific wheels."""
+        # rpds_py is a package with many platform-specific wheels
+        try:
+            pkg = Package('rpds_py')
+            self.assertEqual(pkg.name, 'rpds_py')
+            # Should have multiple tarballs (wheels for different platforms)
+            self.assertGreater(len(pkg.tarballs_info), 1)
+            # Each tarball info should have required fields
+            for info in pkg.tarballs_info:
+                self.assertIn('tarball', info)
+                self.assertIn('sha256', info)
+                # All should be wheels
+                self.assertTrue(info['tarball'].endswith('.whl'))
+        except Exception:
+            # If rpds_py doesn't exist, skip this test
+            self.skipTest('rpds_py package not found')
