@@ -3491,6 +3491,12 @@ REFERENCES:
 .. [Harv2007] David Harvey. *Kedlaya's algorithm in larger characteristic*,
               :arxiv:`math/0610973`.
 
+.. [HausGul2002] Raphael A. Hauser and Osman Güler.
+                 *Self-Scaled Barrier Functions on Symmetric Cones
+                 and Their Classification*.
+                 Foundations of Computational Mathematics 2(2):121-143,
+                 2002. :doi:`10.1007/s102080010022`.
+
 .. [Haz2004] Michiel Hazewinkel, *Explicit polynomial generators for the
              ring of quasisymmetric functions over the integers*.
              :arxiv:`math/0410366v1`
