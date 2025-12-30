@@ -1355,7 +1355,9 @@ class HypergeometricAlgebraic_GFp(HypergeometricAlgebraic):
             checked[(left, right)] = True
             lpa = left._parameters
             rpa = right._parameters
-            criticals = [(1-pa) % p for pa in lpa.top + lpa.bottom + rpa.top + rpa.bottom]
+            criticals = [(1 - pa) % p
+                         for pa in lpa.top + lpa.bottom + rpa.top + rpa.bottom
+                         if pa.denominator() % p]
             criticals.sort()
             criticals.append(p)
             for i in range(len(criticals) - 1):
@@ -1470,17 +1472,16 @@ class HypergeometricAlgebraic_GFp(HypergeometricAlgebraic):
              hypergeometric((3/8, 5/8, 9/8), (1/2, 5/4), x): 1}
         """
         parameters = self._parameters
-        if not parameters.is_balanced():
-            raise ValueError("the hypergeometric function must be a pFq with q = p-1")
         p = self._char
         H = self.parent()
         S = H.polynomial_ring()
-        pas = parameters.top + parameters.bottom
-        criticals = [(1-pa) % p for pa in pas]
+        criticals = [(1 - pa) % p
+                     for pa in parameters.top + parameters.bottom
+                     if pa.denominator() % p]
         criticals.sort()
         criticals.append(p)
         Ps = {}
-        for i in range(len(pas)):
+        for i in range(len(criticals) - 1):
             ci = criticals[i]
             cj = criticals[i+1]
             if cj == ci:
