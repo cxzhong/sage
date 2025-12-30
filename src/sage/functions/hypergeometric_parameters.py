@@ -37,6 +37,11 @@ from sage.matrix.special import identity_matrix
 # Parameters of hypergeometric functions
 ########################################
 
+def dwork(a, p):
+    if a.valuation(p) < 0:
+        return a
+    return (a + (-a) % p) / p
+
 class HypergeometricParameters(SageObject):
     r"""
     Class for parameters of hypergeometric functions.
@@ -603,7 +608,8 @@ class HypergeometricParameters(SageObject):
 
         d = lcm(pa.denominator() for pa, _ in params)
         order = IntegerModRing(d)(p).multiplicative_order()
-        bound = 1 + max(pa.abs() for pa, _ in params)
+        bound = max(pa.abs() for pa, _ in params)
+        bound += p ** max(pa.valuation(p) for pa, _ in params)
         thresold = d * sum(dw for _, dw in params if dw > 0)
 
         valfinal = None
@@ -792,19 +798,16 @@ class HypergeometricParameters(SageObject):
             sage: pa.dwork_image(7)
             ((1/3, 1/2, 3/4), (1/5, 4/5, 1))
 
-        If `p` is not coprime to the common denominators of the parameters,
-        a ``ValueError`` is raised::
+        If the denominator of a parameter is divisible by `p`, then this
+        parameters is unchanged::
 
             sage: pa.dwork_image(3)
             Traceback (most recent call last):
             ...
             ValueError: denominators of parameters are not coprime to p
         """
-        try:
-            top = [(a + (-a) % p) / p for a in self.top]
-            bottom = [(b + (-b) % p) / p for b in self.bottom]
-        except ZeroDivisionError:
-            raise ValueError("denominators of parameters are not coprime to p")
+        top = [dwork(a, p) for a in self.top]
+        bottom = [dwork(b, p) for b in self.bottom]
         return HypergeometricParameters(top, bottom, add_one=False)
 
     def frobenius_order(self, p):
