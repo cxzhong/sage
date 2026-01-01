@@ -26,7 +26,7 @@ TESTS::
     -0.2500000000000000*y^2 + 0.5000000000000000*y
 """
 
-#*****************************************************************************
+# ***************************************************************************
 #       Copyright (C) 2005, 2006 William Stein <wstein@gmail.com>
 #                     2016 Julian Rüth <julian.rueth@fsfe.org>
 #
@@ -35,7 +35,7 @@ TESTS::
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
 #                  https://www.gnu.org/licenses/
-#*****************************************************************************
+# ***************************************************************************
 
 
 import sage.rings.rational_field
@@ -1288,9 +1288,9 @@ class PolynomialQuotientRing_generic(QuotientRing_generic):
         if self not in IntegralDomains():
             raise TypeError("self must be an integral domain")
 
-        frac = self.base_ring().fraction_field()
-        return self.base().change_ring(frac).quo(self.modulus(),
-                                                 category=Fields())
+        # frac = self.base_ring().fraction_field()
+        # HERE: changing the base ring to its fraction field is causing issues
+        return self.base().quo(self.modulus(), category=Fields())
 
     def random_element(self, degree=None, *args, **kwds):
         """
