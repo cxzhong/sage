@@ -922,15 +922,15 @@ class HypergeometricAlgebraic_QQ(HypergeometricAlgebraic):
         differences between parameters we follow the flowchart in
         [FY2024]_, Fig. 1.
         """
-        if any(a in ZZ and a <= 0 for a in self.top()):
+        parameters = self._parameters.remove_positive_integer_differences()
+        if any(a in ZZ and a <= 0 for a in parameters.top):
             return True
-        if not self._parameters.is_balanced():
+        if not parameters.is_balanced():
             return False
-        simplified_parameters = self._parameters.remove_positive_integer_differences()
-        if simplified_parameters.has_negative_integer_differences():
+        if parameters.has_negative_integer_differences():
             return False
-        d = simplified_parameters.d
-        return all(simplified_parameters.interlacing_criterion(c)
+        d = parameters.d
+        return all(parameters.interlacing_criterion(c)
                    for c in range(d) if d.gcd(c) == 1)
 
     def is_globally_bounded(self, include_infinity=True):
@@ -960,6 +960,8 @@ class HypergeometricAlgebraic_QQ(HypergeometricAlgebraic):
         We rely on Christol's classification of globally bounded hypergeometric
         functions (see [Chr1986]_, Prop. 1).
         """
+        if self.is_polynomial():
+            return True
         if include_infinity and len(self.top()) > len(self.bottom()) + 1:
             return False
         d = self.denominator()
@@ -1194,13 +1196,16 @@ class HypergeometricAlgebraic_padic(HypergeometricAlgebraic):
             sage: g.log_radius_of_convergence()
             5/4
         """
+        if self.is_polynomial():
+            return infinity
+        return self._log_radius_of_convergence()
+
+    def _log_radius_of_convergence(self):
         p = self._p
         step = self._e / (p - 1)
         log_radius = 0
-        parameters = self._parameters.remove_positive_integer_differences()
+        parameters = self._parameters
         for a in parameters.top:
-            if a in ZZ and a <= 0:
-                return infinity
             v = a.valuation(p)
             if v < 0:
                 log_radius += v
@@ -1280,10 +1285,14 @@ class HypergeometricAlgebraic_padic(HypergeometricAlgebraic):
         return NewtonPolygon(vertices, last_slope=log_radius)
 
     def _truncation_bound(self, log_radius, prec):
-        convergence = self.log_radius_of_convergence()
+        degree = self.degree()
+        convergence = self._log_radius_of_convergence()
         margin = convergence - log_radius
         if margin <= 0:
-            raise ValueError("outside the domain of convergence")
+            if degree is infinity:
+                raise ValueError("outside the domain of convergence")
+            else:
+                return 1 + degree
         val = self.valuation(convergence)
         if val is not -infinity:
             lr = convergence
@@ -1300,7 +1309,7 @@ class HypergeometricAlgebraic_padic(HypergeometricAlgebraic):
         #   val(h_k) >= -log_radius*k + prec
         # So we just solve the equation.
         k = (prec - val) / (lr - log_radius)
-        return 1 + max(0, floor(k))
+        return 1 + min(degree, max(0, floor(k)))
 
     def tate_series(self, log_radius, prec=None):
         K = self.base_ring()
