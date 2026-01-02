@@ -119,8 +119,7 @@ class HypergeometricAlgebraic(Element):
             parameters = HypergeometricParameters(arg1, arg2)
         char = self.parent()._char
         if check and scalar:
-            if any(b in ZZ and b <= 0 for b in parameters.bottom):
-                raise ValueError("the parameters %s do not define a hypergeometric function" % parameters)
+            _ = parameters.degree()
             if char > 0:
                 val, _, _ = parameters.valuation_position(char)
                 if val < 0:
@@ -128,6 +127,8 @@ class HypergeometricAlgebraic(Element):
         self._scalar = scalar
         self._parameters = parameters
         self._coeffs = [scalar]
+        self._coeff_last = scalar
+        self._coeff_zero = 0
         self._char = char
 
     def __hash__(self):
@@ -472,13 +473,26 @@ class HypergeometricAlgebraic(Element):
         """
         coeffs = self._coeffs
         start = len(coeffs) - 1
-        c = coeffs[-1]
+        c = self._coeff_last
+        R = self.base_ring()
         for i in range(start, prec - 1):
             for a in self._parameters.top:
-                c *= a + i
+                if a + i == 0:
+                    self._coeff_zero += 1
+                else:
+                    c *= a + i
             for b in self._parameters.bottom:
-                c /= b + i
-            coeffs.append(c)
+                if b + i == 0:
+                    self._coeff_zero -= 1
+                else:
+                    c /= b + i
+            if self._coeff_zero < 0:
+                raise RuntimeError
+            elif self._coeff_zero > 0:
+                coeffs.append(R.zero())
+            else:
+                coeffs.append(R(c))
+        self._coeff_last = c
 
     def __getitem__(self, n):
         r"""
@@ -621,6 +635,16 @@ class HypergeometricAlgebraic(Element):
             x + hypergeometric((1/3, 2/3), (1/2,), x)/sin(x)
         """
         return SR(self) / SR(other)
+
+    def degree(self):
+        if not self._scalar:
+            return ZZ(-1)
+        if self._char:
+            raise NotImplementedError("degree is not implemented in positive characteristic")
+        return self._parameters.degree()
+
+    def is_polynomial(self):
+        return self.degree() is not infinity
 
     def denominator(self):
         r"""
@@ -1173,7 +1197,8 @@ class HypergeometricAlgebraic_padic(HypergeometricAlgebraic):
         p = self._p
         step = self._e / (p - 1)
         log_radius = 0
-        for a in self._parameters.top:
+        parameters = self._parameters.remove_positive_integer_differences()
+        for a in parameters.top:
             if a in ZZ and a <= 0:
                 return infinity
             v = a.valuation(p)
@@ -1181,7 +1206,7 @@ class HypergeometricAlgebraic_padic(HypergeometricAlgebraic):
                 log_radius += v
             else:
                 log_radius += step
-        for b in self._parameters.bottom:
+        for b in parameters.bottom:
             v = b.valuation(p)
             if v < 0:
                 log_radius -= v
@@ -1315,7 +1340,7 @@ class HypergeometricAlgebraic_GFp(HypergeometricAlgebraic):
     def __init__(self, parent, arg1, arg2=None, scalar=None, check=True):
         HypergeometricAlgebraic.__init__(self, parent, arg1, arg2, scalar, check)
         self._p = p = self.base_ring().cardinality()
-        self._coeffs = [Qp(p, 1)(self._scalar)]
+        self._coeff_last = Qp(p, 1)(self._scalar)
 
     def __call__(self, x):
         return self.polynomial()(x)
@@ -1371,7 +1396,7 @@ class HypergeometricAlgebraic_GFp(HypergeometricAlgebraic):
                 _, rpos, _ = rdpa.valuation_position(p)
                 if lpos != rpos:
                     return False
-                if left[ei + lpos*p] == 0 and right[ei + rpos*p] == 0:
+                if lpos is None or left[ei + lpos*p] == 0 and right[ei + rpos*p] == 0:
                     continue
                 if any(left[r + lpos*p] != right[r + rpos*p] for r in range(ei, ej)):
                     return False
@@ -1487,7 +1512,9 @@ class HypergeometricAlgebraic_GFp(HypergeometricAlgebraic):
             if cj == ci:
                 continue
             params = parameters.shift(ci).dwork_image(p)
-            _, s, _ = params.valuation_position(p)
+            v, s, _ = params.valuation_position(p)
+            if v is -infinity:
+                continue
             ci += s*p
             cj += s*p
             h = H(params.shift(s), check=False)

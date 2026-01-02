@@ -161,6 +161,28 @@ class HypergeometricParameters(SageObject):
         """
         return len(self.top) == len(self.bottom)
 
+    def degree(self):
+        neg = {}
+        for a in self.top:
+            if a in ZZ and a <= 0:
+                neg[a] = neg.get(a, 0) + 1
+        for b in self.bottom:
+            if b in ZZ and b <= 0:
+                neg[b] = neg.get(b, 0) - 1
+        pas = [(-pa, ds) for pa, ds in neg.items() if ds]
+        pas.sort()
+        s = 0
+        for pa, ds in pas:
+            if s == 0:
+                deg = pa
+            s += ds
+            if s < 0:
+                raise ValueError("the parameters %s do not define a hypergeometric function" % self)
+        if s == 0:
+            return infinity
+        else:
+            return deg
+
     @cached_method
     def christol_sorting(self, c=1):
         r"""
@@ -534,23 +556,28 @@ class HypergeometricParameters(SageObject):
 
     def prepare_parameters(self, p):
         params = {}
-        shift = 0
+        shift = diff = 0
         for a in self.top:
-            if a in ZZ and a <= 0:
-                raise NotImplementedError
             v = a.valuation(p)
             if v < 0:
                 shift += v
             else:
+                diff += 1
                 params[a] = params.get(a, 0) + 1
         for b in self.bottom:
             v = b.valuation(p)
             if v < 0:
                 shift -= v
             else:
+                diff -= 1
                 params[b] = params.get(b, 0) - 1
         params = [(pa, dw) for pa, dw in params.items() if dw != 0]
-        return params, shift
+        negparams = [(pa, dw) for pa, dw in params if pa in ZZ and pa <= 0]
+        if sum(dw for _, dw in negparams) > 0:
+            degree = max(-pa for pa, _ in negparams)
+        else:
+            degree = infinity
+        return params, shift, diff, negparams, degree
 
     def valuation_position(self, p, drift=0):
         r"""
@@ -592,25 +619,32 @@ class HypergeometricParameters(SageObject):
             (-54/5, 7, 11)
         """
         # We check that we are inside the disk of convergence
-        params, shift = self.prepare_parameters(p)
-        drift += shift
-        diff = sum(dw for _, dw in params)
-        growth = (p-1)*drift + diff
-        if growth < 0:
+        params, shift, diff, negparams, degree = self.prepare_parameters(p)
+        if not params:
+            return 0, 0, 0
+        n = len(params) + 1
+        negpivot = min(n, len(negparams) + 1)
+        if drift is None:
+            anticipated = False
+            drift = diff / (1 - p)
+            growth = 0
+        else:
+            anticipated = True
+            drift += shift
+            growth = (p-1)*drift + diff
+        if degree is infinity and growth < 0:
             return -infinity, None, 0
 
         # Main part: computation of the valuation
         # We use Christol's formula (see Lemma 3.1.10 of [CFVM2025])
         # with modification in order to take the drift into account
-        n = len(params) + 1
         TSR = TropicalSemiring(QQ)
         TM = identity_matrix(TSR, n)
 
         d = lcm(pa.denominator() for pa, _ in params)
         order = IntegerModRing(d)(p).multiplicative_order()
-        bound = max(pa.abs() for pa, _ in params)
-        bound += p ** max(pa.valuation(p) for pa, _ in params)
-        thresold = d * sum(dw for _, dw in params if dw > 0)
+        bound = p**order * max(pa.abs() for pa, _ in params if pa)
+        thresold = order * sum(dw for _, dw in params if dw > 0)
 
         valfinal = None
         signature_prev = indices_prev = None
@@ -618,11 +652,11 @@ class HypergeometricParameters(SageObject):
         count = r = 0
         q = 1
         while True:
-            # We take into account the contribution of V({k/p^r}, p^r).
+            # We take into account the contribution of w_r(x)
             # We represent the partial sum until r by the list signature.
             # Its entries are triples (valuation, position, parameter):
             # - parameter is the parameter corresponding to a point of
-            #   discontinuity of the last summand V({k/p^r}, p^r)
+            #   discontinuity of the last summand w_r(x)
             # - valuation is the minimum of the partial sum on the
             #   range starting at this discontinuity point (included)
             #   and ending at the next one (excluded)
@@ -635,7 +669,7 @@ class HypergeometricParameters(SageObject):
             r += 1
             pq = p * q
 
-            # We compute the points of discontinuity of V({k/p^r}, p^r)
+            # We compute the points of discontinuity of w_r(x)
             # and store them in the list jumps
             # Each entry of jumps has the form (x, dw, parameter) where:
             # - x is the position of the discontinuity point
@@ -652,12 +686,16 @@ class HypergeometricParameters(SageObject):
             for i in range(n):
                 x, dw, param = jumps[i]    # discontinuity point
                 y, _, right = jumps[i+1]   # next discontinuity point
-                w += dw   # the value of V({k/p^r}, p^r) on this interval
+                w += dw   # the value of w_r on this interval
                 indices[param] = len(signature)
                 if x == y:
                     # Case of empty interval
                     val = infinity
                     pos = None
+                elif x > degree:
+                    # The series is a polynomial and we are after the degree
+                    val = infinity
+                    pos = x
                 elif signature_prev is None:
                     # Case r = 1
                     if drift < 0:
@@ -694,10 +732,10 @@ class HypergeometricParameters(SageObject):
 
             # The halting criterion
             if q > bound:
-                valuation, position, _ = signature[0]
-                if drift > 2*thresold and all(signature[i][0] > valuation + thresold for i in range(1, n)):
+                valuation, position, _ = min(signature[i] for i in range(negpivot))
+                if anticipated and drift > 2*thresold and all(signature[i][0] > valuation + thresold for i in range(negpivot, n)):
                     return QQ(valuation), ZZ(position), r
-                if growth == 0:
+                if degree is not infinity or growth == 0:
                     if count < order:
                         TM = TMr * TM
                     count += 1
@@ -706,7 +744,8 @@ class HypergeometricParameters(SageObject):
                             TM = TM.weak_transitive_closure()
                         except ValueError:
                             return -infinity, None, r
-                        valfinal = min(TM[0, j].lift() + signature[j][0] for j in range(n))
+                        valfinal = min(TM[i, j].lift() + signature[j][0]
+                                       for i in range(negpivot) for j in range(n))
                     if valuation == valfinal:
                         return QQ(valuation), ZZ(position), r
 
@@ -717,21 +756,29 @@ class HypergeometricParameters(SageObject):
             indices_prev = indices
 
     def valuation_function(self, p, start):
-        valstart, _, r = self.valuation_position(p, start)
-        if valstart is -infinity:
-            raise ValueError
-
-        params, shift = self.prepare_parameters(p)
-        diff = sum(dw for _, dw in params)
+        params, shift, diff, negparams, degree = self.prepare_parameters(p)
+        if not params:
+            return 0, 0, 0
         n = len(params) + 1
+        negpivot = min(n, len(negparams) + 1)
 
-        rays = [[0, 1], [1, -start]]
+        if start is -infinity:
+            if sum(dw for _, dw in negparams) <= 0:
+                raise ValueError
+            _, _, rmax = self.valuation_position(p, None)
+            rays = [[0, 1]]
+        else:
+            valstart, _, rmax = self.valuation_position(p, start)
+            if valstart is -infinity:
+                raise ValueError
+            rays = [[0, 1], [1, -start]]
+
         infty = Polyhedron(ambient_dim=2)
         drift = Polyhedron(vertices=[[1, shift]], rays=rays)
 
         signature_prev = None
         q = 1
-        for _ in range(r):
+        for _ in range(rmax):
             pq = p * q
 
             jumps = [(1 + (-pa) % pq, dw, pa) for pa, dw in params]
@@ -742,9 +789,12 @@ class HypergeometricParameters(SageObject):
             for i in range(n):
                 x, dw, param = jumps[i]    # discontinuity point
                 y, _, right = jumps[i+1]   # next discontinuity point
-                w += dw   # the value of V({k/p^r}, p^r) on this interval
+                w += dw   # the value of w_r on this interval
                 if x == y:
                     # Case of empty interval
+                    val = infty
+                elif x > degree:
+                    # The series is a polynomial and we are after the degree
                     val = infty
                 elif signature_prev is None:
                     # Case r = 1
@@ -755,7 +805,7 @@ class HypergeometricParameters(SageObject):
                     for j in range(n):
                         valj, left, paramj = signature_prev[j]
                         left_interval = max(0, ceil((x - left) / q))
-                        right_interval = max(0, floor((y - 1 - left) / q))
+                        right_interval = floor((y - 1 - left) / q)
                         if left_interval > right_interval:
                             continue
                         drift_scaled = left_interval * drift
@@ -764,19 +814,15 @@ class HypergeometricParameters(SageObject):
                         val = val.convex_hull(drift_scaled + valj)
                 val = val.translation((0, w))
                 signature.append((val, x, param))
-                # valuation = valuation.convex_hull(val)
-
-            # The halting criterion
-            # if q > bound:
-            #     valthresold = valuation + thresold
-            #     if drift > thresold*2 and all(signature[i][0] > valthresold for i in range(1, n)):
-            #         return valuation
 
             q = pq
             drift = (p*drift).translation((0, diff))
             signature_prev = signature
 
-        return signature[0][0].vertices_list()
+        NP = signature[0][0]
+        for i in range(1, negpivot):
+            NP = NP.convex_hull(signature[i][0])
+        return NP.vertices_list()
 
     def dwork_image(self, p):
         r"""
