@@ -127,8 +127,7 @@ class HypergeometricAlgebraic(Element):
         self._scalar = scalar
         self._parameters = parameters
         self._coeffs = [scalar]
-        self._coeff_last = scalar
-        self._coeff_zero = 0
+        self._coeffs_enriched = [[scalar, 0]]
         self._char = char
 
     def __hash__(self):
@@ -471,28 +470,27 @@ class HypergeometricAlgebraic(Element):
             sage: f._coeffs
             [1, 4/9, 80/243]
         """
-        coeffs = self._coeffs
-        start = len(coeffs) - 1
-        c = self._coeff_last
+        start = len(self._coeffs) - 1
+        c, z = self._coeffs_enriched[-1]
         R = self.base_ring()
         for i in range(start, prec - 1):
             for a in self._parameters.top:
                 if a + i == 0:
-                    self._coeff_zero += 1
+                    z += 1
                 else:
                     c *= a + i
             for b in self._parameters.bottom:
                 if b + i == 0:
-                    self._coeff_zero -= 1
+                    z -= 1
                 else:
                     c /= b + i
-            if self._coeff_zero < 0:
+            if z < 0:
                 raise RuntimeError
-            elif self._coeff_zero > 0:
-                coeffs.append(R.zero())
+            elif z > 0:
+                self._coeffs.append(R.zero())
             else:
-                coeffs.append(R(c))
-        self._coeff_last = c
+                self._coeffs.append(R(c))
+            self._coeffs_enriched.append([c, z])
 
     def __getitem__(self, n):
         r"""
@@ -1349,7 +1347,7 @@ class HypergeometricAlgebraic_GFp(HypergeometricAlgebraic):
     def __init__(self, parent, arg1, arg2=None, scalar=None, check=True):
         HypergeometricAlgebraic.__init__(self, parent, arg1, arg2, scalar, check)
         self._p = p = self.base_ring().cardinality()
-        self._coeff_last = Qp(p, 1)(self._scalar)
+        self._coeffs_enriched = [(Qp(p, 1)(self._scalar), 0)]
 
     def __call__(self, x):
         return self.polynomial()(x)
@@ -1403,11 +1401,13 @@ class HypergeometricAlgebraic_GFp(HypergeometricAlgebraic):
                 _, lpos, _ = ldpa.valuation_position(p)
                 rdpa = rpa.shift(ei).dwork_image(p)
                 _, rpos, _ = rdpa.valuation_position(p)
-                if lpos != rpos:
-                    return False
-                if lpos is None or left[ei + lpos*p] == 0 and right[ei + rpos*p] == 0:
+                if lpos is None or rpos is None:
+                    if lpos != rpos:
+                        return False
                     continue
-                if any(left[r + lpos*p] != right[r + rpos*p] for r in range(ei, ej)):
+                if left[ei + lpos*p] == 0 and right[ei + rpos*p] == 0:
+                    continue
+                if lpos != rpos or any(left[r + lpos*p] != right[r + rpos*p] for r in range(ei, ej)):
                     return False
                 lsec = H(ldpa.shift(lpos))
                 rsec = H(rdpa.shift(rpos))
@@ -1521,8 +1521,8 @@ class HypergeometricAlgebraic_GFp(HypergeometricAlgebraic):
             if cj == ci:
                 continue
             params = parameters.shift(ci).dwork_image(p)
-            v, s, _ = params.valuation_position(p)
-            if v is -infinity:
+            _, s, _ = params.valuation_position(p)
+            if s is None:
                 continue
             ci += s*p
             cj += s*p
