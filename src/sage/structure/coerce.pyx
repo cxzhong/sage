@@ -81,8 +81,8 @@ from cpython.weakref cimport PyWeakref_GET_OBJECT, PyWeakref_NewRef
 from libc.string cimport strncmp
 cimport gmpy2
 
-cdef mul, truediv
-from operator import mul, truediv
+cdef mul, truediv, pow
+from operator import mul, truediv, pow
 
 from sage.structure.richcmp cimport rich_to_bool, revop
 from sage.structure.sage_object cimport SageObject
@@ -1214,6 +1214,21 @@ cdef class CoercionModel:
             blahblahP
             sage: 80+a
             Pblahblah
+
+        Powering with a rational that equals an integer should use _pow_int
+        (:issue:`40712`)::
+
+            sage: R.<x> = ZZ['x']
+            sage: phi = R.hom([x+1]); phi
+            Ring endomorphism of Univariate Polynomial Ring in x over Integer Ring
+              Defn: x |--> x + 1
+            sage: phi^(2/1)
+            Ring endomorphism of Univariate Polynomial Ring in x over Integer Ring
+              Defn: x |--> x + 2
+            sage: phi^(3/2)
+            Traceback (most recent call last):
+            ...
+            TypeError: unsupported operand parent(s) for ^...
         """
         self._exceptions_cleared = False
 
@@ -1273,6 +1288,31 @@ cdef class CoercionModel:
                         if res is not None: return res
                 except CoercionException:
                     self._record_exception()
+
+        elif op is pow:
+            # Special case for powering: if the exponent is not from an
+            # integer parent but can be converted to an integer, try using
+            # the integer power action.
+            # See Issue #40712
+            if not parent_is_integers(yp):
+                from sage.rings.integer import Integer
+                from sage.rings.integer_ring import ZZ
+                try:
+                    y_int = Integer(y)
+                    if y_int == y:
+                        # The exponent is an integer in disguise (e.g., 2/1 in QQ)
+                        # Try to use the integer power action
+                        try:
+                            action = self.get_action(xp, ZZ, op, x, y_int)
+                        except KeyError:
+                            action = None
+                        if action is not None:
+                            if (<Action>action)._is_left:
+                                return (<Action>action)._act_(x, y_int)
+                            else:
+                                return (<Action>action)._act_(y_int, x)
+                except (TypeError, ValueError):
+                    pass
 
         if not isinstance(y, Element):
             op_name = op.__name__
