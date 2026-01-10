@@ -113,7 +113,9 @@ class HypergeometricParameters(SageObject):
         else:
             self.d = lcm([a.denominator() for a in top]
                        + [b.denominator() for b in bottom])
-            self.bound = 2 * self.d * max(abs(a) for a in top + bottom) + 1
+            B = max(c1.denominator().lcm(c2.denominator()) * abs(c1 - c2)
+                    for c1 in top + bottom for c2 in top + bottom)
+            self.bound = 1 + max(B, 2*len(bottom))
 
     def __repr__(self):
         r"""
@@ -823,6 +825,23 @@ class HypergeometricParameters(SageObject):
         for i in range(1, negpivot):
             NP = NP.convex_hull(signature[i][0])
         return NP.vertices_list()
+
+    def reduce(self, p):
+        top = []
+        for a in self.top:
+            d = a.denominator()
+            if d % p:
+                top.append(a)
+            else:
+                top.append((a.numerator() % p) / d)
+        bottom = []
+        for b in self.bottom:
+            d = b.denominator()
+            if d % p:
+                bottom.append(b)
+            else:
+                bottom.append((b.numerator() % p) / d)
+        return HypergeometricParameters(top, bottom, add_one=False)
 
     def dwork_image(self, p):
         r"""

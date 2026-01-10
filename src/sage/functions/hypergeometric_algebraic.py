@@ -26,6 +26,7 @@ from sage.misc.latex import latex_variable_name
 
 from sage.misc.misc_c import prod
 from sage.functions.other import floor
+from sage.misc.functional import log
 from sage.functions.hypergeometric import hypergeometric
 from sage.arith.misc import gcd
 from sage.matrix.constructor import matrix
@@ -1361,6 +1362,26 @@ class HypergeometricAlgebraic_GFp(HypergeometricAlgebraic):
     def polynomial(self):
         raise NotImplementedError
 
+    def __getitem__(self, n):
+        n = ZZ(n)
+        p = self._p
+        K = Qp(p, 1)
+        scalar = self._scalar
+        if not scalar:
+            return scalar
+        H = self.parent().change_ring(K)
+        if n < len(self._coeffs) + p*log(n, p):
+            self._compute_coeffs(n+1)
+            return self._coeffs[n]
+        parameters = self._parameters
+        ans = K(scalar)
+        while n > 0:
+            n, r = n.quo_rem(p)
+            h = H(parameters)
+            ans *= h[r]
+            parameters = parameters.shift(r).dwork_image(p)
+        return self.base_ring()(ans)
+
     @coerce_binop
     def is_equal_as_series(self, other):
         r"""
@@ -1397,9 +1418,9 @@ class HypergeometricAlgebraic_GFp(HypergeometricAlgebraic):
                 ej = criticals[i+1]
                 if ei == ej:
                     continue
-                ldpa = lpa.shift(ei).dwork_image(p)
+                ldpa = lpa.shift(ei).dwork_image(p).reduce(p)
                 _, lpos, _ = ldpa.valuation_position(p)
-                rdpa = rpa.shift(ei).dwork_image(p)
+                rdpa = rpa.shift(ei).dwork_image(p).reduce(p)
                 _, rpos, _ = rdpa.valuation_position(p)
                 if lpos is None or rpos is None:
                     if lpos != rpos:
