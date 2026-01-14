@@ -1321,6 +1321,26 @@ class GCAlgebra(UniqueRepresentation, QuotientRing_nc):
             ...
             NotImplementedError: homomorphisms of graded commutative algebras
             have only been implemented when the base rings are the same
+
+        Fixed a bug where creating matrices with graded commutative algebra
+        elements would fail. The system now correctly handles
+        how these elements relate to other structures instead of throwing an error(:issue:41434)::
+
+            sage: R.<dx> = GradedCommutativeAlgebra(QQ)
+            sage: matrix([dx])
+            [dx]
+            sage: matrix([[dx, dx], [dx, dx]])
+            [dx dx]
+            [dx dx]
+
+        Similarly, this works with multiple generators and different base rings::
+
+            sage: S.<a,b> = GradedCommutativeAlgebra(GF(5), degrees=(1,2))
+            sage: matrix([a, b])
+            [a b]
+            sage: matrix([[a*b], [b]])
+            [a*b]
+            [  b]
         """
         if not isinstance(B, GCAlgebra):
             return super()._Hom_(B, category)
