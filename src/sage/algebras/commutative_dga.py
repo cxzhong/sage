@@ -1322,6 +1322,8 @@ class GCAlgebra(UniqueRepresentation, QuotientRing_nc):
             NotImplementedError: homomorphisms of graded commutative algebras
             have only been implemented when the base rings are the same
         """
+        if not isinstance(B, GCAlgebra):
+            return super()._Hom_(B, category)
         R = self.base_ring()
         # The base rings need to be checked before the categories, or
         # else the function sage.categories.homset.Hom catches the
