@@ -1322,9 +1322,9 @@ class GCAlgebra(UniqueRepresentation, QuotientRing_nc):
             NotImplementedError: homomorphisms of graded commutative algebras
             have only been implemented when the base rings are the same
 
-        Test that it's possible to construct a matrix
-        with GCAlgebra elements.when B is not a GCAlgebra
-        the call is handed to the parent class (:issue:41434)::
+        It is possible to construct a matrix with GCAlgebra elements.
+        when B is not a GCAlgebra the call is handed to the parent class
+        (:issue:41434)::
 
             sage: R.<dx> = GradedCommutativeAlgebra(QQ)
             sage: matrix([dx])
