@@ -258,14 +258,6 @@ class PolynomialQuotientRingFactory(UniqueFactory):
 PolynomialQuotientRing = PolynomialQuotientRingFactory("PolynomialQuotientRing")
 
 
-def is_PolynomialQuotientRing(x):
-    from sage.misc.superseded import deprecation
-    deprecation(38266,
-                "The function is_PolynomialQuotientRing is deprecated; "
-                "use 'isinstance(..., PolynomialQuotientRing_generic)' instead.")
-    return isinstance(x, PolynomialQuotientRing_generic)
-
-
 class PolynomialQuotientRing_generic(QuotientRing_generic):
     """
     Quotient of a univariate polynomial ring by an ideal.
