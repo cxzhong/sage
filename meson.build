@@ -199,7 +199,6 @@ file_paths = [
   'src/sage/stats/hmm/__init__.py',
   'src/sage/stats/__init__.py',
   'src/sage/stats/distributions/__init__.py',
-  'src/sage/libs/gap/__init__.py',
   'src/sage/libs/mpfi/__init__.py',
   'src/sage/libs/__init__.py',
   'src/sage/libs/polybori/__init__.py',
