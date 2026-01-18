@@ -146,7 +146,6 @@ file_paths = [
   'src/sage/rings/function_field/drinfeld_modules/__init__.py',
   'src/sage/rings/semirings/__init__.py',
   'src/sage/rings/number_field/__init__.py',
-  'src/sage/rings/__init__.py',
   'src/sage/rings/padics/__init__.py',
   'src/sage/rings/valuation/__init__.py',
   'src/sage/rings/asymptotic/__init__.py',
