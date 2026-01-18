@@ -133,7 +133,6 @@ file_paths = [
   'src/sage/ext/__init__.py',
   'src/sage/ext/interpreters/__init__.py',
   'src/sage/categories/examples/__init__.py',
-  'src/sage/categories/__init__.py',
   'src/sage/modules/fg_pid/__init__.py',
   'src/sage/modules/__init__.py',
   'src/sage/modules/with_basis/__init__.py',
