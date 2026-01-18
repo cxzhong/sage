@@ -19,9 +19,10 @@ import sys
 import tomllib
 import traceback
 from pathlib import Path
-from typing import TYPE_CHECKING, Generator, Sequence
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from collections.abc import Generator, Sequence
     from multiprocessing.queues import Queue
 
 DEFAULT_TOML_PATH = Path(__file__).parent / "known-cyclic-imports.toml"
@@ -316,7 +317,18 @@ def main(argv: Sequence[str] | None = None) -> int:
             for cycle in missing:
                 formatted = ", ".join(cycle)
                 print(f"  - {formatted}")
+        added = expected - cycles
+        if added:
+            print(
+                "\nSome cycles listed in the TOML file are no longer present in the codebase:"
+            )
+            for cycle in added:
+                formatted = ", ".join(cycle)
+                print(f"  - {formatted}")
+
+        if missing or added:
             return 1
+
         print(
             "\nAll detected cycles are acknowledged in the known-cyclic-imports.toml file."
         )
