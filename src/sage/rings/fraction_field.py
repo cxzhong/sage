@@ -82,9 +82,10 @@ Test that :issue:`15971` is fixed::
 #                  https://www.gnu.org/licenses/
 # ****************************************************************************
 
-import sage.misc.latex as latex
-from sage.categories.basic import QuotientFields, Rings
 from sage.categories.map import Section
+from sage.categories.quotient_fields import QuotientFields
+from sage.categories.rings import Rings
+from sage.misc import latex
 from sage.misc.cachefunc import cached_method
 from sage.rings import fraction_field_element, ring
 from sage.rings.integer_ring import ZZ
@@ -755,8 +756,8 @@ class FractionField_generic(ring.Field):
                 return x
             from sage.rings.polynomial.polynomial_ring import PolynomialRing_generic
             if isinstance(self.ring(), PolynomialRing_generic):
-                from sage.rings.power_series_ring_element import PowerSeries
                 from sage.rings.laurent_series_ring_element import LaurentSeries
+                from sage.rings.power_series_ring_element import PowerSeries
                 if isinstance(x, PowerSeries):
                     from sage.misc.superseded import deprecation
                     deprecation(
