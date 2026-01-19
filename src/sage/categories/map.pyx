@@ -30,7 +30,7 @@ from cpython.object cimport PyObject_RichCompare
 from sage.misc.lazy_import import LazyImport
 
 # Lazy import to avoid circular dependency misc.constant_function > ... > categories.map > misc.constant_function
-ConstantFunction = LazyImport('sage.misc.constant_function', 'ConstantFunction')
+ConstantFunction = LazyImport('sage.misc.constant_function', 'ConstantFunction', at_startup=True)
 
 
 def unpickle_map(_class, parent, _dict, _slots):
