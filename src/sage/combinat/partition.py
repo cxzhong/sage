@@ -495,23 +495,15 @@ class Partition(CombinatorialElement):
 
     def __setstate__(self, state):
         r"""
-        In order to maintain backwards compatibility and be able to unpickle a
-        old pickle from ``Partition_class`` we have to override the default
-        ``__setstate__``.
+        Set state from pickling.
 
         EXAMPLES::
 
-            sage: loads(b'x\x9ck`J.NLO\xd5K\xce\xcfM\xca\xccK,\xd1+H,*\xc9,\xc9\xcc\xcf\xe3\n\x80\xb1\xe2\x93s\x12\x8b\x8b\xb9\n\x195\x1b\x0b\x99j\x0b\x995BY\xe33\x12\x8b3\nY\xfc\x80\xac\x9c\xcc\xe2\x92B\xd6\xd8B6\r\x88IE\x99y\xe9\xc5z\x99y%\xa9\xe9\xa9E\\\xb9\x89\xd9\xa9\xf10N!{(\xa3qkP!G\x06\x90a\x04dp\x82\x18\x86@\x06Wji\x92\x1e\x00x0.\xb5')
-            [3, 2, 1]
             sage: loads(dumps( Partition([3,2,1]) ))  # indirect doctest
             [3, 2, 1]
         """
-        if isinstance(state, dict):   # for old pickles from Partition_class
-            self._set_parent(_Partitions)
-            self.__dict__ = state
-        else:
-            self._set_parent(state[0])
-            self.__dict__ = state[1]
+        self._set_parent(state[0])
+        self.__dict__ = state[1]
 
     def __init__(self, parent, mu):
         """
@@ -8347,30 +8339,6 @@ class PartitionsInBox(Partitions):
             True
         """
         return binomial(self.h + self.w, self.w)
-
-
-class Partitions_constraints(IntegerListsLex):
-    """
-    For unpickling old constrained ``Partitions_constraints`` objects created
-    with sage <= 3.4.1. See :class:`Partitions`.
-    """
-
-    def __setstate__(self, data):
-        r"""
-        TESTS::
-
-            sage: dmp = b'x\x9ck`J.NLO\xd5K\xce\xcfM\xca\xccK,\xd1+H,*\xc9,\xc9\xcc\xcf\xe3\n\x80\xb1\x8a\xe3\x93\x81DIQbf^I1W!\xa3fc!Sm!\xb3F(7\x92x!Km!k(GnbE<\xc8\x88B6\x88\xb9E\x99y\xe9\xc5z@\x05\xa9\xe9\xa9E\\\xb9\x89\xd9\xa9\xf10N!{(\xa3QkP!Gq(c^\x06\x90c\x0c\xe4p\x96&\xe9\x01\x00\xc2\xe53\xfd'
-            sage: sp = loads(dmp); sp
-            Integer lists of sum 3 satisfying certain constraints
-            sage: sp.list()
-            [[2, 1], [1, 1, 1]]
-        """
-        n = data['n']
-        self.__class__ = Partitions_with_constraints
-        constraints = {'max_slope': 0,
-                       'min_part': 1}
-        constraints.update(data['constraints'])
-        self.__init__(n, **constraints)
 
 
 class Partitions_with_constraints(IntegerListsLex):
