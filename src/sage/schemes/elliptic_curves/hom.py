@@ -28,18 +28,13 @@ AUTHORS:
 
 - Lorenz Panny (2023): :meth:`~EllipticCurveHom.trace`, :meth:`~EllipticCurveHom.characteristic_polynomial`
 """
-from sage.misc.cachefunc import cached_method
-from sage.structure.richcmp import richcmp_not_equal, richcmp, op_EQ, op_NE
-
-from sage.categories.morphism import Morphism
-
 from sage.arith.misc import integer_floor
-
-from sage.rings.integer_ring import ZZ
+from sage.categories.morphism import Morphism
+from sage.misc.cachefunc import cached_method
 from sage.rings.finite_rings import finite_field_base
+from sage.rings.integer_ring import ZZ
 from sage.rings.number_field import number_field_base
-
-import sage.schemes.elliptic_curves.weierstrass_morphism as wm
+from sage.structure.richcmp import op_EQ, op_NE, richcmp, richcmp_not_equal
 
 
 class EllipticCurveHom(Morphism):
@@ -131,7 +126,9 @@ class EllipticCurveHom(Morphism):
             ret = other._composition_impl(self, other)
 
         if ret is NotImplemented:
-            from sage.schemes.elliptic_curves.hom_composite import EllipticCurveHom_composite
+            from sage.schemes.elliptic_curves.hom_composite import (
+                EllipticCurveHom_composite,
+            )
             ret = EllipticCurveHom_composite.from_factors([other, self])
 
         return ret
@@ -1110,7 +1107,9 @@ class EllipticCurveHom(Morphism):
             sage: psi.rational_maps() == (f, -g)
             True
         """
-        return wm.negation_morphism(self.codomain()) * self
+        from sage.schemes.elliptic_curves import weierstrass_morphism
+
+        return weierstrass_morphism.negation_morphism(self.codomain()) * self
 
     @cached_method
     def __hash__(self):
@@ -1320,7 +1319,9 @@ class EllipticCurveHom(Morphism):
         from sage.rings.integer import Integer
         if not isinstance(other, (int, Integer)):
             return NotImplemented
-        from sage.schemes.elliptic_curves.hom_fractional import EllipticCurveHom_fractional
+        from sage.schemes.elliptic_curves.hom_fractional import (
+            EllipticCurveHom_fractional,
+        )
         return EllipticCurveHom_fractional(self, other)
 
     def divide_left(self, psi):
@@ -1346,7 +1347,9 @@ class EllipticCurveHom(Morphism):
             sage: chain.divide_right(phi) == psi
             True
         """
-        from sage.schemes.elliptic_curves.hom_fractional import EllipticCurveHom_fractional
+        from sage.schemes.elliptic_curves.hom_fractional import (
+            EllipticCurveHom_fractional,
+        )
         numer = psi.dual() * self
         denom = psi.degree()
         return EllipticCurveHom_fractional(numer, denom)
@@ -1374,7 +1377,9 @@ class EllipticCurveHom(Morphism):
             sage: chain.divide_left(psi) == phi
             True
         """
-        from sage.schemes.elliptic_curves.hom_fractional import EllipticCurveHom_fractional
+        from sage.schemes.elliptic_curves.hom_fractional import (
+            EllipticCurveHom_fractional,
+        )
         numer = self * psi.dual()
         denom = psi.degree()
         return EllipticCurveHom_fractional(numer, denom)
@@ -1745,10 +1750,10 @@ def compute_trace_generic(phi):
         sage: compute_trace_generic(-m7)
         -14
     """
-    from sage.rings.finite_rings.integer_mod import Mod
     from sage.groups.generic import discrete_log
-    from sage.sets.primes import Primes
+    from sage.rings.finite_rings.integer_mod import Mod
     from sage.schemes.elliptic_curves.ell_field import point_of_order
+    from sage.sets.primes import Primes
 
     E = phi.domain()
     if phi.codomain() != E:
