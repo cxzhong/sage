@@ -284,36 +284,33 @@ from copy import copy
 from itertools import accumulate
 
 from sage.arith.misc import binomial, factorial, gcd, multinomial
-from sage.structure.global_options import GlobalOptions
-from sage.structure.parent import Parent
-from sage.structure.unique_representation import UniqueRepresentation
+from sage.categories.finite_enumerated_sets import FiniteEnumeratedSets
+from sage.categories.infinite_enumerated_sets import InfiniteEnumeratedSets
+from sage.combinat import composition, permutation, tableau
+from sage.combinat.combinat import CombinatorialElement
+from sage.combinat.combinat_cython import conjugate
+from sage.combinat.combinatorial_map import combinatorial_map
+from sage.combinat.integer_lists import IntegerListsLex
+from sage.combinat.integer_lists.invlex import IntegerListsBackend_invlex
+from sage.combinat.integer_vector_weighted import (
+    iterator_fast as weighted_iterator_fast,
+)
+from sage.combinat.partitions import ZS1_iterator, ZS1_iterator_nk, ZS1_next, ZS2_next
+from sage.misc.cachefunc import cached_function, cached_method
 from sage.misc.lazy_import import lazy_import
 from sage.misc.misc_c import prod
 from sage.misc.prandom import randrange
-from sage.misc.cachefunc import cached_method, cached_function
-
-from sage.categories.infinite_enumerated_sets import InfiniteEnumeratedSets
-from sage.categories.finite_enumerated_sets import FiniteEnumeratedSets
-
-from sage.sets.non_negative_integers import NonNegativeIntegers
 from sage.rings.finite_rings.integer_mod_ring import IntegerModRing
+from sage.rings.infinity import infinity
+from sage.rings.integer import Integer
 from sage.rings.integer_ring import ZZ
+from sage.rings.polynomial.polynomial_ring_constructor import PolynomialRing
 from sage.rings.rational_field import QQ
 from sage.rings.semirings.non_negative_integer_semiring import NN
-from sage.rings.polynomial.polynomial_ring_constructor import PolynomialRing
-from sage.rings.integer import Integer
-from sage.rings.infinity import infinity
-
-from .combinat import CombinatorialElement
-from . import tableau
-from . import permutation
-from . import composition
-from sage.combinat.partitions import ZS1_iterator, ZS1_iterator_nk, ZS1_next, ZS2_next
-from sage.combinat.integer_lists import IntegerListsLex
-from sage.combinat.integer_lists.invlex import IntegerListsBackend_invlex
-from sage.combinat.integer_vector_weighted import iterator_fast as weighted_iterator_fast
-from sage.combinat.combinat_cython import conjugate
-from sage.combinat.combinatorial_map import combinatorial_map
+from sage.sets.non_negative_integers import NonNegativeIntegers
+from sage.structure.global_options import GlobalOptions
+from sage.structure.parent import Parent
+from sage.structure.unique_representation import UniqueRepresentation
 
 lazy_import('sage.combinat.skew_partition', 'SkewPartition')
 lazy_import('sage.combinat.partition_tuple', 'PartitionTuple')
@@ -5722,8 +5719,8 @@ class Partition(CombinatorialElement):
             sage: Partition([3,2,1]).garsia_procesi_module(GF(3))
             Garsia-Procesi module of shape [3, 2, 1] over Finite Field of size 3
         """
-        from sage.combinat.symmetric_group_representations import GarsiaProcesiModule
         from sage.combinat.symmetric_group_algebra import SymmetricGroupAlgebra
+        from sage.combinat.symmetric_group_representations import GarsiaProcesiModule
         if base_ring is None:
             from sage.rings.rational_field import QQ
             base_ring = QQ
@@ -6221,15 +6218,14 @@ class Partitions(UniqueRepresentation, Parent):
                 if 'restricted' in kwargs:
                     return RestrictedPartitions_n(n, kwargs['restricted'])
 
-            else:
-                if ('parts_in' in kwargs or
-                    'starting' in kwargs or
-                    'ending' in kwargs or
-                    'regular' in kwargs or
-                    'restricted' in kwargs):
-                    raise ValueError("the parameters 'parts_in', 'starting', "
-                                     + "'ending', 'regular' and 'restricted' "
-                                     + "cannot be combined with anything else")
+            elif ('parts_in' in kwargs or
+                'starting' in kwargs or
+                'ending' in kwargs or
+                'regular' in kwargs or
+                'restricted' in kwargs):
+                raise ValueError("the parameters 'parts_in', 'starting', "
+                                 + "'ending', 'regular' and 'restricted' "
+                                 + "cannot be combined with anything else")
 
             if set(kwargs).issubset(['length', 'min_part', 'max_part',
                                      'min_length', 'max_length']):
@@ -10006,17 +10002,9 @@ _Partitions = Partitions()
 # number_of_partitions functions which is currently using FLINT.
 # AM issue #13072
 try:
-    from sage.libs.flint.arith_sage import number_of_partitions as flint_number_of_partitions
+    from sage.libs.flint.arith_sage import (
+        number_of_partitions as flint_number_of_partitions,
+    )
     cached_number_of_partitions = cached_function(flint_number_of_partitions)
 except ImportError:
     pass
-
-# October 2012: fixing outdated pickles which use classes being deprecated
-from sage.misc.persist import register_unpickle_override
-from sage.combinat.partition_tuple import PartitionTuples_level_size
-register_unpickle_override('sage.combinat.partition', 'PartitionTuples_nk', PartitionTuples_level_size)
-register_unpickle_override('sage.combinat.partition', 'Partition_class', Partition)
-register_unpickle_override('sage.combinat.partition', 'OrderedPartitions_nk', OrderedPartitions)
-register_unpickle_override('sage.combinat.partition', 'PartitionsInBox_hw', PartitionsInBox)
-register_unpickle_override('sage.combinat.partition', 'PartitionsGreatestLE_nk', PartitionsGreatestLE)
-register_unpickle_override('sage.combinat.partition', 'PartitionsGreatestEQ_nk', PartitionsGreatestEQ)
