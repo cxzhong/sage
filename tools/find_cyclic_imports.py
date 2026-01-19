@@ -307,18 +307,22 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     cycles_sorted = sorted(cycles, key=lambda group: group[0])
 
+    print("\n" + "-" * 40)
+    print("\nCyclic imports detected:")
     print_cycles(cycles_sorted, cycle_to_exception)
 
     if args.check:
         expected = load_known_cycles(DEFAULT_TOML_PATH)
         missing = cycles - expected
         if missing:
+            print("\n" + "-" * 40)
             print("\nNew cyclic imports detected that are not listed in the TOML file:")
             for cycle in missing:
                 formatted = ", ".join(cycle)
                 print(f"  - {formatted}")
         added = expected - cycles
         if added:
+            print("\n" + "-" * 40)
             print(
                 "\nSome cycles listed in the TOML file are no longer present in the codebase:"
             )
