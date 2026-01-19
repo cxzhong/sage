@@ -9478,4 +9478,3 @@ class IncreasingTableaux_size_weight(IncreasingTableaux):
         if shape not in _Partitions:
             return False
         return x in IncreasingTableaux_shape_weight(_Partitions(shape), self.weight)
-

@@ -1838,4 +1838,3 @@ def integer_vectors_nk_fast_iter(n, k):
             cur[pos] = rem  # Guaranteed to be at least 1
             rem = zero
             yield list(cur)
-

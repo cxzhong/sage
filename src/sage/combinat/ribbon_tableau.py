@@ -1155,5 +1155,3 @@ class SemistandardMultiSkewTableaux(MultiSkewTableaux):
                 w = lk[pos: pos + s[i]]
                 restmp.append(S.from_shape_and_word(parts[i], w))
             yield self.element_class(self, restmp)
-
-
