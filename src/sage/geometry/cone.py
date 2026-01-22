@@ -6516,6 +6516,32 @@ class ConvexRationalPolyhedralCone(IntegralRayCollection, Container, ConvexSet_c
             sage: AK.irreducible_factors() == expected
             True
 
+        This example decomposes into a ray and a cone with four
+        generators in a three-dimensional subspace that trivially
+        intersects the span of the ray::
+
+            sage: K = Cone([ (-1, -1, 0, -1),
+            ....:            (-1,  0, 1,  0),
+            ....:            ( 0,  1, 4, -2),
+            ....:            ( 1,  0, 0, -1),
+            ....:            ( 1,  1, 0, -1) ])
+            sage: K1, K2 = sorted(K.irreducible_factors())
+            sage: K1
+            3-d cone in 4-d lattice N
+            sage: K1.rays()
+            N(-1, -1, 0, -1),
+            N( 1,  0, 0, -1),
+            N( 0,  1, 4, -2),
+            N(-1,  0, 1,  0)
+            in 4-d lattice N
+            sage: K2
+            1-d cone in 4-d lattice N
+            sage: K2.rays()
+            N(1, 1, 0, -1)
+            in 4-d lattice N
+            sage: K1.span().intersection(K2.span())
+            Sublattice <>
+
         TESTS:
 
         The error message looks right::
@@ -6567,9 +6593,9 @@ class ConvexRationalPolyhedralCone(IntegralRayCollection, Container, ConvexSet_c
         # the W-representation nonzero. Beware: while they ultimately
         # represent rays of self, the W-coordinates have been
         # renumbered by pivots().
-        vertices = list(range(W.dimension()))
-        edges = [ (i,pivots[j])
-                  for i in range(self.nrays())
+        vertices = list(range(self.nrays()))
+        edges = [ (i, pivots[j])
+                  for i in vertices
                   for j in W.coordinate_vector(self.ray(i)).nonzero_positions()
                   if pivots[j] != i ]
         from sage.graphs.graph import Graph
