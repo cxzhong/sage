@@ -3541,6 +3541,11 @@ REFERENCES:
               International Algorithmic Number Theory Symposium (pp. 357-371).
               Springer Berlin Heidelberg, 2002.
 
+.. [HFP1976] Emilie Haynsworth, Miroslav Fiedler, and Vlastimil Pták.
+             *Extreme Operators on Polyhedral Cones*.
+             Linear Algebra and its Applications, 13(1-2):163-172, 1976.
+             :doi:`10.1016/0024-3795(76)90055-0`.
+
 .. [HH2012] Victoria Horan and Glenn Hurlbert,
             *Overlap Cycles for Steiner Quadruple Systems*,
             2012, :arxiv:`1204.3215`
