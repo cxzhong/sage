@@ -6693,7 +6693,9 @@ class ConvexRationalPolyhedralCone(IntegralRayCollection, Container, ConvexSet_c
             True
 
         In [GT2014]_ it is shown that a (nontrivial) proper polyhedral
-        cone is irreducible if and only if its Lyapunov rank is one::
+        cone is irreducible if and only if its Lyapunov rank is one.
+        A related test combines Theorem 4.7 of [HFP1976]_ with the
+        Z-operator algorithm in [Or2018b]_::
 
             sage: # long time
             sage: K = random_cone(strictly_convex=True,
@@ -6701,6 +6703,9 @@ class ConvexRationalPolyhedralCone(IntegralRayCollection, Container, ConvexSet_c
             ....:                 max_ambient_dim=6,
             ....:                 min_rays=1)
             sage: K.is_reducible() == (K.lyapunov_rank() != 1)
+            True
+            sage: d = K._cross_positive_operators_dual().dim()
+            sage: K.is_reducible() == (d < K.dim()**2 - 1)
             True
 
         """
