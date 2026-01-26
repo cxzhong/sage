@@ -151,8 +151,8 @@ class EllipticCurveHom(Morphism):
             sage: phi + phi  # indirect doctest
             Sum morphism:
               From: Elliptic Curve defined by y^2 = x^3 + 5*x + 5 over Finite Field of size 101
-              To:   Elliptic Curve defined by y^2 = x^3 + 12*x + 98 over Finite Field of size 101
-              Via:  (Isogeny of degree 7 from Elliptic Curve defined by y^2 = x^3 + 5*x + 5 over Finite Field of size 101 to Elliptic Curve defined by y^2 = x^3 + 12*x + 98 over Finite Field of size 101, Isogeny of degree 7 from Elliptic Curve defined by y^2 = x^3 + 5*x + 5 over Finite Field of size 101 to Elliptic Curve defined by y^2 = x^3 + 12*x + 98 over Finite Field of size 101)
+              To:   Elliptic Curve defined by y^2 = x^3 + 29*x + 51 over Finite Field of size 101
+              Via:  (Isogeny of degree 7 from Elliptic Curve defined by y^2 = x^3 + 5*x + 5 over Finite Field of size 101 to Elliptic Curve defined by y^2 = x^3 + 29*x + 51 over Finite Field of size 101, Isogeny of degree 7 from Elliptic Curve defined by y^2 = x^3 + 5*x + 5 over Finite Field of size 101 to Elliptic Curve defined by y^2 = x^3 + 29*x + 51 over Finite Field of size 101)
         """
         from sage.schemes.elliptic_curves.hom_sum import EllipticCurveHom_sum
         phis = []
@@ -182,8 +182,8 @@ class EllipticCurveHom(Morphism):
             sage: phi - phi  # indirect doctest
             Sum morphism:
               From: Elliptic Curve defined by y^2 = x^3 + 5*x + 5 over Finite Field of size 101
-              To:   Elliptic Curve defined by y^2 = x^3 + 12*x + 98 over Finite Field of size 101
-              Via:  (Isogeny of degree 7 from Elliptic Curve defined by y^2 = x^3 + 5*x + 5 over Finite Field of size 101 to Elliptic Curve defined by y^2 = x^3 + 12*x + 98 over Finite Field of size 101, Isogeny of degree 7 from Elliptic Curve defined by y^2 = x^3 + 5*x + 5 over Finite Field of size 101 to Elliptic Curve defined by y^2 = x^3 + 12*x + 98 over Finite Field of size 101)
+              To:   Elliptic Curve defined by y^2 = x^3 + 29*x + 51 over Finite Field of size 101
+              Via:  (Isogeny of degree 7 from Elliptic Curve defined by y^2 = x^3 + 5*x + 5 over Finite Field of size 101 to Elliptic Curve defined by y^2 = x^3 + 29*x + 51 over Finite Field of size 101, Isogeny of degree 7 from Elliptic Curve defined by y^2 = x^3 + 5*x + 5 over Finite Field of size 101 to Elliptic Curve defined by y^2 = x^3 + 29*x + 51 over Finite Field of size 101)
         """
         return self + (-other)
 

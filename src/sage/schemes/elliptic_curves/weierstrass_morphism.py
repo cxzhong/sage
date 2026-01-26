@@ -990,7 +990,7 @@ class WeierstrassIsomorphism(EllipticCurveHom, baseWI):
             sage: p = 97
             sage: Fp = GF(p)
             sage: E = EllipticCurve(Fp, [1, 28])
-            sage: ws = WeierstrassIsomorphism(E, None, E)
+            sage: ws = E.automorphisms()[1]
             sage: ws.is_identity()
             False
 
@@ -1000,7 +1000,7 @@ class WeierstrassIsomorphism(EllipticCurveHom, baseWI):
             sage: p = 97
             sage: Fp = GF(p)
             sage: E = EllipticCurve(Fp, [1, 28])
-            sage: ws = WeierstrassIsomorphism(E, (1, 0, 0, 0), None)
+            sage: ws = E.automorphisms()[0]
             sage: ws.is_identity()
             True
         """
@@ -1020,7 +1020,7 @@ class WeierstrassIsomorphism(EllipticCurveHom, baseWI):
             sage: p = 97
             sage: Fp = GF(p)
             sage: E = EllipticCurve(Fp, [1, 28])
-            sage: ws = WeierstrassIsomorphism(E, None, E)
+            sage: ws = E.automorphisms()[1]
             sage: ws.order()
             2
 
@@ -1030,7 +1030,7 @@ class WeierstrassIsomorphism(EllipticCurveHom, baseWI):
             sage: p = 97
             sage: Fp = GF(p)
             sage: E = EllipticCurve(Fp, [1, 28])
-            sage: ws = WeierstrassIsomorphism(E, None, E)
+            sage: ws = E.automorphisms()[1]
             sage: ws.order()
             2
             sage: E1 = EllipticCurve(Fp, [1, 69])
@@ -1051,7 +1051,7 @@ class WeierstrassIsomorphism(EllipticCurveHom, baseWI):
             3
             sage: F2_bar = GF(2).algebraic_closure()
             sage: E = EllipticCurve_from_j(F2_bar(0))
-            sage: ws = WeierstrassIsomorphism(E, None, E)
+            sage: ws = E.automorphisms()[8]
             sage: ws.order()
             3
         """
