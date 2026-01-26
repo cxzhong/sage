@@ -1605,17 +1605,14 @@ cdef class PowerSeries(AlgebraElement):
             # Check if the base ring has zero nilradical.
             try:
                 nilrad = self.base_ring().nilradical()
-                if not nilrad.is_zero():
-                    raise NotImplementedError(
-                        "is_square() not implemented for power series over rings with nonzero nilradical"
-                    )
+                if nilrad.is_zero():
+                    return False
             except (AttributeError, NotImplementedError, ArithmeticError):
-                # If nilradical() is not available, try to check if leading coeff^2 = 0
-                if self[val]**2 == 0:
-                    raise NotImplementedError(
-                        "is_square() not implemented for power series over rings with nonzero nilradical"
-                    )
-            return False
+                pass
+            # Either nilradical is nonzero or we cannot determine it
+            raise NotImplementedError(
+                "is_square() not implemented for power series over rings with nonzero nilradical"
+            )
         elif not self[val].is_square():
             return False
         elif self.base_ring() in _Fields:
