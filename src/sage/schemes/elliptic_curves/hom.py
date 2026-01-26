@@ -114,11 +114,12 @@ class EllipticCurveHom(Morphism):
 
         EXAMPLES::
 
-            sage: E = EllipticCurve(GF(19), [1,0])
-            sage: phi = E.isogeny(E(0,0))
-            sage: iso = E.change_weierstrass_model(5,0,0,0).isomorphism_to(E)
-            sage: phi * iso
-            Isogeny of degree 2 from Elliptic Curve defined by y^2 = x^3 + 9*x over Finite Field of size 19 to Elliptic Curve defined by y^2 = x^3 + 15*x over Finite Field of size 19
+            sage: E1 = EllipticCurve(GF(19), [1,0])
+            sage: phi = E1.isogeny(E1(0,0))
+            sage: E2 = phi.codomain()
+            sage: iso = E2.change_weierstrass_model(5,0,0,0).isomorphism_to(E2)
+            sage: ~iso * phi
+            Isogeny of degree 2 from Elliptic Curve defined by y^2 = x^3 + x over Finite Field of size 19 to Elliptic Curve defined by y^2 = x^3 + 2*x over Finite Field of size 19
             sage: phi.dual() * phi
             Composite morphism of degree 4 = 2^2:
               From: Elliptic Curve defined by y^2 = x^3 + x over Finite Field of size 19
@@ -366,7 +367,7 @@ class EllipticCurveHom(Morphism):
             71
             sage: tau = E.isogeny(P, codomain=E)
             sage: tau.trace()
-            -1
+            1
 
         TESTS:
 
@@ -375,19 +376,19 @@ class EllipticCurveHom(Morphism):
 
             sage: aut = E.automorphisms()[1]  # [-1]
             sage: (aut * tau).trace()
-            1
+            -1
 
         It also works for more complicated :class:`EllipticCurveHom`
         children::
 
             sage: tau = E.isogeny(P, codomain=E, algorithm='velusqrt')
             sage: tau.trace()
-            -1
+            1
 
         Check that negation commutes with taking the trace::
 
             sage: (-tau).trace()
-            1
+            -1
 
         The trace is only defined for endomorphisms. If this method is called
         on an isogeny that is not an endomorphism a ``ValueError`` will be raised.

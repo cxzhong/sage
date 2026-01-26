@@ -2662,8 +2662,10 @@ class EllipticCurve_generic(WithEqualityById, plane_curve.ProjectivePlaneCurve):
 
     def isomorphism_to(self, other):
         """
-        Given another weierstrass model ``other`` of ``self``, return an
+        Given another Weierstrass model ``other`` of ``self``, return an
         isomorphism from ``self`` to ``other``.
+
+        If possible, this method returns a normalized isomorphism.
 
         INPUT:
 
@@ -2671,7 +2673,7 @@ class EllipticCurve_generic(WithEqualityById, plane_curve.ProjectivePlaneCurve):
 
         OUTPUT:
 
-        (Weierstrassmorphism) An isomorphism from ``self`` to ``other``.
+        (:class:`~wm.WeierstrassIsomorphism`) An isomorphism from ``self`` to ``other``.
 
         .. NOTE::
 
