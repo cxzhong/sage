@@ -2841,6 +2841,23 @@ class EllipticCurveIsogeny(EllipticCurveHom):
             sage: phi = EllipticCurveIsogeny(E, [0,3,0,1])
             sage: phi.kernel_polynomial()
             x^3 + 3*x
+
+        TESTS:
+
+        Check that :issue:`41495` is fixed::
+
+            sage: E = EllipticCurve(GF(101), [5,5])
+            sage: P = E.gens()[0] * 17
+            sage: assert P.order() == 7
+            sage: h = E.isogeny(P).kernel_polynomial()
+            sage: phi = E.isogeny(h)
+            sage: assert phi._EllipticCurveIsogeny__algorithm == 'kohel'
+            sage: iso = phi.domain().isomorphism(42)
+            sage: psi = phi * ~iso * iso
+            sage: psi == phi
+            True
+            sage: psi.domain().isogeny(psi.kernel_polynomial()) == psi
+            True
         """
         if self.__kernel_polynomial is None:
             self.__init_kernel_polynomial()
