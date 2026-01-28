@@ -169,6 +169,12 @@ foreach name, pyx : extension_data_cpp
   )
 endforeach
 
+# Record in the config file whether or not optional packages were
+# found, so that we don't have to look for them at runtime.
+conf_data.set10('LIBHOMFLY_ENABLED', homfly.found())
+conf_data.set10('MEATAXE_ENABLED', mtx.found())
+conf_data.set10('SIROCCO_ENABLED', sirocco.found())
+
 subdir('arb')
 subdir('coxeter3')
 install_subdir('cremona', install_dir: sage_install_dir / 'libs')
