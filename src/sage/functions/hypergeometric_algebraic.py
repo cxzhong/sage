@@ -158,6 +158,7 @@ from sage.structure.category_object import normalize_names
 from sage.categories.action import Action
 from sage.categories.pushout import pushout
 from sage.categories.map import Map
+from sage.categories.sets_cat import Sets
 from sage.categories.finite_fields import FiniteFields
 
 from sage.matrix.special import companion_matrix
@@ -218,7 +219,7 @@ class HypergeometricAlgebraic(Element):
             sage: S.<x> = QQ[]
             sage: h = hypergeometric((1/2, 1/3), (1,), x)
             sage: type(h)
-            <class 'sage.functions.hypergeometric_algebraic.HypergeometricFunctions.element_class'>
+            <class 'sage.functions.hypergeometric_algebraic.HypergeometricFunctions_with_category.element_class'>
             sage: TestSuite(h).run()
         """
         Element.__init__(self, parent)
@@ -250,15 +251,81 @@ class HypergeometricAlgebraic(Element):
         self._char = char
 
     def __hash__(self):
+        r"""
+        Return a hash of this hypergeometric function.
+
+        TESTS::
+
+            sage: S.<x> = QQ[]
+            sage: h = hypergeometric((1/2, 1/3), (1,), x)
+            sage: hash(h)  # random
+            -5906731172464693436
+        """
         return hash((self.base_ring(), self._parameters, self._scalar))
 
     def __eq__(self, other):
+        r"""
+        Return ``True`` if the parameters defining the hypergeometric
+        series ``self`` and ``other`` are the same; ``False`` otherwise.
+
+        INPUT:
+
+        - ``other`` -- an hypergeometric function
+
+        EXAMPLES:
+
+        The order of the parameters is not relevant::
+
+            sage: S.<x> = QQ[]
+            sage: f = hypergeometric([1/12, 1/6], [1/3], x)
+            sage: g = hypergeometric([1/6, 1/12], [1/3], x)
+            sage: f == g
+            True
+
+        ::
+
+            sage: h = hypergeometric([1/12, 1/4], [1/2], x)
+            sage: g == h
+            False
+
+        We emphasize that two hypergeometric functions are considered
+        as different as soon as they have different parameters even if
+        they define the same series::
+
+            sage: Fq = GF(13)
+            sage: g13 = g % 13
+            sage: h13 = h % 13
+            sage: g13 == h13
+            False
+            sage: g13.power_series(500)
+            1 + 6*x + 6*x^13 + 10*x^14 + 6*x^169 + 10*x^170 + 10*x^182 + 8*x^183 + O(x^500)
+            sage: h13.power_series(500)
+            1 + 6*x + 6*x^13 + 10*x^14 + 6*x^169 + 10*x^170 + 10*x^182 + 8*x^183 + O(x^500)
+
+        .. SEEALSO:
+
+            :meth:`~HypergeometricAlgebraic_GFp.is_equal_as_series`
+        """
         return (isinstance(other, HypergeometricAlgebraic)
             and self.base_ring() is other.base_ring()
             and self._parameters == other._parameters
             and self._scalar == other._scalar)
 
     def _repr_(self):
+        r"""
+        Return a string representation of this hypergeometric function.
+
+        EXAMPLES::
+
+            sage: S.<x> = QQ[]
+            sage: f = hypergeometric([1/3, 2/3], [1/2], x)
+            sage: f    # indirect doctest
+            hypergeometric((1/3, 2/3), (1/2,), x)
+            sage: 2*f  # indirect doctest
+            2*hypergeometric((1/3, 2/3), (1/2,), x)
+            sage: 0*f  # indirect doctest
+            0
+        """
         if self._parameters is None:
             return "0"
         scalar = self._scalar
@@ -277,6 +344,8 @@ class HypergeometricAlgebraic(Element):
 
     def _latex_(self):
         r"""
+        Return a LaTex representation of this hypergeometric function.
+
         EXAMPLES::
 
             sage: S.<x> = QQ[]
@@ -655,6 +724,87 @@ class HypergeometricAlgebraic(Element):
         """
         return self[n]
 
+    def degree(self):
+        r"""
+        Return the degree of this hypergeometric function if it is
+        a polynomial, `+\infty` otherwise.
+
+        EXAMPLES::
+
+            sage: S.<x> = QQ[]
+            sage: f = hypergeometric([1/3, -3], [1/2], x)
+            sage: f.degree()
+            3
+
+        ::
+
+            sage: g = hypergeometric([1/3, 2/3], [1/2], x)
+            sage: g.degree()
+            +Infinity
+
+        Currently, this method is only implemented in characteristic
+        zero::
+
+            sage: T.<y> = GF(5)[]
+            sage: h = hypergeometric([1/3, 2/3], [1/2], y)
+            sage: h.degree()
+            Traceback (most recent call last):
+            ...
+            NotImplementedError: degree is not implemented in positive characteristic
+        """
+        if not self._scalar:
+            return ZZ(-1)
+        if self._char:
+            raise NotImplementedError("degree is not implemented in positive characteristic")
+        return self._parameters.degree()
+
+    def is_polynomial(self):
+        r"""
+        Return whether this hypergeometric series is a polynomial.
+
+        EXAMPLES::
+
+            sage: S.<x> = QQ[]
+            sage: f = hypergeometric([1/3, -3], [1/2], x)
+            sage: f.is_polynomial()
+            True
+
+        ::
+
+            sage: g = hypergeometric([1/3, 2/3], [1/2], x)
+            sage: g.is_polynomial()
+            False
+        """
+        return self.degree() is not infinity
+
+    def polynomial(self):
+        r"""
+        Return a polynomial representing a hypergeometric function,
+        or raise an error if this hypergeometric function is not
+        polynomial.
+
+        EXAMPLES::
+
+            sage: S.<x> = QQ[]
+            sage: f = hypergeometric([1/3, -3], [1/2], x)
+            sage: f.polynomial()
+            -224/405*x^3 + 16/9*x^2 - 2*x + 1
+
+        ::
+
+            sage: g = hypergeometric([1/3, 2/3], [1/2], x)
+            sage: g.polynomial()
+            Traceback (most recent call last):
+            ...
+            ValueError: this hypergeometric series is not a polynomial
+        """
+        deg = self.degree()
+        if deg is infinity:
+            raise ValueError("this hypergeometric series is not a polynomial")
+        S = self.parent().polynomial_ring()
+        self._compute_coeffs(deg + 1)
+        return S(self._coeffs)
+
     def power_series(self, prec=20):
         r"""
         Return the power series representation of this hypergeometric
@@ -753,16 +903,6 @@ class HypergeometricAlgebraic(Element):
         """
         return SR(self) / SR(other)
 
-    def degree(self):
-        if not self._scalar:
-            return ZZ(-1)
-        if self._char:
-            raise NotImplementedError("degree is not implemented in positive characteristic")
-        return self._parameters.degree()
-
-    def is_polynomial(self):
-        return self.degree() is not infinity
-
     def denominator(self):
         r"""
         Return the smallest common denominator of the parameters.
@@ -848,6 +988,9 @@ class HypergeometricAlgebraic(Element):
 # Over the rationals
 
 class HypergeometricAlgebraic_QQ(HypergeometricAlgebraic):
+    r"""
+    Class for hypergeometric functions over `\QQ`.
+    """
     def __mod__(self, p):
         r"""
         Return the reduction of the hypergeometric function modulo ``p``.
@@ -966,13 +1109,9 @@ class HypergeometricAlgebraic_QQ(HypergeometricAlgebraic):
 
         ALGORITHM:
 
-        We rely on Christol's criterion ([Chr1986]_, Prop. 1) for globally
-        bounded hypergeometric function, from which a criterion can be deduced
-        modulo which primes a hypergeometric function can be reduced
-        ([CFV2025]_, Thm. 3.1.3). For small primes `p`, we compute the `p`-adic
-        valuation of the hypergeometric function individually.
+        We implement the algorithm of [CF26]_, Subsection 3.1
 
-        TESTS::
+        EXAMPLES::
 
             sage: f = hypergeometric([1/5, 2/5, 3/5], [1/2, 1/7, 1/11], x)
             sage: f.good_reduction_primes()
@@ -1022,6 +1161,13 @@ class HypergeometricAlgebraic_QQ(HypergeometricAlgebraic):
         Return ``True`` if this hypergeometric function is algebraic over
         the rational functions, return ``False`` otherwise.
 
+        ALGORITHM:
+
+        We rely on the (Christol-)Beukers-Heckmann interlacing criterion
+        (see [Chr1986]_, p.15, Cor.; [BeukersHeckman]_, Thm. 4.5). For
+        integer differences between parameters we follow the flowchart in
+        [FY2024]_, Fig. 1.
+
         EXAMPLES::
 
             sage: S.<x> = QQ[]
@@ -1031,13 +1177,6 @@ class HypergeometricAlgebraic_QQ(HypergeometricAlgebraic):
             sage: g = hypergeometric([1/3, 2/3, 1/4], [5/4, 1/2], x)
             sage: g.is_algebraic()
             False
-
-        ALGORITHM:
-
-        We rely on the (Christol-)Beukers-Heckmann interlacing criterion
-        (see [Chr1986]_, p.15, Cor.; [BeukersHeckman]_, Thm. 4.5). For integer
-        differences between parameters we follow the flowchart in
-        [FY2024]_, Fig. 1.
         """
         parameters = self._parameters.remove_positive_integer_differences()
         if any(a in ZZ and a <= 0 for a in parameters.top):
@@ -1060,6 +1199,11 @@ class HypergeometricAlgebraic_QQ(HypergeometricAlgebraic):
 
         - ``include_infinity`` -- a boolean (default: ``True``)
 
+        ALGORITHM:
+
+        We rely on Christol's classification of globally bounded
+        hypergeometric functions (see [Chr1986]_, Prop. 1).
+
         EXAMPLES:
 
             sage: S.<x> = QQ[]
@@ -1071,11 +1215,6 @@ class HypergeometricAlgebraic_QQ(HypergeometricAlgebraic):
             False
             sage: g.is_globally_bounded(include_infinity=False)
             True
-
-        ALGORITHM:
-
-        We rely on Christol's classification of globally bounded hypergeometric
-        functions (see [Chr1986]_, Prop. 1).
         """
         if self.is_polynomial():
             return True
@@ -1102,7 +1241,6 @@ class HypergeometricAlgebraic_QQ(HypergeometricAlgebraic):
             {1: Set of prime numbers congruent to 3, 5 modulo 8: 3, 5, 11, 13, ...,
              2: Set of prime numbers congruent to 1, 7 modulo 8: 7, 17, 23, 31, ...,
              3: Empty set of prime numbers}
-
         """
         # Do we have an example with exceptional primes?
         if not self._parameters.is_balanced():
@@ -1215,6 +1353,9 @@ class HypergeometricAlgebraic_QQ(HypergeometricAlgebraic):
 # Over the p-adics
 
 class HypergeometricAlgebraic_padic(HypergeometricAlgebraic):
+    r"""
+    Class for hypergeometric functions over `p`-adic fields.
+    """
     def __init__(self, parent, arg1, arg2=None, scalar=None, check=True):
         r"""
         Initialize this hypergeometric function.
@@ -1243,7 +1384,7 @@ class HypergeometricAlgebraic_padic(HypergeometricAlgebraic):
             sage: S.<x> = Qp(5, 3)[]
             sage: h = hypergeometric((1/2, 1/3), (1,), x)
             sage: type(h)
-            <class 'sage.functions.hypergeometric_algebraic.HypergeometricFunctions.element_class'>
+            <class 'sage.functions.hypergeometric_algebraic.HypergeometricFunctions_with_category.element_class'>
             sage: TestSuite(h).run()
         """
         HypergeometricAlgebraic.__init__(self, parent, arg1, arg2, scalar, check)
@@ -1463,6 +1604,9 @@ class HypergeometricAlgebraic_padic(HypergeometricAlgebraic):
 # Over prime finite fields
 
 class HypergeometricAlgebraic_GFp(HypergeometricAlgebraic):
+    r"""
+    Class for hypergeometric functions over prime finite fields.
+    """
     def __init__(self, parent, arg1, arg2=None, scalar=None, check=True):
         HypergeometricAlgebraic.__init__(self, parent, arg1, arg2, scalar, check)
         self._p = p = self.base_ring().cardinality()
@@ -1470,15 +1614,6 @@ class HypergeometricAlgebraic_GFp(HypergeometricAlgebraic):
 
     def __call__(self, x):
         return self.polynomial()(x)
-
-    def is_polynomial(self):
-        raise NotImplementedError
-
-    def degree(self):
-        raise NotImplementedError
-
-    def polynomial(self):
-        raise NotImplementedError
 
     def __getitem__(self, n):
         n = ZZ(n)
@@ -1801,17 +1936,64 @@ class HypergeometricAlgebraic_GFp(HypergeometricAlgebraic):
 ########
 
 class HypergeometricToSR(Map):
+    r"""
+    Map from hypergeometric series to symbolic ring
+    """
     def _call_(self, h):
+        r"""
+        Return the symbolic expression representing ``h``.
+
+        EXAMPLES::
+
+            sage: S.<x> = QQ[]
+            sage: h = hypergeometric([1/5, 4/5], [1], x)
+            sage: SR(h)  # indirect doctest
+            hypergeometric((1/5, 4/5), (1,), x)
+        """
         return h.scalar() * hypergeometric(h.top(), h.bottom(), SR.var(h.parent().variable_name()))
 
 
 class ScalarMultiplication(Action):
+    r"""
+    Action on hypergeometric series by left multiplication
+    by scalars.
+    """
     def _act_(self, scalar, h):
+        r"""
+        Return the product ``scalar * h``.
+
+        EXAMPLES::
+
+            sage: S.<x> = QQ[]
+            sage: h = hypergeometric([1/5, 4/5], [1], x)
+            sage: 2*h  # indirect doctest
+            2*hypergeometric((1/5, 4/5), (1,), x)
+        """
         return h.parent()(h, scalar=scalar)
 
 
 class HypergeometricFunctions(Parent, UniqueRepresentation):
+    r"""
+    Hypergeometric functions over a base ring.
+    """
     def __init__(self, base, name, category=None):
+        r"""
+        Initialize this set of hypergeometric functions.
+
+        INPUT:
+
+        - ``base`` -- the base ring
+
+        - ``name`` -- a string, the name of the variable
+
+        - ``category`` -- a category (default: ``None``)
+
+        TESTS::
+
+            sage: S.<x> = QQ[]
+            sage: H = hypergeometric([], [], x).parent()
+            sage: TestSuite(H).run()
+        """
         self._name = normalize_names(1, name)[0]
         self._latex_name = latex_variable_name(self._name)
         self._char = char = base.characteristic()
@@ -1825,6 +2007,8 @@ class HypergeometricFunctions(Parent, UniqueRepresentation):
             self.Element = HypergeometricAlgebraic_padic
         else:
             self.Element = HypergeometricAlgebraic
+        if category is None:
+            category = Sets()
         Parent.__init__(self, base, category=category)
         self.register_action(ScalarMultiplication(base, self, False, operator.mul))
         self.register_action(ScalarMultiplication(base, self, True, operator.mul))
@@ -1832,17 +2016,70 @@ class HypergeometricFunctions(Parent, UniqueRepresentation):
             SR.register_coercion(HypergeometricToSR(self.Hom(SR)))
 
     def _repr_(self):
+        r"""
+        Return a string representation of this parent.
+
+        EXAMPLES::
+
+            sage: S.<x> = QQ[]
+            sage: H = hypergeometric([], [], x).parent()
+            sage: H  # indirect doctest
+            Hypergeometric functions in x over Rational Field
+        """
         return "Hypergeometric functions in %s over %s" % (self._name, self._base)
 
-    def _element_constructor_(self, *args, **kwds):
-        return self.element_class(self, *args, **kwds)
+    def _an_element_(self):
+        r"""
+        Return an element in this parent.
+
+        EXAMPLES::
+
+            sage: S.<x> = QQ[]
+            sage: H = hypergeometric([], [], x).parent()
+            sage: H.an_element()  # indirect doctest
+            hypergeometric((1,), (), x)
+        """
+        return self([1], [])
 
     def _coerce_map_from_(self, other):
+        r"""
+        Return whether there is a coercion map from ``other``
+        to ``self``.
+
+        TESTS::
+
+            sage: S.<x> = QQ[]
+            sage: HS = hypergeometric([], [], x).parent()
+            sage: T.<x> = RR[]
+            sage: HT = hypergeometric([], [], x).parent()
+            sage: HS.has_coerce_map_from(HT)  # indirect doctest
+            False
+            sage: HT.has_coerce_map_from(HS)  # indirect doctest
+            True
+        """
         if (isinstance(other, HypergeometricFunctions)
-        and other.has_coerce_map_from(self)):
+        and self.base_ring().has_coerce_map_from(other.base_ring())):
             return True
 
     def _pushout_(self, other):
+        r"""
+        Return a parent in which ``self`` and ``other`` both coerce.
+
+        TESTS::
+
+            sage: from sage.categories.pushout import pushout
+            sage: S.<x> = QQ[]
+            sage: HS = hypergeometric([], [], x).parent()
+            sage: pushout(S, HS)
+            Symbolic Ring
+
+        ::
+
+            sage: T.<x> = RR[]
+            sage: HT = hypergeometric([], [], x).parent()
+            sage: pushout(HT, HS) is HT
+            True
+        """
         if isinstance(other, HypergeometricFunctions) and self._name == other._name:
             base = pushout(self.base_ring(), other.base_ring())
             if base is not None:
@@ -1851,24 +2088,124 @@ class HypergeometricFunctions(Parent, UniqueRepresentation):
             return SR
 
     def base_ring(self):
+        r"""
+        Return the base ring over which the hypergeometric functions
+        in this parent are defined.
+
+        EXAMPLES::
+
+            sage: S.<x> = QQ[]
+            sage: H = hypergeometric([], [], x).parent()
+            sage: H.base_ring()
+            Rational Field
+        """
         return self._base
 
     def variable_name(self):
+        r"""
+        Return the variable name of the hypergeometric functions
+        in this parent.
+
+        EXAMPLES::
+
+            sage: S.<x> = QQ[]
+            sage: H = hypergeometric([], [], x).parent()
+            sage: H.variable_name()
+            'x'
+        """
         return self._name
 
     def latex_variable_name(self):
+        r"""
+        Return the LaTeX variable name of the hypergeometric functions
+        in this parent.
+
+        EXAMPLES::
+
+            sage: S.<xi> = QQ[]
+            sage: H = hypergeometric([], [], xi).parent()
+            sage: H.latex_variable_name()
+            '\\xi'
+        """
         return self._latex_name
 
     def change_ring(self, R):
+        r"""
+        Return the parent for hypergeometric functions in the same
+        variable over the ring ``R``.
+
+        INPUT:
+
+        - ``R`` -- a commutative ring
+
+        EXAMPLES::
+
+            sage: S.<x> = QQ[]
+            sage: H = hypergeometric([], [], x).parent()
+            sage: H
+            Hypergeometric functions in x over Rational Field
+            sage: H.change_ring(GF(5))
+            Hypergeometric functions in x over Finite Field of size 5
+        """
         return HypergeometricFunctions(R, self._name)
 
     def change_variable_name(self, name):
+        r"""
+        Return the parent for hypergeometric functions over the same
+        ring with variable name ``name``.
+
+        INPUT:
+
+        - ``name`` -- a string
+
+        EXAMPLES::
+
+            sage: S.<x> = QQ[]
+            sage: H = hypergeometric([], [], x).parent()
+            sage: H
+            Hypergeometric functions in x over Rational Field
+            sage: H.change_variable_name('y')
+            Hypergeometric functions in y over Rational Field
+        """
         return HypergeometricFunctions(self._base, name)
 
     def polynomial_ring(self):
+        r"""
+        Return the polynomial ring with same variable name
+        and same base field as ``self``.
+
+        EXAMPLES::
+
+            sage: S.<x> = QQ[]
+            sage: H = hypergeometric([], [], x).parent()
+            sage: H.polynomial_ring() is S
+            True
+        """
         return PolynomialRing(self.base_ring(), self._name)
 
     def power_series_ring(self, default_prec=None):
+        r"""
+        Return the power series ring with same variable name
+        and same base field as ``self``.
+
+        INPUT:
+
+        - ``default_prec`` -- an integer or ``Infinity``
+          (default: ``None``)
+
+        EXAMPLES::
+
+            sage: S.<x> = QQ[]
+            sage: H = hypergeometric([], [], x).parent()
+            sage: H.power_series_ring()
+            Power Series Ring in x over Rational Field
+
+        When ``default_prec`` is set to ``Infinity``, a lazy
+        power series ring is returned::
+
+            sage: H.power_series_ring(infinity)
+            Lazy Taylor Series Ring in x over Rational Field
+        """
         if default_prec is infinity:
             return LazyPowerSeriesRing(self.base_ring(), self._name)
         else:
