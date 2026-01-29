@@ -1323,8 +1323,8 @@ class GCAlgebra(UniqueRepresentation, QuotientRing_nc):
             have only been implemented when the base rings are the same
 
         It is possible to construct a matrix with GCAlgebra elements.
-        when B is not a GCAlgebra the call is handed to the parent class
-        (:issue:41434)::
+        When B is not a GCAlgebra the call is handed to the parent class
+        (:issue:`41434`)::
 
             sage: R.<dx> = GradedCommutativeAlgebra(QQ)
             sage: matrix([dx])
