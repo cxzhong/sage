@@ -19,6 +19,7 @@ from sage.modular.arithgroup.congroup_gammaH import GammaH_class
 from sage.modular.arithgroup.congroup_generic import CongruenceSubgroup
 from sage.modular.cusps import Cusp
 from sage.modular.modsym.p1list import P1List, lift_to_sl2z
+from sage.rings.polynomial.polynomial_element import Polynomial
 from sage.rings.finite_rings.integer_mod_ring import IntegerModRing
 from sage.rings.integer_ring import ZZ
 
@@ -39,6 +40,9 @@ def Gamma0_constructor(N):
         True
     """
     from sage.modular.arithgroup.all import SL2Z
+    if isinstance(N, Polynomial):
+        from sage.modular.drinfeld_modform.congroup_gamma0 import Gamma0_class as Gamma0_drinfeld
+        return Gamma0_drinfeld(N)
     if N == 1:
         return SL2Z
     try:
