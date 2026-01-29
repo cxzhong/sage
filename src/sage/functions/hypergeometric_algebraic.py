@@ -1,7 +1,125 @@
 r"""
 Hypergeometric functions over arbitrary rings
 
-[Tutorial]
+When the given variable `x` is not symbolic but lies in a polynomial
+ring or a power series ring, the function
+:func:`~sage.functions.hypergeometric.hypergeometric`
+returns an instance of the class :class:`HypergeometricAlgebraic`.
+
+    sage: S.<x> = QQ[]
+    sage: f = hypergeometric([1/9, 4/9, 5/9], [1/3, 1], x)
+    sage: f.parent()
+    Hypergeometric functions in x over Rational Field
+
+Below, we illustrate the main features provided by this class.
+We introduce two additional hypergeometric series which will serve
+as running examples::
+
+    sage: g = hypergeometric([1/2, 5/6, 1], [5/3, 2], x)
+    sage: h = hypergeometric([1/5, 1/5, 1/5, 1/5], [1/3, 27/5 - 1], x)
+
+.. RUBRIC:: Hypergeometric functions over `\QQ`
+
+A series `s(x)` is said globally bounded when it has positive radius
+of convergence and there exist integers `a` and `b` such that `a s(bx)`
+has integral coefficients.
+The method :meth:`~HypergeometricAlgebraic.is_globally_bounded` checks
+when this property is satisfied::
+
+    sage: f.is_globally_bounded()
+    True
+    sage: g.is_globally_bounded()
+    True
+    sage: h.is_globally_bounded()
+    False
+
+More genrally, the method :meth:`good_reduction_primes` returns the
+set of primes modulo which the hypergeometric function can be reduced::
+
+    sage: f.good_reduction_primes()
+    Set of all prime numbers with 3 excluded: 2, 5, 7, 11, ...
+    sage: g.good_reduction_primes()
+    Set of all prime numbers with 2 excluded: 3, 5, 7, 11, ...
+    sage: h.good_reduction_primes()
+    Set of prime numbers congruent to 1, 8, 11 modulo 15 with 3, 17 included and 11 excluded: 3, 17, 23, 31, ...
+
+On a different note, the method :meth:`~HypergeometricAlgebraic.is_algebraic`
+checks whether an hypergeometric series defines an algebraic function
+over `\QQ(x)`::
+
+    sage: f.is_algebraic()
+    False
+    sage: g.is_algebraic()
+    False
+    sage: h.is_algebraic()
+    False
+
+.. RUBRIC:: Hypergeometric functions over finite fields
+
+When `p` is a prime of good reduction of an hypergeometric function, we
+can reduce the latter modulo `p` using the `%` operator::
+
+    sage: f19 = f % 19
+    sage: f19
+    hypergeometric((1/9, 4/9, 5/9), (1/3, 1), x)
+    sage: f19.base_ring()
+    Finite Field of size 19
+
+A remarkable feature of hypergeometric functions over finite fields is
+that they are always algebraic!
+The method :~HypergeometricAlgebraic.annihilating_ore_polynomial` returns
+an annihilating polynomial (in the Frobenius)::
+
+    sage: f19.annihilating_ore_polynomial()
+    (18*x^76 + 13*x^57 + 6*x^38 + 17*x^19 + 12)*Frob^2 +
+    (12*x^38 + 11*x^32 + 10*x^31 + ... + 18*x^12 + 7)*Frob +
+    x^30 + 16*x^29 + 9*x^28 + ... + 6*x^13 + x^12
+
+One subtlety is positive characteristic is that different set of
+parameters may lead to the same series::
+
+    sage: T.<y> = GF(13)[]
+    sage: h1 = hypergeometric([1/12, 1/4], [1/2], y)
+    sage: h2 = hypergeometric([1/12, 1/6], [1/3], y)
+    sage: h1.power_series(500)
+    1 + 6*y + 6*y^13 + 10*y^14 + 6*y^169 + 10*y^170 + 10*y^182 + 8*y^183 + O(y^500)
+    sage: h2.power_series(500)
+    1 + 6*y + 6*y^13 + 10*y^14 + 6*y^169 + 10*y^170 + 10*y^182 + 8*y^183 + O(y^500)
+
+The method :meth:`~HypergeometricAlgebraic.is_equal_as_series` checks
+when this happens::
+
+    sage: h1.is_equal_as_series(h2)
+    True
+
+.. RUBRIC:: Hypergeometric functions over `p`-adic fields
+
+Some methods related to `p`-adic properties of hypergeometric series
+are also available,. This includes the computation of the `p`-adic
+valuation::
+
+    sage: hp3 = h.change_ring(Qp(3))
+    sage: hp3.valuation()
+    0
+
+We can also compute the `p`-adic radius of convergence::
+
+    sage: hp3.log_radius_of_convergence()
+    2
+
+Here, the log radius of convergence refers to the exponent on `p`
+of the actual radius of convergence; in our example, the `p`-adic
+radius of convergence of `h` is then `p^2`.
+
+Evaluation of hypergeometric series at `p`-adic arguments also
+works::
+
+    sage: hp3(1/3)
+    3 + 3^4 + 2*3^5 + 2*3^7 + 3^8 + 2*3^9 + 2*3^10 + 3^11 + 3^12 + 3^13 + 2*3^14 + 2*3^15 + 3^16 + 3^17 + 3^19 + O(3^20)
+    sage: hp3(1/9)
+    Traceback (most recent call last):
+    ...
+    ValueError: outside the domain of convergence
 
 AUTHORS:
 
