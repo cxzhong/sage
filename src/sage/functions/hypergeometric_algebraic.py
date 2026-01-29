@@ -123,11 +123,11 @@ works::
 
 AUTHORS:
 
-- Xavier Caruso, Florian Fürnsinn (2025-10): initial version
+- Xavier Caruso, Florian Fürnsinn (2026-02): initial version
 """
 
 # ***************************************************************************
-#    Copyright (C) 2025 Xavier Caruso <xavier.caruso@normalesup.org>
+#    Copyright (C) 2026 Xavier Caruso <xavier.caruso@normalesup.org>
 #                       Florian Fürnsinn <florian.fuernsinn@univie.ac.at>
 #
 #    This program is free software: you can redistribute it and/or modify
