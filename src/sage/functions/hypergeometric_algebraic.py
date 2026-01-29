@@ -1276,7 +1276,7 @@ class HypergeometricAlgebraic_padic(HypergeometricAlgebraic):
             log_radius = convergence
         start = -log_radius / self._e
         try:
-            vertices = self._parameters.valuation_function(self._p, start)
+            vertices = self._parameters.newton_polygon(self._p, start)
         except ValueError:
             raise ValueError("infinite Newton polygon; try to truncate it by giving a log radius less than %s" % convergence)
         valscalar = self._scalar.valuation()

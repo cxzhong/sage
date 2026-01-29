@@ -38,6 +38,20 @@ from sage.matrix.special import identity_matrix
 ########################################
 
 def dwork(a, p):
+    r"""
+    Return the image of `a` under the `p`-th Dwork map
+    `\mathcal D_p` defined by:
+    - `p \mathcal D_p(a) - a \in \{0, \ldots, p-1\} if `a \in \ZZ_{(p)}`,
+    - `\mathcal D_p(a) = a` otherwise.
+
+    EXAMPLES::
+
+        sage: from sage.functions.hypergeometric_parameters import dwork
+        sage: dwork(1/3, 5)
+        2/3
+        sage: dwork(2/5, 5)
+        2/5
+    """
     if a.valuation(p) < 0:
         return a
     return (a + (-a) % p) / p
@@ -131,9 +145,34 @@ class HypergeometricParameters(SageObject):
         return "(%s, %s)" % (self.top, self.bottom)
 
     def __hash__(self):
+        r"""
+        Return a hash of these parameters.
+
+        EXAMPLES::
+
+            sage: from sage.functions.hypergeometric_algebraic import HypergeometricParameters
+            sage: pa = HypergeometricParameters([1/4, 1/3, 1/2], [2/5, 3/5])
+            sage: hash(pa)  # random
+            -2604034126829049531
+        """
         return hash((self.top, self.bottom))
 
     def __eq__(self, other):
+        r"""
+        Return whether this set of parameters is equal to ``other``.
+
+        INPUT:
+
+        - ``other`` - a set of parameters
+
+        EXAMPLES::
+
+            sage: from sage.functions.hypergeometric_algebraic import HypergeometricParameters
+            sage: pa = HypergeometricParameters([1/4, 1/3, 1/2], [2/5, 3/5])
+            sage: pa2 = HypergeometricParameters([1/4, 1/3, 1/2], [3/5, 2/5])
+            sage: pa == pa2
+            True
+        """
         return (isinstance(other, HypergeometricParameters)
             and self.top == other.top and self.bottom == other.bottom)
 
@@ -164,6 +203,31 @@ class HypergeometricParameters(SageObject):
         return len(self.top) == len(self.bottom)
 
     def degree(self):
+        r"""
+        Return the largest integer `k` such that the `k`-th coefficient
+        of the hypergeometric series associated to this set of parameters
+        is nonzero.
+
+        EXAMPLES::
+
+            sage: from sage.functions.hypergeometric_algebraic import HypergeometricParameters
+            sage: pa = HypergeometricParameters([1/4, -3], [2/5])
+            sage: pa.degree()
+            3
+
+        ::
+
+            sage: pa = HypergeometricParameters([1/4, -5, -3], [-5, 2/5])
+            sage: pa.degree()
+            3
+
+        When all coefficients of the hypergeometric series do not vanish,
+        the method returns `+\infty`::
+
+            sage: pa = HypergeometricParameters([1/4, 1/3, 1/2], [2/5, 3/5])
+            sage: pa.degree()
+            +Infinity
+        """
         neg = {}
         for a in self.top:
             if a in ZZ and a <= 0:
@@ -557,6 +621,9 @@ class HypergeometricParameters(SageObject):
         return HypergeometricParameters(top, bottom, add_one=False)
 
     def prepare_parameters(self, p):
+        r"""
+        Return [...]
+        """
         params = {}
         shift = diff = 0
         for a in self.top:
@@ -592,9 +659,11 @@ class HypergeometricParameters(SageObject):
             \text{val}_p(h_k) + \delta k
 
         and the first index `k` where this minimum is reached.
-        Return in addition (for internal use), the number of summands
-        in Christol's formula which was taken into account in order to
-        compute the result.
+        For internal use, this method returns in addition the
+        number of summands in Christol's formula which was taken
+        into account in order to compute the result.
+
+        We implement the algorithm described in [CF26]_, Section 2.2
 
         INPUT:
 
@@ -607,7 +676,7 @@ class HypergeometricParameters(SageObject):
             sage: from sage.functions.hypergeometric_algebraic import HypergeometricParameters
             sage: pa = HypergeometricParameters([1/5, 1/5, 1/5], [1/3, 3^10/5])
             sage: pa.valuation_position(3)
-            (-9, 1, 11)
+            (-9, 1, 14)
 
         When the relevant sequence is not bounded from below, the
         tuple ``(-Infinity, None)`` is returned::
@@ -618,7 +687,7 @@ class HypergeometricParameters(SageObject):
         An example with a drift::
 
             sage: pa.valuation_position(3, drift=-7/5)
-            (-54/5, 7, 11)
+            (-54/5, 7, 14)
         """
         # We check that we are inside the disk of convergence
         params, shift, diff, negparams, degree = self.prepare_parameters(p)
@@ -757,7 +826,42 @@ class HypergeometricParameters(SageObject):
             signature_prev = signature
             indices_prev = indices
 
-    def valuation_function(self, p, start):
+    def newton_polygon(self, p, start):
+        r"""
+        If the `h_k`s are the coefficients of the hypergeometric
+        series corresponding to these parameters, return the vertices
+        of the upper convex hull of the points
+
+        .. MATH::
+
+            (k, \text{val}_p(h_k))
+
+        together with a ray in the direction `(1, -\text{start})`.
+
+        We implement the algorithm described in [CF26]_, Section 2.3
+
+        INPUT:
+
+        - ``p`` -- a prime number
+
+        - ``start`` -- a rational number
+
+        EXAMPLES::
+
+            sage: from sage.functions.hypergeometric_algebraic import HypergeometricParameters
+            sage: pa = HypergeometricParameters([1/5, 1/5, 1/5], [1/3, 3^10/5])
+            sage: pa.newton_polygon(3, 0)
+            [[0, 0], [1, -9]]
+
+        When the valuation of the hypergeometric series drifted by ``start``
+        is infinite (see :meth:`valuation_position`), the Newton polygon
+        has infinitely many vertices, and this method raises an error::
+
+            sage: pa.newton_polygon(3, -2)
+            Traceback (most recent call last):
+            ...
+            ValueError: infinite Newton polygon
+        """
         params, shift, diff, negparams, degree = self.prepare_parameters(p)
         if not params:
             return 0, 0, 0
@@ -766,13 +870,13 @@ class HypergeometricParameters(SageObject):
 
         if start is -infinity:
             if sum(dw for _, dw in negparams) <= 0:
-                raise ValueError
+                raise ValueError("infinite Newton polygon")
             _, _, rmax = self.valuation_position(p, None)
             rays = [[0, 1]]
         else:
             valstart, _, rmax = self.valuation_position(p, start)
             if valstart is -infinity:
-                raise ValueError
+                raise ValueError("infinite Newton polygon")
             rays = [[0, 1], [1, -start]]
 
         infty = Polyhedron(ambient_dim=2)
@@ -827,6 +931,22 @@ class HypergeometricParameters(SageObject):
         return NP.vertices_list()
 
     def reduce(self, p):
+        r"""
+        Return this set of parameters where each parameter `\frac a b`
+        with denominator divisible by `p` is replaced by
+        `\frac {a \bmod p} b`.
+        This changes does not affect the associated hypergeometric
+        series modulo `p`.
+
+        EXAMPLES::
+
+            sage: from sage.functions.hypergeometric_algebraic import HypergeometricParameters
+            sage: pa = HypergeometricParameters([1/5, 6/5, 10/3], [8/3, 3/5])
+            sage: pa.reduce(3)
+            ((1/5, 1/3, 6/5), (3/5, 2/3, 1))
+            sage: pa.reduce(5)
+            ((1/5, 1/5, 10/3), (3/5, 8/3, 1))
+        """
         top = []
         for a in self.top:
             d = a.denominator()
@@ -845,10 +965,8 @@ class HypergeometricParameters(SageObject):
 
     def dwork_image(self, p):
         r"""
-        Return the parameters obtained by applying the Dwork map to each of
-        the parameters. The Dwork map `D_p(x)` of a p-adic integer x is defined
-        as the unique p-adic integer such that `p D_p(x) - x` is a nonnegative
-        integer smaller than p.
+        Return the parameters obtained by applying the Dwork map
+        to each of the parameters (see :func:`dwork`).
 
         INPUT:
 
@@ -862,14 +980,8 @@ class HypergeometricParameters(SageObject):
             ((1/4, 1/3, 1/2), (2/5, 3/5, 1))
             sage: pa.dwork_image(7)
             ((1/3, 1/2, 3/4), (1/5, 4/5, 1))
-
-        If the denominator of a parameter is divisible by `p`, then this
-        parameters is unchanged::
-
             sage: pa.dwork_image(3)
-            Traceback (most recent call last):
-            ...
-            ValueError: denominators of parameters are not coprime to p
+            ((1/3, 1/2, 3/4), (1/5, 4/5, 1))
         """
         top = [dwork(a, p) for a in self.top]
         bottom = [dwork(b, p) for b in self.bottom]
