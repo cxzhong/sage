@@ -29,9 +29,9 @@ class Gamma0Element(MultiplicativeGroupElement):
     def __init__(self, parent, mat):
         r"""
         Initialize this element of the congruence subgroup.
-        
+
         TESTS:
-        
+
             sage: A.<T> = GF(5)[]
             sage: G = Gamma0(T^4+2*T+3)
             sage: g = G.an_element()
@@ -49,9 +49,9 @@ class Gamma0Element(MultiplicativeGroupElement):
     def __repr__(self):
         r"""
         Return the string representation of the element ``self``.
-        
+
         EXAMPLES::
-        
+
             sage: A.<T> = GF(5)[]
             sage: G = Gamma0(T^4+2*T+3)
             sage: g = G.an_element()
@@ -64,9 +64,9 @@ class Gamma0Element(MultiplicativeGroupElement):
         r"""
         Return the level of the congruence subgroup in which the element 
         ``self`` lives.
-        
+
         EXAMPLES::
-        
+
             sage: A.<T> = GF(5)[]
             sage: G = Gamma0(T^4+2*T+3)
             sage: g = G.an_element()
@@ -78,9 +78,9 @@ class Gamma0Element(MultiplicativeGroupElement):
     def _mul_(self, other):
         r"""
         Return the product of the element ``self`` with ``other``.
-        
+
         EXAMPLES::
-        
+
             sage: A.<T> = GF(5)[], N = T^4+2*T+3
             sage: G = Gamma0(N)
             sage: g = G.an_element()
@@ -93,9 +93,9 @@ class Gamma0Element(MultiplicativeGroupElement):
     def __invert__(self):
         r"""
         Return the inverse of the element ``self``.
-        
-        EXAMPLEs::
-        
+
+        EXAMPLES::
+
             sage: A.<T> = GF(5)[]
             sage: G = Gamma0(T^4+2*T+3)
             sage: g = G.an_element()
@@ -113,9 +113,9 @@ class Gamma0_class(Group):
     def __init__(self, level):
         r"""
         The congruence subgroup `\Gamma_0(N)`.
-        
+
         EXAMPLES::
-        
+
             sage: A.<T> = GF(5)[]
             sage: G = Gamma0(T^4+2*T+3)
             sage: G
@@ -133,9 +133,9 @@ class Gamma0_class(Group):
     def _repr_(self):
         r"""
         Return the string representation of ``self``.
-        
+
         EXAMPLES::
-        
+
             sage: A.<T> = GF(5)[]
             sage: Gamma0(T^4+2*T+3)._repr_()
             'Congruence Subgroup Gamma0(T^4 + 2*T + 3)'        
@@ -145,9 +145,9 @@ class Gamma0_class(Group):
     def base_ring(self):
         r"""
         Return the base ring of ``self``.
-        
+
         EXAMPLES::
-            
+
             sage: A.<T> = GF(5)[]
             sage: Gamma0(T^4+2*T+3).base_ring()
             Univariate Polynomial Ring in T over Finite Field of size 5
@@ -157,9 +157,9 @@ class Gamma0_class(Group):
     def level(self):
         r"""
         Return the level of ``self``.
-        
+
         EXAMPLES::
-        
+
             sage: A.<T> = GF(5)[]
             sage: Gamma0(T^4+2*T+3).level()
             T^4 + 2*T + 3
@@ -170,9 +170,9 @@ class Gamma0_class(Group):
     def _level_factorized(self):
         r"""
         Return the factorization of the level of ``self``.
-        
+
         EXAMPLES::
-        
+
             sage: A.<T> = GF(5)[]
             sage: Gamma0(T^4+2*T+3)._level_factorized()
             (T + 2)^2 * (T^2 + T + 2)
@@ -184,9 +184,9 @@ class Gamma0_class(Group):
         r"""
         Return the factorized radical of the level of ``self`` i.e. the product 
         of the distinct irreducible factors of ``self``.
-                
+
         EXAMPLES::
-        
+
             sage: A.<T> = GF(5)[]
             sage: Gamma0(T^4+2*T+3)._level_factorizedradical()
             (T + 2) * (T^2 + T + 2)
@@ -210,9 +210,9 @@ class Gamma0_class(Group):
     def matrix_space(self):
         r"""
         Return the matrix space of ``self``.
-        
+
         EXAMPLES::
-        
+
             sage: A.<T> = GF(5)[]
             sage: Gamma0(T^4+2*T+3).matrix_space()
             Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial 
@@ -224,9 +224,9 @@ class Gamma0_class(Group):
         r""""
         Return the genus of ``self``, i.e. the genus of the Drinfeld modular 
         curve attached to ``self``.
-        
+
         EXAMPLES::
-        
+
             sage: A.<T> = GF(5)[]
             sage: Gamma0(T-1).genus()
             0
@@ -236,7 +236,7 @@ class Gamma0_class(Group):
             155
         
         If N is irreducible, the formula simplifies as follows:
-    
+
             sage: def genus_irr(N):
             ....:     q = N.base_ring().cardinality()
             ....:     d = N.degree()
@@ -253,9 +253,9 @@ class Gamma0_class(Group):
             True
             sage: Gamma0(N).genus() == genus_irr(N)
             True 
-        
+
         REFERENCE:
-        
+
         [Gek2001]_
         """
         q = self._q
@@ -275,9 +275,9 @@ class Gamma0_class(Group):
         r"""
         Return the number of cusps of ``self`` i.e. the number of cusps of the 
         Drinfeld modular curve attached to ``self``.
-        
+
         EXAMPLES::
-        
+
             sage: A.<T> = GF(5)[]
             sage: Gamma0(T-1).ncusps()
             2
@@ -285,9 +285,9 @@ class Gamma0_class(Group):
             4
             sage: Gamma0(T^7-3*T^4+1).ncusps()
             8
-            
+
         If N is irreducible, the number of cusps is 2. We can check it:
-    
+
             sage: N = T^6 + T^4 + 4*T^3 + T^2 + 2; N.is_irreducible()
             True
             sage: Gamma0(N).ncusps() == 2
@@ -296,9 +296,9 @@ class Gamma0_class(Group):
             True
             sage: Gamma0(N).ncusps() == 2
             True 
-            
+
         REFERENCE:
-        
+
         [Gek2001]_
         """
         q = self._q
@@ -315,16 +315,16 @@ class Gamma0_class(Group):
         r"""
         Return the index of self as a subgroup of `\mathrm{GL}_{2}(A)` where `A`
         is the base ring of ``self``.
-        
+
         EXAMPLES::
-        
+
             sage: A.<T> = GF(5)[]
             sage: Gamma0(T^4-3*T^4+1).index()
             626
 
         If the level `N` of ``self``, is irreducible, the index is `1+q^\deg(N)`.
         We can check it:
-        
+
             sage: A.<T> = GF(5)[]
             sage: N = T^4 + 4*T^2 + 4*T + 2; N.is_irreducible()
             True
@@ -338,6 +338,5 @@ class Gamma0_class(Group):
         ind = q**level.degree()
         for P,r in L:
             ind *= 1+1/(q**P.degree())
-        return ind
-        
+        return ind     
         
