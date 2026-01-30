@@ -1644,6 +1644,11 @@ REFERENCES:
             *Gröbner and diagonal bases in Orlik-Solomon type algebras*
             Cubo **7** (2), (2005). pp. 1-20.
 
+.. [CF2026]  Xavier Caruso, Florian Fürnsinn,
+             *Algorithms for Algebraic and Arithmetic Attributes
+             of Hypergeometric Functions*,
+             https://arxiv.org/abs/2601.16105
+
 .. [CFHM2013] Wei Chen, Wenjie Fang, Guangda Hu, Michael W. Mahoney,
               *On the Hyperbolicity of Small-World and Treelike Random Graphs*,
               Internet Mathematics 9:4 (2013), 434-491.

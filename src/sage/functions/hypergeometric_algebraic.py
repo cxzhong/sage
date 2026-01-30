@@ -1030,6 +1030,10 @@ class HypergeometricAlgebraic_QQ(HypergeometricAlgebraic):
           also the first index in the series expansion at which the valuation
           is attained.
 
+        ALGORITHM:
+
+        See [CF2026]_, Section 2.2
+
         EXAMPLES::
 
             sage: S.<x> = QQ[x]
@@ -1109,7 +1113,7 @@ class HypergeometricAlgebraic_QQ(HypergeometricAlgebraic):
 
         ALGORITHM:
 
-        We implement the algorithm of [CF26]_, Subsection 3.1
+        We implement the algorithm of [CF2026]_, Subsection 3.1
 
         EXAMPLES::
 
@@ -1516,6 +1520,10 @@ class HypergeometricAlgebraic_padic(HypergeometricAlgebraic):
           index of the first coefficient attaining the valuation is also
           returned
 
+        ALGORITHM:
+
+        See [CF2026]_, Section 2.2
+
         EXAMPLES::
 
             sage: S.<x> = Qp(5)[]
@@ -1548,6 +1556,10 @@ class HypergeometricAlgebraic_padic(HypergeometricAlgebraic):
           the last slope of the Newton polygon; if ``None``, the
           logarithmic `p`-adic radius of convergence of this
           hypergeometric function is used.
+
+        ALGORITHM:
+
+        See [CF2026]_, Section 2.3
 
         EXAMPLES::
 
@@ -1966,11 +1978,22 @@ class HypergeometricAlgebraic_GFp(HypergeometricAlgebraic):
 
     def dwork_relation(self):
         r"""
-        Return (P1, h1), ..., (Ps, hs) such that
+        Return a list `(P_1, h_1), ..., (P_s, h_s)` where the
+        `P_i` are polynomials and the `h_i` are hypergeometric
+        functions such that `P_1 h_1^p + \cdots + P_s h_s^p` is
+        equal to ``self``.
 
-            self = P1*h1^p + ... + Ps*hs^p
+        .. NOTE::
 
-        TESTS::
+            This method is used as a main ingrediant in the
+            computation of an annihilating polynomial of ``self``
+            (see :meth:`annihilating_ore_polynomial`).
+
+        ALGORITHM:
+
+        See [CF2026]_, Subsection 3.2
+
+        EXAMPLES::
 
             sage: S.<x> = GF(3)[]
             sage: f = hypergeometric([7/8, 9/8, 11/8], [3/2, 7/4], x)
@@ -2007,12 +2030,13 @@ class HypergeometricAlgebraic_GFp(HypergeometricAlgebraic):
         return Ps
 
     def annihilating_ore_polynomial(self, var='Frob'):
-        # QUESTION: does this method actually return the
-        # minimal Ore polynomial annihilating self?
-        # Probably not :-(
         r"""
         Return an Ore polynomaial in the Frobenius morphism, that
         annihilates this hypergeometric function.
+
+        ALGORITHM:
+
+        See [CF2026]_, Subsection 3.3
 
         INPUT:
 

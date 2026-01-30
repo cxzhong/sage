@@ -56,6 +56,7 @@ def dwork(a, p):
         return a
     return (a + (-a) % p) / p
 
+
 class HypergeometricParameters(SageObject):
     r"""
     Class for parameters of hypergeometric functions.
@@ -622,7 +623,39 @@ class HypergeometricParameters(SageObject):
 
     def prepare_parameters(self, p):
         r"""
-        Return [...]
+        Return a normalized version of these parameters, together
+        with extra information which are useful for the methods
+        :meth:`valuation_position` and :meth:`newton_polygon`.
+
+        INPUT:
+
+        - ``p`` -- a prime number
+
+        OUTPUT:
+
+        - the set of parameters with their multiplicities having
+          denominators coprime with `p`
+
+        - the shift we need to apply to the drift in order to compensate
+          the removal of parameter with denominators divisible by `p`
+
+        - `p-1` times the `p`-adic log radius of convergence of the
+          corresponding hypergeometric function
+
+        - the set of parameters with their multiplicities, which are
+          nonpositive integers
+
+        - the degree of the corresponding hypergeometric function, or
+          ``+Infinity`` if it is not a polynomial
+
+        EXAMPLES::
+
+            sage: from sage.functions.hypergeometric_algebraic import HypergeometricParameters
+            sage: pa = HypergeometricParameters([1/4, 1/3, 1/2], [2/5, 3/5])
+            sage: pa.prepare_parameters(3)
+            ([(1/4, 1), (1/2, 1), (2/5, -1), (3/5, -1), (1, -1)], -1, -1, [], +Infinity)
+            sage: pa.prepare_parameters(5)
+            ([(1/4, 1), (1/3, 1), (1/2, 1), (1, -1)], 2, 2, [], +Infinity)
         """
         params = {}
         shift = diff = 0
@@ -663,7 +696,7 @@ class HypergeometricParameters(SageObject):
         number of summands in Christol's formula which was taken
         into account in order to compute the result.
 
-        We implement the algorithm described in [CF26]_, Section 2.2
+        We implement the algorithm described in [CF2026]_, Section 2.2
 
         INPUT:
 
@@ -838,7 +871,7 @@ class HypergeometricParameters(SageObject):
 
         together with a ray in the direction `(1, -\text{start})`.
 
-        We implement the algorithm described in [CF26]_, Section 2.3
+        We implement the algorithm described in [CF2026]_, Section 2.3
 
         INPUT:
 
