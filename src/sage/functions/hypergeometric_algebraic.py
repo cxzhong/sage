@@ -812,7 +812,7 @@ class HypergeometricAlgebraic(Element):
 
         INPUT:
 
-        - ``prec`` -- a positive integer
+        - ``prec`` -- a positive integer (default: ``20``)
 
         EXAMPLES::
 
@@ -1439,26 +1439,26 @@ class HypergeometricAlgebraic_padic(HypergeometricAlgebraic):
         parameters = self._parameters.dwork_image(self._p)
         return self.parent()(parameters, scalar=self._scalar)
 
-    def log_radius_of_convergence(self):
+    def _log_radius_of_convergence(self):
         r"""
-        Return the logarithmic p-adic radius of convergence of this
-        hypergeometric function.
+        Helper function for :meth:`log_radius_of_convergence` and
+        :meth:`_truncation_bound`.
 
-        EXAMPLES::
+        TESTS::
 
             sage: S.<x> = Qp(5)[]
             sage: f = hypergeometric([1/3, 2/3], [1/2], x)
-            sage: f.log_radius_of_convergence()
+            sage: f._log_radius_of_convergence()
             0
-            sage: g = hypergeometric([1/3, 2/3], [1/5], x)
-            sage: g.log_radius_of_convergence()
-            5/4
-        """
-        if self.is_polynomial():
-            return infinity
-        return self._log_radius_of_convergence()
 
-    def _log_radius_of_convergence(self):
+        ::
+
+            sage: g = hypergeometric([-3], [1/3], x)
+            sage: g._log_radius_of_convergence()
+            -1/4
+            sage: g.log_radius_of_convergence()
+            +Infinity
+        """
         p = self._p
         step = self._e / (p - 1)
         log_radius = 0
@@ -1476,6 +1476,30 @@ class HypergeometricAlgebraic_padic(HypergeometricAlgebraic):
             else:
                 log_radius -= step
         return log_radius
+
+    def log_radius_of_convergence(self):
+        r"""
+        Return the logarithmic `p`-adic radius of convergence of this
+        hypergeometric function, that is the exponent on `p` on the
+        `p`-adic radius of convergence.
+
+        EXAMPLES::
+
+            sage: S.<x> = Qp(5)[]
+            sage: f = hypergeometric([1/3, 2/3], [1/2], x)
+            sage: f.log_radius_of_convergence()
+            0
+
+        Here the `p`-adic radius of convergence is `p^0 = 1`,
+        whereas, in the example below, it is `p^{5/4}`::
+
+            sage: g = hypergeometric([1/3, 2/3], [1/5], x)
+            sage: g.log_radius_of_convergence()
+            5/4
+        """
+        if self.is_polynomial():
+            return infinity
+        return self._log_radius_of_convergence()
 
     def valuation(self, log_radius=0, position=False):
         r"""
@@ -1516,7 +1540,16 @@ class HypergeometricAlgebraic_padic(HypergeometricAlgebraic):
 
     def newton_polygon(self, log_radius=None):
         r"""
-        TESTS::
+        Return the Newton polygon of this hypergeometric series.
+
+        INPUT:
+
+        - ``log_radius`` -- a rational number (default: ``None``);
+          the last slope of the Newton polygon; if ``None``, the
+          logarithmic `p`-adic radius of convergence of this
+          hypergeometric function is used.
+
+        EXAMPLES::
 
             sage: S.<x> = Qp(19)[]
             sage: h = hypergeometric([1/5, 2/5, 3/5, 1/11], [1/2, 1/7], x)
@@ -1524,8 +1557,19 @@ class HypergeometricAlgebraic_padic(HypergeometricAlgebraic):
             Traceback (most recent call last):
             ...
             ValueError: infinite Newton polygon; try to truncate it by giving a log radius less than 1/18
-            sage: h.newton_polygon(1/18 - 1/2^10)
-            Infinite Newton polygon with 4 vertices: (0, 0), (10, -1), (11, -1), (144, 6) ending by an infinite line of slope 503/9216
+
+        Here the Newton polygon has an infinite number of vertices, so it
+        cannot be computed entirely.
+        As suggested by the error message, we can obtain a result by passing
+        in a log radius or last slope: all the segments with slope less than
+        this number will be discarded, resulting then in a finite number of
+        vertices. When the given log radius gets closer to the actual log
+        radius of convergence, the result gets more and more accurate::
+
+            sage: h.newton_polygon(1/18 - 1/10)
+            Infinite Newton polygon with 2 vertices: (0, 0), (10, -1) ending by an infinite line of slope -2/45
+            sage: h.newton_polygon(1/18 - 1/1000)
+            Infinite Newton polygon with 4 vertices: (0, 0), (10, -1), (11, -1), (144, 6) ending by an infinite line of slope 491/9000
         """
         scalar = self._scalar
         if scalar == 0:
@@ -1543,6 +1587,33 @@ class HypergeometricAlgebraic_padic(HypergeometricAlgebraic):
         return NewtonPolygon(vertices, last_slope=log_radius)
 
     def _truncation_bound(self, log_radius, prec):
+        r"""
+        Return a bound of the number of terms needed to evaluate
+        this hypergeometric function at precision ``prec`` at a
+        `p`-adic argument of valuation ``-log_radius``.
+
+        This is an helper method for :meth:`__call__` and
+        :meth:`tate_series`.
+
+        INPUT::
+
+        - ``log_radius`` -- a rational number
+
+        - ``prec`` -- an integer
+
+        TESTS::
+
+            sage: S.<x> = Qp(19)[]
+            sage: h = hypergeometric([1/5, 2/5, 3/5, 1/11], [1/2, 1/7], x)
+            sage: h._truncation_bound(0, 10)
+            232
+            sage: h._truncation_bound(0, 20)
+            410
+            sage: h._truncation_bound(1, 20)
+            Traceback (most recent call last):
+            ...
+            ValueError: outside the domain of convergence
+        """
         degree = self.degree()
         convergence = self._log_radius_of_convergence()
         margin = convergence - log_radius
@@ -1570,6 +1641,43 @@ class HypergeometricAlgebraic_padic(HypergeometricAlgebraic):
         return 1 + min(degree, max(0, floor(k)))
 
     def tate_series(self, log_radius, prec=None):
+        r"""
+        Return this hypergeometric series viewed in the Tate
+        algebra with the given log radius.
+
+        INPUT:
+
+        - ``log_radius`` -- a rational number
+
+        - ``prec`` -- a positive integer (default: ``None``);
+          if ``None``, use the default precision of the base ring
+
+        EXAMPLES::
+
+            sage: K = Qp(7, prec=5, print_mode='digits')
+            sage: S.<x> = K[]
+            sage: h = hypergeometric([1/5, 2/5, 3/5, 1/11], [1/2, 1/7], x)
+            sage: h.tate_series(0)
+            ...00001 + ...40040*x + ...44000*x^2 + ...20000*x^4 + ...30000*x^3 + O(7^5 * <x>)
+            sage: h.tate_series(1)
+            ...562320000*x^4 + ...140040*x + ...00001 + ...5131000000*x^5 + ... + O(7^5 * <7*x>)
+
+        The given log radius needs to be less than the `p`-adic logarithmic
+        radius of convergence of the hypergeometric series. Otherwise, the
+        hypergeometric series does not define an element in the corresponding
+        Tate algebra and an error is raised::
+
+            sage: h.log_radius_of_convergence()
+            4/3
+            sage: h.tate_series(2)
+            Traceback (most recent call last):
+            ...
+            ValueError: outside the domain of convergence
+
+        .. SEEALSO::
+
+            :mod:`sage.rings.padics.tate_algebra`
+        """
         K = self.base_ring()
         name = self.parent().variable_name()
         S = TateAlgebra(K, log_radii=[log_radius], names=name)
@@ -1584,6 +1692,27 @@ class HypergeometricAlgebraic_padic(HypergeometricAlgebraic):
         return scalar * S(coeffs, prec)
 
     def __call__(self, x):
+        r"""
+        Return this hypergeometric function evaluated at ``x``.
+
+        INPUT:
+
+        - ``x`` -- a `p`-adic number
+
+        EXAMPLES::
+
+            sage: K = Qp(7, prec=5)
+            sage: S.<x> = K[]
+            sage: h = hypergeometric([1/5, 2/5, 3/5, 1/11], [1/2, 1/7], x)
+            sage: h(1)
+            1 + 4*7 + 4*7^3 + 6*7^4 + O(7^5)
+            sage: h(1/7)
+            5*7 + 2*7^2 + 3*7^3 + 7^4 + O(7^5)
+            sage: h(1/49)
+            Traceback (most recent call last):
+            ...
+            ValueError: outside the domain of convergence
+        """
         K = self.base_ring()
         scalar = self._scalar
         if scalar == 0:
@@ -1608,14 +1737,65 @@ class HypergeometricAlgebraic_GFp(HypergeometricAlgebraic):
     Class for hypergeometric functions over prime finite fields.
     """
     def __init__(self, parent, arg1, arg2=None, scalar=None, check=True):
+        r"""
+        Initialize this hypergeometric function.
+
+        INPUT:
+
+        - ``parent`` -- the parent of this function, which has to be
+          defined over the p-adics
+
+        - ``arg1``, ``arg2`` -- arguments defining this hypergeometric
+          function, they can be:
+
+          - the top and bottom paramters
+
+          - a hypergeometric function and ``None``
+
+          - an instance of the class
+            :class:`sage.functions.hypergeometric_parameters.HypergeometricParameters`
+            and ``None``
+
+        - ``scalar`` -- an element in the base ring, the scalar by
+          which the hypergeometric function is multiplied
+
+        TESTS::
+
+            sage: S.<x> = GF(5)[]
+            sage: h = hypergeometric((1/2, 1/3), (1,), x)
+            sage: type(h)
+            <class 'sage.functions.hypergeometric_algebraic.HypergeometricFunctions_with_category.element_class'>
+            sage: TestSuite(h).run()
+        """
         HypergeometricAlgebraic.__init__(self, parent, arg1, arg2, scalar, check)
         self._p = p = self.base_ring().cardinality()
         self._coeffs_enriched = [(Qp(p, 1)(self._scalar), 0)]
 
-    def __call__(self, x):
-        return self.polynomial()(x)
+    # def __call__(self, x):
+    #     return self.polynomial()(x)
 
     def __getitem__(self, n):
+        r"""
+        Return the ``n``-th coefficient of the series representation of this
+        hypergeoimetric function.
+
+        INPUT:
+
+        - ``n`` -- a non-negative integer
+
+        EXAMPLES:
+
+            sage: S.<x> = GF(5)[]
+            sage: f = hypergeometric([1/3, 2/3], [1/2], x)
+            sage: f[13]
+            3
+
+        Over finite fields, an algorithm with complexity `O(\log n)` is implemented.
+        It is then safe to call this method with very large integers ``n``::
+
+            sage: f[22204460492503130808472633361816408]  # very fast
+            1
+        """
         n = ZZ(n)
         p = self._p
         K = Qp(p, 1)
@@ -1638,13 +1818,32 @@ class HypergeometricAlgebraic_GFp(HypergeometricAlgebraic):
     @coerce_binop
     def is_equal_as_series(self, other):
         r"""
-        TESTS::
+        Return whether ``self`` and ``other`` define the same series.
+
+        INPUT:
+
+        - ``other`` -- an hypergeometric function over the same base
+
+        EXAMPLES::
 
             sage: S.<x> = GF(13)[]
-            sage: h1 = hypergeometric([1/12, 1/6], [1/3], x)
-            sage: h2 = hypergeometric([1/12, 1/4], [1/2], x)
-            sage: h1.is_equal_as_series(h2)
+            sage: f = hypergeometric([1/12, 1/6], [1/3], x)
+            sage: g = hypergeometric([1/12, 1/4], [1/2], x)
+            sage: f.is_equal_as_series(g)
             True
+
+        ::
+
+            sage: f.power_series(1000)
+            1 + 6*x + 6*x^13 + 10*x^14 + 6*x^169 + 10*x^170 + 10*x^182 + 8*x^183 + O(x^1000)
+            sage: g.power_series(1000)
+            1 + 6*x + 6*x^13 + 10*x^14 + 6*x^169 + 10*x^170 + 10*x^182 + 8*x^183 + O(x^1000)
+
+        We emphasize that, although they define the same series,
+        `f` and `g` are not considered as equal::
+
+            sage: f == g
+            False
         """
         if self == other:
             return True
@@ -2190,8 +2389,8 @@ class HypergeometricFunctions(Parent, UniqueRepresentation):
 
         INPUT:
 
-        - ``default_prec`` -- an integer or ``Infinity``
-          (default: ``None``)
+        - ``default_prec`` -- a positive integer or ``Infinity``
+          (default: ``20``)
 
         EXAMPLES::
 
@@ -2216,6 +2415,22 @@ class HypergeometricFunctions(Parent, UniqueRepresentation):
 ##################
 
 def insert_zeroes(P, n):
+    r"""
+    Return `P(x^n)`.
+
+    INPUT:
+
+    - ``P`` -- a polynomial in `x`
+
+    - ``n`` -- a positive integer
+
+    EXAMPLES::
+
+        sage: from sage.functions.hypergeometric_algebraic import insert_zeroes
+        sage: S.<x> = QQ[]
+        sage: insert_zeroes(x + 1, 5)
+        x^5 + 1
+    """
     cs = P.list()
     coeffs = n * len(cs) * [0]
     for i in range(len(cs)):
@@ -2224,6 +2439,38 @@ def insert_zeroes(P, n):
 
 
 def kernel(M, repeat=2):
+    r"""
+    Return a generator of the left kernel of the polynomial matrix
+    `M`, assuming that the latter has rank at most `1`.
+
+    INPUT:
+
+    - ``repeat`` -- a positive integer (default: ``2``); the number
+      of evaluation points we pick to check that the kernel is nonzero
+
+    .. NOTE::
+
+        The implementation is based on Cramer determinants.
+        It is however currently faster than
+        :meth:`sage.matrix.matrix_polynomial_dense.Matrix_polynomial_dense.minimal_kernel_basis`
+        for matrices of small sizes with entries of large degrees.
+
+    EXAMPLES::
+
+        sage: from sage.functions.hypergeometric_algebraic import kernel
+        sage: S.<x> = GF(5)[]
+
+    When the kernel is zero, the function returns nothing::
+
+        sage: M = matrix(2, 2, [x, x+1, x+2, x+3])
+        sage: kernel(M)
+
+    Otherwise, it returns the smallest generator as a list of polynomials::
+
+        sage: M = matrix(3, 2, [x, x+1, x+2, x^2, x^2+2, x^2+4])
+        sage: kernel(M)
+        [x^4 + 4*x^3 + x + 2, 4*x^2 + 2*x + 3, 4*x^3 + x^2 + 3*x + 2]
+    """
     n = M.nrows()
     m = M.ncols()
     if n > m + 1:
