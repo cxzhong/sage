@@ -4,7 +4,7 @@ Hypergeometric functions over arbitrary rings
 When the given variable `x` is not symbolic but lies in a polynomial
 ring or a power series ring, the function
 :func:`~sage.functions.hypergeometric.hypergeometric`
-returns an instance of the class :class:`HypergeometricAlgebraic`.
+returns an instance of the class :class:`HypergeometricAlgebraic`::
 
     sage: S.<x> = QQ[]
     sage: f = hypergeometric([1/9, 4/9, 5/9], [1/3, 1], x)
@@ -21,9 +21,9 @@ as running examples::
 .. RUBRIC:: Hypergeometric functions over `\QQ`
 
 A series `s(x)` is said globally bounded when it has positive radius
-of convergence and there exist integers `a` and `b` such that `a s(bx)`
-has integral coefficients.
-The method :meth:`~HypergeometricAlgebraic.is_globally_bounded` checks
+of convergence and there exist integers `a` and `b` such that `a \cdot
+s(bx)` has integral coefficients.
+The method :meth:`~HypergeometricAlgebraic_QQ.is_globally_bounded` checks
 when this property is satisfied::
 
     sage: f.is_globally_bounded()
@@ -33,7 +33,8 @@ when this property is satisfied::
     sage: h.is_globally_bounded()
     False
 
-More genrally, the method :meth:`good_reduction_primes` returns the
+More genrally, the method
+:meth:`HypergeometricAlgebraic_QQ.good_reduction_primes` returns the
 set of primes modulo which the hypergeometric function can be reduced::
 
     sage: f.good_reduction_primes()
@@ -43,7 +44,7 @@ set of primes modulo which the hypergeometric function can be reduced::
     sage: h.good_reduction_primes()
     Set of prime numbers congruent to 1, 8, 11 modulo 15 with 3, 17 included and 11 excluded: 3, 17, 23, 31, ...
 
-On a different note, the method :meth:`~HypergeometricAlgebraic.is_algebraic`
+On a different note, the method :meth:`~HypergeometricAlgebraic_QQ.is_algebraic`
 checks whether an hypergeometric series defines an algebraic function
 over `\QQ(x)`::
 
@@ -57,7 +58,7 @@ over `\QQ(x)`::
 .. RUBRIC:: Hypergeometric functions over finite fields
 
 When `p` is a prime of good reduction of an hypergeometric function, we
-can reduce the latter modulo `p` using the `%` operator::
+can reduce the latter modulo `p` using the mod operator (``%``)::
 
     sage: f19 = f % 19
     sage: f19
@@ -67,8 +68,8 @@ can reduce the latter modulo `p` using the `%` operator::
 
 A remarkable feature of hypergeometric functions over finite fields is
 that they are always algebraic!
-The method :~HypergeometricAlgebraic.annihilating_ore_polynomial` returns
-an annihilating polynomial (in the Frobenius)::
+The method :meth:`~HypergeometricAlgebraic_GFp.annihilating_ore_polynomial`
+returns an annihilating polynomial (in the Frobenius)::
 
     sage: f19.annihilating_ore_polynomial()
     (18*x^76 + 13*x^57 + 6*x^38 + 17*x^19 + 12)*Frob^2 +
@@ -86,7 +87,7 @@ parameters may lead to the same series::
     sage: h2.power_series(500)
     1 + 6*y + 6*y^13 + 10*y^14 + 6*y^169 + 10*y^170 + 10*y^182 + 8*y^183 + O(y^500)
 
-The method :meth:`~HypergeometricAlgebraic.is_equal_as_series` checks
+The method :meth:`~HypergeometricAlgebraic_GFp.is_equal_as_series` checks
 when this happens::
 
     sage: h1.is_equal_as_series(h2)
@@ -712,7 +713,7 @@ class HypergeometricAlgebraic(Element):
 
         - ``n`` -- a non-negative integer
 
-        EXAMPLES:
+        EXAMPLES::
 
             sage: S.<x> = QQ[]
             sage: f = hypergeometric([1/3, 2/3], [1/2], x)
@@ -727,7 +728,7 @@ class HypergeometricAlgebraic(Element):
     def degree(self):
         r"""
         Return the degree of this hypergeometric function if it is
-        a polynomial, `+\infty` otherwise.
+        a polynomial, ``+Infinity`` otherwise.
 
         EXAMPLES::
 
@@ -1688,7 +1689,7 @@ class HypergeometricAlgebraic_padic(HypergeometricAlgebraic):
 
         .. SEEALSO::
 
-            :mod:`sage.rings.padics.tate_algebra`
+            :mod:`sage.rings.tate_algebra`
         """
         K = self.base_ring()
         name = self.parent().variable_name()
@@ -1961,18 +1962,18 @@ class HypergeometricAlgebraic_GFp(HypergeometricAlgebraic):
         r"""
         Return the corant of the ``p``-curvature matrix.
 
+        ALGORITHM:
+
+        We use [CFV2025]_, Thm. 3.1.17 and the fact that the corank of the
+        p-curvature agrees with the number of solutions of the hypergeometric
+        differential equation.
+
         EXAMPLES::
 
             sage: S.<x> = GF(5)[]
             sage: f = hypergeometric([1/9, 4/9, 5/9], [1/3, 1], x)
             sage: f.p_curvature_corank()
             2
-
-        ALGORITHM:
-
-        We use [CFV2025]_, Thm. 3.1.17 and the fact that the corank of the
-        p-curvature agrees with the number of solutions of the hypergeometric
-        differential equation.
         """
         return self._parameters.q_interlacing_number(self._char)
 
@@ -2065,11 +2066,6 @@ class HypergeometricAlgebraic_GFp(HypergeometricAlgebraic):
             sage: s = f.power_series(1000)
             sage: s == (1 + 5*x)*s^11
             True
-
-        ALGORITHM:
-
-        We follow the method described in [CFV2025]_, Section 3.2.3, that
-        also explain why such a polynomial exists.
         """
         parameters = self._parameters
         if not parameters.is_balanced():
