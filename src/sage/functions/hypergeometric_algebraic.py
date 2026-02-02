@@ -140,6 +140,7 @@ AUTHORS:
 
 import operator
 
+from sage.misc.cachefunc import cached_method
 from sage.misc.latex import latex
 from sage.misc.latex import latex_variable_name
 
@@ -1423,7 +1424,7 @@ class HypergeometricAlgebraic_padic(HypergeometricAlgebraic):
             raise ValueError("bad reduction")
         if val > 0:
             H = self.parent().change_ring(k)
-            return H(self._parameters, scalar=0)
+            return H.zero()
         raise NotImplementedError("the reduction is not a hypergeometric function")
         # In fact, it is x^s * h[s] * h, with
         # . s is pos
@@ -1977,6 +1978,63 @@ class HypergeometricAlgebraic_GFp(HypergeometricAlgebraic):
         """
         return self._parameters.q_interlacing_number(self._char)
 
+    def section(self, r):
+        r"""
+        Return the `r`-th section of this hypergeometric series:
+        if this series reads `\sum_n a_n x^n`, it is by definition
+
+        .. MATH:
+
+            \sum_{n=0}^\infty a_{r+pn} x^n
+
+        EXAMPLES::
+
+            sage: S.<x> = QQ[]
+            sage: f = hypergeometric([7/8, 9/8, 11/8], [3/2, 7/4], x)
+            sage: g = f % 5
+            sage: g.section(0)
+            hypergeometric((3/8, 5/8, 7/8), (1/2, 3/4), x)
+            sage: g.section(1)
+            2*hypergeometric((3/8, 5/8, 7/8), (1/2, 3/4), x)
+            sage: g.section(2)
+            hypergeometric((5/8, 7/8, 11/8), (3/4, 3/2), x)
+
+        In certain rare cases, the section is not a scalar multiple of
+        an hypergeometric function, by a monomial times a hypergeometric
+        function.
+        Since there is no support for such functions in SageMath at the
+        time being, an error is raised in this case::
+
+            sage: g = f % 3
+            sage: g.section(1)
+            Traceback (most recent call last):
+            ...
+            NotImplementedError: the reduction is not a hypergeometric function
+
+        TESTS::
+
+            sage: (0*g).section(1)
+            0
+            sage: g.section(2)
+            0
+        """
+        if self._scalar == 0:
+            return self
+        H = self.parent()
+        p = self._p
+        self._compute_coeffs(r+1)
+        hr, z = self._coeffs_enriched[r]
+        if z > 0:
+            return H.zero()
+        parameters = self._parameters.shift(r).dwork_image(p)
+        val, _, _ = parameters.valuation_position(p)
+        if val + hr.valuation() > 0:
+            return H.zero()
+        if val < 0:
+            raise NotImplementedError("the reduction is not a hypergeometric function")
+        scalar = self._scalar * H.base_ring()(hr)
+        return H(parameters, scalar=scalar)
+
     def dwork_relation(self):
         r"""
         Return a list `(P_1, h_1), ..., (P_s, h_s)` where the
@@ -2002,6 +2060,8 @@ class HypergeometricAlgebraic_GFp(HypergeometricAlgebraic):
             {hypergeometric((1, 21/8, 25/8, 27/8), (3, 13/4, 7/2), x): 2*x^7,
              hypergeometric((3/8, 5/8, 9/8), (1/2, 5/4), x): 1}
         """
+        if self._scalar == 0:
+            return {}
         parameters = self._parameters
         p = self._char
         H = self.parent()
@@ -2259,6 +2319,20 @@ class HypergeometricFunctions(Parent, UniqueRepresentation):
             hypergeometric((1,), (), x)
         """
         return self([1], [])
+
+    @cached_method
+    def zero(self):
+        r"""
+        Return the zero function in this parent.
+
+        EXAMPLES::
+
+            sage: S.<x> = QQ[]
+            sage: H = hypergeometric([], [], x).parent()
+            sage: H.zero()
+            0
+        """
+        return self(None, scalar=0)
 
     def _coerce_map_from_(self, other):
         r"""
