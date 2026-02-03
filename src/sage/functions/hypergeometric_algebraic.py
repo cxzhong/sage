@@ -51,7 +51,7 @@ over `\QQ(x)`::
     sage: f.is_algebraic()
     False
     sage: g.is_algebraic()
-    False
+    True
     sage: h.is_algebraic()
     False
 

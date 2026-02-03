@@ -557,11 +557,17 @@ class HypergeometricParameters(SageObject):
                 bottom[j] = None
         return HypergeometricParameters(top, bottom, add_one=False)
 
-    def has_negative_integer_differences(self):
+    def has_negative_integer_differences(self, discard_one=True):
         r"""
         Return ``True`` if there exists a pair of a top parameter and a bottom
         parameter, such that the top one minus the bottom one is a negative integer;
         return ``False`` otherwise.
+
+        INPUT:
+
+        - ``discard_one`` -- a boolean (default: ``True``); whether we first
+          discard a top parameter equal to `1` (which cancels with the bottom
+          parameter `1` automatically added).
 
         EXAMPLES::
 
@@ -579,8 +585,27 @@ class HypergeometricParameters(SageObject):
             ((1/4, 1/3, 1/2), (2/5, 3/2, 1))
             sage: pa.has_negative_integer_differences()
             True
+
+        We illustrate the behavior of the attribute ``discard_one``::
+
+            sage: pa = HypergeometricParameters([1/2, 5/6, 1], [5/3, 2])
+            sage: pa
+            ((1/2, 5/6, 1), (5/3, 2, 1))
+            sage: pa.has_negative_integer_differences()
+            False
+            sage: pa.has_negative_integer_differences(discard_one=False)
+            True
         """
-        return any(a - b in ZZ and a < b for a in self.top for b in self.bottom)
+        top = self.top
+        bottom = self.bottom
+        if discard_one:
+            try:
+                i = top.index(1)
+                top = top[:i] + top[i+1:]
+                bottom = bottom[:-1]
+            except ValueError:
+                pass
+        return any(a - b in ZZ and a < b for a in top for b in bottom)
 
     def shift(self, s):
         r"""
