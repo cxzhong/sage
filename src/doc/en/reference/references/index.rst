@@ -1452,7 +1452,7 @@ REFERENCES:
               Volume 20, Springer (2007)
 
 .. [But2010] Peter Butkovič, *Max-linear systems. Theory and algorithms.*
-             Springer Monographs in Mathematics. London: Springer. xvii, 272 p. (2010). 
+             Springer Monographs in Mathematics. London: Springer. xvii, 272 p. (2010).
 
 .. [Buell89] Duncan A. Buell.
              *Binary Quadratic Forms: Classical Theory and Modern Computations.*
@@ -2919,7 +2919,7 @@ REFERENCES:
             toric varieties defined by atomic lattices*. Inventiones
             Mathematicae. **155** (2004), no. 3, pp. 515-536.
 
-.. [FY2024] Florian Fürnsinn, Sergey Yurkevich. 
+.. [FY2024] Florian Fürnsinn, Sergey Yurkevich.
             *Algebraicity of hypergeometric functions with arbitrary parameters*,
             Bulletin of the London Mathematical Society. **56** (2024),
             pp. 2824-2846. :doi:`10.1112/blms.13103`, :arxiv:`2308.12855` (2023).
