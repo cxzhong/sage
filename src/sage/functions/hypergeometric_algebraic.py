@@ -223,6 +223,15 @@ class HypergeometricAlgebraic(Element):
             sage: type(h)
             <class 'sage.functions.hypergeometric_algebraic.HypergeometricFunctions_with_category.element_class'>
             sage: TestSuite(h).run()
+
+        ::
+
+            sage: hypergeometric([-1], [-2], x)
+            hypergeometric((-1,), (-2,), x)
+            sage: hypergeometric([-2], [-1], x)
+            Traceback (most recent call last):
+            ...
+            ValueError: the parameters (-2,) and (-1,) do not define a hypergeometric function
         """
         Element.__init__(self, parent)
         base = parent.base_ring()
@@ -241,11 +250,16 @@ class HypergeometricAlgebraic(Element):
             parameters = HypergeometricParameters(arg1, arg2)
         char = self.parent()._char
         if check and scalar:
-            _ = parameters.degree()
+            try:
+                _ = parameters.degree()
+            except ValueError:
+                raise ValueError("the parameters %s and %s do not define a hypergeometric function"
+                              % (parameters.top, parameters.bottom[:-1]))
             if char > 0:
                 val, _, _ = parameters.valuation_position(char)
                 if val < 0:
-                    raise ValueError("the parameters %s do not define a hypergeometric function in characteristic %s" % (parameters, char))
+                    raise ValueError("the parameters %s and %s do not define a hypergeometric function in characteristic %s"
+                                  % (parameters.top, parameters.bottom[:-1], char))
         self._scalar = scalar
         self._parameters = parameters
         self._coeffs = [scalar]
@@ -1010,6 +1024,14 @@ class HypergeometricAlgebraic_QQ(HypergeometricAlgebraic):
             hypergeometric((1/3, 2/3), (1/2,), x)
             sage: g.base_ring()
             Finite Field of size 5
+
+        If the hypergeometric function does not have good reduction at `p`,
+        an error is raised::
+
+            sage: f % 3
+            Traceback (most recent call last):
+            ValueError: the parameters (1/3, 2/3) and (1/2,) do not
+            define a hypergeometric function in characteristic 3
         """
         k = FiniteField(p)
         val = self._scalar.valuation(p)
@@ -1780,6 +1802,14 @@ class HypergeometricAlgebraic_GFp(HypergeometricAlgebraic):
             sage: type(h)
             <class 'sage.functions.hypergeometric_algebraic.HypergeometricFunctions_with_category.element_class'>
             sage: TestSuite(h).run()
+
+        ::
+
+            sage: S.<x> = GF(5)[]
+            sage: h = hypergeometric((1/2, 1/3), (1/7,), x)
+            Traceback (most recent call last):
+            ...
+            ValueError: the parameters (1/3, 1/2) and (1/7,) do not define a hypergeometric function in characteristic 5
         """
         HypergeometricAlgebraic.__init__(self, parent, arg1, arg2, scalar, check)
         self._p = p = self.base_ring().cardinality()

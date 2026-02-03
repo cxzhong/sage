@@ -244,7 +244,7 @@ class HypergeometricParameters(SageObject):
                 deg = pa
             s += ds
             if s < 0:
-                raise ValueError("the parameters %s do not define a hypergeometric function" % self)
+                raise ValueError
         if s == 0:
             return infinity
         else:
