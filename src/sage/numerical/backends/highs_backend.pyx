@@ -69,10 +69,17 @@ cdef class HiGHSBackend(GenericBackend):
         Highs_setBoolOptionValue(self.highs, b"output_flag", 0)
         Highs_setBoolOptionValue(self.highs, b"log_to_console", 0)
         
-        # Set tighter MIP feasibility tolerance to avoid floating-point imprecision
-        # in objective values (default 1e-6 can cause values like 1.999999999999985
-        # instead of 2.0). See https://github.com/sagemath/sage/pull/41105
-        Highs_setDoubleOptionValue(self.highs, b"mip_feasibility_tolerance", 1e-10)
+        # Set a tighter MIP feasibility tolerance to reduce tiny integrality
+        # violations showing up in returned values (e.g. 1.999999999999985
+        # instead of 2.0 in objective values).
+        #
+        # However, using an *extremely* tight value (such as 1e-10) can make
+        # HiGHS incorrectly declare some otherwise feasible models infeasible
+        # due to numerical effects (seen e.g. in Graph.minor MILP formulations).
+        #
+        # This is a compromise: tighter than HiGHS' default, but not so tight
+        # that it breaks feasible instances.
+        Highs_setDoubleOptionValue(self.highs, b"mip_feasibility_tolerance", 1e-8)
         
         # Disable MIP symmetry detection to work around a known HiGHS bug
         # (https://github.com/ERGO-Code/HiGHS/issues/1670) where the parallel
