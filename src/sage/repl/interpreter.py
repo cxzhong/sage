@@ -99,6 +99,8 @@ Test prompt transformer::
     ['']
     sage: spt(["....: 2+2"])
     ['2+2']
+    sage: spt(["... 2+2"])    # old-style multi-line prompt
+    ['2+2']
 
 This should strip multiple prompts: see :issue:`16297`::
 
