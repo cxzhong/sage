@@ -1,5 +1,9 @@
 r"""
-Congruence subgroup '\Gamma0(N)' for polynomial rings over finite fields
+Congruence subgroups '\Gamma0(N)' of `\mathrm{GL}_{2}(\mathbb{F}_{q}[T])`
+
+AUTHORS:
+
+- Cécile Armana, Xavier Caruso (2026-02): initial version
 """
 
 # ****************************************************************************
@@ -15,6 +19,9 @@ Congruence subgroup '\Gamma0(N)' for polynomial rings over finite fields
 
 
 from sage.misc.lazy_attribute import lazy_attribute
+from sage.structure.unique_representation import UniqueRepresentation
+from sage.categories.map import Map
+from sage.categories.homset import Hom
 from sage.groups.group import Group
 from sage.structure.element import MultiplicativeGroupElement
 from sage.categories.finite_fields import FiniteFields
@@ -26,25 +33,29 @@ class Gamma0Element(MultiplicativeGroupElement):
     r"""
     An element in a congruence subgroup.
     """
-    def __init__(self, parent, mat):
+    def __init__(self, parent, elt):
         r"""
         Initialize this element of the congruence subgroup.
 
         TESTS:
 
             sage: A.<T> = GF(5)[]
-            sage: G = Gamma0(T^4+2*T+3)
+            sage: G = Gamma0(T^4 + 2*T + 3)
             sage: g = G.an_element()
             sage: TestSuite(g).run()
         """
         MultiplicativeGroupElement.__init__(self, parent)
         MS = parent.matrix_space()
-        mat = self._mat = MS(mat)
         level = parent.level()
+        if isinstance(elt, Gamma0Element):
+            mat = MS(elt._mat)
+        else:
+            mat = MS(elt)
         if not mat.is_invertible():
             raise ValueError("not in Gamma0(%s)" % level)
         if mat[1,0] % level != 0:
             raise ValueError("not in Gamma0(%s)" % level)
+        self._mat = mat
 
     def __repr__(self):
         r"""
@@ -53,40 +64,65 @@ class Gamma0Element(MultiplicativeGroupElement):
         EXAMPLES::
 
             sage: A.<T> = GF(5)[]
-            sage: G = Gamma0(T^4+2*T+3)
+            sage: G = Gamma0(T^4 + 2*T + 3)
             sage: g = G.an_element()
             sage: g.__repr__()
             '[4*T^4 + 3*T + 3 4*T^4 + 3*T + 2]\n[  T^4 + 2*T + 3   T^4 + 2*T + 4]'
         """
         return self._mat.__repr__()
 
-    def level(self):
+    def __eq__(self, other):
         r"""
-        Return the level of the congruence subgroup in which the element 
-        ``self`` lives.
+        Check that the element ``self`` is equal to ``other``.
 
         EXAMPLES::
 
             sage: A.<T> = GF(5)[]
-            sage: G = Gamma0(T^4+2*T+3)
+            sage: N = T^4 + 2*T + 3
+            sage: G = Gamma0(N)
             sage: g = G.an_element()
-            sage: g.level()
-            T^4 + 2*T + 3
+            sage: h = G(matrix([[1,0],[N,1]]))
+            sage: g == h
+            False
         """
-        return self.parent().level()
+        try:
+            return (other / self).is_one()
+        except TypeError:
+            return False
+            
+    def __reduce__(self):
+        r"""
+        Data defining the element ``self`` (for pickling).
 
+        EXAMPLES::
+
+            sage: A.<T> = GF(5)[]
+            sage: G = Gamma0(T^4 + 2*T + 3)
+            sage: g = G.an_element()
+            sage: G.__reduce__()
+            (<function unreduce at ...>,
+             (<class 'sage.modular.drinfeld_modform.congroup_gamma0.Gamma0_class'>,
+              (T^4 + 2*T + 3,),
+                {}))
+        """
+        return Gamma0Element, (self.parent(), self._mat)
+        
+    def is_one(self):
+        return self._mat.is_one()
+    
     def _mul_(self, other):
         r"""
         Return the product of the element ``self`` with ``other``.
 
         EXAMPLES::
 
-            sage: A.<T> = GF(5)[], N = T^4+2*T+3
+            sage: A.<T> = GF(5)[]; N = T^4+2*T+3
             sage: G = Gamma0(N)
             sage: g = G.an_element()
-            sage: h = G(matrix([[1,0],[N,1]])
+            sage: h = G(matrix([[1,0],[N,1]]))
             sage: g._mul_(h)
-        
+            [4*T^8 + T^5 + 3*T^4 + T^2 + T + 4                   4*T^4 + 3*T + 2]
+            [  T^8 + 4*T^5 + 3*T^4 + 4*T^2 + T                     T^4 + 2*T + 4]
         """
         return self.parent()(self._mat * other._mat)
 
@@ -100,11 +136,28 @@ class Gamma0Element(MultiplicativeGroupElement):
             sage: G = Gamma0(T^4+2*T+3)
             sage: g = G.an_element()
             sage: g.__invert__()
+            [  T^4 + 2*T + 4   T^4 + 2*T + 3]
+            [4*T^4 + 3*T + 2 4*T^4 + 3*T + 3]
         """
         return self.parent()(self._mat.inverse())
+        
+    def level(self):
+        r"""
+        Return the level of the congruence subgroup in which the element 
+        ``self`` lives.
+
+        EXAMPLES::
+
+            sage: A.<T> = GF(5)[]
+            sage: G = Gamma0(T^4 + 2*T + 3)
+            sage: g = G.an_element()
+            sage: g.level()
+            T^4 + 2*T + 3
+        """
+        return self.parent().level()
 
 
-class Gamma0_class(Group):
+class Gamma0_class(Group, UniqueRepresentation):
     r"""
     A congruence subgroup.
     """
@@ -117,6 +170,8 @@ class Gamma0_class(Group):
         EXAMPLES::
 
             sage: A.<T> = GF(5)[]
+            sage: Gamma0(A(1))
+            Congruence Subgroup Gamma0(1)
             sage: G = Gamma0(T^4+2*T+3)
             sage: G
             Congruence Subgroup Gamma0(T^4 + 2*T + 3)
@@ -127,8 +182,10 @@ class Gamma0_class(Group):
         if not (isinstance(level, Polynomial) and A.base_ring() in FiniteFields()):
             raise TypeError("Base ring must be a polynomial ring over a finite field")
         self._level = level
-        self._matrix_space = MatrixSpace(A, 2)
+        self._matrix_space = MS = MatrixSpace(A, 2)
         self._q = A.base_ring().cardinality()
+        coerce = InclusionIntoMatrixSpace(Hom(self, MS))
+        MS.register_coercion(coerce)
 
     def _repr_(self):
         r"""
@@ -141,6 +198,10 @@ class Gamma0_class(Group):
             'Congruence Subgroup Gamma0(T^4 + 2*T + 3)'        
         """
         return "Congruence Subgroup Gamma0(%s)" % self._level
+        
+    def _coerce_map_from_(self, other):
+        if isinstance(other, Gamma0_class):
+            return other.level() % self.level() == 0
         
     def base_ring(self):
         r"""
@@ -174,25 +235,11 @@ class Gamma0_class(Group):
         EXAMPLES::
 
             sage: A.<T> = GF(5)[]
-            sage: Gamma0(T^4+2*T+3)._level_factorized()
+            sage: Gamma0(T^4+2*T+3)._level_factorized
             (T + 2)^2 * (T^2 + T + 2)
         """
         return self._level.factor()
         
-    @lazy_attribute
-    def _level_factorizedradical(self):
-        r"""
-        Return the factorized radical of the level of ``self`` i.e. the product 
-        of the distinct irreducible factors of ``self``.
-
-        EXAMPLES::
-
-            sage: A.<T> = GF(5)[]
-            sage: Gamma0(T^4+2*T+3)._level_factorizedradical()
-            (T + 2) * (T^2 + T + 2)
-        """
-        return self._level.radical().factor()
-
     def _an_element_(self):
         r"""
         Return an element of ``self``.
@@ -313,8 +360,8 @@ class Gamma0_class(Group):
         
     def index(self):
         r"""
-        Return the index of self as a subgroup of `\mathrm{GL}_{2}(A)` where `A`
-        is the base ring of ``self``.
+        Return the index of the congruence subgroup ``self`` as a subgroup of 
+        `\mathrm{GL}_{2}(A)`, where `A` is the base ring of ``self``.
 
         EXAMPLES::
 
@@ -334,9 +381,15 @@ class Gamma0_class(Group):
         """
         q = self._q
         level = self._level
-        L = list(self._level_factorizedradical)
+        L = list(self._level_factorized)
         ind = q**level.degree()
         for P,r in L:
             ind *= 1+1/(q**P.degree())
-        return ind     
+        return ind
         
+class InclusionIntoMatrixSpace(Map):
+     def __init__(self, parent):
+         Map.__init__(self, parent)
+     
+     def _call_(self, g):
+         return g._mat
