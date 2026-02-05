@@ -72,7 +72,7 @@ cdef class HiGHSBackend(GenericBackend):
         # Set tighter MIP feasibility tolerance to avoid floating-point imprecision
         # in objective values (default 1e-6 can cause values like 1.999999999999985
         # instead of 2.0). See https://github.com/sagemath/sage/pull/41105
-        Highs_setDoubleOptionValue(self.highs, b"mip_feasibility_tolerance", 1e-7)
+        Highs_setDoubleOptionValue(self.highs, b"mip_feasibility_tolerance", 1e-10)
         
         # Disable MIP symmetry detection to work around a known HiGHS bug
         # (https://github.com/ERGO-Code/HiGHS/issues/1670) where the parallel
