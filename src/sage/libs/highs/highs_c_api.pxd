@@ -1,11 +1,11 @@
 # Cython declarations for the HiGHS C API.
 #
-# This wraps the public header highs/interfaces/highs_c_api.h.
-# The HiGHS headers rely on relative includes within the "highs" include tree,
-# so consumers must compile with -I$includedir/highs (typically provided by
-# pkg-config via `highs.get_compile_args()` in Meson).
+# This wraps the public header interfaces/highs_c_api.h.
+# The HiGHS headers use relative includes (e.g., "lp_data/HighsCallbackStruct.h"),
+# so consumers must compile with -I$includedir where includedir points to
+# the highs include directory (typically .../include/highs).
 
-cdef extern from "highs/interfaces/highs_c_api.h":
+cdef extern from "interfaces/highs_c_api.h":
     ctypedef int HighsInt
 
     # Status constants
