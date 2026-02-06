@@ -589,7 +589,7 @@ cdef class HiGHSBackend(GenericBackend):
 
         INPUT:
 
-        - ``n`` -- the number of new variables (must be > 0)
+        - ``number`` -- the number of new variables (must be > 0)
 
         - ``lower_bound`` -- the lower bound of the variable (default: 0)
 
@@ -597,9 +597,9 @@ cdef class HiGHSBackend(GenericBackend):
 
         - ``binary`` -- ``True`` if the variable is binary (default: ``False``)
 
-        - ``continuous`` -- ``True`` if the variable is binary (default: ``True``)
+        - ``continuous`` -- ``True`` if the variable is continuous (default: ``True``)
 
-        - ``integer`` -- ``True`` if the variable is binary (default: ``False``)
+        - ``integer`` -- ``True`` if the variable is integer (default: ``False``)
 
         - ``obj`` -- coefficient of all variables in the objective function (default: 0.0)
 
@@ -737,6 +737,7 @@ cdef class HiGHSBackend(GenericBackend):
 
         - ``coeff`` -- list of real values, whose i-th element is the
           coefficient of the i-th variable in the objective function
+
         - ``d`` -- constant term in objective function (default: 0.0)
 
         EXAMPLES::
@@ -801,8 +802,11 @@ cdef class HiGHSBackend(GenericBackend):
 
         - ``coefficients`` -- an iterable of pairs ``(i, v)`` where ``i`` is a
           variable index and ``v`` is a value
+
         - ``lower_bound`` -- a lower bound, either a real value or ``None``
+
         - ``upper_bound`` -- an upper bound, either a real value or ``None``
+
         - ``name`` -- optional name for this constraint
 
         EXAMPLES::
@@ -1233,6 +1237,7 @@ cdef class HiGHSBackend(GenericBackend):
             2.0
 
         TESTS::
+
             sage: # needs sage.graphs
             sage: g = graphs.CubeGraph(9)
             sage: p = MixedIntegerLinearProgram(solver='HiGHS')
@@ -1275,7 +1280,7 @@ cdef class HiGHSBackend(GenericBackend):
         return mip_dual_bound
     
     cpdef get_relative_objective_gap(self):
-        """
+        r"""
         Return the relative objective gap of the best known solution.
 
         For a minimization problem, this value is computed by
@@ -1284,7 +1289,7 @@ cdef class HiGHSBackend(GenericBackend):
         by :meth:`get_objective_value` and ``bestobjective`` is the value
         returned by :meth:`best_known_objective_bound`. For a maximization
         problem, the value is computed by `(\texttt{bestobjective} -
-        \texttt{bestinteger}) / (1e-10 + |\texttt:bestobjective}|)`.
+        \texttt{bestinteger}) / (1e-10 + |\texttt{bestobjective}|)`.
 
         .. NOTE::
 
@@ -1335,6 +1340,7 @@ cdef class HiGHSBackend(GenericBackend):
         INPUT:
 
         - ``index`` -- the variable's id
+
         - ``value`` -- real value or ``None`` to get the current value
 
         EXAMPLES::
@@ -1406,6 +1412,7 @@ cdef class HiGHSBackend(GenericBackend):
         INPUT:
 
         - ``index`` -- the variable's id
+
         - ``value`` -- real value or ``None`` to get the current value
 
         EXAMPLES::
@@ -1670,9 +1677,9 @@ cdef class HiGHSBackend(GenericBackend):
 
         - ``vtype`` -- integer:
 
-            * `1` = Integer
-            * `0` = Binary
-            * `-1` = Real (Continuous)
+            * ``1`` = Integer
+            * ``0`` = Binary
+            * ``-1`` = Real (Continuous)
 
         EXAMPLES::
 
@@ -1816,7 +1823,7 @@ cdef class HiGHSBackend(GenericBackend):
         - ``mip_abs_gap`` -- absolute MIP gap tolerance (double)
         - ``threads`` -- number of threads to use (int)
         - ``presolve`` -- presolve option: "off", "choose", or "on"
-        - ``solver`` -- solver to use: "choose", "simplex", "ipm", or "pdlp (need CUDA)"
+        - ``solver`` -- solver to use: "choose", "simplex", "ipm", or "pdlp" (requires CUDA)
         - ``parallel`` -- parallel option: "off", "choose", or "on"
         - ``log_to_console`` -- whether to log to console: True or False
 
@@ -1929,7 +1936,7 @@ cdef class HiGHSBackend(GenericBackend):
     
     cpdef write_lp(self, filename):
         """
-        Write the problem to a .lp file.
+        Write the problem to a ``.lp`` file.
 
         INPUT:
 
@@ -1969,7 +1976,7 @@ cdef class HiGHSBackend(GenericBackend):
     
     cpdef write_mps(self, filename, int modern):
         """
-        Write the problem to a .mps file.
+        Write the problem to a ``.mps`` file.
 
         INPUT:
 
@@ -2130,7 +2137,7 @@ cdef class HiGHSBackend(GenericBackend):
 
         A pair ``(indices, coeffs)`` where ``indices`` lists the
         entries whose coefficient is nonzero, and to which ``coeffs``
-        associates their coefficient in the order of `indices`.
+        associates their coefficient in the order of ``indices``.
 
         EXAMPLES::
 
