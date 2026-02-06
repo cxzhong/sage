@@ -7,9 +7,12 @@ Description
 HiGHS is a high performance serial and parallel solver for large scale sparse
 linear optimization problems of the form:
 
-    min c'x subject to L <= Ax <= U; l <= x <= u
+.. MATH::
 
-where c, x, L, U, l, u are vectors and A is a matrix.
+    \min \, c^T x \quad \text{subject to} \quad L \leq Ax \leq U, \; l \leq x \leq u
+
+where :math:`c`, :math:`x`, :math:`l`, :math:`u` are vectors,
+:math:`L`, :math:`U` are constraint bound vectors, and :math:`A` is a matrix.
 
 HiGHS has implementations of the dual revised simplex method, primal and dual
 revised simplex solvers, an interior point solver, and a MIP solver.
