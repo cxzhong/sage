@@ -2593,10 +2593,12 @@ cdef class HiGHSBackend(GenericBackend):
         In HiGHS, setting a basis automatically attempts to factorize it,
         so this method checks if the current basis is valid.
 
-        OUTPUT: the warming up status
+        OUTPUT:
 
-            * 0             The operation has been successfully performed.
-            * -1            The basis is invalid or could not be factorized.
+        The warming up status:
+
+        - ``0`` -- the operation has been successfully performed
+        - ``-1`` -- the basis is invalid or could not be factorized
 
         EXAMPLES::
 
