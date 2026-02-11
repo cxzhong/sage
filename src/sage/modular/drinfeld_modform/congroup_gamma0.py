@@ -489,6 +489,7 @@ class Gamma0_class(Group, UniqueRepresentation):
             ind *= 1+1/(q**P.degree())
         return ind
 
+
 class InclusionIntoMatrixSpace(Map):
     r"""
     Inclusion of a congruence subgroup into the corresponding matrix space.
