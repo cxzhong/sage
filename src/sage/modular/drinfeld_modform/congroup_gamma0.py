@@ -23,6 +23,7 @@ from sage.structure.unique_representation import UniqueRepresentation
 from sage.categories.map import Map
 from sage.categories.homset import Hom
 from sage.groups.group import Group
+from sage.structure.richcmp import richcmp
 from sage.structure.element import MultiplicativeGroupElement
 from sage.categories.finite_fields import FiniteFields
 from sage.matrix.matrix_space import MatrixSpace
@@ -71,9 +72,9 @@ class Gamma0Element(MultiplicativeGroupElement):
         """
         return self._mat.__repr__()
 
-    def __eq__(self, other):
+    def _richcmp_(self, other, op):
         r"""
-        Check that the element ``self`` is equal to ``other``.
+        Compare ``self`` and ``other`` for the operator ``op``.
 
         EXAMPLES::
 
@@ -85,10 +86,7 @@ class Gamma0Element(MultiplicativeGroupElement):
             sage: g == h
             False
         """
-        try:
-            return (other / self).is_one()
-        except TypeError:
-            return False
+        return richcmp(self._mat, other._mat, op)
 
     def __reduce__(self):
         r"""
@@ -108,6 +106,23 @@ class Gamma0Element(MultiplicativeGroupElement):
         return Gamma0Element, (self.parent(), self._mat)
 
     def is_one(self):
+        r"""
+        Return whether this matrix is the identity matrix.
+
+        EXAMPLES::
+
+            sage: A.<T> = GF(5)[]
+            sage: G = Gamma0(T^4 + 2*T + 3)
+            sage: g = G.an_element()
+            sage: g
+            [4*T^4 + 3*T + 3 4*T^4 + 3*T + 2]
+            [  T^4 + 2*T + 3   T^4 + 2*T + 4]
+            sage: g.is_one()
+            False
+            sage: h = g * g^(-1)
+            sage: h.is_one()
+            True
+        """
         return self._mat.is_one()
 
     def _mul_(self, other):
@@ -172,7 +187,7 @@ class Gamma0_class(Group, UniqueRepresentation):
             sage: A.<T> = GF(5)[]
             sage: Gamma0(A(1))
             Congruence Subgroup Gamma0(1)
-            sage: G = Gamma0(T^4+2*T+3)
+            sage: G = Gamma0(T^4 + 2*T + 3)
             sage: G
             Congruence Subgroup Gamma0(T^4 + 2*T + 3)
             sage: TestSuite(G).run()
@@ -194,7 +209,7 @@ class Gamma0_class(Group, UniqueRepresentation):
         EXAMPLES::
 
             sage: A.<T> = GF(5)[]
-            sage: Gamma0(T^4+2*T+3)._repr_()
+            sage: Gamma0(T^4 + 2*T + 3)._repr_()
             'Congruence Subgroup Gamma0(T^4 + 2*T + 3)'
         """
         return "Congruence Subgroup Gamma0(%s)" % self._level
@@ -210,7 +225,7 @@ class Gamma0_class(Group, UniqueRepresentation):
         EXAMPLES::
 
             sage: A.<T> = GF(5)[]
-            sage: Gamma0(T^4+2*T+3).base_ring()
+            sage: Gamma0(T^4 + 2*T + 3).base_ring()
             Univariate Polynomial Ring in T over Finite Field of size 5
         """
         return self._base
@@ -222,7 +237,7 @@ class Gamma0_class(Group, UniqueRepresentation):
         EXAMPLES::
 
             sage: A.<T> = GF(5)[]
-            sage: Gamma0(T^4+2*T+3).level()
+            sage: Gamma0(T^4 + 2*T + 3).level()
             T^4 + 2*T + 3
         """
         return self._level
@@ -235,7 +250,7 @@ class Gamma0_class(Group, UniqueRepresentation):
         EXAMPLES::
 
             sage: A.<T> = GF(5)[]
-            sage: Gamma0(T^4+2*T+3)._level_factorized
+            sage: Gamma0(T^4 + 2*T + 3)._level_factorized
             (T + 2)^2 * (T^2 + T + 2)
         """
         return self._level.factor()
@@ -247,7 +262,7 @@ class Gamma0_class(Group, UniqueRepresentation):
         EXAMPLES::
 
             sage: A.<T> = GF(5)[]
-            sage: Gamma0(T^4+2*T+3).an_element()
+            sage: Gamma0(T^4 + 2*T + 3).an_element()
             [4*T^4 + 3*T + 3 4*T^4 + 3*T + 2]
             [  T^4 + 2*T + 3   T^4 + 2*T + 4]
         """
@@ -261,7 +276,7 @@ class Gamma0_class(Group, UniqueRepresentation):
         EXAMPLES::
 
             sage: A.<T> = GF(5)[]
-            sage: Gamma0(T^4+2*T+3).matrix_space()
+            sage: Gamma0(T^4 + 2*T + 3).matrix_space()
             Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial
             Ring in T over Finite Field of size 5
         """
@@ -275,28 +290,30 @@ class Gamma0_class(Group, UniqueRepresentation):
         EXAMPLES::
 
             sage: A.<T> = GF(5)[]
-            sage: Gamma0(T-1).genus()
+            sage: Gamma0(T - 1).genus()
             0
-            sage: Gamma0(T^3+1).genus()
+            sage: Gamma0(T^3 + 1).genus()
             5
-            sage: Gamma0(T^5-3*T^4+1).genus()
+            sage: Gamma0(T^5 - 3*T^4 + 1).genus()
             155
 
-        If N is irreducible, the formula simplifies as follows:
+        If N is irreducible, the formula simplifies as follows::
 
             sage: def genus_irr(N):
             ....:     q = N.base_ring().cardinality()
             ....:     d = N.degree()
             ....:     if is_even(d):
-            ....:          g = (q^d-q^2)/(q^2-1)
+            ....:          g = (q^d - q^2) / (q^2 - 1)
             ....:     else:
-            ....:          g = (q^d-q)/(q^2-1)
+            ....:          g = (q^d - q) / (q^2 - 1)
             ....:     return g
-            sage: N = T^6 + T^4 + 4*T^3 + T^2 + 2; N.is_irreducible()
+            sage: N = T^6 + T^4 + 4*T^3 + T^2 + 2
+            sage: N.is_irreducible()
             True
             sage: Gamma0(N).genus() == genus_irr(N)
             True
-            sage: N = T^7+3*T+3; N.is_irreducible()
+            sage: N = T^7 + 3*T + 3
+            sage: N.is_irreducible()
             True
             sage: Gamma0(N).genus() == genus_irr(N)
             True
@@ -326,20 +343,22 @@ class Gamma0_class(Group, UniqueRepresentation):
         EXAMPLES::
 
             sage: A.<T> = GF(5)[]
-            sage: Gamma0(T-1).ncusps()
+            sage: Gamma0(T - 1).ncusps()
             2
-            sage: Gamma0(T^3+1).ncusps()
+            sage: Gamma0(T^3 + 1).ncusps()
             4
-            sage: Gamma0(T^7-3*T^4+1).ncusps()
+            sage: Gamma0(T^7 - 3*T^4 + 1).ncusps()
             8
 
-        If N is irreducible, the number of cusps is 2. We can check it:
+        If `N` is irreducible, the number of cusps is `2`. We can check it:
 
-            sage: N = T^6 + T^4 + 4*T^3 + T^2 + 2; N.is_irreducible()
+            sage: N = T^6 + T^4 + 4*T^3 + T^2 + 2
+            sage: N.is_irreducible()
             True
             sage: Gamma0(N).ncusps() == 2
             True
-            sage: N = T^7+3*T+3; N.is_irreducible()
+            sage: N = T^7 + 3*T + 3
+            sage: N.is_irreducible()
             True
             sage: Gamma0(N).ncusps() == 2
             True
@@ -366,17 +385,18 @@ class Gamma0_class(Group, UniqueRepresentation):
         EXAMPLES::
 
             sage: A.<T> = GF(5)[]
-            sage: Gamma0(T^4-3*T^4+1).index()
-            626
+            sage: Gamma0(T^4 - 3*T^2 + 1).index()
+            900
 
         If the level `N` of ``self``, is irreducible, the index is `1+q^\deg(N)`.
         We can check it:
 
             sage: A.<T> = GF(5)[]
-            sage: N = T^4 + 4*T^2 + 4*T + 2; N.is_irreducible()
+            sage: N = T^4 + 4*T^2 + 4*T + 2
+            sage: N.is_irreducible()
             True
             sage: q = A.base_ring().cardinality()
-            sage: Gamma0(N).index() == 1+q**N.degree()
+            sage: Gamma0(N).index() == 1 + q^N.degree()
             True
         """
         q = self._q
@@ -388,8 +408,65 @@ class Gamma0_class(Group, UniqueRepresentation):
         return ind
 
 class InclusionIntoMatrixSpace(Map):
-     def __init__(self, parent):
-         Map.__init__(self, parent)
+    r"""
+    Inclusion of a congruence subgroup into the corresponding matrix space.
+    """
+    def __init__(self, parent):
+        r"""
+        Initialize this morphism.
 
-     def _call_(self, g):
-         return g._mat
+        TESTS::
+
+            sage: A.<T> = GF(5)[]
+            sage: G = Gamma0(T^4 - 3*T^2 + 1)
+            sage: M = G.matrix_space()
+            sage: f = M.coerce_map_from(G)
+            sage: f
+            Generic map:
+              From: Congruence Subgroup Gamma0(T^4 + 2*T^2 + 1)
+              To:   Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial Ring in T over Finite Field of size 5
+            sage: type(f)
+            <class 'sage.modular.drinfeld_modform.congroup_gamma0.InclusionIntoMatrixSpace'>
+            sage: TestSuite(f).run(skip='_test_category')
+        """
+        Map.__init__(self, parent)
+
+    def _call_(self, g):
+        r"""
+        Return `g` viewed as an element of a matrix space.
+
+        EXAMPLES::
+
+            sage: A.<T> = GF(5)[]
+            sage: G = Gamma0(T^4 - 3*T^2 + 1)
+            sage: M = G.matrix_space()
+            sage: f = M.coerce_map_from(G)
+            sage: g = G.an_element()
+            sage: h = f(g)
+            sage: h.parent()
+            Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial Ring in T over Finite Field of size 5
+        """
+        return g._mat
+
+    def _richcmp_(self, other, op):
+        r"""
+        Compare ``self`` and ``other`` for the operator ``op``.
+
+        EXAMPLES::
+
+            sage: A.<T> = GF(5)[]
+            sage: G = Gamma0(T^4 - 3*T^2 + 1)
+            sage: M = G.matrix_space()
+            sage: g1 = M.coerce_map_from(G)
+            sage: g2 = M.coerce_map_from(G)
+            sage: g1 == g2
+            True
+
+        ::
+
+            sage: H = Gamma0(T^2 - 3*T + 1)
+            sage: h = M.coerce_map_from(H)
+            sage: g1 == h
+            False
+        """
+        return richcmp(self.parent(), other.parent(), op)
