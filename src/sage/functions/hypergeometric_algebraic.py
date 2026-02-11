@@ -1991,7 +1991,7 @@ class HypergeometricAlgebraic_GFp(HypergeometricAlgebraic):
     def p_curvature_corank(self):  # maybe p_curvature_rank is preferable?
         # TODO: check if it is also correct when the parameters are not balanced
         r"""
-        Return the corant of the ``p``-curvature matrix.
+        Return the corank of the ``p``-curvature matrix.
 
         ALGORITHM:
 
