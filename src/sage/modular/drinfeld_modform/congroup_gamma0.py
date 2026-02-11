@@ -19,15 +19,16 @@ AUTHORS:
 
 
 from sage.misc.lazy_attribute import lazy_attribute
-from sage.structure.unique_representation import UniqueRepresentation
-from sage.categories.map import Map
-from sage.categories.homset import Hom
-from sage.groups.group import Group
-from sage.structure.richcmp import richcmp
-from sage.structure.element import MultiplicativeGroupElement
 from sage.categories.finite_fields import FiniteFields
+from sage.categories.homset import Hom
+from sage.categories.map import Map
+from sage.categories.pushout import pushout
+from sage.groups.group import Group
 from sage.matrix.matrix_space import MatrixSpace
 from sage.rings.polynomial.polynomial_element import Polynomial
+from sage.structure.element import MultiplicativeGroupElement
+from sage.structure.richcmp import richcmp
+from sage.structure.unique_representation import UniqueRepresentation
 
 
 class Gamma0Element(MultiplicativeGroupElement):
@@ -90,18 +91,15 @@ class Gamma0Element(MultiplicativeGroupElement):
 
     def __reduce__(self):
         r"""
-        Data defining the element ``self`` (for pickling).
+        Return data defining the element ``self`` (for pickling).
 
         EXAMPLES::
 
             sage: A.<T> = GF(5)[]
             sage: G = Gamma0(T^4 + 2*T + 3)
             sage: g = G.an_element()
-            sage: G.__reduce__()
-            (<function unreduce at ...>,
-             (<class 'sage.modular.drinfeld_modform.congroup_gamma0.Gamma0_class'>,
-              (T^4 + 2*T + 3,),
-                {}))
+            sage: loads(dumps(g)) == g
+            True
         """
         return Gamma0Element, (self.parent(), self._mat)
 
@@ -178,9 +176,45 @@ class Gamma0_class(Group, UniqueRepresentation):
     """
     Element = Gamma0Element
 
-    def __init__(self, level):
+    @staticmethod
+    def __classcall__(cls, level):
+        r"""
+        Normalize and check the input.
+
+        INPUT:
+
+        - ``level`` -- a polynomial
+
+        TESTS::
+
+            sage: A.<T> = GF(5)[]
+            sage: G = Gamma0(T + 1)
+            sage: H = Gamma0(2*T + 2)
+            sage: G is H
+            True
+
+        ::
+
+            sage: B.<T> = GF(5^2)[]
+            sage: G2 = Gamma0(T + 1)
+            sage: G is G2
+            False
+        """
+        base = level.parent()
+        if not (isinstance(level, Polynomial) and base.base_ring() in FiniteFields()):
+            raise TypeError("Base ring must be a polynomial ring over a finite field")
+        level = level.monic()
+        return super().__classcall__(cls, base, level)
+
+    def __init__(self, base, level):
         r"""
         The congruence subgroup `\Gamma_0(N)`.
+
+        INPUT:
+
+        - ``base`` -- a polynomial ring
+
+        - ``level`` -- a monic polynomial over ``base``
 
         EXAMPLES::
 
@@ -193,14 +227,26 @@ class Gamma0_class(Group, UniqueRepresentation):
             sage: TestSuite(G).run()
         """
         Group.__init__(self)
-        self._base = A = level.parent()
-        if not (isinstance(level, Polynomial) and A.base_ring() in FiniteFields()):
-            raise TypeError("Base ring must be a polynomial ring over a finite field")
+        self._base = base
         self._level = level
-        self._matrix_space = MS = MatrixSpace(A, 2)
-        self._q = A.base_ring().cardinality()
+        self._matrix_space = MS = MatrixSpace(base, 2)
+        self._q = base.base_ring().cardinality()
         coerce = InclusionIntoMatrixSpace(Hom(self, MS))
         MS.register_coercion(coerce)
+
+    def __reduce__(self):
+        r"""
+        Return data defining the element ``self`` (for pickling).
+
+        EXAMPLES::
+
+            sage: A.<T> = GF(5)[]
+            sage: G = Gamma0(T^4 + 2*T + 3)
+            sage: g = G.an_element()
+            sage: loads(dumps(G)) is G
+            True
+        """
+        return Gamma0_class, (self._level,)
 
     def _repr_(self):
         r"""
@@ -215,8 +261,44 @@ class Gamma0_class(Group, UniqueRepresentation):
         return "Congruence Subgroup Gamma0(%s)" % self._level
 
     def _coerce_map_from_(self, other):
+        r"""
+        Return a coerce map from ``other`` to `self``.
+
+        EXAMPLES::
+
+            sage: A.<T> = GF(5)[]
+            sage: G = Gamma0(T^2 + 3*T + 2)
+            sage: H = Gamma0(T + 1)
+            sage: G.has_coerce_map_from(H)  # indirect doctest
+            False
+            sage: H.has_coerce_map_from(G)  # indirect doctest
+            True
+        """
         if isinstance(other, Gamma0_class):
             return other.level() % self.level() == 0
+
+    def _pushout_(self, other):
+        r"""
+        Return a coerce map from ``other`` to `self``.
+
+        EXAMPLES::
+
+            sage: from sage.categories.pushout import pushout
+            sage: A.<T> = GF(5^2)[]
+            sage: G = Gamma0(T^2 + 3*T + 2)
+            sage: B.<T> = GF(5^3)[]
+            sage: H = Gamma0(T^2 + 4*T + 4)
+            sage: P = pushout(G, H)
+            sage: P
+            Congruence Subgroup Gamma0(T + 2)
+            sage: P.base_ring()
+            Univariate Polynomial Ring in T over Finite Field in z6 of size 5^6
+        """
+        if isinstance(other, Gamma0_class):
+            base = pushout(self.base_ring(), other.base_ring())
+            if base is not None:
+                N = base(self.level()).gcd(base(other.level()))
+                return Gamma0_class(N)
 
     def base_ring(self):
         r"""
