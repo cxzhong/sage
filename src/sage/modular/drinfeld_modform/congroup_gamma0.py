@@ -89,7 +89,7 @@ class Gamma0Element(MultiplicativeGroupElement):
             return (other / self).is_one()
         except TypeError:
             return False
-            
+
     def __reduce__(self):
         r"""
         Data defining the element ``self`` (for pickling).
@@ -106,10 +106,10 @@ class Gamma0Element(MultiplicativeGroupElement):
                 {}))
         """
         return Gamma0Element, (self.parent(), self._mat)
-        
+
     def is_one(self):
         return self._mat.is_one()
-    
+
     def _mul_(self, other):
         r"""
         Return the product of the element ``self`` with ``other``.
@@ -140,10 +140,10 @@ class Gamma0Element(MultiplicativeGroupElement):
             [4*T^4 + 3*T + 2 4*T^4 + 3*T + 3]
         """
         return self.parent()(self._mat.inverse())
-        
+
     def level(self):
         r"""
-        Return the level of the congruence subgroup in which the element 
+        Return the level of the congruence subgroup in which the element
         ``self`` lives.
 
         EXAMPLES::
@@ -195,14 +195,14 @@ class Gamma0_class(Group, UniqueRepresentation):
 
             sage: A.<T> = GF(5)[]
             sage: Gamma0(T^4+2*T+3)._repr_()
-            'Congruence Subgroup Gamma0(T^4 + 2*T + 3)'        
+            'Congruence Subgroup Gamma0(T^4 + 2*T + 3)'
         """
         return "Congruence Subgroup Gamma0(%s)" % self._level
-        
+
     def _coerce_map_from_(self, other):
         if isinstance(other, Gamma0_class):
             return other.level() % self.level() == 0
-        
+
     def base_ring(self):
         r"""
         Return the base ring of ``self``.
@@ -239,7 +239,7 @@ class Gamma0_class(Group, UniqueRepresentation):
             (T + 2)^2 * (T^2 + T + 2)
         """
         return self._level.factor()
-        
+
     def _an_element_(self):
         r"""
         Return an element of ``self``.
@@ -262,14 +262,14 @@ class Gamma0_class(Group, UniqueRepresentation):
 
             sage: A.<T> = GF(5)[]
             sage: Gamma0(T^4+2*T+3).matrix_space()
-            Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial 
-            Ring in T over Finite Field of size 5 
+            Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial
+            Ring in T over Finite Field of size 5
         """
         return self._matrix_space
 
     def genus(self):
         r""""
-        Return the genus of ``self``, i.e. the genus of the Drinfeld modular 
+        Return the genus of ``self``, i.e. the genus of the Drinfeld modular
         curve attached to ``self``.
 
         EXAMPLES::
@@ -281,7 +281,7 @@ class Gamma0_class(Group, UniqueRepresentation):
             5
             sage: Gamma0(T^5-3*T^4+1).genus()
             155
-        
+
         If N is irreducible, the formula simplifies as follows:
 
             sage: def genus_irr(N):
@@ -299,7 +299,7 @@ class Gamma0_class(Group, UniqueRepresentation):
             sage: N = T^7+3*T+3; N.is_irreducible()
             True
             sage: Gamma0(N).genus() == genus_irr(N)
-            True 
+            True
 
         REFERENCE:
 
@@ -320,7 +320,7 @@ class Gamma0_class(Group, UniqueRepresentation):
 
     def ncusps(self):
         r"""
-        Return the number of cusps of ``self`` i.e. the number of cusps of the 
+        Return the number of cusps of ``self`` i.e. the number of cusps of the
         Drinfeld modular curve attached to ``self``.
 
         EXAMPLES::
@@ -342,7 +342,7 @@ class Gamma0_class(Group, UniqueRepresentation):
             sage: N = T^7+3*T+3; N.is_irreducible()
             True
             sage: Gamma0(N).ncusps() == 2
-            True 
+            True
 
         REFERENCE:
 
@@ -357,10 +357,10 @@ class Gamma0_class(Group, UniqueRepresentation):
             kappa *= q**(d * (r // 2)) + q**(d * ((r-1) // 2))
         h = 2**s + (kappa - 2**s) / (q - 1)
         return h
-        
+
     def index(self):
         r"""
-        Return the index of the congruence subgroup ``self`` as a subgroup of 
+        Return the index of the congruence subgroup ``self`` as a subgroup of
         `\mathrm{GL}_{2}(A)`, where `A` is the base ring of ``self``.
 
         EXAMPLES::
@@ -386,10 +386,10 @@ class Gamma0_class(Group, UniqueRepresentation):
         for P,r in L:
             ind *= 1+1/(q**P.degree())
         return ind
-        
+
 class InclusionIntoMatrixSpace(Map):
      def __init__(self, parent):
          Map.__init__(self, parent)
-     
+
      def _call_(self, g):
          return g._mat
