@@ -1,4 +1,4 @@
-hatchling  | pip $(PYTHON)
+hatchling  | pip
 
 ----------
 All lines of this file are ignored except the first.

@@ -1,4 +1,4 @@
- | setuptools pip setuptools_scm wheel flit_core hatchling python_build $(PYTHON)
+ | setuptools pip setuptools_scm wheel flit_core hatchling python_build
 
 ----------
 All lines of this file are ignored except the first.

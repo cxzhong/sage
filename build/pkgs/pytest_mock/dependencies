@@ -1,4 +1,4 @@
-pytest | pip $(PYTHON)
+pytest | pip
 
 ----------
 All lines of this file are ignored except the first.

@@ -1,4 +1,4 @@
- lrcalc | $(PYTHON_TOOLCHAIN) cython $(PYTHON)
+ lrcalc | $(PYTHON_TOOLCHAIN) cython
 
 ----------
 All lines of this file are ignored except the first.

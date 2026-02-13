@@ -1,4 +1,4 @@
-importlib_metadata | pip $(PYTHON)
+importlib_metadata | pip
 
 ----------
 All lines of this file are ignored except the first.

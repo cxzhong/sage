@@ -1,4 +1,4 @@
-certifi h11 | pip $(PYTHON)
+certifi h11 | pip
 
 ----------
 All lines of this file are ignored except the first.
