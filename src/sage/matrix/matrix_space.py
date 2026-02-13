@@ -49,7 +49,7 @@ import sage.modules.free_module
 
 from sage.misc.lazy_attribute import lazy_attribute
 from sage.misc.persist import register_unpickle_override
-from sage.categories.sets_cat import Sets
+from sage.categories.monoids import Monoids
 from sage.categories.semirings import Semirings
 from sage.categories.rings import Rings
 from sage.categories.fields import Fields
@@ -893,7 +893,7 @@ class MatrixSpace(UniqueRepresentation, Parent):
             if nrows == ncols:
                 category = Semirings()
             else:
-                category = Sets()
+                category = Monoids()
 
         if not self.__nrows or not self.__ncols:
             is_finite = True

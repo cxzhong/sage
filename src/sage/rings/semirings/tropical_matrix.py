@@ -18,6 +18,7 @@ AUTHORS:
 
 from sage.matrix.constructor import matrix
 from sage.matrix.matrix_generic_dense import Matrix_generic_dense
+from sage.rings.real_mpfr import RR
 from sage.rings.infinity import infinity
 
 
@@ -73,8 +74,20 @@ class Matrix_tropical_dense(Matrix_generic_dense):
             Traceback (most recent call last):
             ...
             TypeError: matrix must be square
+
+        ::
+
+            sage: R.<x> = QQ[]
+            sage: T = TropicalSemiring(R)
+            sage: M = matrix(T, 2, 2, [1, x, x^2, x^3])
+            sage: M.extremum_cycle_mean()
+            Traceback (most recent call last):
+            ...
+            NotImplementedError: extremum cycle mean is only implemented for subrings of RR
         """
         T = self.base_ring()
+        if not T._base.is_subring(RR):
+            raise NotImplementedError("extremum cycle mean is only implemented for subrings of RR")
         n = self.ncols()
         if self.nrows() != n:
             raise TypeError("matrix must be square")
@@ -157,6 +170,8 @@ class Matrix_tropical_dense(Matrix_generic_dense):
             ValueError: positive cycle exists
         """
         T = self.base_ring()
+        if not T._base.is_subring(RR):
+            raise NotImplementedError("extremum cycle mean is only implemented for subrings of RR")
         n = self.ncols()
         if self.nrows() != n:
             raise TypeError("matrix must be square")
