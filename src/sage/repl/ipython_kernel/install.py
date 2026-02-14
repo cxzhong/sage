@@ -20,7 +20,6 @@ import warnings
 from sage.env import (
     SAGE_DOC,
     SAGE_EXTCODE,
-    SAGE_VENV,
     SAGE_VERSION,
 )
 
@@ -170,12 +169,13 @@ class SageKernelSpec:
             sage: from sage.repl.ipython_kernel.install import SageKernelSpec
             sage: spec = SageKernelSpec(prefix=tmp_dir())
             sage: spec.kernel_spec()
-            {'argv': ..., 'display_name': 'SageMath ...', 'language': 'sage'}
+            {'argv': ..., 'display_name': 'SageMath ...', 'language': 'sage', 'metadata': {'debugger': True}}
         """
         return dict(
             argv=self._kernel_cmd(),
             display_name=self._display_name,
             language='sage',
+            metadata=dict(debugger=True),
         )
 
     def _install_spec(self):
@@ -261,8 +261,8 @@ class SageKernelSpec:
                           'check your Jupyter configuration '
                           '(see https://docs.jupyter.org/en/latest/use/jupyter-directories.html).')
         else:
-            import sys
             import shutil
+            import sys
             from pathlib import Path
             kernel_executable = shutil.which(spec.argv[0])
             if not kernel_executable:
