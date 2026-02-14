@@ -25,6 +25,7 @@ from sage.categories.map import Map
 from sage.categories.pushout import pushout
 from sage.groups.group import Group
 from sage.matrix.matrix_space import MatrixSpace
+from sage.misc.misc_c import prod
 from sage.rings.polynomial.polynomial_element import Polynomial
 from sage.structure.element import MultiplicativeGroupElement
 from sage.structure.richcmp import richcmp
@@ -481,10 +482,8 @@ class Gamma0_class(Group, UniqueRepresentation):
             True
         """
         q = self._q
-        level = self._level
-        ind = q ** level.degree()
-        for P, _ in self._level_factorized:
-            ind *= 1 + q**(-P.degree())
+        ind = q ** self._level.degree()
+        ind *= prod(1 + q**(-P.degree()) for P, _ in self._level_factorized)
         return ind
 
 
