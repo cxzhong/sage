@@ -470,23 +470,21 @@ class Gamma0_class(Group, UniqueRepresentation):
             sage: Gamma0(T^4 - 3*T^2 + 1).index()
             900
 
-        If the level `N` of ``self``, is irreducible, the index is `1+q^\deg(N)`.
+        If the level `N` is irreducible, the index is `1 + q^{\mathrm{deg}(N)}`.
         We can check it:
 
-            sage: A.<T> = GF(5)[]
             sage: N = T^4 + 4*T^2 + 4*T + 2
             sage: N.is_irreducible()
             True
             sage: q = A.base_ring().cardinality()
-            sage: Gamma0(N).index() == 1 + q^N.degree()
+            sage: Gamma0(N).index() == 1 + q^4
             True
         """
         q = self._q
         level = self._level
-        L = list(self._level_factorized)
-        ind = q**level.degree()
-        for P,r in L:
-            ind *= 1+1/(q**P.degree())
+        ind = q ** level.degree()
+        for P, _ in self._level_factorized:
+            ind *= 1 + q**(-P.degree())
         return ind
 
 
