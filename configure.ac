@@ -381,7 +381,7 @@ AS_IF([test x"$with_python" = x3], [
     AC_MSG_NOTICE([The meaning of the option --with-python has changed in Sage 9.2. Ignoring.])
     with_python=''
 ])
-AS_IFbuild/bin/sage-bootstrap-python([test x"$with_python" = x"no"],
+AS_IF([test x"$with_python" = x"no"],
       [AC_MSG_ERROR([building Sage --without-python is not supported])])
 
 ac_path_PYTHON3="$with_python"
