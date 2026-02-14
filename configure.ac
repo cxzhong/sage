@@ -353,14 +353,6 @@ SAGE_DARWIN_PKG_CONFIG_PATH=
     AC_CHECK_HEADER([zlib.h], [],
        [AC_MSG_ERROR([cannot find libz headers. $SAGE_PREREQ_URL])])
 
-# Check for system python (bootstrap python for build scripts)
-AC_MSG_CHECKING([for Python])
-if SAGE_BOOTSTRAP_PYTHON=$(build/bin/sage-bootstrap-python -c "import sys; print(sys.executable)"); then
-    AC_MSG_RESULT([$SAGE_BOOTSTRAP_PYTHON])
-else
-    AC_MSG_ERROR([You do not have a suitable version of Python installed])
-fi
-
 # check for liblzma
 
 PKG_CHECK_MODULES([liblzma], [liblzma], [], [
