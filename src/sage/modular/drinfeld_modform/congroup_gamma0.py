@@ -1,5 +1,5 @@
 r"""
-Congruence subgroups '\Gamma0(N)' of `\mathrm{GL}_{2}(\mathbb{F}_{q}[T])`
+Congruence subgroups `\Gamma_0(N)` of `\mathrm{GL}_{2}(\mathbb{F}_{q}[T])`
 
 AUTHORS:
 
@@ -433,7 +433,7 @@ class Gamma0_class(Group, UniqueRepresentation):
             sage: Gamma0(T^7 - 3*T^4 + 1).ncusps()
             8
 
-        If `N` is irreducible, the number of cusps is `2`. We can check it:
+        If `N` is irreducible, the number of cusps is `2`. We can check it::
 
             sage: N = T^6 + T^4 + 4*T^3 + T^2 + 2
             sage: N.is_irreducible()
@@ -472,7 +472,7 @@ class Gamma0_class(Group, UniqueRepresentation):
             900
 
         If the level `N` is irreducible, the index is `1 + q^{\mathrm{deg}(N)}`.
-        We can check it:
+        We can check it::
 
             sage: N = T^4 + 4*T^2 + 4*T + 2
             sage: N.is_irreducible()
