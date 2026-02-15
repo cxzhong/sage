@@ -1,4 +1,4 @@
- pathspec editables pluggy packaging trove_classifiers | pip
+ pathspec editables pluggy packaging trove_classifiers | pip $(PYTHON)
 
 ----------
 All lines of this file are ignored except the first.

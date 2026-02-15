@@ -570,9 +570,10 @@ would simply contain:
 Python-based packages
 ---------------------
 
-Most Python-based packages will have ``$(PYTHON_TOOLCHAIN)`` as
+Python-based packages should declare ``$(PYTHON)`` as a dependency,
+and most Python-based packages will also have ``$(PYTHON_TOOLCHAIN)`` as
 an order-only dependency, which will ensure that fundamental packages such
-as ``pip``, ``meson-python``, and ``setuptools`` are available at the time of building the package.
+as ``pip`` and ``setuptools`` are available at the time of building the package.
 
 The best way to install a ``normal`` Python-based package is to use ``pip``, in which
 case the ``spkg-install.in`` script template might just consist of
@@ -808,7 +809,7 @@ these, use ``$(PYTHON_TOOLCHAIN)`` instead. For example, here is the
 
 .. code-block:: text
 
-    | $(PYTHON_TOOLCHAIN)
+    $(PYTHON) | $(PYTHON_TOOLCHAIN)
 
 (See below for the meaning of the ``|``.)
 
