@@ -405,7 +405,7 @@ cdef class BooleanPolynomialRing(BooleanPolynomialRing_base):
             pbnames = tuple(names)
             names = [name.replace('(', '').replace(')', '') for name in pbnames]
 
-        BooleanPolynomialRing_base.__init__(self, GF((2,1)), n, names, order)
+        BooleanPolynomialRing_base.__init__(self, GF((2, 1)), n, names, order)
 
         counter = 0
         for i in range(len(order.blocks()) - 1):
@@ -836,7 +836,7 @@ cdef class BooleanPolynomialRing(BooleanPolynomialRing_base):
                 raise TypeError("cannot coerce monomial %s to %s" % (other, self))
 
         elif isinstance(other, BooleanPolynomial) and \
-            ((<BooleanPolynomialRing>(<BooleanPolynomial>other)._parent)._pbring.nVariables() <= self._pbring.nVariables()):
+                ((<BooleanPolynomialRing>(<BooleanPolynomial>other)._parent)._pbring.nVariables() <= self._pbring.nVariables()):
             # try PolyBoRi's built-in coercions
             if self._pbring.hash() == \
                     (<BooleanPolynomialRing>(<BooleanPolynomial>other)._parent)._pbring.hash():
@@ -943,7 +943,7 @@ cdef class BooleanPolynomialRing(BooleanPolynomialRing_base):
 
         if isinstance(other, BooleanMonomial) and (
                 (<BooleanMonomial>other)._pbmonom.deg() <=
-                 <Py_ssize_t>self._pbring.nVariables()):
+                <Py_ssize_t>self._pbring.nVariables()):
             try:
                 var_mapping = get_var_mapping(self, other)
             except NameError as msg:
@@ -1674,9 +1674,9 @@ cdef class BooleanPolynomialRing(BooleanPolynomialRing_base):
         return self._pbring.ordering().isDegreeOrder()
 
     def _settings(self, names, blocks):
-        for (idx, elt) in enumerate(names):
+        for idx, elt in enumerate(names):
             self._pbring.setVariableName(self.pbind[idx],
-                    str_to_bytes(elt))
+                                         str_to_bytes(elt))
 
         for elt in blocks:
             self._pbring.ordering().appendBlock(elt)
@@ -1756,11 +1756,10 @@ cdef class BooleanPolynomialRing(BooleanPolynomialRing_base):
 
             This is part of PolyBoRi's native interface.
         """
-
         cdef PBRing ring = self._pbring.clone()
         if ordering is not None:
             ring.changeOrdering(ordering)
-        for (idx, elt) in enumerate(names):
+        for idx, elt in enumerate(names):
             ring.setVariableName(self.pbind[idx], str_to_bytes(elt))
 
         for elt in blocks:
@@ -1897,7 +1896,8 @@ class BooleanMonomialMonoid(UniqueRepresentation, Monoid_class):
         cdef BooleanMonomial m
         self._ring = polring
         from sage.categories.monoids import Monoids
-        Parent.__init__(self, GF((2,1)), names=polring._names, category=Monoids().Commutative())
+        Parent.__init__(self, GF((2, 1)), names=polring._names,
+                        category=Monoids().Commutative())
 
         m = new_BM(self, polring)
         m._pbmonom = PBMonom(polring._pbring)
@@ -2057,7 +2057,7 @@ class BooleanMonomialMonoid(UniqueRepresentation, Monoid_class):
         """
         if isinstance(other, BooleanMonomial) and \
             ((<BooleanMonomial>other)._parent.ngens() <=
-            (<BooleanPolynomialRing>self._ring)._pbring.nVariables()):
+             (<BooleanPolynomialRing>self._ring)._pbring.nVariables()):
             try:
                 var_mapping = get_var_mapping(self, other.parent())
             except NameError as msg:
@@ -2142,41 +2142,41 @@ class BooleanMonomialMonoid(UniqueRepresentation, Monoid_class):
             pass
 
         if isinstance(other, BooleanPolynomial) and \
-            (<BooleanPolynomial>other)._pbpoly.isSingleton():
-                if (<BooleanPolynomial>other)._parent is self._ring:
-                    return new_BM_from_PBMonom(self,
-                            (<BooleanPolynomialRing>self._ring),
-                            (<BooleanPolynomial>other)._pbpoly.lead())
-                elif ((<BooleanPolynomial>other)._pbpoly.nUsedVariables() <=
-                    (<BooleanPolynomialRing>self._ring)._pbring.nVariables()):
-                        try:
-                            var_mapping = get_var_mapping(self, other)
-                        except NameError as msg:
-                            raise ValueError("cannot convert polynomial %s to %s: %s" % (other, self, msg))
-                        m = self._one_element
-                        for i in new_BMI_from_BooleanMonomial(other.lm()):
-                            m*= var_mapping[i]
-                        return m
-                else:
-                    raise ValueError("cannot convert polynomial %s to %s" % (other, self))
-
-        elif isinstance(other, BooleanMonomial) and \
-            ((<BooleanMonomial>other)._pbmonom.deg() <=
-             <Py_ssize_t>(<BooleanPolynomialRing>self._ring)._pbring.nVariables()):
+                (<BooleanPolynomial>other)._pbpoly.isSingleton():
+            if (<BooleanPolynomial>other)._parent is self._ring:
+                return new_BM_from_PBMonom(
+                    self, (<BooleanPolynomialRing>self._ring),
+                    (<BooleanPolynomial>other)._pbpoly.lead())
+            elif ((<BooleanPolynomial>other)._pbpoly.nUsedVariables() <=
+                  (<BooleanPolynomialRing>self._ring)._pbring.nVariables()):
                 try:
                     var_mapping = get_var_mapping(self, other)
                 except NameError as msg:
-                    raise ValueError("cannot convert monomial %s to %s: %s" % (other, self, msg))
+                    raise ValueError("cannot convert polynomial %s to %s: %s" % (other, self, msg))
                 m = self._one_element
-                for i in other.iterindex():
-                    m *= var_mapping[i]
-                return m
+                for i in new_BMI_from_BooleanMonomial(other.lm()):
+                    m*= var_mapping[i]
+                    return m
+            else:
+                raise ValueError("cannot convert polynomial %s to %s" % (other, self))
+
+        elif isinstance(other, BooleanMonomial) and \
+             ((<BooleanMonomial>other)._pbmonom.deg() <=
+              <Py_ssize_t>(<BooleanPolynomialRing>self._ring)._pbring.nVariables()):
+            try:
+                var_mapping = get_var_mapping(self, other)
+            except NameError as msg:
+                raise ValueError("cannot convert monomial %s to %s: %s" % (other, self, msg))
+            m = self._one_element
+            for i in other.iterindex():
+                m *= var_mapping[i]
+            return m
         elif isinstance(other, BooleSet):
             return self(self._ring(other))
         elif isinstance(other, Element) and \
                 self.base_ring().has_coerce_map_from(other.parent()) and \
-                        self.base_ring()(other).is_one():
-                            return self._one_element
+                self.base_ring()(other).is_one():
+            return self._one_element
         elif isinstance(other, int) and other % 2:
             return self._one_element
 
@@ -4790,7 +4790,7 @@ cdef inline BooleanPolynomialIterator new_BPI_from_BooleanPolynomial(BooleanPoly
 
 
 class BooleanPolynomialIdeal(MPolynomialIdeal):
-    def __init__(self, ring, gens=[], coerce=True) -> None:
+    def __init__(self, ring, gens=None, coerce=True) -> None:
         """
         Construct an ideal in the boolean polynomial ring.
 
@@ -4811,6 +4811,8 @@ class BooleanPolynomialIdeal(MPolynomialIdeal):
             sage: loads(dumps(I)) == I
             True
         """
+        if gens is None:
+            gens = []
         MPolynomialIdeal.__init__(self, ring, gens, coerce)
 
     def dimension(self):
@@ -7870,7 +7872,7 @@ cdef class BooleConstant:
 
 cdef object pb_block_order(n, order_str, blocks):
     T = [TermOrder(order_str, blockend - blockstart, force=True)
-         for (blockstart, blockend) in zip([0] + blocks, blocks + [n])]
+         for blockstart, blockend in zip([0] + blocks, blocks + [n])]
     if T:
         result = T[0]
         for elt in T[1:]:
