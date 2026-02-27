@@ -682,7 +682,7 @@ def LeonardGraph(immutable=False):
     return Graph(edges, format='list_of_edges', immutable=immutable)
 
 
-def UstimenkoGraph(const int m, const int q):
+def UstimenkoGraph(const int m, const int q, immutable=False):
     r"""
     Return the Ustimenko graph with parameters `(m, q)`.
 
@@ -694,6 +694,9 @@ def UstimenkoGraph(const int m, const int q):
     INPUT:
 
     - ``m``, ``q`` -- integers; `q` must be a prime power and `m > 1`
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES::
 
@@ -723,16 +726,16 @@ def UstimenkoGraph(const int m, const int q):
 
     edgesToAdd = []
     for v in G:
-        for w in G.neighbor_iterator(v):
-            for u in G.neighbor_iterator(w):
-                sig_check()
-                if u != v and not G.has_edge(u, v):
-                    # then u,v are at distance 2
-                    edgesToAdd.append((u, v))
+        # Search for vertices at distance 2
+        for u, d in G.breadth_first_search(v, distance=2, report_distance=True):
+            if d == 2 and u < v:
+                # Add an edge between u and v at distance 2 and
+                # avoid adding both (u, v) and (v, u)
+                edgesToAdd.append((u, v))
 
     G.add_edges(edgesToAdd)
     G.name(f"Ustimenko graph ({m}, {q})")
-    return G
+    return G.copy(immutable=True) if immutable else G
 
 
 def BilinearFormsGraph(const int d, const int e, const int q):
