@@ -834,7 +834,7 @@ def BilinearFormsGraph(const int d, const int e, const int q, immutable=False):
                  name=f"Bilinear forms graphs over F_{q} with parameters ({d}, {e})")
 
 
-def AlternatingFormsGraph(const int n, const int q):
+def AlternatingFormsGraph(const int n, const int q, immutable=False):
     r"""
     Return the alternating forms graph with the given parameters.
 
@@ -848,7 +848,11 @@ def AlternatingFormsGraph(const int n, const int q):
     INPUT:
 
     - ``n`` -- integer
+
     - ``q`` -- a prime power
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES::
 
@@ -927,9 +931,8 @@ def AlternatingFormsGraph(const int n, const int q):
             t3 = tuple([t1[i] + m2[i] for i in range(size)])
             edges.append((t1, t3))
 
-    G = Graph(edges, format='list_of_edges')
-    G.name("Alternating forms graph on (F_%d)^%d" % (q, n))
-    return G
+    return Graph(edges, format='list_of_edges', immutable=immutable,
+                 name=f"Alternating forms graph on (F_{q})^{n}")
 
 
 def HermitianFormsGraph(const int n, const int r):
