@@ -2155,7 +2155,7 @@ class BooleanMonomialMonoid(UniqueRepresentation, Monoid_class):
                     raise ValueError("cannot convert polynomial %s to %s: %s" % (other, self, msg))
                 m = self._one_element
                 for i in new_BMI_from_BooleanMonomial(other.lm()):
-                    m*= var_mapping[i]
+                    m *= var_mapping[i]
                     return m
             else:
                 raise ValueError("cannot convert polynomial %s to %s" % (other, self))
