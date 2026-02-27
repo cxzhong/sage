@@ -537,10 +537,15 @@ def shortened_00_11_binary_Golay_code_graph(immutable=False):
     return G
 
 
-def shortened_000_111_extended_binary_Golay_code_graph():
+def shortened_000_111_extended_binary_Golay_code_graph(immutable=False):
     r"""
     Return a distance-regular graph with intersection array
     `[21, 20, 16, 9, 2, 1; 1, 2, 3, 16, 20, 21]`.
+
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES::
 
@@ -580,25 +585,29 @@ def shortened_000_111_extended_binary_Golay_code_graph():
 
     with as_file(ppath) as p:
         with lzma.open(p) as f:
-            vs_and_es = load(f, fix_imports=False)
+            vertices, edges = load(f, fix_imports=False)
+
+    if len(vertices) != 2048 or len(edges) != 21504:
+        raise ValueError("incorrect number of loaded vertices and edges")
 
     # Vertices/edges are pickled as tuples of ints, but should be
     # vectors with entries in GF(2).
     V = VectorSpace(GF(2), 21)
-    for i in range(2048):
-        # vertex i
-        vs_and_es[0][i] = V(vs_and_es[0][i])
-        vs_and_es[0][i].set_immutable()
-    for i in range(21504):
-        # edge i = (v1, v2, l)
-        vs_and_es[1][i][0] = V(vs_and_es[1][i][0]) # v1
-        vs_and_es[1][i][0].set_immutable()
-        vs_and_es[1][i][1] = V(vs_and_es[1][i][1]) # v2
-        vs_and_es[1][i][1].set_immutable()
+    for i, u in enumerate(vertices):
+        u = V(u)
+        u.set_immutable()
+        vertices[i] = u
+    for i, (v1, v2, label) in enumerate(edges):
+        # edge i = (v1, v2, label)
+        v1 = V(v1)
+        v1.set_immutable()
+        v2 = V(v2)
+        v2.set_immutable()
+        edges[i] = (v1, v2, label)
 
-    G = Graph(vs_and_es, format='vertices_and_edges')
-    G.name("Shortened 000 111 extended binary Golay code")
-    return G
+    return Graph([vertices, edges], format="vertices_and_edges",
+                 name = "Shortened 000 111 extended binary Golay code",
+                 immutable=immutable)
 
 
 def vanLintSchrijverGraph(immutable=False):
