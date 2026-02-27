@@ -643,12 +643,17 @@ def vanLintSchrijverGraph(immutable=False):
     return H
 
 
-def LeonardGraph():
+def LeonardGraph(immutable=False):
     r"""
     Return the Leonard graph.
 
     The graph is distance-regular with intersection array
     `[12, 11, 10, 7; 1, 2, 5, 12]`.
+
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES::
 
@@ -674,8 +679,7 @@ def LeonardGraph():
     blocks = [frozenset(cl) for cl in D.cliques_maximum()]
 
     edges = [(p, b) for b in blocks for p in b]
-    G = Graph(edges, format='list_of_edges')
-    return G
+    return Graph(edges, format='list_of_edges', immutable=immutable)
 
 
 def UstimenkoGraph(const int m, const int q):
