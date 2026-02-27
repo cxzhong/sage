@@ -738,7 +738,7 @@ def UstimenkoGraph(const int m, const int q, immutable=False):
     return G.copy(immutable=True) if immutable else G
 
 
-def BilinearFormsGraph(const int d, const int e, const int q):
+def BilinearFormsGraph(const int d, const int e, const int q, immutable=False):
     r"""
     Return a bilinear forms graph with the given parameters.
 
@@ -752,7 +752,11 @@ def BilinearFormsGraph(const int d, const int e, const int q):
     INPUT:
 
     - ``d``, ``e`` -- integers; dimension of the matrices
+
     - ``q`` -- integer; a prime power
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES::
 
@@ -826,9 +830,8 @@ def BilinearFormsGraph(const int d, const int e, const int q):
 
             edges.append((intM1, intM3))
 
-    G = Graph(edges, format='list_of_edges')
-    G.name("Bilinear forms graphs over F_%d with parameters (%d, %d)" % (q, d, e))
-    return G
+    return Graph(edges, format='list_of_edges', immutable=immutable,
+                 name=f"Bilinear forms graphs over F_{q} with parameters ({d}, {e})")
 
 
 def AlternatingFormsGraph(const int n, const int q):
