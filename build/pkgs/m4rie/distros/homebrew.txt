@@ -1,1 +1,1 @@
-dimpase/homebrew-tap/m4rie
+dimpase/tap/m4rie
