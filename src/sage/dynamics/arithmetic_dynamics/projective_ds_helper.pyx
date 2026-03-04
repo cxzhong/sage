@@ -6,23 +6,22 @@ This is the helper file providing functionality for projective_ds.py.
 AUTHORS:
 
 - Dillon Rose (2014-01):  Speed enhancements
-
 """
 
-#*****************************************************************************
+# ****************************************************************************
 #       Copyright (C) 2014 William Stein <wstein@gmail.com>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
 from sage.arith.functions cimport LCM_list
 from sage.rings.finite_rings.finite_field_constructor import GF
-from sage.sets.all import Set
-from sage.misc.misc import subsets
+from sage.combinat.subset import subsets
+
 
 cpdef _fast_possible_periods(self, return_points=False):
     r"""
@@ -35,7 +34,7 @@ cpdef _fast_possible_periods(self, return_points=False):
 
     INPUT:
 
-    - ``return_points`` - (default: ``False``) boolean; if ``True``, then
+    - ``return_points`` -- boolean (default: ``False``); if ``True``, then
       return the points as well as the possible periods
 
     OUTPUT:
@@ -71,10 +70,10 @@ cpdef _fast_possible_periods(self, return_points=False):
 
         - More space efficient hash/point-table.
     """
-    cdef int i, k, N
+    cdef int i, N
     cdef int hash_p, hash_q
     cdef int index, startindex
-    cdef list pointslist, points_periods
+    cdef list points_periods
     cdef list P, Q
     cdef set periods, lorders, rvalues
 
@@ -82,14 +81,14 @@ cpdef _fast_possible_periods(self, return_points=False):
         raise TypeError("must be prime field")
 
     PS = self.domain()
-    from sage.schemes.projective.projective_space import is_ProjectiveSpace
-    if not is_ProjectiveSpace(PS) or PS != self.codomain():
+    from sage.schemes.projective.projective_space import ProjectiveSpace_ring
+    if not isinstance(PS, ProjectiveSpace_ring) or PS != self.codomain():
         raise NotImplementedError("must be an endomorphism of projective space")
 
     p = PS.base_ring().order()
     N = int(PS.dimension_relative())
 
-    point_table = [[0,0] for i in xrange(p**(N + 1))]
+    point_table = [[0, 0] for i in range(p**(N + 1))]
     index = 1
     periods = set()
     points_periods = []
@@ -115,13 +114,13 @@ cpdef _fast_possible_periods(self, return_points=False):
                 points_periods.append([P_proj, period])
                 l = P_proj.multiplier(self, period, False)
                 lorders = set()
-                for poly,_ in l.charpoly().factor():
+                for poly, _ in l.charpoly().factor():
                     if poly.degree() == 1:
                         eig = -poly.constant_coefficient()
                         if not eig:
-                            continue # exclude 0
+                            continue  # exclude 0
                     else:
-                        eig = GF(p**poly.degree(), 't', modulus=poly).gen()
+                        eig = GF((p, poly.degree()), 't', modulus=poly).gen()
                     if eig:
                         lorders.add(eig.multiplicative_order())
                 S = subsets(lorders)
@@ -133,7 +132,7 @@ cpdef _fast_possible_periods(self, return_points=False):
                     for r in rvalues:
                         periods.add(period*r)
                         points_periods.append([P_proj, period*r])
-                        if p == 2 or p == 3: #need e=1 for N=1, QQ
+                        if p == 2 or p == 3:  # need e=1 for N=1, QQ
                             periods.add(period*r*p)
                             points_periods.append([P_proj, period*r*p])
                 else:
@@ -142,7 +141,7 @@ cpdef _fast_possible_periods(self, return_points=False):
                         periods.add(period*r*p)
                         points_periods.append([P_proj, period*r])
                         points_periods.append([P_proj, period*r*p])
-                        if p == 2:  #need e=3 for N>1, QQ
+                        if p == 2:  # need e=3 for N>1, QQ
                             periods.add(period*r*4)
                             points_periods.append([P_proj, period*r*4])
                             periods.add(period*r*8)
@@ -151,7 +150,8 @@ cpdef _fast_possible_periods(self, return_points=False):
     if not return_points:
         return sorted(periods)
     else:
-        return(points_periods)
+        return points_periods
+
 
 def _enum_points(int prime, int dimension):
     """
@@ -173,11 +173,12 @@ def _enum_points(int prime, int dimension):
     highest_range = prime**dimension
 
     while current_range <= highest_range:
-        for value in xrange(current_range, 2*current_range):
+        for value in range(current_range, 2*current_range):
             yield _get_point_from_hash(value, prime, dimension)
         current_range = current_range * prime
 
-cpdef int _hash(list Point, int prime):
+
+cpdef int _hash(list Point, int prime) noexcept:
     """
     Hash point given as list to unique number.
 
@@ -186,7 +187,6 @@ cpdef int _hash(list Point, int prime):
         sage: from sage.dynamics.arithmetic_dynamics.projective_ds_helper import _hash
         sage: _hash([1, 2, 1], 3)
         16
-
     """
     cdef int hash_q
     cdef int coefficient
@@ -211,13 +211,13 @@ cpdef list _get_point_from_hash(int value, int prime, int dimension):
     cdef list P = []
     cdef int i
 
-    for i in xrange(dimension + 1):
+    for i in range(dimension + 1):
         P.append(value % prime)
         value /= prime
 
     return P
 
-cdef inline int _mod_inv(int num, int prime):
+cdef inline int _mod_inv(int num, int prime) noexcept:
     """
     Find the inverse of the number modulo the given prime.
     """
@@ -258,7 +258,7 @@ cpdef _normalize_coordinates(list point, int prime, int len_points):
     """
     cdef int last_coefficient, coefficient, mod_inverse, val
 
-    for coefficient in xrange(len_points):
+    for coefficient in range(len_points):
         val = ((<int> point[coefficient]) + prime) % prime
         point[coefficient] = val
         if val != 0:
@@ -266,6 +266,35 @@ cpdef _normalize_coordinates(list point, int prime, int len_points):
 
     mod_inverse = _mod_inv(last_coefficient, prime)
 
-    for coefficient in xrange(len_points):
+    for coefficient in range(len_points):
         point[coefficient] = (point[coefficient] * mod_inverse) % prime
 
+cpdef _all_periodic_points(self):
+    """
+    Find all periodic points over a finite field.
+
+    EXAMPLES::
+
+        sage: from sage.dynamics.arithmetic_dynamics.projective_ds_helper import _all_periodic_points
+        sage: P.<x,y> = ProjectiveSpace(GF(7), 1)
+        sage: f = DynamicalSystem_projective([x^2 - y^2, y^2], domain=P)
+        sage: _all_periodic_points(f)
+        [(1 : 0), (0 : 1), (6 : 1)]
+    """
+    cdef list periodic_points, path
+    cdef set elements
+
+    periodic_points = []
+    path = []
+    elements = set(self.domain())
+    while elements:
+        number = elements.pop()
+        path = [number]
+        next_element = self(number)
+        while next_element in elements:
+            path.append(next_element)
+            elements.remove(next_element)
+            next_element = self(next_element)
+        if next_element in path:
+            periodic_points += path[path.index(next_element):]
+    return periodic_points

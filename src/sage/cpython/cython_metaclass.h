@@ -5,7 +5,7 @@
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 2 of the License, or
 * (at your option) any later version.
-*                  http://www.gnu.org/licenses/
+*                  https://www.gnu.org/licenses/
 *****************************************************************************/
 
 /* Tuple (None, None, None), initialized as needed */
@@ -45,6 +45,14 @@ static CYTHON_INLINE int Sage_PyType_Ready(PyTypeObject* t)
     if (r < 0)
         return r;
 
+    // Cython 3 sets Py_TPFLAGS_HEAPTYPE before calling PyType_Ready,
+    // and resets just after the call. We need to reset it earlier,
+    // since otherwise the call to metaclass.__init__ below may have
+    // illegal memory accesses.
+    // See also:
+    // https://github.com/cython/cython/issues/3603
+    t->tp_flags &= ~Py_TPFLAGS_HEAPTYPE;
+
     /* Set or get metaclass (the type of t) */
     PyTypeObject* metaclass;
 
@@ -66,7 +74,7 @@ static CYTHON_INLINE int Sage_PyType_Ready(PyTypeObject* t)
         }
 
         /* Now, set t.__class__ to metaclass */
-        Py_TYPE(t) = metaclass;
+        Py_SET_TYPE(t, metaclass);
         PyType_Modified(t);
     }
     else

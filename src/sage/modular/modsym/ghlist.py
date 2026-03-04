@@ -1,8 +1,9 @@
+# sage.doctest: needs sage.libs.pari
 r"""
-List of coset representatives for `\Gamma_H(N)` in `{\rm SL}_2(\ZZ)`
+List of coset representatives for `\Gamma_H(N)` in `\SL_2(\ZZ)`
 """
 ###########################################################################
-#       Sage: System for Algebra and Geometry Experimentation
+#       Sage: Open Source Mathematical Software
 #
 #       Copyright (C) 2005 William Stein <wstein@gmail.com>
 #
@@ -15,21 +16,19 @@ List of coset representatives for `\Gamma_H(N)` in `{\rm SL}_2(\ZZ)`
 #
 #  The full text of the GPL is available at:
 #
-#                  http://www.gnu.org/licenses/
+#                  https://www.gnu.org/licenses/
 ###########################################################################
-from __future__ import absolute_import
-from sage.structure.richcmp import richcmp_method, richcmp
+from sage.misc.persist import register_unpickle_override
+from sage.modular.modsym import p1list
+from sage.structure.richcmp import richcmp, richcmp_method
 from sage.structure.sage_object import SageObject
-from sage.structure.sage_object import register_unpickle_override
-
-from . import p1list
 
 
 @richcmp_method
 class GHlist(SageObject):
     r"""
     A class representing a list of coset representatives for `\Gamma_H(N)` in
-    `{\rm SL}_2(\ZZ)`.
+    `\SL_2(\ZZ)`.
 
     TESTS::
 
@@ -37,7 +36,7 @@ class GHlist(SageObject):
         sage: loads(dumps(L)) == L
         True
     """
-    def __init__(self, group):
+    def __init__(self, group) -> None:
         """
         EXAMPLES::
 
@@ -48,8 +47,9 @@ class GHlist(SageObject):
         N = group.level()
         v = group._coset_reduction_data()[0]
         N = group.level()
-        coset_reps = set([a for a, b, _ in v if b == 1])
-        w = [group._reduce_coset(x*u, x*v) for x in coset_reps for u,v in p1list.P1List(N).list()]
+        coset_reps = {a for a, b, _ in v if b == 1}
+        w = [group._reduce_coset(x * u, x * v)
+             for x in coset_reps for u, v in p1list.P1List(N).list()]
         w = sorted(set(w))
         self.__list = w
 
@@ -93,7 +93,7 @@ class GHlist(SageObject):
 
     def __repr__(self):
         """
-        String representation of self.
+        String representation of ``self``.
 
         EXAMPLES::
 
@@ -122,7 +122,7 @@ class GHlist(SageObject):
         is equivalent to `(u', v')`.
 
         This will only make sense if `{\rm gcd}(u, v, N) = 1`; otherwise the
-        output will not be an element of self.
+        output will not be an element of ``self``.
 
         EXAMPLES::
 
@@ -133,7 +133,7 @@ class GHlist(SageObject):
             sage: sage.modular.modsym.ghlist.GHlist(GammaH(24, [5, 23])).normalize(17, 6)
             (7, 18)
         """
-        return self.__group._reduce_coset(u,v)
+        return self.__group._reduce_coset(u, v)
 
 
 class _GHlist_old_pickle(GHlist):
@@ -144,7 +144,7 @@ class _GHlist_old_pickle(GHlist):
     no input to the class on the initial ``__init__`` call, and the
     new class pickles, we need to have ``__setstate__`` handle it.
     """
-    def __init__(self):
+    def __init__(self) -> None:
         """
         For unpickling old pickles.
 
@@ -174,8 +174,8 @@ class _GHlist_old_pickle(GHlist):
         # We don't really want this class, but we want to handle new
         #   pickles without creating a new class
         self.__class__ = GHlist
-        self.__dict__ = state # Default pickling is ``state = self.__dict__``
+        self.__dict__ = state  # Default pickling is ``state = self.__dict__``
+
 
 register_unpickle_override('sage.modular.modsym.ghlist', 'GHlist',
                            _GHlist_old_pickle)
-

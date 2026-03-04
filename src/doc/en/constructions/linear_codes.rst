@@ -241,7 +241,6 @@ The LFSR sequence is then
    \end{array}
 
 
-
 The sequence of :math:`0,1`'s is periodic with period
 :math:`P=2^4-1=15` and satisfies Golomb's three randomness
 conditions. However, this sequence of period 15 can be "cracked"
@@ -264,6 +263,7 @@ reverse of ``berlekamp_massey``).
     8/15
     sage: lfsr_connection_polynomial(s)
     x^4 + x + 1
+    sage: from sage.matrix.berlekamp_massey import berlekamp_massey
     sage: berlekamp_massey(s)
     x^4 + x^3 + 1
 

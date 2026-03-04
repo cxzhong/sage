@@ -16,8 +16,6 @@ AUTHORS:
 #                  http://www.gnu.org/licenses/
 #*****************************************************************************
 
-from six import iteritems
-
 from sage.misc.cachefunc import cached_method
 #from sage.misc.lazy_attribute import lazy_attribute
 from sage.structure.indexed_generators import (IndexedGenerators,
@@ -32,6 +30,7 @@ from sage.algebras.lie_algebras.lie_algebra import FinitelyGeneratedLieAlgebra
 #from sage.algebras.lie_algebras.quotient import QuotientLieAlgebra
 from sage.modules.free_module import FreeModule
 from sage.sets.family import Family
+
 
 class LieAlgebraWithStructureCoefficients(FinitelyGeneratedLieAlgebra, IndexedGenerators):
     r"""
@@ -49,7 +48,7 @@ class LieAlgebraWithStructureCoefficients(FinitelyGeneratedLieAlgebra, IndexedGe
 
     - ``R`` -- a ring, to be used as the base ring
 
-    - ``s_coeff`` -- a dictionary, indexed by pairs of basis indices
+    - ``s_coeff`` -- dictionary, indexed by pairs of basis indices
       (see below), and whose values are dictionaries which are
       indexed by (single) basis indices and whose values are elements
       of `R`
@@ -96,7 +95,7 @@ class LieAlgebraWithStructureCoefficients(FinitelyGeneratedLieAlgebra, IndexedGe
 
         sage: L = LieAlgebra(QQ, 'x,y', {('x','y'):{'x':1}})
         sage: L.basis()
-        Finite family {'y': y, 'x': x}
+        Finite family {'x': x, 'y': y}
     """
     @staticmethod
     def __classcall_private__(cls, R, s_coeff, names=None, index_set=None, **kwds):
@@ -126,7 +125,7 @@ class LieAlgebraWithStructureCoefficients(FinitelyGeneratedLieAlgebra, IndexedGe
             try:
                 s_coeff = {(d[k[0]], d[k[1]]): [(d[x], y) for x,y in get_pairs(s_coeff[k])]
                            for k in s_coeff}
-            except KeyError:
+            except (KeyError, ValueError):
                 # At this point we assume they are given by the index set
                 pass
 
@@ -135,12 +134,11 @@ class LieAlgebraWithStructureCoefficients(FinitelyGeneratedLieAlgebra, IndexedGe
             from sage.algebras.lie_algebras.abelian import AbelianLieAlgebra
             return AbelianLieAlgebra(R, names, index_set, **kwds)
 
-        if (names is None and len(index_set) <= 1) or len(names) <= 1:
+        if (names is None and len(index_set) <= 1) or (names is not None and len(names) <= 1):
             from sage.algebras.lie_algebras.abelian import AbelianLieAlgebra
             return AbelianLieAlgebra(R, names, index_set, **kwds)
 
-        return super(LieAlgebraWithStructureCoefficients, cls).__classcall__(
-            cls, R, s_coeff, names, index_set, **kwds)
+        return super().__classcall__(cls, R, s_coeff, names, index_set, **kwds)
 
     @staticmethod
     def _standardize_s_coeff(s_coeff, index_set):
@@ -258,7 +256,7 @@ class LieAlgebraWithStructureCoefficients(FinitelyGeneratedLieAlgebra, IndexedGe
 
         TESTS:
 
-        Check that :trac:`23373` is fixed::
+        Check that :issue:`23373` is fixed::
 
             sage: L = lie_algebras.sl(QQ, 2)
             sage: sorted(L.structure_coefficients(True), key=str)
@@ -347,7 +345,7 @@ class LieAlgebraWithStructureCoefficients(FinitelyGeneratedLieAlgebra, IndexedGe
             c = self.base_ring()(c)
         return self.element_class(self, c * self._M.basis()[self._index_to_pos[k]])
 
-    def from_vector(self, v):
+    def from_vector(self, v, order=None, coerce=True):
         """
         Return an element of ``self`` from the vector ``v``.
 
@@ -357,7 +355,34 @@ class LieAlgebraWithStructureCoefficients(FinitelyGeneratedLieAlgebra, IndexedGe
             sage: L.from_vector([1, 2, -2])
             x + 2*y - 2*z
         """
-        return self.element_class(self, self._M(v))
+        if coerce:
+            v = self._M(v)
+        return self.element_class(self, v)
+
+    def _from_dict(self, d, coerce=False, remove_zeros=False):
+        r"""
+        Construct an element of ``self`` from an ``{index: coefficient}``
+        dictionary.
+
+        INPUT:
+
+        - ``d`` -- dictionary ``{index: coeff}`` where each ``index`` is the
+          index of a basis element and each ``coeff`` belongs to the
+          coefficient ring ``self.base_ring()``
+        - ``coerce`` -- ignored
+        - ``remove_zeros`` -- ignored
+
+        EXAMPLES::
+
+            sage: L.<x,y,z> = LieAlgebra(QQ, {('x','y'): {'z':1}})
+            sage: L._from_dict({'x': -3, 'z': 2, 'y': 0})
+            -3*x + 2*z
+        """
+        zero = self._M.base_ring().zero()
+        ret = [zero] * self._M.rank()
+        for k, c in d.items():
+            ret[self._index_to_pos[k]] = c
+        return self.element_class(self, self._M(ret))
 
     def some_elements(self):
         """
@@ -371,6 +396,30 @@ class LieAlgebraWithStructureCoefficients(FinitelyGeneratedLieAlgebra, IndexedGe
         """
         return list(self.basis()) + [self.sum(self.basis())]
 
+    def change_ring(self, R):
+        r"""
+        Return a Lie algebra with identical structure coefficients over ``R``.
+
+        INPUT:
+
+        - ``R`` -- a ring
+
+        EXAMPLES::
+
+            sage: L.<x,y,z> = LieAlgebra(ZZ, {('x','y'): {'z':1}})
+            sage: L.structure_coefficients()
+            Finite family {('x', 'y'): z}
+            sage: LQQ = L.change_ring(QQ)
+            sage: LQQ.structure_coefficients()
+            Finite family {('x', 'y'): z}
+            sage: LSR = LQQ.change_ring(SR)                                             # needs sage.symbolic
+            sage: LSR.structure_coefficients()                                          # needs sage.symbolic
+            Finite family {('x', 'y'): z}
+        """
+        return LieAlgebraWithStructureCoefficients(
+            R, self.structure_coefficients(),
+            names=self.variable_names(), index_set=self.indices())
+
     class Element(StructureCoefficientsElement):
         def _sorted_items_for_printing(self):
             """
@@ -379,7 +428,7 @@ class LieAlgebraWithStructureCoefficients(FinitelyGeneratedLieAlgebra, IndexedGe
             .. WARNING::
 
                 The internal representation order is fixed, whereas this
-                depends on ``"sorting_key"`` print option as it is used
+                depends on ``'sorting_key'`` print option as it is used
                 only for printing.
 
             EXAMPLES::
@@ -398,7 +447,7 @@ class LieAlgebraWithStructureCoefficients(FinitelyGeneratedLieAlgebra, IndexedGe
             """
             print_options = self.parent().print_options()
             pos_to_index = dict(enumerate(self.parent()._indices))
-            v = [(pos_to_index[k], c) for k, c in iteritems(self.value)]
+            v = [(pos_to_index[k], c) for k, c in self.value.items()]
             try:
                 v.sort(key=lambda monomial_coeff:
                             print_options['sorting_key'](monomial_coeff[0]),
@@ -406,4 +455,3 @@ class LieAlgebraWithStructureCoefficients(FinitelyGeneratedLieAlgebra, IndexedGe
             except Exception: # Sorting the output is a plus, but if we can't, no big deal
                 pass
             return v
-

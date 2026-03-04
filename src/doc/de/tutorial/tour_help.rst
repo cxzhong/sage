@@ -58,8 +58,7 @@ Beispiel) gefolgt von einem Fragezeichen eingegeben wird:
             sage: maxima(log2).float()
             .6931471805599453
             sage: gp(log2)
-            0.6931471805599453094172321215             # 32-bit
-            0.69314718055994530941723212145817656807   # 64-bit
+            0.693147180559945309417232121...
     sage: sudoku?
     File:        sage/local/lib/python2.5/site-packages/sage/games/sudoku.py
     Type:        <... 'function'>
@@ -257,19 +256,7 @@ Quadrat- und Kubikzahlen.
 
 Die elementarste Datenstruktur in Sage ist die Liste. Sie ist -- wie
 der Name schon sagt -- nichts anderes als eine Liste beliebiger
-Objekte. Zum Beispiel erzeugt der ``range`` Befehl, den wir schon
-verwendet haben, eine Liste (python 2):
-
-::
-
-    sage: range(2,10)   # optional - python2
-    [2, 3, 4, 5, 6, 7, 8, 9]
-    sage: list(range(2,10))   # optional - python3
-    [2, 3, 4, 5, 6, 7, 8, 9]
-
-Hier ist eine etwas kompliziertere Liste:
-
-::
+Objekte. Hier ist ein Beispiel::
 
     sage: v = [1, "hello", 2/3, sin(x^3)]
     sage: v

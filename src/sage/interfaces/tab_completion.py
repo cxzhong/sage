@@ -24,15 +24,14 @@ EXAMPLES::
     sage: sorted(dir(f))
     [..., '_tab_completion', 'a', 'b', 'c', 'd']
 """
+import builtins
 
-import warnings
 
-
-class ExtraTabCompletion(object):
+class ExtraTabCompletion:
 
     def __dir__(self):
         """
-        Add to the dir() output
+        Add to the ``dir()`` output.
 
         This is used by IPython to read off the tab completions.
 
@@ -50,4 +49,52 @@ class ExtraTabCompletion(object):
         except AttributeError:
             raise NotImplementedError(
                 '{0} must implement _tab_completion() method'.format(self.__class__))
-        return dir(self.__class__) + self.__dict__.keys() + tab_fn()
+        return dir(self.__class__) + list(self.__dict__) + tab_fn()
+
+
+def completions(s, globs):
+    """
+    Return a list of completions in the given context.
+
+    INPUT:
+
+    - ``s`` -- string
+
+    - ``globs`` -- string: object dictionary; context in which to
+      search for completions, e.g., :func:`globals()`
+
+    OUTPUT: list of strings
+
+    EXAMPLES::
+
+         sage: X.<x> = PolynomialRing(QQ)
+         sage: import sage.interfaces.tab_completion as s
+         sage: p = x**2 + 1
+         sage: s.completions('p.co',globals()) # indirect doctest
+         ['p.coefficient',...]
+
+         sage: s.completions('dic',globals()) # indirect doctest
+         ['dickman_rho', 'dict']
+    """
+    if not s:
+        raise ValueError('empty string')
+
+    if '.' not in s:
+        n = len(s)
+        v = [x for x in globs if x[:n] == s]
+        v += [x for x in builtins.__dict__ if x[:n] == s]
+    else:
+        i = s.rfind('.')
+        method = s[i + 1:]
+        obj = s[:i]
+        n = len(method)
+        try:
+            O = eval(obj, globs)
+            D = dir(O)
+            if not method:
+                v = [obj + '.' + x for x in D if x and x[0] != '_']
+            else:
+                v = [obj + '.' + x for x in D if x[:n] == method]
+        except Exception:
+            v = []
+    return sorted(set(v))

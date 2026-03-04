@@ -1,110 +1,89 @@
 """
-Enumeration of Totally Real Fields: PHC interface
+Enumeration of totally real fields: PHC interface
 
 AUTHORS:
 
-    -- John Voight (2007-10-10):
-        * Zeroth attempt.
+- John Voight (2007-09-19): initial version
 """
 
-#*****************************************************************************
+# ****************************************************************************
 #       Copyright (C) 2007 William Stein and John Voight
 #
-#  Distributed under the terms of the GNU General Public License (GPL)
-#
-#    This code is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-#    General Public License for more details.
-#
-#  The full text of the GPL is available at:
-#
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 2 of the License, or
+# (at your option) any later version.
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
+import os
 import sage.misc.misc
+
 
 def coefficients_to_power_sums(n, m, a):
     r"""
-    Takes the list a, representing a list of initial coefficients of
-    a (monic) polynomial of degree n, and returns the power sums
-    of the roots of f up to (m-1)th powers.
+    Take the list ``a``, representing a list of initial coefficients of
+    a (monic) polynomial of degree `n`, and return the power sums
+    of the roots of `f` up to `(m-1)`-th powers.
 
     INPUT:
 
-    - n -- integer, the degree
-    - a -- list of integers, the coefficients
+    - ``n`` -- integer; the degree
+    - ``a`` -- list of integers; the coefficients
 
-    OUTPUT:
+    OUTPUT: list of integers
 
-    list of integers.
+    .. NOTE::
 
-    NOTES:
-
-    Uses Newton's relations, which are classical.
-
-    AUTHORS:
-
-    - John Voight (2007-09-19)
+        This uses Newton's relations, which are classical.
 
     EXAMPLES::
 
-        sage: sage.rings.number_field.totallyreal_phc.coefficients_to_power_sums(3,2,[1,5,7])
+        sage: from sage.rings.number_field.totallyreal_phc import coefficients_to_power_sums
+        sage: coefficients_to_power_sums(3,2,[1,5,7])
         [3, -7, 39]
-        sage: sage.rings.number_field.totallyreal_phc.coefficients_to_power_sums(5,4,[1,5,7,9,8])
+        sage: coefficients_to_power_sums(5,4,[1,5,7,9,8])
         [5, -8, 46, -317, 2158]
     """
-
     S = [n] + [0]*m
     for k in range(1,m+1):
         S[k] = -sum([a[n-i]*S[k-i] for i in range(1,k)])-k*a[n-k]
     return S
 
-import os
 
 def __lagrange_bounds_phc(n, m, a, tmpfile=None):
     r"""
     This function determines the bounds on the roots in
     the enumeration of totally real fields via Lagrange multipliers.
+
     It is used internally by the main function
     enumerate_totallyreal_fields_prim(), which should be consulted for
     further information.
 
     INPUT:
 
-    - k -- integer, the index of the next coefficient
-    - a -- list of integers, the coefficients
+    - ``k`` -- integer; the index of the next coefficient
+    - ``a`` -- list of integers; the coefficients
 
-    OUTPUT:
+    OUTPUT: the lower and upper bounds as real numbers
 
-    the lower and upper bounds as real numbers.
+    .. NOTE::
 
-    NOTES:
-
-    See Cohen [Cohen2000]_ for the general idea and unpublished work of the
-    author for more detail.
-
-    REFERENCES:
-
-    .. [Cohen2000] Henri Cohen, Advanced topics in computational number theory,
-       Graduate Texts in Mathematics, vol. 193, Springer-Verlag, New York,
-       2000.
-
-    AUTHORS:
-
-    - John Voight (2007-09-19)
+        See Cohen [Coh2000]_ for the general idea and unpublished work of the
+        author for more detail.
 
     EXAMPLES::
 
+        sage: # optional - phc
         sage: from sage.rings.number_field.totallyreal_phc import __lagrange_bounds_phc
-        sage: __lagrange_bounds_phc(3,5,[8,1,2,0,1]) # optional - phc
+        sage: __lagrange_bounds_phc(3,5,[8,1,2,0,1])
         []
-        sage: x, y = __lagrange_bounds_phc(3,2,[8,1,2,0,1]) # optional - phc
-        sage: x # optional - phc
+        sage: x, y = __lagrange_bounds_phc(3,2,[8,1,2,0,1])
+        sage: x
         -1.3333333333333299
-        sage: y < 0.00000001 # optional - phc
+        sage: y < 0.00000001
         True
-        sage: __lagrange_bounds_phc(3,1,[8,1,2,0,1]) # optional - phc
+        sage: __lagrange_bounds_phc(3,1,[8,1,2,0,1])
         []
     """
 
@@ -124,7 +103,6 @@ def __lagrange_bounds_phc(n, m, a, tmpfile=None):
         tmpfile = sage.misc.misc.tmp_filename()
     f = open(tmpfile + '.phc', 'w')
     f.close()
-    x = [0]*m
 
     output_data = []
 
@@ -136,17 +114,17 @@ def __lagrange_bounds_phc(n, m, a, tmpfile=None):
     for P in sage.combinat.partition.Partitions(n-1,length=m-1):
         f = open(tmpfile, 'w')
         # First line: number of variables/equations
-        f.write('%d'%m + '\n')
+        f.write('%d' % m + '\n')
         # In the next m-1 lines, write the equation S_j(x) = S[j]
         for j in range(1,m+1):
             for i in range(m-1):
-                f.write('%d'%P[i] + '*x%d'%i + '**%d'%j + ' + ')
-            f.write('xn**%d'%j + ' - (%d'%S[j] + ');\n')
+                f.write('%d' % P[i] + '*x%d' % i + '**%d' % j + ' + ')
+            f.write('xn**%d' % j + ' - (%d' % S[j] + ');\n')
         f.close()
 
         os.remove(tmpfile + '.phc')
         os.popen('phc -b ' + tmpfile + ' ' + tmpfile + '.phc')
-        f = open(tmpfile + '.phc', 'r')
+        f = open(tmpfile + '.phc')
         f_str = f.read()
         pos = f_str.find('= real ')
         crits = []

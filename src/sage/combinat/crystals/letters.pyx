@@ -1,3 +1,4 @@
+# sage.doctest: needs sage.combinat sage.modules
 r"""
 Crystals of letters
 """
@@ -14,7 +15,7 @@ Crystals of letters
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
-#                  http://www.gnu.org/licenses/
+#                  https://www.gnu.org/licenses/
 #*****************************************************************************
 from cpython.object cimport Py_EQ, Py_NE, Py_LE, Py_GE, Py_LT, Py_GT
 from sage.misc.cachefunc import cached_method
@@ -40,7 +41,7 @@ def CrystalOfLetters(cartan_type, element_print_style=None, dual=None):
     component of the tensor product of several copies of this crystal
     (plus possibly one copy of the spin crystal, see
     :class:`~sage.combinat.crystals.spins.CrystalOfSpins`).
-    See [KN94]_. Elements of this irreducible component have a fixed shape,
+    See [KN1994]_. Elements of this irreducible component have a fixed shape,
     and can be fit inside a tableau shape. Otherwise said, any irreducible
     classical crystal is isomorphic to a crystal of tableaux with cells
     filled by elements of the crystal of letters (possibly tensored with
@@ -55,13 +56,6 @@ def CrystalOfLetters(cartan_type, element_print_style=None, dual=None):
     INPUT:
 
     - ``T`` -- a Cartan type
-
-    REFERENCES:
-
-    .. [KN94] \M. Kashiwara and T. Nakashima.
-       Crystal graphs for representations of the `q`-analogue of classical Lie
-       algebras.
-       J. Algebra **165**, no. 2, pp. 295--345, 1994.
 
     EXAMPLES::
 
@@ -110,15 +104,18 @@ def CrystalOfLetters(cartan_type, element_print_style=None, dual=None):
         else:
             return ClassicalCrystalOfLetters(ct,
                                              Crystal_of_letters_type_E6_element_dual,
-                                             element_print_style, dual = True)
+                                             element_print_style, dual=True)
     elif ct.letter == 'E' and ct.rank() == 7:
         return ClassicalCrystalOfLetters(ct, Crystal_of_letters_type_E7_element)
     elif ct.letter == 'E' and ct.rank() == 8 or ct.letter == 'F':
         return ClassicalCrystalOfLettersWrapped(ct)
     elif ct.letter == 'G':
         return ClassicalCrystalOfLetters(ct, Crystal_of_letters_type_G_element)
+    elif ct.letter == 'Q':
+        return CrystalOfQueerLetters(ct)
     else:
         raise NotImplementedError
+
 
 class ClassicalCrystalOfLetters(UniqueRepresentation, Parent):
     r"""
@@ -140,7 +137,8 @@ class ClassicalCrystalOfLetters(UniqueRepresentation, Parent):
     time: ``list``, ``cmp``, (todo: ``phi``, ``epsilon``, ``e``, and
     ``f`` with caching)
     """
-    def __init__(self, cartan_type, element_class, element_print_style = None, dual = None):
+    def __init__(self, cartan_type, element_class,
+                 element_print_style=None, dual=None):
         """
         EXAMPLES::
 
@@ -150,15 +148,15 @@ class ClassicalCrystalOfLetters(UniqueRepresentation, Parent):
             sage: TestSuite(C).run()
         """
         self.Element = element_class
-        Parent.__init__(self, category = ClassicalCrystals())
+        Parent.__init__(self, category=ClassicalCrystals())
         self._cartan_type = CartanType(cartan_type)
-        self.rename("The crystal of letters for type %s"%self._cartan_type)
+        self.rename("The crystal of letters for type %s" % self._cartan_type)
         if cartan_type.type() == 'E':
             if cartan_type.rank() == 6:
                 if dual:
                     self.module_generators = (self._element_constructor_((6,)),)
                     self._ambient = CrystalOfLetters(CartanType(['E',6]))
-                    self.rename("%s (dual)"%self)
+                    self.rename("%s (dual)" % self)
                 else:
                     self.module_generators = (self._element_constructor_((1,)),)
             elif cartan_type.rank() == 7:
@@ -170,7 +168,7 @@ class ClassicalCrystalOfLetters(UniqueRepresentation, Parent):
                 C = CrystalOfNakajimaMonomials(cartan_type, la)
                 hw = C.highest_weight_vector()
                 self.module_generators = (self._element_constructor_(hw),)
-            self._list = [x for x in super(ClassicalCrystalOfLetters, self).__iter__()]
+            self._list = list(super(ClassicalCrystalOfLetters, self).__iter__())
         elif cartan_type.type() == 'F':
             from sage.combinat.crystals.monomial_crystals import CrystalOfNakajimaMonomials
             from sage.combinat.root_system.root_system import RootSystem
@@ -178,7 +176,7 @@ class ClassicalCrystalOfLetters(UniqueRepresentation, Parent):
             C = CrystalOfNakajimaMonomials(cartan_type, la)
             hw = C.highest_weight_vector()
             self.module_generators = (self._element_constructor_(hw),)
-            self._list = [x for x in super(ClassicalCrystalOfLetters, self).__iter__()]
+            self._list = list(super(ClassicalCrystalOfLetters, self).__iter__())
         else:
             self.module_generators = (self._element_constructor_(1),)
             if cartan_type.type() == 'G':
@@ -191,12 +189,12 @@ class ClassicalCrystalOfLetters(UniqueRepresentation, Parent):
                               self._element_constructor_(-1)]
             else:
                 self._list = [self._element_constructor_(i)
-                              for i in xrange(1, cartan_type.rank() + 1)]
+                              for i in range(1, cartan_type.rank() + 1)]
                 if cartan_type.type() == 'B':
                     self._list.append(self._element_constructor_(0))
                 if cartan_type.type() != 'A':
                     self._list += [self._element_constructor_(-i)
-                                   for i in xrange(cartan_type.rank(), 0, -1)]
+                                   for i in range(cartan_type.rank(), 0, -1)]
                 else:
                     self._list.append(self._element_constructor_(cartan_type.rank() + 1))
         self._element_print_style = element_print_style
@@ -318,8 +316,9 @@ class ClassicalCrystalOfLetters(UniqueRepresentation, Parent):
             return True
         return False
 
-    # temporary workaround while an_element is overriden by Parent
+    # temporary workaround while an_element is overridden by Parent
     _an_element_ = EnumeratedSets.ParentMethods._an_element_
+
 
 # Utility. Note: much of this class should be factored out at some point!
 cdef class Letter(Element):
@@ -358,8 +357,6 @@ cdef class Letter(Element):
         sage: C(1) != C(-1)
         True
     """
-    cdef readonly int value
-
     def __init__(self, parent, int value):
         """
         EXAMPLES::
@@ -432,6 +429,29 @@ cdef class Letter(Element):
             return "\\overline{" + repr(-self.value) + "}"
         return repr(self.value)
 
+    def _unicode_art_(self):
+        r"""
+        A unicode art representation of ``self``.
+
+        EXAMPLES::
+
+            sage: C = crystals.Letters(['D', 4])
+            sage: unicode_art(C(2))
+            2
+            sage: unicode_art(C(-3))
+            3̄
+
+            sage: C = crystals.Letters(['D',12])
+            sage: unicode_art(C(12))
+            12
+            sage: unicode_art(C(-11))
+            1̄1̄
+        """
+        from sage.typeset.unicode_art import UnicodeArt
+        if self.value < 0:
+            return UnicodeArt(["".join(let + u"̄" for let in unicode(-self.value))])
+        return UnicodeArt([unicode(self.value)])
+
     def __hash__(self):
         """
         Return the hash value of ``self``.
@@ -485,15 +505,16 @@ cdef class Letter(Element):
         if op == Py_LT:
             return self._parent.lt_elements(self, x)
         if op == Py_GT:
-            return x.parent().lt_elements(x, self)
+            return x._parent.lt_elements(x, self)
         if op == Py_LE:
             return self.value == x.value or self._parent.lt_elements(self, x)
         if op == Py_GE:
-            return self.value == x.value or x.parent().lt_elements(x, self)
+            return self.value == x.value or x._parent.lt_elements(x, self)
         return False
 
+
 cdef class EmptyLetter(Element):
-    """
+    r"""
     The affine letter `\emptyset` thought of as a classical crystal letter
     in classical type `B_n` and `C_n`.
 
@@ -503,8 +524,6 @@ cdef class EmptyLetter(Element):
 
     Used in the rigged configuration bijections.
     """
-    cdef readonly str value
-
     def __init__(self, parent):
         """
         Initialize ``self``.
@@ -543,7 +562,7 @@ cdef class EmptyLetter(Element):
         return 'E'
 
     def _latex_(self):
-        """
+        r"""
         Return a latex representation of ``self``.
 
         EXAMPLES::
@@ -591,7 +610,7 @@ cdef class EmptyLetter(Element):
             False
         """
         if isinstance(left, EmptyLetter) and isinstance(right, EmptyLetter):
-           return op == Py_EQ or op == Py_LE or op == Py_GE
+            return op == Py_EQ or op == Py_LE or op == Py_GE
         return op == Py_NE
 
     def weight(self):
@@ -604,7 +623,7 @@ cdef class EmptyLetter(Element):
             sage: C('E').weight()
             (0, 0, 0)
         """
-        return self.parent().weight_lattice_realization().zero()
+        return self._parent.weight_lattice_realization().zero()
 
     cpdef e(self, int i):
         """
@@ -628,7 +647,7 @@ cdef class EmptyLetter(Element):
         """
         return None
 
-    cpdef int epsilon(self, int i):
+    cpdef int epsilon(self, int i) noexcept:
         r"""
         Return `\varepsilon_i` of ``self``.
 
@@ -640,7 +659,7 @@ cdef class EmptyLetter(Element):
         """
         return 0
 
-    cpdef int phi(self, int i):
+    cpdef int phi(self, int i) noexcept:
         r"""
         Return `\varphi_i` of ``self``.
 
@@ -722,7 +741,7 @@ cdef class Crystal_of_letters_type_A_element(Letter):
         else:
             return None
 
-    cpdef int epsilon(self, int i):
+    cpdef int epsilon(self, int i) noexcept:
         r"""
         Return `\varepsilon_i` of ``self``.
 
@@ -736,7 +755,7 @@ cdef class Crystal_of_letters_type_A_element(Letter):
             return 1
         return 0
 
-    cpdef int phi(self, int i):
+    cpdef int phi(self, int i) noexcept:
         r"""
         Return `\varphi_i` of ``self``.
 
@@ -843,7 +862,7 @@ cdef class Crystal_of_letters_type_B_element(Letter):
         else:
             return None
 
-    cpdef int epsilon(self, int i):
+    cpdef int epsilon(self, int i) noexcept:
         r"""
         Return `\varepsilon_i` of ``self``.
 
@@ -864,7 +883,7 @@ cdef class Crystal_of_letters_type_B_element(Letter):
             return 1
         return 0
 
-    cpdef int phi(self, int i):
+    cpdef int phi(self, int i) noexcept:
         r"""
         Return `\varphi_i` of ``self``.
 
@@ -964,7 +983,7 @@ cdef class Crystal_of_letters_type_C_element(Letter):
         else:
             return None
 
-    cpdef int epsilon(self, int i):
+    cpdef int epsilon(self, int i) noexcept:
         r"""
         Return `\varepsilon_i` of ``self``.
 
@@ -978,7 +997,7 @@ cdef class Crystal_of_letters_type_C_element(Letter):
             return 1
         return 0
 
-    cpdef int phi(self, int i):
+    cpdef int phi(self, int i) noexcept:
         r"""
         Return `\varphi_i` of ``self``.
 
@@ -1094,7 +1113,7 @@ cdef class Crystal_of_letters_type_D_element(Letter):
         else:
             return None
 
-    cpdef int epsilon(self, int i):
+    cpdef int epsilon(self, int i) noexcept:
         r"""
         Return `\varepsilon_i` of ``self``.
 
@@ -1111,7 +1130,7 @@ cdef class Crystal_of_letters_type_D_element(Letter):
             return 1
         return 0
 
-    cpdef int phi(self, int i):
+    cpdef int phi(self, int i) noexcept:
         r"""
         Return `\varphi_i` of ``self``.
 
@@ -1167,7 +1186,7 @@ cdef class Crystal_of_letters_type_G_element(Letter):
         elif self.value == -1:
             return self._parent.weight_lattice_realization()((-1, 0, 1))
         else:
-            raise RuntimeError("G2 crystal of letters element %d not valid"%self.value)
+            raise RuntimeError("G2 crystal of letters element %d not valid" % self.value)
 
     cpdef Letter e(self, int i):
         r"""
@@ -1237,7 +1256,7 @@ cdef class Crystal_of_letters_type_G_element(Letter):
             else:
                 return None
 
-    cpdef int epsilon(self, int i):
+    cpdef int epsilon(self, int i) noexcept:
         r"""
         Return `\varepsilon_i` of ``self``.
 
@@ -1257,7 +1276,7 @@ cdef class Crystal_of_letters_type_G_element(Letter):
             return 1
         return 0
 
-    cpdef int phi(self, int i):
+    cpdef int phi(self, int i) noexcept:
         r"""
         Return `\varphi_i` of ``self``.
 
@@ -1285,8 +1304,6 @@ cdef class LetterTuple(Element):
     """
     Abstract class for type `E` letters.
     """
-    cdef readonly tuple value
-
     def __init__(self, parent, tuple value):
         """
         Initialize ``self``.
@@ -1343,7 +1360,7 @@ cdef class LetterTuple(Element):
 
     cpdef _richcmp_(left, right, int op):
         """
-        Check comparison between ``left`` and ``right`` based on ``op``
+        Check comparison between ``left`` and ``right`` based on ``op``.
 
         EXAMPLES::
 
@@ -1384,6 +1401,20 @@ cdef class LetterTuple(Element):
         """
         return repr(self.value)
 
+    def _unicode_art_(self):
+        r"""
+        A unicode art representation of ``self``.
+
+        EXAMPLES::
+
+            sage: C = crystals.Letters(['E',6])
+            sage: unicode_art(C.list()[:5])
+            [ (1), (1̄, 3), (3̄, 4), (4̄, 2, 5), (2̄, 5) ]
+        """
+        from sage.typeset.unicode_art import UnicodeArt
+        return UnicodeArt([u"({})".format(u", ".join(unicode(x) if x > 0 else unicode(-x) + u"̄"
+                                                     for x in self.value))])
+
     def _latex_(self):
         r"""
         A latex representation of ``self``.
@@ -1407,7 +1438,7 @@ cdef class LetterTuple(Element):
                 ret+= repr(v)
         return ret + "\\right)"
 
-    cpdef int epsilon(self, int i):
+    cpdef int epsilon(self, int i) noexcept:
         r"""
         Return `\varepsilon_i` of ``self``.
 
@@ -1423,7 +1454,7 @@ cdef class LetterTuple(Element):
             return 1
         return 0
 
-    cpdef int phi(self, int i):
+    cpdef int phi(self, int i) noexcept:
         r"""
         Return `\varphi_i` of ``self``.
 
@@ -1464,7 +1495,7 @@ cdef class Crystal_of_letters_type_E6_element(LetterTuple):
         sage: all(b.e(i).f(i) == b for i in C.index_set() for b in C if b.e(i) is not None)
         True
         sage: G = C.digraph()
-        sage: G.show(edge_labels=true, figsize=12, vertex_size=1)
+        sage: G.show(edge_labels=true, figsize=12, vertex_size=1)                       # needs sage.plot
     """
 
     def _repr_(self):
@@ -1721,7 +1752,7 @@ cdef class Crystal_of_letters_type_E6_element_dual(LetterTuple):
         sage: all(b.e(i).f(i) == b for i in C.index_set() for b in C if b.e(i) is not None)
         True
         sage: G = C.digraph()
-        sage: G.show(edge_labels=true, figsize=12, vertex_size=1)
+        sage: G.show(edge_labels=true, figsize=12, vertex_size=1)                       # needs sage.plot
     """
 
     def _repr_(self):
@@ -1755,7 +1786,7 @@ cdef class Crystal_of_letters_type_E6_element_dual(LetterTuple):
             sage: b.lift()
             (-6,)
         """
-        # Because a generators are not supported and the element constuctor
+        # Because a generators are not supported and the element constructor
         #  being a cached method can't take lists as input, we have to make a
         #  tuple from a list
         return self._parent._ambient(tuple([-i for i in self.value]))
@@ -1778,7 +1809,7 @@ cdef class Crystal_of_letters_type_E6_element_dual(LetterTuple):
         """
         if p is None:
             return None
-        # Because a generators are not supported and the element constuctor
+        # Because a generators are not supported and the element constructor
         #  being a cached method can't take lists as input, we have to make a
         #  tuple from a list
         return self._parent._element_constructor_(tuple([-i for i in p.value]))
@@ -1881,7 +1912,7 @@ cdef class Crystal_of_letters_type_E7_element(LetterTuple):
         sage: all(b.e(i).f(i) == b for i in C.index_set() for b in C if b.e(i) is not None)
         True
         sage: G = C.digraph()
-        sage: G.show(edge_labels=true, figsize=12, vertex_size=1)
+        sage: G.show(edge_labels=true, figsize=12, vertex_size=1)                       # needs sage.plot
     """
 
     def weight(self):
@@ -1936,173 +1967,173 @@ cdef class Crystal_of_letters_type_E7_element(LetterTuple):
             sage: C((-7,6)).e(7)
             (7,)
         """
-        if self.value ==  (-7, 6)  and i ==  7 :
+        if self.value == (-7, 6) and i == 7:
             return self._parent._element_constructor_( (7,) )
-        if self.value ==  (-6, 5)  and i ==  6 :
+        if self.value == (-6, 5) and i == 6:
             return self._parent._element_constructor_( (-7, 6) )
-        if self.value ==  (-5, 4)  and i ==  5 :
+        if self.value == (-5, 4) and i == 5:
             return self._parent._element_constructor_( (-6, 5) )
-        if self.value ==  (-4, 2, 3)  and i ==  4 :
+        if self.value == (-4, 2, 3) and i == 4:
             return self._parent._element_constructor_( (-5, 4) )
-        if self.value ==  (-2, 3)  and i ==  2 :
+        if self.value == (-2, 3) and i == 2:
             return self._parent._element_constructor_( (-4, 2, 3) )
-        if self.value ==  (-3, 1, 2)  and i ==  3 :
+        if self.value == (-3, 1, 2) and i == 3:
             return self._parent._element_constructor_( (-4, 2, 3) )
-        if self.value ==  (-3, -2, 1, 4)  and i ==  3 :
+        if self.value == (-3, -2, 1, 4) and i == 3:
             return self._parent._element_constructor_( (-2, 3) )
-        if self.value ==  (-1, 2)  and i ==  1 :
+        if self.value == (-1, 2) and i == 1:
             return self._parent._element_constructor_( (-3, 1, 2) )
-        if self.value ==  (-3, -2, 1, 4)  and i ==  2 :
+        if self.value == (-3, -2, 1, 4) and i == 2:
             return self._parent._element_constructor_( (-3, 1, 2) )
-        if self.value ==  (-1, -2, 4)  and i ==  1 :
+        if self.value == (-1, -2, 4) and i == 1:
             return self._parent._element_constructor_( (-3, -2, 1, 4) )
-        if self.value ==  (-4, 1, 5)  and i ==  4 :
+        if self.value == (-4, 1, 5) and i == 4:
             return self._parent._element_constructor_( (-3, -2, 1, 4) )
-        if self.value ==  (-7, 1)  and i ==  7 :
+        if self.value == (-7, 1) and i == 7:
             return self._parent._element_constructor_( (-6, 7, 1) )
-        if self.value ==  (-1, -6, 3, 7)  and i ==  1 :
+        if self.value == (-1, -6, 3, 7) and i == 1:
             return self._parent._element_constructor_( (-6, 7, 1) )
-        if self.value ==  (-1, -2, 4)  and i ==  2 :
+        if self.value == (-1, -2, 4) and i == 2:
             return self._parent._element_constructor_( (-1, 2) )
-        if self.value ==  (-4, -1, 3, 5)  and i ==  4 :
+        if self.value == (-4, -1, 3, 5) and i == 4:
             return self._parent._element_constructor_( (-1, -2, 4) )
-        if self.value ==  (-4, -1, 3, 5)  and i ==  1 :
+        if self.value == (-4, -1, 3, 5) and i == 1:
             return self._parent._element_constructor_( (-4, 1, 5) )
-        if self.value ==  (-5, 6, 1)  and i ==  5 :
+        if self.value == (-5, 6, 1) and i == 5:
             return self._parent._element_constructor_( (-4, 1, 5) )
-        if self.value ==  (-3, 5)  and i ==  3 :
+        if self.value == (-3, 5) and i == 3:
             return self._parent._element_constructor_( (-4, -1, 3, 5) )
-        if self.value ==  (-5, -1, 3, 6)  and i ==  5 :
+        if self.value == (-5, -1, 3, 6) and i == 5:
             return self._parent._element_constructor_( (-4, -1, 3, 5) )
-        if self.value ==  (-5, -3, 4, 6)  and i ==  5 :
+        if self.value == (-5, -3, 4, 6) and i == 5:
             return self._parent._element_constructor_( (-3, 5) )
-        if self.value ==  (-6, 7, 1)  and i ==  6 :
+        if self.value == (-6, 7, 1) and i == 6:
             return self._parent._element_constructor_( (-5, 6, 1) )
-        if self.value ==  (-5, -1, 3, 6)  and i ==  1 :
+        if self.value == (-5, -1, 3, 6) and i == 1:
             return self._parent._element_constructor_( (-5, 6, 1) )
-        if self.value ==  (-5, -3, 4, 6)  and i ==  3 :
+        if self.value == (-5, -3, 4, 6) and i == 3:
             return self._parent._element_constructor_( (-5, -1, 3, 6) )
-        if self.value ==  (-1, -6, 3, 7)  and i ==  6 :
+        if self.value == (-1, -6, 3, 7) and i == 6:
             return self._parent._element_constructor_( (-5, -1, 3, 6) )
-        if self.value ==  (-4, 2, 6)  and i ==  4 :
+        if self.value == (-4, 2, 6) and i == 4:
             return self._parent._element_constructor_( (-5, -3, 4, 6) )
-        if self.value ==  (-6, -3, 7, 4)  and i ==  6 :
+        if self.value == (-6, -3, 7, 4) and i == 6:
             return self._parent._element_constructor_( (-5, -3, 4, 6) )
-        if self.value ==  (-6, -2, 7, 5)  and i ==  6 :
+        if self.value == (-6, -2, 7, 5) and i == 6:
             return self._parent._element_constructor_( (-2, 6) )
-        if self.value ==  (-6, -3, 7, 4)  and i ==  3 :
+        if self.value == (-6, -3, 7, 4) and i == 3:
             return self._parent._element_constructor_( (-1, -6, 3, 7) )
-        if self.value ==  (-1, -7, 3)  and i ==  7 :
+        if self.value == (-1, -7, 3) and i == 7:
             return self._parent._element_constructor_( (-1, -6, 3, 7) )
-        if self.value ==  (-7, -3, 4)  and i ==  7 :
+        if self.value == (-7, -3, 4) and i == 7:
             return self._parent._element_constructor_( (-6, -3, 7, 4) )
-        if self.value ==  (-6, -4, 2, 7, 5)  and i ==  4 :
+        if self.value == (-6, -4, 2, 7, 5) and i == 4:
             return self._parent._element_constructor_( (-6, -3, 7, 4) )
-        if self.value ==  (-2, 6)  and i ==  2 :
+        if self.value == (-2, 6) and i == 2:
             return self._parent._element_constructor_( (-4, 2, 6) )
-        if self.value ==  (-6, -4, 2, 7, 5)  and i ==  6 :
+        if self.value == (-6, -4, 2, 7, 5) and i == 6:
             return self._parent._element_constructor_( (-4, 2, 6) )
-        if self.value ==  (-6, -2, 7, 5)  and i ==  2 :
+        if self.value == (-6, -2, 7, 5) and i == 2:
             return self._parent._element_constructor_( (-6, -4, 2, 7, 5) )
-        if self.value ==  (-4, -7, 2, 5)  and i ==  7 :
+        if self.value == (-4, -7, 2, 5) and i == 7:
             return self._parent._element_constructor_( (-6, -4, 2, 7, 5) )
-        if self.value ==  (-7, -4, 6, 3)  and i ==  7 :
+        if self.value == (-7, -4, 6, 3) and i == 7:
             return self._parent._element_constructor_( (-4, 7, 3) )
-        if self.value ==  (-3, 1, 7)  and i ==  3 :
+        if self.value == (-3, 1, 7) and i == 3:
             return self._parent._element_constructor_( (-4, 7, 3) )
-        if self.value ==  (-1, 7)  and i ==  1 :
+        if self.value == (-1, 7) and i == 1:
             return self._parent._element_constructor_( (-3, 1, 7) )
-        if self.value ==  (-3, -7, 1, 6)  and i ==  7 :
+        if self.value == (-3, -7, 1, 6) and i == 7:
             return self._parent._element_constructor_( (-3, 1, 7) )
-        if self.value ==  (-1, -7, 3)  and i ==  1 :
+        if self.value == (-1, -7, 3) and i == 1:
             return self._parent._element_constructor_( (-7, 1) )
-        if self.value ==  (-7, -2, 5)  and i ==  2 :
+        if self.value == (-7, -2, 5) and i == 2:
             return self._parent._element_constructor_( (-4, -7, 2, 5) )
-        if self.value ==  (-5, -7, 6, 2)  and i ==  5 :
+        if self.value == (-5, -7, 6, 2) and i == 5:
             return self._parent._element_constructor_( (-4, -7, 2, 5) )
-        if self.value ==  (-5, -2, -7, 4, 6)  and i ==  5 :
+        if self.value == (-5, -2, -7, 4, 6) and i == 5:
             return self._parent._element_constructor_( (-7, -2, 5) )
-        if self.value ==  (-5, -7, 6, 2)  and i ==  7 :
+        if self.value == (-5, -7, 6, 2) and i == 7:
             return self._parent._element_constructor_( (-5, 7, 2) )
-        if self.value ==  (-5, -2, 4, 7)  and i ==  2 :
+        if self.value == (-5, -2, 4, 7) and i == 2:
             return self._parent._element_constructor_( (-5, 7, 2) )
-        if self.value ==  (-7, -3, 4)  and i ==  3 :
+        if self.value == (-7, -3, 4) and i == 3:
             return self._parent._element_constructor_( (-1, -7, 3) )
-        if self.value ==  (-5, 7, 2)  and i ==  5 :
+        if self.value == (-5, 7, 2) and i == 5:
             return self._parent._element_constructor_( (-6, -4, 2, 7, 5) )
-        if self.value ==  (-6, 2)  and i ==  6 :
+        if self.value == (-6, 2) and i == 6:
             return self._parent._element_constructor_( (-5, -7, 6, 2) )
-        if self.value ==  (-5, -2, -7, 4, 6)  and i ==  2 :
+        if self.value == (-5, -2, -7, 4, 6) and i == 2:
             return self._parent._element_constructor_( (-5, -7, 6, 2) )
-        if self.value ==  (-7, -2, 5)  and i ==  7 :
+        if self.value == (-7, -2, 5) and i == 7:
             return self._parent._element_constructor_( (-6, -2, 7, 5) )
-        if self.value ==  (-5, -2, 4, 7)  and i ==  5 :
+        if self.value == (-5, -2, 4, 7) and i == 5:
             return self._parent._element_constructor_( (-6, -2, 7, 5) )
-        if self.value ==  (-4, 7, 3)  and i ==  4 :
+        if self.value == (-4, 7, 3) and i == 4:
             return self._parent._element_constructor_( (-5, -2, 4, 7) )
-        if self.value ==  (-5, -2, -7, 4, 6)  and i ==  7 :
+        if self.value == (-5, -2, -7, 4, 6) and i == 7:
             return self._parent._element_constructor_( (-5, -2, 4, 7) )
-        if self.value ==  (-4, -7, 2, 5)  and i ==  4 :
+        if self.value == (-4, -7, 2, 5) and i == 4:
             return self._parent._element_constructor_( (-7, -3, 4) )
-        if self.value ==  (-7, -4, 6, 3)  and i ==  4 :
+        if self.value == (-7, -4, 6, 3) and i == 4:
             return self._parent._element_constructor_( (-5, -2, -7, 4, 6) )
-        if self.value ==  (-2, -6, 4)  and i ==  6 :
+        if self.value == (-2, -6, 4) and i == 6:
             return self._parent._element_constructor_( (-5, -2, -7, 4, 6) )
-        if self.value ==  (-6, -4, 5, 3)  and i ==  6 :
+        if self.value == (-6, -4, 5, 3) and i == 6:
             return self._parent._element_constructor_( (-7, -4, 6, 3) )
-        if self.value ==  (-3, -7, 1, 6)  and i ==  3 :
+        if self.value == (-3, -7, 1, 6) and i == 3:
             return self._parent._element_constructor_( (-7, -4, 6, 3) )
-        if self.value ==  (-3, -6, 1, 5)  and i ==  6 :
+        if self.value == (-3, -6, 1, 5) and i == 6:
             return self._parent._element_constructor_( (-3, -7, 1, 6) )
-        if self.value ==  (-6, -1, 5)  and i ==  6 :
+        if self.value == (-6, -1, 5) and i == 6:
             return self._parent._element_constructor_( (-7, -1, 6) )
-        if self.value ==  (-2, -6, 4)  and i ==  2 :
+        if self.value == (-2, -6, 4) and i == 2:
             return self._parent._element_constructor_( (-6, 2) )
-        if self.value ==  (-6, -4, 5, 3)  and i ==  4 :
+        if self.value == (-6, -4, 5, 3) and i == 4:
             return self._parent._element_constructor_( (-2, -6, 4) )
-        if self.value ==  (-7, -1, 6)  and i ==  1 :
+        if self.value == (-7, -1, 6) and i == 1:
             return self._parent._element_constructor_( (-3, -7, 1, 6) )
-        if self.value ==  (-5, 3)  and i ==  5 :
+        if self.value == (-5, 3) and i == 5:
             return self._parent._element_constructor_( (-6, -4, 5, 3) )
-        if self.value ==  (-3, -6, 1, 5)  and i ==  3 :
+        if self.value == (-3, -6, 1, 5) and i == 3:
             return self._parent._element_constructor_( (-6, -4, 5, 3) )
-        if self.value ==  (-6, -1, 5)  and i ==  1 :
+        if self.value == (-6, -1, 5) and i == 1:
             return self._parent._element_constructor_( (-3, -6, 1, 5) )
-        if self.value ==  (-3, -5, 4, 1)  and i ==  5 :
+        if self.value == (-3, -5, 4, 1) and i == 5:
             return self._parent._element_constructor_( (-3, -6, 1, 5) )
-        if self.value ==  (-5, -1, 4)  and i ==  5 :
+        if self.value == (-5, -1, 4) and i == 5:
             return self._parent._element_constructor_( (-6, -1, 5) )
-        if self.value ==  (-3, -5, 4, 1)  and i ==  3 :
+        if self.value == (-3, -5, 4, 1) and i == 3:
             return self._parent._element_constructor_( (-5, 3) )
-        if self.value ==  (-4, 1, 2)  and i ==  4 :
+        if self.value == (-4, 1, 2) and i == 4:
             return self._parent._element_constructor_( (-3, -5, 4, 1) )
-        if self.value ==  (-5, -1, 4)  and i ==  1 :
+        if self.value == (-5, -1, 4) and i == 1:
             return self._parent._element_constructor_( (-3, -5, 4, 1) )
-        if self.value ==  (-1, -4, 3, 2)  and i ==  4 :
+        if self.value == (-1, -4, 3, 2) and i == 4:
             return self._parent._element_constructor_( (-5, -1, 4) )
-        if self.value ==  (-1, -4, 3, 2)  and i ==  1 :
+        if self.value == (-1, -4, 3, 2) and i == 1:
             return self._parent._element_constructor_( (-4, 1, 2) )
-        if self.value ==  (-2, 1)  and i ==  2 :
+        if self.value == (-2, 1) and i == 2:
             return self._parent._element_constructor_( (-4, 1, 2) )
-        if self.value ==  (-3, 2)  and i ==  3 :
+        if self.value == (-3, 2) and i == 3:
             return self._parent._element_constructor_( (-1, -4, 3, 2) )
-        if self.value ==  (-2, -1, 3)  and i ==  2 :
+        if self.value == (-2, -1, 3) and i == 2:
             return self._parent._element_constructor_( (-1, -4, 3, 2) )
-        if self.value ==  (-2, -1, 3)  and i ==  1 :
+        if self.value == (-2, -1, 3) and i == 1:
             return self._parent._element_constructor_( (-2, 1) )
-        if self.value ==  (-7, -1, 6)  and i ==  7 :
+        if self.value == (-7, -1, 6) and i == 7:
             return self._parent._element_constructor_( (-1, 7) )
-        if self.value ==  (-2, -3, 4)  and i ==  3 :
+        if self.value == (-2, -3, 4) and i == 3:
             return self._parent._element_constructor_( (-2, -1, 3) )
-        if self.value ==  (-2, -3, 4)  and i ==  2 :
+        if self.value == (-2, -3, 4) and i == 2:
             return self._parent._element_constructor_( (-3, 2) )
-        if self.value ==  (-4, 5)  and i ==  4 :
+        if self.value == (-4, 5) and i == 4:
             return self._parent._element_constructor_( (-2, -3, 4) )
-        if self.value ==  (-5, 6)  and i ==  5 :
+        if self.value == (-5, 6) and i == 5:
             return self._parent._element_constructor_( (-4, 5) )
-        if self.value ==  (-6, 7)  and i ==  6 :
+        if self.value == (-6, 7) and i == 6:
             return self._parent._element_constructor_( (-5, 6) )
-        if self.value ==  (-7,)  and i ==  7 :
+        if self.value == (-7,) and i == 7:
             return self._parent._element_constructor_( (-6, 7) )
         else:
             return None
@@ -2118,173 +2149,173 @@ cdef class Crystal_of_letters_type_E7_element(LetterTuple):
             sage: C((7,)).f(7)
             (-7, 6)
         """
-        if self.value ==  (7,)  and i ==  7 :
+        if self.value == (7,) and i == 7:
             return self._parent._element_constructor_( (-7, 6) )
-        if self.value ==  (-7, 6)  and i ==  6 :
+        if self.value == (-7, 6) and i == 6:
             return self._parent._element_constructor_( (-6, 5) )
-        if self.value ==  (-6, 5)  and i ==  5 :
+        if self.value == (-6, 5) and i == 5:
             return self._parent._element_constructor_( (-5, 4) )
-        if self.value ==  (-5, 4)  and i ==  4 :
+        if self.value == (-5, 4) and i == 4:
             return self._parent._element_constructor_( (-4, 2, 3) )
-        if self.value ==  (-4, 2, 3)  and i ==  2 :
+        if self.value == (-4, 2, 3) and i == 2:
             return self._parent._element_constructor_( (-2, 3) )
-        if self.value ==  (-4, 2, 3)  and i ==  3 :
+        if self.value == (-4, 2, 3) and i == 3:
             return self._parent._element_constructor_( (-3, 1, 2) )
-        if self.value ==  (-2, 3)  and i ==  3 :
+        if self.value == (-2, 3) and i == 3:
             return self._parent._element_constructor_( (-3, -2, 1, 4) )
-        if self.value ==  (-3, 1, 2)  and i ==  1 :
+        if self.value == (-3, 1, 2) and i == 1:
             return self._parent._element_constructor_( (-1, 2) )
-        if self.value ==  (-3, 1, 2)  and i ==  2 :
+        if self.value == (-3, 1, 2) and i == 2:
             return self._parent._element_constructor_( (-3, -2, 1, 4) )
-        if self.value ==  (-3, -2, 1, 4)  and i ==  1 :
+        if self.value == (-3, -2, 1, 4) and i == 1:
             return self._parent._element_constructor_( (-1, -2, 4) )
-        if self.value ==  (-3, -2, 1, 4)  and i ==  4 :
+        if self.value == (-3, -2, 1, 4) and i == 4:
             return self._parent._element_constructor_( (-4, 1, 5) )
-        if self.value ==  (-6, 7, 1)  and i ==  7 :
+        if self.value == (-6, 7, 1) and i == 7:
             return self._parent._element_constructor_( (-7, 1) )
-        if self.value ==  (-6, 7, 1)  and i ==  1 :
+        if self.value == (-6, 7, 1) and i == 1:
             return self._parent._element_constructor_( (-1, -6, 3, 7) )
-        if self.value ==  (-1, 2)  and i ==  2 :
+        if self.value == (-1, 2) and i == 2:
             return self._parent._element_constructor_( (-1, -2, 4) )
-        if self.value ==  (-1, -2, 4)  and i ==  4 :
+        if self.value == (-1, -2, 4) and i == 4:
             return self._parent._element_constructor_( (-4, -1, 3, 5) )
-        if self.value ==  (-4, 1, 5)  and i ==  1 :
+        if self.value == (-4, 1, 5) and i == 1:
             return self._parent._element_constructor_( (-4, -1, 3, 5) )
-        if self.value ==  (-4, 1, 5)  and i ==  5 :
+        if self.value == (-4, 1, 5) and i == 5:
             return self._parent._element_constructor_( (-5, 6, 1) )
-        if self.value ==  (-4, -1, 3, 5)  and i ==  3 :
+        if self.value == (-4, -1, 3, 5) and i == 3:
             return self._parent._element_constructor_( (-3, 5) )
-        if self.value ==  (-4, -1, 3, 5)  and i ==  5 :
+        if self.value == (-4, -1, 3, 5) and i == 5:
             return self._parent._element_constructor_( (-5, -1, 3, 6) )
-        if self.value ==  (-3, 5)  and i ==  5 :
+        if self.value == (-3, 5) and i == 5:
             return self._parent._element_constructor_( (-5, -3, 4, 6) )
-        if self.value ==  (-5, 6, 1)  and i ==  6 :
+        if self.value == (-5, 6, 1) and i == 6:
             return self._parent._element_constructor_( (-6, 7, 1) )
-        if self.value ==  (-5, 6, 1)  and i ==  1 :
+        if self.value == (-5, 6, 1) and i == 1:
             return self._parent._element_constructor_( (-5, -1, 3, 6) )
-        if self.value ==  (-5, -1, 3, 6)  and i ==  3 :
+        if self.value == (-5, -1, 3, 6) and i == 3:
             return self._parent._element_constructor_( (-5, -3, 4, 6) )
-        if self.value ==  (-5, -1, 3, 6)  and i ==  6 :
+        if self.value == (-5, -1, 3, 6) and i == 6:
             return self._parent._element_constructor_( (-1, -6, 3, 7) )
-        if self.value ==  (-5, -3, 4, 6)  and i ==  4 :
+        if self.value == (-5, -3, 4, 6) and i == 4:
             return self._parent._element_constructor_( (-4, 2, 6) )
-        if self.value ==  (-5, -3, 4, 6)  and i ==  6 :
+        if self.value == (-5, -3, 4, 6) and i == 6:
             return self._parent._element_constructor_( (-6, -3, 7, 4) )
-        if self.value ==  (-2, 6)  and i ==  6 :
+        if self.value == (-2, 6) and i == 6:
             return self._parent._element_constructor_( (-6, -2, 7, 5) )
-        if self.value ==  (-1, -6, 3, 7)  and i ==  3 :
+        if self.value == (-1, -6, 3, 7) and i == 3:
             return self._parent._element_constructor_( (-6, -3, 7, 4) )
-        if self.value ==  (-1, -6, 3, 7)  and i ==  7 :
+        if self.value == (-1, -6, 3, 7) and i == 7:
             return self._parent._element_constructor_( (-1, -7, 3) )
-        if self.value ==  (-6, -3, 7, 4)  and i ==  7 :
+        if self.value == (-6, -3, 7, 4) and i == 7:
             return self._parent._element_constructor_( (-7, -3, 4) )
-        if self.value ==  (-6, -3, 7, 4)  and i ==  4 :
+        if self.value == (-6, -3, 7, 4) and i == 4:
             return self._parent._element_constructor_( (-6, -4, 2, 7, 5) )
-        if self.value ==  (-4, 2, 6)  and i ==  2 :
+        if self.value == (-4, 2, 6) and i == 2:
             return self._parent._element_constructor_( (-2, 6) )
-        if self.value ==  (-4, 2, 6)  and i ==  6 :
+        if self.value == (-4, 2, 6) and i == 6:
             return self._parent._element_constructor_( (-6, -4, 2, 7, 5) )
-        if self.value ==  (-6, -4, 2, 7, 5)  and i ==  2 :
+        if self.value == (-6, -4, 2, 7, 5) and i == 2:
             return self._parent._element_constructor_( (-6, -2, 7, 5) )
-        if self.value ==  (-6, -4, 2, 7, 5)  and i ==  7 :
+        if self.value == (-6, -4, 2, 7, 5) and i == 7:
             return self._parent._element_constructor_( (-4, -7, 2, 5) )
-        if self.value ==  (-4, 7, 3)  and i ==  7 :
+        if self.value == (-4, 7, 3) and i == 7:
             return self._parent._element_constructor_( (-7, -4, 6, 3) )
-        if self.value ==  (-4, 7, 3)  and i ==  3 :
+        if self.value == (-4, 7, 3) and i == 3:
             return self._parent._element_constructor_( (-3, 1, 7) )
-        if self.value ==  (-3, 1, 7)  and i ==  1 :
+        if self.value == (-3, 1, 7) and i == 1:
             return self._parent._element_constructor_( (-1, 7) )
-        if self.value ==  (-3, 1, 7)  and i ==  7 :
+        if self.value == (-3, 1, 7) and i == 7:
             return self._parent._element_constructor_( (-3, -7, 1, 6) )
-        if self.value ==  (-7, 1)  and i ==  1 :
+        if self.value == (-7, 1) and i == 1:
             return self._parent._element_constructor_( (-1, -7, 3) )
-        if self.value ==  (-4, -7, 2, 5)  and i ==  2 :
+        if self.value == (-4, -7, 2, 5) and i == 2:
             return self._parent._element_constructor_( (-7, -2, 5) )
-        if self.value ==  (-4, -7, 2, 5)  and i ==  5 :
+        if self.value == (-4, -7, 2, 5) and i == 5:
             return self._parent._element_constructor_( (-5, -7, 6, 2) )
-        if self.value ==  (-7, -2, 5)  and i ==  5 :
+        if self.value == (-7, -2, 5) and i == 5:
             return self._parent._element_constructor_( (-5, -2, -7, 4, 6) )
-        if self.value ==  (-5, 7, 2)  and i ==  7 :
+        if self.value == (-5, 7, 2) and i == 7:
             return self._parent._element_constructor_( (-5, -7, 6, 2) )
-        if self.value ==  (-5, 7, 2)  and i ==  2 :
+        if self.value == (-5, 7, 2) and i == 2:
             return self._parent._element_constructor_( (-5, -2, 4, 7) )
-        if self.value ==  (-1, -7, 3)  and i ==  3 :
+        if self.value == (-1, -7, 3) and i == 3:
             return self._parent._element_constructor_( (-7, -3, 4) )
-        if self.value ==  (-6, -4, 2, 7, 5)  and i ==  5 :
+        if self.value == (-6, -4, 2, 7, 5) and i == 5:
             return self._parent._element_constructor_( (-5, 7, 2) )
-        if self.value ==  (-5, -7, 6, 2)  and i ==  6 :
+        if self.value == (-5, -7, 6, 2) and i == 6:
             return self._parent._element_constructor_( (-6, 2) )
-        if self.value ==  (-5, -7, 6, 2)  and i ==  2 :
+        if self.value == (-5, -7, 6, 2) and i == 2:
             return self._parent._element_constructor_( (-5, -2, -7, 4, 6) )
-        if self.value ==  (-6, -2, 7, 5)  and i ==  7 :
+        if self.value == (-6, -2, 7, 5) and i == 7:
             return self._parent._element_constructor_( (-7, -2, 5) )
-        if self.value ==  (-6, -2, 7, 5)  and i ==  5 :
+        if self.value == (-6, -2, 7, 5) and i == 5:
             return self._parent._element_constructor_( (-5, -2, 4, 7) )
-        if self.value ==  (-5, -2, 4, 7)  and i ==  4 :
+        if self.value == (-5, -2, 4, 7) and i == 4:
             return self._parent._element_constructor_( (-4, 7, 3) )
-        if self.value ==  (-5, -2, 4, 7)  and i ==  7 :
+        if self.value == (-5, -2, 4, 7) and i == 7:
             return self._parent._element_constructor_( (-5, -2, -7, 4, 6) )
-        if self.value ==  (-7, -3, 4)  and i ==  4 :
+        if self.value == (-7, -3, 4) and i == 4:
             return self._parent._element_constructor_( (-4, -7, 2, 5) )
-        if self.value ==  (-5, -2, -7, 4, 6)  and i ==  4 :
+        if self.value == (-5, -2, -7, 4, 6) and i == 4:
             return self._parent._element_constructor_( (-7, -4, 6, 3) )
-        if self.value ==  (-5, -2, -7, 4, 6)  and i ==  6 :
+        if self.value == (-5, -2, -7, 4, 6) and i == 6:
             return self._parent._element_constructor_( (-2, -6, 4) )
-        if self.value ==  (-7, -4, 6, 3)  and i ==  6 :
+        if self.value == (-7, -4, 6, 3) and i == 6:
             return self._parent._element_constructor_( (-6, -4, 5, 3) )
-        if self.value ==  (-7, -4, 6, 3)  and i ==  3 :
+        if self.value == (-7, -4, 6, 3) and i == 3:
             return self._parent._element_constructor_( (-3, -7, 1, 6) )
-        if self.value ==  (-3, -7, 1, 6)  and i ==  6 :
+        if self.value == (-3, -7, 1, 6) and i == 6:
             return self._parent._element_constructor_( (-3, -6, 1, 5) )
-        if self.value ==  (-7, -1, 6)  and i ==  6 :
+        if self.value == (-7, -1, 6) and i == 6:
             return self._parent._element_constructor_( (-6, -1, 5) )
-        if self.value ==  (-6, 2)  and i ==  2 :
+        if self.value == (-6, 2) and i == 2:
             return self._parent._element_constructor_( (-2, -6, 4) )
-        if self.value ==  (-2, -6, 4)  and i ==  4 :
+        if self.value == (-2, -6, 4) and i == 4:
             return self._parent._element_constructor_( (-6, -4, 5, 3) )
-        if self.value ==  (-3, -7, 1, 6)  and i ==  1 :
+        if self.value == (-3, -7, 1, 6) and i == 1:
             return self._parent._element_constructor_( (-7, -1, 6) )
-        if self.value ==  (-6, -4, 5, 3)  and i ==  5 :
+        if self.value == (-6, -4, 5, 3) and i == 5:
             return self._parent._element_constructor_( (-5, 3) )
-        if self.value ==  (-6, -4, 5, 3)  and i ==  3 :
+        if self.value == (-6, -4, 5, 3) and i == 3:
             return self._parent._element_constructor_( (-3, -6, 1, 5) )
-        if self.value ==  (-3, -6, 1, 5)  and i ==  1 :
+        if self.value == (-3, -6, 1, 5) and i == 1:
             return self._parent._element_constructor_( (-6, -1, 5) )
-        if self.value ==  (-3, -6, 1, 5)  and i ==  5 :
+        if self.value == (-3, -6, 1, 5) and i == 5:
             return self._parent._element_constructor_( (-3, -5, 4, 1) )
-        if self.value ==  (-6, -1, 5)  and i ==  5 :
+        if self.value == (-6, -1, 5) and i == 5:
             return self._parent._element_constructor_( (-5, -1, 4) )
-        if self.value ==  (-5, 3)  and i ==  3 :
+        if self.value == (-5, 3) and i == 3:
             return self._parent._element_constructor_( (-3, -5, 4, 1) )
-        if self.value ==  (-3, -5, 4, 1)  and i ==  4 :
+        if self.value == (-3, -5, 4, 1) and i == 4:
             return self._parent._element_constructor_( (-4, 1, 2) )
-        if self.value ==  (-3, -5, 4, 1)  and i ==  1 :
+        if self.value == (-3, -5, 4, 1) and i == 1:
             return self._parent._element_constructor_( (-5, -1, 4) )
-        if self.value ==  (-5, -1, 4)  and i ==  4 :
+        if self.value == (-5, -1, 4) and i == 4:
             return self._parent._element_constructor_( (-1, -4, 3, 2) )
-        if self.value ==  (-4, 1, 2)  and i ==  1 :
+        if self.value == (-4, 1, 2) and i == 1:
             return self._parent._element_constructor_( (-1, -4, 3, 2) )
-        if self.value ==  (-4, 1, 2)  and i ==  2 :
+        if self.value == (-4, 1, 2) and i == 2:
             return self._parent._element_constructor_( (-2, 1) )
-        if self.value ==  (-1, -4, 3, 2)  and i ==  3 :
+        if self.value == (-1, -4, 3, 2) and i == 3:
             return self._parent._element_constructor_( (-3, 2) )
-        if self.value ==  (-1, -4, 3, 2)  and i ==  2 :
+        if self.value == (-1, -4, 3, 2) and i == 2:
             return self._parent._element_constructor_( (-2, -1, 3) )
-        if self.value ==  (-2, 1)  and i ==  1 :
+        if self.value == (-2, 1) and i == 1:
             return self._parent._element_constructor_( (-2, -1, 3) )
-        if self.value ==  (-1, 7)  and i ==  7 :
+        if self.value == (-1, 7) and i == 7:
             return self._parent._element_constructor_( (-7, -1, 6) )
-        if self.value ==  (-2, -1, 3)  and i ==  3 :
+        if self.value == (-2, -1, 3) and i == 3:
             return self._parent._element_constructor_( (-2, -3, 4) )
-        if self.value ==  (-3, 2)  and i ==  2 :
+        if self.value == (-3, 2) and i == 2:
             return self._parent._element_constructor_( (-2, -3, 4) )
-        if self.value ==  (-2, -3, 4)  and i ==  4 :
+        if self.value == (-2, -3, 4) and i == 4:
             return self._parent._element_constructor_( (-4, 5) )
-        if self.value ==  (-4, 5)  and i ==  5 :
+        if self.value == (-4, 5) and i == 5:
             return self._parent._element_constructor_( (-5, 6) )
-        if self.value ==  (-5, 6)  and i ==  6 :
+        if self.value == (-5, 6) and i == 6:
             return self._parent._element_constructor_( (-6, 7) )
-        if self.value ==  (-6, 7)  and i ==  7 :
+        if self.value == (-6, 7) and i == 7:
             return self._parent._element_constructor_( (-7,) )
         else:
             return None
@@ -2315,6 +2346,30 @@ cdef class BKKLetter(Letter):
         ret = Letter._repr_(self)
         if self._parent._dual:
             ret = ret + '*'
+        return ret
+
+    def _unicode_art_(self):
+        r"""
+        A unicode art representation of ``self``.
+
+        EXAMPLES::
+
+            sage: C = crystals.Letters(['A', [2, 1]])
+            sage: unicode_art(C(2))
+            2
+            sage: unicode_art(C(-3))
+            3̄
+
+            sage: C = crystals.Letters(['A', [2, 1]], dual=True)
+            sage: unicode_art(C(2))
+            2˅
+            sage: unicode_art(C(-3))
+            3̄˅
+        """
+        ret = Letter._unicode_art_(self)
+        from sage.typeset.unicode_art import UnicodeArt
+        if self._parent._dual:
+            ret = ret + UnicodeArt([u'˅'])
         return ret
 
     def _latex_(self):
@@ -2441,8 +2496,9 @@ cdef class BKKLetter(Letter):
             return -ret
         return ret
 
+
 class CrystalOfBKKLetters(ClassicalCrystalOfLetters):
-    """
+    r"""
     Crystal of letters for Benkart-Kang-Kashiwara supercrystals.
 
     This implements the `\mathfrak{gl}(m|n)` crystal of
@@ -2467,7 +2523,7 @@ class CrystalOfBKKLetters(ClassicalCrystalOfLetters):
         if dual is None:
             dual = False
         ct = CartanType(ct)
-        return super(CrystalOfBKKLetters, cls).__classcall__(cls, ct, dual)
+        return super().__classcall__(cls, ct, dual)
 
     def __init__(self, ct, dual):
         """
@@ -2494,9 +2550,10 @@ class CrystalOfBKKLetters(ClassicalCrystalOfLetters):
             sage: [x for x in C]
             [-3, -2, -1, 1, 2]
         """
+        cdef int t
         for t in range(-self._cartan_type.m - 1, self._cartan_type.n + 2):
             if t != 0:
-                yield self(t)
+                yield self._element_constructor_(t)
 
     def _repr_(self):
         """
@@ -2505,15 +2562,218 @@ class CrystalOfBKKLetters(ClassicalCrystalOfLetters):
             sage: crystals.Letters(['A', [2, 1]])
             The crystal of letters for type ['A', [2, 1]]
         """
-        ret = "The crystal of letters for type %s"%self._cartan_type
+        ret = "The crystal of letters for type %s" % self._cartan_type
         if self._dual:
             ret += " (dual)"
         return ret
 
-    # temporary workaround while an_element is overriden by Parent
+    # temporary workaround while an_element is overridden by Parent
     _an_element_ = EnumeratedSets.ParentMethods._an_element_
 
     Element = BKKLetter
+
+
+#################
+# Type q(n) queer
+#################
+
+class CrystalOfQueerLetters(ClassicalCrystalOfLetters):
+    r"""
+    Queer crystal of letters elements.
+
+    The index set is of the form `\{-n, \ldots, -1, 1, \ldots, n\}`.
+    For `1 < i \leq n`, the operators `e_{-i}` and `f_{-i}` are defined as
+
+    .. MATH::
+
+        f_{-i} = s_{w^{-1}_i} f_{-1} s_{w_i}, \quad
+        e_{-i} = s_{w^{-1}_i} e_{-1} s_{w_i},
+
+    where `w_i = s_2 \cdots s_i s_1 \cdots s_{i-1}` and `s_i` is the
+    reflection along the `i`-string in the crystal. See [GJK+2014]_.
+
+    TESTS::
+
+        sage: Q = crystals.Letters(['Q',4])
+        sage: Q.list()
+        [1, 2, 3, 4]
+        sage: [ [x < y for y in Q] for x in Q ]
+        [[False, True, True, True],
+         [False, False, True, True],
+         [False, False, False, True],
+         [False, False, False, False]]
+        sage: Q.module_generators
+        (1,)
+        sage: TestSuite(Q).run()
+    """
+    @staticmethod
+    def __classcall_private__(cls, ct):
+        """
+        Normalize input to ensure a unique representation.
+
+        TESTS::
+
+            sage: crystals.Letters(['Q',3])
+            The queer crystal of letters for q(3)
+        """
+        ct = CartanType(ct)
+        return super().__classcall__(cls, ct)
+
+    def __init__(self, ct):
+        """
+        Initialize ``self``.
+
+        EXAMPLES::
+
+            sage: Q = crystals.Letters(['Q',3]); Q
+            The queer crystal of letters for q(3)
+            sage: Q.module_generators
+            (1,)
+            sage: Q._index_set
+            (1, 2, -2, -1)
+            sage: Q._list
+            [1, 2, 3]
+        """
+        self._cartan_type = ct
+        Parent.__init__(self, category=RegularSuperCrystals())
+        self._index_set = ct.index_set()
+        self.module_generators = (self._element_constructor_(1),)
+        self._list = list(self.__iter__())
+
+    def __iter__(self):
+        """
+        Iterate through ``self``.
+
+        EXAMPLES::
+
+            sage: Q = crystals.Letters(['Q',3])
+            sage: [x for x in Q]
+            [1, 2, 3]
+        """
+        cdef int t
+        for t in range(1, self._cartan_type.n + 2):
+            yield self._element_constructor_(t)
+
+    def _repr_(self):
+        """
+        TESTS::
+
+            sage: crystals.Letters(['Q',3])
+            The queer crystal of letters for q(3)
+        """
+        return "The queer crystal of letters for q(%s)" % (
+            self._cartan_type.n + 1)
+
+    def index_set(self):
+        """
+        Return index set of ``self``.
+
+        EXAMPLES::
+
+            sage: Q = crystals.Letters(['Q',3])
+            sage: Q.index_set()
+            (1, 2, -2, -1)
+        """
+        return self._index_set
+
+    # temporary workaround while an_element is overridden by Parent
+    _an_element_ = EnumeratedSets.ParentMethods._an_element_
+
+    Element = QueerLetter_element
+
+
+cdef class QueerLetter_element(Letter):
+    r"""
+    Queer supercrystal letters elements.
+
+    TESTS::
+
+        sage: Q = crystals.Letters(['Q',3])
+        sage: Q.list()
+        [1, 2, 3]
+        sage: [ [x < y for y in Q] for x in Q ]
+        [[False, True, True], [False, False, True], [False, False, False]]
+
+    ::
+
+        sage: Q = crystals.Letters(['Q',3])
+        sage: Q(1) < Q(1), Q(1) < Q(2), Q(2)< Q(1)
+        (False, True, False)
+
+    ::
+
+        sage: TestSuite(Q).run()
+    """
+    def weight(self):
+        """
+        Return the weight of ``self``.
+
+        EXAMPLES::
+
+            sage: [v.weight() for v in crystals.Letters(['Q',4])]
+            [(1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (0, 0, 0, 1)]
+        """
+        return self._parent.weight_lattice_realization().monomial(self.value-1)
+
+    cpdef Letter e(self, int i):
+        r"""
+        Return the action of `e_i` on ``self``.
+
+        EXAMPLES::
+
+            sage: Q = crystals.Letters(['Q',3])
+            sage: [(c,i,c.e(i)) for i in Q.index_set() for c in Q if c.e(i) is not None]
+            [(2, 1, 1), (3, 2, 2), (3, -2, 2), (2, -1, 1)]
+        """
+        if self.value == -i+1:
+            return self._parent._element_constructor_(self.value-1)
+        if self.value == i+1:
+            return self._parent._element_constructor_(self.value-1)
+        return None
+
+    cpdef Letter f(self, int i):
+        r"""
+        Return the action of `f_i` on ``self``.
+
+        EXAMPLES::
+
+            sage: Q = crystals.Letters(['Q',3])
+            sage: [(c,i,c.f(i)) for i in Q.index_set() for c in Q if c.f(i) is not None]
+            [(1, 1, 2), (2, 2, 3), (2, -2, 3), (1, -1, 2)]
+        """
+        if self.value == -i:
+            return self._parent._element_constructor_(-i+1)
+        if self.value == i:
+            return self._parent._element_constructor_(self.value+1)
+        return None
+
+    cpdef int epsilon(self, int i) noexcept:
+        r"""
+        Return `\varepsilon_i` of ``self``.
+
+        EXAMPLES::
+
+            sage: Q = crystals.Letters(['Q',3])
+            sage: [(c,i) for i in Q.index_set() for c in Q if c.epsilon(i) != 0]
+            [(2, 1), (3, 2), (3, -2), (2, -1)]
+        """
+        if self.value == i+1 or self.value == -i+1:
+            return 1
+        return 0
+
+    cpdef int phi(self, int i) noexcept:
+        r"""
+        Return `\varphi_i` of ``self``.
+
+        EXAMPLES::
+
+            sage: Q = crystals.Letters(['Q',3])
+            sage: [(c,i) for i in Q.index_set() for c in Q if c.phi(i) != 0]
+            [(1, 1), (2, 2), (2, -2), (1, -1)]
+        """
+        if self.value == i or self.value == -i:
+            return 1
+        return 0
 
 #########################
 # Wrapped letters
@@ -2524,8 +2784,6 @@ cdef class LetterWrapped(Element):
     Element which uses another crystal implementation and converts
     those elements to a tuple with `\pm i`.
     """
-    cdef readonly Element value
-
     def __init__(self, parent, Element value):
         """
         Initialize ``self``.
@@ -2567,7 +2825,7 @@ cdef class LetterWrapped(Element):
 
     cpdef _richcmp_(left, right, int op):
         """
-        Check comparison between ``left`` and ``right`` based on ``op``
+        Check comparison between ``left`` and ``right`` based on ``op``.
 
         EXAMPLES::
 
@@ -2628,6 +2886,20 @@ cdef class LetterWrapped(Element):
         """
         return repr(self._to_tuple())
 
+    def _unicode_art_(self):
+        r"""
+        A unicode art representation of ``self``.
+
+        EXAMPLES::
+
+            sage: C = crystals.Letters(['E', 8])
+            sage: unicode_art(C((1,-4,5)))
+            (1, 4̄, 5)
+        """
+        from sage.typeset.unicode_art import UnicodeArt
+        return UnicodeArt([u"({})".format(u", ".join(unicode(x) if x > 0 else unicode(-x) + u"̄"
+                                                     for x in self._to_tuple()))])
+
     def _latex_(self):
         r"""
         A latex representation of ``self``.
@@ -2665,7 +2937,7 @@ cdef class LetterWrapped(Element):
         cdef Element ret = self.value.e(i)
         if ret is None:
             return None
-        return type(self)(self.parent(), ret)
+        return type(self)(self._parent, ret)
 
     cpdef LetterWrapped f(self, int i):
         r"""
@@ -2681,9 +2953,9 @@ cdef class LetterWrapped(Element):
         cdef Element ret = self.value.f(i)
         if ret is None:
             return None
-        return type(self)(self.parent(), ret)
+        return type(self)(self._parent, ret)
 
-    cpdef int epsilon(self, int i):
+    cpdef int epsilon(self, int i) noexcept:
         r"""
         Return `\varepsilon_i` of ``self``.
 
@@ -2697,7 +2969,7 @@ cdef class LetterWrapped(Element):
         """
         return self.value.epsilon(i)
 
-    cpdef int phi(self, int i):
+    cpdef int phi(self, int i) noexcept:
         r"""
         Return `\varphi_i` of ``self``.
 
@@ -2711,6 +2983,7 @@ cdef class LetterWrapped(Element):
         """
         return self.value.phi(i)
 
+
 class ClassicalCrystalOfLettersWrapped(ClassicalCrystalOfLetters):
     r"""
     Crystal of letters by wrapping another crystal.
@@ -2720,7 +2993,7 @@ class ClassicalCrystalOfLettersWrapped(ClassicalCrystalOfLetters):
     This class follows the same output as the other crystal of letters,
     where `b` is represented by the "letter" with `\varphi_i(b)` (resp.,
     `\varepsilon_i`) number of `i`'s (resp., `-i`'s or `\bar{i}`'s).
-    However, this uses an auxillary crystal to construct these letters
+    However, this uses an auxiliary crystal to construct these letters
     to avoid hardcoding the crystal elements and the corresponding edges;
     in particular, the 248 nodes of `E_8`.
     """
@@ -2731,7 +3004,7 @@ class ClassicalCrystalOfLettersWrapped(ClassicalCrystalOfLetters):
         EXAMPLES::
 
             sage: C = crystals.Letters(['E', 8])
-            sage: TestSuite(C).run()
+            sage: TestSuite(C).run()  # long time
 
             sage: C = crystals.Letters(['F', 4])
             sage: TestSuite(C).run()
@@ -2780,4 +3053,3 @@ class ClassicalCrystalOfLettersWrapped(ClassicalCrystalOfLetters):
             False
         """
         return {elt._to_tuple(): elt for elt in self}
-

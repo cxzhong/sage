@@ -1,11 +1,15 @@
-from __future__ import absolute_import
+# sage.doctest: needs sage.modules
+
 #######################################################################
 # Backward compatible unpickle functions
 #######################################################################
 
-from .quatalg.quaternion_algebra_element import (QuaternionAlgebraElement_generic,
-                                                QuaternionAlgebraElement_rational_field,
-                                                QuaternionAlgebraElement_number_field)
+from sage.algebras.quatalg.quaternion_algebra_element import (
+    QuaternionAlgebraElement_generic,
+    QuaternionAlgebraElement_number_field,
+    QuaternionAlgebraElement_rational_field,
+)
+
 
 def unpickle_QuaternionAlgebraElement_generic_v0(*args):
     """
@@ -22,6 +26,7 @@ def unpickle_QuaternionAlgebraElement_generic_v0(*args):
     """
     return QuaternionAlgebraElement_generic(*args)
 
+
 def unpickle_QuaternionAlgebraElement_rational_field_v0(*args):
     """
     EXAMPLES::
@@ -34,10 +39,12 @@ def unpickle_QuaternionAlgebraElement_rational_field_v0(*args):
     """
     return QuaternionAlgebraElement_rational_field(*args)
 
+
 def unpickle_QuaternionAlgebraElement_number_field_v0(*args):
     """
     EXAMPLES::
 
+        sage: # needs sage.symbolic
         sage: K.<a> = QQ[2^(1/3)]; Q.<i,j,k> = QuaternionAlgebra(K, -3, a); z = i + j
         sage: f, t = z.__reduce__()
         sage: import sage.algebras.quaternion_algebra_element

@@ -1,3 +1,4 @@
+# sage.doctest: needs sage.combinat sage.modules
 r"""
 Bijection between rigged configurations for `B(\infty)` and marginally large tableaux
 
@@ -12,7 +13,7 @@ REFERENCES:
    Preprint. :arxiv:`1505.07040`.
 """
 
-#*****************************************************************************
+# ****************************************************************************
 #       Copyright (C) 2015 Travis Scrimshaw <tscrim@ucdavis.edu>
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
@@ -24,8 +25,8 @@ REFERENCES:
 #
 #  The full text of the GPL is available at:
 #
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
 from sage.combinat.rigged_configurations.rigged_configurations import RiggedConfigurations
 
@@ -39,16 +40,17 @@ from sage.combinat.rigged_configurations.bij_type_C import (KRTToRCBijectionType
                                                             RCToKRTBijectionTypeC)
 from sage.combinat.rigged_configurations.tensor_product_kr_tableaux import TensorProductOfKirillovReshetikhinTableaux
 from sage.combinat.crystals.letters import CrystalOfLetters
-from sage.combinat.root_system.cartan_type import CartanType
 from sage.categories.morphism import Morphism
 from sage.categories.homset import Hom
 from sage.misc.flatten import flatten
+
 
 class FromTableauIsomorphism(Morphism):
     r"""
     Crystal isomorphism of `B(\infty)` in the tableau model to the
     rigged configuration model.
     """
+
     def _repr_type(self):
         r"""
         Return the type of morphism of ``self``.
@@ -114,11 +116,13 @@ class FromTableauIsomorphism(Morphism):
             raise NotImplementedError("bijection of type {} not yet implemented".format(ct))
         return self.codomain()(bij.run())
 
+
 class FromRCIsomorphism(Morphism):
     r"""
     Crystal isomorphism of `B(\infty)` in the rigged configuration model
     to the tableau model.
     """
+
     def _repr_type(self):
         r"""
         Return the type of morphism of ``self``.
@@ -172,13 +176,13 @@ class FromRCIsomorphism(Morphism):
         if ct.type() == 'D':
             lam[-2] = max(lam[-2], lam[-1])
             lam.pop()
-            l = sum([ [[r+1,1]]*v for r,v in enumerate(lam[:-1]) ], [])
+            l = sum([[[r+1, 1]]*v for r, v in enumerate(lam[:-1])], [])
             n = len(I)
-            l = l + sum([ [[n,1], [n-1,1]] for k in range(lam[-1])], [])
+            l = l + sum([[[n,1], [n-1,1]] for k in range(lam[-1])], [])
         else:
             if ct.type() == 'B':
                 lam[-1] *= 2
-            l = sum([ [[r,1]]*lam[i] for i,r in enumerate(I) ], [])
+            l = sum([[[r, 1]]*lam[i] for i, r in enumerate(I)], [])
 
         RC = RiggedConfigurations(ct.affine(), reversed(l))
         elt = RC(x)
@@ -205,6 +209,7 @@ class FromRCIsomorphism(Morphism):
                 y.remove(cur)
                 c -= 1
         return self.codomain()(*flatten(y))
+
 
 class MLTToRCBijectionTypeB(KRTToRCBijectionTypeB):
     def run(self):
@@ -243,6 +248,7 @@ class MLTToRCBijectionTypeB(KRTToRCBijectionTypeB):
 
         self.ret_rig_con.set_immutable() # Return it to immutable
         return self.ret_rig_con
+
 
 class RCToMLTBijectionTypeB(RCToKRTBijectionTypeB):
     def run(self):
@@ -283,6 +289,7 @@ class RCToMLTBijectionTypeB(RCToKRTBijectionTypeB):
 
         return ret_crystal_path
 
+
 class MLTToRCBijectionTypeD(KRTToRCBijectionTypeD):
     def run(self):
         r"""
@@ -322,6 +329,7 @@ class MLTToRCBijectionTypeD(KRTToRCBijectionTypeD):
         self.ret_rig_con.set_immutable() # Return it to immutable
         return self.ret_rig_con
 
+
 class RCToMLTBijectionTypeD(RCToKRTBijectionTypeD):
     def run(self):
         r"""
@@ -359,4 +367,3 @@ class RCToMLTBijectionTypeD(RCToKRTBijectionTypeD):
             self.cur_dims.pop(0) # Pop off the leading column
 
         return ret_crystal_path
-

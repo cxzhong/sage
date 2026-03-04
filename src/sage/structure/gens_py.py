@@ -2,7 +2,7 @@
 Pure python code for abstract base class for objects with generators
 """
 
-#*****************************************************************************
+# ****************************************************************************
 #       Copyright (C) 2005 William Stein <wstein@gmail.com>
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
@@ -14,12 +14,12 @@ Pure python code for abstract base class for objects with generators
 #
 #  The full text of the GPL is available at:
 #
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
 
 def multiplicative_iterator(M):
-    from sage.rings.all import infinity
+    from sage.rings.infinity import infinity
     G = M.gens()
     if len(G) == 0:
         yield M(1)
@@ -28,9 +28,8 @@ def multiplicative_iterator(M):
     stop = [g.multiplicative_order() for g in G]
     for i in range(len(stop)):
         if stop[i] is infinity:
-            raise ArithmeticError("%s is not finite."%M)
+            raise ArithmeticError("%s is not finite." % M)
         stop[i] = stop[i] - 1
-    n = 0
     z = M(1)
     yield z
     cnt = [0] * len(G)
@@ -42,11 +41,12 @@ def multiplicative_iterator(M):
             cnt[i] = 0
             cnt[i+1] = cnt[i+1] + 1
             z = z * G[i+1]
-            i = i + 1
+            i += 1
         yield z
 
+
 def abelian_iterator(M):
-    from sage.rings.all import infinity
+    from sage.rings.infinity import infinity
     G = M.gens()
     if len(G) == 0:
         yield M(0)
@@ -55,9 +55,8 @@ def abelian_iterator(M):
     stop = [g.additive_order() for g in G]
     for i in range(len(stop)):
         if stop[i] is infinity:
-            raise ArithmeticError("%s is not finite."%M)
+            raise ArithmeticError("%s is not finite." % M)
         stop[i] = stop[i] - 1
-    n = 0
     z = M(0)
     yield z
     cnt = [0] * len(G)
@@ -69,7 +68,5 @@ def abelian_iterator(M):
             cnt[i] = 0
             cnt[i+1] = cnt[i+1] + 1
             z = z + G[i+1]
-            i = i + 1
+            i += 1
         yield z
-
-

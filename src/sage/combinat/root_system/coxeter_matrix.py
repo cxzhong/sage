@@ -1,7 +1,8 @@
+# sage.doctest: needs sage.graphs
 """
-Coxeter Matrices
+Coxeter matrices
 """
-#*****************************************************************************
+# ****************************************************************************
 #       Copyright (C) 2007 Mike Hansen <mhansen@gmail.com>,
 #                     2015 Travis Scrimshaw <tscrim at ucdavis.edu>
 #                     2015 Jean-Philippe Labbe <labbe at math.huji.ac.il>
@@ -15,24 +16,26 @@ Coxeter Matrices
 #
 #  The full text of the GPL is available at:
 #
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
-from six import add_metaclass
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
 from sage.misc.cachefunc import cached_method
 from sage.matrix.constructor import matrix
 from sage.matrix.matrix_space import MatrixSpace
 from sage.misc.classcall_metaclass import ClasscallMetaclass, typecall
+from sage.misc.lazy_import import lazy_import
 from sage.matrix.matrix_generic_dense import Matrix_generic_dense
-from sage.graphs.graph import Graph
-from sage.rings.all import ZZ, QQ, RR
+from sage.rings.integer_ring import ZZ
+from sage.rings.rational_field import QQ
+from sage.rings.real_mpfr import RR
 from sage.rings.infinity import infinity
 from sage.combinat.root_system.cartan_type import CartanType
 from sage.combinat.root_system.coxeter_type import CoxeterType
 
+lazy_import('sage.graphs.graph', 'Graph')
 
-@add_metaclass(ClasscallMetaclass)
-class CoxeterMatrix(CoxeterType):
+
+class CoxeterMatrix(CoxeterType, metaclass=ClasscallMetaclass):
     r"""
     A Coxeter matrix.
 
@@ -203,9 +206,9 @@ class CoxeterMatrix(CoxeterType):
         if index_set:
             index_set = tuple(index_set)
         else:
-            index_set = tuple(range(1,n+1))
+            index_set = tuple(range(1, n + 1))
         if len(set(index_set)) != n:
-                raise ValueError("the given index set is not valid")
+            raise ValueError("the given index set is not valid")
 
         return cls._from_matrix(data, coxeter_type, index_set, coxeter_type_check)
 
@@ -247,9 +250,9 @@ class CoxeterMatrix(CoxeterType):
         self._dict = {(self._index_set[i], self._index_set[j]): self._matrix[i, j]
                       for i in range(self._rank) for j in range(self._rank)}
 
-        for i,key in enumerate(self._index_set):
-            self._dict[key] = {key2: self._matrix[i,j]
-                               for j,key2 in enumerate(self._index_set)}
+        for i, key in enumerate(self._index_set):
+            self._dict[key] = {key2: self._matrix[i, j]
+                               for j, key2 in enumerate(self._index_set)}
 
     @classmethod
     def _from_matrix(cls, data, coxeter_type, index_set, coxeter_type_check):
@@ -328,7 +331,7 @@ class CoxeterMatrix(CoxeterType):
             [2 4 1 3]
             [2 2 3 1]
 
-            sage: G=Graph()
+            sage: G = Graph()
             sage: G.add_edge([0,1,oo])
             sage: CoxeterMatrix(G)
             [ 1 -1]
@@ -339,7 +342,7 @@ class CoxeterMatrix(CoxeterType):
             [ 1.00000000000000 -1.50000000000000]
             [-1.50000000000000  1.00000000000000]
         """
-        verts = sorted(graph.vertices())
+        verts = graph.vertices(sort=True)
         index_set = tuple(verts)
         n = len(index_set)
 
@@ -353,7 +356,7 @@ class CoxeterMatrix(CoxeterType):
                 else:
                     data[-1] += [2]
 
-        for e in graph.edges():
+        for e in graph.edges(sort=True):
             label = e[2]
             if label is None:
                 label = 3
@@ -414,7 +417,7 @@ class CoxeterMatrix(CoxeterType):
         Coxeter types, as well as typical representatives of the
         infinite families.
 
-        Here the ``higher_rank`` term denotes non-finite, non-affine, 
+        Here the ``higher_rank`` term denotes non-finite, non-affine,
         Coxeter groups (including hyperbolic types).
 
         .. TODO:: Implement the hyperbolic and compact hyperbolic in the samples.
@@ -485,7 +488,7 @@ class CoxeterMatrix(CoxeterType):
 
             sage: CoxeterMatrix.samples(crystallographic=False)
             [
-                     [1 3 2 2]                                       
+                     [1 3 2 2]
             [1 3 2]  [3 1 3 2]                    [ 1 -1 -1]  [1 2 3]
             [3 1 5]  [2 3 1 5]  [ 1 10]  [ 1 -1]  [-1  1 -1]  [2 1 7]
             [2 5 1], [2 2 5 1], [10  1], [-1  1], [-1 -1  1], [3 7 1],
@@ -554,15 +557,15 @@ class CoxeterMatrix(CoxeterType):
             [3 7 1], [ 2  3 -8  1]
             ]
         """
-        finite = [CoxeterMatrix(t)  for t in [['A', 1], ['A', 5], ['B', 5],
-                                              ['D', 4], ['D', 5], ['E', 6], ['E', 7],
-                                              ['E', 8], ['F', 4], ['H', 3], ['H', 4],
-                                              ['I', 10]]]
+        finite = [CoxeterMatrix(t) for t in [['A', 1], ['A', 5], ['B', 5],
+                                             ['D', 4], ['D', 5], ['E', 6], ['E', 7],
+                                             ['E', 8], ['F', 4], ['H', 3], ['H', 4],
+                                             ['I', 10]]]
 
-        affine = [CoxeterMatrix(t)  for t in [['A', 2, 1], ['B', 5, 1],
-                                              ['C', 5, 1], ['D', 5, 1], ['E', 6, 1],
-                                              ['E', 7, 1], ['E', 8, 1], ['F', 4, 1],
-                                              ['G', 2, 1], ['A', 1, 1]]]
+        affine = [CoxeterMatrix(t) for t in [['A', 2, 1], ['B', 5, 1],
+                                             ['C', 5, 1], ['D', 5, 1], ['E', 6, 1],
+                                             ['E', 7, 1], ['E', 8, 1], ['F', 4, 1],
+                                             ['G', 2, 1], ['A', 1, 1]]]
 
         higher_matrices = [[[1, -1, -1], [-1, 1, -1], [-1, -1, 1]],
                            [[1, 2, 3], [2, 1, 7], [3, 7, 1]],
@@ -626,7 +629,7 @@ class CoxeterMatrix(CoxeterType):
     def _repr_(self):
         """
         String representation of the Coxeter matrix.
-        
+
         EXAMPLES::
 
             sage: CM = CoxeterMatrix(['A',3]); CM
@@ -653,12 +656,12 @@ class CoxeterMatrix(CoxeterType):
         """
         if key == 'ascii_art' or key == 'element_ascii_art':
             return self._matrix.nrows() > 1
-        return super(CoxeterMatrix, self)._repr_option(key)
+        return super()._repr_option(key)
 
     def _latex_(self):
         r"""
         Latex representation of the Coxeter matrix.
-        
+
         EXAMPLES::
 
             sage: CM = CoxeterMatrix(['A',3])
@@ -670,7 +673,6 @@ class CoxeterMatrix(CoxeterType):
             \end{array}\right)
         """
         return self._matrix._latex_()
-
 
     def __iter__(self):
         """
@@ -690,7 +692,7 @@ class CoxeterMatrix(CoxeterType):
         the label of an edge in the Coxeter graph.
 
         EXAMPLES::
-            
+
             sage: CM = CoxeterMatrix([[1,-2],[-2,1]])
             sage: CM = CoxeterMatrix([[1,-2],[-2,1]], ['a','b'])
             sage: CM['a']
@@ -710,13 +712,17 @@ class CoxeterMatrix(CoxeterType):
 
         EXAMPLES::
 
-            sage: CM = CoxeterMatrix([[1,-2],[-2,1]],['a','b'])
-            sage: CM.__hash__()
-            1
-            sage: CM = CoxeterMatrix([[1,-3],[-3,1]],['1','2'])
-            sage: CM.__hash__()
-            4
-        """        
+            sage: CM = CoxeterMatrix([[1, -2], [-2, 1]], ['a', 'b'])
+            sage: hash32 = 153276691
+            sage: hash64 = -337812865737895661
+            sage: CM.__hash__() in [hash32, hash64]
+            True
+            sage: CM = CoxeterMatrix([[1, -3], [-3, 1]], ['1', '2'])
+            sage: hash32 = -1917568612
+            sage: hash64 = -506719298606843492
+            sage: CM.__hash__() in [hash32, hash64]
+            True
+        """
         return hash(self._matrix)
 
     def __eq__(self, other):
@@ -846,6 +852,7 @@ class CoxeterMatrix(CoxeterType):
 
         EXAMPLES::
 
+            sage: # needs sage.libs.gap
             sage: CoxeterType(['A', 2, 1]).bilinear_form()
             [   1 -1/2 -1/2]
             [-1/2    1 -1/2]
@@ -879,12 +886,15 @@ class CoxeterMatrix(CoxeterType):
         """
         n = self.rank()
         I = self.index_set()
-        val = lambda x: infinity if x == -1 else x
+
+        def val(x):
+            return infinity if x == -1 else x
         G = Graph([(I[i], I[j], val((self._matrix)[i, j]))
                    for i in range(n) for j in range(i)
-                   if self._matrix[i, j] not in [1, 2]])
+                   if self._matrix[i, j] not in [1, 2]],
+                  format='list_of_edges')
         G.add_vertices(I)
-        return G.copy(immutable = True)
+        return G.copy(immutable=True)
 
     def is_simply_laced(self):
         """
@@ -905,10 +915,10 @@ class CoxeterMatrix(CoxeterType):
 
     def is_crystallographic(self):
         """
-        Return if ``self`` is crystallographic.
+        Return whether ``self`` is crystallographic.
 
         A Coxeter matrix is crystallographic if all non-diagonal entries
-        are either 2, 4, or 6.
+        are either 2, 3, 4, or 6.
 
         EXAMPLES::
 
@@ -921,7 +931,22 @@ class CoxeterMatrix(CoxeterType):
         L = [1, 2, 3, 4, 6]
         return all(x in L for row in self for x in row)
 
-    def is_finite(self):
+    def is_irreducible(self):
+        """
+        Return whether ``self`` is irreducible.
+
+        A Coxeter matrix is irreducible if the Coxeter graph is connected.
+
+        EXAMPLES::
+
+            sage: CoxeterMatrix([['F',4],['A',1]]).is_irreducible()
+            False
+            sage: CoxeterMatrix(['H',3]).is_irreducible()
+            True
+        """
+        return self.coxeter_graph().is_connected()
+
+    def is_finite(self) -> bool:
         """
         Return if ``self`` is a finite type or ``False`` if unknown.
 
@@ -939,7 +964,7 @@ class CoxeterMatrix(CoxeterType):
         """
         return self._is_finite
 
-    def is_affine(self):
+    def is_affine(self) -> bool:
         """
         Return if ``self`` is an affine type or ``False`` if unknown.
 
@@ -962,7 +987,8 @@ class CoxeterMatrix(CoxeterType):
 
 
 #####################################################################
-## Type check functions
+# Type check functions
+
 
 def recognize_coxeter_type_from_matrix(coxeter_matrix, index_set):
     """
@@ -1054,7 +1080,7 @@ def recognize_coxeter_type_from_matrix(coxeter_matrix, index_set):
         ....:     if C.is_finite() or C.is_affine():
         ....:         assert recognized_type == C.coxeter_type()
 
-    We check the rank 2 cases (:trac:`20419`)::
+    We check the rank 2 cases (:issue:`20419`)::
 
         sage: for i in range(2, 10):
         ....:     M = matrix([[1,i],[i,1]])
@@ -1069,60 +1095,74 @@ def recognize_coxeter_type_from_matrix(coxeter_matrix, index_set):
         Coxeter type of ['I', 9]
         sage: CoxeterMatrix(matrix([[1,-1],[-1,1]]), index_set=[0,1]).coxeter_type()
         Coxeter type of ['A', 1, 1]
+
+    Check that this works for reducible types with relabellings
+    (:issue:`24892`)::
+
+        sage: CM = CoxeterMatrix([[1,2,5],[2,1,2],[5,2,1]]); CM
+        [1 2 5]
+        [2 1 2]
+        [5 2 1]
+        sage: CM.coxeter_type()
+        Coxeter type of I5 relabelled by {1: 1, 2: 3}xA1 relabelled by {1: 2}
     """
     # First, we build the Coxeter graph of the group without the edge labels
     n = ZZ(coxeter_matrix.nrows())
-    G = Graph([[index_set[i], index_set[j], coxeter_matrix[i, j]]
-               for i in range(n) for j in range(i,n)
-               if coxeter_matrix[i, j] not in [1, 2]])
-    G.add_vertices(index_set)
+    G = Graph([index_set,
+               [(index_set[i], index_set[j], coxeter_matrix[i, j])
+                for i in range(n) for j in range(i, n)
+                if coxeter_matrix[i, j] not in [1, 2]]],
+              format='vertices_and_edges')
 
     types = []
     for S in G.connected_components_subgraphs():
-        r = S.num_verts()
+        r = S.n_vertices()
         # Handle the special cases first
         if r == 1:
-            types.append(CoxeterType(['A',1]).relabel({1: S.vertices()[0]}))
+            types.append(CoxeterType(['A', 1]).relabel({1: S.vertices(sort=True)[0]}))
             continue
-        if r == 2: # Type B2, G2, or I_2(p)
+        if r == 2:  # Type B2, G2, or I_2(p)
             e = S.edge_labels()[0]
-            if e == 3: # Can't be 2 because it is connected
-                ct = CoxeterType(['A',2])
+            if e == 3:  # Can't be 2 because it is connected
+                ct = CoxeterType(['A', 2])
             elif e == 4:
-                ct = CoxeterType(['B',2])
+                ct = CoxeterType(['B', 2])
             elif e == 6:
-                ct = CoxeterType(['G',2])
-            elif e > 0 and e < float('inf'): # Remaining non-affine types
-                ct = CoxeterType(['I',e])
-            else: # Otherwise it is infinite dihedral group Z_2 \ast Z_2
-                ct = CoxeterType(['A',1,1])
+                ct = CoxeterType(['G', 2])
+            elif e > 0 and e < float('inf'):  # Remaining non-affine types
+                ct = CoxeterType(['I', e])
+            else:  # Otherwise it is infinite dihedral group Z_2 \ast Z_2
+                ct = CoxeterType(['A', 1, 1])
+            SV = S.vertices(sort=True)
             if not ct.is_affine():
-                types.append(ct.relabel({1: S.vertices()[0], 2: S.vertices()[1]}))
+                types.append(ct.relabel({1: SV[0],
+                                         2: SV[1]}))
             else:
-                types.append(ct.relabel({0: S.vertices()[0], 1: S.vertices()[1]}))
+                types.append(ct.relabel({0: SV[0],
+                                         1: SV[1]}))
             continue
 
-        test = [['A',r], ['B',r], ['A',r-1,1]]
+        test = [['A', r], ['B', r], ['A', r - 1, 1]]
         if r >= 3:
             if r == 3:
-                test += [['G',2,1], ['H',3]]
-            test.append(['C',r-1,1])
+                test += [['G', 2, 1], ['H', 3]]
+            test.append(['C', r - 1, 1])
         if r >= 4:
             if r == 4:
-                test += [['F',4], ['H',4]]
-            test += [['D',r], ['B',r-1,1]]
+                test += [['F', 4], ['H', 4]]
+            test += [['D', r], ['B', r - 1, 1]]
         if r >= 5:
             if r == 5:
-                test.append(['F',4,1])
-            test.append(['D',r-1,1])
+                test.append(['F', 4, 1])
+            test.append(['D', r - 1, 1])
         if r == 6:
-            test.append(['E',6])
+            test.append(['E', 6])
         elif r == 7:
-            test += [['E',7], ['E',6,1]]
+            test += [['E', 7], ['E', 6, 1]]
         elif r == 8:
-            test += [['E',8], ['E',7,1]]
+            test += [['E', 8], ['E', 7, 1]]
         elif r == 9:
-            test.append(['E',8,1])
+            test.append(['E', 8, 1])
 
         found = False
         for ct in test:
@@ -1139,7 +1179,8 @@ def recognize_coxeter_type_from_matrix(coxeter_matrix, index_set):
     return CoxeterType(types)
 
 #####################################################################
-## Other functions
+# Other functions
+
 
 def check_coxeter_matrix(m):
     """
@@ -1188,8 +1229,8 @@ def check_coxeter_matrix(m):
     for i, row in enumerate(m):
         if mat[i, i] != 1:
             raise ValueError("the matrix diagonal is not all 1")
-        for j, val in enumerate(row[i+1:]):
-            if val != m[j+i+1][i]:
+        for j, val in enumerate(row[i + 1:]):
+            if val != m[j + i + 1][i]:
                 raise ValueError("the matrix is not symmetric")
             if val not in ZZ:
                 if val > -1 and val in RR and val != infinity:
@@ -1197,6 +1238,7 @@ def check_coxeter_matrix(m):
             else:
                 if val == 1 or val == 0:
                     raise ValueError("invalid Coxeter label {}".format(val))
+
 
 def coxeter_matrix_as_function(t):
     """
@@ -1216,25 +1258,5 @@ def coxeter_matrix_as_function(t):
         [2 3 1 3]
         [2 2 3 1]
     """
-    t = CartanType(t)
-    m = t.coxeter_matrix()
+    m = CartanType(t).coxeter_matrix()
     return lambda i, j: m[i, j]
-
-def coxeter_matrix(t):
-    """
-    This was deprecated in :trac:`17798` for :class:`CartanMatrix`.
-
-    EXAMPLES::
-
-        sage: coxeter_matrix(['A', 4])
-        doctest:...: DeprecationWarning: coxeter_matrix() is deprecated. Use CoxeterMatrix() instead
-        See http://trac.sagemath.org/17798 for details.
-        [1 3 2 2]
-        [3 1 3 2]
-        [2 3 1 3]
-        [2 2 3 1]
-    """
-    from sage.misc.superseded import deprecation
-    deprecation(17798, 'coxeter_matrix() is deprecated. Use CoxeterMatrix() instead')
-    return CoxeterMatrix(t)
-

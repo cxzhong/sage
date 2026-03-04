@@ -2,10 +2,11 @@ Quadratic Forms
 ===============
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    sage/quadratic_forms/quadratic_form
    sage/quadratic_forms/binary_qf
+   sage/quadratic_forms/bqf_class_group
    sage/quadratic_forms/constructions
    sage/quadratic_forms/random_quadraticform
    sage/quadratic_forms/special_values
@@ -13,6 +14,7 @@ Quadratic Forms
 
    sage/quadratic_forms/extras
    sage/quadratic_forms/genera/genus
+   sage/quadratic_forms/genera/normal_form
    sage/quadratic_forms/qfsolve
    sage/quadratic_forms/ternary
    sage/quadratic_forms/ternary_qf

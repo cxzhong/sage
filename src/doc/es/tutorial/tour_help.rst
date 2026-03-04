@@ -58,8 +58,7 @@ de interrogación:
             sage: maxima(log2).float()
             .6931471805599453
             sage: gp(log2)
-            0.6931471805599453094172321215             # 32-bit
-            0.69314718055994530941723212145817656807   # 64-bit
+            0.693147180559945309417232121...
     sage: sudoku?
     File:        sage/local/lib/python2.5/site-packages/sage/games/sudoku.py
     Type:        <... 'function'>
@@ -254,13 +253,9 @@ y hacemos una tabla de cuadrados y cubos.
 
 La estructura de datos más básica en Sage es la lista, la cual es -- como
 sugiere su nombre -- solo una lista de objetos arbitrarios.
-Por ejemplo, el comando ``range`` que hemos usado crea una lista (python 2):
+Por ejemplo, el comando ``range`` que hemos usado crea una lista::
 
-::
-
-    sage: range(2,10)   # optional - python2
-    [2, 3, 4, 5, 6, 7, 8, 9]
-    sage: list(range(2,10))   # optional - python3
+    sage: list(range(2,10))
     [2, 3, 4, 5, 6, 7, 8, 9]
 
 He aquí una lista más complicada:
@@ -284,7 +279,7 @@ El indexado de una lista comienza en el cero, como en muchos lenguajes de progra
 
 La función ``len(v)`` devuelve la longitud de ``v``. Utiliza ``v.append(obj)`` para
 añadir un nuevo objeto al final de ``v``, y utiliza ``del v[i]`` para borrar
-el :math:`i-ésimo` elemento de ``v``:
+el :math:`i`-ésimo elemento de ``v``:
 
 .. link
 

@@ -7,34 +7,34 @@ Here is an example of a linear function tensored with a vector space::
     sage: lt = x[0] * vector([3,4]) + 1;   lt
     (1, 1) + (3, 4)*x_0
     sage: type(lt)
-    <type 'sage.numerical.linear_tensor_element.LinearTensor'>
+    <class 'sage.numerical.linear_tensor_element.LinearTensor'>
 """
 
-#*****************************************************************************
+# ****************************************************************************
 #       Copyright (C) 2014 Volker Braun <vbraun.name@gmail.com>
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
 #  as published by the Free Software Foundation; either version 2 of
 #  the License, or (at your option) any later version.
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
 from cpython.object cimport *
 
 from sage.misc.fast_methods cimport hash_by_id
 from sage.structure.element cimport ModuleElement, Element
-from sage.numerical.linear_functions cimport LinearFunction, is_LinearFunction
+from sage.numerical.linear_functions cimport LinearFunction
 
 
-#*****************************************************************************
+# ***************************************************************************
 #
 # Elements of linear functions tensored with a free module
 #
-#*****************************************************************************
+# ***************************************************************************
 
 cdef class LinearTensor(ModuleElement):
     r"""
-    A linear function tensored with a free module
+    A linear function tensored with a free module.
 
     .. warning::
 
@@ -54,11 +54,11 @@ cdef class LinearTensor(ModuleElement):
         Constructor taking a dictionary as its argument.
 
         INPUT:
-        
+
         - ``parent`` -- the parent
-          :class:`~sage.numerical.linear_tensor.LinearTensorParent_class`.
-        
-        - ``f`` -- A linear function tensored by a free module is
+          :class:`~sage.numerical.linear_tensor.LinearTensorParent_class`
+
+        - ``f`` -- a linear function tensored by a free module is
           represented as a dictionary. The values are the coefficient
           (free module elements) of the variable represented by the
           keys. The key ``-1`` corresponds to the constant term.
@@ -70,7 +70,7 @@ cdef class LinearTensor(ModuleElement):
             sage: LT = MixedIntegerLinearProgram().linear_functions_parent().tensor(RDF^2)
             sage: LT({0: [1,2], 3: [-7,-8]})
             (1.0, 2.0)*x_0 + (-7.0, -8.0)*x_3
-        
+
             sage: TestSuite(LT).run(skip=['_test_an_element', '_test_elements_eq_reflexive',
             ....:     '_test_elements_eq_symmetric', '_test_elements_eq_transitive',
             ....:     '_test_elements_neq', '_test_additive_associativity',
@@ -169,12 +169,12 @@ cdef class LinearTensor(ModuleElement):
             ...
             ValueError: x is from a different linear functions module
         """
-        if is_LinearFunction(x):
+        if isinstance(x, LinearFunction):
             if self.parent().linear_functions() != x.parent():
                 raise ValueError('x is from a different linear functions module')
             if len((<LinearFunction>x)._f) != 1:
                 raise ValueError('x is a sum, must be a single variable')
-            i = (<LinearFunction>x)._f.keys()[0]
+            i, = (<LinearFunction>x)._f.keys()
             if (<LinearFunction>x)._f[i] != 1:
                 raise ValueError('x must have a unit coefficient')
         else:
@@ -188,10 +188,8 @@ cdef class LinearTensor(ModuleElement):
         """
         Return a string representation.
 
-        OUTPUT:
+        OUTPUT: string
 
-        String.
-        
         EXAMPLES::
 
             sage: from sage.numerical.linear_functions import LinearFunctionsParent
@@ -221,22 +219,20 @@ cdef class LinearTensor(ModuleElement):
                     term = '{1}*x_{0}'.format(key, coeff)
             terms.append(term)
         return ' + '.join(terms)
-            
+
     def _repr_matrix(self):
         """
         Return a matrix-like string representation.
 
-        OUTPUT:
-
-        String.
+        OUTPUT: string
 
         EXAMPLES::
 
             sage: from sage.numerical.linear_functions import LinearFunctionsParent
             sage: LT = LinearFunctionsParent(RDF).tensor(RDF^(2,2))
             sage: LT.an_element()  # indirect doctest
-            [1 + 5*x_2 + 7*x_5 0]
-            [0                 0]
+            [1 + 5*x_2 + 7*x_5 1 + 5*x_2 + 7*x_5]
+            [1 + 5*x_2 + 7*x_5 1 + 5*x_2 + 7*x_5]
         """
         MS = self.parent().free_module()
         assert self.parent().is_matrix_space()
@@ -266,12 +262,10 @@ cdef class LinearTensor(ModuleElement):
         Return sum.
 
         INPUT:
-        
-        - ``b`` -- a :class:`LinearTensor`.
 
-        OUTPUT:
+        - ``b`` -- a :class:`LinearTensor`
 
-        A :class:`LinearTensor`.
+        OUTPUT: a :class:`LinearTensor`
 
         EXAMPLES::
 
@@ -281,7 +275,7 @@ cdef class LinearTensor(ModuleElement):
             (16.0, 16.0) + (1.0, 2.0)*x_0 + (5.0, 6.0)*x_2 + (-5.0, -10.0)*x_3
         """
         result = dict(self._f)
-        for key, coeff in b.dict().iteritems():
+        for key, coeff in b.dict().items():
             result[key] = self._f.get(key, 0) + coeff
         return self.parent()(result)
 
@@ -289,9 +283,7 @@ cdef class LinearTensor(ModuleElement):
         r"""
         Return the negative.
 
-        OUTPUT:
-
-        A :class:`LinearTensor`.
+        OUTPUT: a :class:`LinearTensor`
 
         EXAMPLES::
 
@@ -310,12 +302,10 @@ cdef class LinearTensor(ModuleElement):
         Return difference.
 
         INPUT:
-        
-        - ``b`` -- a :class:`LinearTensor`.
 
-        OUTPUT:
+        - ``b`` -- a :class:`LinearTensor`
 
-        A :class:`LinearTensor`.
+        OUTPUT: a :class:`LinearTensor`
 
         EXAMPLES::
 
@@ -327,7 +317,7 @@ cdef class LinearTensor(ModuleElement):
             (-16.0, -16.0) + (1.0, 2.0)*x_0 + (-7.0, -8.0)*x_3
         """
         result = dict(self._f)
-        for key, coeff in b.dict().iteritems():
+        for key, coeff in b.dict().items():
             result[key] = self._f.get(key, 0) - coeff
         return self.parent()(result)
 
@@ -337,11 +327,9 @@ cdef class LinearTensor(ModuleElement):
 
         INPUT:
 
-        - ``b`` -- base ring element. The scalar to multiply by.
+        - ``b`` -- base ring element; the scalar to multiply by
 
-        OUTPUT:
-
-        A :class:`LinearTensor`.
+        OUTPUT: a :class:`LinearTensor`
 
         EXAMPLES::
 
@@ -402,7 +390,7 @@ cdef class LinearTensor(ModuleElement):
             Arithmetic performed after coercions.
             Result lives in Tensor product of Vector space of dimension 2 over Real Double Field and Linear functions over Real Double Field
             Tensor product of Vector space of dimension 2 over Real Double Field and Linear functions over Real Double Field
-        
+
             sage: operator.le(10, lt)
             (10.0, 10.0) <= (1.0, 2.0)*x_0
             sage: lt <= 1
@@ -433,7 +421,7 @@ cdef class LinearTensor(ModuleElement):
         elif op == Py_GE:
             return LC(right, left, False)
         else:
-            assert(False)   # unreachable
+            assert False   # unreachable
 
     def __hash__(self):
         r"""
@@ -443,45 +431,28 @@ cdef class LinearTensor(ModuleElement):
 
             sage: p = MixedIntegerLinearProgram()
             sage: lt0 = p[0] * vector([1,2])
-            sage: lt0.__hash__()   # random output
+            sage: hash(lt0)   # random output
             103987752
             sage: d = {}
             sage: d[lt0] = 3
+
+        Since we hash by ``id()``, linear functions and constraints are
+        only considered equal for sets and dicts if they are the same
+        object::
+
+            sage: f = p[0] * vector([1])
+            sage: g = p[0] * vector([1])
+            sage: set([f, f])
+            {((1.0))*x_0}
+            sage: set([f, g])
+            {((1.0))*x_0, ((1.0))*x_0}
+            sage: len(set([f, f+1]))
+            2
+
+            sage: d = {}
+            sage: d[f] = 123
+            sage: d[g] = 456
+            sage: len(list(d))
+            2
         """
-        # see _cmp_() if you want to change the hash function
         return hash_by_id(<void *> self)
-
-    def __cmp__(left, right):
-        """
-        Implement comparison of two linear functions.
-
-        EXAMPLES::
-
-            sage: p = MixedIntegerLinearProgram()
-            sage: f = p[0] * vector([1,2])
-            sage: v0 = vector([0, 0])
-            sage: v1 = vector([1, 1])
-            sage: cmp(f, f)
-            0
-            sage: abs(cmp(f, f+v0))     # since we are comparing by id()
-            1
-            sage: abs(cmp(f, f+v1))
-            1
-            sage: len(set([f, f]))
-            1
-            sage: len(set([f, f+v0]))
-            2
-            sage: len(set([f, f+v1]))
-            2
-        """
-        # Note: if you want to implement smarter comparison, you also
-        # need to change __hash__(). The comparison function must
-        # satisfy cmp(x,y)==0 => hash(x)==hash(y)
-        if left is right:
-            return 0
-        if <size_t><void*>left < <size_t><void*>right:
-            return -1
-        else:
-            return 1
-
-

@@ -1,6 +1,6 @@
-# -*- coding: utf-8 -*-
+# sage.doctest: needs sage.combinat sage.modules
 r"""
-PBW Data
+PBW data
 
 This contains helper classes and functions which encode PBW data
 in finite type.
@@ -8,10 +8,10 @@ in finite type.
 AUTHORS:
 
 - Dinakar Muthiah (2015-05): initial version
-- Travis Scrimshaw (2016-06): simplfied code and converted to Cython
+- Travis Scrimshaw (2016-06): simplified code and converted to Cython
 """
 
-#*****************************************************************************
+# ****************************************************************************
 #       Copyright (C) 2015 Dinakar Muthiah <muthiah at ualberta.ca>
 #                          Travis Scrimshaw <tscrimsh at umn.edu>
 #
@@ -19,20 +19,19 @@ AUTHORS:
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
-from __future__ import absolute_import
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
-#from sage.misc.lazy_attribute import lazy_attribute
+# from sage.misc.lazy_attribute import lazy_attribute
 from sage.misc.cachefunc import cached_method
 from sage.combinat.root_system.cartan_type import CartanType
-from sage.combinat.root_system.coxeter_group import CoxeterGroup
 from sage.combinat.root_system.root_system import RootSystem
 from sage.combinat.root_system.braid_move_calculator import BraidMoveCalculator
 
 cimport cython
 
-class PBWDatum(object):
+
+class PBWDatum():
     """
     Helper class which represents a PBW datum.
     """
@@ -45,7 +44,7 @@ class PBWDatum(object):
             sage: from sage.combinat.crystals.pbw_datum import PBWData, PBWDatum
             sage: P = PBWData("A2")
             sage: L = PBWDatum(P, (1,2,1), (1,4,7))
-            sage: TestSuite(L).run(skip="_test_pickling")
+            sage: TestSuite(L).run(skip='_test_pickling')
         """
         self.parent = parent
         self.long_word = tuple(long_word)
@@ -87,10 +86,11 @@ class PBWDatum(object):
                 self.long_word == other_PBWDatum.long_word and
                 self.lusztig_datum == other_PBWDatum.lusztig_datum)
 
-    def is_equivalent_to(self, other_pbw_datum):
+    def is_equivalent_to(self, other_pbw_datum) -> bool:
         r"""
         Return whether ``self`` is equivalent to ``other_pbw_datum``.
-        modulo the tropical Plücker relations.
+
+        Here equivalent means modulo the tropical Plücker relations.
 
         EXAMPLES::
 
@@ -168,7 +168,7 @@ class PBWDatum(object):
     def star(self):
         """
         Return the starred version of ``self``, i.e.,
-        with reversed `long_word` and `lusztig_datum`
+        with reversed ``long_word`` and ``lusztig_datum``
 
         EXAMPLES::
 
@@ -184,7 +184,7 @@ class PBWDatum(object):
         return PBWDatum(self.parent, reversed_long_word, reversed_lusztig_datum)
 
 
-class PBWData(object): # UniqueRepresentation?
+class PBWData(): # UniqueRepresentation?
     """
     Helper class for the set of PBW data.
     """
@@ -196,7 +196,7 @@ class PBWData(object): # UniqueRepresentation?
 
             sage: from sage.combinat.crystals.pbw_datum import PBWData
             sage: P = PBWData(["A",2])
-            sage: TestSuite(P).run(skip="_test_pickling")
+            sage: TestSuite(P).run(skip='_test_pickling')
         """
         self.cartan_type = CartanType(cartan_type)
         self.root_system = RootSystem(self.cartan_type)
@@ -244,7 +244,7 @@ class PBWData(object): # UniqueRepresentation?
 
         INPUT:
 
-        - ``reduced_word`` -- a tuple corresponding to a reduced word
+        - ``reduced_word`` -- tuple corresponding to a reduced word
 
         EXAMPLES::
 
@@ -279,12 +279,13 @@ class PBWData(object): # UniqueRepresentation?
         w0 = self.weyl_group.long_element()
         return tuple([i] + (si * w0).reduced_word())
 
-#enhanced_braid_chain is an ugly data structure.
+
+# enhanced_braid_chain is an ugly data structure.
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cpdef tuple compute_new_lusztig_datum(list enhanced_braid_chain, initial_lusztig_datum):
     """
-    Return the lusztig datum obtained by applying tropical Plücker
+    Return the Lusztig datum obtained by applying tropical Plücker
     relations along ``enhanced_braid_chain`` starting with
     ``initial_lusztig_datum``.
 
@@ -316,17 +317,18 @@ cpdef tuple compute_new_lusztig_datum(list enhanced_braid_chain, initial_lusztig
     """
     cdef tuple interval_of_change
     # Does not currently check that len(initial_lusztig_datum) is appropriate
-    cdef list new_lusztig_datum = list(initial_lusztig_datum) #shallow copy
+    cdef list new_lusztig_datum = list(initial_lusztig_datum)  # shallow copy
     cdef int i
     for i in range(1, len(enhanced_braid_chain)):
         interval_of_change, type_data = enhanced_braid_chain[i]
-        a,b = interval_of_change
+        a, b = interval_of_change
         old_interval_datum = new_lusztig_datum[a:b]
         new_interval_datum = tropical_plucker_relation(type_data, old_interval_datum)
         new_lusztig_datum[a:b] = new_interval_datum
     return tuple(new_lusztig_datum)
 
-# The tropical plucker relations
+
+# The tropical Plücker relations
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cpdef tuple tropical_plucker_relation(tuple a, lusztig_datum):
@@ -397,6 +399,7 @@ cpdef tuple tropical_plucker_relation(tuple a, lusztig_datum):
         return tuple(reversed(tropical_plucker_relation((a[1], a[0]),
                                                         reversed_lusztig_datum)))
 
+
 # Maybe we need to be more specific, and pass not the Cartan type, but the root lattice?
 # TODO: Move to PBW_data?
 @cython.boundscheck(False)
@@ -420,10 +423,10 @@ cpdef list enhance_braid_move_chain(braid_move_chain, cartan_type):
     ``(interval_of_change, cartan_sub_matrix)`` where
 
     - ``interval_of_change`` is the (half-open) interval of indices where
-      the braid move occurs; this is `None` for the first tuple
+      the braid move occurs; this is ``None`` for the first tuple
     - ``cartan_sub_matrix`` is the off-diagonal entries of the `2 \times 2`
       submatrix of the Cartan matrix corresponding to the braid move;
-      this is `None` for the first tuple
+      this is ``None`` for the first tuple
 
     For a matrix::
 
@@ -451,7 +454,7 @@ cpdef list enhance_braid_move_chain(braid_move_chain, cartan_type):
     """
     cdef int i, j
     cdef int k, pos, first, last
-    cdef tuple interval_of_change, cartan_sub_matrix
+    cdef tuple cartan_sub_matrix
     cdef list output_list = []
     output_list.append( (None, None) )
     cdef tuple previous_word = <tuple> (braid_move_chain[0])
@@ -462,7 +465,7 @@ cpdef list enhance_braid_move_chain(braid_move_chain, cartan_type):
     # This likely could be done when performing chain_of_reduced_words
     # Things in here get called the most (about 50x more than enhance_braid_move_chain)
     for pos in range(1, len(braid_move_chain)):
-        # This gets the smallest continguous half-open interval [a, b)
+        # This gets the smallest contiguous half-open interval [a, b)
         # that contains the indices where current_word and previous_word differ.
         current_word = <tuple> (braid_move_chain[pos])
         for k in range(ell):
@@ -478,8 +481,7 @@ cpdef list enhance_braid_move_chain(braid_move_chain, cartan_type):
                 last = k + 1
                 break
 
-        cartan_sub_matrix = (cartan_matrix[i,j], cartan_matrix[j,i])
-        output_list.append( ((first, last), cartan_sub_matrix) )
+        cartan_sub_matrix = (cartan_matrix[i, j], cartan_matrix[j, i])
+        output_list.append(((first, last), cartan_sub_matrix))
         previous_word = current_word
     return output_list
-

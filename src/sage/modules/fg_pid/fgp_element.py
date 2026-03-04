@@ -5,15 +5,15 @@ AUTHOR:
     - William Stein, 2009
 """
 
-#*****************************************************************************
+# ****************************************************************************
 #       Copyright (C) 2009 William Stein <wstein@gmail.com>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
 from sage.structure.element import ModuleElement
 from sage.structure.richcmp import richcmp
@@ -21,7 +21,7 @@ from sage.structure.richcmp import richcmp
 # This adds extra maybe-not-necessary checks in the code, but could
 # slow things down.  It can impact what happens in more than just this
 # file.
-DEBUG=True
+DEBUG = True
 
 
 class FGP_Element(ModuleElement):
@@ -39,7 +39,7 @@ class FGP_Element(ModuleElement):
         sage: V = span([[1/2,1,1],[3/2,2,1],[0,0,1]],ZZ); W = V.span([2*V.0+4*V.1, 9*V.0+12*V.1, 4*V.2])
         sage: Q = V/W
         sage: x = Q(V.0-V.1); x #indirect doctest
-        (0, 3)
+        (0, 9)
         sage: isinstance(x, sage.modules.fg_pid.fgp_element.FGP_Element)
         True
         sage: type(x)
@@ -59,11 +59,12 @@ class FGP_Element(ModuleElement):
         """
         INPUT:
 
-        - ``parent`` -- parent module M
+        - ``parent`` -- parent module ``M``
 
-        - ``x`` -- element of M.V()
+        - ``x`` -- element of ``M.V()``
 
-        - ``check`` -- (default: True) if True, verify that x in M.V()
+        - ``check`` -- boolean (default: ``True``); if ``True``, verify that x
+          in ``M.V()``
 
         EXAMPLES::
 
@@ -76,13 +77,15 @@ class FGP_Element(ModuleElement):
 
         For full documentation, see :class:`FGP_Element`.
         """
-        if check: assert x in parent.V(), 'The argument x='+str(x)+' is not in the covering module!'
+        if check:
+            assert x in parent.V(), 'The argument x='+str(x)+' is not in the covering module!'
         ModuleElement.__init__(self, parent)
         self._x = x
 
     def lift(self):
         """
-        Lift self to an element of V, where the parent of self is the quotient module V/W.
+        Lift ``self`` to an element of V, where the parent of ``self`` is the
+        quotient module V/W.
 
         EXAMPLES::
 
@@ -94,14 +97,14 @@ class FGP_Element(ModuleElement):
             sage: Q.1
             (0, 1)
             sage: Q.0.lift()
-            (0, 0, 1)
+            (0, 6, 1)
             sage: Q.1.lift()
-            (0, 2, 0)
+            (0, -2, 0)
             sage: x = Q(V.0); x
-            (0, 4)
+            (0, 8)
             sage: x.lift()
             (1/2, 0, 0)
-            sage: x == 4*Q.1
+            sage: x == 8*Q.1
             True
             sage: x.lift().parent() == V
             True
@@ -111,10 +114,6 @@ class FGP_Element(ModuleElement):
             sage: A = (ZZ^1)/span([[100]], ZZ); A
             Finitely generated module V/W over Integer Ring with invariants (100)
             sage: x = A([5]); x
-            doctest:...: DeprecationWarning: The default behaviour changed!
-             If you *really* want a linear combination of smith generators,
-             use .linear_combination_of_smith_form_gens.
-            See http://trac.sagemath.org/16261 for details.
             (5)
             sage: v = x.lift(); v
             (5)
@@ -122,7 +121,6 @@ class FGP_Element(ModuleElement):
             Ambient free module of rank 1 over the principal ideal domain Integer Ring
         """
         return self._x
-
 
     def __neg__(self):
         """
@@ -137,7 +135,6 @@ class FGP_Element(ModuleElement):
         """
         P = self.parent()
         return P.element_class(P, -self._x)
-
 
     def _add_(self, other):
         """
@@ -159,12 +156,12 @@ class FGP_Element(ModuleElement):
             sage: 0 + x
             (1, 0)
 
-        We test canonical coercion from V and W.
+        We test canonical coercion from V and W::
 
             sage: Q.0 + V.0
-            (1, 4)
+            (1, 8)
             sage: V.0 + Q.0
-            (1, 4)
+            (1, 8)
             sage: W.0 + Q.0
             (1, 0)
             sage: W.0 + Q.0 == Q.0
@@ -172,7 +169,6 @@ class FGP_Element(ModuleElement):
         """
         P = self.parent()
         return P.element_class(P, self._x + other._x)
-
 
     def _sub_(self, other):
         """
@@ -193,14 +189,13 @@ class FGP_Element(ModuleElement):
         P = self.parent()
         return P.element_class(P, self._x - other._x)
 
-
     def _rmul_(self, c):
         """
         Multiplication by a scalar from the left (``self`` is on the right).
 
         INPUT:
 
-        - ``c`` -- an element of ``self.parent().base_ring()``.
+        - ``c`` -- an element of ``self.parent().base_ring()``
 
         OUTPUT:
 
@@ -236,7 +231,6 @@ class FGP_Element(ModuleElement):
             sage: x._rmul_(1/4)
             (1/4, 0)
         """
-        # print "_rmul_"
         P = self.parent()
         return P.element_class(P, self._x._rmul_(c))
 
@@ -246,7 +240,7 @@ class FGP_Element(ModuleElement):
 
         INPUT:
 
-        - ``c`` -- an element of ``self.parent().base_ring()``.
+        - ``c`` -- an element of ``self.parent().base_ring()``
 
         OUTPUT:
 
@@ -282,10 +276,8 @@ class FGP_Element(ModuleElement):
             sage: x._lmul_(1/4)
             (1/4, 0)
         """
-        # print '_lmul_'
         P = self.parent()
         return P.element_class(P, self._x._lmul_(s))
-
 
     def _repr_(self):
         """
@@ -295,10 +287,9 @@ class FGP_Element(ModuleElement):
             sage: V = span([[1/2,1,1],[3/2,2,1],[0,0,1]],ZZ); W = V.span([2*V.0+4*V.1, 9*V.0+12*V.1, 4*V.2])
             sage: Q = V/W
             sage: Q(V.1)._repr_()
-            '(0, 1)'
+            '(0, 11)'
         """
         return repr(self.vector())
-
 
     def __getitem__(self, *args):
         """
@@ -336,7 +327,8 @@ class FGP_Element(ModuleElement):
             sage: x.vector().parent()
             Ambient free module of rank 2 over the principal ideal domain Integer Ring
         """
-        try: return self.__vector
+        try:
+            return self.__vector
         except AttributeError:
             self.__vector = self.parent().coordinate_vector(self, reduce=True)
             self.__vector.set_immutable()
@@ -350,14 +342,12 @@ class FGP_Element(ModuleElement):
             sage: W = V.span([2*V.0+4*V.1, 9*V.0+12*V.1, 4*V.2])
             sage: Q = V/W
             sage: x = Q.0 + 3*Q.1
-            sage: hash(x)
-            3713081631933328131 # 64-bit
-            1298787075          # 32-bit
+            sage: hash(x) == hash((1,3))
+            True
 
             sage: A = AdditiveAbelianGroup([3])
-            sage: hash(A.an_element())
-            3430019387558 # 64-bit
-            -1659481946   # 32-bit
+            sage: hash(A.an_element()) == hash((1,))
+            True
         """
         return hash(self.vector())
 
@@ -367,11 +357,9 @@ class FGP_Element(ModuleElement):
 
         INPUT:
 
-        - ``base_ring`` -- the desired base ring of the vector.
+        - ``base_ring`` -- the desired base ring of the vector
 
-        OUTPUT:
-        
-        A vector over the base ring.
+        OUTPUT: a vector over the base ring
 
         EXAMPLES::
 
@@ -403,7 +391,7 @@ class FGP_Element(ModuleElement):
 
     def _richcmp_(self, right, op):
         """
-        Compare self and right.
+        Compare ``self`` and ``right``.
 
         EXAMPLES::
 
@@ -444,7 +432,7 @@ class FGP_Element(ModuleElement):
             sage: Q.0.additive_order()
             12
             sage: type(Q.0.additive_order())
-            <type 'sage.rings.integer.Integer'>
+            <class 'sage.rings.integer.Integer'>
             sage: Q.1.additive_order()
             +Infinity
         """
@@ -452,13 +440,15 @@ class FGP_Element(ModuleElement):
         I = Q.invariants()
         v = self.vector()
 
-        from sage.rings.all import infinity, Mod, Integer
-        from sage.arith.all import lcm
+        from sage.rings.infinity import infinity
+        from sage.rings.finite_rings.integer_mod import Mod
+        from sage.rings.integer import Integer
+        from sage.arith.functions import lcm
         n = Integer(1)
-        for i, a in enumerate(I):
+        for vi, a in zip(v, I):
             if a == 0:
-                if v[i] != 0:
+                if vi != 0:
                     return infinity
             else:
-                n = lcm(n, Mod(v[i],a).additive_order())
+                n = lcm(n, Mod(vi, a).additive_order())
         return n

@@ -2,10 +2,10 @@ Coordinate Charts
 =================
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    sage/manifolds/chart
 
-   sage/manifolds/coord_func
+   sage/manifolds/chart_func
 
-   sage/manifolds/coord_func_symb
+   sage/manifolds/calculus_method

@@ -1,5 +1,5 @@
 r"""
-Space of Morphisms of Vector Spaces (Linear Transformations)
+Space of morphisms of vector spaces (linear transformations)
 
 AUTHOR:
 
@@ -176,7 +176,7 @@ TESTS::
     True
 """
 
-####################################################################################
+##############################################################################
 #       Copyright (C) 2011 Rob Beezer <beezer@ups.edu>
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
@@ -189,12 +189,9 @@ TESTS::
 #  The full text of the GPL is available at:
 #
 #                  http://www.gnu.org/licenses/
-####################################################################################
-from __future__ import print_function
-from __future__ import absolute_import
+##############################################################################
 
-import inspect
-import sage.matrix.all as matrix
+from sage.matrix.constructor import matrix
 import sage.modules.free_module_homspace
 
 # This module initially overrides just the minimum functionality necessary
@@ -205,60 +202,27 @@ import sage.modules.free_module_homspace
 # for the examples.
 
 
-def is_VectorSpaceHomspace(x):
-    r"""
-    Return ``True`` if ``x`` is a vector space homspace.
-
-    INPUT:
-
-    ``x`` - anything
-
-    EXAMPLES:
-
-    To be a vector space morphism, the domain and codomain must both be
-    vector spaces, in other words, modules over fields.  If either
-    set is just a module, then the ``Hom()`` constructor will build a
-    space of free module morphisms.  ::
-
-        sage: H = Hom(QQ^3, QQ^2)
-        sage: type(H)
-        <class 'sage.modules.vector_space_homspace.VectorSpaceHomspace_with_category'>
-        sage: sage.modules.vector_space_homspace.is_VectorSpaceHomspace(H)
-        True
-
-        sage: K = Hom(QQ^3, ZZ^2)
-        sage: type(K)
-        <class 'sage.modules.free_module_homspace.FreeModuleHomspace_with_category'>
-        sage: sage.modules.vector_space_homspace.is_VectorSpaceHomspace(K)
-        False
-
-        sage: L = Hom(ZZ^3, QQ^2)
-        sage: type(L)
-        <class 'sage.modules.free_module_homspace.FreeModuleHomspace_with_category'>
-        sage: sage.modules.vector_space_homspace.is_VectorSpaceHomspace(L)
-        False
-
-        sage: sage.modules.vector_space_homspace.is_VectorSpaceHomspace('junk')
-        False
-    """
-    return isinstance(x, VectorSpaceHomspace)
-
 class VectorSpaceHomspace(sage.modules.free_module_homspace.FreeModuleHomspace):
 
-    def __call__(self, A, check=True):
+    def __call__(self, A, check=True, **kwds):
         r"""
         INPUT:
 
-        - ``A`` - one of several possible inputs representing
-          a morphism from this vector space homspace.
+        - ``A`` -- one of several possible inputs representing
+          a morphism from this vector space homspace:
+
           - a vector space morphism in this homspace
           - a matrix representation relative to the bases of the vector spaces,
             which acts on a vector placed to the left of the matrix
           - a list or tuple containing images of the domain's basis vectors
           - a function from the domain to the codomain
-        - ``check`` (default: True) - ``True`` or ``False``, required for
-          compatibility with calls from
-          :meth:`sage.structure.parent_gens.ParentWithGens.hom`.
+
+        - ``check`` -- boolean (default: ``True``); required for compatibility
+          with calls from :meth:`sage.structure.parent.Parent.hom`
+
+        - the keyword ``side`` can be assigned the values ``'left'`` or
+          ``'right'``; it corresponds to the side of vectors relative to the
+          matrix
 
         EXAMPLES::
 
@@ -361,42 +325,47 @@ class VectorSpaceHomspace(sage.modules.free_module_homspace.FreeModuleHomspace):
             sage: H.zero().is_zero()
             True
 
-        Previously the above code resulted in a TypeError because the
+        Previously the above code resulted in a :exc:`TypeError` because the
         dimensions of the matrix were incorrect.
         """
-        from .vector_space_morphism import is_VectorSpaceMorphism, VectorSpaceMorphism
+        from .vector_space_morphism import VectorSpaceMorphism
         D = self.domain()
         C = self.codomain()
-        from sage.matrix.matrix import is_Matrix
-        if is_Matrix(A):
+        side = kwds.get("side", "left")
+        from sage.structure.element import Matrix
+        if isinstance(A, Matrix):
             pass
-        elif is_VectorSpaceMorphism(A):
+        elif isinstance(A, VectorSpaceMorphism):
             A = A.matrix()
-        elif inspect.isfunction(A):
+        elif callable(A):
             try:
                 images = [A(g) for g in D.basis()]
             except (ValueError, TypeError, IndexError) as e:
                 msg = 'function cannot be applied properly to some basis element because\n' + e.args[0]
                 raise ValueError(msg)
             try:
-                A = matrix.matrix(D.dimension(), C.dimension(), [C.coordinates(C(a)) for a in images])
+                A = matrix(D.dimension(), C.dimension(), [C.coordinates(C(a)) for a in images])
             except (ArithmeticError, TypeError) as e:
                 msg = 'some image of the function is not in the codomain, because\n' + e.args[0]
                 raise ArithmeticError(msg)
+            if side == "right":
+                A = A.transpose()
         elif isinstance(A, (list, tuple)):
             if len(A) != len(D.basis()):
                 msg = "number of images should equal the size of the domain's basis (={0}), not {1}"
                 raise ValueError(msg.format(len(D.basis()), len(A)))
             try:
                 v = [C(a) for a in A]
-                A = matrix.matrix(D.dimension(), C.dimension(), [C.coordinates(a) for a in v])
+                A = matrix(D.dimension(), C.dimension(), [C.coordinates(a) for a in v])
             except (ArithmeticError, TypeError) as e:
                 msg = 'some proposed image is not in the codomain, because\n' + e.args[0]
                 raise ArithmeticError(msg)
+            if side == "right":
+                A = A.transpose()
         else:
             msg = 'vector space homspace can only coerce matrices, vector space morphisms, functions or lists, not {0}'
             raise TypeError(msg.format(A))
-        return VectorSpaceMorphism(self, A)
+        return VectorSpaceMorphism(self, A, side=side)
 
     def _repr_(self):
         r"""

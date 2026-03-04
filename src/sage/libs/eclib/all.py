@@ -1,7 +1,4 @@
-from __future__ import absolute_import
-from .constructor import CremonaModularSymbols
-
-from .interface import (mwrank_EllipticCurve, mwrank_MordellWeil,
-                       get_precision, set_precision)
-
-from .mwrank import initprimes as mwrank_initprimes
+from sage.libs.eclib.constructor import CremonaModularSymbols
+from sage.libs.eclib.interface import mwrank_EllipticCurve, mwrank_MordellWeil
+from sage.libs.eclib.mwrank import get_precision, set_precision
+from sage.libs.eclib.mwrank import initprimes as mwrank_initprimes

@@ -1,72 +1,75 @@
-# -*- coding: utf-8 -*-
 r"""
-Chessboard Graphs
+Chessboard graphs
 
 The methods defined here appear in :mod:`sage.graphs.graph_generators`.
 
-- :meth:`BishopGraph <GraphGenerators.BishopGraph>`
-- :meth:`KingGraph <GraphGenerators.KingGraph>`
-- :meth:`KnightGraph <GraphGenerators.KnightGraph>`
-- :meth:`QueenGraph <GraphGenerators.QueenGraph>`
-- :meth:`RookGraph <GraphGenerators.RookGraph>`
+- :meth:`BishopGraph <sage.graphs.graph_generators.GraphGenerators.BishopGraph>`
+- :meth:`KingGraph <sage.graphs.graph_generators.GraphGenerators.KingGraph>`
+- :meth:`KnightGraph <sage.graphs.graph_generators.GraphGenerators.KnightGraph>`
+- :meth:`QueenGraph <sage.graphs.graph_generators.GraphGenerators.QueenGraph>`
+- :meth:`RookGraph <sage.graphs.graph_generators.GraphGenerators.RookGraph>`
 
 AUTHORS:
 
 - David Coudert    (2012)
 """
 
-################################################################################
+# ****************************************************************************
 #           Copyright (C) 2012 David Coudert <david.coudert@inria.fr>
 #
 # Distributed  under  the  terms  of  the  GNU  General  Public  License (GPL)
 #                         http://www.gnu.org/licenses/
-################################################################################
-from __future__ import print_function
-from six.moves import range
+# ****************************************************************************
 
-def ChessboardGraphGenerator(dim_list,
-                             rook = True,    rook_radius = None,
-                             bishop = True,  bishop_radius = None,
-                             knight = True, knight_x = 1, knight_y = 2,
-                             relabel = False):
+from itertools import product
+from itertools import combinations
+from sage.graphs.graph import Graph
+
+
+def ChessboardGraphGenerator(dim_list, rook=True, rook_radius=None,
+                             bishop=True, bishop_radius=None,
+                             knight=True, knight_x=1, knight_y=2,
+                             relabel=False, immutable=False):
     r"""
-    Returns a Graph built on a `d`-dimensional chessboard with prescribed
+    Return a Graph built on a `d`-dimensional chessboard with prescribed
     dimensions and interconnections.
 
     This function allows to generate many kinds of graphs corresponding to legal
     movements on a `d`-dimensional chessboard: Queen Graph, King Graph, Knight
     Graphs, Bishop Graph, and many generalizations. It also allows to avoid
-    redondant code.
+    redundant code.
 
     INPUT:
 
-    - ``dim_list`` -- an iterable object (list, set, dict) providing the
-      dimensions `n_1, n_2, \ldots, n_d`, with `n_i \geq 1`, of the chessboard.
+    - ``dim_list`` -- iterable (list, set, dict); provides the dimensions
+      `n_1, n_2, \ldots, n_d`, with `n_i \geq 1`, of the chessboard
 
-    - ``rook`` -- (default: ``True``) boolean value indicating if the chess
-      piece is able to move as a rook, that is at any distance along a
-      dimension.
+    - ``rook`` -- boolean (default: ``True``); indicates whether the chess piece
+      is able to move as a rook, that is at any distance along a dimension
 
-    - ``rook_radius`` -- (default: None) integer value restricting the rook-like
-      movements to distance at most `rook_radius`.
+    - ``rook_radius`` -- integer (default: ``None``); restriction on the
+      rook-like movements to distance at most ``rook_radius``
 
-    - ``bishop`` -- (default: ``True``) boolean value indicating if the chess
-      piece is able to move like a bishop, that is along diagonals.
+    - ``bishop`` -- boolean (default: ``True``); indicates whether the chess
+      piece is able to move like a bishop, that is along diagonals
 
-    - ``bishop_radius`` -- (default: None) integer value restricting the
-      bishop-like movements to distance at most `bishop_radius`.
+    - ``bishop_radius`` -- integer (default: ``None``); restriction on the
+      bishop-like movements to distance at most ``bishop_radius``
 
-    - ``knight`` -- (default: ``True``) boolean value indicating if the chess
-      piece is able to move like a knight.
+    - ``knight`` -- boolean (default: ``True``); indicating whether the chess
+      piece is able to move like a knight
 
-    - ``knight_x`` -- (default: 1) integer indicating the number on steps the
-      chess piece moves in one dimension when moving like a knight.
+    - ``knight_x`` -- integer (default: `1`); indicates the number on steps
+      the chess piece moves in one dimension when moving like a knight
 
-    - ``knight_y`` -- (default: 2) integer indicating the number on steps the
-      chess piece moves in the second dimension when moving like a knight.
+    - ``knight_y`` -- integer (default: `2`); indicates the number on steps
+      the chess piece moves in the second dimension when moving like a knight
 
-    - ``relabel`` -- (default: ``False``) a boolean set to ``True`` if vertices
-      must be relabeled as integers.
+    - ``relabel`` -- boolean (default: ``False``); indicates whether the
+      vertices must be relabeled as integers
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     OUTPUT:
 
@@ -84,11 +87,11 @@ def ChessboardGraphGenerator(dim_list,
         sage: G.is_isomorphic( graphs.CompleteGraph(4) )
         True
 
-    A Rook's Graph in 2 dimensions is isomporphic to the Cartesian product of 2
+    A Rook's Graph in 2 dimensions is isomorphic to the Cartesian product of 2
     complete graphs::
 
-        sage: G, _ = graphs.ChessboardGraphGenerator( [3,4], rook=True, rook_radius=None, bishop=False, knight=False )
-        sage: H = ( graphs.CompleteGraph(3) ).cartesian_product( graphs.CompleteGraph(4) )
+        sage: G, _ = graphs.ChessboardGraphGenerator([3,4], rook=True, rook_radius=None, bishop=False, knight=False)
+        sage: H = (graphs.CompleteGraph(3)).cartesian_product(graphs.CompleteGraph(4))
         sage: G.is_isomorphic(H)
         True
 
@@ -96,45 +99,60 @@ def ChessboardGraphGenerator(dim_list,
 
     Giving dimensions less than 2::
 
-        sage: graphs.ChessboardGraphGenerator( [0, 2] )
+        sage: graphs.ChessboardGraphGenerator([0, 2])
         Traceback (most recent call last):
         ...
-        ValueError: The dimensions must be positive integers larger than 1.
+        ValueError: the dimensions must be positive integers larger than 1
 
     Giving non integer dimensions::
 
-        sage: graphs.ChessboardGraphGenerator( [4.5, 2] )
+        sage: graphs.ChessboardGraphGenerator([4.5, 2])
         Traceback (most recent call last):
         ...
-        ValueError: The dimensions must be positive integers larger than 1.
+        ValueError: the dimensions must be positive integers larger than 1
 
     Giving too few dimensions::
 
-        sage: graphs.ChessboardGraphGenerator( [2] )
+        sage: graphs.ChessboardGraphGenerator([2])
         Traceback (most recent call last):
         ...
-        ValueError: The chessboard must have at least 2 dimensions.
+        ValueError: the chessboard must have at least 2 dimensions
 
     Giving a non-iterable object as first parameter::
 
-        sage: graphs.ChessboardGraphGenerator( 2, 3 )
+        sage: graphs.ChessboardGraphGenerator(2, 3)
         Traceback (most recent call last):
         ...
-        TypeError: The first parameter must be an iterable object.
+        TypeError: the first parameter must be an iterable object
 
     Giving too small rook radius::
 
-        sage: graphs.ChessboardGraphGenerator( [2, 3], rook=True, rook_radius=0 )
+        sage: graphs.ChessboardGraphGenerator([2, 3], rook=True, rook_radius=0)
         Traceback (most recent call last):
         ...
-        ValueError: The rook_radius must be either None or have an integer value >= 1.
+        ValueError: the rook_radius must be either None or have an integer value >= 1
 
     Giving wrong values for knights movements::
 
-        sage: graphs.ChessboardGraphGenerator( [2, 3], rook=False, bishop=False, knight=True, knight_x=1, knight_y=-1 )
+        sage: graphs.ChessboardGraphGenerator([2, 3], rook=False, bishop=False, knight=True, knight_x=1, knight_y=-1)
         Traceback (most recent call last):
         ...
-        ValueError: The knight_x and knight_y values must be integers of value >= 1.
+        ValueError: the knight_x and knight_y values must be integers of value >= 1
+
+    Check the behavior of parameter immutable::
+
+        sage: G = graphs.ChessboardGraphGenerator([2, 2], relabel=False, immutable=False)[0]
+        sage: G.is_immutable()
+        False
+        sage: G = graphs.ChessboardGraphGenerator([2, 2], relabel=True, immutable=False)[0]
+        sage: G.is_immutable()
+        False
+        sage: G = graphs.ChessboardGraphGenerator([2, 2], relabel=False, immutable=True)[0]
+        sage: G.is_immutable()
+        True
+        sage: G = graphs.ChessboardGraphGenerator([2, 2], relabel=True, immutable=True)[0]
+        sage: G.is_immutable()
+        True
     """
     from sage.rings.integer_ring import ZZ
 
@@ -143,100 +161,101 @@ def ChessboardGraphGenerator(dim_list,
         dim = list(dim_list)
         nb_dim = len(dim)
     except TypeError:
-        raise TypeError('The first parameter must be an iterable object.')
+        raise TypeError('the first parameter must be an iterable object')
     if nb_dim < 2:
-        raise ValueError('The chessboard must have at least 2 dimensions.')
+        raise ValueError('the chessboard must have at least 2 dimensions')
     if any(a not in ZZ or a < 1 for a in dim):
-        raise ValueError('The dimensions must be positive integers larger than 1.')
+        raise ValueError('the dimensions must be positive integers larger than 1')
     dimstr = str(tuple(dim))
 
     # We check the radius toward neighbors
     if rook:
         if rook_radius is None:
             rook_radius = max(dim)
-        elif not rook_radius in ZZ or rook_radius < 1:
-            raise ValueError('The rook_radius must be either None or have an integer value >= 1.')
+        elif rook_radius not in ZZ or rook_radius < 1:
+            raise ValueError('the rook_radius must be either None or have an integer value >= 1')
     if bishop:
         if bishop_radius is None:
             bishop_radius = max(dim)
-        elif not bishop_radius in ZZ or bishop_radius < 1:
-            raise ValueError('The bishop_radius must be either None or have an integer value >= 1.')
-    if knight and ( not knight_x in ZZ or not knight_y in ZZ or knight_x < 1 or knight_y < 1 ):
-        raise ValueError('The knight_x and knight_y values must be integers of value >= 1.')
+        elif bishop_radius not in ZZ or bishop_radius < 1:
+            raise ValueError('the bishop_radius must be either None or have an integer value >= 1')
+    if knight and (knight_x not in ZZ or knight_y not in ZZ or knight_x < 1 or knight_y < 1):
+        raise ValueError('the knight_x and knight_y values must be integers of value >= 1')
 
     # We build the set of vertices of the d-dimensional chessboard
-    from itertools import product
-    V = [list(x) for x in list(product(*[range(_) for _ in dim]))]
+    V = [x for x in product(*[range(_) for _ in dim])]
 
-    from sage.combinat.combination import Combinations
-    combin = Combinations(range(nb_dim), 2)
+    def edges():
+        for u in V:
+            if rook:
+                # We add edges to vertices we can reach when moving in one
+                # dimension
+                for d in range(nb_dim):
+                    v = list(u)
+                    for k in range(v[d] + 1, min(dim[d], v[d] + 1 + rook_radius)):
+                        v[d] = k
+                        yield (u, tuple(v))
 
-    from sage.graphs.graph import Graph
-    G = Graph()
-    for u in V:
-        uu = tuple(u)
-        G.add_vertex(uu)
+            if bishop or knight:
+                # We add edges to vertices we can reach when moving in two
+                # dimensions
+                for dx, dy in combinations(range(nb_dim), 2):
+                    n = dim[dx]
+                    m = dim[dy]
+                    v = list(u)
+                    i = u[dx]
+                    j = u[dy]
 
-        if rook:
-            # We add edges to vertices we can reach when moving in one dimension
-            for d in range(nb_dim):
-                v = u[:]
-                for k in range(v[d]+1, min(dim[d],v[d]+1+rook_radius)):
-                    v[d] = k
-                    G.add_edge( uu, tuple(v) )
+                    if bishop:
+                        # Diagonal
+                        for k in range(1, min(n - i, m - j, bishop_radius + 1)):
+                            v[dx] = i + k
+                            v[dy] = j + k
+                            yield (u, tuple(v))
 
-        if bishop or knight:
-            # We add edges to vertices we can reach when moving in two dimensions
-            for dx,dy in combin:
-                n = dim[dx]
-                m = dim[dy]
-                v = u[:]
-                i = u[dx]
-                j = u[dy]
+                        # Anti-diagonal
+                        for k in range(min(i, m - j - 1, bishop_radius)):
+                            v[dx] = i - k - 1
+                            v[dy] = j + k + 1
+                            yield (u, tuple(v))
 
-                if bishop:
-                    # Diagonal
-                    for k in range(1, min(n-i,m-j,bishop_radius+1)):
-                        v[dx] = i+k
-                        v[dy] = j+k
-                        G.add_edge( uu, tuple(v) )
-
-                    # Anti-diagonal
-                    for k in range(min(i, m-j-1, bishop_radius)):
-                        v[dx] = i-k-1
-                        v[dy] = j+k+1
-                        G.add_edge( uu, tuple(v) )
-
-                if knight:
-                    # Moving knight_x in one dimension and knight_y in another
-                    # dimension
-                    if i+knight_y < n:
-                        if j+knight_x < m:
-                            v[dx] = i+knight_y
-                            v[dy] = j+knight_x
-                            G.add_edge( uu, tuple(v) )
-                        if j-knight_x >= 0:
-                            v[dx] = i+knight_y
-                            v[dy] = j-knight_x
-                            G.add_edge( uu, tuple(v) )
-                    if j+knight_y < m:
-                        if i+knight_x < n:
-                            v[dx] = i+knight_x
-                            v[dy] = j+knight_y
-                            G.add_edge( uu, tuple(v) )
-                        if i-knight_x >= 0:
-                            v[dx] = i-knight_x
-                            v[dy] = j+knight_y
-                            G.add_edge( uu, tuple(v) )
+                    if knight:
+                        # Moving knight_x in one dimension and knight_y in
+                        # another dimension
+                        if i + knight_y < n:
+                            if j + knight_x < m:
+                                v[dx] = i + knight_y
+                                v[dy] = j + knight_x
+                                yield (u, tuple(v))
+                            if j - knight_x >= 0:
+                                v[dx] = i + knight_y
+                                v[dy] = j - knight_x
+                                yield (u, tuple(v))
+                        if j + knight_y < m:
+                            if i + knight_x < n:
+                                v[dx] = i + knight_x
+                                v[dy] = j + knight_y
+                                yield (u, tuple(v))
+                            if i - knight_x >= 0:
+                                v[dx] = i - knight_x
+                                v[dy] = j + knight_y
+                                yield (u, tuple(v))
 
     if relabel:
-        G.relabel( inplace=True )
+        G = Graph([V, edges()], format="vertices_and_edges")
+        if immutable:
+            G = G.relabel(inplace=False, immutable=True)
+        else:
+            G.relabel(inplace=True)
+    else:
+        G = Graph([V, edges()], format="vertices_and_edges",
+                  immutable=immutable)
     return G, dimstr
 
 
-def QueenGraph(dim_list, radius=None, relabel=False):
+def QueenGraph(dim_list, radius=None, relabel=False, immutable=False):
     r"""
-    Returns the `d`-dimensional Queen Graph with prescribed dimensions.
+    Return the `d`-dimensional Queen Graph with prescribed dimensions.
 
     The 2-dimensional Queen Graph of parameters `n` and `m` is a graph with `nm`
     vertices in which each vertex represents a square in an `n \times m`
@@ -252,36 +271,39 @@ def QueenGraph(dim_list, radius=None, relabel=False):
 
     INPUT:
 
-    - ``dim_list`` -- an iterable object (list, set, dict) providing the
-      dimensions `n_1, n_2, \ldots, n_d`, with `n_i \geq 1`, of the chessboard.
+    - ``dim_list`` -- iterable (list, set, dict); provides the dimensions
+      `n_1, n_2, \ldots, n_d`, with `n_i \geq 1`, of the chessboard
 
-    - ``radius`` -- (default: ``None``) by setting the radius to a positive
-      integer, one may reduce the visibility of the queen to at most ``radius``
-      steps. When radius is 1, the resulting graph is a King Graph.
+    - ``radius`` -- integer (default: ``None``); by setting the radius to a
+      positive integer, one may reduce the visibility of the queen to at most
+      ``radius`` steps. When radius is 1, the resulting graph is a King Graph.
 
-    - ``relabel`` -- (default: ``False``) a boolean set to ``True`` if vertices
-      must be relabeled as integers.
+    - ``relabel`` -- boolean (default: ``False``); indicates whether the
+      vertices must be relabeled as integers
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES:
 
     The `(2,2)`-Queen Graph is isomorphic to the complete graph on 4 vertices::
 
-        sage: G = graphs.QueenGraph( [2, 2] )
-        sage: G.is_isomorphic( graphs.CompleteGraph(4) )
+        sage: G = graphs.QueenGraph([2, 2])
+        sage: G.is_isomorphic(graphs.CompleteGraph(4))
         True
 
     The Queen Graph with radius 1 is isomorphic to the King Graph::
 
-        sage: G = graphs.QueenGraph( [4, 5], radius=1 )
-        sage: H = graphs.KingGraph( [5, 4] )
-        sage: G.is_isomorphic( H )
+        sage: G = graphs.QueenGraph([4, 5], radius=1)
+        sage: H = graphs.KingGraph([5, 4])
+        sage: G.is_isomorphic(H)
         True
 
-    Also True in higher dimensions::
+    Also ``True`` in higher dimensions::
 
-        sage: G = graphs.QueenGraph( [3, 4, 5], radius=1 )
-        sage: H = graphs.KingGraph( [5, 3, 4] )
-        sage: G.is_isomorphic( H )
+        sage: G = graphs.QueenGraph([3, 4, 5], radius=1)
+        sage: H = graphs.KingGraph([5, 3, 4])
+        sage: G.is_isomorphic(H)
         True
 
     The Queen Graph can be obtained from the Rook Graph and the Bishop Graph::
@@ -291,26 +313,26 @@ def QueenGraph(dim_list, radius=None, relabel=False):
         ....:         G = graphs.QueenGraph([d,d],radius=r)
         ....:         H = graphs.RookGraph([d,d],radius=r)
         ....:         B = graphs.BishopGraph([d,d],radius=r)
-        ....:         H.add_edges(B.edges())
+        ....:         H.add_edges(B.edges(sort=False))
         ....:         if not G.is_isomorphic(H):
-        ....:            print("that's not good!")
-
+        ....:             print("that's not good!")
     """
     G, dimstr = ChessboardGraphGenerator(dim_list,
                                          rook=True, rook_radius=radius,
                                          bishop=True, bishop_radius=radius,
                                          knight=False,
-                                         relabel=relabel)
+                                         relabel=relabel,
+                                         immutable=immutable)
     if radius is None:
-        G.name(dimstr+"-Queen Graph")
+        G._name = f"{dimstr}-Queen Graph"
     else:
-        G.name(dimstr+"-Queen Graph with radius "+str(radius))
+        G._name = f"{dimstr}-Queen Graph with radius {radius}"
     return G
 
 
-def KingGraph(dim_list, radius=None, relabel=False):
+def KingGraph(dim_list, radius=None, relabel=False, immutable=False):
     r"""
-    Returns the `d`-dimensional King Graph with prescribed dimensions.
+    Return the `d`-dimensional King Graph with prescribed dimensions.
 
     The 2-dimensional King Graph of parameters `n` and `m` is a graph with `nm`
     vertices in which each vertex represents a square in an `n \times m`
@@ -325,16 +347,19 @@ def KingGraph(dim_list, radius=None, relabel=False):
 
     INPUT:
 
-    - ``dim_list`` -- an iterable object (list, set, dict) providing the
-      dimensions `n_1, n_2, \ldots, n_d`, with `n_i \geq 1`, of the chessboard.
+    - ``dim_list`` -- iterable (list, set, dict); provides the dimensions
+      `n_1, n_2, \ldots, n_d`, with `n_i \geq 1`, of the chessboard
 
-    - ``radius`` -- (default: ``None``) by setting the radius to a positive
-      integer, one may increase the power of the king to at least ``radius``
-      steps. When the radius equals the higher size of the dimensions, the
-      resulting graph is a Queen Graph.
+    - ``radius`` -- integer (default: ``None``); by setting the radius to a
+      positive integer, one may increase the power of the king to at least
+      ``radius`` steps. When the radius equals the higher size of the
+      dimensions, the resulting graph is a Queen Graph.
 
-    - ``relabel`` -- (default: ``False``) a boolean set to ``True`` if vertices
-      must be relabeled as integers.
+    - ``relabel`` -- boolean (default: ``False``); indicates whether the
+      vertices must be relabeled as integers
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES:
 
@@ -351,28 +376,31 @@ def KingGraph(dim_list, radius=None, relabel=False):
         sage: G.is_isomorphic( H )
         True
 
-    Also True in higher dimensions::
+    Also ``True`` in higher dimensions::
 
         sage: G = graphs.KingGraph( [2, 5, 4], radius=5 )
         sage: H = graphs.QueenGraph( [4, 5, 2] )
         sage: G.is_isomorphic( H )
         True
     """
+    rook_radius = 1 if radius is None else radius
+    bishop_radius = 1 if radius is None else radius
     G, dimstr = ChessboardGraphGenerator(dim_list,
-                                         rook=True, rook_radius=(1 if radius is None else radius),
-                                         bishop=True, bishop_radius=(1 if radius is None else radius),
+                                         rook=True, rook_radius=rook_radius,
+                                         bishop=True, bishop_radius=bishop_radius,
                                          knight=False,
-                                         relabel=relabel)
+                                         relabel=relabel,
+                                         immutable=immutable)
     if radius is None:
-        G.name(dimstr+"-King Graph")
+        G._name = f"{dimstr}-King Graph"
     else:
-        G.name(dimstr+"-King Graph with radius "+str(radius))
+        G._name = f"{dimstr}-King Graph with radius {radius}"
     return G
 
 
-def KnightGraph(dim_list, one=1, two=2, relabel=False):
+def KnightGraph(dim_list, one=1, two=2, relabel=False, immutable=False):
     r"""
-    Returns the d-dimensional Knight Graph with prescribed dimensions.
+    Return the d-dimensional Knight Graph with prescribed dimensions.
 
     The 2-dimensional Knight Graph of parameters `n` and `m` is a graph with
     `nm` vertices in which each vertex represents a square in an `n \times m`
@@ -386,17 +414,20 @@ def KnightGraph(dim_list, one=1, two=2, relabel=False):
 
     INPUT:
 
-    - ``dim_list`` -- an iterable object (list, set, dict) providing the
-      dimensions `n_1, n_2, \ldots, n_d`, with `n_i \geq 1`, of the chessboard.
+    - ``dim_list`` -- iterable (list, set, dict); provides the dimensions
+      `n_1, n_2, \ldots, n_d`, with `n_i \geq 1`, of the chessboard
 
-    - ``one`` -- (default: ``1``) integer indicating the number on steps in one
-      dimension.
+    - ``one`` -- integer (default: `1`); indicates the number of steps in the
+      first dimension
 
-    - ``two`` -- (default: ``2``) integer indicating the number on steps in the
-      second dimension.
+    - ``two`` -- integer (default: `2`); indicates the number of steps in the
+      second dimension
 
-    - ``relabel`` -- (default: ``False``) a boolean set to ``True`` if vertices
-      must be relabeled as integers.
+    - ``relabel`` -- boolean (default: ``False``); indicates whether the
+      vertices must be relabeled as integers
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES:
 
@@ -416,23 +447,23 @@ def KnightGraph(dim_list, one=1, two=2, relabel=False):
     The `(6,6)`-Knight Graph is Hamiltonian::
 
         sage: G = graphs.KnightGraph( [6, 6] )
-        sage: G.is_hamiltonian()
+        sage: G.is_hamiltonian()                                                        # needs sage.numerical.mip
         True
     """
     G, dimstr = ChessboardGraphGenerator(dim_list,
                                          rook=False, bishop=False,
                                          knight=True, knight_x=one, knight_y=two,
-                                         relabel=relabel)
-    if one+two == 3:
-        G.name(dimstr+"-Knight Graph")
+                                         relabel=relabel, immutable=immutable)
+    if one + two == 3:
+        G._name = f"{dimstr}-Knight Graph"
     else:
-        G.name(dimstr+"-Knight Graph with edges at distance ("+str(one)+", "+str(two)+")")
+        G._name = f"{dimstr}-Knight Graph with edges at distance ({one}, {two})"
     return G
 
 
-def RookGraph(dim_list, radius=None, relabel=False):
+def RookGraph(dim_list, radius=None, relabel=False, immutable=False):
     r"""
-    Returns the `d`-dimensional Rook's Graph with prescribed dimensions.
+    Return the `d`-dimensional Rook's Graph with prescribed dimensions.
 
     The 2-dimensional Rook's Graph of parameters `n` and `m` is a graph with
     `nm` vertices in which each vertex represents a square in an `n \times m`
@@ -447,15 +478,19 @@ def RookGraph(dim_list, radius=None, relabel=False):
 
     INPUT:
 
-    - ``dim_list`` -- an iterable object (list, set, dict) providing the
-      dimensions `n_1, n_2, \ldots, n_d`, with `n_i \geq 1`, of the chessboard.
+    - ``dim_list`` -- iterable (list, set, dict); provides the dimensions
+      `n_1, n_2, \ldots, n_d`, with `n_i \geq 1`, of the chessboard
 
-    - ``radius`` -- (default: ``None``) by setting the radius to a positive
-      integer, one may decrease the power of the rook to at most ``radius``
-      steps. When the radius is 1, the resulting graph is a d-dimensional grid.
+    - ``radius`` -- integer (default: ``None``); by setting the radius to a
+      positive integer, one may decrease the power of the rook to at most
+      ``radius`` steps. When the radius is 1, the resulting graph is a
+      `d`-dimensional grid.
 
-    - ``relabel`` -- (default: ``False``) a boolean set to ``True`` if vertices
-      must be relabeled as integers.
+    - ``relabel`` -- boolean (default: ``False``); indicates whether the
+      vertices must be relabeled as integers
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES:
 
@@ -477,17 +512,17 @@ def RookGraph(dim_list, radius=None, relabel=False):
     G, dimstr = ChessboardGraphGenerator(dim_list,
                                          rook=True, rook_radius=radius,
                                          bishop=False, knight=False,
-                                         relabel=relabel)
+                                         relabel=relabel, immutable=immutable)
     if radius is None:
-        G.name(dimstr+"-Rook Graph")
+        G._name = f"{dimstr}-Rook Graph"
     else:
-        G.name(dimstr+"-Rook Graph with radius "+str(radius))
+        G._name = f"{dimstr}-Rook Graph with radius {radius}"
     return G
 
 
-def BishopGraph(dim_list, radius=None, relabel=False):
+def BishopGraph(dim_list, radius=None, relabel=False, immutable=False):
     r"""
-    Returns the `d`-dimensional Bishop Graph with prescribed dimensions.
+    Return the `d`-dimensional Bishop Graph with prescribed dimensions.
 
     The 2-dimensional Bishop Graph of parameters `n` and `m` is a graph with
     `nm` vertices in which each vertex represents a square in an `n \times m`
@@ -501,15 +536,18 @@ def BishopGraph(dim_list, radius=None, relabel=False):
 
     INPUT:
 
-    - ``dim_list`` -- an iterable object (list, set, dict) providing the
-      dimensions `n_1, n_2, \ldots, n_d`, with `n_i \geq 1`, of the chessboard.
+    - ``dim_list`` -- iterable (list, set, dict); provides the dimensions
+      `n_1, n_2, \ldots, n_d`, with `n_i \geq 1`, of the chessboard
 
-    - ``radius`` -- (default: ``None``) by setting the radius to a positive
-      integer, one may decrease the power of the bishop to at most ``radius``
-      steps.
+    - ``radius`` -- integer (default: ``None``); by setting the radius to a
+      positive integer, one may decrease the power of the bishop to at most
+      ``radius`` steps.
 
-    - ``relabel`` -- (default: ``False``) a boolean set to ``True`` if vertices
-      must be relabeled as integers.
+    - ``relabel`` -- boolean (default: ``False``); indicates whether the
+      vertices must be relabeled as integers
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES:
 
@@ -525,17 +563,16 @@ def BishopGraph(dim_list, radius=None, relabel=False):
         ....:     H = Graph()
         ....:     for r in range(1,d+1):
         ....:         B = graphs.BishopGraph([d,d],radius=r)
-        ....:         H.add_edges( graphs.KnightGraph([d,d],one=r,two=r).edges() )
+        ....:         H.add_edges( graphs.KnightGraph([d,d],one=r,two=r).edges(sort=False) )
         ....:         if not B.is_isomorphic(H):
         ....:            print("that's not good!")
-
     """
     G, dimstr = ChessboardGraphGenerator(dim_list,
                                          rook=False, knight=False,
                                          bishop=True, bishop_radius=radius,
-                                         relabel=relabel)
+                                         relabel=relabel, immutable=immutable)
     if radius is None:
-        G.name(dimstr+"-Bishop Graph")
+        G._name = f"{dimstr}-Bishop Graph"
     else:
-        G.name(dimstr+"-Bishop Graph with radius "+str(radius))
+        G._name = f"{dimstr}-Bishop Graph with radius {radius}"
     return G

@@ -9,66 +9,28 @@ classes. Instead, one can create an
 :class:`EllipticCurve <sage.schemes.elliptic_curves.constructor.EllipticCurve>`
 and call methods that are implemented using this module.
 
-.. note::
+.. NOTE::
 
    This interface is a direct library-level interface to ``eclib``,
    including the 2-descent program ``mwrank``.
+
+TESTS:
+
+Check that ``eclib`` is imported as needed::
+
+    sage: [k for k in sys.modules if k.startswith("sage.libs.eclib")]
+    []
+    sage: EllipticCurve('11a1').mwrank_curve()
+    y^2 + y = x^3 - x^2 - 10 x - 20
+    sage: [k for k in sys.modules if k.startswith("sage.libs.eclib")]
+    ['...']
 """
+import sys
 
-from sage.structure.sage_object import SageObject
+from sage.libs.eclib.mwrank import _Curvedata, _mw, _two_descent, parse_point_list
 from sage.rings.integer_ring import IntegerRing
+from sage.structure.sage_object import SageObject
 
-def get_precision():
-    r"""
-    Return the global NTL real number precision.
-
-    See also :meth:`set_precision`.
-
-    .. warning::
-
-       The internal precision is binary.  This function multiplies the
-       binary precision by 0.3 (`=\log_2(10)` approximately) and
-       truncates.
-
-    OUTPUT:
-
-    (int) The current decimal precision.
-
-    EXAMPLES::
-
-        sage: mwrank_get_precision()
-        50
-    """
-    # don't want to load mwrank every time Sage starts up, so we do
-    # the import here.
-    from sage.libs.eclib.mwrank import get_precision
-    return get_precision()
-
-def set_precision(n):
-    r"""
-    Set the global NTL real number precision.  This has a massive
-    effect on the speed of mwrank calculations.  The default (used if
-    this function is not called) is ``n=50``, but it might have to be
-    increased if a computation fails.  See also :meth:`get_precision`.
-
-    INPUT:
-
-    - ``n`` (long) -- real precision used for floating point
-      computations in the library, in decimal digits.
-
-    .. warning::
-
-       This change is global and affects *all* future calls of eclib
-       functions by Sage.
-
-    EXAMPLES::
-
-        sage: mwrank_set_precision(20)
-    """
-    # don't want to load mwrank every time Sage starts up, so we do
-    # the import here.
-    from sage.libs.eclib.mwrank import set_precision
-    set_precision(n)
 
 class mwrank_EllipticCurve(SageObject):
     r"""
@@ -86,10 +48,10 @@ class mwrank_EllipticCurve(SageObject):
 
     INPUT:
 
-    - ``ainvs`` (list or tuple) -- a list of 5 or less integers, the
-      coefficients of a nonsingular Weierstrass equation.
+    - ``ainvs`` -- list or tuple list of 5 or less integers, the
+      coefficients of a nonsingular Weierstrass equation
 
-    - ``verbose`` (bool, default ``False``) -- verbosity flag.  If ``True``,
+    - ``verbose`` -- boolean (default: ``False``); verbosity flag.  If ``True``,
       then all Selmer group computations will be verbose.
 
     EXAMPLES:
@@ -104,7 +66,7 @@ class mwrank_EllipticCurve(SageObject):
 
         sage: e = mwrank_EllipticCurve([3, -4])
         sage: e
-        y^2 = x^3 + 3*x - 4
+        y^2 = x^3 + 3 x - 4
         sage: e.ainvs()
         [0, 0, 0, 3, -4]
 
@@ -140,17 +102,13 @@ class mwrank_EllipticCurve(SageObject):
             sage: e.ainvs()
             [0, 1, 1, -2, 0]
         """
-        # import here to save time during startup (mwrank takes a while to init)
 
-        from sage.libs.eclib.mwrank import _Curvedata
+        ainvs = list(ainvs)
+        if len(ainvs) > 5:
+            raise TypeError("ainvs must have length at most 5")
 
-        # if not isinstance(ainvs, list) and len(ainvs) <= 5:
-        if not isinstance(ainvs, (list,tuple)) or not len(ainvs) <= 5:
-            raise TypeError("ainvs must be a list or tuple of length at most 5.")
-
-        # Pad ainvs on the beginning by 0's, so e.g.
-        # [a4,a5] works.
-        ainvs = [0]*(5-len(ainvs)) + ainvs
+        # Pad ainvs on the beginning by 0's, so e.g. [a4, a6] works
+        ainvs = [0] * (5 - len(ainvs)) + ainvs
 
         # Convert each entry to an int
         try:
@@ -168,6 +126,7 @@ class mwrank_EllipticCurve(SageObject):
 
         # place holders
         self.__saturate = -2  # not yet saturated
+        self.__descent = None
 
     def __reduce__(self):
         r"""
@@ -178,11 +137,8 @@ class mwrank_EllipticCurve(SageObject):
             sage: E = mwrank_EllipticCurve([0,0,1,-7,6])
             sage: E.__reduce__()
             (<class 'sage.libs.eclib.interface.mwrank_EllipticCurve'>, ([0, 0, 1, -7, 6], False))
-
-
         """
         return mwrank_EllipticCurve, (self.__ainvs, self.__verbose)
-
 
     def set_verbose(self, verbose):
         """
@@ -191,19 +147,19 @@ class mwrank_EllipticCurve(SageObject):
 
         INPUT:
 
-        - ``verbose`` (int) -- if positive, print lots of output when
-          doing 2-descent.
+        - ``verbose`` -- integer; if positive, print lots of output when
+          doing 2-descent
 
         EXAMPLES::
 
             sage: E = mwrank_EllipticCurve([0, 0, 1, -1, 0])
             sage: E.saturate() # no output
             sage: E.gens()
-            [[0, -1, 1]]
+            ([0, -1, 1],)
 
             sage: E = mwrank_EllipticCurve([0, 0, 1, -1, 0])
             sage: E.set_verbose(1)
-            sage: E.saturate() # tol 1e-14
+            sage: E.saturate() # tol 1e-10
             Basic pair: I=48, J=-432
             disc=255744
             2-adic index bound = 2
@@ -239,10 +195,9 @@ class mwrank_EllipticCurve(SageObject):
         """
         self.__verbose = verbose
 
-
     def _curve_data(self):
         r"""
-        Returns the underlying :class:`_Curvedata` class for this mwrank elliptic curve.
+        Return the underlying :class:`_Curvedata` class for this mwrank elliptic curve.
 
         EXAMPLES::
 
@@ -258,7 +213,7 @@ class mwrank_EllipticCurve(SageObject):
 
     def ainvs(self):
         r"""
-        Returns the `a`-invariants of this mwrank elliptic curve.
+        Return the `a`-invariants of this mwrank elliptic curve.
 
         EXAMPLES::
 
@@ -270,7 +225,7 @@ class mwrank_EllipticCurve(SageObject):
 
     def isogeny_class(self, verbose=False):
         r"""
-        Returns the isogeny class of this mwrank elliptic curve.
+        Return the isogeny class of this mwrank elliptic curve.
 
         EXAMPLES::
 
@@ -282,92 +237,68 @@ class mwrank_EllipticCurve(SageObject):
 
     def __repr__(self):
         r"""
-        Returns the string representation of this mwrank elliptic curve.
+        Return the string representation of this mwrank elliptic curve.
 
         EXAMPLES::
 
             sage: E = mwrank_EllipticCurve([0,-1,1,0,0])
             sage: E.__repr__()
-            'y^2+ y = x^3 - x^2 '
+            'y^2 + y = x^3 - x^2'
         """
-        # TODO: Is the use (or omission) of spaces here intentional?
-        a = self.ainvs()
-        s = "y^2"
-        if a[0] == -1:
-            s += "- x*y "
-        elif a[0] == 1:
-            s += "+ x*y "
-        elif a[0] != 0:
-            s += "+ %s*x*y "%a[0]
-        if a[2] == -1:
-            s += " - y"
-        elif a[2] == 1:
-            s += "+ y"
-        elif a[2] != 0:
-            s += "+ %s*y"%a[2]
-        s += " = x^3 "
-        if a[1] == -1:
-            s += "- x^2 "
-        elif a[1] == 1:
-            s += "+ x^2 "
-        elif a[1] != 0:
-            s += "+ %s*x^2 "%a[1]
-        if a[3] == -1:
-            s += "- x "
-        elif a[3] == 1:
-            s += "+ x "
-        elif a[3] != 0:
-            s += "+ %s*x "%a[3]
-        if a[4] == -1:
-            s += "-1"
-        elif a[4] == 1:
-            s += "+1"
-        elif a[4] != 0:
-            s += "+ %s"%a[4]
-        s = s.replace("+ -","- ")
-        return s
+        a1, a2, a3, a4, a6 = self.__ainvs
+        # we do not assume a1, a2, a3 are reduced to {0,1}, {-1,0,1}, {0,1}
 
+        def coeff(a):
+            return ''.join([" +" if a > 0 else " -",
+                            " " + str(abs(a)) if abs(a) > 1 else ""])
 
-    def two_descent(self,
-                    verbose = True,
-                    selmer_only = False,
-                    first_limit = 20,
-                    second_limit = 8,
-                    n_aux = -1,
-                    second_descent = True):
-        """
+        return ''.join(['y^2',
+                        ' '.join([coeff(a1), 'xy']) if a1 else '',
+                        ' '.join([coeff(a3), 'y']) if a3 else '',
+                        ' = x^3',
+                        ' '.join([coeff(a2), 'x^2']) if a2 else '',
+                        ' '.join([coeff(a4), 'x']) if a4 else '',
+                        ' '.join([" +" if a6 > 0 else " -", str(abs(a6))]) if a6 else ''])
+
+    def two_descent(self, verbose=True, selmer_only=False, first_limit=20,
+                    second_limit=8, n_aux=-1, second_descent=True):
+        r"""
         Compute 2-descent data for this curve.
 
         INPUT:
 
-        - ``verbose`` (bool, default ``True``) --  print what mwrank is doing.
+        - ``verbose`` -- boolean (default: ``True``); print what mwrank is doing
 
-        - ``selmer_only`` (bool, default ``False``) -- ``selmer_only`` switch.
+        - ``selmer_only`` -- boolean (default: ``False``); ``selmer_only`` switch
 
-        - ``first_limit`` (int, default 20) -- bound on `|x|+|z|` in
-          quartic point search.
+        - ``first_limit`` -- integer (default: 20); naive height bound on
+          first point search on quartic homogeneous spaces (before
+          testing local solubility; very simple search with no
+          overheads).
 
-        - ``second_limit`` (int, default 8) -- bound on
-          `\log \max(|x|,|z|)`, i.e. logarithmic.
+        - ``second_limit`` -- integer (default: 8); logarithmic height bound on
+          second point search on quartic homogeneous spaces (after
+          testing local solubility; sieve-assisted search)
 
-        - ``n_aux`` (int, default -1) -- (only relevant for general
-          2-descent when 2-torsion trivial) number of primes used for
-          quartic search.  ``n_aux=-1`` causes default (8) to be used.
-          Increase for curves of higher rank.
+        - ``n_aux`` -- integer (default: -1); if positive, the number of
+          auxiliary primes used in sieve-assisted search for quartics.
+          If -1 (the default) use a default value (set in the eclib
+          code in ``src/qrank/mrank1.cc`` in DEFAULT_NAUX: currently 8).
+          Only relevant for curves with no 2-torsion, where full
+          2-descent is carried out.  Worth increasing for curves
+          expected to be of rank > 6 to one or two more than the
+          expected rank.
 
-        - ``second_descent`` (bool, default ``True``) -- (only relevant
-          for curves with 2-torsion, where mwrank uses descent via
-          2-isogeny) flag determining whether or not to do second
-          descent.  *Default strongly recommended.*
+        - ``second_descent`` -- boolean (default: ``True``); flag specifying
+          whether or not a second descent will be carried out.  Only relevant
+          for curves with 2-torsion.  Recommended left as the default except for
+          experts interested in details of Selmer groups.
 
-
-        OUTPUT:
-
-        Nothing -- nothing is returned.
+        OUTPUT: nothing
 
         TESTS:
 
-        See :trac:`7992`::
+        See :issue:`7992`::
 
             sage: EllipticCurve([0, prod(prime_range(10))]).mwrank_curve().two_descent()
             Basic pair: I=0, J=-5670
@@ -400,40 +331,36 @@ class mwrank_EllipticCurve(SageObject):
             sage: EllipticCurve([0, prod(prime_range(100))]).mwrank_curve().two_descent()
             Traceback (most recent call last):
             ...
-            RuntimeError: Aborted
+            RuntimeError: A 2-descent did not complete successfully.
 
         Calling this method twice does not cause a segmentation fault
-        (see :trac:`10665`)::
+        (see :issue:`10665`)::
 
             sage: E = EllipticCurve([1, 1, 0, 0, 528])
             sage: E.two_descent(verbose=False)
             True
             sage: E.two_descent(verbose=False)
             True
-
         """
-        from sage.libs.eclib.mwrank import _two_descent # import here to save time
         first_limit = int(first_limit)
         second_limit = int(second_limit)
         n_aux = int(n_aux)
         second_descent = int(second_descent)    # convert from bool to (int) 0 or 1
-        # TODO:  Don't allow limits above some value...???
-        #   (since otherwise mwrank just sets limit tiny)
         self.__descent = _two_descent()
         self.__descent.do_descent(self.__curve,
-                                      verbose,
-                                      selmer_only,
-                                      first_limit,
-                                      second_limit,
-                                      n_aux,
-                                      second_descent)
+                                  verbose,
+                                  selmer_only,
+                                  first_limit,
+                                  second_limit,
+                                  n_aux,
+                                  second_descent)
         if not self.__descent.ok():
             raise RuntimeError("A 2-descent did not complete successfully.")
         self.__saturate = -2  # not yet saturated
 
     def __two_descent_data(self):
         r"""
-        Returns the 2-descent data for this elliptic curve.
+        Return the 2-descent data for this elliptic curve.
 
         EXAMPLES::
 
@@ -441,18 +368,16 @@ class mwrank_EllipticCurve(SageObject):
             sage: E._mwrank_EllipticCurve__two_descent_data()
             <sage.libs.eclib.mwrank._two_descent object at ...>
         """
-        try:
-            return self.__descent
-        except AttributeError:
+        if self.__descent is None:
             self.two_descent(self.__verbose)
-            return self.__descent
+        return self.__descent
 
     def conductor(self):
         """
         Return the conductor of this curve, computed using Cremona's
         implementation of Tate's algorithm.
 
-        .. note::
+        .. NOTE::
 
            This is independent of PARI's.
 
@@ -466,7 +391,7 @@ class mwrank_EllipticCurve(SageObject):
 
     def rank(self):
         """
-        Returns the rank of this curve, computed using :meth:`two_descent()`.
+        Return the rank of this curve, computed using :meth:`two_descent()`.
 
         In general this may only be a lower bound for the rank; an
         upper bound may be obtained using the function :meth:`rank_bound()`.
@@ -488,13 +413,12 @@ class mwrank_EllipticCurve(SageObject):
             0
             sage: E.certain()
             False
-
         """
         return self.__two_descent_data().getrank()
 
     def rank_bound(self):
         """
-        Returns an upper bound for the rank of this curve, computed
+        Return an upper bound for the rank of this curve, computed
         using :meth:`two_descent()`.
 
         If the curve has no 2-torsion, this is equal to the 2-Selmer
@@ -538,13 +462,12 @@ class mwrank_EllipticCurve(SageObject):
             0
             sage: E.certain()
             False
-
         """
         return self.__two_descent_data().getrankbound()
 
     def selmer_rank(self):
         r"""
-        Returns the rank of the 2-Selmer group of the curve.
+        Return the rank of the 2-Selmer group of the curve.
 
         EXAMPLES:
 
@@ -588,7 +511,6 @@ class mwrank_EllipticCurve(SageObject):
             0
             sage: E.certain()
             False
-
         """
         return self.__two_descent_data().getselmer()
 
@@ -608,31 +530,33 @@ class mwrank_EllipticCurve(SageObject):
         R = self.__two_descent_data().regulator()
         return float(R)
 
-    def saturate(self, bound=-1):
+    def saturate(self, bound=-1, lower=2):
         """
-        Compute the saturation of the Mordell-Weil group at all
-        primes up to ``bound``.
+        Compute the saturation of the Mordell-Weil group.
 
         INPUT:
 
-        - ``bound`` (int, default -1) -- Use `-1` (the default) to
-          saturate at *all* primes, `0` for no saturation, or `n` (a
-          positive integer) to saturate at all primes up to `n`.
+        - ``bound`` -- integer (default: -1); if `-1`, saturate at *all*
+          primes by computing a bound on the saturation index,
+          otherwise saturate at all primes up to the minimum of
+          ``bound`` and the saturation index bound
+
+        - ``lower`` -- integer (default: 2); only saturate at primes not
+          less than this
 
         EXAMPLES:
 
         Since the 2-descent automatically saturates at primes up to
-        20, it is not easy to come up with an example where saturation
-        has any effect::
+        20, further saturation often has no effect::
 
             sage: E = mwrank_EllipticCurve([0, 0, 0, -1002231243161, 0])
             sage: E.gens()
-            [[-1001107, -4004428, 1]]
+            ([-1001107, -4004428, 1],)
             sage: E.saturate()
             sage: E.gens()
-            [[-1001107, -4004428, 1]]
+            ([-1001107, -4004428, 1],)
 
-        Check that :trac:`18031` is fixed::
+        Check that :issue:`18031` is fixed::
 
             sage: E = EllipticCurve([0,-1,1,-266,968])
             sage: Q1 = E([-1995,3674,125])
@@ -642,27 +566,25 @@ class mwrank_EllipticCurve(SageObject):
         """
         bound = int(bound)
         if self.__saturate < bound:
-            self.__two_descent_data().saturate(bound)
+            self.__two_descent_data().saturate(bound, lower)
             self.__saturate = bound
 
-    def gens(self):
+    def gens(self) -> tuple:
         """
-        Return a list of the generators for the Mordell-Weil group.
+        Return a tuple of the generators for the Mordell-Weil group.
 
         EXAMPLES::
 
             sage: E = mwrank_EllipticCurve([0, 0, 1, -1, 0])
             sage: E.gens()
-            [[0, -1, 1]]
+            ([0, -1, 1],)
         """
         self.saturate()
-        from sage.rings.all import Integer
-        L = eval(self.__two_descent_data().getbasis().replace(":",","))
-        return [[Integer(x), Integer(y), Integer(z)] for (x,y,z) in L]
+        return tuple(parse_point_list(self.__two_descent_data().getbasis()))
 
     def certain(self):
         r"""
-        Returns ``True`` if the last :meth:`two_descent()` call provably correctly
+        Return ``True`` if the last :meth:`two_descent()` call provably correctly
         computed the rank.  If :meth:`two_descent()` hasn't been
         called, then it is first called by :meth:`certain()`
         using the default parameters.
@@ -695,12 +617,14 @@ class mwrank_EllipticCurve(SageObject):
         """
         return bool(self.__two_descent_data().getcertain())
 
-    #def fullmw(self):
-    #    return self.__two_descent_data().getfullmw()
+    # def fullmw(self):
+    #     return self.__two_descent_data().getfullmw()
 
     def CPS_height_bound(self):
         r"""
-        Return the Cremona-Prickett-Siksek height bound.  This is a
+        Return the Cremona-Prickett-Siksek height bound.
+
+        This is a
         floating point number `B` such that if `P` is a point on the
         curve, then the naive logarithmic height `h(P)` is less than
         `B+\hat{h}(P)`, where `\hat{h}(P)` is the canonical height of
@@ -753,21 +677,21 @@ class mwrank_MordellWeil(SageObject):
 
     INPUT:
 
-    - ``curve`` (:class:`mwrank_EllipticCurve`) -- the underlying
-      elliptic curve.
+    - ``curve`` -- :class:`mwrank_EllipticCurve`; the underlying
+      elliptic curve
 
-    - ``verbose`` (bool, default ``False``) -- verbosity flag (controls
-      amount of output produced in point searches).
+    - ``verbose`` -- boolean (default: ``False``); verbosity flag (controls
+      amount of output produced in point searches)
 
-    - ``pp`` (int, default 1) -- process points flag (if nonzero,
+    - ``pp`` -- integer (default: 1); process points flag (if nonzero,
       the points found are processed, so that at all times only a
       `\ZZ`-basis for the subgroup generated by the points found
-      so far is stored; if zero, no processing is done and all
+      so far is stored. If zero, no processing is done and all
       points found are stored).
 
-    - ``maxr`` (int, default 999) -- maximum rank (quit point
+    - ``maxr`` -- integer (default: 999); maximum rank (quit point
       searching once the points found generate a subgroup of this
-      rank; useful if an upper bound for the rank is already
+      rank. Useful if an upper bound for the rank is already
       known).
 
     EXAMPLES::
@@ -804,65 +728,40 @@ class mwrank_MordellWeil(SageObject):
         sage: EQ.search(1)
         P1 = [0:1:0]     is torsion point, order 1
         P1 = [-3:0:1]     is generator number 1
-        saturating up to 20...Checking 2-saturation
-        Points have successfully been 2-saturated (max q used = 7)
+        saturating up to 20...Saturation index bound (for points of good reduction)  = 3
+        Reducing saturation bound from given value 20 to computed index bound 3
+        Tamagawa index primes are [ 2 ]...
+        Checking saturation at [ 2 3 ]
+        Checking 2-saturation
+        Points were proved 2-saturated (max q used = 7)
         Checking 3-saturation
-        Points have successfully been 3-saturated (max q used = 7)
-        Checking 5-saturation
-        Points have successfully been 5-saturated (max q used = 23)
-        Checking 7-saturation
-        Points have successfully been 7-saturated (max q used = 41)
-        Checking 11-saturation
-        Points have successfully been 11-saturated (max q used = 17)
-        Checking 13-saturation
-        Points have successfully been 13-saturated (max q used = 43)
-        Checking 17-saturation
-        Points have successfully been 17-saturated (max q used = 31)
-        Checking 19-saturation
-        Points have successfully been 19-saturated (max q used = 37)
+        Points were proved 3-saturated (max q used = 7)
         done
         P2 = [-2:3:1]     is generator number 2
-        saturating up to 20...Checking 2-saturation
+        saturating up to 20...Saturation index bound (for points of good reduction)  = 4
+        Reducing saturation bound from given value 20 to computed index bound 4
+        Tamagawa index primes are [ 2 ]...
+        Checking saturation at [ 2 3 ]
+        Checking 2-saturation
         possible kernel vector = [1,1]
         This point may be in 2E(Q): [14:-52:1]
         ...and it is!
         Replacing old generator #1 with new generator [1:-1:1]
+        Reducing index bound from 4 to 2
         Points have successfully been 2-saturated (max q used = 7)
         Index gain = 2^1
-        Checking 3-saturation
-        Points have successfully been 3-saturated (max q used = 13)
-        Checking 5-saturation
-        Points have successfully been 5-saturated (max q used = 67)
-        Checking 7-saturation
-        Points have successfully been 7-saturated (max q used = 53)
-        Checking 11-saturation
-        Points have successfully been 11-saturated (max q used = 73)
-        Checking 13-saturation
-        Points have successfully been 13-saturated (max q used = 103)
-        Checking 17-saturation
-        Points have successfully been 17-saturated (max q used = 113)
-        Checking 19-saturation
-        Points have successfully been 19-saturated (max q used = 47)
-        done (index = 2).
+        done, index = 2.
         Gained index 2, new generators = [ [1:-1:1] [-2:3:1] ]
         P3 = [-14:25:8]   is generator number 3
-        saturating up to 20...Checking 2-saturation
-        Points have successfully been 2-saturated (max q used = 11)
+        saturating up to 20...Saturation index bound (for points of good reduction)  = 3
+        Reducing saturation bound from given value 20 to computed index bound 3
+        Tamagawa index primes are [ 2 ]...
+        Checking saturation at [ 2 3 ]
+        Checking 2-saturation
+        Points were proved 2-saturated (max q used = 11)
         Checking 3-saturation
-        Points have successfully been 3-saturated (max q used = 13)
-        Checking 5-saturation
-        Points have successfully been 5-saturated (max q used = 71)
-        Checking 7-saturation
-        Points have successfully been 7-saturated (max q used = 101)
-        Checking 11-saturation
-        Points have successfully been 11-saturated (max q used = 127)
-        Checking 13-saturation
-        Points have successfully been 13-saturated (max q used = 151)
-        Checking 17-saturation
-        Points have successfully been 17-saturated (max q used = 139)
-        Checking 19-saturation
-        Points have successfully been 19-saturated (max q used = 179)
-        done (index = 1).
+        Points were proved 3-saturated (max q used = 13)
+        done, index = 1.
         P4 = [-1:3:1]    = -1*P1 + -1*P2 + -1*P3 (mod torsion)
         P4 = [0:2:1]     = 2*P1 + 0*P2 + 1*P3 (mod torsion)
         P4 = [2:13:8]    = -3*P1 + 1*P2 + -1*P3 (mod torsion)
@@ -902,7 +801,7 @@ class mwrank_MordellWeil(SageObject):
             Subgroup of Mordell-Weil group: []
         """
         if not isinstance(curve, mwrank_EllipticCurve):
-            raise TypeError("curve (=%s) must be an mwrank_EllipticCurve"%curve)
+            raise TypeError("curve (=%s) must be an mwrank_EllipticCurve" % curve)
         self.__curve = curve
         self.__verbose = verbose
         self.__pp = pp
@@ -911,7 +810,6 @@ class mwrank_MordellWeil(SageObject):
             verb = 1
         else:
             verb = 0
-        from sage.libs.eclib.mwrank import _mw # import here to save time
         self.__mw = _mw(curve._curve_data(), verb, pp, maxr)
 
     def __reduce__(self):
@@ -923,7 +821,7 @@ class mwrank_MordellWeil(SageObject):
             sage: E = mwrank_EllipticCurve([0,0,1,-7,6])
             sage: EQ = mwrank_MordellWeil(E)
             sage: EQ.__reduce__()
-            (<class 'sage.libs.eclib.interface.mwrank_MordellWeil'>, (y^2+ y = x^3 - 7*x + 6, True, 1, 999))
+            (<class 'sage.libs.eclib.interface.mwrank_MordellWeil'>, (y^2 + y = x^3 - 7 x + 6, True, 1, 999))
         """
         return mwrank_MordellWeil, (self.__curve, self.__verbose, self.__pp, self.__maxr)
 
@@ -945,23 +843,22 @@ class mwrank_MordellWeil(SageObject):
             sage: EQ.__repr__()
             'Subgroup of Mordell-Weil group: [[1:-1:1], [-2:3:1], [-14:25:8]]'
         """
-        return "Subgroup of Mordell-Weil group: %s"%self.__mw
+        return "Subgroup of Mordell-Weil group: %s" % self.__mw
 
-    def process(self, v, sat=0):
-        """
+    def process(self, v, saturation_bound=0):
+        """Process points in the list ``v``.
+
         This function allows one to add points to a :class:`mwrank_MordellWeil` object.
-
-        Process points in the list ``v``, with saturation at primes up to
-        ``sat``.  If ``sat`` is zero (the default), do no saturation.
 
         INPUT:
 
-        - ``v`` (list of 3-tuples or lists of ints or Integers) -- a
+        - ``v`` -- list of 3-tuples or lists of ints or Integers; a
           list of triples of integers, which define points on the
-          curve.
+          curve
 
-        - ``sat`` (int, default 0) -- saturate at primes up to ``sat``, or at
-          *all* primes if ``sat`` is zero.
+        - ``saturation_bound`` -- integer (default: 0); saturate at primes up to
+          ``saturation_bound``, or at *all* primes if ``saturation_bound`` is
+          -1. When ``saturation_bound`` is 0 (the default), do no saturation.
 
         OUTPUT:
 
@@ -972,7 +869,7 @@ class mwrank_MordellWeil(SageObject):
 
             sage: E = mwrank_EllipticCurve([0,0,1,-7,6])
             sage: E.gens()
-            [[1, -1, 1], [-2, 3, 1], [-14, 25, 8]]
+            ([1, -1, 1], [-2, 3, 1], [-14, 25, 8])
             sage: EQ = mwrank_MordellWeil(E)
             sage: EQ.process([[1, -1, 1], [-2, 3, 1], [-14, 25, 8]])
             P1 = [1:-1:1]         is generator number 1
@@ -984,11 +881,11 @@ class mwrank_MordellWeil(SageObject):
             sage: EQ.points()
             [[1, -1, 1], [-2, 3, 1], [-14, 25, 8]]
 
-        Example to illustrate the saturation parameter ``sat``::
+        Example to illustrate the saturation parameter ``saturation_bound``::
 
             sage: E = mwrank_EllipticCurve([0,0,1,-7,6])
             sage: EQ = mwrank_MordellWeil(E)
-            sage: EQ.process([[1547, -2967, 343], [2707496766203306, 864581029138191, 2969715140223272], [-13422227300, -49322830557, 12167000000]], sat=20)
+            sage: EQ.process([[1547, -2967, 343], [2707496766203306, 864581029138191, 2969715140223272], [-13422227300, -49322830557, 12167000000]], saturation_bound=20)
             P1 = [1547:-2967:343]         is generator number 1
             ...
             Gained index 5, new generators = [ [-2:3:1] [-14:25:8] [1:-1:1] ]
@@ -1001,49 +898,89 @@ class mwrank_MordellWeil(SageObject):
 
             sage: E = mwrank_EllipticCurve([0,0,1,-7,6])
             sage: EQ = mwrank_MordellWeil(E)
-            sage: EQ.process([[1547, -2967, 343], [2707496766203306, 864581029138191, 2969715140223272], [-13422227300, -49322830557, 12167000000]], sat=0)
+            sage: EQ.process([[1547, -2967, 343], [2707496766203306, 864581029138191, 2969715140223272], [-13422227300, -49322830557, 12167000000]], saturation_bound=0)
             P1 = [1547:-2967:343]         is generator number 1
             P2 = [2707496766203306:864581029138191:2969715140223272]      is generator number 2
             P3 = [-13422227300:-49322830557:12167000000]          is generator number 3
             sage: EQ.points()
             [[1547, -2967, 343], [2707496766203306, 864581029138191, 2969715140223272], [-13422227300, -49322830557, 12167000000]]
             sage: EQ.regulator()
-            375.42919921875
+            375.42920288254555
             sage: EQ.saturate(2)  # points were not 2-saturated
-            saturating basis...Saturation index bound = 93
-            WARNING: saturation at primes p > 2 will not be done;
-            ...
+            saturating basis...Saturation index bound (for points of good reduction)  = 93
+            Only p-saturating for p up to given value 2.
+            The resulting points may not be p-saturated for p between this and the computed index bound 93
+            Tamagawa index primes are [ 2 ]...
+            Checking saturation at [ 2 ]
+            Checking 2-saturation
+            possible kernel vector = [1,0,0]
+            This point may be in 2E(Q): [1547:-2967:343]
+            ...and it is!
+            Replacing old generator #1 with new generator [-2:3:1]
+            Reducing index bound from 93 to 46
+            Points have successfully been 2-saturated (max q used = 11)
+            Index gain = 2^1
+            done
             Gained index 2
-            New regulator =  93.857300720636393209
-            (False, 2, '[ ]')
+            New regulator =  93.85730072
+            (True, 2, '[ ]')
             sage: EQ.points()
             [[-2, 3, 1], [2707496766203306, 864581029138191, 2969715140223272], [-13422227300, -49322830557, 12167000000]]
             sage: EQ.regulator()
-            93.8572998046875
+            93.85730072063639
             sage: EQ.saturate(3)  # points were not 3-saturated
-            saturating basis...Saturation index bound = 46
-            WARNING: saturation at primes p > 3 will not be done;
-            ...
+            saturating basis...Saturation index bound (for points of good reduction)  = 46
+            Only p-saturating for p up to given value 3.
+            The resulting points may not be p-saturated for p between this and the computed index bound 46
+            Tamagawa index primes are [ 2 ]...
+            Checking saturation at [ 2 3 ]
+            Checking 2-saturation
+            Points were proved 2-saturated (max q used = 11)
+            Checking 3-saturation
+            possible kernel vector = [0,1,0]
+            This point may be in 3E(Q): [2707496766203306:864581029138191:2969715140223272]
+            ...and it is!
+            Replacing old generator #2 with new generator [-14:25:8]
+            Reducing index bound from 46 to 15
+            Points have successfully been 3-saturated (max q used = 13)
+            Index gain = 3^1
+            done
             Gained index 3
-            New regulator =  10.4285889689595992455
-            (False, 3, '[ ]')
+            New regulator =  10.42858897
+            (True, 3, '[ ]')
             sage: EQ.points()
             [[-2, 3, 1], [-14, 25, 8], [-13422227300, -49322830557, 12167000000]]
             sage: EQ.regulator()
-            10.4285888671875
+            10.4285889689596
             sage: EQ.saturate(5)  # points were not 5-saturated
-            saturating basis...Saturation index bound = 15
-            WARNING: saturation at primes p > 5 will not be done;
-            ...
+            saturating basis...Saturation index bound (for points of good reduction)  = 15
+            Only p-saturating for p up to given value 5.
+            The resulting points may not be p-saturated for p between this and the computed index bound 15
+            Tamagawa index primes are [ 2 ]...
+            Checking saturation at [ 2 3 5 ]
+            Checking 2-saturation
+            Points were proved 2-saturated (max q used = 11)
+            Checking 3-saturation
+            Points were proved 3-saturated (max q used = 13)
+            Checking 5-saturation
+            possible kernel vector = [0,0,1]
+            This point may be in 5E(Q): [-13422227300:-49322830557:12167000000]
+            ...and it is!
+            Replacing old generator #3 with new generator [1:-1:1]
+            Reducing index bound from 15 to 3
+            Points have successfully been 5-saturated (max q used = 71)
+            Index gain = 5^1
+            done
             Gained index 5
-            New regulator =  0.417143558758383969818
-            (False, 5, '[ ]')
+            New regulator =  0.4171435588
+            (True, 5, '[ ]')
             sage: EQ.points()
             [[-2, 3, 1], [-14, 25, 8], [1, -1, 1]]
             sage: EQ.regulator()
-            0.4171435534954071
+            0.417143558758384
             sage: EQ.saturate()   # points are now saturated
-            saturating basis...Saturation index bound = 3
+            saturating basis...Saturation index bound (for points of good reduction)  = 3
+            Tamagawa index primes are [ 2 ]...
             Checking saturation at [ 2 3 ]
             Checking 2-saturation
             Points were proved 2-saturated (max q used = 11)
@@ -1053,19 +990,19 @@ class mwrank_MordellWeil(SageObject):
             (True, 1, '[ ]')
         """
         if not isinstance(v, list):
-            raise TypeError("v (=%s) must be a list"%v)
-        sat = int(sat)
+            raise TypeError("v (=%s) must be a list" % v)
+        saturation_bound = int(saturation_bound)
         for P in v:
-            if not isinstance(P, (list,tuple)) or len(P) != 3:
-                raise TypeError("v (=%s) must be a list of 3-tuples (or 3-element lists) of ints"%v)
-            self.__mw.process(P, sat)
+            if not isinstance(P, (list, tuple)) or len(P) != 3:
+                raise TypeError("v (=%s) must be a list of 3-tuples (or 3-element lists) of ints" % v)
+            self.__mw.process(P, saturation_bound)
 
     def regulator(self):
         """
         Return the regulator of the points in this subgroup of
         the Mordell-Weil group.
 
-        .. note::
+        .. NOTE::
 
            ``eclib`` can compute the regulator to arbitrary precision,
            but the interface currently returns the output as a ``float``.
@@ -1090,9 +1027,7 @@ class mwrank_MordellWeil(SageObject):
         """
         Return the rank of this subgroup of the Mordell-Weil group.
 
-        OUTPUT:
-
-        (int) The rank of this subgroup of the Mordell-Weil group.
+        OUTPUT: integer
 
         EXAMPLES::
 
@@ -1129,71 +1064,63 @@ class mwrank_MordellWeil(SageObject):
             sage: EQ.rank()
             3
             sage: EQ.regulator()
-            0.4171435534954071
+            0.417143558758384
 
         We do in fact now have a full Mordell-Weil basis.
-
         """
         return self.__mw.rank()
 
-    def saturate(self, max_prime=-1, odd_primes_only=False):
-        r"""
-        Saturate this subgroup of the Mordell-Weil group.
+    def saturate(self, max_prime=-1, min_prime=2):
+        r"""Saturate this subgroup of the Mordell-Weil group.
 
         INPUT:
 
-        - ``max_prime`` (int, default -1) -- saturation is performed for
-          all primes up to ``max_prime``. If `-1` (the default), an
+        - ``max_prime`` -- integer (default: -1); if `-1`, an
           upper bound is computed for the primes at which the subgroup
-          may not be saturated, and this is used; however, if the
-          computed bound is greater than a value set by the ``eclib``
-          library (currently 97) then no saturation will be attempted
-          at primes above this.
+          may not be saturated, and saturation is performed for all
+          primes up to this bound.  Otherwise, the bound used is the
+          minimum of ``max_prime`` and the computed bound.
 
-        - ``odd_primes_only`` (bool, default ``False``) -- only do
-          saturation at odd primes.  (If the points have been found
-          via :meth:`two_descent` they should already be 2-saturated.)
+        - ``min_prime`` -- integer (default: 2); only do saturation at
+          primes no less than this.  (For example, if the points have
+          been found via :meth:`two_descent` they should already be
+          2-saturated so a value of 3 is appropriate.)
 
         OUTPUT:
 
         (3-tuple) (``ok``, ``index``, ``unsatlist``) where:
 
-        - ``ok`` (bool) -- ``True`` if and only if the saturation was
+        - ``ok`` -- boolean; ``True`` if and only if the saturation was
           provably successful at all primes attempted.  If the default
-          was used for ``max_prime`` and no warning was output about
-          the computed saturation bound being too high, then ``True``
-          indicates that the subgroup is saturated at *all*
-          primes.
+          was used for ``max_prime``, then ``True`` indicates that the
+          subgroup is saturated at *all* primes.
 
-        - ``index`` (int) -- the index of the group generated by the
-          original points in their saturation.
+        - ``index`` -- integer; the index of the group generated by the
+          original points in their saturation
 
-        - ``unsatlist`` (list of ints) -- list of primes at which
-          saturation could not be proved or achieved.  Increasing the
-          decimal precision should correct this, since it happens when
-          a linear combination of the points appears to be a multiple
-          of `p` but cannot be divided by `p`.  (Note that ``eclib``
-          uses floating point methods based on elliptic logarithms to
-          divide points.)
+        - ``unsatlist`` -- list of ints list of primes at which
+          saturation could not be proved or achieved
 
-        .. note::
+        .. NOTE::
+
+          In versions up to v20190909, ``eclib`` used floating point
+          methods based on elliptic logarithms to divide points, and
+          did not compute the precision necessary, which could cause
+          failures. Since v20210310, ``eclib`` uses exact method based
+          on division polynomials, which should mean that such
+          failures does not happen.
+
+        .. NOTE::
 
            We emphasize that if this function returns ``True`` as the
-           first return argument (``ok``), and if the default was used for the
-           parameter ``max_prime``, then the points in the basis after
-           calling this function are saturated at *all* primes,
-           i.e., saturating at the primes up to ``max_prime`` are
-           sufficient to saturate at all primes.  Note that the
-           function might not have needed to saturate at all primes up
-           to ``max_prime``.  It has worked out what prime you need to
-           saturate up to, and that prime might be smaller than ``max_prime``.
-
-        .. note::
-
-           Currently (May 2010), this does not remember the result of
-           calling :meth:`search()`.  So calling :meth:`search()` up
-           to height 20 then calling :meth:`saturate()` results in
-           another search up to height 18.
+           first return argument (``ok``), and if the default was used
+           for the parameter ``max_prime``, then the points in the
+           basis after calling this function are saturated at *all*
+           primes, i.e., saturating at the primes up to ``max_prime``
+           are sufficient to saturate at all primes.  Note that the
+           function computes an upper bound for the index of
+           saturation, and does no work for primes greater than this
+           even if ``max_prime`` is larger.
 
         EXAMPLES::
 
@@ -1205,62 +1132,63 @@ class mwrank_MordellWeil(SageObject):
         automatic saturation at this stage we set the parameter
         ``sat`` to 0 (which is in fact the default)::
 
-            sage: EQ.process([[1547, -2967, 343], [2707496766203306, 864581029138191, 2969715140223272], [-13422227300, -49322830557, 12167000000]], sat=0)
+            sage: EQ.process([[1547, -2967, 343], [2707496766203306, 864581029138191, 2969715140223272], [-13422227300, -49322830557, 12167000000]], saturation_bound=0)
             P1 = [1547:-2967:343]         is generator number 1
             P2 = [2707496766203306:864581029138191:2969715140223272]      is generator number 2
             P3 = [-13422227300:-49322830557:12167000000]          is generator number 3
             sage: EQ
             Subgroup of Mordell-Weil group: [[1547:-2967:343], [2707496766203306:864581029138191:2969715140223272], [-13422227300:-49322830557:12167000000]]
             sage: EQ.regulator()
-            375.42919921875
+            375.42920288254555
 
         Now we saturate at `p=2`, and gain index 2::
 
             sage: EQ.saturate(2)  # points were not 2-saturated
-            saturating basis...Saturation index bound = 93
-            WARNING: saturation at primes p > 2 will not be done;
+            saturating basis...Saturation index bound (for points of good reduction) = 93
+            Only p-saturating for p up to given value 2.
             ...
             Gained index 2
-            New regulator =  93.857300720636393209
-            (False, 2, '[ ]')
+            New regulator =  93.857...
+            (True, 2, '[ ]')
             sage: EQ
             Subgroup of Mordell-Weil group: [[-2:3:1], [2707496766203306:864581029138191:2969715140223272], [-13422227300:-49322830557:12167000000]]
             sage: EQ.regulator()
-            93.8572998046875
+            93.85730072063639
 
         Now we saturate at `p=3`, and gain index 3::
 
             sage: EQ.saturate(3)  # points were not 3-saturated
-            saturating basis...Saturation index bound = 46
-            WARNING: saturation at primes p > 3 will not be done;
+            saturating basis...Saturation index bound (for points of good reduction) = 46
+            Only p-saturating for p up to given value 3.
             ...
             Gained index 3
-            New regulator =  10.4285889689595992455
-            (False, 3, '[ ]')
+            New regulator =  10.428...
+            (True, 3, '[ ]')
             sage: EQ
             Subgroup of Mordell-Weil group: [[-2:3:1], [-14:25:8], [-13422227300:-49322830557:12167000000]]
             sage: EQ.regulator()
-            10.4285888671875
+            10.4285889689596
 
         Now we saturate at `p=5`, and gain index 5::
 
             sage: EQ.saturate(5)  # points were not 5-saturated
-            saturating basis...Saturation index bound = 15
-            WARNING: saturation at primes p > 5 will not be done;
+            saturating basis...Saturation index bound (for points of good reduction) = 15
+            Only p-saturating for p up to given value 5.
             ...
             Gained index 5
-            New regulator =  0.417143558758383969818
-            (False, 5, '[ ]')
+            New regulator =  0.417...
+            (True, 5, '[ ]')
             sage: EQ
             Subgroup of Mordell-Weil group: [[-2:3:1], [-14:25:8], [1:-1:1]]
             sage: EQ.regulator()
-            0.4171435534954071
+            0.417143558758384
 
         Finally we finish the saturation.  The output here shows that
         the points are now provably saturated at all primes::
 
             sage: EQ.saturate()   # points are now saturated
-            saturating basis...Saturation index bound = 3
+            saturating basis...Saturation index bound (for points of good reduction) = 3
+            Tamagawa index primes are [ 2 ]...
             Checking saturation at [ 2 3 ]
             Checking 2-saturation
             Points were proved 2-saturated (max q used = 11)
@@ -1274,20 +1202,21 @@ class mwrank_MordellWeil(SageObject):
 
             sage: E = mwrank_EllipticCurve([0,0,1,-7,6])
             sage: EQ = mwrank_MordellWeil(E)
-            sage: EQ.process([[1547, -2967, 343], [2707496766203306, 864581029138191, 2969715140223272], [-13422227300, -49322830557, 12167000000]], sat=5)
+            sage: EQ.process([[1547, -2967, 343], [2707496766203306, 864581029138191, 2969715140223272], [-13422227300, -49322830557, 12167000000]], saturation_bound=5)
             P1 = [1547:-2967:343]         is generator number 1
             ...
             Gained index 5, new generators = [ [-2:3:1] [-14:25:8] [1:-1:1] ]
             sage: EQ
             Subgroup of Mordell-Weil group: [[-2:3:1], [-14:25:8], [1:-1:1]]
             sage: EQ.regulator()
-            0.4171435534954071
+            0.417143558758384
 
         But we would still need to use the :meth:`saturate()` function to
         verify that full saturation has been done::
 
             sage: EQ.saturate()
-            saturating basis...Saturation index bound = 3
+            saturating basis...Saturation index bound (for points of good reduction) = 3
+            Tamagawa index primes are [ 2 ]...
             Checking saturation at [ 2 3 ]
             Checking 2-saturation
             Points were proved 2-saturated (max q used = 11)
@@ -1301,7 +1230,7 @@ class mwrank_MordellWeil(SageObject):
         proves saturation at 2 and at 3, by reducing the points modulo
         all primes of good reduction up to 11, respectively 13.
         """
-        ok, index, unsat = self.__mw.saturate(int(max_prime), odd_primes_only)
+        ok, index, unsat = self.__mw.saturate(int(max_prime), int(min_prime))
         return bool(ok), int(str(index)), unsat
 
     def search(self, height_limit=18, verbose=False):
@@ -1311,27 +1240,27 @@ class mwrank_MordellWeil(SageObject):
 
         INPUT:
 
-        - ``height_limit`` (float, default: 18) -- search up to this
-          logarithmic height.
+        - ``height_limit``-- float (default: 18); search up to this
+          logarithmic height
 
-        .. note::
+        .. NOTE::
 
-          On 32-bit machines, this *must* be < 21.48 else
+          On 32-bit machines, this *must* be < 21.48 (`31\log(2)`) else
           `\exp(h_{\text{lim}}) > 2^{31}` and overflows.  On 64-bit machines, it
-          must be *at most* 43.668.  However, this bound is a logarithmic
+          must be *at most* 43.668  (`63\log(2)`) .  However, this bound is a logarithmic
           bound and increasing it by just 1 increases the running time
           by (roughly) `\exp(1.5)=4.5`, so searching up to even 20
           takes a very long time.
 
-        .. note::
+        .. NOTE::
 
            The search is carried out with a quadratic sieve, using
            code adapted from a version of Michael Stoll's
            ``ratpoints`` program.  It would be preferable to use a
            newer version of ``ratpoints``.
 
-        - ``verbose`` (bool, default ``False``) -- turn verbose operation on
-          or off.
+        - ``verbose`` -- boolean (default: ``False``)turn verbose operation on
+          or off
 
         EXAMPLES:
 
@@ -1365,21 +1294,12 @@ class mwrank_MordellWeil(SageObject):
             Subgroup of Mordell-Weil group: [[4413270:10381877:27000]]
         """
         height_limit = float(height_limit)
-        if height_limit >= 21.4:        # TODO: docstring says 21.48 (for 32-bit machines; what about 64-bit...?)
-            raise ValueError("The height limit must be < 21.4.")
+        int_bits = sys.maxsize.bit_length()
+        max_height_limit = int_bits * 0.693147  # log(2.0) = 0.693147 approx
+        if height_limit >= max_height_limit:
+            raise ValueError("The height limit must be < {} = {}log(2) on a {}-bit machine.".format(max_height_limit, int_bits, int_bits + 1))
 
         moduli_option = 0  # Use Stoll's sieving program... see strategies in ratpoints-1.4.c
-
-        ##            moduli_option -- int (default: 0); if > 0; a flag used to determine
-        ##                    the moduli that are used in sieving
-        ##                       1 -- first 10 odd primes; the first one you
-        ##                            would think of.
-        ##                       2 -- three composites; $2^6\cdot 3^4$, ... TODO
-        ##                             (from German mathematician J. Gebel;
-        ##                               personal conversation about SIMATH)
-        ##                       3 -- nine prime powers; $2^5, \ldots$;
-        ##                            like 1 but includes powers of small primes
-        ##                    TODO: Extract the meaning from mwprocs.cc; line 776 etc.
 
         verbose = bool(verbose)
         self.__mw.search(height_limit, moduli_option, verbose)
@@ -1389,11 +1309,9 @@ class mwrank_MordellWeil(SageObject):
         Return a list of the generating points in this Mordell-Weil
         group.
 
-        OUTPUT:
-
-        (list) A list of lists of length 3, each holding the
+        OUTPUT: list of lists of length 3, each holding the
         primitive integer coordinates `[x,y,z]` of a generating
-        point.
+        point
 
         EXAMPLES::
 
@@ -1406,8 +1324,5 @@ class mwrank_MordellWeil(SageObject):
             P4 = [12:35:27]      = 1*P1 + -1*P2 + -1*P3 (mod torsion)
             sage: EQ.points()
             [[1, -1, 1], [-2, 3, 1], [-14, 25, 8]]
-
         """
-        L = eval(self.__mw.getbasis().replace(":",","))
-        from sage.rings.all import Integer
-        return [[Integer(x), Integer(y), Integer(z)] for (x,y,z) in L]
+        return self.__mw.getbasis()

@@ -1,20 +1,18 @@
 """
-Eisenstein Series (optimized compiled functions)
+Eisenstein series, optimized
 """
 
 from cysignals.memory cimport check_allocarray, sig_free
-from cysignals.signals cimport sig_on, sig_off
+from cysignals.signals cimport sig_check
 
-from sage.rings.rational_field import QQ
-from sage.rings.power_series_ring import PowerSeriesRing
+from sage.arith.misc import primes, bernoulli
 from sage.rings.integer cimport Integer
-from sage.arith.all import primes, bernoulli
 from sage.rings.fast_arith cimport prime_range
 
 from cpython.list cimport PyList_GET_ITEM
 from sage.libs.flint.fmpz_poly cimport *
 from sage.libs.gmp.mpz cimport *
-from sage.libs.flint.fmpz_poly cimport Fmpz_poly
+from sage.libs.flint.fmpz_poly_sage cimport Fmpz_poly, fmpz_poly_set_coeff_mpz, fmpz_poly_scalar_mul_mpz
 
 cpdef Ek_ZZ(int k, int prec=10):
     """
@@ -25,12 +23,10 @@ cpdef Ek_ZZ(int k, int prec=10):
 
     INPUT:
 
-    - `k` -- int
-    - ``prec`` -- int
+    - ``k`` -- integer
+    - ``prec`` -- integer
 
-    OUTPUT:
-
-    - list of Sage Integers.
+    OUTPUT: list of integers
 
     EXAMPLES::
 
@@ -95,7 +91,7 @@ cpdef Ek_ZZ(int k, int prec=10):
         while True:
             continue_flag = 0
             # do the first p-1
-            for i from 0 < i < p:
+            for i in range(1, p):
                 ind += p
                 if (ind >= prec):
                     continue_flag = 1
@@ -111,12 +107,12 @@ cpdef Ek_ZZ(int k, int prec=10):
 
             # compute the valuation of n at p
             additional_p_powers = 0
-            temp_index = ind / p
+            temp_index = ind // p
             remainder = 0
             while not remainder:
                 additional_p_powers += 1
                 prev_index = temp_index
-                temp_index = temp_index / p
+                temp_index = temp_index // p
                 remainder = prev_index - p*temp_index
 
             # if we need a new sum, it has to be the next uncomputed one.
@@ -142,9 +138,9 @@ cpdef Ek_ZZ(int k, int prec=10):
     return val
 
 
-cpdef eisenstein_series_poly(int k, int prec = 10) :
+cpdef eisenstein_series_poly(int k, int prec=10):
     r"""
-    Return the q-expansion up to precision ``prec`` of the weight `k`
+    Return the `q`-expansion up to precision ``prec`` of the weight `k`
     Eisenstein series, as a FLINT :class:`~sage.libs.flint.fmpz_poly.Fmpz_poly`
     object, normalised so the coefficients are integers with no common factor.
 
@@ -161,19 +157,16 @@ cpdef eisenstein_series_poly(int k, int prec = 10) :
     """
     cdef mpz_t *val = <mpz_t *>check_allocarray(prec, sizeof(mpz_t))
     cdef mpz_t one, mult, term, last, term_m1, last_m1
-    cdef unsigned long int expt
-    cdef long ind, ppow, int_p
+    cdef long ind
     cdef int i
     cdef Fmpz_poly res = Fmpz_poly.__new__(Fmpz_poly)
 
-    if k%2 or k < 2:
+    if k % 2 or k < 2:
         raise ValueError("k (=%s) must be an even positive integer" % k)
     if prec < 0:
         raise ValueError("prec (=%s) must be an even nonnegative integer" % prec)
     if (prec == 0):
         return Fmpz_poly.__new__(Fmpz_poly)
-
-    sig_on()
 
     mpz_init(one)
     mpz_init(term)
@@ -182,33 +175,33 @@ cpdef eisenstein_series_poly(int k, int prec = 10) :
     mpz_init(term_m1)
     mpz_init(last_m1)
 
-    for i from 0 <= i < prec :
-        mpz_init(val[i])
-        mpz_set_si(val[i], 1)
+    for i in range(prec):
+        mpz_init_set_si(val[i], 1)
 
     mpz_set_si(one, 1)
 
-    expt = <unsigned long int>(k - 1)
-    a0 = - bernoulli(k) / (2*k)
+    cdef unsigned long expt = k - 1
+    a0 = -bernoulli(k) / (2*k)
 
-    for p in primes(1,prec) :
-        int_p = int(p)
-        ppow = <long int>int_p
+    cdef long p, ppow
+    for p in primes(1, prec):
+        ppow = p
 
-        mpz_set_si(mult, int_p)
+        mpz_set_si(mult, p)
         mpz_pow_ui(mult, mult, expt)
         mpz_mul(term, mult, mult)
         mpz_set(last, mult)
 
-        while (ppow < prec):
+        while ppow < prec:
+            sig_check()
             ind = ppow
             mpz_sub(term_m1, term, one)
             mpz_sub(last_m1, last, one)
-            while (ind < prec):
+            while ind < prec:
                 mpz_mul(val[ind], val[ind], term_m1)
                 mpz_fdiv_q(val[ind], val[ind], last_m1)
                 ind += ppow
-            ppow *= int_p
+            ppow *= p
             mpz_set(last, term)
             mpz_mul(term, term, mult)
 
@@ -220,14 +213,12 @@ cpdef eisenstein_series_poly(int k, int prec = 10) :
     mpz_clear(last_m1)
 
     fmpz_poly_set_coeff_mpz(res.poly, prec-1, val[prec-1])
-    for i from 1 <= i < prec - 1 :
+    for i in range(1, prec - 1):
         fmpz_poly_set_coeff_mpz(res.poly, i, val[i])
 
     fmpz_poly_scalar_mul_mpz(res.poly, res.poly, (<Integer>(a0.denominator())).value)
     fmpz_poly_set_coeff_mpz(res.poly, 0, (<Integer>(a0.numerator())).value)
 
     sig_free(val)
-
-    sig_off()
 
     return res

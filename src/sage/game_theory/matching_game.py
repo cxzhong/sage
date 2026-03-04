@@ -1,5 +1,6 @@
+# sage.doctest: needs sage.graphs
 """
-Matching games.
+Matching games
 
 This module implements a class for matching games (stable marriage problems)
 [DI1989]_. At present the extended Gale-Shapley algorithm is implemented
@@ -10,17 +11,17 @@ AUTHORS:
 - James Campbell and Vince Knight 06-2014: Original version
 """
 
-#*****************************************************************************
+# ****************************************************************************
 #       Copyright (C) 2014 James Campbell james.campbell@tanti.org.uk
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 from sage.structure.sage_object import SageObject
-from sage.rings.all import ZZ
+from sage.rings.integer_ring import ZZ
 from copy import deepcopy
 from sage.graphs.bipartite_graph import BipartiteGraph
 
@@ -72,7 +73,7 @@ class MatchingGame(SageObject):
 
     Two potential inputs are accepted (see below to see the effect of each):
 
-    - ``reviewer/suitors_preferences`` -- a dictionary containing the
+    - ``reviewer/suitors_preferences`` -- dictionary containing the
       preferences of all players:
 
       * key - each reviewer/suitors
@@ -80,8 +81,8 @@ class MatchingGame(SageObject):
 
     OR:
 
-    - ``integer`` -- an integer simply representing the number of reviewers
-      and suitors.
+    - ``integer`` -- integer simply representing the number of reviewers
+      and suitors
 
     To implement the above game in Sage::
 
@@ -97,9 +98,9 @@ class MatchingGame(SageObject):
         sage: m
         A matching game with 4 suitors and 4 reviewers
         sage: m.suitors()
-        ('K', 'J', 'M', 'L')
+        ('J', 'K', 'L', 'M')
         sage: m.reviewers()
-        ('A', 'C', 'B', 'D')
+        ('A', 'B', 'C', 'D')
 
     A matching `M` is any bijection between `S` and `R`. If `s \in S` and
     `r \in R` are matched by `M` we denote:
@@ -124,7 +125,7 @@ class MatchingGame(SageObject):
 
     Matchings have a natural representations as bipartite graphs::
 
-        sage: plot(m)
+        sage: plot(m)                                                                   # needs sage.plot
         Graphics object consisting of 13 graphics primitives
 
     The above plots the bipartite graph associated with the matching.
@@ -180,9 +181,9 @@ class MatchingGame(SageObject):
         sage: g.add_reviewer()
         sage: g.add_suitor()
         sage: g.reviewers()
-        ('Rosaline', 'Juliet', -3)
+        (-3, 'Juliet', 'Rosaline')
         sage: g.suitors()
-        ('Mercutio', 'Romeo', 3)
+        (3, 'Mercutio', 'Romeo')
 
     Note that when adding a reviewer or a suitor all preferences are wiped::
 
@@ -200,15 +201,15 @@ class MatchingGame(SageObject):
         ValueError: suitor preferences are not complete
 
     Here we update the preferences so that the new reviewers and suitors
-    don't affect things too much (they prefer each other and are the least
+    do not affect things too much (they prefer each other and are the least
     preferred of the others)::
 
-        sage: g.suitors()[0].pref = suitrs['Mercutio'] + (-3,)
-        sage: g.suitors()[1].pref = suitrs['Romeo'] + (-3,)
-        sage: g.suitors()[2].pref = (-3, 'Juliet', 'Rosaline')
-        sage: g.reviewers()[0].pref = revwrs['Rosaline'] + (3,)
+        sage: g.suitors()[1].pref = suitrs['Mercutio'] + (-3,)
+        sage: g.suitors()[2].pref = suitrs['Romeo'] + (-3,)
+        sage: g.suitors()[0].pref = (-3, 'Juliet', 'Rosaline')
+        sage: g.reviewers()[2].pref = revwrs['Rosaline'] + (3,)
         sage: g.reviewers()[1].pref = revwrs['Juliet'] + (3,)
-        sage: g.reviewers()[2].pref = (3, 'Romeo', 'Mercutio')
+        sage: g.reviewers()[0].pref = (3, 'Romeo', 'Mercutio')
 
     Now the game can be solved::
 
@@ -269,10 +270,10 @@ class MatchingGame(SageObject):
         ....:                 'C': ('K', 'M', 'L', 'J'),
         ....:                 'D': ('M', 'K', 'J', 'L')}
         sage: m = MatchingGame([suitr_pref, reviewr_pref])
-        sage: m._suitors
-        ['K', 'J', 'M', 'L']
-        sage: m._reviewers
-        ['A', 'C', 'B', 'D']
+        sage: m.suitors()
+        ('J', 'K', 'L', 'M')
+        sage: m.reviewers()
+        ('A', 'B', 'C', 'D')
 
     Also works for numbers::
 
@@ -468,7 +469,7 @@ class MatchingGame(SageObject):
             sage: g1.reviewers()
             (-1, -2, -3)
             sage: g1.suitors()
-            (1, 3, 2)
+            (1, 2, 3)
 
             sage: g2 = MatchingGame(1)
             sage: g2.add_reviewer(-2)
@@ -491,18 +492,8 @@ class MatchingGame(SageObject):
                 and all(s1.pref == s2.pref for s1, s2 in
                         zip(set(self._suitors), set(other._suitors))))
 
-    def __hash__(self):
-        """
-        Raise an error because this is mutable.
-
-        EXAMPLES::
-
-            sage: hash(MatchingGame(3))
-            Traceback (most recent call last):
-            ...
-            TypeError: unhashable because matching games are mutable
-        """
-        raise TypeError("unhashable because matching games are mutable")
+    __hash__ = None
+    # not hashable because this is mutable.
 
     def plot(self):
         r"""
@@ -518,14 +509,14 @@ class MatchingGame(SageObject):
             sage: revr = {3: (0, 1),
             ....:         4: (1, 0)}
             sage: g = MatchingGame([suit, revr])
-            sage: plot(g)
+            sage: plot(g)                                                               # needs sage.plot
             Traceback (most recent call last):
             ...
             ValueError: game has not been solved yet
 
             sage: g.solve()
             {0: 3, 1: 4}
-            sage: plot(g)
+            sage: plot(g)                                                               # needs sage.plot
             Graphics object consisting of 7 graphics primitives
         """
         pl = self.bipartite_graph()
@@ -803,11 +794,11 @@ class MatchingGame(SageObject):
             ....:         -3: (1, 0)}
             sage: g = MatchingGame([suit, revr])
             sage: g.reviewers()
-            (-3, -1)
+            (-1, -3)
 
             sage: g.add_reviewer()
             sage: g.reviewers()
-            (-3, -1, -4)
+            (-1, -3, -4)
         """
         if name is None:
             name = -len(self._reviewers) - 1
@@ -831,7 +822,7 @@ class MatchingGame(SageObject):
             sage: g.suitors()
             (1, 2)
         """
-        return tuple(self._suitors)
+        return tuple(sorted(self._suitors, key=lambda s:str(s._name)))
 
     def reviewers(self):
         """
@@ -843,7 +834,7 @@ class MatchingGame(SageObject):
             sage: g.reviewers()
             (-1, -2)
         """
-        return tuple(self._reviewers)
+        return tuple(sorted(self._reviewers, key=lambda r:str(r._name)))
 
     def solve(self, invert=False):
         r"""
@@ -948,7 +939,7 @@ class MatchingGame(SageObject):
         return {key: self._sol_dict[key][0] for key in self._suitors}
 
 
-class Player(object):
+class Player:
     r"""
     A class to act as a data holder for the players used of the
     matching games.
@@ -1034,7 +1025,7 @@ class Player(object):
 
     def __lt__(self, other):
         """
-        Tests less than inequality of two players. Allows for players to be
+        Test less than inequality of two players. Allows for players to be
         sorted on their names.
 
         TESTS::
@@ -1060,7 +1051,7 @@ class Player(object):
 
     def __gt__(self, other):
         """
-        Tests greater than inequality of two players. Allows for players to be
+        Test greater than inequality of two players. Allows for players to be
         sorted on their names.
 
         TESTS::
@@ -1086,7 +1077,7 @@ class Player(object):
 
     def __ge__(self, other):
         """
-        Tests greater than or equal inequality of two players. Allows for
+        Test greater than or equal inequality of two players. Allows for
         players to be sorted on their names.
 
         TESTS::
@@ -1122,7 +1113,7 @@ class Player(object):
 
     def __le__(self, other):
         """
-        Tests less than or equal inequality of two players. Allows for
+        Test less than or equal inequality of two players. Allows for
         players to be sorted on their names.
 
         TESTS::
@@ -1158,7 +1149,7 @@ class Player(object):
 
     def __ne__(self, other):
         """
-        Tests inequality of two players. Allows for
+        Test inequality of two players. Allows for
         players to be sorted on their names.
 
         TESTS::

@@ -1,24 +1,21 @@
 """
-Elements of Arithmetic Subgroups
+Elements of arithmetic subgroups
 """
-
-################################################################################
+# ##############################################################################
 #
-#       Copyright (C) 2009, The Sage Group -- http://www.sagemath.org/
+#       Copyright (C) 2009, The Sage Group -- https://www.sagemath.org/
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
 #
 #  The full text of the GPL is available at:
 #
-#                  http://www.gnu.org/licenses/
+#                  https://www.gnu.org/licenses/
 #
-################################################################################
-from __future__ import absolute_import
+# ##############################################################################
 
-from sage.structure.element cimport MultiplicativeGroupElement, MonoidElement, Element
+from sage.structure.element cimport MultiplicativeGroupElement
 from sage.structure.richcmp cimport richcmp
-from sage.rings.all import ZZ
-from sage.modular.cusps import Cusp
+from sage.rings.integer_ring import ZZ
 
 from sage.matrix.matrix_space import MatrixSpace
 from sage.matrix.matrix_integer_dense cimport Matrix_integer_dense
@@ -28,7 +25,7 @@ M2Z = MatrixSpace(ZZ, 2)
 
 cdef class ArithmeticSubgroupElement(MultiplicativeGroupElement):
     r"""
-    An element of the group `{\rm SL}_2(\ZZ)`, i.e. a 2x2 integer matrix of
+    An element of the group `\SL_2(\ZZ)`, i.e. a 2x2 integer matrix of
     determinant 1.
     """
 
@@ -42,14 +39,13 @@ cdef class ArithmeticSubgroupElement(MultiplicativeGroupElement):
 
         - ``parent`` -- an arithmetic subgroup
 
-        - `x` -- data defining a 2x2 matrix over ZZ
-                 which lives in parent
+        - ``x`` -- data defining a 2x2 matrix over ZZ
+          which lives in ``parent``
 
-        - ``check`` -- if True, check that parent is an arithmetic
-                       subgroup, and that `x` defines a matrix of
-                       determinant `1`.
+        - ``check`` -- if ``True``, check that parent is an arithmetic
+          subgroup, and that `x` defines a matrix of determinant `1`
 
-        We tend not to create elements of arithmetic subgroups that aren't
+        We tend not to create elements of arithmetic subgroups that are not
         SL2Z, in order to avoid coercion issues (that is, the other arithmetic
         subgroups are "facade parents").
 
@@ -81,9 +77,9 @@ cdef class ArithmeticSubgroupElement(MultiplicativeGroupElement):
             True
         """
         if check:
-            from .arithgroup_generic import is_ArithmeticSubgroup
-            if not is_ArithmeticSubgroup(parent):
-                raise TypeError("parent (= %s) must be an arithmetic subgroup"%parent)
+            from .arithgroup_generic import ArithmeticSubgroup
+            if not isinstance(parent, ArithmeticSubgroup):
+                raise TypeError("parent (= %s) must be an arithmetic subgroup" % parent)
 
             x = M2Z(x, copy=True, coerce=True)
             if x.determinant() != 1:
@@ -110,7 +106,7 @@ cdef class ArithmeticSubgroupElement(MultiplicativeGroupElement):
             sage: unpickle_build(si, (Gamma0(13), {'_ArithmeticSubgroupElement__x': x}))
         """
         from .congroup_sl2z import SL2Z
-        oldparent, kwdict = state
+        _, kwdict = state
         self._parent = SL2Z
         if '_ArithmeticSubgroupElement__x' in kwdict:
             self.__x = M2Z(kwdict['_ArithmeticSubgroupElement__x'])
@@ -134,10 +130,10 @@ cdef class ArithmeticSubgroupElement(MultiplicativeGroupElement):
             sage: list(Gamma0(2).0.matrix())
             [(1, 1), (0, 1)]
         """
-        yield self.__x[0,0]
-        yield self.__x[0,1]
-        yield self.__x[1,0]
-        yield self.__x[1,1]
+        yield self.__x[0, 0]
+        yield self.__x[0, 1]
+        yield self.__x[1, 0]
+        yield self.__x[1, 1]
 
     def __repr__(self):
         r"""
@@ -160,11 +156,11 @@ cdef class ArithmeticSubgroupElement(MultiplicativeGroupElement):
             '\\left(\\begin{array}{rr}\n6 & 1 \\\\\n5 & 1\n\\end{array}\\right)'
         """
         return '%s' % self.__x._latex_()
-        
+
     cpdef _richcmp_(self, right_r, int op):
         """
-        Compare self to right, where right is guaranteed to have the same
-        parent as self.
+        Compare ``self`` to ``right``, where ``right`` is guaranteed to have
+        the same parent as ``self``.
 
         EXAMPLES::
 
@@ -183,7 +179,7 @@ cdef class ArithmeticSubgroupElement(MultiplicativeGroupElement):
             sage: x != y
             True
 
-        This once caused a segfault (see :trac:`5443`)::
+        This once caused a segfault (see :issue:`5443`)::
 
             sage: r,s,t,u,v = map(SL2Z, [[1, 1, 0, 1], [-1, 0, 0, -1], [1, -1, 0, 1], [1, -1, 2, -1], [-1, 1, -2, 1]])
             sage: v == s*u
@@ -194,22 +190,22 @@ cdef class ArithmeticSubgroupElement(MultiplicativeGroupElement):
         cdef ArithmeticSubgroupElement right = <ArithmeticSubgroupElement>right_r
         return richcmp(self.__x, right.__x, op)
 
-    def __nonzero__(self):
-        """
-        Return True, since the self lives in SL(2,\Z), which does not
+    def __bool__(self):
+        r"""
+        Return ``True``, since the ``self`` lives in SL(2,\Z), which does not
         contain the zero matrix.
 
         EXAMPLES::
 
             sage: x = Gamma0(5)([1,1,0,1])
-            sage: x.__nonzero__()
+            sage: bool(x)
             True
         """
         return True
 
     cpdef _mul_(self, right):
         """
-        Return self * right.
+        Return ``self * right``.
 
         EXAMPLES::
 
@@ -219,18 +215,17 @@ cdef class ArithmeticSubgroupElement(MultiplicativeGroupElement):
             sage: x.parent()
             Modular Group SL(2,Z)
 
-        We check that :trac:`5048` is fixed::
+        We check that :issue:`5048` is fixed::
 
             sage: a = Gamma0(10).1 * Gamma0(5).2; a # random
             sage: a.parent()
             Modular Group SL(2,Z)
-
         """
         return self.__class__(self.parent(), self.__x * (<ArithmeticSubgroupElement> right).__x, check=False)
 
     def __invert__(self):
         """
-        Return the inverse of self.
+        Return the inverse of ``self``.
 
         EXAMPLES::
 
@@ -239,13 +234,13 @@ cdef class ArithmeticSubgroupElement(MultiplicativeGroupElement):
             [0 1]
         """
         return self._parent(
-                [self.__x.get_unsafe(1,1), -self.__x.get_unsafe(0,1),
-                 -self.__x.get_unsafe(1,0), self.__x.get_unsafe(0,0)],
+                [self.__x.get_unsafe(1, 1), -self.__x.get_unsafe(0, 1),
+                 -self.__x.get_unsafe(1, 0), self.__x.get_unsafe(0, 0)],
                 check=False)
 
     def matrix(self):
         """
-        Return the matrix corresponding to self.
+        Return the matrix corresponding to ``self``.
 
         EXAMPLES::
 
@@ -256,24 +251,24 @@ cdef class ArithmeticSubgroupElement(MultiplicativeGroupElement):
             [4 5]
             [3 4]
             sage: type(x.matrix())
-            <type 'sage.matrix.matrix_integer_dense.Matrix_integer_dense'>
+            <class 'sage.matrix.matrix_integer_dense.Matrix_integer_dense'>
         """
         return self.__x
 
     def determinant(self):
         """
-        Return the determinant of self, which is always 1.
+        Return the determinant of ``self``, which is always 1.
 
         EXAMPLES::
 
             sage: Gamma0(691)([1,0,691,1]).determinant()
             1
         """
-        return ZZ(1)
+        return ZZ.one()
 
     def det(self):
         """
-        Return the determinant of self, which is always 1.
+        Return the determinant of ``self``, which is always 1.
 
         EXAMPLES::
 
@@ -284,51 +279,51 @@ cdef class ArithmeticSubgroupElement(MultiplicativeGroupElement):
 
     def a(self):
         """
-        Return the upper left entry of self.
+        Return the upper left entry of ``self``.
 
         EXAMPLES::
 
             sage: Gamma0(13)([7,1,13,2]).a()
             7
         """
-        return self.__x.get_unsafe(0,0)
+        return self.__x.get_unsafe(0, 0)
 
     def b(self):
         """
-        Return the upper right entry of self.
+        Return the upper right entry of ``self``.
 
         EXAMPLES::
 
             sage: Gamma0(13)([7,1,13,2]).b()
             1
         """
-        return self.__x.get_unsafe(0,1)
+        return self.__x.get_unsafe(0, 1)
 
     def c(self):
         """
-        Return the lower left entry of self.
+        Return the lower left entry of ``self``.
 
         EXAMPLES::
 
             sage: Gamma0(13)([7,1,13,2]).c()
             13
         """
-        return self.__x.get_unsafe(1,0)
+        return self.__x.get_unsafe(1, 0)
 
     def d(self):
         """
-        Return the lower right entry of self.
+        Return the lower right entry of ``self``.
 
         EXAMPLES::
 
             sage: Gamma0(13)([7,1,13,2]).d()
             2
         """
-        return self.__x.get_unsafe(1,1)
+        return self.__x.get_unsafe(1, 1)
 
     def acton(self, z):
         """
-        Return the result of the action of self on z as a fractional linear
+        Return the result of the action of ``self`` on z as a fractional linear
         transformation.
 
         EXAMPLES::
@@ -338,12 +333,14 @@ cdef class ArithmeticSubgroupElement(MultiplicativeGroupElement):
 
         An example of g acting on a symbolic variable::
 
-            sage: z = var('z')
-            sage: g.acton(z)
+            sage: z = var('z')                                                          # needs sage.symbolic
+            sage: g.acton(z)                                                            # needs sage.symbolic
             (z + 2)/(15*z + 31)
 
         An example involving the Gaussian numbers::
 
+            sage: # needs sage.rings.number_field
+            sage: x = polygen(ZZ, 'x')
             sage: K.<i> = NumberField(x^2 + 1)
             sage: g.acton(i)
             1/1186*i + 77/1186
@@ -377,10 +374,9 @@ cdef class ArithmeticSubgroupElement(MultiplicativeGroupElement):
 
             sage: G([1, 4, 0, 1]).acton(infinity)
             +Infinity
-
         """
-        from sage.rings.infinity import is_Infinite, infinity
-        if is_Infinite(z):
+        from sage.rings.infinity import InfinityElement, infinity
+        if isinstance(z, InfinityElement):
             if self.c() != 0:
                 return self.a() / self.c()
             else:
@@ -388,19 +384,20 @@ cdef class ArithmeticSubgroupElement(MultiplicativeGroupElement):
         if hasattr(z, 'denominator') and hasattr(z, 'numerator'):
             p = z.numerator()
             q = z.denominator()
-            P = self.a()*p + self.b()*q
-            Q = self.c()*p + self.d()*q
+            P = self.a() * p + self.b() * q
+            Q = self.c() * p + self.d() * q
             if not Q and P:
                 return infinity
             else:
-                return P/Q
-        return (self.a()*z + self.b())/(self.c()*z + self.d())
+                return P / Q
+        return (self.a() * z + self.b()) / (self.c() * z + self.d())
 
     def __getitem__(self, q):
         r"""
         Fetch entries by direct indexing.
 
         EXAMPLES::
+
             sage: SL2Z([3,2,1,1])[0,0]
             3
         """
@@ -412,8 +409,10 @@ cdef class ArithmeticSubgroupElement(MultiplicativeGroupElement):
 
         EXAMPLES::
 
-            sage: hash(SL2Z.0)
-            -4
+            sage: hash32 = -1995808122
+            sage: hash64 = -8192788425652673914
+            sage: hash(SL2Z.0) in [hash32, hash64]
+            True
         """
         return hash(self.__x)
 
@@ -471,5 +470,3 @@ cdef class ArithmeticSubgroupElement(MultiplicativeGroupElement):
             return ZZ(6)
         elif t == -1:
             return ZZ(3)
-
-        raise RuntimeError

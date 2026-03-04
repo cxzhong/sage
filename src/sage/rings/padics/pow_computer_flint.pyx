@@ -1,5 +1,9 @@
-from __future__ import absolute_import
-
+# distutils: libraries = gmp NTL_LIBRARIES
+# distutils: extra_compile_args = NTL_CFLAGS
+# distutils: include_dirs = NTL_INCDIR
+# distutils: library_dirs = NTL_LIBDIR
+# distutils: extra_link_args = NTL_LIBEXTRA
+# distutils: language = c++
 from cysignals.memory cimport sig_malloc, sig_free
 from cysignals.signals cimport sig_on, sig_off
 
@@ -13,7 +17,7 @@ from sage.libs.flint.fmpz cimport fmpz_init, fmpz_one, fmpz_mul, fmpz_set, fmpz_
 from cpython.object cimport Py_EQ, Py_NE
 from sage.structure.richcmp cimport richcmp_not_equal
 from sage.rings.integer cimport Integer
-from sage.rings.all import ZZ
+from sage.rings.integer_ring import ZZ
 from sage.rings.polynomial.polynomial_integer_dense_flint cimport Polynomial_integer_dense_flint
 
 
@@ -29,7 +33,7 @@ cdef class PowComputer_flint(PowComputer_class):
         sage: PowComputer_flint(5, 20, 20, 20, False)
         FLINT PowComputer for 5
     """
-    def __cinit__(self, Integer prime, long cache_limit, long prec_cap, long ram_prec_cap, bint in_field, poly=None, shift_seed = None):
+    def __cinit__(self, Integer prime, long cache_limit, long prec_cap, long ram_prec_cap, bint in_field, poly=None, shift_seed=None):
         """
         Memory initialization.
 
@@ -37,8 +41,7 @@ cdef class PowComputer_flint(PowComputer_class):
 
             sage: from sage.rings.padics.pow_computer_flint import PowComputer_flint
             sage: type(PowComputer_flint(5, 20, 20, 20, False))
-            <type 'sage.rings.padics.pow_computer_flint.PowComputer_flint'>
-
+            <class 'sage.rings.padics.pow_computer_flint.PowComputer_flint'>
         """
         # fmpz_init does not allocate memory
         fmpz_init(self.fprime)
@@ -55,7 +58,7 @@ cdef class PowComputer_flint(PowComputer_class):
         finally:
             sig_off()
 
-        self.__allocated = 4
+        self._allocated = 4
 
     def __init__(self, Integer prime, long cache_limit, long prec_cap, long ram_prec_cap, bint in_field, poly=None, shift_seed=None):
         """
@@ -65,9 +68,8 @@ cdef class PowComputer_flint(PowComputer_class):
 
             sage: from sage.rings.padics.pow_computer_flint import PowComputer_flint_maker
             sage: R.<x> = ZZ[]; f = x^3 - 8*x - 2
-            sage: A = PowComputer_flint_maker(5, 20, 20, 20, False, f, 'capped-rel') # indirect doctest
+            sage: A = PowComputer_flint_maker(5, 20, 20, 20, False, f, 'capped-rel')  # indirect doctest
             sage: TestSuite(A).run()
-
         """
         PowComputer_class.__init__(self, prime, cache_limit, prec_cap, ram_prec_cap, in_field, poly, shift_seed)
 
@@ -83,7 +85,7 @@ cdef class PowComputer_flint(PowComputer_class):
             sage: A = PowComputer_flint(5, 20, 20, 20, False)
             sage: del A
         """
-        if self.__allocated >= 4:
+        if self._allocated >= 4:
             fmpz_clear(self.fprime)
             fmpz_clear(self.half_prime)
             fmpz_clear(self._fpow_variable)
@@ -99,9 +101,8 @@ cdef class PowComputer_flint(PowComputer_class):
 
             sage: from sage.rings.padics.pow_computer_flint import PowComputer_flint_maker
             sage: R.<x> = ZZ[]; f = x^3 - 8*x - 2
-            sage: A = PowComputer_flint_maker(5, 20, 20, 20, False, f, 'capped-rel') # indirect doctest
-            sage: A._test_pickling() # indirect doctest
-
+            sage: A = PowComputer_flint_maker(5, 20, 20, 20, False, f, 'capped-rel')  # indirect doctest
+            sage: A._test_pickling()  # indirect doctest
         """
         return PowComputer_flint_maker, (self.prime, self.cache_limit, self.prec_cap, self.ram_prec_cap, self.in_field, self.polynomial(), self._prec_type)
 
@@ -119,7 +120,7 @@ cdef class PowComputer_flint(PowComputer_class):
 
     cdef fmpz_t* pow_fmpz_t_tmp(self, unsigned long n) except NULL:
         """
-        Returns a pointer to a FLINT ``fmpz_t`` holding `p^n`.
+        Return a pointer to a FLINT ``fmpz_t`` holding `p^n`.
 
         Analogous to
         :meth:`sage.rings.padics.pow_computer.PowComputer_class.pow_mpz_t_tmp`
@@ -136,7 +137,7 @@ cdef class PowComputer_flint(PowComputer_class):
 
     cdef mpz_srcptr pow_mpz_t_tmp(self, long n) except NULL:
         """
-        Returns a pointer to an ``mpz_t`` holding `p^n`.
+        Return a pointer to an ``mpz_t`` holding `p^n`.
 
         See
         :meth:`sage.rings.padics.pow_computer.PowComputer_class.pow_mpz_t_tmp`
@@ -145,24 +146,26 @@ cdef class PowComputer_flint(PowComputer_class):
         fmpz_get_mpz(self.temp_m, self.pow_fmpz_t_tmp(n)[0])
         return self.temp_m
 
-    cdef mpz_srcptr pow_mpz_t_top(self):
+    cdef mpz_srcptr pow_mpz_t_top(self) noexcept:
         """
-        Returns a pointer to an ``mpz_t`` holding `p^N`, where `N` is
+        Return a pointer to an ``mpz_t`` holding `p^N`, where `N` is
         the precision cap.
         """
         return self.top_power
 
-    cdef unsigned long capdiv(self, unsigned long n):
+    cdef unsigned long capdiv(self, unsigned long n) noexcept:
         """
-        Returns ceil(n / e).
+        Return ceil(n / e).
         """
-        if self.e == 1: return n
-        if n == 0: return 0
-        return (n-1) / self.e + 1
+        if self.e == 1:
+            return n
+        if n == 0:
+            return 0
+        return (n - 1) / self.e + 1
 
     def polynomial(self, n=None, var='x'):
         """
-        Returns ``None``.
+        Return ``None``.
 
         For consistency with subclasses.
 
@@ -172,7 +175,6 @@ cdef class PowComputer_flint(PowComputer_class):
             sage: A = PowComputer_flint(5, 20, 20, 20, False, None)
             sage: A.polynomial() is None
             True
-
         """
         return None
 
@@ -188,7 +190,6 @@ cdef class PowComputer_flint_1step(PowComputer_flint):
         sage: R.<x> = ZZ[]; f = x^3 - 8*x - 2
         sage: A = PowComputer_flint_1step(5, 20, 20, 20, False, f); A
         FLINT PowComputer for 5 with polynomial x^3 - 8*x - 2
-
     """
     def __cinit__(self, Integer prime, long cache_limit, long prec_cap, long ram_prec_cap, bint in_field, _poly):
         """
@@ -200,11 +201,10 @@ cdef class PowComputer_flint_1step(PowComputer_flint):
             sage: R.<x> = ZZ[]; f = x^3 - 8*x - 2
             sage: A = PowComputer_flint_1step(5, 20, 20, 20, False, f)
             sage: type(A)
-            <type 'sage.rings.padics.pow_computer_flint.PowComputer_flint_1step'>
-
+            <class 'sage.rings.padics.pow_computer_flint.PowComputer_flint_1step'>
         """
         cdef Polynomial_integer_dense_flint poly = _poly
-        cdef long length = fmpz_poly_length(poly.__poly)
+        cdef long length = fmpz_poly_length(poly._poly)
 
         cdef Py_ssize_t i
 
@@ -219,15 +219,25 @@ cdef class PowComputer_flint_1step(PowComputer_flint):
             try:
                 fmpz_poly_init2(self.modulus, length)
                 try:
-                    for i in range(1,cache_limit+2):
+                    fmpz_poly_init2(self.powhelper_oneunit, length)
+                    try:
+                        fmpz_poly_init2(self.powhelper_teichdiff, length)
                         try:
-                            fmpz_poly_init2(self._moduli[i], length)
+                            for i in range(1,cache_limit+2):
+                                try:
+                                    fmpz_poly_init2(self._moduli[i], length)
+                                except BaseException:
+                                    i-=1
+                                    while i:
+                                        fmpz_poly_clear(self._moduli[i])
+                                        i-=1
+                                    raise
                         except BaseException:
-                            i-=1
-                            while i:
-                                fmpz_poly_clear(self._moduli[i])
-                                i-=1
+                            fmpz_poly_clear(self.powhelper_teichdiff)
                             raise
+                    except BaseException:
+                        fmpz_poly_clear(self.powhelper_oneunit)
+                        raise
                 except BaseException:
                     fmpz_poly_clear(self.modulus)
                     raise
@@ -237,7 +247,7 @@ cdef class PowComputer_flint_1step(PowComputer_flint):
         finally:
             sig_off()
 
-        self.__allocated = 8
+        self._allocated = 8
 
     def __init__(self, Integer prime, long cache_limit, long prec_cap, long ram_prec_cap, bint in_field, _poly, shift_seed=None):
         """
@@ -249,15 +259,14 @@ cdef class PowComputer_flint_1step(PowComputer_flint):
             sage: R.<x> = ZZ[]; f = x^3 - 8*x - 2
             sage: A = PowComputer_flint_maker(5, 20, 20, 20, False, f, 'capped-rel')
             sage: TestSuite(A).run()
-
         """
         PowComputer_flint.__init__(self, prime, cache_limit, prec_cap, ram_prec_cap, in_field, _poly, shift_seed)
 
         cdef Polynomial_integer_dense_flint poly = _poly
-        cdef long length = fmpz_poly_length(poly.__poly)
+        cdef long length = fmpz_poly_length(poly._poly)
         self.deg = length - 1
 
-        fmpz_poly_set(self.modulus, poly.__poly)
+        fmpz_poly_set(self.modulus, poly._poly)
 
         cdef Py_ssize_t i
         cdef fmpz* coeffs = self.modulus.coeffs
@@ -282,9 +291,11 @@ cdef class PowComputer_flint_1step(PowComputer_flint):
         """
         cdef Py_ssize_t i
 
-        if self.__allocated >= 8:
+        if self._allocated >= 8:
             fmpz_clear(self.q)
             fmpz_poly_clear(self.modulus)
+            fmpz_poly_clear(self.powhelper_oneunit)
+            fmpz_poly_clear(self.powhelper_teichdiff)
             for i in range(1, self.cache_limit + 1):
                 fmpz_poly_clear(self._moduli[i])
             sig_free(self._moduli)
@@ -349,12 +360,11 @@ cdef class PowComputer_flint_1step(PowComputer_flint):
             return (op == Py_EQ)
         if op != Py_NE:
             return NotImplemented
-        # return cmp(self.polynomial(), other.polynomial())
         return False
 
-    cdef fmpz_poly_t* get_modulus(self, unsigned long k):
+    cdef fmpz_poly_t* get_modulus(self, unsigned long k) noexcept:
         """
-        Returns the defining polynomial reduced modulo `p^k`.
+        Return the defining polynomial reduced modulo `p^k`.
 
         The same warnings apply as for
         :meth:`sage.rings.padics.pow_computer.PowComputer_class.pow_mpz_t_tmp`.
@@ -370,9 +380,9 @@ cdef class PowComputer_flint_1step(PowComputer_flint):
                                       self.pow_fmpz_t_tmp(k)[0])
             return &(self._moduli[c])
 
-    cdef fmpz_poly_t* get_modulus_capdiv(self, unsigned long k):
+    cdef fmpz_poly_t* get_modulus_capdiv(self, unsigned long k) noexcept:
         """
-        Returns the defining polynomial reduced modulo `p^a`, where
+        Return the defining polynomial reduced modulo `p^a`, where
         `a` is the ceiling of `k/e`.
 
         The same warnings apply as for
@@ -382,14 +392,15 @@ cdef class PowComputer_flint_1step(PowComputer_flint):
 
     def polynomial(self, _n=None, var='x'):
         """
-        Returns the polynomial attached to this ``PowComputer``, possibly reduced modulo a power of `p`.
+        Return the polynomial attached to this ``PowComputer``, possibly
+        reduced modulo a power of `p`.
 
         INPUT:
 
-        - ``_n`` -- (default ``None``) an integer, the power of `p`
-          modulo which to reduce.
+        - ``_n`` -- (default: ``None``) an integer, the power of `p`
+          modulo which to reduce
 
-        - ``var`` -- (default ``'x'``) the variable for the returned polynomial
+        - ``var`` -- (default: ``'x'``) the variable for the returned polynomial
 
         .. NOTE::
 
@@ -412,20 +423,20 @@ cdef class PowComputer_flint_1step(PowComputer_flint):
         x = R.gen()
         cdef Polynomial_integer_dense_flint ans = (<Polynomial_integer_dense_flint?>x)._new()
         if _n is None:
-            fmpz_poly_set(ans.__poly, self.modulus)
+            fmpz_poly_set(ans._poly, self.modulus)
         else:
-            fmpz_poly_set(ans.__poly, self.get_modulus(_n)[0])
+            fmpz_poly_set(ans._poly, self.get_modulus(_n)[0])
         return ans
 
     cdef _new_fmpz_poly(self, fmpz_poly_t value, var='x'):
         """
-        Returns a polynomial with the value stored in ``value`` and
+        Return a polynomial with the value stored in ``value`` and
         variable name ``var``.
         """
         R = ZZ[var]
         x = R.gen()
         cdef Polynomial_integer_dense_flint ans = (<Polynomial_integer_dense_flint?>x)._new()
-        fmpz_poly_set(ans.__poly, value)
+        fmpz_poly_set(ans._poly, value)
         return ans
 
 cdef class PowComputer_flint_unram(PowComputer_flint_1step):
@@ -440,7 +451,6 @@ cdef class PowComputer_flint_unram(PowComputer_flint_1step):
         sage: R.<x> = ZZ[]; f = x^3 - 8*x - 2
         sage: A = PowComputer_flint_unram(5, 20, 20, 20, False, f); A
         FLINT PowComputer for 5 with polynomial x^3 - 8*x - 2
-
     """
     def __cinit__(self, Integer prime, long cache_limit, long prec_cap, long ram_prec_cap, bint in_field, _poly, shift_seed=None):
         """
@@ -452,16 +462,14 @@ cdef class PowComputer_flint_unram(PowComputer_flint_1step):
             sage: R.<x> = ZZ[]; f = x^3 - 8*x - 2
             sage: A = PowComputer_flint_unram(5, 20, 20, 20, False, f)
             sage: type(A)
-            <type 'sage.rings.padics.pow_computer_flint.PowComputer_flint_unram'>
-
+            <class 'sage.rings.padics.pow_computer_flint.PowComputer_flint_unram'>
         """
         # fmpz_init does not allocate memory
         fmpz_init(self.fmpz_ccmp)
         fmpz_init(self.fmpz_cval)
         fmpz_init(self.fmpz_cinv)
         fmpz_init(self.fmpz_cinv2)
-        fmpz_init(self.fmpz_clist)
-        fmpz_init(self.fmpz_clist2)
+        fmpz_init(self.fmpz_cexp)
         fmpz_init(self.fmpz_ctm)
         fmpz_init(self.fmpz_cconv)
 
@@ -479,13 +487,15 @@ cdef class PowComputer_flint_unram(PowComputer_flint_1step):
         fmpz_poly_init(self.poly_cinv2)
         fmpz_poly_init(self.poly_flint_rep)
         fmpz_poly_init(self.poly_matmod)
+        fmpz_poly_init(self.shift_rem)
+        fmpz_poly_init(self.aliasing)
         mpz_init(self.mpz_cpow)
         mpz_init(self.mpz_ctm)
         mpz_init(self.mpz_cconv)
         mpz_init(self.mpz_matmod)
         sig_off()
 
-        self.__allocated = 16
+        self._allocated = 16
 
     def __dealloc__(self):
         """
@@ -497,15 +507,13 @@ cdef class PowComputer_flint_unram(PowComputer_flint_1step):
             sage: R.<x> = ZZ[]; f = x^3 - 8*x - 2
             sage: A = PowComputer_flint_unram(5, 20, 20, 20, False, f)
             sage: del A
-
         """
-        if self.__allocated >= 16:
+        if self._allocated >= 16:
             fmpz_clear(self.fmpz_ccmp)
             fmpz_clear(self.fmpz_cval)
             fmpz_clear(self.fmpz_cinv)
             fmpz_clear(self.fmpz_cinv2)
-            fmpz_clear(self.fmpz_clist)
-            fmpz_clear(self.fmpz_clist2)
+            fmpz_clear(self.fmpz_cexp)
             fmpz_clear(self.fmpz_ctm)
             fmpz_clear(self.fmpz_cconv)
             mpz_clear(self.mpz_cconv)
@@ -520,6 +528,8 @@ cdef class PowComputer_flint_unram(PowComputer_flint_1step):
             fmpz_poly_clear(self.poly_cinv2)
             fmpz_poly_clear(self.poly_flint_rep)
             fmpz_poly_clear(self.poly_matmod)
+            fmpz_poly_clear(self.shift_rem)
+            fmpz_poly_clear(self.aliasing)
 
     def __init__(self, Integer prime, long cache_limit, long prec_cap, long ram_prec_cap, bint in_field, poly=None):
         """
@@ -531,7 +541,6 @@ cdef class PowComputer_flint_unram(PowComputer_flint_1step):
             sage: R.<x> = ZZ[]; f = x^3 - 8*x - 2
             sage: A = PowComputer_flint_maker(5, 20, 20, 20, False, f, 'capped-rel')
             sage: TestSuite(A).run()
-
         """
         PowComputer_flint_1step.__init__(self, prime, cache_limit, prec_cap, ram_prec_cap, in_field, poly)
 
@@ -562,14 +571,14 @@ cdef class PowComputer_flint_eis(PowComputer_flint_1step):
             sage: R.<x> = ZZ[]; f = x^3 - 25*x + 5
             sage: A = PowComputer_flint_eis(5, 20, 20, 60, False, f)
             sage: type(A)
-            <type 'sage.rings.padics.pow_computer_flint.PowComputer_flint_eis'>
-
+            <class 'sage.rings.padics.pow_computer_flint.PowComputer_flint_eis'>
         """
         PowComputer_flint_1step.__init__(self, prime, cache_limit, prec_cap, ram_prec_cap, in_field, poly)
 
         self.e = fmpz_poly_degree(self.modulus)
         self.f = 1
         fmpz_set(self.q, self.fprime)
+
 
 def PowComputer_flint_maker(prime, cache_limit, prec_cap, ram_prec_cap, in_field, poly, prec_type):
     """
@@ -579,16 +588,16 @@ def PowComputer_flint_maker(prime, cache_limit, prec_cap, ram_prec_cap, in_field
 
     - ``prime`` -- an integral prime
 
-    - ``cache_limit`` -- a non-negative integer, controlling the
+    - ``cache_limit`` -- nonnegative integer, controlling the
       caching.  Powers of ``prime``, reductions of ``poly`` modulo
       different powers of ``prime`` and inverses of the leading
       coefficient modulo different powers of ``prime`` are cached.
       Additional data is cached for ramified extensions.
 
     - ``prec_cap`` -- the power of `p` modulo which elements of
-      largest precision are defined.
+      largest precision are defined
 
-    - ``ram_prec_cap`` -- Approximately ``e*prec_cap``, where ``e`` is
+    - ``ram_prec_cap`` -- approximately ``e*prec_cap``, where ``e`` is
       the ramification degree of the extension.  For a ramified
       extension this is what Sage calls the precision cap of the ring.
       In fact, it's possible to have rings with precision cap not a
@@ -596,13 +605,13 @@ def PowComputer_flint_maker(prime, cache_limit, prec_cap, ram_prec_cap, in_field
       ``ram_prec_cap`` and ``prec_cap`` is that
       ``prec_cap = ceil(n/e)``
 
-    - ``in_field`` -- (boolean) whether the associated ring is
-      actually a field.
+    - ``in_field`` -- boolean; whether the associated ring is
+      actually a field
 
-    - ``poly`` -- the polynomial defining the extension.
+    - ``poly`` -- the polynomial defining the extension
 
-    - `prec_type`` -- one of ``"capped-rel"``, ``"capped-abs"`` or
-      ``"fixed-mod"``, the precision type of the ring.
+    - ``prec_type`` -- one of ``'capped-rel'``, ``'capped-abs'`` or
+      ``'fixed-mod'``; the precision type of the ring
 
     .. NOTE::
 
@@ -616,21 +625,20 @@ def PowComputer_flint_maker(prime, cache_limit, prec_cap, ram_prec_cap, in_field
         sage: from sage.rings.padics.pow_computer_flint import PowComputer_flint_maker
         sage: R.<x> = ZZ[]
         sage: A = PowComputer_flint_maker(3, 20, 20, 20, False, x^3 + 2*x + 1, 'capped-rel'); type(A)
-        <type 'sage.rings.padics.qadic_flint_CR.PowComputer_'>
+        <class 'sage.rings.padics.qadic_flint_CR.PowComputer_'>
         sage: A = PowComputer_flint_maker(3, 20, 20, 20, False, x^3 + 2*x + 1, 'capped-abs'); type(A)
-        <type 'sage.rings.padics.qadic_flint_CA.PowComputer_'>
+        <class 'sage.rings.padics.qadic_flint_CA.PowComputer_'>
         sage: A = PowComputer_flint_maker(3, 20, 20, 20, False, x^3 + 2*x + 1, 'fixed-mod'); type(A)
-        <type 'sage.rings.padics.qadic_flint_FM.PowComputer_'>
-
+        <class 'sage.rings.padics.qadic_flint_FM.PowComputer_'>
     """
     if prec_type == 'capped-rel':
-        from .qadic_flint_CR import PowComputer_
+        from sage.rings.padics.qadic_flint_CR import PowComputer_
     elif prec_type == 'capped-abs':
-        from .qadic_flint_CA import PowComputer_
+        from sage.rings.padics.qadic_flint_CA import PowComputer_
     elif prec_type == 'fixed-mod':
-        from .qadic_flint_FM import PowComputer_
+        from sage.rings.padics.qadic_flint_FM import PowComputer_
     elif prec_type == 'floating-point':
-        from .qadic_flint_FP import PowComputer_
+        from sage.rings.padics.qadic_flint_FP import PowComputer_
     else:
         raise ValueError("unknown prec_type `%s`" % prec_type)
     return PowComputer_(prime, cache_limit, prec_cap, ram_prec_cap, in_field, poly)

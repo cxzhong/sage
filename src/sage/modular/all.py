@@ -1,40 +1,42 @@
-from __future__ import absolute_import
-from .quatalg.all import *
+from sage.misc.lazy_import import lazy_import
 
-from .modsym.all import *
+from sage.modular.quatalg.all import *
 
-from .modform.all import *
+from sage.modular.modsym.all import *
 
-from .ssmod.all import *
+from sage.modular.modform.all import *
 
-from .abvar.all import *
+from sage.modular.ssmod.all import *
 
-from .dirichlet import (DirichletGroup,
-                       kronecker_character, kronecker_character_upside_down,
-                       trivial_character)
+from sage.modular.abvar.all import *
 
-from .arithgroup.all import (Gamma0, Gamma1, GammaH, Gamma, SL2Z,
-                            ArithmeticSubgroup_Permutation,
-                            CongruenceSubgroup, FareySymbol)
+from sage.modular.dirichlet import (DirichletGroup,
+                                    kronecker_character, kronecker_character_upside_down,
+                                    trivial_character)
 
-from .cusps import Cusp, Cusps
+from sage.modular.arithgroup.all import (Gamma0, Gamma1, GammaH, Gamma, SL2Z,
+                                         ArithmeticSubgroup_Permutation,
+                                         CongruenceSubgroup, FareySymbol)
 
-from .dims import (dimension_cusp_forms,
-                  dimension_new_cusp_forms,
-                  dimension_eis,
-                  dimension_modular_forms,
-                  sturm_bound)
+from sage.modular.cusps import Cusp, Cusps
 
-from .buzzard import buzzard_tpslopes
+from sage.modular.etaproducts import (EtaGroup, EtaProduct, EtaGroupElement,
+                                      AllCusps, CuspFamily)
 
-from .etaproducts import *
+lazy_import('sage.modular.multiple_zeta', ['Multizeta', 'Multizetas'])
 
-from .overconvergent.all import *
+from sage.modular.overconvergent.all import *
 
-from .local_comp.all import *
+from sage.modular.local_comp.all import *
 
-from .cusps_nf import NFCusp, NFCusps, NFCusps_clear_cache, Gamma0_NFCusps
+from sage.modular.cusps_nf import NFCusp, NFCusps, Gamma0_NFCusps
 
-from .btquotients.all import *
+from sage.modular.btquotients.all import *
 
-from .pollack_stevens.all import *
+from sage.modular.pollack_stevens.all import *
+
+from sage.modular.quasimodform.all import *
+
+from sage.modular.drinfeld_modform.all import *
+
+del lazy_import

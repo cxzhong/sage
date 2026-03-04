@@ -13,9 +13,9 @@ Background jobs
 Yes, a Sage job can be run in the background on a
 UNIX system. The canonical thing to do is type
 
-::
+.. code-block:: console
 
-    nohup sage < command_file  > output_file &
+    $ nohup sage < command_file  > output_file &
 
 The advantage of nohup is that Sage will continue running after you
 log out.
@@ -30,139 +30,17 @@ appears as ``sage``.
 Referencing Sage
 ================
 
-To reference Sage, please add the following to your
-bibliography:
-
-::
-
-    \bibitem[Sage]{sage}
-    Stein, William, \emph{Sage: {O}pen {S}ource {M}athematical {S}oftware
-    ({V}ersion 2.10.2)}, The Sage~Group, 2008, {\tt http://www.sagemath.org}.
-
-Here is the bibtex entry:
-
-::
-
-    @manual{sage,
-        Key = {Sage},
-        Author = {William Stein},
-        Organization = {The Sage~Group},
-        Title = {{Sage}: {O}pen {S}ource {M}athematical {S}oftware ({V}ersion 2.10.2)},
-        Note= {{\tt http://www.sagemath.org}},
-        Year = 2008
-    }
-
-If you happen to use the Sage interface to PARI, GAP or Singular,
-you should definitely reference them as well. Likewise, if you use
-code that is implemented using PARI, GAP, or Singular, reference
-the corresponding system (you can often tell from the documentation
-if PARI, GAP, or Singular is used in the implementation of a
-function).
-
-.. index::
-   pair: referencing; PARI
-
-For PARI, you may use
-
-::
-
-    @manual{PARI2,
-          organization = "{The PARI~Group}",
-          title        = "{PARI/GP, version {\tt 2.1.5}}",
-          year         = 2004,
-          address      = "Bordeaux",
-          note         = "available from \url{http://pari.math.u-bordeaux.fr/}"
-        }
-
-or
-
-::
-
-    \bibitem{PARI2} PARI/GP, version {\tt 2.1.5}, Bordeaux, 2004,
-    \url{http://pari.math.u-bordeaux.fr/}.
-
-(replace the version number by the one you used).
-
-.. index::
-   pair: referencing; GAP
-
-For GAP, you may use
-
-::
-
-    [GAP04] The GAP Group, GAP -- Groups, Algorithms, and Programming,
-    Version 4.4; 2005. (http://www.gap-system.org)
-
-or
-
-::
-
-    @manual{GAP4,
-        key          = "GAP",
-        organization = "The GAP~Group",
-        title        = "{GAP -- Groups, Algorithms, and Programming,
-                        Version 4.4}",
-        year         = 2005,
-        note         = "{\tt http://www.gap-system.org}",
-        keywords     = "groups; *; gap; manual"}
-
-::
-
-    \bibitem[GAP]{GAP4}
-      The GAP~Group, \emph{GAP -- Groups, Algorithms, and Programming, Version 4.4}; 2005,
-      {\tt http://www.gap-system.org}.
-
-.. index::
-   pair: referencing; Singular
-
-For Singular, you may use
-
-::
-
-    [GPS05] G.-M. Greuel, G. Pfister, and H. Sch\"onemann.
-    {\sc Singular} 3.0. A Computer Algebra System for Polynomial
-    Computations. Centre for Computer Algebra, University of
-    Kaiserslautern (2005). {\tt http://www.singular.uni-kl.de}.
-
-or
-
-::
-
-    @TechReport{GPS05,
-      author =       {G.-M. Greuel and G. Pfister and H. Sch\"onemann},
-      title =        {{\sc Singular} 3.0},
-      type =         {{A Computer Algebra System for Polynomial Computations}},
-      institution =  {Centre for Computer Algebra},
-      address =      {University of Kaiserslautern},
-      year =         {2005},
-      note =         {{\tt http://www.singular.uni-kl.de}},
-    }
-
-or
-
-::
-
-    \bibitem[GPS05]{GPS05}
-    G.-M.~Greuel, G.~Pfister, and H.~Sch\"onemann.
-    \newblock {{\sc Singular} 3.0}. A Computer Algebra System for Polynomial Computations.
-    \newblock Centre for Computer Algebra, University of Kaiserslautern (2005).
-    \newblock {\tt http://www.singular.uni-kl.de}.
-
-.. index:: logging Sage
+See `citing Sage <https://doc.sagemath.org/html/en/faq/faq-general.html#i-want-to-cite-sage-in-a-publication-how-do-i-do-it>`_.
 
 Logging your Sage session
 =========================
 
 Yes you can log your sessions.
 
-(a) Modify line 186 of the .ipythonrc file (or open .ipythonrc into
-an editor and search for "logfile"). This will only log your input
-lines, not the output.
-
-(b) You can also write the output to a file, by running Sage in the
+(a) You can write the output to a file, by running Sage in the
 background ( :ref:`section-background` ).
 
-(c) Start in a KDE konsole (this only work in linux). Go to
+(b) Start in a KDE konsole (this only work in linux). Go to
 ``Settings`` :math:`\rightarrow` ``History ...`` and select
 unlimited. Start your session. When ready, go to ``edit``
 :math:`\rightarrow` ``save history as ...``.
@@ -214,7 +92,7 @@ Sage and other computer algebra systems
 
 If ``foo`` is a Pari, GAP ( without ending semicolon), Singular,
 Maxima command, resp., enter ``gp("foo")`` for Pari,
-``gap.eval("foo")}`` ``singular.eval("foo")``, ``maxima("foo")``, resp..
+``libgap.eval("foo")`` ``singular.eval("foo")``, ``maxima("foo")``, resp..
 These programs merely send the command string to the external
 program, execute it, and read the result back into Sage. Therefore,
 these will not work if the external program is not installed and in
@@ -226,14 +104,13 @@ Command-line Sage help
 ======================
 
 If you know only part of the name of a Sage command and want to
-know where it occurs in Sage, a new option for 0.10.11 has been
-added to make it easier to hunt it down. Just type
+know where it occurs in Sage, just type
 ``sage -grep <string>`` to find all occurrences of ``<string>`` in the
 Sage source code. For example,
 
-::
+.. code-block:: console
 
-    was@form:~/s/local/bin$ sage -grep berlekamp_massey
+    $ sage -grep berlekamp_massey
     matrix/all.py:from berlekamp_massey import berlekamp_massey
     matrix/berlekamp_massey.py:def berlekamp_massey(a):
     matrix/matrix.py:import berlekamp_massey
@@ -245,42 +122,33 @@ of Sage commands. Type ``help()`` for Python commands.
 
 For example
 
-::
+.. CODE-BLOCK:: python
 
     help(Matrix)
 
 returns
 
-::
+.. skip
 
-    Help on function Matrix in module sage.matrix.constructor:
+.. CODE-BLOCK:: text
 
-    Matrix(R, nrows, ncols, entries = 0, sparse = False)
-        Create a matrix.
+    Help on cython_function_or_method in module sage.matrix.constructor:
 
-        INPUT:
-            R -- ring
-            nrows -- int; number of rows
-            ncols -- int; number of columns
-            entries -- list; entries of the matrix
-            sparse -- bool (default: False); whether or not to store matrices as sparse
-        OUTPUT:
-            a matrix
+    matrix(*args, **kwds)
+        matrix(*args, **kwds)
+        File: sage/matrix/constructor.pyx (starting at line 21)
 
-        EXAMPLES:
-            sage: Matrix(RationalField(), 2, 2, [1,2,3,4])
-            [1 2]
-            [3 4]
+            Create a matrix.
 
-            sage: Matrix(FiniteField(5), 2, 3, range(6))
-            [0 1 2]
-            [3 4 0]
+            This implements the ``matrix`` constructor::
 
-            sage: Matrix(IntegerRing(), 10, 10, range(100)).parent()
-            Full MatrixSpace of 10 by 10 dense matrices over Integer Ring
+                sage: matrix([[1,2],[3,4]])
+                [1 2]
+                [3 4]
 
-            sage: Matrix(IntegerRing(), 10, 10, range(100), sparse = True).parent()
-            Full MatrixSpace of 10 by 10 sparse matrices over Integer Ring
+            It also contains methods to create special types of matrices, see
+            ``matrix.[tab]`` for more options. For example::
+    --More--
 
 in a new screen. Type q to return to the Sage screen.
 
@@ -299,7 +167,7 @@ directory of Sage) with the following content:
 
 .. skip
 
-::
+.. CODE-BLOCK:: python
 
     print("Hello World")
     print(2^3)
@@ -344,25 +212,6 @@ reloaded into Sage:
     Hello World
     16
 
-.. index:: installation of Sage
-
-.. _section-installALL:
-
-Installation for the impatient
-==============================
-
-We shall explain the basic steps for installing the most recent
-version of Sage (which is the "source" version, not the "binary").
-
-
-#. Download ``sage-*.tar`` (where ``*`` denotes the version number)
-   from the website and save into a directory, say ``HOME``. Type
-   ``tar zxvf sage-*.tar`` in ``HOME``.
-
-#. cd ``sage-*`` (we call this ``SAGE_ROOT``) and type ``make``. Now be
-   patient because this process make take 2 hours or so.
-
-
 .. index:: Python and Sage
 
 Python language program code for Sage commands
@@ -378,7 +227,7 @@ help interface to find the file name:
 
     sage: PermutationGroup.center?
     Type:           instancemethod
-    Base Class:     <type 'instancemethod'>
+    Base Class:     <class 'instancemethod'>
     String Form:    <unbound method PermutationGroup.center>
     Namespace:      Interactive
     File:           /home/wdj/sage/local/lib/python2.4/site-packages/sage/groups/permgroup.py
@@ -421,12 +270,12 @@ in Sage).
 
 Here's an example using Sage's interface (located in
 sage/interfaces/octave.py) with ``octave``
-(http://www.octave.org/doc/index.html).
+(https://www.gnu.org/software/octave/doc/latest).
 
 ::
 
     sage: octave("atanh(1.1)")   ## optional - octave
-    (1.52226,-1.5708)
+    (1.52226,1.5708)
 
 Here's an example using Sage's interface to ``pari``'s special
 functions.

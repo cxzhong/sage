@@ -1,6 +1,5 @@
-# distutils: libraries = gmp flint arb
+# Deprecated header file; use sage/libs/flint/bernoulli.pxd instead
+# See https://github.com/sagemath/sage/pull/36449
 
-from ..flint.types cimport fmpq_t, ulong
-
-cdef extern from "bernoulli.h":
-    void bernoulli_fmpq_ui(fmpq_t b, ulong n)
+from sage.libs.flint.bernoulli cimport (
+    bernoulli_fmpq_ui)

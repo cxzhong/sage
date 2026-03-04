@@ -1,5 +1,15 @@
 r"""
-Base Classes for 3D Graphics Objects and Plotting
+Base classes for 3D graphics objects and plotting
+
+The most important facts about these classes are
+that you can simply add graphics objects
+together (``G1+G2``, see :meth:`Graphics3d.__add__`),
+and the :meth:`Graphics3d.show` method with its options for
+choosing a viewer and setting
+various parameters for displaying the graphics.
+
+Most of the other methods of these classes are technical and
+for special usage.
 
 AUTHORS:
 
@@ -9,14 +19,22 @@ AUTHORS:
 
 - William Stein (2008)
 
-- Paul Masson (2016): Three.js support 
+- Paul Masson (2016): Three.js support
+
+- Joshua Campbell (2020): Three.js animation support
+
+- Günter Rote (2021): camera and light parameters for tachyon
 
 .. TODO::
 
-    finish integrating tachyon -- good default lights, camera
+    finish integrating tachyon -- good default lights
+
+    full documentation of three.js viewer parameters
+
+    zoom by changing camera parameters instead of scaling objects
 """
 
-#*****************************************************************************
+# ****************************************************************************
 #      Copyright (C) 2007 Robert Bradshaw <robertwb@math.washington.edu>
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
@@ -28,31 +46,24 @@ AUTHORS:
 #
 #  The full text of the GPL is available at:
 #
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
-from __future__ import print_function, absolute_import
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
 from cpython.list cimport *
-from cpython.object cimport PyObject
 
 import os
-from functools import reduce
-from random import randint
 import zipfile
-from six.moves import cStringIO as StringIO
 
-from sage.misc.misc import sage_makedirs
-from sage.env import SAGE_LOCAL
-from sage.doctest import DOCTEST_MODE
+from functools import reduce
+from io import StringIO
+from random import randint
 
-from sage.misc.fast_methods cimport hash_by_id
-
-from sage.modules.free_module_element import vector
-
-from sage.rings.real_double import RDF
 from sage.misc.temporary_file import tmp_filename
-from .texture import Texture, is_Texture
-from .transform cimport Transformation, point_c, face_c
+from sage.misc.fast_methods cimport hash_by_id
+from sage.modules.free_module_element import vector
+from sage.rings.real_double import RDF
+from sage.plot.plot3d.texture import Texture
+from sage.plot.plot3d.transform cimport Transformation, point_c, face_c
 include "point_c.pxi"
 
 from sage.interfaces.tachyon import tachyon_rt
@@ -63,6 +74,7 @@ from libc.math cimport INFINITY
 default_texture = Texture()
 pi = RDF.pi()
 
+
 cdef class Graphics3d(SageObject):
     """
     This is the baseclass for all 3d graphics objects.
@@ -72,7 +84,7 @@ cdef class Graphics3d(SageObject):
     """
     def __cinit__(self):
         """
-        The Cython constructor
+        The Cython constructor.
 
         EXAMPLES::
 
@@ -96,9 +108,7 @@ cdef class Graphics3d(SageObject):
         """
         Return a string representation.
 
-        OUTPUT:
-
-        String.
+        OUTPUT: string
 
         EXAMPLES::
 
@@ -110,7 +120,7 @@ cdef class Graphics3d(SageObject):
 
     def _rich_repr_(self, display_manager, **kwds):
         """
-        Rich Output Magic Method
+        Rich Output Magic Method.
 
         See :mod:`sage.repl.rich_output` for details.
 
@@ -119,7 +129,7 @@ cdef class Graphics3d(SageObject):
             sage: from sage.repl.rich_output import get_display_manager
             sage: dm = get_display_manager()
             sage: g = sphere()
-            sage: g._rich_repr_(dm)
+            sage: g._rich_repr_(dm)  # OutputSceneThreejs container outside doctest mode
             OutputSceneJmol container
         """
         ### First, figure out the best graphics format
@@ -137,14 +147,20 @@ cdef class Graphics3d(SageObject):
             viewer = None
         # select suitable default
         if viewer is None:
-            viewer = 'jmol'
+            viewer = SHOW_DEFAULTS['viewer']
         # fall back to 2d image if necessary
-        if viewer == 'canvas3d' and not can_view_canvas3d:   viewer = 'jmol'
-        if viewer == 'wavefront' and not can_view_wavefront: viewer = 'jmol'
-        if viewer == 'threejs' and not can_view_threejs:     viewer = 'jmol'
-        if viewer == 'jmol' and not can_view_jmol:           viewer = 'tachyon'
-        ### Second, return the corresponding graphics file
-        if viewer == 'jmol':
+        if viewer == 'canvas3d' and not can_view_canvas3d:
+            viewer = 'jmol'
+        if viewer == 'wavefront' and not can_view_wavefront:
+            viewer = 'jmol'
+        if viewer == 'threejs' and not can_view_threejs:
+            viewer = 'jmol'
+        if viewer == 'jmol' and not can_view_jmol:
+            viewer = 'tachyon'
+        # Second, return the corresponding graphics file
+        if viewer == 'threejs':
+            return self._rich_repr_threejs(**opts)
+        elif viewer == 'jmol':
             return self._rich_repr_jmol(**opts)
         elif viewer == 'tachyon':
             preferred = (
@@ -159,8 +175,6 @@ cdef class Graphics3d(SageObject):
             return self._rich_repr_canvas3d(**opts)
         elif viewer == 'wavefront':
             return self._rich_repr_wavefront(**opts)
-        elif viewer == 'threejs':
-            return self._rich_repr_threejs(**opts)
         else:
             assert False   # unreachable
 
@@ -174,8 +188,8 @@ cdef class Graphics3d(SageObject):
           the rendered image (can be png, gif, or jpg). Determines the
           type of the output.
 
-        - ``**kwds`` -- Optional keyword arguments are passed to the
-          Tachyon raytracer.
+        - ``**kwds`` -- optional keyword arguments are passed to the
+          Tachyon raytracer
 
         OUTPUT:
 
@@ -197,13 +211,18 @@ cdef class Graphics3d(SageObject):
         opts = self._process_viewing_options(kwds)
         T = self._prepare_for_tachyon(
             opts['frame'], opts['axes'], opts['frame_aspect_ratio'],
-            opts['aspect_ratio'], opts['zoom']
+            opts['aspect_ratio'],
+            1 # opts['zoom']. Let zoom be handled by tachyon.
+            # We don't want the perspective to change by zooming
         )
-        x, y = opts['figsize'][0]*100, opts['figsize'][1]*100
-        if DOCTEST_MODE:
-            x, y = 10, 10
-        tachyon_rt(T.tachyon(), filename, opts['verbosity'],
-                   '-res %s %s' % (x, y))
+
+        tachyon_args = dict((key,val) for key,val in opts.items() if key in Graphics3d.tachyon_keywords)
+        extra_opts = opts.get("extra_opts", "")
+        if "shade" in opts:
+            if opts["shade"] not in ["full", "medium", "low", "lowest"]:
+                raise ValueError("shade must be set to 'full', 'medium', 'low' or 'lowest'")
+            extra_opts += " -" + opts["shade"] + "shade"
+        tachyon_rt(T.tachyon(**tachyon_args), filename, opts['verbosity'], extra_opts)
         from sage.repl.rich_output.buffer import OutputBuffer
         import sage.repl.rich_output.output_catalog as catalog
         import PIL.Image as Image
@@ -223,11 +242,11 @@ cdef class Graphics3d(SageObject):
 
     def _rich_repr_jmol(self, **kwds):
         """
-        Rich Representation as JMol scene
+        Rich Representation as JMol scene.
 
         INPUT:
 
-        Optional keyword arguments are passed to JMol.
+        - ``**kwds`` -- optional keyword arguments are passed to JMol
 
         OUTPUT:
 
@@ -255,23 +274,18 @@ cdef class Graphics3d(SageObject):
         T.export_jmol(scene_zip, **opts)
         from sage.interfaces.jmoldata import JmolData
         jdata = JmolData()
-        if not jdata.is_jvm_available():
+        if not jdata.is_jmol_available():
             # We can only use JMol to generate preview if a jvm is installed
             from sage.repl.rich_output.output_graphics import OutputImagePng
             tachyon = self._rich_repr_tachyon(OutputImagePng, **opts)
             tachyon.png.save_as(preview_png)
         else:
             # Java needs absolute paths
-            # On cygwin, they should be native ones
             scene_native = scene_zip
-            import sys
-            if sys.platform == 'cygwin':
-                from subprocess import check_output, STDOUT
-                scene_native = check_output(['cygpath', '-w', scene_native],
-                                            stderr=STDOUT).rstrip()
+
             script = '''set defaultdirectory "{0}"\nscript SCRIPT\n'''.format(scene_native)
             jdata.export_image(targetfile=preview_png, datafile=script,
-                               image_type="PNG",
+                               image_type='PNG',
                                figsize=opts['figsize'][0])
         from sage.repl.rich_output.output_graphics3d import OutputSceneJmol
         from sage.repl.rich_output.buffer import OutputBuffer
@@ -281,11 +295,11 @@ cdef class Graphics3d(SageObject):
 
     def _rich_repr_wavefront(self, **kwds):
         r"""
-        Rich Representation as Wavefront (obj + mtl) Scene
+        Rich Representation as Wavefront (obj + mtl) Scene.
 
         INPUT:
 
-        Optional keyword arguments are ignored.
+        - ``**kwds`` -- optional keyword arguments are ignored
 
         OUTPUT:
 
@@ -298,9 +312,9 @@ cdef class Graphics3d(SageObject):
             sage: out = line._rich_repr_wavefront()
             sage: out
             OutputSceneWavefront container
-            sage: out.obj.get()
-            'mtllib ... 6 2 7 11\nf 7 8 12\nf 8 9 12\nf 9 10 12\nf 10 11 12\nf 11 7 12\n'
-            sage: out.mtl.get()
+            sage: out.obj.get_str()
+            'mtllib ... 6 3 8 11\nf 8 7 12\nf 7 9 12\nf 9 10 12\nf 10 11 12\nf 11 8 12\n'
+            sage: out.mtl.get_str()
             'newmtl texture...\nKd 0.4 0.4 1.0\nKs 0.0 0.0 0.0\nillum 1\nNs 1.0\nd 1.0\n'
         """
         from sage.repl.rich_output.output_graphics3d import OutputSceneWavefront
@@ -310,11 +324,11 @@ cdef class Graphics3d(SageObject):
 
     def _rich_repr_canvas3d(self, **kwds):
         r"""
-        Rich Representation as Canvas3D Scene
+        Rich Representation as Canvas3D Scene.
 
         INPUT:
 
-        Optional keyword arguments.
+        - ``**kwds`` -- optional keyword arguments
 
         OUTPUT:
 
@@ -326,8 +340,8 @@ cdef class Graphics3d(SageObject):
             sage: out = sphere()._rich_repr_canvas3d()
             sage: out
             OutputSceneCanvas3d container
-            sage: out.canvas3d.get()
-            '[{"vertices":[{"x":0,"y":0,"z":-1},..., "color":"#6666ff", "opacity":1}]'
+            sage: out.canvas3d.get_str()
+            '[{"vertices":[{"x":0,"y":0,"z":-1},..., "color":"#6666ff", "opacity":1.0}]'
         """
         opts = self._process_viewing_options(kwds)
         aspect_ratio = opts['aspect_ratio'] # this necessarily has a value now
@@ -343,11 +357,11 @@ cdef class Graphics3d(SageObject):
 
     def _rich_repr_threejs(self, **kwds):
         r"""
-        Rich Representation as Three.js Scene
+        Rich Representation as Three.js Scene.
 
         INPUT:
 
-        Optional keyword arguments.
+        - ``**kwds`` -- optional keyword arguments
 
         OUTPUT:
 
@@ -358,21 +372,143 @@ cdef class Graphics3d(SageObject):
 
             sage: sphere(online=True)._rich_repr_threejs()
             OutputSceneThreejs container
+
+        TESTS::
+
+            sage: js = '// animation.js'
+            sage: css = '/* animation.css */'
+            sage: html = '<!-- animation.html -->'
+            sage: d = dodecahedron()
+            sage: i = icosahedron()
+            sage: g1 = animate([d]).interactive()
+            sage: g2 = animate([d, i]).interactive()
+
+        Animation files are only included when at least 2 frames are present::
+
+            sage: str = g1._rich_repr_threejs(online=True).html.get_str()
+            sage: (js in str) or (css in str) or (html in str)
+            False
+            sage: str = g2._rich_repr_threejs(online=True).html.get_str()
+            sage: (js in str) and (css in str) and (html in str)
+            True
+
+        Animation can be explicitly disabled by setting animate=False::
+
+            sage: str = g2._rich_repr_threejs(online=True, animate=False).html.get_str()
+            sage: (js in str) or (css in str) or (html in str)
+            False
+
+        Animation CSS and HTML are not included when animation_controls=False::
+
+            sage: str = g2._rich_repr_threejs(online=True, animation_controls=False).html.get_str()
+            sage: js in str
+            True
+            sage: (css in str) or (html in str)
+            False
+
+        "Fat" line scripts are only included when at least one line
+        (or one surface with ``mesh=True``) exists with ``thickness > 1``::
+
+            sage: fat = '// fat_lines.js'
+            sage: L = line3d([(0, 0, 0), (1, 1, 1)], thickness=1)
+            sage: str = L._rich_repr_threejs(online=True).html.get_str()
+            sage: fat in str
+            False
+            sage: L = line3d([(0, 0, 0), (1, 1, 1)], thickness=10)
+            sage: str = L._rich_repr_threejs(online=True).html.get_str()
+            sage: fat in str
+            True
+            sage: d = dodecahedron(mesh=False, thickness=10)
+            sage: str = d._rich_repr_threejs(online=True).html.get_str()
+            sage: fat in str
+            False
+            sage: d = dodecahedron(mesh=True, thickness=1)
+            sage: str = d._rich_repr_threejs(online=True).html.get_str()
+            sage: fat in str
+            False
+            sage: d = dodecahedron(mesh=True, thickness=10)
+            sage: str = d._rich_repr_threejs(online=True).html.get_str()
+            sage: fat in str
+            True
+
+        If a page title is provided, it is stripped and HTML-escaped::
+
+            sage: d = dodecahedron(page_title='\t"Page" & <Title>\n')
+            sage: str = d._rich_repr_threejs(online=True).html.get_str()
+            sage: '<title>&quot;Page&quot; &amp; &lt;Title&gt;</title>' in str
+            True
         """
         options = self._process_viewing_options(kwds)
-        # Threejs specific options
-        options.setdefault('axes_labels', ['x','y','z'])
-        options.setdefault('decimals', 2)
         options.setdefault('online', False)
-        # Normalization of options values for proper JSONing
-        options['aspect_ratio'] = [float(i) for i in options['aspect_ratio']]
-        options['decimals'] = int(options['decimals'])
 
-        if not options['frame']:
-            options['axes_labels'] = False
+        js_options = {} # options passed to Three.js template
+
+        js_options['animate'] = options.get('animate', True)
+        js_options['animationControls'] = options.get('animation_controls', True)
+        js_options['aspectRatio'] = options.get('aspect_ratio', [1,1,1])
+        js_options['autoScaling'] = options.get('auto_scaling', [False, False, False])
+        js_options['autoPlay'] = options.get('auto_play', True)
+        js_options['axes'] = options.get('axes', False)
+        js_options['axesLabels'] = options.get('axes_labels', ['x','y','z'])
+        js_options['axesLabelsStyle'] = options.get('axes_labels_style')
+        js_options['decimals'] = options.get('decimals', 2)
+        js_options['delay'] = options.get('delay', 20)
+        js_options['frame'] = options.get('frame', True)
+        js_options['loop'] = options.get('loop', True)
+        js_options['projection'] = options.get('projection', 'perspective')
+        js_options['theme'] = options.get('theme', 'light')
+        js_options['viewpoint'] = options.get('viewpoint', False)
+
+        if js_options['projection'] not in ['perspective', 'orthographic']:
+            import warnings
+            warnings.warn('projection={} is not supported; using perspective'.format(js_options['projection']))
+            js_options['projection'] = 'perspective'
+
+        if js_options['theme'] not in ['light', 'dark']:
+            import warnings
+            warnings.warn('theme={} is not supported; using light theme'.format(js_options['theme']))
+            js_options['theme'] = 'light'
+
+        # Normalization of options values for proper JSONing
+        js_options['aspectRatio'] = [float(i) for i in js_options['aspectRatio']]
+        js_options['decimals'] = int(js_options['decimals'])
+        js_options['delay'] = int(js_options['delay'])
+
+        if js_options['viewpoint']:
+            if len(js_options['viewpoint']) != 2 or len(js_options['viewpoint'][0]) != 3:
+                import warnings
+                warnings.warn('viewpoint must be of the form [[x,y,z],angle]')
+                js_options['viewpoint'] = False
+            else:
+                if type(js_options['viewpoint']) is tuple:
+                    js_options['viewpoint'] = list(js_options['viewpoint'])
+                if type(js_options['viewpoint'][0]) is tuple:
+                    js_options['viewpoint'][0] = list(js_options['viewpoint'][0])
+                js_options['viewpoint'][0] = [float(i) for i in js_options['viewpoint'][0]]
+                js_options['viewpoint'][1] = float(js_options['viewpoint'][1])
+
+        if not js_options['frame']:
+            js_options['axesLabels'] = False
+            js_options['axesLabelsStyle'] = None
+
+        if js_options['axesLabelsStyle'] is not None:
+            from sage.plot.plot3d.shapes import _validate_threejs_text_style
+            style = js_options['axesLabelsStyle']
+            if isinstance(style, dict):
+                style = _validate_threejs_text_style(style)
+                style = [style, style, style]
+            elif isinstance(style, list) and len(style) == 3 and all([isinstance(s, dict) for s in style]):
+                style = [_validate_threejs_text_style(s) for s in style]
+            else:
+                import warnings
+                warnings.warn("axes_labels_style must be a dict or a list of 3 dicts")
+                style = [dict(), dict(), dict()]
+            js_options['axesLabelsStyle'] = style
 
         from sage.repl.rich_output import get_display_manager
         scripts = get_display_manager().threejs_scripts(options['online'])
+        styles = ''
+        extra_html = ''
 
         b = self.bounding_box()
         bounds = '[{{"x":{}, "y":{}, "z":{}}}, {{"x":{}, "y":{}, "z":{}}}]'.format(
@@ -384,54 +520,63 @@ cdef class Graphics3d(SageObject):
         ambient = '{{"color":"{}"}}'.format(Color(.5,.5,.5).html_color())
 
         import json
-        points, lines, texts = [], [], []
-        if not hasattr(self, 'all'):
-            self += Graphics3d()
-        for p in self.flatten().all:
-            if hasattr(p, 'loc'):
-                color = p._extra_kwds.get('color', 'blue')
-                opacity = p._extra_kwds.get('opacity', 1)
-                points.append('{{"point":{}, "size":{}, "color":"{}", "opacity":{}}}'.format(
-                              json.dumps(p.loc), p.size, color, opacity))
-            if hasattr(p, 'points'):
-                color = p._extra_kwds.get('color', 'blue')
-                opacity = p._extra_kwds.get('opacity', 1)
-                thickness = p._extra_kwds.get('thickness', 1)
-                lines.append('{{"points":{}, "color":"{}", "opacity":{}, "linewidth":{}}}'.format(
-                             json.dumps(p.points), color, opacity, thickness))
-            if hasattr(p, '_trans'):
-                if hasattr(p.all[0], 'string'):
-                    m = p.get_transformation().get_matrix()
-                    texts.append('{{"text":"{}", "x":{}, "y":{}, "z":{}}}'.format(
-                                 p.all[0].string, m[0,3], m[1,3], m[2,3]))
 
-        points = '[' + ','.join(points) + ']'
-        lines = '[' + ','.join(lines) + ']'
-        texts = '[' + ','.join(texts) + ']'
-
-        surfaces = self.json_repr(self.default_render_params())
-        surfaces = flatten_list(surfaces)
-        surfaces = '[' + ','.join(surfaces) + ']'
+        reprs = {'point': [], 'line': [], 'text': [], 'surface': []}
+        frame_count = 0
+        fat_lines = False
+        for kind, desc in self.threejs_repr(self.default_render_params()):
+            reprs[kind].append(desc)
+            keyframe = int(desc.get('keyframe', -1))
+            frame_count = max(frame_count, keyframe + 1)
+            if kind == 'line' or (kind == 'surface' and desc.get('showMeshGrid')):
+                linewidth = float(desc.get('linewidth', 1))
+                if linewidth > 1:
+                    fat_lines = True
+        reprs = {kind: json.dumps(descs) for kind, descs in reprs.items()}
 
         from sage.env import SAGE_EXTCODE
         with open(os.path.join(
                 SAGE_EXTCODE, 'threejs', 'threejs_template.html')) as f:
             html = f.read()
 
+        if fat_lines:
+            with open(os.path.join(SAGE_EXTCODE, 'threejs', 'fat_lines.js')) as f:
+                scripts += '<script>' + f.read() + '</script>'
+
+        js_options['animate'] = js_options['animate'] and frame_count > 1
+        if js_options['animate']:
+            if js_options['animationControls']:
+                with open(os.path.join(SAGE_EXTCODE, 'threejs', 'animation.css')) as f:
+                    css = f.read()
+                    css = css.replace('SAGE_FRAME_COUNT', str(frame_count))
+                    styles += '<style>' + css + '</style>'
+                with open(os.path.join(SAGE_EXTCODE, 'threejs', 'animation.html')) as f:
+                    extra_html += f.read()
+            with open(os.path.join(SAGE_EXTCODE, 'threejs', 'animation.js')) as f:
+                extra_html += '<script>' + f.read() + '</script>'
+
+        page_title = options.get('page_title')
+        if page_title is None:
+            page_title = ""
+        else:
+            from html import escape as html_escape
+            page_title = html_escape(str(page_title).strip())
+
+        html = html.replace('SAGE_TITLE', page_title)
         html = html.replace('SAGE_SCRIPTS', scripts)
-        js_options = dict((key, options[key]) for key in
-            ['aspect_ratio', 'axes', 'axes_labels', 'decimals', 'frame'])
+        html = html.replace('SAGE_STYLES', styles)
+        html = html.replace('SAGE_EXTRA_HTML', extra_html)
         html = html.replace('SAGE_OPTIONS', json.dumps(js_options))
         html = html.replace('SAGE_BOUNDS', bounds)
         html = html.replace('SAGE_LIGHTS', lights)
         html = html.replace('SAGE_AMBIENT', ambient)
-        html = html.replace('SAGE_TEXTS', str(texts))
-        html = html.replace('SAGE_POINTS', str(points))
-        html = html.replace('SAGE_LINES', str(lines))
-        html = html.replace('SAGE_SURFACES', str(surfaces))
+        html = html.replace('SAGE_TEXTS', str(reprs['text']))
+        html = html.replace('SAGE_POINTS', str(reprs['point']))
+        html = html.replace('SAGE_LINES', str(reprs['line']))
+        html = html.replace('SAGE_SURFACES', str(reprs['surface']))
 
         from sage.repl.rich_output.output_catalog import OutputSceneThreejs
-        return OutputSceneThreejs(html);
+        return OutputSceneThreejs(html)
 
     def __str__(self):
         """
@@ -467,7 +612,7 @@ cdef class Graphics3d(SageObject):
             sage: sum(point3d((cos(n), sin(n), n)) for n in [0..10, step=.1])
             Graphics3d Object
 
-        A Graphics 3d object can also be added a 2d graphic object::
+        A Graphics 3d object and a 2d object can also be added::
 
             sage: A = sphere((0, 0, 0), 1) + circle((0, 0), 1.5)
             sage: A.show(aspect_ratio=1)
@@ -498,7 +643,7 @@ cdef class Graphics3d(SageObject):
 
     def aspect_ratio(self, v=None):
         """
-        Set or get the preferred aspect ratio of ``self``.
+        Set or get the preferred aspect ratio.
 
         INPUT:
 
@@ -518,21 +663,21 @@ cdef class Graphics3d(SageObject):
             sage: D.aspect_ratio()
             [1.0, 1.0, 1.0]
         """
-        if not v is None:
+        if v is not None:
             if v == 1:
-                v = (1,1,1)
+                v = (1, 1, 1)
             if not isinstance(v, (tuple, list)):
                 raise TypeError("aspect_ratio must be a list or tuple of "
                                 "length 3 or the integer 1")
-            self._aspect_ratio = map(float, v)
+            self._aspect_ratio = [float(z) for z in v]
         else:
             if self._aspect_ratio is None:
-                self._aspect_ratio = [1.0,1.0,1.0]
+                self._aspect_ratio = [1.0, 1.0, 1.0]
             return self._aspect_ratio
 
     def frame_aspect_ratio(self, v=None):
         """
-        Set or get the preferred frame aspect ratio of ``self``.
+        Set or get the preferred frame aspect ratio.
 
         INPUT:
 
@@ -552,16 +697,16 @@ cdef class Graphics3d(SageObject):
             sage: D.frame_aspect_ratio()
             [1.0, 1.0, 1.0]
         """
-        if not v is None:
+        if v is not None:
             if v == 1:
-                v = (1,1,1)
+                v = (1, 1, 1)
             if not isinstance(v, (tuple, list)):
                 raise TypeError("frame_aspect_ratio must be a list or tuple of "
                                 "length 3 or the integer 1")
-            self._frame_aspect_ratio = map(float, v)
+            self._frame_aspect_ratio = [float(z) for z in v]
         else:
             if self._frame_aspect_ratio is None:
-                self._frame_aspect_ratio = [1.0,1.0,1.0]
+                self._frame_aspect_ratio = [1.0, 1.0, 1.0]
             return self._frame_aspect_ratio
 
     def _determine_frame_aspect_ratio(self, aspect_ratio):
@@ -584,7 +729,8 @@ cdef class Graphics3d(SageObject):
             ([-1.0, -1.0, 0.0], [1.0, 1.0, 1.0])
         """
         a_min, a_max = self.bounding_box()
-        a_min = list(a_min); a_max = list(a_max)
+        a_min = list(a_min)
+        a_max = list(a_max)
         for i in range(3):
             if a_min[i] == a_max[i]:
                 a_min[i] = a_min[i] - 1
@@ -593,14 +739,14 @@ cdef class Graphics3d(SageObject):
 
     def bounding_box(self):
         """
-        Return the lower and upper corners of a 3d bounding box for ``self``.
+        Return the lower and upper corners of a 3d bounding box.
 
-        This is used for rendering and ``self`` should fit entirely
+        This is used for rendering, and the scene should fit entirely
         within this box.
 
-        Specifically, the first point returned should have x, y, and z
-        coordinates should be the respective infimum over all points
-        in ``self``, and the second point is the supremum.
+        Specifically, the first point returned has x, y, and z
+        coordinates that are the respective minimum over all points
+        in the graphics, and the second point is the maximum.
 
         The default return value is simply the box containing the origin.
 
@@ -616,7 +762,7 @@ cdef class Graphics3d(SageObject):
 
     def transform(self, **kwds):
         """
-        Apply a transformation to ``self``, where the inputs are
+        Apply a transformation, where the inputs are
         passed onto a TransformGroup object.
 
         Mostly for internal use; see the translate, scale, and rotate
@@ -631,7 +777,7 @@ cdef class Graphics3d(SageObject):
 
     def translate(self, *x):
         """
-        Return ``self`` translated by the given vector (which can be
+        Return the object translated by the given vector (which can be
         given either as a 3-iterable or via positional arguments).
 
         EXAMPLES::
@@ -657,7 +803,7 @@ cdef class Graphics3d(SageObject):
 
     def scale(self, *x):
         """
-        Return ``self`` scaled in the x, y, and z directions.
+        Return the object scaled in the x, y, and z directions.
 
         EXAMPLES::
 
@@ -681,10 +827,11 @@ cdef class Graphics3d(SageObject):
 
     def rotate(self, v, theta):
         r"""
-        Return ``self`` rotated about the vector `v` by `\theta` radians.
+        Return the object rotated about the vector `v` by `\theta` radians.
 
         EXAMPLES::
 
+            sage: from math import pi
             sage: from sage.plot.plot3d.shapes import Cone
             sage: v = (1,2,3)
             sage: G = arrow3d((0, 0, 0), v)
@@ -701,10 +848,11 @@ cdef class Graphics3d(SageObject):
 
     def rotateX(self, theta):
         """
-        Return ``self`` rotated about the `x`-axis by the given angle.
+        Return the object rotated about the `x`-axis by the given angle.
 
         EXAMPLES::
 
+            sage: from math import pi
             sage: from sage.plot.plot3d.shapes import Cone
             sage: G = Cone(1/5, 1) + Cone(1/5, 1, opacity=.25).rotateX(pi/2)
             sage: G.show(aspect_ratio=1)
@@ -713,10 +861,11 @@ cdef class Graphics3d(SageObject):
 
     def rotateY(self, theta):
         """
-        Return ``self`` rotated about the `y`-axis by the given angle.
+        Return the object rotated about the `y`-axis by the given angle.
 
         EXAMPLES::
 
+            sage: from math import pi
             sage: from sage.plot.plot3d.shapes import Cone
             sage: G = Cone(1/5, 1) + Cone(1/5, 1, opacity=.25).rotateY(pi/3)
             sage: G.show(aspect_ratio=1)
@@ -725,10 +874,11 @@ cdef class Graphics3d(SageObject):
 
     def rotateZ(self, theta):
         """
-        Return ``self`` rotated about the `z`-axis by the given angle.
+        Return the object rotated about the `z`-axis by the given angle.
 
         EXAMPLES::
 
+            sage: from math import pi
             sage: from sage.plot.plot3d.shapes import Box
             sage: G = Box(1/2, 1/3, 1/5) + Box(1/2, 1/3, 1/5, opacity=.25).rotateZ(pi/5)
             sage: G.show(aspect_ratio=1)
@@ -764,7 +914,7 @@ cdef class Graphics3d(SageObject):
         """
         Return an instance of RenderParams suitable for testing this object.
 
-        In particular, it opens up '/dev/null' as an auxiliary zip
+        In particular, it opens up a temporary file as an auxiliary zip
         file for jmol.
 
         EXAMPLES::
@@ -773,7 +923,8 @@ cdef class Graphics3d(SageObject):
             <class 'sage.plot.plot3d.base.RenderParams'>
         """
         params = RenderParams(ds=.075)
-        params.output_archive = zipfile.ZipFile('/dev/null', 'w', zipfile.ZIP_STORED, True)
+        fn = tmp_filename(ext='.zip')
+        params.output_archive = zipfile.ZipFile(fn, 'w', zipfile.ZIP_STORED, True)
         return params
 
     def x3d(self):
@@ -813,7 +964,6 @@ cdef class Graphics3d(SageObject):
             </Transform>
             </Scene>
             </X3D>
-
         """
         return """
 <X3D version='3.0' profile='Immersive' xmlns:xsd='http://www.w3.org/2001/XMLSchema-instance' xsd:noNamespaceSchemaLocation=' http://www.web3d.org/specifications/x3d-3.0.xsd '>
@@ -825,31 +975,76 @@ cdef class Graphics3d(SageObject):
 %s
 </Scene>
 </X3D>
-"""%(self.viewpoint().x3d_str(), self.x3d_str())
+""" % (self.viewpoint().x3d_str(), self.x3d_str())
 
-    def tachyon(self):
+    ################ TACHYON ################
+
+    ####### insertion of camera parameters
+
+    tachyon_keywords = (
+      "antialiasing",
+      # "aspectratio",
+      "zoom",  # zoom was previously handled directly by scaling the scene.
+               # This has now been disabled, and zoom is handled by tachyon.
+      "raydepth", "figsize", "light_position",
+      "camera_position","updir",
+      # "look_at", # omit look_at. viewdir is sufficient for most purposes
+      "viewdir")
+
+    # The tachyon "aspectratio" parameter is outdated for normal users:
+    # From the tachyon documentation:
+    # "By using the aspect ratio parameter, one can produce images which look
+    # correct on any screen.  Aspect ratio alters the relative width of the image,
+    # while keeping plane the height of the image plane constant.  In general,
+    # most workstation displays have an aspect ratio of 1.0."
+
+    # Instead, the tachyon aspectratio is set to match nonsquare
+    # drawing area in "figsize".
+
+    # Parameters are mostly taken from tachyon.py,
+    # but camera_center is renamed camera_position.
+    # Apparently reST strips () from default parameters in the automatic documentation.
+    # Thus, I replaced () by [] as default values.
+
+    def tachyon(self,
+        zoom=1.0,
+        antialiasing=False,
+        figsize=[5,5], # resolution = 100*figsize
+        raydepth=8,
+        camera_position=[2.3, 2.4, 2.0], # old default values
+        updir=[0, 0, 1],
+        # look_at=(0, 0, 0), # could be nice to have, but viewdir is good enough
+        light_position=[4.0, 3.0, 2.0],
+        viewdir=None,
+        # projection='PERSPECTIVE', # future extension, allow different projection types
+    ):
         """
-        An tachyon input file (as a string) containing the this object.
+        A tachyon input file (as a string) containing the this object.
 
         EXAMPLES::
 
             sage: print(sphere((1, 2, 3), 5, color='yellow').tachyon())
+            <BLANKLINE>
             begin_scene
-            resolution 400 400
+            resolution 500 500
+            <BLANKLINE>
                      camera
                     ...
                   plane
-                    center -2000 -1000 -500
-                    normal 2.3 2.4 2.0
+                    center -592.870151560437 618.647114671761 -515.539262226467
+                    normal -2.3 2.4 -2.0
                     TEXTURE
-                        AMBIENT 1.0 DIFFUSE 1.0 SPECULAR 1.0 OPACITY 1.0
+                        AMBIENT 1.0 DIFFUSE 0.0 SPECULAR 0.0 OPACITY 1.0
                         COLOR 1.0 1.0 1.0
                         TEXFUNC 0
+            <BLANKLINE>
                 Texdef texture...
-              Ambient 0.333333333333 Diffuse 0.666666666667 Specular 0.0 Opacity 1.0
-               Color 1.0 1.0 0.0
-               TexFunc 0
+              Ambient 0.3333333333333333 Diffuse 0.6666666666666666 Specular 0.0 Opacity 1.0
+              Color 1.0 1.0 0.0
+              TexFunc 0
+            <BLANKLINE>
                 Sphere center 1.0 -2.0 3.0 Rad 5.0 texture...
+            <BLANKLINE>
             end_scene
 
             sage: G = icosahedron(color='red') + sphere((1,2,3), 0.5, color='yellow')
@@ -858,7 +1053,7 @@ cdef class Graphics3d(SageObject):
             begin_scene
             ...
             Texdef texture...
-              Ambient 0.333333333333 Diffuse 0.666666666667 Specular 0.0 Opacity 1.0
+              Ambient 0.3333333333333333 Diffuse 0.6666666666666666 Specular 0.0 Opacity 1.0
                Color 1.0 1.0 0.0
                TexFunc 0
             TRI V0 ...
@@ -868,40 +1063,67 @@ cdef class Graphics3d(SageObject):
         render_params = self.default_render_params()
         # switch from LH to RH coords to be consistent with java rendition
         render_params.push_transform(Transformation(scale=[1,-1,1]))
+
+        if len(camera_position)!=3:
+            raise ValueError('Camera center must consist of three numbers')
+
+        if viewdir is None:
+            viewdir = [float(- camera_position[i]) for i in range(3)]
+            if viewdir == [0.0,0.0,0.0]:
+                viewdir = (1,0,0) # issue a Warning? "camera_position at origin"
+        # switch from LH to RH coords to be consistent with java rendition
+        viewdir = _flip_orientation(viewdir)
+        updir = _flip_orientation(updir)
+        camera_position = _flip_orientation(camera_position)
+        light_position = _flip_orientation(light_position)
+
         return """
 begin_scene
-resolution 400 400
+resolution {resolution_x:d} {resolution_y:d}
 
          camera
-            zoom 1.0
-            aspectratio 1.0
-            antialiasing %s
-            raydepth 8
-            center  2.3 2.4 2.0
-            viewdir  -2.3 -2.4 -2.0
-            updir  0.0 0.0 1.0
+            zoom {zoom:f}
+            aspectratio {aspectratio:f}
+            antialiasing {antialiasing:d}
+            raydepth {raydepth:d}
+            center {camera_position}
+            viewdir {viewdir}
+            updir {updir}
          end_camera
 
-
-      light center  4.0 3.0 2.0
+      light center {light_position}
             rad 0.2
             color  1.0 1.0 1.0
 
       plane
-        center -2000 -1000 -500
-        normal 2.3 2.4 2.0
+        center {viewdir1000}
+        normal {viewdir}
         TEXTURE
-            AMBIENT 1.0 DIFFUSE 1.0 SPECULAR 1.0 OPACITY 1.0
+            AMBIENT 1.0 DIFFUSE 0.0 SPECULAR 0.0 OPACITY 1.0
             COLOR 1.0 1.0 1.0
             TEXFUNC 0
 
-    %s
+    {scene}
 
-    %s
+    {render_parameters}
 
-end_scene""" % (render_params.antialiasing,
-               "\n".join(sorted([t.tachyon_str() for t in self.texture_set()])),
-               "\n".join(flatten_list(self.tachyon_repr(render_params))))
+end_scene""".format(
+    # render_params.antialiasing, this only provided the default value of 8
+    scene = "\n".join(sorted([t.tachyon_str() for t in self.texture_set()])),
+    render_parameters =
+             "\n".join(flatten_list(self.tachyon_repr(render_params))),
+    viewdir1000=self._tostring(1000*vector(viewdir).normalized().n()),
+    viewdir=self._tostring(viewdir),
+    camera_position=self._tostring(camera_position),
+    updir=self._tostring(updir),
+    light_position=self._tostring(light_position),
+    zoom=zoom,
+    antialiasing=antialiasing,
+    resolution_x=figsize[0]*100,
+    resolution_y=figsize[1]*100,
+    aspectratio=float(figsize[1])/float(figsize[0]),
+    raydepth=raydepth,
+                   )
 
     def obj(self):
         """
@@ -932,6 +1154,18 @@ end_scene""" % (render_params.antialiasing,
         """
         return "\n".join(flatten_list([self.obj_repr(self.default_render_params()), ""]))
 
+    @staticmethod
+    def _tostring(s):
+        r"""
+        Convert vector information to a space-separated string.
+
+        EXAMPLES::
+
+            sage: sage.plot.plot3d.base.Graphics3d._tostring((1.0,1.2,-1.3))
+            '1.00000000000000 1.20000000000000 -1.30000000000000'
+        """
+        return ' '.join(map(str,s))
+
     def export_jmol(self, filename='jmol_shape.jmol', force_reload=False,
                     zoom=1, spin=False, background=(1,1,1), stereo=False,
                     mesh=False, dots=False,
@@ -945,7 +1179,7 @@ end_scene""" % (render_params.antialiasing,
 
         EXAMPLES::
 
-            sage: out_file = tmp_filename(ext=".jmol")
+            sage: out_file = tmp_filename(ext='.jmol')
             sage: G = sphere((1, 2, 3), 5) + cube() + sage.plot.plot3d.shapes.Text("hi")
             sage: G.export_jmol(out_file)
             sage: import zipfile
@@ -953,7 +1187,7 @@ end_scene""" % (render_params.antialiasing,
             sage: z.namelist()
             ['obj_...pmesh', 'SCRIPT']
 
-            sage: print(z.read('SCRIPT'))
+            sage: print(z.read('SCRIPT').decode('ascii'))
             data "model list"
             2
             empty
@@ -979,7 +1213,7 @@ end_scene""" % (render_params.antialiasing,
             label "hi"
             isosurface fullylit; pmesh o* fullylit; set antialiasdisplay on;
 
-            sage: print(z.read(z.namelist()[0]))
+            sage: print(z.read(z.namelist()[0]).decode('ascii'))
             24
             0.5 0.5 0.5
             -0.5 0.5 0.5
@@ -1014,22 +1248,22 @@ end_scene""" % (render_params.antialiasing,
             f.write('wireframe off; spacefill off\n')
             f.write('set labelOffset 0 0\n')
 
-
         # Set the scene background color
-        f.write('background [%s,%s,%s]\n'%tuple([int(a*255) for a in background]))
+        f.write('background [%s,%s,%s]\n' % tuple(int(a*255) for a in background))
         if spin:
             f.write('spin ON\n')
         else:
             f.write('spin OFF\n')
         if stereo:
-            if stereo is True: stereo = "redblue"
+            if stereo is True:
+                stereo = "redblue"
             f.write('stereo %s\n' % stereo)
         if orientation:
-            f.write('moveto 0 %s %s %s %s\n'%tuple(orientation))
+            f.write('moveto 0 %s %s %s %s\n' % tuple(orientation))
 
         f.write('centerAt absolute {0 0 0}\n')
         f.write('zoom {0}\n'.format(zoom * 100))
-        f.write('frank OFF\n') # jmol logo
+        f.write('frank OFF\n')  # jmol logo
 
         if perspective_depth:
             f.write('set perspectivedepth ON\n')
@@ -1049,7 +1283,7 @@ end_scene""" % (render_params.antialiasing,
         A (possibly nested) list of strings. Each entry is formatted
         as JSON, so that a JavaScript client could eval it and get an
         object. Each object has fields to encapsulate the faces and
-        vertices of ``self``. This representation is intended to be
+        vertices of the object. This representation is intended to be
         consumed by the canvas3d viewer backend.
 
         EXAMPLES::
@@ -1063,7 +1297,7 @@ end_scene""" % (render_params.antialiasing,
     def jmol_repr(self, render_params):
         r"""
         A (possibly nested) list of strings which will be concatenated and
-        used by jmol to render ``self``.
+        used by jmol to render the object.
 
         (Nested lists of strings are used because otherwise all the
         intermediate concatenations can kill performance). This may
@@ -1084,7 +1318,7 @@ end_scene""" % (render_params.antialiasing,
     def tachyon_repr(self, render_params):
         r"""
         A (possibly nested) list of strings which will be concatenated and
-        used by tachyon to render ``self``.
+        used by tachyon to render the object.
 
         (Nested lists of strings are used because otherwise all the
         intermediate concatenations can kill performance). This may
@@ -1105,7 +1339,7 @@ end_scene""" % (render_params.antialiasing,
     def obj_repr(self, render_params):
         """
         A (possibly nested) list of strings which will be concatenated and
-        used to construct an .obj file of ``self``.
+        used to construct an .obj file of the object.
 
         (Nested lists of strings are used because otherwise all the
         intermediate concatenations can kill performance). This may
@@ -1136,6 +1370,20 @@ end_scene""" % (render_params.antialiasing,
               'f 7 4 3 8',
               'f 3 2 6 8'],
              []]
+        """
+        return []
+
+    def threejs_repr(self, render_params):
+        """
+        A flat list of ``(kind, desc)`` tuples where ``kind`` is one of:
+        'point', 'line', 'text', or 'surface'; and where ``desc`` is a dictionary
+        describing a point, line, text, or surface.
+
+        EXAMPLES::
+
+            sage: G = sage.plot.plot3d.base.Graphics3d()
+            sage: G.threejs_repr(G.default_render_params())
+            []
         """
         return []
 
@@ -1210,11 +1458,7 @@ end_scene""" % (render_params.antialiasing,
         return box_min, box_max
 
     def _prepare_for_jmol(self, frame, axes, frame_aspect_ratio, aspect_ratio, zoom):
-        from sage.plot.plot import EMBEDDED_MODE
-        if EMBEDDED_MODE:
-            s = 6
-        else:
-            s = 3
+        s = 3
         box_min, box_max = self._rescale_for_frame_aspect_ratio_and_zoom(s, frame_aspect_ratio, zoom)
         a_min, a_max = self._box_for_aspect_ratio(aspect_ratio, box_min, box_max)
         return self._transform_to_bounding_box(box_min, box_max, a_min, a_max, frame=frame,
@@ -1236,8 +1480,10 @@ end_scene""" % (render_params.antialiasing,
         if aspect_ratio == "automatic" or aspect_ratio == [1.0]*3:
             return a_min, a_max
 
-        longest_side = 0; longest_length = a_max[0] - a_min[0]
-        shortest_side = 0; shortest_length = a_max[0] - a_min[0]
+        longest_side = 0
+        longest_length = a_max[0] - a_min[0]
+        shortest_side = 0
+        shortest_length = a_max[0] - a_min[0]
 
         for i in range(3):
             s = a_max[i] - a_min[i]
@@ -1279,7 +1525,8 @@ end_scene""" % (render_params.antialiasing,
 
     def _transform_to_bounding_box(self, xyz_min, xyz_max, a_min, a_max, frame, axes, thickness, labels):
 
-        a_min_orig = a_min; a_max_orig = a_max
+        a_min_orig = a_min
+        a_max_orig = a_max
 
         # Rescale in each direction
         scale = [float(xyz_max[i] - xyz_min[i]) / (a_max[i] - a_min[i]) for i in range(3)]
@@ -1292,7 +1539,7 @@ end_scene""" % (render_params.antialiasing,
         T = [xyz_min[i] - a_min[i] for i in range(3)]
         X = X.translate(T)
         if frame:
-            from .shapes2 import frame3d, frame_labels
+            from sage.plot.plot3d.shapes2 import frame3d, frame_labels
             F = frame3d(xyz_min, xyz_max, opacity=0.5, color=(0,0,0), thickness=thickness)
             if labels:
                 F += frame_labels(xyz_min, xyz_max, a_min_orig, a_max_orig)
@@ -1301,13 +1548,13 @@ end_scene""" % (render_params.antialiasing,
 
         if axes:
             # draw axes
-            from .shapes import arrow3d
+            from sage.plot.plot3d.shapes import arrow3d
             A = (arrow3d((min(0,a_min[0]),0, 0), (max(0,a_max[0]), 0,0),
-                             thickness, color="blue"),
+                             thickness, color='blue'),
                  arrow3d((0,min(0,a_min[1]), 0), (0, max(0,a_max[1]), 0),
-                             thickness, color="blue"),
+                             thickness, color='blue'),
                  arrow3d((0, 0, min(0,a_min[2])), (0, 0, max(0,a_max[2])),
-                             thickness, color="blue"))
+                             thickness, color='blue'))
             X += sum(A).translate([-z for z in T])
 
         return X
@@ -1372,8 +1619,8 @@ end_scene""" % (render_params.antialiasing,
         return opts
 
     def show(self, **kwds):
-        """
-        Display graphics immediately
+        r"""
+        Display graphics immediately.
 
         This method attempts to display the graphics immediately,
         without waiting for the currently running code (if any) to
@@ -1383,49 +1630,104 @@ end_scene""" % (render_params.antialiasing,
 
         INPUT:
 
-        -  ``viewer`` -- string (default: 'jmol'), how to view
-           the plot
+        - ``viewer`` -- string (default: ``'threejs'``); how to view the plot.
+          Admissible values are
 
-           * 'jmol': Interactive 3D viewer using Java
-
-           * 'tachyon': Ray tracer generates a static PNG image
-
-           * 'canvas3d': Web-based 3D viewer using JavaScript
-             and a canvas renderer (Sage notebook only)
-
-           * 'threejs': Web-based 3D viewer using JavaScript
+           * ``'threejs'``: interactive web-based 3D viewer using JavaScript
              and a WebGL renderer
 
-        -  ``verbosity`` -- display information about rendering
-           the figure
+           * ``'jmol'``: interactive 3D viewer using Java
 
-        -  ``figsize`` -- (default: 5); x or pair [x,y] for
-           numbers, e.g., [5,5]; controls the size of the output figure. E.g.,
-           with Tachyon the number of pixels in each direction is 100 times
-           figsize[0]. This is ignored for the jmol embedded renderer.
+           * ``'tachyon'``: ray tracer generating a static PNG image;
+             can produce high-resolution graphics, but does
+             not show any text labels
 
-        -  ``aspect_ratio`` -- (default: "automatic") -- aspect
-           ratio of the coordinate system itself. Give [1,1,1] to make spheres
-           look round.
+           * ``'canvas3d'``: web-based 3D viewer using JavaScript
+             and a canvas renderer (Sage notebook only)
 
-        -  ``frame_aspect_ratio`` -- (default: "automatic")
-           aspect ratio of frame that contains the 3d scene.
+        - ``verbosity`` -- display information about rendering
+          the figure
 
-        -  ``zoom`` -- (default: 1) how zoomed in
+        - ``figsize`` -- (default: 5) x or pair [x,y] for
+          numbers, e.g., [5,5]; controls the size of the output figure.
+          With 'tachyon', the resolution (in number of pixels) is 100 times
+          ``figsize``. This is ignored for the jmol embedded renderer.
 
-        -  ``frame`` -- (default: True) if True, draw a
-           bounding frame with labels
+        - ``aspect_ratio`` -- (default: ``'automatic'``) aspect
+          ratio of the coordinate system itself; give [1,1,1] or 1 to make
+          spheres look round
 
-        -  ``axes`` -- (default: False) if True, draw coordinate
-           axes
+        - ``frame_aspect_ratio`` -- (default: ``'automatic'``)
+          aspect ratio of frame that contains the 3d scene
 
-        -  ``**kwds`` -- other options, which make sense for particular
-           rendering engines
+        - ``zoom`` -- (default: 1) how zoomed in
+
+        - ``frame`` -- boolean (default: ``True``); if ``True``, draw a
+          bounding frame with labels
+
+        - ``axes`` -- boolean (default: ``False``); if ``True``, draw coordinate
+          axes
+
+        - ``camera_position`` -- (for tachyon) (default: (2.3, 2.4, 2.0))
+          the viewpoint, with respect to the cube
+          $[-1,1]\\times[-1,1]\\times[-1,1]$,
+          into which the bounding box of the scene
+          is scaled and centered.
+          The default viewing direction is towards the origin.
+
+        - ``viewdir`` -- (for tachyon) (default: ``None``) three coordinates
+          specifying the viewing direction
+
+        - ``updir`` -- (for tachyon) (default: (0,0,1)) the "upward"
+          direction of the camera
+
+        - ``light_position`` -- (for tachyon) (default: (4,3,2)) the position
+          of the single light source in the scene (in addition to ambient light)
+
+        - ``antialiasing`` -- (for tachyon) (default: ``False``)
+
+        - ``raydepth`` -- (for tachyon) (default: 8)
+          see the :class:`sage.plot.plot3d.tachyon.Tachyon` class
+
+        - ``shade`` -- (for tachyon) string (default: ``'full'``);
+          shading options. Admissible values are
+
+           * ``'full'``: best quality rendering (and slowest).
+             Sets tachyon command line flag ``-fullshade``.
+
+           * ``'medium``: good quality rendering, but no shadows.
+             Sets tachyon command line flag ``-mediumshade``.
+
+           * ``'low'``: low quality rendering, preview (and fast).
+             Sets tachyon command line flag ``-lowshade``.
+
+           * ``'lowest'``: worst quality rendering, preview (and fastest).
+             Sets tachyon command line flag ``-lowestshade``.
+
+        - ``extra_opts`` -- (for tachyon) string (default: empty string);
+          extra options that will be appended to the tachyon command line
+
+        - ``**kwds`` -- other options, which make sense for particular
+          rendering engines
 
         OUTPUT:
 
         This method does not return anything. Use :meth:`save` if you
-        want to save the figure as an image.
+        want to save the figure as an image file.
+
+        .. WARNING::
+
+            By default, the jmol and tachyon viewers perform
+            some non-uniform scaling of the axes.
+
+        If this is not desired, one can set ``aspect_ratio=1``::
+
+            sage: p = plot3d(lambda u,v:(cos(u)-cos(v)), (-0.2,0.2),(-0.2,0.2))
+            sage: p.show(viewer='threejs')
+            sage: p.show(viewer='jmol')
+            sage: p.show(viewer='jmol',aspect_ratio=1)
+            sage: p.show(viewer='tachyon',camera_position=(4,0,0))
+            sage: p.show(viewer='tachyon',camera_position=(2,2,0.3),aspect_ratio=1)
 
         CHANGING DEFAULTS: Defaults can be uniformly changed by importing a
         dictionary and changing it. For example, here we change the default
@@ -1450,17 +1752,17 @@ end_scene""" % (render_params.antialiasing,
 
         EXAMPLES: We illustrate use of the ``aspect_ratio`` option::
 
-            sage: x, y = var('x,y')
-            sage: p = plot3d(2*sin(x*y), (x, -pi, pi), (y, -pi, pi))
-            sage: p.show(aspect_ratio=[1,1,1])
+            sage: x, y = var('x,y')                                                     # needs sage.symbolic
+            sage: p = plot3d(2*sin(x*y), (x, -pi, pi), (y, -pi, pi))                    # needs sage.symbolic
+            sage: p.show(aspect_ratio=[1,1,1])                                          # needs sage.symbolic
 
         This looks flattened, but filled with the plot::
 
-            sage: p.show(frame_aspect_ratio=[1,1,1/16])
+            sage: p.show(frame_aspect_ratio=[1,1,1/16])                                 # needs sage.symbolic
 
         This looks flattened, but the plot is square and smaller::
 
-            sage: p.show(aspect_ratio=[1,1,1], frame_aspect_ratio=[1,1,1/8])
+            sage: p.show(aspect_ratio=[1,1,1], frame_aspect_ratio=[1,1,1/8])            # needs sage.symbolic
 
         This example shows indirectly that the defaults
         from :func:`~sage.plot.plot.plot` are dealt with properly::
@@ -1471,7 +1773,17 @@ end_scene""" % (render_params.antialiasing,
         We use the 'canvas3d' backend from inside the notebook to get a view of
         the plot rendered inline using HTML canvas::
 
-            sage: p.show(viewer='canvas3d')
+            sage: p.show(viewer='canvas3d')                                             # needs sage.symbolic
+
+        Sometimes shadows in Tachyon-produced images can lead to confusing
+        plots. To remove them::
+
+            sage: p.show(viewer='tachyon', shade='medium')                              # needs sage.symbolic
+
+        One can also pass Tachyon command line flags directly. For example,
+        the following line produces the same result as the previous one::
+
+            sage: p.show(viewer='tachyon', extra_opts='-mediumshade')                   # needs sage.symbolic
         """
         from sage.repl.rich_output import get_display_manager
         dm = get_display_manager()
@@ -1486,9 +1798,10 @@ end_scene""" % (render_params.antialiasing,
         EXAMPLES::
 
             sage: s = sphere()
-            sage: filename = tmp_filename(ext='.png')
-            sage: s._save_image_png(filename)
-            sage: open(filename).read().startswith('\x89PNG')
+            sage: png = tmp_filename(ext='.png')
+            sage: s._save_image_png(png)
+            sage: with open(png, 'rb') as fobj:
+            ....:     fobj.read().startswith(b'\x89PNG')
             True
 
             sage: s._save_image_png('/path/to/foo.bar')
@@ -1499,6 +1812,8 @@ end_scene""" % (render_params.antialiasing,
         assert filename.endswith('.png')
         opts = self._process_viewing_options(kwds)
         viewer = opts['viewer']
+        if viewer == 'threejs':
+            viewer = 'jmol'  # since threejs has no png dump
         if viewer == 'tachyon':
             from sage.repl.rich_output.output_catalog import OutputImagePng
             render = self._rich_repr_tachyon(OutputImagePng, **opts)
@@ -1519,8 +1834,8 @@ end_scene""" % (render_params.antialiasing,
 
         INPUT:
 
-        - ``filename`` -- string. The file name under which to save
-          the image.
+        - ``filename`` -- string; the file name under which to save
+          the image
 
         Any further keyword arguments are passed to the renderer.
 
@@ -1529,11 +1844,13 @@ end_scene""" % (render_params.antialiasing,
             sage: G = sphere()
             sage: png = tmp_filename(ext='.png')
             sage: G.save_image(png)
-            sage: assert open(png).read().startswith('\x89PNG')
+            sage: with open(png, 'rb') as fobj:
+            ....:     assert fobj.read().startswith(b'\x89PNG')
 
             sage: gif = tmp_filename(ext='.gif')
             sage: G.save_image(gif)
-            sage: assert open(gif).read().startswith('GIF')
+            sage: with open(gif, 'rb') as fobj:
+            ....:     assert fobj.read().startswith(b'GIF')
         """
         ext = os.path.splitext(filename)[1].lower()
         if ext not in ['.bmp', '.png', '.gif', '.ppm', '.tiff', '.tif',
@@ -1560,6 +1877,8 @@ end_scene""" % (render_params.antialiasing,
         - a Sage object file (of type ``.sobj``) that you can load back later
           (a pickle),
 
+        - an HTML file depicting the graphic using the Three.js viewer,
+
         - a data file (of type: X3D, STL, AMF, PLY) for export and use in
           other software.
 
@@ -1568,10 +1887,10 @@ end_scene""" % (render_params.antialiasing,
 
         INPUT:
 
-        - ``filename`` -- string. Where to save the image or object.
+        - ``filename`` -- string; where to save the image or object
 
-        - ``**kwds`` -- When specifying an image file to be rendered by Tachyon
-          or Jmol, any of the viewing options accepted by show() are valid as
+        - ``**kwds`` -- when specifying an image file to be rendered by Tachyon
+          or Jmol, any of the viewing options accepted by :meth:`show` are valid as
           keyword arguments to this function and they will behave in the same
           way. Accepted keywords include: ``viewer``, ``verbosity``,
           ``figsize``, ``aspect_ratio``, ``frame_aspect_ratio``, ``zoom``,
@@ -1605,6 +1924,11 @@ end_scene""" % (render_params.antialiasing,
 
             sage: open(f).read().splitlines()[7]
             "<Shape><Box size='0.5 0.5 0.5'/><Appearance><Material diffuseColor='0.4 0.4 1.0' shininess='1.0' specularColor='0.0 0.0 0.0'/></Appearance></Shape>"
+
+        Producing a Three.js-based HTML file::
+
+            sage: f = tmp_filename(ext='.html')
+            sage: G.save(f, frame=False, online=True)
         """
         ext = os.path.splitext(filename)[1].lower()
         if ext == '' or ext == '.sobj':
@@ -1628,6 +1952,8 @@ end_scene""" % (render_params.antialiasing,
         elif ext == '.ply':
             with open(filename, 'w') as outfile:
                 outfile.write(self.ply_ascii_string())
+        elif ext == '.html':
+            self._rich_repr_threejs(**kwds).html.save_as(filename)
         else:
             raise ValueError('filetype {} not supported by save()'.format(ext))
 
@@ -1637,82 +1963,45 @@ end_scene""" % (render_params.antialiasing,
 
         .. WARNING::
 
-            This only works for surfaces, not for general plot objects!
+            This only works for surfaces, transforms and unions of surfaces,
+            but not for general plot objects!
 
-        OUTPUT:
-
-        A binary string that represents the surface in the binary STL format.
+        OUTPUT: a binary string that represents the surface in the binary STL format
 
         See :wikipedia:`STL_(file_format)`
 
+        .. SEEALSO:: :meth:`stl_ascii_string`
+
         EXAMPLES::
 
+            sage: # needs sage.symbolic
             sage: x,y,z = var('x,y,z')
             sage: a = implicit_plot3d(x^2+y^2+z^2-9,[x,-5,5],[y,-5,5],[z,-5,5])
             sage: astl = a.stl_binary()
-            sage: astl[:40]
-            'STL binary file / made by SageMath / ###'
+            sage: print(astl[:40].decode('ascii'))
+            STL binary file / made by SageMath / ###
 
             sage: p = polygon3d([[0,0,0], [1,2,3], [3,0,0]])
-            sage: p.stl_binary()[:40]
-            'STL binary file / made by SageMath / ###'
+            sage: print(p.stl_binary()[:40].decode('ascii'))
+            STL binary file / made by SageMath / ###
 
         This works when faces have more then 3 sides::
 
+            sage: # needs sage.geometry.polyhedron sage.groups
             sage: P = polytopes.dodecahedron()
             sage: Q = P.plot().all[-1]
-            sage: Q.stl_binary()[:40]
-            'STL binary file / made by SageMath / ###'
+            sage: print(Q.stl_binary()[:40].decode('ascii'))
+            STL binary file / made by SageMath / ###
         """
         import struct
-        from sage.modules.free_module import FreeModule
-        RR3 = FreeModule(RDF, 3)
-
         header = b'STL binary file / made by SageMath / '
         header += b'#' * (80 - len(header))
         # header = 80 bytes, arbitrary ascii characters
+        data = self.stl_binary_repr(self.default_render_params())
+        N_triangles = len(data)
+        return b''.join([header, struct.pack('I', N_triangles)] + data)
 
-        faces = self.face_list()
-        if not faces:
-            self.triangulate()
-            faces = self.face_list()
-
-        faces_iter = faces.__iter__()
-
-        def chopped_faces_iter():
-            for face in faces_iter:
-                n = len(face)
-                if n == 3:
-                    yield face
-                else:
-                    # naive cut into triangles
-                    v = face[-1]
-                    for i in range(n - 2):
-                        yield [v, face[i], face[i + 1]]
-
-        main_data = []
-        N_triangles = 0
-        for i, j, k in chopped_faces_iter():
-            N_triangles += 1
-            ij = RR3(j) - RR3(i)
-            ik = RR3(k) - RR3(i)
-            n = ij.cross_product(ik)
-            n = n / n.norm()
-            fill = struct.pack('H', 0)
-            # 50 bytes per facet
-            # 12 times 4 bytes (float) for n, i, j, k
-            fill = b''.join(struct.pack('<f', x) for x in n)
-            fill += b''.join(struct.pack('<f', x) for x in i)
-            fill += b''.join(struct.pack('<f', x) for x in j)
-            fill += b''.join(struct.pack('<f', x) for x in k)
-            # plus 2 more bytes
-            fill += b'00'
-            main_data.append(fill)
-
-        main_data = [header, struct.pack('I', N_triangles)] + main_data
-        return b''.join(main_data)
-
-    def stl_ascii_string(self, name="surface"):
+    def stl_ascii_string(self, name='surface'):
         """
         Return an STL (STereoLithography) representation of the surface.
 
@@ -1722,22 +2011,23 @@ end_scene""" % (render_params.antialiasing,
 
         INPUT:
 
-        - ``name`` (string, default: "surface") -- name of the surface.
+        - ``name`` -- string (default: ``'surface'``); name of the surface
 
-        OUTPUT:
-
-        A string that represents the surface in the STL format.
+        OUTPUT: string that represents the surface in the STL format
 
         See :wikipedia:`STL_(file_format)`
 
+        .. SEEALSO:: :meth:`stl_binary`
+
         EXAMPLES::
 
+            sage: # needs sage.symbolic
             sage: x,y,z = var('x,y,z')
             sage: a = implicit_plot3d(x^2+y^2+z^2-9,[x,-5,5],[y,-5,5],[z,-5,5])
             sage: astl = a.stl_ascii_string()
-            sage: astl.splitlines()[:7]
+            sage: astl.splitlines()[:7]  # abs tol 1e-10
             ['solid surface',
-            'facet normal 0.973328526785 -0.162221421131 -0.162221421131',
+            'facet normal 0.9733285267845754 -0.16222142113076257 -0.16222142113076257',
             '    outer loop',
             '        vertex 2.94871794872 -0.384615384615 -0.39358974359',
             '        vertex 2.95021367521 -0.384615384615 -0.384615384615',
@@ -1747,7 +2037,7 @@ end_scene""" % (render_params.antialiasing,
             sage: p = polygon3d([[0,0,0], [1,2,3], [3,0,0]])
             sage: print(p.stl_ascii_string(name='triangle'))
             solid triangle
-            facet normal 0.0 0.832050294338 -0.554700196225
+            facet normal 0.0 0.8320502943378436 -0.5547001962252291
                 outer loop
                     vertex 0.0 0.0 0.0
                     vertex 1.0 2.0 3.0
@@ -1758,15 +2048,17 @@ end_scene""" % (render_params.antialiasing,
 
         Now works when faces have more then 3 sides::
 
+            sage: # needs sage.geometry.polyhedron sage.groups
             sage: P = polytopes.dodecahedron()
             sage: Q = P.plot().all[-1]
-            sage: Q.stl_ascii_string().splitlines()[:6]
+            sage: print(Q.stl_ascii_string().splitlines()[:7])
             ['solid surface',
-            'facet normal 0.850650808352 -0.0 0.525731112119',
-            '    outer loop',
-            '        vertex 1.2360679775 -0.472135955 0.0',
-            '        vertex 1.2360679775 0.472135955 0.0',
-            '        vertex 0.7639320225 0.7639320225 0.7639320225']
+             'facet normal 0.0 0.5257311121191338 0.8506508083520399',
+             '    outer loop',
+             '        vertex -0.7639320225002102 0.7639320225002102 0.7639320225002102',
+             '        vertex -0.4721359549995796 0.0 1.2360679774997898',
+             '        vertex 0.4721359549995796 0.0 1.2360679774997898',
+             '    endloop']
         """
         from sage.modules.free_module import FreeModule
         RR3 = FreeModule(RDF, 3)
@@ -1776,11 +2068,11 @@ end_scene""" % (render_params.antialiasing,
             self.triangulate()
             faces = self.face_list()
 
-        code = ("facet normal {} {} {}\n"
+        code = ("facet normal {!r} {!r} {!r}\n"
                 "    outer loop\n"
-                "        vertex {} {} {}\n"
-                "        vertex {} {} {}\n"
-                "        vertex {} {} {}\n"
+                "        vertex {!r} {!r} {!r}\n"
+                "        vertex {!r} {!r} {!r}\n"
+                "        vertex {!r} {!r} {!r}\n"
                 "    endloop\n"
                 "endfacet\n")
 
@@ -1810,22 +2102,21 @@ end_scene""" % (render_params.antialiasing,
         string_list += ["endsolid {}".format(name)]
         return "".join(string_list)
 
-    def ply_ascii_string(self, name="surface"):
+    def ply_ascii_string(self, name='surface'):
         """
         Return a PLY (Polygon File Format) representation of the surface.
 
         INPUT:
 
-        - ``name`` (string, default: "surface") -- name of the surface.
+        - ``name`` -- string (default: ``'surface'``); name of the surface
 
-        OUTPUT:
+        OUTPUT: string that represents the surface in the PLY format
 
-        A string that represents the surface in the PLY format.
-
-        See :wikipedia:`PLY_(file_format)`
+        See :wikipedia:`PLY_(file_format)`.
 
         EXAMPLES::
 
+            sage: # needs sage.symbolic
             sage: x,y,z = var('x,y,z')
             sage: a = implicit_plot3d(x^2+y^2+z^2-9,[x,-5,5],[y,-5,5],[z,-5,5])
             sage: astl = a.ply_ascii_string()
@@ -1875,7 +2166,7 @@ end_scene""" % (render_params.antialiasing,
 
         return "".join(string_list)
 
-    def amf_ascii_string(self, name="surface"):
+    def amf_ascii_string(self, name='surface'):
         """
         Return an AMF (Additive Manufacturing File Format) representation of
         the surface.
@@ -1886,13 +2177,11 @@ end_scene""" % (render_params.antialiasing,
 
         INPUT:
 
-        - ``name`` (string, default: "surface") -- name of the surface.
+        - ``name`` -- string (default: ``'surface'``); name of the surface
 
-        OUTPUT:
+        OUTPUT: string that represents the surface in the AMF format
 
-        A string that represents the surface in the AMF format.
-
-        See :wikipedia:`Additive_Manufacturing_File_Format`
+        See :wikipedia:`Additive_Manufacturing_File_Format`.
 
         .. TODO::
 
@@ -1900,11 +2189,12 @@ end_scene""" % (render_params.antialiasing,
 
         EXAMPLES::
 
+            sage: # needs sage.symbolic
             sage: x,y,z = var('x,y,z')
             sage: a = implicit_plot3d(x^2+y^2+z^2-9,[x,-5,5],[y,-5,5],[z,-5,5])
             sage: a_amf = a.amf_ascii_string()
             sage: a_amf[:160]
-            '<?xml version="1.0" encoding="utf-8"?><amf><object id="surface"><mesh><vertices><vertex><coordinates><x>2.94871794872</x><y>-0.384615384615</y><z>-0.39358974359'
+            '<?xml version="1.0" encoding="utf-8"?><amf><object id="surface"><mesh><vertices><vertex><coordinates><x>2.948717948717948</x><y>-0.384615384615385</y><z>-0.3935'
 
             sage: p = polygon3d([[0,0,0], [1,2,3], [3,0,0]])
             sage: print(p.amf_ascii_string(name='triangle'))
@@ -1921,7 +2211,7 @@ end_scene""" % (render_params.antialiasing,
         string_list = ['<?xml version="1.0" encoding="utf-8"?><amf><object id="{}"><mesh>'.format(name)]
 
         string_list += ['<vertices>']
-        vertex_template = '<vertex><coordinates><x>{}</x><y>{}</y><z>{}</z></coordinates></vertex>'
+        vertex_template = '<vertex><coordinates><x>{!r}</x><y>{!r}</y><z>{!r}</z></coordinates></vertex>'
         for v in self.vertices():
             string_list += [vertex_template.format(*v)]
         string_list += ['</vertices><volume>']
@@ -1937,19 +2227,18 @@ end_scene""" % (render_params.antialiasing,
         """
         Draw a 3D plot of this graphics object, which just returns this
         object since this is already a 3D graphics object.
-        Needed to support PLOT in doctrings, see :trac:`17498`
+        Needed to support PLOT in docstrings, see :issue:`17498`
 
         EXAMPLES::
 
             sage: S = sphere((0,0,0), 2)
             sage: S.plot() is S
             True
-
         """
         return self
 
 # if you add any default parameters you must update some code below
-SHOW_DEFAULTS = {'viewer': 'jmol',
+SHOW_DEFAULTS = {'viewer': 'threejs',
                  'verbosity': 0,
                  'figsize': 5,
                  'aspect_ratio': "automatic",
@@ -1990,7 +2279,7 @@ class Graphics3dGroup(Graphics3d):
             sage: len(G.all)
             10
 
-        We check that :trac:`17258` is solved::
+        We check that :issue:`17258` is solved::
 
             sage: g = point3d([0,-2,-2]); g += point3d([2,-2,-2])
             sage: len(g.all)
@@ -2011,7 +2300,7 @@ class Graphics3dGroup(Graphics3d):
     def bounding_box(self):
         """
         Box that contains the bounding boxes of
-        all the objects that make up ``self``.
+        the objects.
 
         EXAMPLES::
 
@@ -2109,7 +2398,7 @@ class Graphics3dGroup(Graphics3d):
             <Shape><Sphere radius='1.0'/><Appearance><Material diffuseColor='0.4 0.4 1.0' shininess='1.0' specularColor='0.0 0.0 0.0'/></Appearance></Shape>
             </Transform>
         """
-        return "\n".join([g.x3d_str() for g in self.all])
+        return "\n".join(g.x3d_str() for g in self.all)
 
     def obj_repr(self, render_params):
         """
@@ -2153,6 +2442,49 @@ class Graphics3dGroup(Graphics3d):
         """
         return [g.jmol_repr(render_params) for g in self.all]
 
+    def threejs_repr(self, render_params):
+        r"""
+        The three.js representation of a group is the concatenation of the
+        representations of its objects.
+
+        EXAMPLES::
+
+            sage: G = point3d((1,2,3)) + point3d((4,5,6)) + line3d([(1,2,3), (4,5,6)])
+            sage: G.threejs_repr(G.default_render_params())
+            [('point',
+              {'color': '#6666ff', 'opacity': 1.0, 'point': (1.0, 2.0, 3.0), 'size': 5.0}),
+             ('point',
+              {'color': '#6666ff', 'opacity': 1.0, 'point': (4.0, 5.0, 6.0), 'size': 5.0}),
+             ('line',
+              {'color': '#6666ff',
+               'linewidth': 1.0,
+               'opacity': 1.0,
+               'points': [(1.0, 2.0, 3.0), (4.0, 5.0, 6.0)]})]
+        """
+        reprs = []
+        for g in self.all:
+            reprs += g.threejs_repr(render_params)
+        return reprs
+
+    def stl_binary_repr(self, render_params):
+        r"""
+        The stl binary representation of a group is simply the
+        concatenation of the representation of its objects.
+
+        The STL binary representation is a list of binary strings,
+        one for each triangle.
+
+        EXAMPLES::
+
+            sage: G = sphere() + sphere((1,2,3))
+            sage: len(G.stl_binary_repr(G.default_render_params()))
+            2736
+        """
+        data = []
+        for sub in self.all:
+            data.extend(sub.stl_binary_repr(render_params))
+        return data
+
     def texture_set(self):
         """
         The texture set of a group is simply the union of the textures of
@@ -2174,7 +2506,7 @@ class Graphics3dGroup(Graphics3d):
 
         TESTS:
 
-        Check that :trac:`23200` is fixed::
+        Check that :issue:`23200` is fixed::
 
             sage: G = sage.plot.plot3d.base.Graphics3dGroup()
             sage: G.texture_set()
@@ -2214,6 +2546,7 @@ class Graphics3dGroup(Graphics3d):
     def plot(self):
         return self
 
+
 class TransformGroup(Graphics3dGroup):
     """
     This class is a container for a group of objects with a common
@@ -2249,11 +2582,12 @@ class TransformGroup(Graphics3dGroup):
 
     def bounding_box(self):
         """
-        Return the bounding box of ``self``, i.e., the box containing the
-        contents of ``self`` after applying the transformation.
+        Return the bounding box, i.e., the box containing the
+        contents of the object after applying the transformation.
 
         EXAMPLES::
 
+            sage: from math import pi
             sage: G = cube()
             sage: G.bounding_box()
             ((-0.5, -0.5, -0.5), (0.5, 0.5, 0.5))
@@ -2285,11 +2619,11 @@ class TransformGroup(Graphics3dGroup):
         """
         s = "<Transform"
         if self._rot is not None:
-            s += " rotation='%s %s %s %s'"%tuple(self._rot)
+            s += " rotation='%s %s %s %s'" % tuple(self._rot)
         if self._trans is not None:
-            s += " translation='%s %s %s'"%tuple(self._trans)
+            s += " translation='%s %s %s'" % tuple(self._trans)
         if self._scale is not None:
-            s += " scale='%s %s %s'"%tuple(self._scale)
+            s += " scale='%s %s %s'" % tuple(self._scale)
         s += ">\n"
         s += Graphics3dGroup.x3d_str(self)
         s += "\n</Transform>"
@@ -2305,9 +2639,26 @@ class TransformGroup(Graphics3dGroup):
             sage: G.json_repr(G.default_render_params())
             [['{"vertices":[{"x":0.5,"y":0.589368,"z":0.390699},...']]
         """
-
         render_params.push_transform(self.get_transformation())
         rep = [g.json_repr(render_params) for g in self.all]
+        render_params.pop_transform()
+        return rep
+
+    def stl_binary_repr(self, render_params):
+        """
+        Transformations are applied at the leaf nodes.
+
+        The STL binary representation is a list of binary strings,
+        one for each triangle.
+
+        EXAMPLES::
+
+            sage: G = sphere().translate((1,2,0))
+            sage: len(G.stl_binary_repr(G.default_render_params()))
+            1368
+        """
+        render_params.push_transform(self.get_transformation())
+        rep = sum([g.stl_binary_repr(render_params) for g in self.all], [])
         render_params.pop_transform()
         return rep
 
@@ -2372,9 +2723,31 @@ class TransformGroup(Graphics3dGroup):
         render_params.pop_transform()
         return rep
 
+    def threejs_repr(self, render_params):
+        r"""
+        Transformations for three.js are applied at the leaf nodes.
+
+        EXAMPLES::
+
+            sage: G = point3d((1,2,3)) + point3d((4,5,6))
+            sage: G = G.translate(-1, -2, -3).scale(10)
+            sage: G.threejs_repr(G.default_render_params())
+            [('point',
+              {'color': '#6666ff', 'opacity': 1.0, 'point': (0.0, 0.0, 0.0), 'size': 5.0}),
+             ('point',
+              {'color': '#6666ff',
+               'opacity': 1.0,
+               'point': (30.0, 30.0, 30.0),
+               'size': 5.0})]
+        """
+        render_params.push_transform(self.get_transformation())
+        rep = Graphics3dGroup.threejs_repr(self, render_params)
+        render_params.pop_transform()
+        return rep
+
     def get_transformation(self):
         """
-        Return the actual transformation object associated with ``self``.
+        Return the current transformation object.
 
         EXAMPLES::
 
@@ -2438,6 +2811,56 @@ class TransformGroup(Graphics3dGroup):
         return Graphics3d.transform(self, **kwds)
 
 
+class KeyframeAnimationGroup(Graphics3dGroup):
+    """A group of objects, each depicting a single frame of animation"""
+    def __init__(self, all=(), **kwds):
+        r"""
+        EXAMPLES::
+
+            sage: frames = [dodecahedron(), icosahedron(), tetrahedron()]
+            sage: sage.plot.plot3d.base.KeyframeAnimationGroup(frames)
+            Graphics3d Object
+
+        They are usually constructed from an class:`~sage.plot.animate.Animation`::
+
+            sage: type(animate(frames).interactive())
+            <class 'sage.plot.plot3d.base.KeyframeAnimationGroup'>
+        """
+        Graphics3dGroup.__init__(self, all)
+        self._extra_kwds.update(kwds)
+
+    def threejs_repr(self, render_params):
+        r"""
+        Add keyframe information to the representations of the group's contents.
+
+        EXAMPLES::
+
+            sage: a = point3d((0, 0, 1))
+            sage: b = point3d((0, 1, 0))
+            sage: c = point3d((1, 0, 0))
+            sage: g = sage.plot.plot3d.base.KeyframeAnimationGroup([a, b, c])
+            sage: g.threejs_repr(g.default_render_params())
+            [('point', {..., 'keyframe': 0, ..., 'point': (0.0, 0.0, 1.0), ...}),
+             ('point', {..., 'keyframe': 1, ..., 'point': (0.0, 1.0, 0.0), ...}),
+             ('point', {..., 'keyframe': 2, ..., 'point': (1.0, 0.0, 0.0), ...})]
+
+        Only top-level objects get a unique keyframe. Nested objects share the
+        same keyframe::
+
+            sage: g = sage.plot.plot3d.base.KeyframeAnimationGroup([a + b, c])
+            sage: g.threejs_repr(g.default_render_params())
+            [('point', {..., 'keyframe': 0, ..., 'point': (0.0, 0.0, 1.0), ...}),
+             ('point', {..., 'keyframe': 0, ..., 'point': (0.0, 1.0, 0.0), ...}),
+             ('point', {..., 'keyframe': 1, ..., 'point': (1.0, 0.0, 0.0), ...})]
+        """
+        reprs = []
+        for i, g in enumerate(self.all):
+            for (kind, desc) in g.threejs_repr(render_params):
+                desc['keyframe'] = i
+                reprs.append((kind, desc))
+        return reprs
+
+
 class Viewpoint(Graphics3d):
     """
     This class represents a viewpoint, necessary for x3d.
@@ -2463,7 +2886,7 @@ class Viewpoint(Graphics3d):
             sage: sphere((0,0,0), 100).viewpoint().x3d_str()
             "<Viewpoint position='0 0 6'/>"
         """
-        return "<Viewpoint position='%s %s %s'/>"%self.pos
+        return "<Viewpoint position='%s %s %s'/>" % self.pos
 
 
 cdef class PrimitiveObject(Graphics3d):
@@ -2473,7 +2896,7 @@ cdef class PrimitiveObject(Graphics3d):
     def __init__(self, **kwds):
         if 'texture' in kwds:
             self.texture = kwds['texture']
-            if not is_Texture(self.texture):
+            if not isinstance(self.texture, Texture):
                 self.texture = Texture(self.texture)
         else:
             self.texture = Texture(kwds)
@@ -2487,7 +2910,7 @@ cdef class PrimitiveObject(Graphics3d):
             sage: G.set_texture(color='yellow'); G
             Graphics3d Object
         """
-        if not is_Texture(texture):
+        if not isinstance(texture, Texture):
             texture = Texture(texture, **kwds)
         self.texture = texture
 
@@ -2567,6 +2990,27 @@ cdef class PrimitiveObject(Graphics3d):
         """
         return self.triangulation().jmol_repr(render_params)
 
+    def threejs_repr(self, render_params):
+        r"""
+        Default behavior is to render the triangulation.
+
+        EXAMPLES::
+
+            sage: from sage.plot.plot3d.base import PrimitiveObject
+            sage: class SimpleTriangle(PrimitiveObject):
+            ....:     def triangulation(self):
+            ....:         return polygon3d([(0,0,0), (1,0,0), (0,1,0)])
+            sage: G = SimpleTriangle()
+            sage: G.threejs_repr(G.default_render_params())
+            [('surface',
+              {'color': '#0000ff',
+               'faces': [[0, 1, 2]],
+               'opacity': 1.0,
+               'vertices': [{'x': 0.0, 'y': 0.0, 'z': 0.0},
+                {'x': 1.0, 'y': 0.0, 'z': 0.0},
+                {'x': 0.0, 'y': 1.0, 'z': 0.0}]})]
+        """
+        return self.triangulation().threejs_repr(render_params)
 
 
 class BoundingSphere(SageObject):
@@ -2609,13 +3053,12 @@ class BoundingSphere(SageObject):
             sage: BoundingSphere((0,0,0), 1) + BoundingSphere((0,0,100), 1)
             Center (0.0, 0.0, 50.0) radius 51.0
             sage: BoundingSphere((0,0,0), 1) + BoundingSphere((1,1,1), 2)
-            Center (0.7886751345948128, 0.7886751345948128, 0.7886751345948128) radius 2.36602540378
+            Center (0.7886751345948128, 0.7886751345948128, 0.7886751345948128) radius 2.3660254037844384
 
         Treat None and 0 as the identity::
 
             sage: BoundingSphere((1,2,3), 10) + None + 0
             Center (1.0, 2.0, 3.0) radius 10
-
         """
         if other == 0 or other is None:
             return self
@@ -2744,17 +3187,16 @@ class RenderParams(SageObject):
             [  0.0   1.0   0.0 500.0]
             [  0.0   0.0   1.0   0.0]
             [  0.0   0.0   0.0   1.0]
-
         """
         self.transform = self.transform_list.pop()
 
-    def unique_name(self, desc="name"):
+    def unique_name(self, desc='name'):
         """
         Return a unique identifier starting with ``desc``.
 
         INPUT:
 
-        - ``desc`` (string) -- the prefix of the names (default 'name')
+        - ``desc`` -- string (default: ``'name'``); the prefix of the names
 
         EXAMPLES::
 
@@ -2798,8 +3240,10 @@ def flatten_list(L):
     if type(L) is not list:
         return [L]
     flat = []
-    L_stack = []; L_pop = L_stack.pop
-    i_stack = []; i_pop = i_stack.pop
+    L_stack = []
+    L_pop = L_stack.pop
+    i_stack = []
+    i_pop = i_stack.pop
     cdef Py_ssize_t i = 0
     while i < PyList_GET_SIZE(L) or PyList_GET_SIZE(L_stack) > 0:
         while i < PyList_GET_SIZE(L):
@@ -2870,8 +3314,15 @@ def point_list_bounding_box(v):
 
 def optimal_aspect_ratios(ratios):
     """
+    Average the aspect ratios.
+    compute the elementwise maximum of triples.
+
+    TESTS::
+
+        sage: from sage.plot.plot3d.base import optimal_aspect_ratios
+        sage: optimal_aspect_ratios([(2,4,6), (5,4,4), (1,2,7)])
+        [5, 4, 7]
     """
-    # average the aspect ratios
     n = len(ratios)
     if n > 0:
         return [max([z[i] for z in ratios]) for i in range(3)]
@@ -2880,13 +3331,29 @@ def optimal_aspect_ratios(ratios):
 
 def optimal_extra_kwds(v):
     """
-    Given a list v of dictionaries, this function merges them such that
-    later dictionaries have precedence.
+    Merge a list v of dictionaries such that later
+    dictionaries have precedence.
+
+    TESTS::
+
+        sage: from sage.plot.plot3d.base import optimal_extra_kwds
+        sage: optimal_extra_kwds([{1:2, 2:3}, {2:4, 3:5}])
+        {1: 2, 2: 4, 3: 5}
     """
-    if len(v) == 0:
-        return {}
-    a = dict(v[0])   # make a copy!
-    for b in v[1:]:
-        for k, w in b.iteritems():
-            a[k] = w
+    a = {}
+    for b in v:
+        a.update(b)
     return a
+
+
+def _flip_orientation(v):
+    """
+    Switch from LH to RH coords to be consistent with Java rendition.
+
+    TESTS::
+
+        sage: from sage.plot.plot3d.base import _flip_orientation
+        sage: _flip_orientation((1, 2, 3))
+        (1, -2, 3)
+    """
+    return (v[0], -v[1], v[2])

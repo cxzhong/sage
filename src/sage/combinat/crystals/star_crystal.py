@@ -1,11 +1,11 @@
+# sage.doctest: needs sage.combinat sage.modules
 r"""
-Star-Crystal Structure On `B(\infty)`
+Star-crystal structure on `B(\infty)`
 
 AUTHORS:
 
-- Ben Salisbury: Initial version
-
-- Travis Scrimshaw: Initial version
+- Ben Salisbury: initial version
+- Travis Scrimshaw: initial version
 """
 
 #*****************************************************************************
@@ -23,9 +23,7 @@ from sage.structure.parent import Parent
 from sage.structure.unique_representation import UniqueRepresentation
 from sage.structure.element_wrapper import ElementWrapper
 from sage.categories.highest_weight_crystals import HighestWeightCrystals
-from sage.combinat.root_system.cartan_type import CartanType
 from sage.combinat.crystals.elementary_crystals import ElementaryCrystal
-from sage.combinat.crystals.tensor_product import TensorProductOfCrystals
 
 
 class StarCrystal(UniqueRepresentation, Parent):
@@ -49,7 +47,7 @@ class StarCrystal(UniqueRepresentation, Parent):
 
     The induced operation on the crystal `B(\infty)` is called the
     *Kashiwara involution*.  Its implementation here is based on the
-    recursive algorithm from Theorem 2.2.1 of [Kash95]_, which states
+    recursive algorithm from Theorem 2.2.1 of [Ka1993]_, which states
     that for any `i \in I` there is a unique strict crystal embedding
 
     .. MATH::
@@ -62,7 +60,7 @@ class StarCrystal(UniqueRepresentation, Parent):
       is the highest weight vector in `B(\infty)`;
 
     - if `\Psi_i(b) = f_i^mb_i(0) \otimes b_0`, then
-      `\Psi_i(f_i^*b) =f_i^{m+1}b_i(0) \otimes b_0`
+      `\Psi_i(f_i^*b) = f_i^{m+1}b_i(0) \otimes b_0`
       and `\varepsilon_i(b^*) = m`;
 
     - the image of `\Psi_i` is `\{f_i^mb_i(0)\otimes b :
@@ -86,13 +84,8 @@ class StarCrystal(UniqueRepresentation, Parent):
         [[1, 1], [2]]
         sage: mg.f_string([1,2,1,2,2])
         [[1, 1, 1, 1, 1, 2, 2], [2, 3, 3, 3]]
-
-    REFERENCES:
-
-    .. [Kash95] \M. Kashiwara.
-       The crystal base and Littelmann's refined Demazure character formula.
-       Duke Math. J. **71** (1993), no. 3, 839-858.
     """
+
     def __init__(self, Binf):
         r"""
         Initialize ``self``.
@@ -130,7 +123,7 @@ class StarCrystal(UniqueRepresentation, Parent):
 
     class Element(ElementWrapper):
 
-        def e(self,i):
+        def e(self, i):
             r"""
             Return the action of `e_i^*` on ``self``.
 
@@ -158,7 +151,7 @@ class StarCrystal(UniqueRepresentation, Parent):
                 return None
             return P(P._pullback[i]( P._tens[i](image[0].e(i),image[1]) ))
 
-        def f(self,i):
+        def f(self, i):
             r"""
             Return the action of `f_i^*` on ``self``.
 
@@ -294,4 +287,3 @@ class StarCrystal(UniqueRepresentation, Parent):
             P = self.parent().weight_lattice_realization()
             ac = P.simple_coroot(i)
             return P(self.value.weight()).scalar(ac) + self.epsilon(i) + self.value.epsilon(i)
-

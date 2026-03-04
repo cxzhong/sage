@@ -1,4 +1,4 @@
-"""
+r"""
 Rankers
 """
 #*****************************************************************************
@@ -6,36 +6,29 @@ Rankers
 #                          Nicolas M. Thiery <nthiery at users.sf.net>
 #  Ported from MuPAD-Combinat (combinat::rankers)
 #
-#  Distributed under the terms of the GNU General Public License (GPL)
-#
-#    This code is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-#    General Public License for more details.
-#
-#  The full text of the GPL is available at:
-#
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
-from six.moves import range
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 2 of the License, or
+# (at your option) any later version.
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
-from collections import Iterable, Sequence
+from collections.abc import Iterable, Sequence
 from sage.misc.cachefunc import cached_function
 from sage.misc.callable_dict import CallableDict
 from sage.structure.parent import Parent
 from sage.categories.enumerated_sets import EnumeratedSets
 
+
 def from_list(l):
     """
-    Returns a ranker from the list l.
+    Return a ranker from the list l.
 
     INPUT:
 
-    -  ``l`` - a list
+    - ``l`` -- list
 
-    OUTPUT:
-
-    - ``[rank, unrank]`` - functions
+    OUTPUT: ``[rank, unrank]`` -- functions
 
     EXAMPLES::
 
@@ -76,7 +69,7 @@ def rank_from_list(l):
         sage: r('c')
         2
 
-    For non elements a ``ValueError`` is raised, as with the usual
+    For non elements a :exc:`ValueError` is raised, as with the usual
     ``index`` method of lists::
 
         sage: r('blah')
@@ -89,9 +82,9 @@ def rank_from_list(l):
     implementation detail::
 
         sage: type(r)
-        <type 'sage.misc.callable_dict.CallableDict'>
+        <class 'sage.misc.callable_dict.CallableDict'>
         sage: r
-        {'a': 0, 'c': 2, 'b': 1}
+        {'a': 0, 'b': 1, 'c': 2}
 
     With the current implementation, no error is issued in case of
     duplicate value in ``l``. Instead, the rank function returns the
@@ -111,9 +104,10 @@ def rank_from_list(l):
     """
     return CallableDict((x,i) for i,x in enumerate(l))
 
+
 def unrank_from_list(l):
     """
-    Returns an unrank function from a list.
+    Return an unrank function from a list.
 
     EXAMPLES::
 
@@ -128,9 +122,10 @@ def unrank_from_list(l):
     unrank = lambda j: l[j]
     return unrank
 
+
 def on_fly():
     """
-    Returns a pair of enumeration functions rank / unrank.
+    Return a pair of enumeration functions rank / unrank.
 
     rank assigns on the fly an integer, starting from 0, to any object
     passed as argument. The object should be hashable. unrank is the
@@ -156,13 +151,13 @@ def on_fly():
         sage: unrank(3)
         'd'
 
-    .. todo:: add tests as in combinat::rankers
+    .. TODO:: add tests as in combinat::rankers
     """
     def count():
         i = 0
         while True:
             yield i
-            i+=1
+            i += 1
 
     counter = count()
 
@@ -178,25 +173,26 @@ def on_fly():
 
     return [rank, unrank]
 
+
 def unrank(L, i):
     r"""
     Return the `i`-th element of `L`.
 
     INPUT:
 
-    - ``L`` -- a list, tuple, finite enumerated set, ...
-    - ``i`` -- an int or :class:`Integer`
+    - ``L`` -- list, tuple, finite enumerated set, etc.
+    - ``i`` -- integer
 
     The purpose of this utility is to give a uniform idiom to recover
     the `i`-th element of an object ``L``, whether ``L`` is a list,
-    tuple (or more generally a :class:`collections.Sequence`), an
+    tuple (or more generally a :class:`collections.abc.Sequence`), an
     enumerated set, some old parent of Sage still implementing
     unranking in the method ``__getitem__``, or an iterable (see
-    :class:`collections.Iterable`). See :trac:`15919`.
+    :class:`collections.abc.Iterable`). See :issue:`15919`.
 
     EXAMPLES:
 
-    Lists, tuples, and other :class:`sequences <collections.Sequence>`::
+    Lists, tuples, and other :class:`sequences <collections.abc.Sequence>`::
 
         sage: from sage.combinat.ranker import unrank
         sage: unrank(['a','b','c'], 2)
@@ -250,7 +246,7 @@ def unrank(L, i):
         ...
         IndexError: index out of range
     """
-    if L in EnumeratedSets:
+    if L in EnumeratedSets():
         return L.unrank(i)
     if isinstance(L, Sequence):
         return L[i]
@@ -266,7 +262,6 @@ def unrank(L, i):
             for _ in range(i):
                 next(it)
             return next(it)
-        except StopIteration as e:
+        except StopIteration:
             raise IndexError("index out of range")
-    raise ValueError("Don't know how to unrank on {}".format(L))
-
+    raise ValueError("do not know how to unrank on {}".format(L))

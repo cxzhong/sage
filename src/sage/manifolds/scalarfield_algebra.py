@@ -17,7 +17,6 @@ REFERENCES:
 
 - [Lee2011]_
 - [KN1963]_
-
 """
 
 #******************************************************************************
@@ -31,12 +30,14 @@ REFERENCES:
 #                  http://www.gnu.org/licenses/
 #******************************************************************************
 
+from sage.categories.commutative_algebras import CommutativeAlgebras
+from sage.categories.topological_spaces import TopologicalSpaces
+from sage.manifolds.scalarfield import ScalarField
+from sage.misc.cachefunc import cached_method
 from sage.structure.parent import Parent
 from sage.structure.unique_representation import UniqueRepresentation
-from sage.misc.cachefunc import cached_method
-from sage.categories.commutative_algebras import CommutativeAlgebras
-from sage.symbolic.ring import SR
-from sage.manifolds.scalarfield import ScalarField
+from sage.symbolic.ring import SR, SymbolicRing
+
 
 class ScalarFieldAlgebra(UniqueRepresentation, Parent):
     r"""
@@ -86,11 +87,11 @@ class ScalarFieldAlgebra(UniqueRepresentation, Parent):
     :class:`~sage.symbolic.ring.SymbolicRing`)::
 
         sage: CM.category()
-        Category of commutative algebras over Symbolic Ring
+        Join of Category of commutative algebras over Symbolic Ring and Category of homsets of topological spaces
         sage: CM.base_ring()
         Symbolic Ring
         sage: CW.category()
-        Category of commutative algebras over Symbolic Ring
+        Join of Category of commutative algebras over Symbolic Ring and Category of homsets of topological spaces
         sage: CW.base_ring()
         Symbolic Ring
 
@@ -99,9 +100,9 @@ class ScalarFieldAlgebra(UniqueRepresentation, Parent):
         sage: CM.an_element()
         Scalar field on the 2-dimensional topological manifold M
         sage: CM.an_element().display()  # this sample element is a constant field
-        M --> R
-        on U: (x, y) |--> 2
-        on V: (u, v) |--> 2
+        M → ℝ
+        on U: (x, y) ↦ 2
+        on V: (u, v) ↦ 2
 
     Those of `C^0(W)` are scalar fields on `W`::
 
@@ -109,18 +110,18 @@ class ScalarFieldAlgebra(UniqueRepresentation, Parent):
         Scalar field on the Open subset W of the 2-dimensional topological
          manifold M
         sage: CW.an_element().display()  # this sample element is a constant field
-        W --> R
-        (x, y) |--> 2
-        (u, v) |--> 2
+        W → ℝ
+        (x, y) ↦ 2
+        (u, v) ↦ 2
 
     The zero element::
 
         sage: CM.zero()
         Scalar field zero on the 2-dimensional topological manifold M
         sage: CM.zero().display()
-        zero: M --> R
-        on U: (x, y) |--> 0
-        on V: (u, v) |--> 0
+        zero: M → ℝ
+        on U: (x, y) ↦ 0
+        on V: (u, v) ↦ 0
 
     ::
 
@@ -128,18 +129,18 @@ class ScalarFieldAlgebra(UniqueRepresentation, Parent):
         Scalar field zero on the Open subset W of the 2-dimensional
          topological manifold M
         sage: CW.zero().display()
-        zero: W --> R
-           (x, y) |--> 0
-           (u, v) |--> 0
+        zero: W → ℝ
+           (x, y) ↦ 0
+           (u, v) ↦ 0
 
     The unit element::
 
         sage: CM.one()
         Scalar field 1 on the 2-dimensional topological manifold M
         sage: CM.one().display()
-        1: M --> R
-        on U: (x, y) |--> 1
-        on V: (u, v) |--> 1
+        1: M → ℝ
+        on U: (x, y) ↦ 1
+        on V: (u, v) ↦ 1
 
     ::
 
@@ -147,9 +148,9 @@ class ScalarFieldAlgebra(UniqueRepresentation, Parent):
         Scalar field 1 on the Open subset W of the 2-dimensional topological
          manifold M
         sage: CW.one().display()
-        1: W --> R
-          (x, y) |--> 1
-          (u, v) |--> 1
+        1: W → ℝ
+          (x, y) ↦ 1
+          (u, v) ↦ 1
 
     A generic element can be constructed by using a dictionary of
     the coordinate expressions defining the scalar field::
@@ -157,9 +158,9 @@ class ScalarFieldAlgebra(UniqueRepresentation, Parent):
         sage: f = CM({c_xy: atan(x^2+y^2), c_uv: pi/2 - atan(u^2+v^2)}); f
         Scalar field on the 2-dimensional topological manifold M
         sage: f.display()
-        M --> R
-        on U: (x, y) |--> arctan(x^2 + y^2)
-        on V: (u, v) |--> 1/2*pi - arctan(u^2 + v^2)
+        M → ℝ
+        on U: (x, y) ↦ arctan(x^2 + y^2)
+        on V: (u, v) ↦ 1/2*pi - arctan(u^2 + v^2)
         sage: f.parent()
         Algebra of scalar fields on the 2-dimensional topological manifold M
 
@@ -207,9 +208,9 @@ class ScalarFieldAlgebra(UniqueRepresentation, Parent):
         Scalar field on the Open subset W of the
          2-dimensional topological manifold M
         sage: fW.display()
-        W --> R
-          (x, y) |--> arctan(x^2 + y^2)
-          (u, v) |--> 1/2*pi - arctan(u^2 + v^2)
+        W → ℝ
+          (x, y) ↦ arctan(x^2 + y^2)
+          (u, v) ↦ 1/2*pi - arctan(u^2 + v^2)
 
     ::
 
@@ -225,9 +226,9 @@ class ScalarFieldAlgebra(UniqueRepresentation, Parent):
         Algebra of scalar fields on the Open subset W of the
          2-dimensional topological manifold M
         sage: s.display()
-        W --> R
-          (x, y) |--> 2*arctan(x^2 + y^2)
-          (u, v) |--> pi - 2*arctan(u^2 + v^2)
+        W → ℝ
+          (x, y) ↦ 2*arctan(x^2 + y^2)
+          (u, v) ↦ pi - 2*arctan(u^2 + v^2)
 
     Another coercion is that from the Symbolic Ring.
     Since the Symbolic Ring is the base ring for the algebra ``CM``, the
@@ -239,31 +240,33 @@ class ScalarFieldAlgebra(UniqueRepresentation, Parent):
         sage: h = CM(pi*sqrt(2)) ; h
         Scalar field on the 2-dimensional topological manifold M
         sage: h.display()
-        M --> R
-        on U: (x, y) |--> sqrt(2)*pi
-        on V: (u, v) |--> sqrt(2)*pi
+        M → ℝ
+        on U: (x, y) ↦ sqrt(2)*pi
+        on V: (u, v) ↦ sqrt(2)*pi
         sage: a = var('a')
         sage: h = CM(a); h.display()
-        M --> R
-        on U: (x, y) |--> a
-        on V: (u, v) |--> a
+        M → ℝ
+        on U: (x, y) ↦ a
+        on V: (u, v) ↦ a
 
     If the symbolic expression involves some coordinate of one of the
     manifold's charts, the outcome is initialized only on the chart domain::
 
         sage: h = CM(a+x); h.display()
-        M --> R
-        on U: (x, y) |--> a + x
+        M → ℝ
+        on U: (x, y) ↦ a + x
+        on W: (u, v) ↦ (a*u^2 + a*v^2 + u)/(u^2 + v^2)
         sage: h = CM(a+u); h.display()
-        M --> R
-        on V: (u, v) |--> a + u
+        M → ℝ
+        on W: (x, y) ↦ (a*x^2 + a*y^2 + x)/(x^2 + y^2)
+        on V: (u, v) ↦ a + u
 
     If the symbolic expression involves coordinates of different charts,
     the scalar field is created as a Python object, but is not initialized,
     in order to avoid any ambiguity::
 
         sage: h = CM(x+u); h.display()
-        M --> R
+        M → ℝ
 
     TESTS:
 
@@ -273,36 +276,36 @@ class ScalarFieldAlgebra(UniqueRepresentation, Parent):
         sage: s = f + h ; s
         Scalar field on the 2-dimensional topological manifold M
         sage: s.display()
-        M --> R
-        on U: (x, y) |--> sqrt(2)*pi + arctan(x^2 + y^2)
-        on V: (u, v) |--> 1/2*pi*(2*sqrt(2) + 1) - arctan(u^2 + v^2)
+        M → ℝ
+        on U: (x, y) ↦ sqrt(2)*pi + arctan(x^2 + y^2)
+        on V: (u, v) ↦ 1/2*pi*(2*sqrt(2) + 1) - arctan(u^2 + v^2)
 
     ::
 
         sage: s = f - h ; s
         Scalar field on the 2-dimensional topological manifold M
         sage: s.display()
-        M --> R
-        on U: (x, y) |--> -sqrt(2)*pi + arctan(x^2 + y^2)
-        on V: (u, v) |--> -1/2*pi*(2*sqrt(2) - 1) - arctan(u^2 + v^2)
+        M → ℝ
+        on U: (x, y) ↦ -sqrt(2)*pi + arctan(x^2 + y^2)
+        on V: (u, v) ↦ -1/2*pi*(2*sqrt(2) - 1) - arctan(u^2 + v^2)
 
     ::
 
         sage: s = f*h ; s
         Scalar field on the 2-dimensional topological manifold M
         sage: s.display()
-        M --> R
-        on U: (x, y) |--> sqrt(2)*pi*arctan(x^2 + y^2)
-        on V: (u, v) |--> 1/2*sqrt(2)*(pi^2 - 2*pi*arctan(u^2 + v^2))
+        M → ℝ
+        on U: (x, y) ↦ sqrt(2)*pi*arctan(x^2 + y^2)
+        on V: (u, v) ↦ 1/2*sqrt(2)*(pi^2 - 2*pi*arctan(u^2 + v^2))
 
     ::
 
         sage: s = f/h ; s
         Scalar field on the 2-dimensional topological manifold M
         sage: s.display()
-        M --> R
-        on U: (x, y) |--> 1/2*sqrt(2)*arctan(x^2 + y^2)/pi
-        on V: (u, v) |--> 1/4*(sqrt(2)*pi - 2*sqrt(2)*arctan(u^2 + v^2))/pi
+        M → ℝ
+        on U: (x, y) ↦ 1/2*sqrt(2)*arctan(x^2 + y^2)/pi
+        on V: (u, v) ↦ 1/4*sqrt(2)*(pi - 2*arctan(u^2 + v^2))/pi
 
     ::
 
@@ -319,9 +322,9 @@ class ScalarFieldAlgebra(UniqueRepresentation, Parent):
         Scalar field on the Open subset W of the 2-dimensional topological
          manifold M
         sage: s.display()
-        W --> R
-        (x, y) |--> arctan(x^2 + y^2)^2
-        (u, v) |--> 1/4*pi^2 - pi*arctan(u^2 + v^2) + arctan(u^2 + v^2)^2
+        W → ℝ
+        (x, y) ↦ arctan(x^2 + y^2)^2
+        (u, v) ↦ 1/4*pi^2 - pi*arctan(u^2 + v^2) + arctan(u^2 + v^2)^2
         sage: s/f == fW
         True
 
@@ -330,9 +333,9 @@ class ScalarFieldAlgebra(UniqueRepresentation, Parent):
         sage: s = 2*f ; s
         Scalar field on the 2-dimensional topological manifold M
         sage: s.display()
-        M --> R
-        on U: (x, y) |--> 2*arctan(x^2 + y^2)
-        on V: (u, v) |--> pi - 2*arctan(u^2 + v^2)
+        M → ℝ
+        on U: (x, y) ↦ 2*arctan(x^2 + y^2)
+        on V: (u, v) ↦ pi - 2*arctan(u^2 + v^2)
 
     ::
 
@@ -354,7 +357,6 @@ class ScalarFieldAlgebra(UniqueRepresentation, Parent):
     It is passed also for `C^0(W)`::
 
         sage: TestSuite(CW).run()
-
     """
 
     Element = ScalarField
@@ -375,13 +377,12 @@ class ScalarFieldAlgebra(UniqueRepresentation, Parent):
             sage: type(CM).__base__
             <class 'sage.manifolds.scalarfield_algebra.ScalarFieldAlgebra'>
             sage: TestSuite(CM).run()
-
         """
         base_field = domain.base_field()
         if domain.base_field_type() in ['real', 'complex']:
             base_field = SR
         Parent.__init__(self, base=base_field,
-                        category=CommutativeAlgebras(base_field))
+                        category=CommutativeAlgebras(base_field) & TopologicalSpaces().Homsets())
         self._domain = domain
         self._populate_coercion_lists_()
 
@@ -432,49 +433,53 @@ class ScalarFieldAlgebra(UniqueRepresentation, Parent):
             sage: f = CM({X: x+y^2}); f
             Scalar field on the 2-dimensional topological manifold M
             sage: f.display()
-            M --> R
-            (x, y) |--> y^2 + x
+            M → ℝ
+            (x, y) ↦ y^2 + x
             sage: f = CM({X: x+y^2}, name='f'); f
             Scalar field f on the 2-dimensional topological manifold M
             sage: f.display()
-            f: M --> R
-               (x, y) |--> y^2 + x
+            f: M → ℝ
+               (x, y) ↦ y^2 + x
             sage: U = M.open_subset('U', coord_def={X: x>0})
             sage: CU = U.scalar_field_algebra()
             sage: fU = CU(f); fU
-            Scalar field on the Open subset U of the
-             2-dimensional topological manifold M
+            Scalar field f on the Open subset U of the 2-dimensional topological
+             manifold M
             sage: fU.display()
-            U --> R
-            (x, y) |--> y^2 + x
-
+            f: U → ℝ
+               (x, y) ↦ y^2 + x
         """
+        try:
+            if coord_expression.is_trivial_zero():
+                return self.zero()
+            elif (coord_expression - 1).is_trivial_zero():
+                return self.one()
+        except AttributeError:
+            if coord_expression == 0:
+                return self.zero()
+            if coord_expression == 1:
+                return self.one()
         if isinstance(coord_expression, ScalarField):
             if self._domain.is_subset(coord_expression._domain):
                 # restriction of the scalar field to self._domain:
-                sexpress = {}
-                for chart, funct in coord_expression._express.items():
-                    for schart in self._domain.atlas():
-                        if schart in chart._subcharts:
-                            sexpress[schart] = funct.expr()
+                return coord_expression.restrict(self._domain)
+        else:
+            # Anything going wrong here should produce a readable error:
+            try:
+                # generic constructor:
                 resu = self.element_class(self,
-                                          coord_expression=sexpress, name=name,
-                                          latex_name=latex_name)
-            else:
+                                          coord_expression=coord_expression,
+                                          name=name, latex_name=latex_name,
+                                          chart=chart)
+            except TypeError:
                 raise TypeError("cannot convert " +
                                 "{} to a scalar ".format(coord_expression) +
                                 "field on {}".format(self._domain))
-        else:
-            # generic constructor:
-            resu = self.element_class(self,
-                                      coord_expression=coord_expression,
-                                      name=name, latex_name=latex_name,
-                                      chart=chart)
         return resu
 
     def _an_element_(self):
         r"""
-        Construct some element of the algebra
+        Construct some element of the algebra.
 
         TESTS::
 
@@ -484,9 +489,8 @@ class ScalarFieldAlgebra(UniqueRepresentation, Parent):
             sage: f = CM._an_element_(); f
             Scalar field on the 2-dimensional topological manifold M
             sage: f.display()
-            M --> R
-            (x, y) |--> 2
-
+            M → ℝ
+            (x, y) ↦ 2
         """
         return self.element_class(self, coord_expression=2, chart='all')
 
@@ -501,21 +505,29 @@ class ScalarFieldAlgebra(UniqueRepresentation, Parent):
             sage: CM = M.scalar_field_algebra()
             sage: CM._coerce_map_from_(SR)
             True
+            sage: SCR = SR.subring(no_variables=True); SCR
+            Symbolic Constants Subring
+            sage: CM._coerce_map_from_(SCR)
+            True
+            sage: CM._coerce_map_from_(X.function_ring())
+            True
             sage: U = M.open_subset('U', coord_def={X: x>0})
             sage: CU = U.scalar_field_algebra()
             sage: CM._coerce_map_from_(CU)
             False
             sage: CU._coerce_map_from_(CM)
             True
-
         """
-        if other is SR:
+        from sage.manifolds.chart_func import ChartFunctionRing
+        if isinstance(other, SymbolicRing):
             return True  # coercion from the base ring (multiplication by the
                          # algebra unit, i.e. self.one())
                          # cf. ScalarField._lmul_() for the implementation of
                          # the coercion map
         elif isinstance(other, ScalarFieldAlgebra):
             return self._domain.is_subset(other._domain)
+        elif isinstance(other, ChartFunctionRing):
+            return self._domain.is_subset(other._chart.domain())
         else:
             return False
 
@@ -533,7 +545,6 @@ class ScalarFieldAlgebra(UniqueRepresentation, Parent):
             'Algebra of scalar fields on the 2-dimensional topological manifold M'
             sage: CM
             Algebra of scalar fields on the 2-dimensional topological manifold M
-
         """
         return "Algebra of scalar fields on the {}".format(self._domain)
 
@@ -549,9 +560,8 @@ class ScalarFieldAlgebra(UniqueRepresentation, Parent):
             'C^0 \\left(M\\right)'
             sage: latex(CM)
             C^0 \left(M\right)
-
-         """
-        return r"C^0 \left("  + self._domain._latex_() + r"\right)"
+        """
+        return r"C^0 \left(" + self._domain._latex_() + r"\right)"
 
     @cached_method
     def zero(self):
@@ -569,14 +579,13 @@ class ScalarFieldAlgebra(UniqueRepresentation, Parent):
             sage: z = CM.zero(); z
             Scalar field zero on the 2-dimensional topological manifold M
             sage: z.display()
-            zero: M --> R
-               (x, y) |--> 0
+            zero: M → ℝ
+               (x, y) ↦ 0
 
         The result is cached::
 
             sage: CM.zero() is z
             True
-
         """
         coord_express = {chart: chart.zero_function()
                          for chart in self._domain.atlas()}
@@ -584,6 +593,7 @@ class ScalarFieldAlgebra(UniqueRepresentation, Parent):
                                   coord_expression=coord_express,
                                   name='zero', latex_name='0')
         zero._is_zero = True
+        zero.set_immutable()
         return zero
 
     @cached_method
@@ -602,18 +612,17 @@ class ScalarFieldAlgebra(UniqueRepresentation, Parent):
             sage: h = CM.one(); h
             Scalar field 1 on the 2-dimensional topological manifold M
             sage: h.display()
-            1: M --> R
-               (x, y) |--> 1
+            1: M → ℝ
+               (x, y) ↦ 1
 
         The result is cached::
 
             sage: CM.one() is h
             True
-
         """
         coord_express = {chart: chart.one_function()
                          for chart in self._domain.atlas()}
-        return self.element_class(self,
-                                  coord_expression=coord_express,
-                                  name='1', latex_name='1')
-
+        one = self.element_class(self, coord_expression=coord_express,
+                                 name='1', latex_name='1')
+        one.set_immutable()
+        return one

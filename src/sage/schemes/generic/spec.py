@@ -8,16 +8,17 @@ AUTHORS:
 - Peter Bruin (2014): rewrite Spec as a functor
 """
 
-#*******************************************************************************
+# ******************************************************************************
 #  Copyright (C) 2006 William Stein
 #  Distributed under the terms of the GNU General Public License (GPL)
-#                  http://www.gnu.org/licenses/
-#*******************************************************************************
+#                  https://www.gnu.org/licenses/
+# ******************************************************************************
 
 from sage.categories.functor import Functor
 from sage.rings.integer_ring import ZZ
-from sage.schemes.generic.scheme import AffineScheme, is_AffineScheme
+from sage.schemes.generic.scheme import AffineScheme
 from sage.structure.unique_representation import UniqueRepresentation
+
 
 def Spec(R, S=None):
     r"""
@@ -41,27 +42,29 @@ def Spec(R, S=None):
         Spectrum of Univariate Polynomial Ring in x over Rational Field
         sage: Spec(PolynomialRing(QQ, 'x', 3))
         Spectrum of Multivariate Polynomial Ring in x0, x1, x2 over Rational Field
-        sage: X = Spec(PolynomialRing(GF(49,'a'), 3, 'x')); X
-        Spectrum of Multivariate Polynomial Ring in x0, x1, x2 over Finite Field in a of size 7^2
-        sage: TestSuite(X).run()
+        sage: X = Spec(PolynomialRing(GF(49,'a'), 3, 'x')); X                           # needs sage.rings.finite_rings
+        Spectrum of Multivariate Polynomial Ring in x0, x1, x2
+         over Finite Field in a of size 7^2
+        sage: TestSuite(X).run()                                                        # needs sage.rings.finite_rings
 
     Applying ``Spec`` twice to the same ring gives identical output
-    (see :trac:`17008`)::
+    (see :issue:`17008`)::
 
         sage: A = Spec(ZZ); B = Spec(ZZ)
         sage: A is B
         True
 
-    A ``TypeError`` is raised if the input is not a commutative ring::
+    A :exc:`TypeError` is raised if the input is not a commutative ring::
 
         sage: Spec(5)
         Traceback (most recent call last):
         ...
         TypeError: x (=5) is not in Category of commutative rings
-        sage: Spec(FreeAlgebra(QQ,2, 'x'))
+        sage: Spec(FreeAlgebra(QQ, 2, 'x'))                                             # needs sage.combinat sage.modules
         Traceback (most recent call last):
         ...
-        TypeError: x (=Free Algebra on 2 generators (x0, x1) over Rational Field) is not in Category of commutative rings
+        TypeError: x (=Free Algebra on 2 generators (x0, x1) over Rational Field)
+        is not in Category of commutative rings
 
     TESTS::
 
@@ -74,12 +77,13 @@ def Spec(R, S=None):
         Integer Ring
         sage: X.dimension()
         1
-        sage: Spec(QQ,QQ).base_scheme()
+        sage: Spec(QQ, QQ).base_scheme()
         Spectrum of Rational Field
-        sage: Spec(RDF,QQ).base_scheme()
+        sage: Spec(RDF, QQ).base_scheme()
         Spectrum of Rational Field
     """
     return SpecFunctor(S)(R)
+
 
 class SpecFunctor(Functor, UniqueRepresentation):
     """
@@ -96,7 +100,8 @@ class SpecFunctor(Functor, UniqueRepresentation):
             Spec functor from Category of commutative rings to
              Category of schemes over Rational Field
         """
-        from sage.categories.all import CommutativeAlgebras, CommutativeRings, Schemes
+        from sage.categories.commutative_rings import CommutativeRings
+        from sage.categories.schemes import Schemes
 
         if base_ring is None:
             domain = CommutativeRings()
@@ -111,7 +116,7 @@ class SpecFunctor(Functor, UniqueRepresentation):
         else:
             raise TypeError('base (= {}) must be a commutative ring'.format(base_ring))
         self._base_ring = base_ring
-        super(SpecFunctor, self).__init__(domain, codomain)
+        super().__init__(domain, codomain)
 
     def _repr_(self):
         """
@@ -147,7 +152,7 @@ class SpecFunctor(Functor, UniqueRepresentation):
 
             sage: from sage.schemes.generic.spec import SpecFunctor
             sage: F = SpecFunctor()
-            sage: F(RR) # indirect doctest
+            sage: F(RR)  # indirect doctest                                             # needs sage.rings.real_mpfr
             Spectrum of Real Field with 53 bits of precision
         """
         # The second argument of AffineScheme defaults to None.
@@ -169,7 +174,7 @@ class SpecFunctor(Functor, UniqueRepresentation):
             sage: A.<x, y> = GF(7)[]
             sage: B.<t> = GF(7)[]
             sage: f = A.hom((t^2, t^3))
-            sage: Spec(f) # indirect doctest
+            sage: Spec(f)  # indirect doctest
             Affine Scheme morphism:
               From: Spectrum of Univariate Polynomial Ring in t over Finite Field of size 7
               To:   Spectrum of Multivariate Polynomial Ring in x, y over Finite Field of size 7
@@ -189,8 +194,5 @@ SpecZ = Spec(ZZ)
 
 # Compatibility with older versions of this module
 
-from sage.misc.superseded import deprecated_function_alias
-is_Spec = deprecated_function_alias(16158, is_AffineScheme)
-
-from sage.structure.sage_object import register_unpickle_override
+from sage.misc.persist import register_unpickle_override
 register_unpickle_override('sage.schemes.generic.spec', 'Spec', AffineScheme)

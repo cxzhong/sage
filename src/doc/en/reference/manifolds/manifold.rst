@@ -2,7 +2,7 @@ Topological Manifolds
 =====================
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    sage/manifolds/manifold
 
@@ -17,3 +17,13 @@ Topological Manifolds
    scalarfield
 
    continuous_map
+
+   sage/manifolds/topological_submanifold
+
+   vector_bundle
+
+   sage/manifolds/family
+
+   sage/manifolds/subsets/closure
+
+   sage/manifolds/subsets/pullback

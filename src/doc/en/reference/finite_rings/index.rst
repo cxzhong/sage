@@ -5,7 +5,7 @@ Finite Rings
 ------------
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    sage/rings/finite_rings/integer_mod_ring
    sage/rings/finite_rings/integer_mod
@@ -14,7 +14,7 @@ Finite Fields
 -------------
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    sage/rings/finite_rings/finite_field_constructor
    sage/rings/finite_rings/finite_field_base
@@ -26,7 +26,7 @@ Prime Fields
 ------------
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    sage/rings/finite_rings/finite_field_prime_modn
    sage/rings/finite_rings/hom_prime_finite_field
@@ -35,17 +35,16 @@ Finite Fields Using Pari
 ------------------------
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    sage/rings/finite_rings/finite_field_pari_ffelt
    sage/rings/finite_rings/element_pari_ffelt
-   sage/rings/finite_rings/finite_field_ext_pari
 
 Finite Fields Using Givaro
 --------------------------
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    sage/rings/finite_rings/finite_field_givaro
    sage/rings/finite_rings/element_givaro
@@ -55,7 +54,7 @@ Finite Fields of Characteristic 2 Using NTL
 -------------------------------------------
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    sage/rings/finite_rings/finite_field_ntl_gf2e
    sage/rings/finite_rings/element_ntl_gf2e
@@ -64,7 +63,7 @@ Miscellaneous
 -------------
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    sage/rings/finite_rings/residue_field
    sage/rings/algebraic_closure_finite_field

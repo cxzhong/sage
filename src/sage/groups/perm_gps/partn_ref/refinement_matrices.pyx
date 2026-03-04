@@ -13,7 +13,6 @@ REFERENCE:
 - [2] Leon, Jeffrey. Permutation Group Algorithms Based on Partitions, I:
   Theory and Algorithms. J. Symbolic Computation, Vol. 12 (1991), pp.
   533-583.
-
 """
 
 #*****************************************************************************
@@ -23,20 +22,17 @@ REFERENCE:
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
-#                  http://www.gnu.org/licenses/
+#                  https://www.gnu.org/licenses/
 #*****************************************************************************
-
-from __future__ import print_function
 
 from libc.string cimport memcmp
 
-from .data_structures cimport *
-include "sage/data_structures/bitset.pxi"
+from sage.groups.perm_gps.partn_ref.data_structures cimport *
+from sage.data_structures.bitset_base cimport *
 from sage.rings.integer cimport Integer
-from sage.misc.misc import uniq
 from sage.matrix.constructor import Matrix
-from .refinement_binary cimport NonlinearBinaryCodeStruct, refine_by_bip_degree
-from .double_coset cimport double_coset
+from sage.groups.perm_gps.partn_ref.refinement_binary cimport NonlinearBinaryCodeStruct, refine_by_bip_degree
+from sage.groups.perm_gps.partn_ref.double_coset cimport double_coset
 
 
 cdef class MatrixStruct:
@@ -49,10 +45,10 @@ cdef class MatrixStruct:
         cdef NonlinearBinaryCodeStruct S_temp
         self.matrix = matrix
 
-        self.symbols = uniq(self.matrix.list())
-        if 0 in self.symbols:
-            self.symbols.remove(0)
-        self.nsymbols = len(self.symbols)
+        symbols = set(self.matrix.list())
+        symbols.discard(0)
+        self.symbols = sorted(symbols)
+        self.nsymbols = len(symbols)
 
         self.symbol_structs = []
         num_rows = <int *> sig_malloc(self.nsymbols * sizeof(int))
@@ -62,18 +58,19 @@ cdef class MatrixStruct:
             PS_dealloc(self.temp_col_ps)
             raise MemoryError
 
-        for i from 0 <= i < self.nsymbols:
+        for i in range(self.nsymbols):
             num_rows[i] = 0
         for row in self.matrix.rows():
-            row = uniq(row.list())
-            if 0 in row: row.remove(0)
+            row = set(row.list())
+            if 0 in row:
+                row.remove(0)
             for s in row:
                 num_rows[self.symbols.index(s)] += 1
-        for i from 0 <= i < self.nsymbols:
+        for i in range(self.nsymbols):
             S_temp = NonlinearBinaryCodeStruct( (self.degree, num_rows[i]) )
             self.symbol_structs.append(S_temp)
 
-        for i from 0 <= i < self.nsymbols:
+        for i in range(self.nsymbols):
             num_rows[i] = 0
         for row in self.matrix.rows():
             row_list = row.list()
@@ -112,7 +109,6 @@ cdef class MatrixStruct:
             00011
             01100
             4
-
         """
         print(self.matrix)
         print("")
@@ -120,7 +116,7 @@ cdef class MatrixStruct:
         cdef NonlinearBinaryCodeStruct S_temp
         for S in self.symbol_structs:
             S_temp = <NonlinearBinaryCodeStruct>S
-            for i from 0 <= i < S_temp.nwords:
+            for i in range(S_temp.nwords):
                 print(bitset_string(&S_temp.words[i]))
             print(self.symbols[j])
             print("")
@@ -129,13 +125,12 @@ cdef class MatrixStruct:
     def run(self, partition=None):
         """
         Perform the canonical labeling and automorphism group computation,
-        storing results to self.
+        storing results to ``self``.
 
         INPUT:
 
-        partition -- an optional list of lists partition of the columns.
-
-        Default is the unit partition.
+        - ``partition`` -- an optional list of lists partition of the columns;
+          default is the unit partition
 
         EXAMPLES::
 
@@ -155,12 +150,11 @@ cdef class MatrixStruct:
             sage: M = MatrixStruct(matrix(GF(3),[[0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,2]]))
             sage: M.automorphism_group()[1] == factorial(14)
             True
-
         """
         cdef int i, n = self.degree
         cdef PartitionStack *part
         cdef NonlinearBinaryCodeStruct S_temp
-        for i from 0 <= i < self.nsymbols:
+        for i in range(self.nsymbols):
             S_temp = <NonlinearBinaryCodeStruct> self.symbol_structs[i]
             S_temp.first_time = 1
 
@@ -175,10 +169,9 @@ cdef class MatrixStruct:
 
         PS_dealloc(part)
 
-
     def automorphism_group(self):
         """
-        Returns a list of generators of the automorphism group, along with its
+        Return a list of generators of the automorphism group, along with its
         order and a base for which the list of generators is a strong generating
         set.
 
@@ -191,24 +184,23 @@ cdef class MatrixStruct:
             sage: M = MatrixStruct(matrix(GF(3),[[0,1,2],[0,2,1]]))
             sage: M.automorphism_group()
             ([[0, 2, 1]], 2, [1])
-
         """
         cdef int i, j
         cdef list generators, base
         cdef Integer order
         if self.output is NULL:
             self.run()
-        generators = []
-        for i from 0 <= i < self.output.num_gens:
-            generators.append([self.output.generators[i*self.degree + j] for j from 0 <= j < self.degree])
+        generators = [[self.output.generators[i * self.degree + j]
+                       for j in range(self.degree)]
+                      for i in range(self.output.num_gens)]
         order = Integer()
         SC_order(self.output.group, 0, order.value)
-        base = [self.output.group.base_orbits[i][0] for i from 0 <= i < self.output.group.base_size]
+        base = [self.output.group.base_orbits[i][0] for i in range(self.output.group.base_size)]
         return generators, order, base
 
     def canonical_relabeling(self):
         """
-        Returns a canonical relabeling (in list permutation format).
+        Return a canonical relabeling (in list permutation format).
 
         For more examples, see self.run().
 
@@ -219,16 +211,15 @@ cdef class MatrixStruct:
             sage: M = MatrixStruct(matrix(GF(3),[[0,1,2],[0,2,1]]))
             sage: M.canonical_relabeling()
             [0, 1, 2]
-
         """
         cdef int i
         if self.output is NULL:
             self.run()
-        return [self.output.relabeling[i] for i from 0 <= i < self.degree]
+        return [self.output.relabeling[i] for i in range(self.degree)]
 
     def is_isomorphic(self, MatrixStruct other):
         """
-        Calculate whether self is isomorphic to other.
+        Calculate whether ``self`` is isomorphic to ``other``.
 
         EXAMPLES::
 
@@ -237,14 +228,13 @@ cdef class MatrixStruct:
             sage: N = MatrixStruct(Matrix(GF(11), [[0,1,0,2,0,3],[1,0,2,0,3,0]]))
             sage: M.is_isomorphic(N)
             [0, 2, 4, 1, 3, 5]
-
         """
-        cdef int i, j, n = self.degree
+        cdef int i, n = self.degree
         cdef int *output
         cdef int *ordering
         cdef PartitionStack *part
         cdef NonlinearBinaryCodeStruct S_temp
-        for i from 0 <= i < self.nsymbols:
+        for i in range(self.nsymbols):
             S_temp = self.symbol_structs[i]
             S_temp.first_time = 1
             S_temp = other.symbol_structs[i]
@@ -257,7 +247,7 @@ cdef class MatrixStruct:
             sig_free(ordering)
             sig_free(output)
             raise MemoryError
-        for i from 0 <= i < self.degree:
+        for i in range(self.degree):
             ordering[i] = i
 
         cdef bint isomorphic = double_coset(<void *> self, <void *> other, part, ordering, self.degree, &all_matrix_children_are_equivalent, &refine_matrix, &compare_matrices, NULL, NULL, output)
@@ -265,15 +255,15 @@ cdef class MatrixStruct:
         PS_dealloc(part)
         sig_free(ordering)
         if isomorphic:
-            output_py = [output[i] for i from 0 <= i < self.degree]
+            output_py = [output[i] for i in range(self.degree)]
         else:
             output_py = False
         sig_free(output)
         return output_py
 
-cdef int refine_matrix(PartitionStack *PS, void *S, int *cells_to_refine_by, int ctrb_len):
+cdef int refine_matrix(PartitionStack *PS, void *S, int *cells_to_refine_by, int ctrb_len) noexcept:
     cdef MatrixStruct M = <MatrixStruct> S
-    cdef int i, temp_inv, invariant = 1
+    cdef int temp_inv, invariant = 1
     cdef bint changed = 1
     while changed:
         PS_copy_from_to(PS, M.temp_col_ps)
@@ -284,7 +274,7 @@ cdef int refine_matrix(PartitionStack *PS, void *S, int *cells_to_refine_by, int
             changed = 0
     return invariant
 
-cdef int compare_matrices(int *gamma_1, int *gamma_2, void *S1, void *S2, int degree):
+cdef int compare_matrices(int *gamma_1, int *gamma_2, void *S1, void *S2, int degree) noexcept:
     cdef MatrixStruct MS1 = <MatrixStruct> S1
     cdef MatrixStruct MS2 = <MatrixStruct> S2
     M1 = MS1.matrix
@@ -292,7 +282,7 @@ cdef int compare_matrices(int *gamma_1, int *gamma_2, void *S1, void *S2, int de
     cdef int i
     MM1 = Matrix(M1.base_ring(), M1.nrows(), M1.ncols(), sparse=M1.is_sparse())
     MM2 = Matrix(M2.base_ring(), M2.nrows(), M2.ncols(), sparse=M2.is_sparse())
-    for i from 0 <= i < degree:
+    for i in range(degree):
         MM1.set_column(i, M1.column(gamma_1[i]))
         MM2.set_column(i, M2.column(gamma_2[i]))
     rows1 = sorted(MM1.rows())
@@ -301,22 +291,23 @@ cdef int compare_matrices(int *gamma_1, int *gamma_2, void *S1, void *S2, int de
         return 0
     return -1 if rows1 < rows2 else 1
 
-cdef bint all_matrix_children_are_equivalent(PartitionStack *PS, void *S):
+cdef bint all_matrix_children_are_equivalent(PartitionStack *PS, void *S) noexcept:
     return 0
+
 
 def random_tests(n=10, nrows_max=50, ncols_max=50, nsymbols_max=10, perms_per_matrix=5, density_range=(.1,.9)):
     """
-    Tests to make sure that C(gamma(M)) == C(M) for random permutations gamma
-    and random matrices M, and that M.is_isomorphic(gamma(M)) returns an
+    Test to make sure that ``C(gamma(M)) == C(M)`` for random permutations ``gamma``
+    and random matrices ``M``, and that ``M.is_isomorphic(gamma(M))`` returns an
     isomorphism.
 
     INPUT:
 
-    - n -- run tests on this many matrices
-    - nrows_max -- test matrices with at most this many rows
-    - ncols_max -- test matrices with at most this many columns
-    - perms_per_matrix -- test each matrix with this many random permutations
-    - nsymbols_max -- maximum number of distinct symbols in the matrix
+    - ``n`` -- run tests on this many matrices
+    - ``nrows_max`` -- test matrices with at most this many rows
+    - ``ncols_max`` -- test matrices with at most this many columns
+    - ``perms_per_matrix`` -- test each matrix with this many random permutations
+    - ``nsymbols_max`` -- maximum number of distinct symbols in the matrix
 
     This code generates n random matrices M on at most ncols_max columns and at
     most nrows_max rows. The density of entries in the basis is chosen randomly
@@ -332,15 +323,13 @@ def random_tests(n=10, nrows_max=50, ncols_max=50, nsymbols_max=10, perms_per_ma
         sage: import sage.groups.perm_gps.partn_ref.refinement_matrices
         sage: sage.groups.perm_gps.partn_ref.refinement_matrices.random_tests()  # long time (up to 30s on sage.math, 2011)
         All passed: ... random tests on ... matrices.
-
     """
-    from sage.misc.misc import walltime
     from sage.misc.prandom import random, randint
     from sage.combinat.permutation import Permutations
     from sage.matrix.constructor import random_matrix, matrix
     from sage.rings.finite_rings.finite_field_constructor import FiniteField as GF
-    from sage.arith.all import next_prime
-    cdef int h, i, j, nrows, k, num_tests = 0, num_matrices = 0
+    from sage.arith.misc import next_prime
+    cdef int i, j, nrows, num_tests = 0, num_matrices = 0
     cdef MatrixStruct M, N
     for m in range(n):
         p = random()*(density_range[1]-density_range[0]) + density_range[0]
@@ -352,10 +341,10 @@ def random_tests(n=10, nrows_max=50, ncols_max=50, nsymbols_max=10, perms_per_ma
         M = MatrixStruct( MM )
         M.run()
 
-        for i from 0 <= i < perms_per_matrix:
+        for i in range(perms_per_matrix):
             perm = [a-1 for a in list(S.random_element())]
             NN = matrix(GF(nsymbols), nrows, ncols)
-            for j from 0 <= j < ncols:
+            for j in range(ncols):
                 NN.set_column(perm[j], MM.column(j))
             N = MatrixStruct(NN)
             # now N is a random permutation of M
@@ -367,7 +356,7 @@ def random_tests(n=10, nrows_max=50, ncols_max=50, nsymbols_max=10, perms_per_ma
             M_C = matrix(GF(nsymbols), nrows, ncols)
             N_C = matrix(GF(nsymbols), nrows, ncols)
 
-            for j from 0 <= j < ncols:
+            for j in range(ncols):
                 M_C.set_column(M_relab[j], MM.column(j))
                 N_C.set_column(N_relab[j], NN.column(j))
 

@@ -5,7 +5,6 @@ These are reference implementations of basic parallel
 primitives. These are not actually parallel, but work the same way.
 They are good for testing.
 """
-from __future__ import print_function, absolute_import
 
 from sage.misc.prandom import shuffle
 
@@ -17,20 +16,18 @@ def parallel_iter(f, inputs):
     INPUT:
 
     - ``f`` -- a Python function that can be pickled using
-      the pickle_function command.
+      the ``pickle_function`` command
 
-    - ``inputs`` -- a list of pickleable pairs (args, kwds), where
-      args is a tuple and kwds is a dictionary.
+    - ``inputs`` -- list of pickleable pairs (args, kwds), where
+      args is a tuple and kwds is a dictionary
 
-    OUTPUT:
-
-    - iterator over 2-tuples ``(inputs[i], f(inputs[i]))``, where the
-      order may be completely random
+    OUTPUT: iterator over 2-tuples ``(inputs[i], f(inputs[i]))``, where the
+    order may be completely random
 
     EXAMPLES::
 
-        sage: def f(N,M=10): return N*M
-        sage: inputs = [((2,3),{}),  (tuple([]), {'N':3,'M':5}), ((2,),{})]
+        sage: def f(N, M=10): return N*M
+        sage: inputs = [((2,3),{}),  (tuple(), {'M':5,'N':3}), ((2,),{})]
         sage: set_random_seed(0)
         sage: for a, val in sage.parallel.reference.parallel_iter(f, inputs):
         ....:     print((a, val))

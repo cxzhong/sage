@@ -23,25 +23,21 @@ AUTHOR:
 #
 #                  http://www.gnu.org/licenses/
 #****************************************************************************
-from __future__ import absolute_import
-
-from sage.rings.integer cimport Integer
 
 from sage.categories.homset import Hom
 from sage.structure.element cimport Element
 
-from .hom_finite_field cimport SectionFiniteFieldHomomorphism_generic
-from .hom_finite_field cimport FiniteFieldHomomorphism_generic
-from .hom_finite_field cimport FrobeniusEndomorphism_finite_field
+from sage.rings.finite_rings.hom_finite_field cimport SectionFiniteFieldHomomorphism_generic
+from sage.rings.finite_rings.hom_finite_field cimport FiniteFieldHomomorphism_generic
+from sage.rings.finite_rings.hom_finite_field cimport FrobeniusEndomorphism_finite_field
 
-from sage.rings.finite_rings.finite_field_base import FiniteField, is_FiniteField
-from sage.rings.morphism cimport RingHomomorphism_im_gens
+from sage.rings.finite_rings.finite_field_base import FiniteField
 
 
 cdef class SectionFiniteFieldHomomorphism_prime(SectionFiniteFieldHomomorphism_generic):
     cpdef Element _call_(self, x):
         try:
-            return self._codomain._element_constructor(x)
+            return self._codomain._element_constructor_(x)
         except TypeError:
             raise ValueError("%s is not in the image of %s" % (x, self._inverse))
 
@@ -51,39 +47,39 @@ cdef class FiniteFieldHomomorphism_prime(FiniteFieldHomomorphism_generic):
     A class implementing embeddings of prime finite fields into
     general finite fields.
     """
-    def __init__(self, parent, im_gens=None, check=False, section_class=None):
+    def __init__(self, parent, im_gens=None, base_map=None, check=False, section_class=None):
         """
         TESTS::
 
             sage: from sage.rings.finite_rings.hom_prime_finite_field import FiniteFieldHomomorphism_prime
             sage: k = GF(3)
-            sage: K.<T> = GF(3^4)
-            sage: f = FiniteFieldHomomorphism_prime(Hom(k, K)); f
+            sage: K.<T> = GF(3^4)                                                       # needs sage.rings.finite_rings
+            sage: f = FiniteFieldHomomorphism_prime(Hom(k, K)); f                       # needs sage.rings.finite_rings
             Ring morphism:
               From: Finite Field of size 3
               To:   Finite Field in T of size 3^4
               Defn: 1 |--> 1
 
-            sage: k.<t> = GF(3^2)
-            sage: K.<T> = GF(3^4)
-            sage: f = FiniteFieldHomomorphism_prime(Hom(k, K)); f
+            sage: k.<t> = GF(3^2)                                                       # needs sage.rings.finite_rings
+            sage: K.<T> = GF(3^4)                                                       # needs sage.rings.finite_rings
+            sage: f = FiniteFieldHomomorphism_prime(Hom(k, K)); f                       # needs sage.rings.finite_rings
             Traceback (most recent call last):
             ...
             TypeError: The domain is not a finite prime field
         """
         domain = parent.domain()
-        if not is_FiniteField(domain) or not domain.is_prime_field():
+        if not isinstance(domain, FiniteField) or not domain.is_prime_field():
             raise TypeError("The domain is not a finite prime field")
         if section_class is None:
             section_class = SectionFiniteFieldHomomorphism_prime
-        FiniteFieldHomomorphism_generic.__init__(self, parent, im_gens, check,
-                                                 section_class)
-
+        FiniteFieldHomomorphism_generic.__init__(self, parent, im_gens, base_map=base_map,
+                                                 check=check, section_class=section_class)
 
     cpdef Element _call_(self, x):
         """
         TESTS::
 
+            sage: # needs sage.rings.finite_rings
             sage: from sage.rings.finite_rings.hom_prime_finite_field import FiniteFieldHomomorphism_prime
             sage: k = GF(3)
             sage: K.<t> = GF(3^5)
@@ -93,7 +89,7 @@ cdef class FiniteFieldHomomorphism_prime(FiniteFieldHomomorphism_generic):
             sage: a.parent()
             Finite Field in t of size 3^5
         """
-        return self._codomain._element_constructor(x)
+        return self._codomain._element_constructor_(x)
 
 
 cdef class FrobeniusEndomorphism_prime(FrobeniusEndomorphism_finite_field):
@@ -102,7 +98,7 @@ cdef class FrobeniusEndomorphism_prime(FrobeniusEndomorphism_finite_field):
     fields (i.e. identity map :-).
     """
     def __init__(self, domain, power=1):
-        if not is_FiniteField(domain) or not domain.is_prime_field():
+        if not isinstance(domain, FiniteField) or not domain.is_prime_field():
             raise TypeError("The domain is not a finite prime field")
         FrobeniusEndomorphism_finite_field.__init__(self, Hom(domain, domain))
         self._order = 1
@@ -121,9 +117,9 @@ cdef class FrobeniusEndomorphism_prime(FrobeniusEndomorphism_finite_field):
 
     def _composition(self, right):
         """
-        Return self o right.
+        Return ``self`` o ``right``.
 
-        It is always right, since self is always identity because
+        It is always ``right``, since ``self`` is always identity because
         the domain is a prime field.
         """
         return right

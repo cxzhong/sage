@@ -8,23 +8,21 @@ Super modules
 #                  http://www.gnu.org/licenses/
 #******************************************************************************
 
-from sage.misc.cachefunc import cached_method
-from sage.misc.lazy_attribute import lazy_class_attribute
-from sage.categories.category import Category
 from sage.categories.category_types import Category_over_base_ring
-from sage.categories.category_with_axiom import CategoryWithAxiom_over_base_ring
 from sage.categories.covariant_functorial_construction import CovariantConstructionCategory
-from sage.categories.modules import Modules
 
 # Note, a commutative algebra is not a commutative super algebra,
 #   therefore the following whitelist.
 axiom_whitelist = frozenset(["Facade", "Finite", "Infinite",
                              "FiniteDimensional", "Connected", "WithBasis",
-                             # "Commutative",
+                             "FinitelyGeneratedAsLambdaBracketAlgebra",
+                             # "Commutative", "Cocommutative",
+                             "Supercommutative", "Supercocommutative",
                              "Associative", "Inverse", "Unital", "Division",
                              "AdditiveCommutative", "AdditiveAssociative",
                              "AdditiveInverse", "AdditiveUnital",
                              "NoZeroDivisors", "Distributive"])
+
 
 class SuperModulesCategory(CovariantConstructionCategory, Category_over_base_ring):
     @classmethod
@@ -39,20 +37,18 @@ class SuperModulesCategory(CovariantConstructionCategory, Category_over_base_rin
         - ``category`` -- a category `Cat`
         - ``*args`` -- further arguments for the functor
 
-        OUTPUT:
-
-        A join category.
+        OUTPUT: a join category
 
         This implements the property that subcategories constructed by
         the set of whitelisted axioms is a subcategory.
 
         EXAMPLES::
 
-            sage: HopfAlgebras(ZZ).WithBasis().FiniteDimensional().Super() # indirect doctest
-            Category of finite dimensional super hopf algebras with basis over Integer Ring
+            sage: HopfAlgebras(ZZ).WithBasis().FiniteDimensional().Super()  # indirect doctest
+            Category of finite dimensional super Hopf algebras with basis over Integer Ring
         """
         axioms = axiom_whitelist.intersection(category.axioms())
-        C = super(SuperModulesCategory, cls).default_super_categories(category, *args)
+        C = super().default_super_categories(category, *args)
         return C._with_axioms(axioms)
 
     def __init__(self, base_category):
@@ -73,7 +69,7 @@ class SuperModulesCategory(CovariantConstructionCategory, Category_over_base_rin
             sage: HopfAlgebrasWithBasis(QQ).Super().base_ring()
             Rational Field
         """
-        super(SuperModulesCategory, self).__init__(base_category, base_category.base_ring())
+        super().__init__(base_category, base_category.base_ring())
 
     _functor_category = "Super"
 
@@ -85,6 +81,7 @@ class SuperModulesCategory(CovariantConstructionCategory, Category_over_base_rin
             Category of super algebras with basis over Rational Field
         """
         return "super {}".format(self.base_category()._repr_object_names())
+
 
 class SuperModules(SuperModulesCategory):
     r"""
@@ -134,7 +131,7 @@ class SuperModules(SuperModulesCategory):
 
     def extra_super_categories(self):
         r"""
-        Adds :class:`VectorSpaces` to the super categories of ``self`` if
+        Add :class:`VectorSpaces` to the super categories of ``self`` if
         the base ring is a field.
 
         EXAMPLES::
@@ -161,7 +158,7 @@ class SuperModules(SuperModulesCategory):
         from sage.categories.modules import Modules
         from sage.categories.fields import Fields
         base_ring = self.base_ring()
-        if base_ring in Fields:
+        if base_ring in Fields():
             return [Modules(base_ring)]
         else:
             return []
@@ -185,6 +182,7 @@ class SuperModules(SuperModulesCategory):
 
             EXAMPLES::
 
+                sage: # needs sage.combinat sage.modules
                 sage: cat = Algebras(QQ).WithBasis().Super()
                 sage: C = CombinatorialFreeModule(QQ, Partitions(), category=cat)
                 sage: C.degree_on_basis = sum
@@ -201,6 +199,7 @@ class SuperModules(SuperModulesCategory):
 
             EXAMPLES::
 
+                sage: # needs sage.combinat sage.modules
                 sage: cat = Algebras(QQ).WithBasis().Super()
                 sage: C = CombinatorialFreeModule(QQ, Partitions(), category=cat)
                 sage: C.degree_on_basis = sum
@@ -217,6 +216,7 @@ class SuperModules(SuperModulesCategory):
 
             EXAMPLES::
 
+                sage: # needs sage.combinat sage.modules
                 sage: cat = Algebras(QQ).WithBasis().Super()
                 sage: C = CombinatorialFreeModule(QQ, Partitions(), category=cat)
                 sage: C.degree_on_basis = sum
@@ -226,4 +226,3 @@ class SuperModules(SuperModulesCategory):
                 False
             """
             return self.is_even_odd() == 1
-

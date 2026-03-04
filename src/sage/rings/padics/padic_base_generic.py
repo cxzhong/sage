@@ -1,13 +1,12 @@
-"""
-`p`-Adic Base Generic
+r"""
+`p`-adic Base Generic
 
-A superclass for implementations of `\mathbb{Z}_p` and `\mathbb{Q}_p`.
+A superclass for implementations of `\ZZ_p` and `\QQ_p`.
 
 AUTHORS:
 
 - David Roe
 """
-from __future__ import absolute_import
 
 #*****************************************************************************
 #       Copyright (C) 2007-2013 David Roe <roed.math@gmail.com>
@@ -20,6 +19,9 @@ from __future__ import absolute_import
 #                  http://www.gnu.org/licenses/
 #*****************************************************************************
 
+from sage.rings.integer_ring import ZZ
+from sage.rings.rational_field import QQ
+
 from .padic_generic import pAdicGeneric
 from .misc import precprint
 from sage.rings.padics.pow_computer import PowComputer
@@ -28,25 +30,39 @@ from sage.rings.padics.padic_capped_absolute_element import pAdicCoercion_ZZ_CA,
 from sage.rings.padics.padic_fixed_mod_element import pAdicCoercion_ZZ_FM, pAdicConvert_QQ_FM
 from sage.rings.padics.padic_floating_point_element import pAdicCoercion_ZZ_FP, pAdicCoercion_QQ_FP, pAdicConvert_QQ_FP
 
+
 class pAdicBaseGeneric(pAdicGeneric):
     _implementation = 'GMP'
-    def __init__(self, p, prec, print_mode, names, element_class):
+
+    def __init__(self, p, prec, print_mode, names, element_class, category=None):
         """
-        Initialization
+        Initialization.
 
         TESTS::
 
-            sage: R = Zp(5) #indirect doctest
+            sage: R = Zp(5)  # indirect doctest
         """
-        self.prime_pow = PowComputer(p, max(min(prec - 1, 30), 1), prec, self.is_field(), self._prec_type())
-        pAdicGeneric.__init__(self, self, p, prec, print_mode, names, element_class)
+        if self.is_relaxed():
+            from sage.rings.padics.pow_computer_flint import PowComputer_flint
+            self.prime_pow = PowComputer_flint(p, 1, 1, 1, self.is_field())
+        else:
+            self.prime_pow = PowComputer(p, max(min(prec - 1, 30), 1), prec, self.is_field(), self._prec_type())
+        pAdicGeneric.__init__(self, self, p, prec, print_mode, names, element_class, category=category)
         if self.is_field():
             if self.is_capped_relative():
                 coerce_list = [pAdicCoercion_ZZ_CR(self), pAdicCoercion_QQ_CR(self)]
                 convert_list = []
-            else:
+            elif self.is_floating_point():
                 coerce_list = [pAdicCoercion_ZZ_FP(self), pAdicCoercion_QQ_FP(self)]
                 convert_list = []
+            elif self.is_lattice_prec():
+                coerce_list = [QQ]
+                convert_list = []
+            elif self.is_relaxed():
+                coerce_list = [QQ]
+                convert_list = []
+            else:
+                raise RuntimeError
         elif self.is_capped_relative():
             coerce_list = [pAdicCoercion_ZZ_CR(self)]
             convert_list = [pAdicConvert_QQ_CR(self)]
@@ -59,110 +75,77 @@ class pAdicBaseGeneric(pAdicGeneric):
         elif self.is_floating_point():
             coerce_list = [pAdicCoercion_ZZ_FP(self)]
             convert_list = [pAdicConvert_QQ_FP(self)]
+        elif self.is_lattice_prec():
+            coerce_list = [ZZ]
+            convert_list = [QQ]
+        elif self.is_relaxed():
+            coerce_list = [ZZ]
+            convert_list = [QQ]
         else:
             raise RuntimeError
-        self._populate_coercion_lists_(coerce_list=coerce_list, convert_list=convert_list, element_constructor=element_class)
+        self.Element = element_class
+        self._populate_coercion_lists_(coerce_list=coerce_list, convert_list=convert_list)
 
     def _repr_(self, do_latex=False):
         r"""
-        Returns a print representation of this p-adic ring or field.
+        Return a print representation of this `p`-adic ring or field.
 
         EXAMPLES::
 
-            sage: K = Zp(17); K #indirect doctest
+            sage: K = Zp(17); K  # indirect doctest
             17-adic Ring with capped relative precision 20
             sage: latex(K)
-            \ZZ_{17}
-            sage: K = ZpCA(17); K #indirect doctest
+            \Bold{Z}_{17}
+            sage: K = ZpCA(17); K  # indirect doctest
             17-adic Ring with capped absolute precision 20
             sage: latex(K)
-            \ZZ_{17}
-            sage: K = ZpFP(17); K #indirect doctest
+            \Bold{Z}_{17}
+            sage: K = ZpFP(17); K  # indirect doctest
             17-adic Ring with floating precision 20
             sage: latex(K)
-            \ZZ_{17}
+            \Bold{Z}_{17}
             sage: K = ZpFM(7); K
             7-adic Ring of fixed modulus 7^20
-            sage: latex(K) #indirect doctest
-            \ZZ_{7}
-            sage: K = Qp(17); K #indirect doctest
+            sage: latex(K)  # indirect doctest
+            \Bold{Z}_{7}
+            sage: K = ZpLF(2); K   # indirect doctest
+            doctest:...: FutureWarning: This class/method/function is marked as experimental. It, its functionality or its interface might change without a formal deprecation.
+            See https://github.com/sagemath/sage/issues/23505 for details.
+            2-adic Ring with lattice-float precision
+            sage: latex(K)
+            \Bold{Z}_{2}
+            sage: K = Qp(17); K  # indirect doctest
             17-adic Field with capped relative precision 20
             sage: latex(K)
-            \QQ_{17}
-            sage: K = QpFP(17); K #indirect doctest
+            \Bold{Q}_{17}
+            sage: K = QpFP(17); K  # indirect doctest
             17-adic Field with floating precision 20
             sage: latex(K)
-            \QQ_{17}
+            \Bold{Q}_{17}
+            sage: K = QpLC(2); K   # indirect doctest
+            2-adic Field with lattice-cap precision
+            sage: latex(K)
+            \Bold{Q}_{2}
         """
         if do_latex:
             if self.is_field():
-                return r"\QQ_{%s}" % self.prime()
+                s = r"\Bold{Q}_{%s}" % self.prime()
             else:
-                return r"\ZZ_{%s}" % self.prime()
-        return "%s-adic %s %s"%(self.prime(), "Field" if self.is_field() else "Ring", precprint(self._prec_type(), self.precision_cap(), self.prime()))
-
-    def fraction_field(self, print_mode=None):
-        r"""
-        Returns the fraction field of ``self``.
-
-        INPUT:
-
-        - ``print_mode`` - a dictionary containing print options.
-          Defaults to the same options as this ring.
-
-        OUTPUT:
-
-        - the fraction field of ``self``.
-
-        EXAMPLES::
-
-            sage: R = Zp(5, print_mode='digits')
-            sage: K = R.fraction_field(); repr(K(1/3))[3:]
-            '31313131313131313132'
-            sage: L = R.fraction_field({'max_ram_terms':4}); repr(L(1/3))[3:]
-            '3132'
-        """
-        if self.is_field() and print_mode is None:
-            return self
-        from sage.rings.padics.factory import Qp
-        if self.is_floating_point():
-            mode = 'floating-point'
+                s = r"\Bold{Z}_{%s}" % self.prime()
+            if hasattr(self, '_label') and self._label:
+                s = r"\verb'%s' (\simeq %s)" % (self._label, s)
         else:
-            mode = 'capped-rel'
-        return Qp(self.prime(), self.precision_cap(), mode, print_mode=self._modified_print_mode(print_mode), names=self._uniformizer_print())
-
-    def integer_ring(self, print_mode=None):
-        r"""
-        Returns the integer ring of ``self``, possibly with
-        ``print_mode`` changed.
-
-        INPUT:
-
-        - ``print_mode`` - a dictionary containing print options.
-          Defaults to the same options as this ring.
-
-        OUTPUT:
-
-        - The ring of integral elements in ``self``.
-
-        EXAMPLES::
-
-            sage: K = Qp(5, print_mode='digits')
-            sage: R = K.integer_ring(); repr(R(1/3))[3:]
-            '31313131313131313132'
-            sage: S = K.integer_ring({'max_ram_terms':4}); repr(S(1/3))[3:]
-            '3132'
-        """
-        if not self.is_field() and print_mode is None:
-            return self
-        from sage.rings.padics.factory import Zp
-        return Zp(self.prime(), self.precision_cap(), self._prec_type(), print_mode=self._modified_print_mode(print_mode), names=self._uniformizer_print())
+            s = "Field " if self.is_field() else "Ring "
+            s = "%s-adic " % self.prime() + s + precprint(self._prec_type(), self.precision_cap(), self.prime())
+            if hasattr(self, '_label') and self._label:
+                s += " (label: %s)" % self._label
+        return s
 
     def exact_field(self):
         """
-        Returns the rational field.
+        Return the rational field.
 
-        For compatibility with extensions of p-adics.
+        For compatibility with extensions of `p`-adics.
 
         EXAMPLES::
 
@@ -174,19 +157,20 @@ class pAdicBaseGeneric(pAdicGeneric):
 
     def exact_ring(self):
         """
-        Returns the integer ring.  
+        Return the integer ring.
 
         EXAMPLES::
 
-            sage: Zp(5).exact_ring() 
+            sage: Zp(5).exact_ring()
             Integer Ring
         """
         from sage.rings.integer_ring import ZZ
         return ZZ
 
-    def is_isomorphic(self, ring):
+    def is_isomorphic(self, ring) -> bool:
         r"""
-        Returns whether ``self`` and ``ring`` are isomorphic, i.e. whether ``ring`` is an implementation of `\mathbb{Z}_p` for the same prime as ``self``.
+        Return whether ``self`` and ``ring`` are isomorphic, i.e. whether
+        ``ring`` is an implementation of `\ZZ_p` for the same prime as ``self``.
 
         INPUT:
 
@@ -194,9 +178,8 @@ class pAdicBaseGeneric(pAdicGeneric):
 
         - ``ring`` -- a ring
 
-        OUTPUT:
-
-        - ``boolean`` -- whether ``ring`` is an implementation of \mathbb{Z}_p` for the same prime as ``self``.
+        OUTPUT: ``boolean`` -- whether ``ring`` is an implementation of \ZZ_p`
+        for the same prime as ``self``
 
         EXAMPLES::
 
@@ -207,7 +190,7 @@ class pAdicBaseGeneric(pAdicGeneric):
 
     def gen(self, n=0):
         """
-        Returns the ``nth`` generator of this extension.  For base
+        Return the `n`-th generator of this extension.  For base
         rings/fields, we consider the generator to be the prime.
 
         EXAMPLES::
@@ -219,9 +202,27 @@ class pAdicBaseGeneric(pAdicGeneric):
             raise IndexError("only one generator")
         return self(self.prime())
 
+    def modulus(self, exact=False):
+        r"""
+        Return the polynomial defining this extension.
+
+        For compatibility with extension fields; we define the modulus to be `x-1`.
+
+        INPUT:
+
+        - ``exact`` -- boolean (default: ``False``); whether to return a
+          polynomial with integer entries
+
+        EXAMPLES::
+
+            sage: Zp(5).modulus(exact=True)
+            x
+        """
+        return self.defining_polynomial(exact=exact)
+
     def absolute_discriminant(self):
         """
-        Returns the absolute discriminant of this `p`-adic ring
+        Return the absolute discriminant of this `p`-adic ring.
 
         EXAMPLES::
 
@@ -232,7 +233,7 @@ class pAdicBaseGeneric(pAdicGeneric):
 
     def discriminant(self, K=None):
         """
-        Returns the discriminant of this `p`-adic ring over ``K``
+        Return the discriminant of this `p`-adic ring over ``K``.
 
         INPUT:
 
@@ -242,22 +243,21 @@ class pAdicBaseGeneric(pAdicGeneric):
 
         OUTPUT:
 
-        - integer -- the discriminant of this ring over ``K`` (or the
-          absolute discriminant if ``K`` is ``None``)
+        integer; the discriminant of this ring over ``K`` (or the absolute
+        discriminant if ``K`` is ``None``)
 
         EXAMPLES::
 
             sage: Zp(5).discriminant()
             1
         """
-        if (K is None or K is self):
+        if K is None or K is self:
             return 1
-        else:
-            raise ValueError("Ground Ring must be a subring of self")
+        raise ValueError("Ground Ring must be a subring of self")
 
-    def is_abelian(self):
+    def is_abelian(self) -> bool:
         """
-        Returns whether the Galois group is abelian, i.e. ``True``.
+        Return whether the Galois group is abelian, i.e. ``True``.
         #should this be automorphism group?
 
         EXAMPLES::
@@ -267,9 +267,9 @@ class pAdicBaseGeneric(pAdicGeneric):
         """
         return True
 
-    def is_normal(self):
+    def is_normal(self) -> bool:
         """
-        Returns whether or not this is a normal extension, i.e. ``True``.
+        Return whether or not this is a normal extension, i.e. ``True``.
 
         EXAMPLES::
 
@@ -280,19 +280,19 @@ class pAdicBaseGeneric(pAdicGeneric):
 
     def uniformizer(self):
         """
-        Returns a uniformizer for this ring.
+        Return a uniformizer for this ring.
 
         EXAMPLES::
 
             sage: R = Zp(3,5,'fixed-mod', 'series')
             sage: R.uniformizer()
-            3 + O(3^5)
+            3
         """
         return self(self.prime_pow._prime())
 
     def uniformizer_pow(self, n):
         """
-        Returns the ``nth`` power of the uniformizer of ``self`` (as
+        Return the `n`-th power of the uniformizer of ``self`` (as
         an element of ``self``).
 
         EXAMPLES::
@@ -307,7 +307,7 @@ class pAdicBaseGeneric(pAdicGeneric):
 
     def _uniformizer_print(self):
         """
-        Returns how the uniformizer is supposed to print.
+        Return how the uniformizer is supposed to print.
 
         EXAMPLES::
 
@@ -318,7 +318,7 @@ class pAdicBaseGeneric(pAdicGeneric):
 
     def has_pth_root(self):
         r"""
-        Returns whether or not `\mathbb{Z}_p` has a primitive `p^{th}`
+        Return whether or not `\ZZ_p` has a primitive `p`-th
         root of unity.
 
         EXAMPLES::
@@ -332,19 +332,18 @@ class pAdicBaseGeneric(pAdicGeneric):
 
     def has_root_of_unity(self, n):
         r"""
-        Returns whether or not `\mathbb{Z}_p` has a primitive `n^{th}`
+        Return whether or not `\ZZ_p` has a primitive `n`-th
         root of unity.
 
         INPUT:
 
         - ``self`` -- a `p`-adic ring
 
-        - ``n`` -- an integer
+        - ``n`` -- integer
 
         OUTPUT:
 
-        - ``boolean`` -- whether ``self`` has primitive `n^{th}` root
-          of unity
+        boolean; whether ``self`` has primitive `n`-th root of unity
 
         EXAMPLES::
 
@@ -361,19 +360,18 @@ class pAdicBaseGeneric(pAdicGeneric):
 
     def zeta(self, n=None):
         r"""
-        Returns a generator of the group of roots of unity.
+        Return a generator of the group of roots of unity.
 
         INPUT:
 
         - ``self`` -- a `p`-adic ring
 
-        - ``n`` -- an integer or ``None`` (default: ``None``)
+        - ``n`` -- integer or ``None`` (default: ``None``)
 
         OUTPUT:
 
-        - ``element`` -- a generator of the `n^{th}` roots of unity,
-          or a generator of the full group of roots of unity if ``n``
-          is ``None``
+        ``element``; a generator of the `n`-th roots of unity, or a generator
+        of the full group of roots of unity if ``n`` is ``None``
 
         EXAMPLES::
 
@@ -387,14 +385,14 @@ class pAdicBaseGeneric(pAdicGeneric):
             if n == 1:
                 return self(1)
             else:
-                raise ValueError("No, %sth root of unity in self"%n)
+                raise ValueError("No, %sth root of unity in self" % n)
         else:
             from sage.rings.finite_rings.finite_field_constructor import GF
             return self.teichmuller(GF(self.prime()).zeta(n).lift())
 
     def zeta_order(self):
         """
-        Returns the order of the group of roots of unity.
+        Return the order of the group of roots of unity.
 
         EXAMPLES::
 
@@ -415,12 +413,12 @@ class pAdicBaseGeneric(pAdicGeneric):
         triangle.
 
         The resulting image attempts to capture the
-        algebraic and topological characteristics of `\mathbb{Z}_p`.
+        algebraic and topological characteristics of `\ZZ_p`.
 
         INPUT:
 
         - ``max_points`` -- the maximum number or points to plot,
-          which controls the depth of recursion (default 2500)
+          which controls the depth of recursion (default: 2500)
 
         - ``**args`` -- color, size, etc. that are passed to the
           underlying point graphics objects
@@ -433,18 +431,18 @@ class pAdicBaseGeneric(pAdicGeneric):
 
         EXAMPLES::
 
-            sage: Zp(3).plot()
+            sage: Zp(3).plot()                                                          # needs sage.plot
             Graphics object consisting of 1 graphics primitive
-            sage: Zp(5).plot(max_points=625)
+            sage: Zp(5).plot(max_points=625)                                            # needs sage.plot
             Graphics object consisting of 1 graphics primitive
-            sage: Zp(23).plot(rgbcolor=(1,0,0))
+            sage: Zp(23).plot(rgbcolor=(1,0,0))                                         # needs sage.plot
             Graphics object consisting of 1 graphics primitive
         """
         if 'pointsize' not in args:
             args['pointsize'] = 1
         from sage.misc.mrange import cartesian_product_iterator
         from sage.rings.real_double import RDF
-        from sage.plot.all import points, circle, Graphics
+        from sage.plot.point import point as points
         p = self.prime()
         phi = 2*RDF.pi()/p
         V = RDF**2

@@ -102,7 +102,7 @@ ask the category (TODO: find a slicker idiom for this)::
     sage: from sage.misc.abstract_method import abstract_methods_of_class
     sage: abstract_methods_of_class(AlgebrasWithBasis(QQ).element_class)
     {'optional': ['_add_', '_mul_'],
-     'required': ['__nonzero__', 'monomial_coefficients']}
+     'required': ['__bool__', 'monomial_coefficients']}
     sage: abstract_methods_of_class(AlgebrasWithBasis(QQ).parent_class)
     {'optional': ['one_basis', 'product_on_basis'], 'required': ['__contains__']}
 
@@ -179,7 +179,7 @@ Since we defined the class interactively, instead of in a Python
 module, those tests will complain about "pickling". We can silence this
 error by making sage think that the class is defined in a module. We could also
 just ignore those failing tests for now or call :class:`TestSuite` with the
-argument `skip='_test_pickling')`::
+argument ``skip='_test_pickling')``::
 
     sage: import __main__
     sage: __main__.MyCyclicGroupAlgebra = MyCyclicGroupAlgebra
@@ -193,11 +193,13 @@ Ok, let's run the tests::
     running ._test_cardinality() . . . pass
     running ._test_category() . . . pass
     running ._test_characteristic() . . . pass
+    running ._test_construction() . . . pass
     running ._test_distributivity() . . . pass
     running ._test_elements() . . .
       Running the test suite of self.an_element()
       running ._test_category() . . . pass
       running ._test_eq() . . . pass
+      running ._test_monomial_coefficients() . . . pass
       running ._test_new() . . . pass
       running ._test_nonzero_equal() . . . pass
       running ._test_not_implemented_methods() . . . pass
@@ -237,7 +239,7 @@ Exercises
 #. Make a tiny modification to ``product_on_basis`` in
    "MyCyclicGroupAlgebra" to implement the *dual* of the group algebra
    of the cyclic group instead of its group algebra (so the product is now given by
-   `b_fb_g=\delta_{f,g}bf`).
+   `b_fb_g=\delta_{f,g}b_f`).
 
    Run the :class:`TestSuite` tests (you may ignore the "pickling"
    errors). What do you notice?
@@ -318,7 +320,7 @@ Diagonal and Triangular Morphisms
 
 We now illustrate how to specify that a given morphism is diagonal or triangular
 with respect to some order on the basis, which means that the morphism is
-invertible and `Sage` is able to compute the inverse morphism automatically.
+invertible and Sage is able to compute the inverse morphism automatically.
 Currently this feature requires the domain and codomain to have the same index
 set (in progress ...).
 
@@ -431,7 +433,7 @@ Coercions
 Once we have defined a morphism from `X \to Y`, we can register it as
 a coercion.  This will allow Sage to apply the morphism automatically
 whenever we combine elements of `X` and `Y` together. See
-http://sagemath.com/doc/reference/coercion.html for more
+https://doc.sagemath.org/html/en/reference/coercion/index.html for more
 information. As a training step, let us first define a morphism `X` to
 `Y`, and register it as a coercion::
 
@@ -606,13 +608,15 @@ will be a *parent with realizations*. See :func:`Sets().WithRealizations
 <sage.categories.with_realizations.WithRealizations>` for more information
 about the expected user interface and the rationale.
 
-Here is a brief template highlighting the overall structure::
+Here is a brief template highlighting the overall structure:
+
+.. CODE-BLOCK:: python
 
     class MyAlgebra(Parent, UniqueRepresentation):
         def __init__(self, R, ...):
             category = Algebras(R).Commutative()
             Parent.__init__(self, category=category.WithRealizations())
-            # attribute initalization, construction of the morphisms
+            # attribute initialization, construction of the morphisms
             # between the bases, ...
 
         class Bases(Category_realization_of_parent):
@@ -656,7 +660,7 @@ particular, this construction says that they are:
     There is a bit of redundancy here: given that ``A`` knows it is a
     commutative algebra with realizations the infrastructure could, in
     principle, determine that its realizations are commutative algebras. If this
-    was done then it would be possible to implement `Bases.super_categories` by
+    was done then it would be possible to implement ``Bases.super_categories`` by
     returning::
 
             [A.Realizations().WithBasis()]
@@ -685,7 +689,9 @@ particular, this construction says that they are:
     reason.
 
     The current recommended solution is to have an additional class ``Basis``
-    that factors out the common concrete features of the different bases::
+    that factors out the common concrete features of the different bases:
+
+    .. CODE-BLOCK:: python
 
         ...
 

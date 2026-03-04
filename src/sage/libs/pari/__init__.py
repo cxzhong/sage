@@ -1,3 +1,4 @@
+# sage.doctest: needs sage.rings.real_mpfr
 """
 Interface between Sage and PARI
 
@@ -51,6 +52,7 @@ to be done by the user (or by Sage functions that use PARI library
 functions). For instance, if we want to use the PARI library to compute
 ``sqrt(pi)`` with a precision of 100 bits::
 
+    sage: # needs sage.symbolic
     sage: R = RealField(100)
     sage: s = R(pi); s
     3.1415926535897932384626433833
@@ -161,46 +163,46 @@ exact object. Therefore, you should set the precision for each method
 call individually::
 
     sage: e = pari([0,0,0,-82,0]).ellinit()
-    sage: eta1 = e.elleta(precision=100)[0]
+    sage: eta1 = e.elleta(precision=50)[0]
     sage: eta1.sage()
     3.6054636014326520859158205642077267748
-    sage: eta1 = e.elleta(precision=180)[0]
+    sage: eta1 = e.elleta(precision=150)[0]
     sage: eta1.sage()
-    3.60546360143265208591582056420772677481026899659802474544
-
+    3.6054636014326520859158205642077267748102689965980247454443806414...
 """
 
+from cypari2 import Pari
+
+from sage.ext.memory import init_memory_functions
+
+
 def _get_pari_instance():
-    # There are two constraints for the virtual stack size:
-    # 1) on 32-bit systems, even virtual memory can be a scarce
-    #    resource since it is limited by 4GB (of which the kernel
-    #    needs a significant part)
-    # 2) the system should actually be able to handle a stack size
-    #    as large as the complete virtual stack.
-    # As a simple heuristic, we set the virtual stack to 1/4 of the
-    # virtual memory.
-    from sage.misc.getusage import virtual_memory_limit
+    """
+    TESTS::
 
-    sizemax = virtual_memory_limit() // 4
-
-    from sage.env import CYGWIN_VERSION
-    if CYGWIN_VERSION and CYGWIN_VERSION < (2, 5, 2):
-        # Cygwin's mmap is broken for large NORESERVE mmaps (>~ 4GB) See
-        # http://trac.sagemath.org/ticket/20463 So we set the max stack
-        # size to a little below 4GB (putting it right on the margin proves
-        # too fragile)
-        #
-        # The underlying issue is fixed in Cygwin v2.5.2
-        sizemax = min(sizemax, 0xf0000000)
-
-    from cypari2 import Pari
-    P = Pari(1000000, sizemax)
+        sage: pari  # indirect doctest
+        Interface to the PARI C library
+    """
+    stack_initial = 1024 * 1024
+    stack_max = 1024 * stack_initial
+    P = Pari(stack_initial, stack_max)
 
     # pari_init_opts() overrides MPIR's memory allocation functions,
     # so we need to reset them.
-    from sage.ext.memory import init_memory_functions
     init_memory_functions()
 
+    # PARI sets debugmem=1 by default but we do not want those warning
+    # messages in Sage.
+    P.default("debugmem", 0)
+
+    # Make sure pari doesn't use threads, regardless of how it was compiled.
+    # Threads cause some doctest failures (memory issues). Those could probably
+    # be solved without disabling threads. But that would require figuring out
+    # some sensible values for `threadsizemax`. See
+    # https://pari.math.u-bordeaux.fr/dochtml/html/GP_defaults.html
+    P.default("nbthreads", 1)
+
     return P
+
 
 pari = _get_pari_instance()

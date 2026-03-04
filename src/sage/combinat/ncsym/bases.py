@@ -1,38 +1,43 @@
+# sage.doctest: needs sage.combinat sage.modules
 r"""
-Bases for `NCSym`.
+Bases for ``NCSym``
 
 AUTHORS:
 
-- Travis Scrimshaw (08-04-2013): Initial version
+- Travis Scrimshaw (08-04-2013): initial version
 """
-#*****************************************************************************
+# ****************************************************************************
 #       Copyright (C) 2013 Travis Scrimshaw <tscrim at ucdavis.edu>
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
 from sage.misc.abstract_method import abstract_method
 from sage.misc.lazy_attribute import lazy_attribute
 from sage.misc.cachefunc import cached_method
 from sage.misc.bindable_class import BindableClass
 from sage.categories.graded_hopf_algebras import GradedHopfAlgebras
-from sage.categories.realizations import Category_realization_of_parent #, Realizations
-from sage.categories.all import ModulesWithBasis, tensor, Hom
+from sage.categories.realizations import Category_realization_of_parent
+from sage.categories.modules_with_basis import ModulesWithBasis
+from sage.categories.tensor import tensor
+from sage.categories.homset import Hom
 from sage.combinat.set_partition import SetPartition, SetPartitions
 from sage.combinat.free_module import CombinatorialFreeModule
+
 
 class NCSymBasis_abstract(CombinatorialFreeModule, BindableClass):
     """
     Abstract base class for a basis of `NCSym` or its dual.
     """
+
     def _element_constructor_(self, x):
         """
         Construct an element of ``self``.
 
         INPUT:
 
-        - ``x`` -- a set partition or list of lists of integers
+        - ``x`` -- set partition or list of lists of integers
 
         EXAMPLES::
 
@@ -44,21 +49,21 @@ class NCSymBasis_abstract(CombinatorialFreeModule, BindableClass):
         """
         if isinstance(x, (list, tuple)):
             x = SetPartition(x)
-        return super(NCSymBasis_abstract, self)._element_constructor_(x)
+        return super()._element_constructor_(x)
+
 
 class NCSymOrNCSymDualBases(Category_realization_of_parent):
     r"""
     Base category for the category of bases of symmetric functions
     in non-commuting variables or its Hopf dual for the common code.
     """
+
     def super_categories(self):
         r"""
         Return the super categories of bases of (the Hopf dual of) the
         symmetric functions in non-commuting variables.
 
-        OUTPUT:
-
-        - a list of categories
+        OUTPUT: list of categories
 
         TESTS::
 
@@ -67,9 +72,10 @@ class NCSymOrNCSymDualBases(Category_realization_of_parent):
             sage: NCSymOrNCSymDualBases(NCSym).super_categories()
             [Category of realizations of Symmetric functions in
               non-commuting variables over the Rational Field,
-             Category of graded hopf algebras with basis over Rational Field,
-             Join of Category of realizations of hopf algebras over Rational Field
-              and Category of graded algebras over Rational Field]
+             Category of graded Hopf algebras with basis over Rational Field,
+             Join of Category of realizations of Hopf algebras over Rational Field
+              and Category of graded algebras over Rational Field
+              and Category of graded coalgebras over Rational Field]
         """
         R = self.base().base_ring()
         from sage.categories.graded_hopf_algebras_with_basis import GradedHopfAlgebrasWithBasis
@@ -108,19 +114,19 @@ class NCSymOrNCSymDualBases(Category_realization_of_parent):
                  deformed_coarse_powersum basis with parameter q
             """
             str = "{} in the {} basis".format(self.realization_of(), self._realization_name())
-            if hasattr(self,'_q'):
+            if hasattr(self, '_q'):
                 str += " with parameter q"
-                if repr(self._q)!='q':
-                    str += "="+repr(self._q)
+                if repr(self._q) != 'q':
+                    str += "=" + repr(self._q)
             return str
 
         def __getitem__(self, i):
             """
-            Return the basis element indexed by ``i``.
+            Return the basis element indexed by `i`.
 
             INPUT:
 
-            - ``i`` -- a set partition or a list of list of integers
+            - ``i`` -- set partition or a list of list of integers
 
             EXAMPLES::
 
@@ -145,9 +151,7 @@ class NCSymOrNCSymDualBases(Category_realization_of_parent):
             r"""
             Return the index of the basis element containing `1`.
 
-            OUTPUT:
-
-            - The empty set partition
+            OUTPUT: the empty set partition
 
             EXAMPLES::
 
@@ -167,11 +171,9 @@ class NCSymOrNCSymDualBases(Category_realization_of_parent):
 
             INPUT:
 
-            - ``A`` -- a set partition
+            - ``A`` -- set partition
 
-            OUTPUT:
-
-            - either the ``0`` or the ``1`` of the base ring of ``self``
+            OUTPUT: either the `0` or the `1` of the base ring of ``self``
 
             EXAMPLES::
 
@@ -205,9 +207,7 @@ class NCSymOrNCSymDualBases(Category_realization_of_parent):
             - ``y`` -- an element of the dual of symmetric functions in
               non-commuting variables
 
-            OUTPUT:
-
-            - an element of the base ring of ``self``
+            OUTPUT: an element of the base ring of ``self``
 
             EXAMPLES::
 
@@ -236,12 +236,12 @@ class NCSymOrNCSymDualBases(Category_realization_of_parent):
             INPUT:
 
             - ``basis`` -- a basis of the dual Hopf algebra
-            - ``degree`` -- a non-negative integer
+            - ``degree`` -- nonnegative integer
 
             OUTPUT:
 
-            - the matrix of scalar products between the basis ``self`` and the
-              basis ``basis`` in the dual Hopf algebra of degree ``degree``
+            The matrix of scalar products between the basis ``self`` and the
+            basis ``basis`` in the dual Hopf algebra of degree ``degree``.
 
             EXAMPLES:
 
@@ -298,9 +298,9 @@ class NCSymOrNCSymDualBases(Category_realization_of_parent):
             from sage.matrix.constructor import matrix
             # TODO: generalize to keys indexing the basis of the graded component
             return matrix(self.base_ring(),
-                    [[self.duality_pairing(self[I], basis[J]) \
-                            for J in SetPartitions(degree)] \
-                            for I in SetPartitions(degree)])
+                    [[self.duality_pairing(self[I], basis[J])
+                      for J in SetPartitions(degree)]
+                     for I in SetPartitions(degree)])
 
     class ElementMethods:
         def duality_pairing(self, other):
@@ -325,6 +325,7 @@ class NCSymOrNCSymDualBases(Category_realization_of_parent):
             """
             return self.parent().duality_pairing(self, other)
 
+
 class NCSymBases(Category_realization_of_parent):
     r"""
     Category of bases of symmetric functions in non-commuting variables.
@@ -336,14 +337,13 @@ class NCSymBases(Category_realization_of_parent):
         sage: NCSymBases(NCSym)
         Category of bases of symmetric functions in non-commuting variables over the Rational Field
     """
+
     def super_categories(self):
         r"""
         Return the super categories of bases of the Hopf dual of the
         symmetric functions in non-commuting variables.
 
-        OUTPUT:
-
-        - a list of categories
+        OUTPUT: list of categories
 
         TESTS::
 
@@ -385,9 +385,7 @@ class NCSymBases(Category_realization_of_parent):
 
             - ``f`` -- a symmetric function
 
-            OUTPUT:
-
-            - an element of ``self``
+            OUTPUT: an element of ``self``
 
             EXAMPLES::
 
@@ -434,12 +432,10 @@ class NCSymBases(Category_realization_of_parent):
 
             INPUT:
 
-            - ``A`` -- a set partition
-            - ``i`` -- a positive integer
+            - ``A`` -- set partition
+            - ``i`` -- positive integer
 
-            OUTPUT:
-
-            - an element of ``self``
+            OUTPUT: an element of ``self``
 
             EXAMPLES::
 
@@ -452,7 +448,7 @@ class NCSymBases(Category_realization_of_parent):
             p = self.realization_of().p()
             return self(p.primitive(A, i))
 
-        @abstract_method(optional = True)
+        @abstract_method(optional=True)
         def internal_coproduct_on_basis(self, i):
             """
             The internal coproduct of the algebra on the basis (optional).
@@ -461,9 +457,7 @@ class NCSymBases(Category_realization_of_parent):
 
             - ``i`` -- the indices of an element of the basis of ``self``
 
-            OUTPUT:
-
-            - an element of the tensor squared of ``self``
+            OUTPUT: an element of the tensor squared of ``self``
 
             EXAMPLES::
 
@@ -474,7 +468,7 @@ class NCSymBases(Category_realization_of_parent):
 
         @lazy_attribute
         def internal_coproduct(self):
-            """
+            r"""
             Compute the internal coproduct of ``self``.
 
             If :meth:`internal_coproduct_on_basis()` is available, construct
@@ -482,9 +476,7 @@ class NCSymBases(Category_realization_of_parent):
             `\otimes` ``self`` by extending it by linearity. Otherwise, this uses
             :meth:`internal_coproduct_by_coercion()`, if available.
 
-            OUTPUT:
-
-            - an element of the tensor squared of ``self``
+            OUTPUT: an element of the tensor squared of ``self``
 
             EXAMPLES::
 
@@ -507,9 +499,7 @@ class NCSymBases(Category_realization_of_parent):
 
             - ``x`` -- an element of ``self``
 
-            OUTPUT:
-
-            - an element of the tensor squared of ``self``
+            OUTPUT: an element of the tensor squared of ``self``
 
             EXAMPLES::
 
@@ -577,9 +567,7 @@ class NCSymBases(Category_realization_of_parent):
             multiplicity of `i` in `\mu`.  For other bases this map is extended
             linearly.
 
-            OUTPUT:
-
-            - an element of the symmetric functions in the monomial basis
+            OUTPUT: an element of the symmetric functions in the monomial basis
 
             EXAMPLES::
 
@@ -603,8 +591,64 @@ class NCSymBases(Category_realization_of_parent):
             m = self.parent().realization_of().monomial()
             return m(self).to_symmetric_function()
 
-        def internal_coproduct(self):
+        def to_wqsym(self):
+            r"""
+            Return the image of ``self`` under the canonical
+            inclusion map `NCSym \to WQSym`.
+
+            The canonical inclusion map `NCSym \to WQSym` is
+            an injective homomorphism of algebras. It sends a
+            basis element `\mathbf{m}_A` of `NCSym` to the sum of
+            basis elements `\mathbf{M}_P` of `WQSym`, where `P`
+            ranges over all ordered set partitions that become
+            `A` when the ordering is forgotten.
+            This map is denoted by `\theta` in [BZ05]_ (17).
+
+            .. SEEALSO::
+
+                :class:`WordQuasiSymmetricFunctions` for a
+                definition of `WQSym`.
+
+            EXAMPLES::
+
+                sage: NCSym = SymmetricFunctionsNonCommutingVariables(QQ)
+                sage: e = NCSym.e()
+                sage: h = NCSym.h()
+                sage: p = NCSym.p()
+                sage: cp = NCSym.cp()
+                sage: x = NCSym.x()
+                sage: m = NCSym.m()
+                sage: m[[1,3],[2]].to_wqsym()
+                M[{1, 3}, {2}] + M[{2}, {1, 3}]
+                sage: x[[1,3],[2]].to_wqsym()
+                -M[{1}, {2}, {3}] - M[{1}, {2, 3}] - M[{1}, {3}, {2}]
+                 - M[{1, 2}, {3}] - M[{2}, {1}, {3}] - M[{2}, {3}, {1}]
+                 - M[{2, 3}, {1}] - M[{3}, {1}, {2}] - M[{3}, {1, 2}]
+                 - M[{3}, {2}, {1}]
+                sage: (4*p[[1,3],[2]]-p[[1]]).to_wqsym()
+                -M[{1}] + 4*M[{1, 2, 3}] + 4*M[{1, 3}, {2}] + 4*M[{2}, {1, 3}]
             """
+            parent = self.parent()
+            NCSym = parent.realization_of()
+            R = parent.base_ring()
+            m = NCSym.monomial()
+            from sage.combinat.chas.wqsym import WordQuasiSymmetricFunctions
+            M = WordQuasiSymmetricFunctions(R).M()
+            from itertools import permutations
+            OSP = M.basis().keys()
+
+            def to_wqsym_on_m_basis(A):
+                # Return the image of `\mathbf{m}_A` under the inclusion
+                # map `NCSym \to WQSym`.
+                l = len(A)
+                return M.sum_of_terms(((OSP([A[ui] for ui in u]), 1)
+                                       for u in permutations(range(l))),
+                                      distinct=True)
+            return M.linear_combination((to_wqsym_on_m_basis(A), coeff)
+                                        for A, coeff in m(self))
+
+        def internal_coproduct(self):
+            r"""
             Return the internal coproduct of ``self``.
 
             The internal coproduct is defined on the power sum basis as
@@ -615,9 +659,7 @@ class NCSymBases(Category_realization_of_parent):
 
             and the map is extended linearly.
 
-            OUTPUT:
-
-            - an element of the tensor square of the basis of ``self``
+            OUTPUT: an element of the tensor square of the basis of ``self``
 
             EXAMPLES::
 
@@ -629,7 +671,7 @@ class NCSymBases(Category_realization_of_parent):
             return self.parent().internal_coproduct(self)
 
         def omega(self):
-            """
+            r"""
             Return the involution `\omega` applied to ``self``.
 
             The involution `\omega` is defined by
@@ -640,9 +682,7 @@ class NCSymBases(Category_realization_of_parent):
 
             and the result is extended linearly.
 
-            OUTPUT:
-
-            - an element in the same basis as ``self``
+            OUTPUT: an element in the same basis as ``self``
 
             EXAMPLES::
 
@@ -665,6 +705,7 @@ class NCSymBases(Category_realization_of_parent):
             h = P.realization_of().h()
             return P(h.sum_of_terms(e(self)))
 
+
 class MultiplicativeNCSymBases(Category_realization_of_parent):
     r"""
     Category of multiplicative bases of symmetric functions in non-commuting variables.
@@ -680,14 +721,13 @@ class MultiplicativeNCSymBases(Category_realization_of_parent):
         sage: MultiplicativeNCSymBases(NCSym)
         Category of multiplicative bases of symmetric functions in non-commuting variables over the Rational Field
     """
+
     def super_categories(self):
         r"""
         Return the super categories of bases of the Hopf dual of the
         symmetric functions in non-commuting variables.
 
-        OUTPUT:
-
-        - a list of categories
+        OUTPUT: list of categories
 
         TESTS::
 
@@ -727,9 +767,7 @@ class MultiplicativeNCSymBases(Category_realization_of_parent):
 
             - ``A``, ``B`` -- set partitions
 
-            OUTPUT:
-
-            - an element in the basis ``self``
+            OUTPUT: an element in the basis ``self``
 
             EXAMPLES::
 
@@ -767,10 +805,11 @@ class MultiplicativeNCSymBases(Category_realization_of_parent):
                 sage: p.product_on_basis(A,B)==p(e(p(A))*e(p(B)))
                 True
             """
-            return self.monomial( A.pipe(B) )
+            return self.monomial(A.pipe(B))
 
     class ElementMethods:
         pass
+
 
 class NCSymDualBases(Category_realization_of_parent):
     r"""
@@ -783,14 +822,13 @@ class NCSymDualBases(Category_realization_of_parent):
         sage: NCSymDualBases(DNCSym)
         Category of bases of dual symmetric functions in non-commuting variables over the Rational Field
     """
+
     def super_categories(self):
         r"""
         Return the super categories of bases of the Hopf dual of the
         symmetric functions in non-commuting variables.
 
-        OUTPUT:
-
-        - a list of categories
+        OUTPUT: list of categories
 
         TESTS::
 
@@ -814,4 +852,3 @@ class NCSymDualBases(Category_realization_of_parent):
         """
         return "Category of bases of dual symmetric functions in non-commuting"\
                " variables over the {}".format(self.base().base_ring())
-

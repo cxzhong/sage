@@ -1,3 +1,4 @@
+# sage.doctest: needs sage.combinat sage.modules
 r"""
 Quasisymmetric functions
 
@@ -11,12 +12,10 @@ REFERENCES:
    functions and the Solomon descent algebra*, J. Algebra **177** (1995),
    no. 3, 967-982. http://www.mat.uniroma1.it/people/malvenuto/Duality.pdf
 
-.. [GriRei2014] Darij Grinberg, Victor Reiner,
-   *Hopf algebras in combinatorics*,
-   25 August 2015. :arxiv:`1409.8356v3`.
+.. [GriRei18]_
 
 .. [Mal1993] Claudia Malvenuto, *Produits et coproduits des fonctions
-   quasi-symetriques et de l'algebre des descentes*,
+   quasi-symétriques et de l'algèbre des descentes*,
    thesis, November 1993.
    http://www1.mat.uniroma1.it/people/malvenuto/Thesis.pdf
 
@@ -36,10 +35,10 @@ REFERENCES:
    *Noncommutative symmetric functions II: Transformations of alphabets*.
    http://www-igm.univ-mlv.fr/~jyt/ARTICLES/NCSF2.ps
 
-.. [HLNT09] F. Hivert, J.-G. Luque, J.-C. Novelli, J.-Y. Thibon,
+.. [HLNT09] \F. Hivert, J.-G. Luque, J.-C. Novelli, J.-Y. Thibon,
    *The (1-E)-transform in combinatorial Hopf algebras*.
    :arxiv:`math/0912.0184v2`
-   
+
 .. [LMvW13] Kurt Luoto, Stefan Mykytiuk and Stephanie van Willigenburg,
    *An introduction to quasisymmetric Schur functions -- Hopf algebras,
    quasisymmetric functions, and Young composition tableaux*,
@@ -57,6 +56,17 @@ REFERENCES:
    Kyushu J. Math. **69** (2015), pp. 345-366.
    :doi:`10.2206/kyushujm.69.345`, :arxiv:`math/0401319v3`.
 
+.. [BDHMN2017] Cristina Ballantine, Zajj Daugherty, Angela Hicks, Sarah Mason,
+   Elizabeth Niese. *Quasisymmetric power sums*. :arxiv:`1710.11613`.
+
+.. [AHM2018] Edward Allen, Joshua Hallam, Sarah Mason, *Dual Immaculate
+   Quasisymmetric Functions Expand Positively into Young Quasisymmetric
+   Schur Functions*. :arxiv:`1606.03519`
+
+.. [SW2010] John Shareshian and Michelle Wachs.
+   *Eulerian quasisymmetric functions*. (2010).
+   :arxiv:`0812.0764v2`
+
 AUTHOR:
 
 - Jason Bandlow
@@ -64,38 +74,37 @@ AUTHOR:
 - Chris Berg
 - Darij Grinberg
 """
-#*****************************************************************************
+# ****************************************************************************
 #       Copyright (C) 2010 Jason Bandlow <jbandlow@gmail.com>,
 #                     2012 Franco Saliola <saliola@gmail.com>,
 #                     2012 Chris Berg <chrisjamesberg@gmail.com>
 #  Distributed under the terms of the GNU General Public License (GPL)
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
-
-from sage.misc.bindable_class import BindableClass
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 from sage.categories.graded_hopf_algebras import GradedHopfAlgebras
 from sage.categories.rings import Rings
 from sage.categories.fields import Fields
 from sage.categories.realizations import Category_realization_of_parent
-from sage.structure.parent import Parent
-from sage.structure.unique_representation import UniqueRepresentation
-from sage.matrix.constructor import matrix
-from sage.matrix.matrix_space import MatrixSpace
 from sage.combinat.permutation import Permutations
 from sage.combinat.composition import Composition, Compositions
-from sage.combinat.composition_tableau import CompositionTableaux
 from sage.combinat.partition import Partitions, _Partitions
 from sage.combinat.free_module import CombinatorialFreeModule
 from sage.combinat.sf.sf import SymmetricFunctions
 from sage.combinat.ncsf_qsym.generic_basis_code import BasesOfQSymOrNCSF
-from sage.combinat.ncsf_qsym.combinatorics import number_of_fCT, number_of_SSRCT, compositions_order
+from sage.combinat.ncsf_qsym.combinatorics import (
+    number_of_fCT, number_of_SSRCT,
+    compositions_order, coeff_pi, coeff_lp, coeff_sp, coeff_ell)
 from sage.combinat.ncsf_qsym.ncsf import NonCommutativeSymmetricFunctions
 from sage.combinat.words.word import Word
+from sage.combinat.tableau import StandardTableaux
+from sage.misc.bindable_class import BindableClass
 from sage.misc.cachefunc import cached_method
-from sage.categories.morphism import SetMorphism
-from sage.categories.homset import Hom
+from sage.misc.lazy_import import lazy_import
+from sage.structure.parent import Parent
+from sage.structure.unique_representation import UniqueRepresentation
 
-import six
+lazy_import('sage.matrix.constructor', 'matrix')
+lazy_import('sage.matrix.matrix_space', 'MatrixSpace')
 
 
 class QuasiSymmetricFunctions(UniqueRepresentation, Parent):
@@ -107,7 +116,7 @@ class QuasiSymmetricFunctions(UniqueRepresentation, Parent):
     `R`-subalgebra of the ring of power series in countably many
     variables `R[[x_1, x_2, x_3, \ldots]]`. It consists of those
     formal power series `p` which are degree-bounded (i. e., the degrees
-    of all monomials occuring with nonzero coefficient in `p` are bounded
+    of all monomials occurring with nonzero coefficient in `p` are bounded
     from above, although the bound can depend on `p`) and satisfy the
     following condition: For every tuple `(a_1, a_2, \ldots, a_m)` of
     positive integers, the coefficient of the monomial
@@ -168,7 +177,7 @@ class QuasiSymmetricFunctions(UniqueRepresentation, Parent):
     a bialgebra). These quasi-symmetric functions are actual polynomials
     then, not just power series.
 
-    Chapter 5 of [GriRei2014]_ and Section 11 of [HazWitt1]_ are devoted
+    Chapter 5 of [GriRei18]_ and Section 11 of [HazWitt1]_ are devoted
     to quasi-symmetric functions, as are Malvenuto's thesis [Mal1993]_
     and part of Chapter 7 of [Sta-EC2]_.
 
@@ -179,9 +188,11 @@ class QuasiSymmetricFunctions(UniqueRepresentation, Parent):
 
         sage: QSym = QuasiSymmetricFunctions(QQ)
         sage: QSym.category()
-        Join of Category of hopf algebras over Rational Field
+        Join of Category of Hopf algebras over Rational Field
             and Category of graded algebras over Rational Field
+            and Category of commutative algebras over Rational Field
             and Category of monoids with realizations
+            and Category of graded coalgebras over Rational Field
             and Category of coalgebras over Rational Field with realizations
 
     The most standard two bases for this `R`-algebra are the monomial and
@@ -531,8 +542,11 @@ class QuasiSymmetricFunctions(UniqueRepresentation, Parent):
         Quasisymmetric functions over the Rational Field
         sage: QSym.base_ring()
         Rational Field
+        sage: algebras.QSym(QQ) is QSym
+        True
     """
-    def __init__(self, R):
+
+    def __init__(self, R) -> None:
         """
         The Hopf algebra of quasi-symmetric functions.
         See ``QuasiSymmetricFunctions`` for full documentation.
@@ -545,18 +559,18 @@ class QuasiSymmetricFunctions(UniqueRepresentation, Parent):
             sage: QSym2 = QuasiSymmetricFunctions(Integers(23))
             sage: TestSuite(QuasiSymmetricFunctions(QQ)).run()
         """
-        # change the line below to assert(R in Rings()) once MRO issues from #15536, #15475 are resolved
-        assert(R in Fields() or R in Rings()) # side effect of this statement assures MRO exists for R
+        # change the line below to assert R in Rings() once MRO issues from #15536, #15475 are resolved
+        assert R in Fields() or R in Rings()  # side effect of this statement assures MRO exists for R
         self._base = R # Won't be needed once CategoryObject won't override base_ring
-        category = GradedHopfAlgebras(R)  # TODO: .Commutative()
+        category = GradedHopfAlgebras(R).Commutative()
         self._category = category
-        Parent.__init__(self, category = category.WithRealizations())
+        Parent.__init__(self, category=category.WithRealizations())
 
         # Bases
-        Monomial    = self.Monomial()
+        Monomial = self.Monomial()
         Fundamental = self.Fundamental()
         dualImmaculate = self.dualImmaculate()
-        QS          = self.Quasisymmetric_Schur()
+        QS = self.Quasisymmetric_Schur()
 
         # Change of bases
         Fundamental.module_morphism(Monomial.sum_of_finer_compositions,
@@ -567,11 +581,11 @@ class QuasiSymmetricFunctions(UniqueRepresentation, Parent):
                                     ).register_as_coercion()
         #This changes dualImmaculate into Monomial
         dualImmaculate.module_morphism(dualImmaculate._to_Monomial_on_basis,
-                                          codomain = Monomial, category = category
+                                          codomain=Monomial, category=category
                                           ).register_as_coercion()
         #This changes Monomial into dualImmaculate
         Monomial.module_morphism(dualImmaculate._from_Monomial_on_basis,
-                                          codomain = dualImmaculate, category = category
+                                          codomain=dualImmaculate, category=category
                                           ).register_as_coercion()
         #This changes Quasisymmetric Schur into Monomial
         QS         .module_morphism(QS._to_monomial_on_basis,
@@ -590,7 +604,12 @@ class QuasiSymmetricFunctions(UniqueRepresentation, Parent):
         Sym_m_to_M.register_as_coercion()
         self.to_symmetric_function = Sym_m_to_M.section()
 
-    def _repr_(self):
+        Sym_s_to_F = Sym.s().module_morphism(Fundamental._from_schur_on_basis,
+                                             unitriangular='upper',
+                                             codomain=Fundamental, category=category)
+        Sym_s_to_F.register_as_coercion()
+
+    def _repr_(self) -> str:
         r"""
         EXAMPLES::
 
@@ -598,15 +617,13 @@ class QuasiSymmetricFunctions(UniqueRepresentation, Parent):
             sage: M._repr_()
             'Quasisymmetric functions over the Integer Ring in the Monomial basis'
         """
-        return "Quasisymmetric functions over the %s"%self.base_ring()
+        return "Quasisymmetric functions over the %s" % self.base_ring()
 
     def a_realization(self):
         r"""
         Return the realization of the Monomial basis of the ring of quasi-symmetric functions.
 
-        OUTPUT:
-
-        - The Monomial basis of quasi-symmetric functions.
+        OUTPUT: the Monomial basis of quasi-symmetric functions
 
         EXAMPLES::
 
@@ -615,16 +632,14 @@ class QuasiSymmetricFunctions(UniqueRepresentation, Parent):
         """
         return self.Monomial()
 
-    _shorthands = tuple(['M', 'F', 'E', 'dI', 'QS'])
+    _shorthands = ('M', 'F', 'E', 'dI', 'QS', 'YQS', 'phi', 'psi')
 
     def dual(self):
         r"""
         Return the dual Hopf algebra of the quasi-symmetric functions, which is the
         non-commutative symmetric functions.
 
-        OUTPUT:
-
-        - The non-commutative symmetric functions.
+        OUTPUT: the non-commutative symmetric functions
 
         EXAMPLES::
 
@@ -644,12 +659,10 @@ class QuasiSymmetricFunctions(UniqueRepresentation, Parent):
         - ``f`` -- a polynomial in finitely many variables over the same base
           ring as ``self``. It is assumed that this polynomial is
           quasi-symmetric.
-        - ``check`` -- boolean (default: ``True``), checks whether the
-          polynomial is indeed quasi-symmetric.
+        - ``check`` -- boolean (default: ``True``); checks whether the
+          polynomial is indeed quasi-symmetric
 
-        OUTPUT:
-
-        - quasi-symmetric function in the Monomial basis
+        OUTPUT: quasi-symmetric function in the Monomial basis
 
         EXAMPLES::
 
@@ -684,10 +697,10 @@ class QuasiSymmetricFunctions(UniqueRepresentation, Parent):
             -F[1, 1] + F[2]
         """
         assert self.base_ring() == f.base_ring()
-        exponent_coefficient = f.dict()
+        exponent_coefficient = f.monomial_coefficients()
         z = {}
-        for (e, c) in six.iteritems(exponent_coefficient):
-            I = Compositions()([ei for ei in e if ei > 0])
+        for e, c in exponent_coefficient.items():
+            I = Compositions()([ei for ei in e if ei])
             if I not in z:
                 z[I] = c
         out = self.Monomial()._from_dict(z)
@@ -705,13 +718,12 @@ class QuasiSymmetricFunctions(UniqueRepresentation, Parent):
             sage: QSym.Bases()
             Category of bases of Quasisymmetric functions over the Rational Field
         """
+
         def super_categories(self):
             r"""
             Return the super categories of bases of the Quasi-symmetric functions.
 
-            OUTPUT:
-
-            - a list of categories
+            OUTPUT: list of categories
 
             TESTS::
 
@@ -740,12 +752,10 @@ class QuasiSymmetricFunctions(UniqueRepresentation, Parent):
                 - ``f`` -- a polynomial in finitely many variables over the same base
                   ring as ``self``. It is assumed that this polynomial is
                   quasi-symmetric.
-                - ``check`` -- boolean (default: ``True``), checks whether the
-                  polynomial is indeed quasi-symmetric.
+                - ``check`` -- boolean (default: ``True``); checks whether the
+                  polynomial is indeed quasi-symmetric
 
-                OUTPUT:
-
-                - quasi-symmetric function
+                OUTPUT: quasi-symmetric function
 
                 EXAMPLES::
 
@@ -856,7 +866,7 @@ class QuasiSymmetricFunctions(UniqueRepresentation, Parent):
                 #. If `I` is a composition, then a `(0, I)`-matrix will mean a
                    matrix whose entries are nonnegative integers such that no
                    row and no column of this matrix is zero, and such that if
-                   all the non-zero entries of the matrix are read (row by row,
+                   all the nonzero entries of the matrix are read (row by row,
                    starting at the topmost row, reading every row from left to
                    right), then the reading word obtained is `I`. If `A` is
                    a `(0, I)`-matrix, then `\mathrm{row}(A)` will denote the
@@ -1047,12 +1057,12 @@ class QuasiSymmetricFunctions(UniqueRepresentation, Parent):
 
             kronecker_coproduct = internal_coproduct
 
-            def frobenius(self, n):
+            def adams_operator(self, n):
                 r"""
                 Return the image of the quasi-symmetric function ``self``
-                under the `n`-th Frobenius operator.
+                under the `n`-th Adams operator.
 
-                The `n`-th Frobenius operator `\mathbf{f}_n` is defined to be
+                The `n`-th Adams operator `\mathbf{f}_n` is defined to be
                 the map from the `R`-algebra of quasi-symmetric functions
                 to itself that sends every symmetric function
                 `P(x_1, x_2, x_3, \ldots)` to
@@ -1067,32 +1077,32 @@ class QuasiSymmetricFunctions(UniqueRepresentation, Parent):
                 for every composition `(i_1, i_2, i_3, \ldots)`
                 (where `M` means the monomial basis).
 
-                The `n`-th Frobenius operator is also called the `n`-th
+                The `n`-th Adams operator is also called the `n`-th
                 Frobenius endomorphism. It is not related to the Frobenius map
                 which connects the ring of symmetric functions with the
                 representation theory of the symmetric group.
 
-                The `n`-th Frobenius operator is also the `n`-th Adams operator
+                The `n`-th Adams operator is the `n`-th Adams operator
                 of the `\Lambda`-ring of quasi-symmetric functions over the
                 integers.
 
-                The restriction of the `n`-th Frobenius operator to the
+                The restriction of the `n`-th Adams operator to the
                 subring formed by all symmetric functions is, not
-                unexpectedly, the `n`-th Frobenius operator of the ring of
+                unexpectedly, the `n`-th Adams operator of the ring of
                 symmetric functions.
 
                 .. SEEALSO::
 
-                    :meth:`Symmetric functions plethsym
+                    :meth:`Symmetric functions plethysm
                     <sage.combinat.sf.sfa.SymmetricFunctionAlgebra_generic_Element.plethysm>`
 
                 INPUT:
 
-                - ``n`` -- a positive integer
+                - ``n`` -- positive integer
 
                 OUTPUT:
 
-                The result of applying the `n`-th Frobenius operator (on the
+                The result of applying the `n`-th Adams operator (on the
                 ring of quasi-symmetric functions) to ``self``.
 
                 EXAMPLES::
@@ -1100,42 +1110,42 @@ class QuasiSymmetricFunctions(UniqueRepresentation, Parent):
                     sage: QSym = QuasiSymmetricFunctions(ZZ)
                     sage: M = QSym.M()
                     sage: F = QSym.F()
-                    sage: M[3,2].frobenius(2)
+                    sage: M[3,2].adams_operator(2)
                     M[6, 4]
-                    sage: (M[2,1] - 2*M[3]).frobenius(4)
+                    sage: (M[2,1] - 2*M[3]).adams_operator(4)
                     M[8, 4] - 2*M[12]
-                    sage: M([]).frobenius(3)
+                    sage: M([]).adams_operator(3)
                     M[]
-                    sage: F[1,1].frobenius(2)
+                    sage: F[1,1].adams_operator(2)
                     F[1, 1, 1, 1] - F[1, 1, 2] - F[2, 1, 1] + F[2, 2]
 
-                The Frobenius endomorphisms are multiplicative::
+                The Adams endomorphisms are multiplicative::
 
-                    sage: all( all( M(I).frobenius(3) * M(J).frobenius(3)
-                    ....:           == (M(I) * M(J)).frobenius(3)
+                    sage: all( all( M(I).adams_operator(3) * M(J).adams_operator(3)
+                    ....:           == (M(I) * M(J)).adams_operator(3)
                     ....:           for I in Compositions(3) )
                     ....:      for J in Compositions(2) )
                     True
 
-                Being Hopf algebra endomorphisms, the Frobenius operators
+                Being Hopf algebra endomorphisms, the Adams operators
                 commute with the antipode::
 
-                    sage: all( M(I).frobenius(4).antipode()
-                    ....:      == M(I).antipode().frobenius(4)
+                    sage: all( M(I).adams_operator(4).antipode()
+                    ....:      == M(I).antipode().adams_operator(4)
                     ....:      for I in Compositions(3) )
                     True
 
-                The restriction of the Frobenius operators to the subring
-                of symmetric functions are the Frobenius operators of
+                The restriction of the Adams operators to the subring
+                of symmetric functions are the Adams operators of
                 the latter::
 
                     sage: e = SymmetricFunctions(ZZ).e()
-                    sage: all( M(e(lam)).frobenius(3)
-                    ....:      == M(e(lam).frobenius(3))
+                    sage: all( M(e(lam)).adams_operator(3)
+                    ....:      == M(e(lam).adams_operator(3))
                     ....:      for lam in Partitions(3) )
                     True
                 """
-                # Convert to the monomial basis, there apply Frobenius componentwise,
+                # Convert to the monomial basis, there apply componentwise,
                 # then convert back.
                 parent = self.parent()
                 M = parent.realization_of().M()
@@ -1144,10 +1154,6 @@ class QuasiSymmetricFunctions(UniqueRepresentation, Parent):
                        for (I, coeff) in M(self)}
                 result_in_M_basis = M._from_dict(dct)
                 return parent(result_in_M_basis)
-
-            def adams_operation(self, *args, **opts):
-                from sage.misc.superseded import deprecation
-                deprecation(19255, "Do not use this method! Please use `frobenius` or `adams_operator` methods following what you expect.")
 
             def star_involution(self):
                 r"""
@@ -1558,19 +1564,17 @@ class QuasiSymmetricFunctions(UniqueRepresentation, Parent):
 
                 INPUT:
 
-                - ``n`` -- A nonnegative integer; the number of variables
+                - ``n`` -- nonnegative integer; the number of variables
                   in the expansion
-                - ``alphabet`` -- (default: ``'x'``); the alphabet in
+                - ``alphabet`` -- (default: ``'x'``) the alphabet in
                   which ``self`` is to be expanded
 
-                OUTPUT:
-
-                - An expansion of ``self`` into the ``n`` variables specified
-                  by ``alphabet``.
+                OUTPUT: an expansion of ``self`` into the ``n`` variables
+                specified by ``alphabet``
 
                 EXAMPLES::
 
-                    sage: F=QuasiSymmetricFunctions(QQ).Fundamental()
+                    sage: F = QuasiSymmetricFunctions(QQ).Fundamental()
                     sage: F[3].expand(3)
                     x0^3 + x0^2*x1 + x0*x1^2 + x1^3 + x0^2*x2 + x0*x1*x2 + x1^2*x2 + x0*x2^2 + x1*x2^2 + x2^3
                     sage: F[2,1].expand(3)
@@ -1579,7 +1583,7 @@ class QuasiSymmetricFunctions(UniqueRepresentation, Parent):
                 One can use a different set of variable by adding an optional
                 argument ``alphabet=...`` ::
 
-                    sage: F=QuasiSymmetricFunctions(QQ).Fundamental()
+                    sage: F = QuasiSymmetricFunctions(QQ).Fundamental()
                     sage: F[3].expand(2,alphabet='y')
                     y0^3 + y0^2*y1 + y0*y1^2 + y1^3
 
@@ -1652,7 +1656,7 @@ class QuasiSymmetricFunctions(UniqueRepresentation, Parent):
                     M = self.parent().realization_of().Monomial()
                     return M( self ).to_symmetric_function()
                 else:
-                    raise ValueError("%s is not a symmetric function"%self)
+                    raise ValueError("%s is not a symmetric function" % self)
 
     class Monomial(CombinatorialFreeModule, BindableClass):
         r"""
@@ -1687,6 +1691,7 @@ class QuasiSymmetricFunctions(UniqueRepresentation, Parent):
             sage: M(m([]))
             M[]
         """
+
         def __init__(self, QSym):
             """
             EXAMPLES::
@@ -1704,9 +1709,7 @@ class QuasiSymmetricFunctions(UniqueRepresentation, Parent):
             Return the dual basis to the Monomial basis. This is the complete basis of the
             non-commutative symmetric functions.
 
-            OUTPUT:
-
-            - The complete basis of the non-commutative symmetric functions.
+            OUTPUT: the complete basis of the non-commutative symmetric functions
 
             EXAMPLES::
 
@@ -1787,7 +1790,7 @@ class QuasiSymmetricFunctions(UniqueRepresentation, Parent):
 
             EXAMPLES::
 
-                sage: M=QuasiSymmetricFunctions(QQ).Monomial()
+                sage: M = QuasiSymmetricFunctions(QQ).Monomial()
                 sage: M[4,2,3].coproduct()
                 M[] # M[4, 2, 3] + M[4] # M[2, 3] + M[4, 2] # M[3] + M[4, 2, 3] # M[]
                 sage: M.coproduct_on_basis(Composition([]))
@@ -1795,7 +1798,7 @@ class QuasiSymmetricFunctions(UniqueRepresentation, Parent):
             """
             return self.tensor_square().sum_of_monomials((self._indices(compo[:i]),
                                                           self._indices(compo[i:]))
-                                                         for i in range(0,len(compo)+1))
+                                                         for i in range(len(compo)+1))
 
         def lambda_of_monomial(self, I, n):
             r"""
@@ -1811,8 +1814,8 @@ class QuasiSymmetricFunctions(UniqueRepresentation, Parent):
             `\lambda^i(x_j)` is `x_j` if `i = 1` and `0` if `i > 1`).
 
             The Adams operations of this `\lambda`-ring are the
-            Frobenius endomorphisms `\mathbf{f}_n` (see
-            :meth:`~sage.combinat.ncsf_qsym.qsym.QuasiSymmetricFunctions.Bases.ElementMethods.frobenius`
+            Adams endomorphisms `\mathbf{f}_n` (see
+            :meth:`~sage.combinat.ncsf_qsym.qsym.QuasiSymmetricFunctions.Bases.ElementMethods.adams_operator`
             for their definition). Using these endomorphisms, the
             `\lambda`-operations can be explicitly computed via the formula
 
@@ -1839,7 +1842,7 @@ class QuasiSymmetricFunctions(UniqueRepresentation, Parent):
             the reduced Lyndon compositions (i. e., compositions
             which are Lyndon words and have the gcd of their entries
             equal to `1`) form a set of free polynomial generators
-            for `\mathrm{QSym}`. See [GriRei2014]_, Chapter 6, for
+            for `\mathrm{QSym}`. See [GriRei18]_, Chapter 6, for
             the proof, and [Haz2004]_ for a major part of it.
 
             INPUT:
@@ -1897,7 +1900,8 @@ class QuasiSymmetricFunctions(UniqueRepresentation, Parent):
             # The following algorithm is a rewriting of the formula in the docstring.
             # We are working over QQ because there are denominators which don't
             # immediately cancel.
-            from sage.rings.all import ZZ, QQ
+            from sage.rings.integer_ring import ZZ
+            from sage.rings.rational_field import QQ
             QQM = QuasiSymmetricFunctions(QQ).M()
             QQ_result = QQM.zero()
             for lam in Partitions(n):
@@ -1907,7 +1911,7 @@ class QuasiSymmetricFunctions(UniqueRepresentation, Parent):
             QQ_result *= (-1) ** n
             # QQ_result is now \lambda^n(M_I) over QQ.
             result = self.sum_of_terms([(J, ZZ(coeff)) for (J, coeff) in QQ_result],
-                                        distinct = True)
+                                        distinct=True)
             return result
 
         class Element(CombinatorialFreeModule.Element):
@@ -1991,13 +1995,11 @@ class QuasiSymmetricFunctions(UniqueRepresentation, Parent):
 
                 INPUT:
 
-                - ``n`` -- an integer
-                - ``alphabet`` -- (default: ``'x'``) a string
+                - ``n`` -- integer
+                - ``alphabet`` -- string (default: ``'x'``)
 
-                OUTPUT:
-
-                - The quasi-symmetric function ``self`` expressed in the ``n`` variables
-                  described by ``alphabet``.
+                OUTPUT: the quasi-symmetric function ``self`` expressed in the
+                `n` variables described by ``alphabet``
 
                 .. TODO:: accept an *alphabet* as input
 
@@ -2010,7 +2012,7 @@ class QuasiSymmetricFunctions(UniqueRepresentation, Parent):
                 One can use a different set of variables by using the
                 optional argument ``alphabet``::
 
-                    sage: M=QuasiSymmetricFunctions(QQ).Monomial()
+                    sage: M = QuasiSymmetricFunctions(QQ).Monomial()
                     sage: M[2,1,1].expand(4,alphabet='y')
                     y0^2*y1*y2 + y0^2*y1*y3 + y0^2*y2*y3 + y1^2*y2*y3
 
@@ -2027,6 +2029,7 @@ class QuasiSymmetricFunctions(UniqueRepresentation, Parent):
                 M = self.parent()
                 P = PolynomialRing(M.base_ring(), n, alphabet)
                 x = P.gens()
+
                 def on_basis(comp, i):
                     if not comp:
                         return P.one()
@@ -2034,9 +2037,9 @@ class QuasiSymmetricFunctions(UniqueRepresentation, Parent):
                         return P.zero()
                     else:
                         return x[i-1]**comp[-1] * on_basis(comp[:-1], i-1) + \
-                                                  on_basis(comp,      i-1)
+                                                  on_basis(comp, i-1)
                 return M._apply_module_morphism(self, lambda comp: on_basis(comp,n),
-                                                codomain = P)
+                                                codomain=P)
 
             def is_symmetric( self ):
                 r"""
@@ -2132,7 +2135,7 @@ class QuasiSymmetricFunctions(UniqueRepresentation, Parent):
                                          for I, coeff in self
                         if list(I) in _Partitions}, remove_zeros=False)
                 else:
-                    raise ValueError("%s is not a symmetric function"%self)
+                    raise ValueError("%s is not a symmetric function" % self)
 
     M = Monomial
 
@@ -2171,6 +2174,7 @@ class QuasiSymmetricFunctions(UniqueRepresentation, Parent):
             sage: F(s(0))
             0
         """
+
         def __init__(self, QSym):
             """
             EXAMPLES::
@@ -2183,14 +2187,39 @@ class QuasiSymmetricFunctions(UniqueRepresentation, Parent):
                                              prefix='F', bracket=False,
                                              category=QSym.Bases())
 
+        def _from_schur_on_basis(self, la):
+            r"""
+            Map the Schur symmetric function indexed by ``la`` to the
+            Fundamental basis.
+
+            EXAMPLES::
+
+                sage: s = SymmetricFunctions(QQ).schur()
+                sage: F = QuasiSymmetricFunctions(QQ).Fundamental()
+                sage: F(s[2,2]-s[3,1])                                          # indirect doctest
+                F[1, 2, 1] - F[1, 3] - F[3, 1]
+
+                sage: F._from_schur_on_basis(Partition([]))
+                F[]
+
+                sage: F._from_schur_on_basis(Partition([2,2,2]))
+                F[1, 1, 2, 1, 1] + F[1, 2, 1, 2] + F[1, 2, 2, 1] + F[2, 1, 2, 1] + F[2, 2, 2]
+            """
+            C = self._indices
+            res = 0
+            n = la.size()
+            for T in StandardTableaux(la):
+                des = T.standard_descents()
+                comp = C.from_descents([d-1 for d in des], n)
+                res += self.monomial(comp)
+            return res
+
         def dual(self):
             r"""
             Return the dual basis to the Fundamental basis. This is the ribbon
             basis of the non-commutative symmetric functions.
 
-            OUTPUT:
-
-            - The ribbon basis of the non-commutative symmetric functions.
+            OUTPUT: the ribbon basis of the non-commutative symmetric functions
 
             EXAMPLES::
 
@@ -2313,12 +2342,6 @@ class QuasiSymmetricFunctions(UniqueRepresentation, Parent):
             - ``k`` -- (optional) if specified, determines the number of fixed
               points of the permutations which are being summed over
 
-            REFERENCES:
-
-            .. [SW2010] John Shareshian and Michelle Wachs.
-               *Eulerian quasisymmetric functions*. (2010).
-               :arxiv:`0812.0764v2`
-
             EXAMPLES::
 
                 sage: F = QuasiSymmetricFunctions(QQ).F()
@@ -2411,7 +2434,7 @@ class QuasiSymmetricFunctions(UniqueRepresentation, Parent):
                 #. If `I` is a composition, then a `(0, I)`-matrix will mean a
                    matrix whose entries are nonnegative integers such that no
                    row and no column of this matrix is zero, and such that if
-                   all the non-zero entries of the matrix are read (row by row,
+                   all the nonzero entries of the matrix are read (row by row,
                    starting at the topmost row, reading every row from left to
                    right), then the reading word obtained is `I`. If `A` is
                    a `(0, I)`-matrix, then `\mathrm{row}(A)` will denote the
@@ -2631,6 +2654,7 @@ class QuasiSymmetricFunctions(UniqueRepresentation, Parent):
             sage: E(s(0))
             0
         """
+
         def __init__(self, QSym):
             """
             EXAMPLES::
@@ -2725,10 +2749,10 @@ class QuasiSymmetricFunctions(UniqueRepresentation, Parent):
             """
             return self.tensor_square().sum_of_monomials((self._indices(compo[:i]),
                                                           self._indices(compo[i:]))
-                                                         for i in range(0,len(compo)+1))
+                                                         for i in range(len(compo)+1))
 
         def product_on_basis(self, I, J):
-            """
+            r"""
             The product on Essential basis elements.
 
             The product of the basis elements indexed by two compositions
@@ -2797,6 +2821,7 @@ class QuasiSymmetricFunctions(UniqueRepresentation, Parent):
             sage: QS(s[2,1,1])
             QS[1, 1, 2] + QS[1, 2, 1] + QS[2, 1, 1]
         """
+
         def __init__(self, QSym):
             r"""
             EXAMPLES::
@@ -2841,11 +2866,9 @@ class QuasiSymmetricFunctions(UniqueRepresentation, Parent):
 
             INPUT:
 
-            - ``n`` -- an integer
+            - ``n`` -- integer
 
-            OUTPUT:
-
-            - a pair of a square matrix and the ordered list of compositions
+            OUTPUT: a pair of a square matrix and the ordered list of compositions
 
             EXAMPLES::
 
@@ -2864,24 +2887,22 @@ class QuasiSymmetricFunctions(UniqueRepresentation, Parent):
                 return (matrix([[]]), [])
             CO = compositions_order(n)
             # ZZ is faster than over QQ for inverting a matrix
-            from sage.rings.all import ZZ
+            from sage.rings.integer_ring import ZZ
             MS = MatrixSpace(ZZ, len(CO))
-            return (MS([[number_of_SSRCT(al,be) for al in CO] for be in CO]).inverse(),
-                    CO)
+            M = MS([[number_of_SSRCT(al, be) for al in CO] for be in CO])
+            return (M.inverse_of_unit(), CO)
 
         @cached_method
         def _from_monomial_on_basis(self, comp):
             r"""
-            Maps the Monomial quasi-symmetric function indexed by
+            Map the Monomial quasi-symmetric function indexed by
             ``comp`` to the Quasisymmetric Schur basis.
 
             INPUT:
 
             - ``comp`` -- a composition
 
-            OUTPUT:
-
-            - a quasi-symmetric function in the Quasisymmetric Schur basis
+            OUTPUT: a quasi-symmetric function in the Quasisymmetric Schur basis
 
             EXAMPLES::
 
@@ -2892,7 +2913,7 @@ class QuasiSymmetricFunctions(UniqueRepresentation, Parent):
                 QS[1, 1, 1, 1, 1] - QS[1, 1, 2, 1] + QS[1, 3, 1] - QS[2, 2, 1]
                 sage: QS._from_monomial_on_basis(Composition([2]))
                 -QS[1, 1] + QS[2]
-             """
+            """
             comp = Composition(comp)
             if not comp._list:
                 return self.one()
@@ -2915,9 +2936,7 @@ class QuasiSymmetricFunctions(UniqueRepresentation, Parent):
 
             - ``comp_shape`` -- a composition
 
-            OUTPUT:
-
-            - a quasi-symmetric function in the Monomial basis
+            OUTPUT: a quasi-symmetric function in the Monomial basis
 
             EXAMPLES::
 
@@ -2934,7 +2953,149 @@ class QuasiSymmetricFunctions(UniqueRepresentation, Parent):
                     for comp_content in Compositions(sum(comp_shape))),
                     distinct=True )
 
+        def dual(self):
+            r"""
+            The dual basis to the Quasisymmetric Schur basis.
+
+            The dual basis to the Quasisymmetric Schur basis is
+            implemented as dual.
+
+            OUTPUT:
+
+            - the dual Quasisymmetric Schur basis of the
+              non-commutative symmetric functions
+
+            EXAMPLES::
+
+                sage: QS = QuasiSymmetricFunctions(QQ).Quasisymmetric_Schur()
+                sage: QS.dual()
+                Non-Commutative Symmetric Functions over the Rational Field
+                 in the dual Quasisymmetric-Schur basis
+            """
+            return self.realization_of().dual().dualQuasisymmetric_Schur()
+
     QS = Quasisymmetric_Schur
+
+    class Young_Quasisymmetric_Schur(CombinatorialFreeModule, BindableClass):
+        r"""
+        The Hopf algebra of quasi-symmetric functions in the Young
+        Quasisymmetric Schur basis.
+
+        The basis of Young Quasisymmetric Schur functions is from
+        Definition 5.2.1 of [LMvW13]_.
+
+        This basis is related to the Quasisymmetric Schur basis ``QS`` by
+        ``QS(alpha.reversed()) == YQS(alpha).star_involution()`` .
+
+        EXAMPLES::
+
+            sage: QSym = QuasiSymmetricFunctions(QQ)
+            sage: YQS = QSym.YQS()
+            sage: F = QSym.F()
+            sage: QS = QSym.QS()
+            sage: F(YQS[1,2])
+            F[1, 2]
+            sage: all(QS(al.reversed())==YQS(al).star_involution() for al in Compositions(5))
+            True
+            sage: s = SymmetricFunctions(QQ).s()
+            sage: YQS(s[2,1,1])
+            YQS[1, 1, 2] + YQS[1, 2, 1] + YQS[2, 1, 1]
+        """
+
+        def __init__(self, QSym):
+            r"""
+            Initialize ``self``.
+
+            EXAMPLES::
+
+                sage: QSym = QuasiSymmetricFunctions(QQ)
+                sage: F = QSym.Fundamental()
+                sage: YQS = QSym.Young_Quasisymmetric_Schur()
+                sage: YQS(F(YQS.an_element())) == YQS.an_element()
+                True
+                sage: F(YQS(F.an_element())) == F.an_element()
+                True
+                sage: M = QSym.Monomial()
+                sage: YQS(M(YQS.an_element())) == YQS.an_element()
+                True
+                sage: M(YQS(M.an_element())) == M.an_element()
+                True
+                sage: TestSuite(YQS).run() # long time
+            """
+            self._QS = QSym.QS()
+            self._M = QSym.M()
+            CombinatorialFreeModule.__init__(self, QSym.base_ring(),
+                                             Compositions(), prefix='YQS',
+                                             bracket=False, category=QSym.Bases())
+            self.module_morphism(self._to_monomial_on_basis,
+                                 codomain=self._M, category=QSym.Bases()).register_as_coercion()
+            self._M.module_morphism(self._from_monomial_on_basis,
+                                    codomain=self, category=QSym.Bases()).register_as_coercion()
+
+        def _realization_name(self):
+            r"""
+            Return a nicer name for ``self`` than what is inherited
+            from :mod:`sage.categories.sets_cat`.
+
+            EXAMPLES::
+
+                sage: QSym = QuasiSymmetricFunctions(QQ)
+                sage: QS = QSym.QS()
+                sage: QS._realization_name()
+                'Quasisymmetric Schur'
+            """
+            return "Young Quasisymmetric Schur"
+
+        @cached_method
+        def _to_monomial_on_basis(self, comp):
+            r"""
+            Expand the Young quasi-symmetric Schur function in the
+            Monomial basis.
+
+            INPUT:
+
+            - ``comp`` -- a composition
+
+            OUTPUT: a quasi-symmetric function in the Monomial basis
+
+            EXAMPLES::
+
+                sage: QSym = QuasiSymmetricFunctions(QQ)
+                sage: YQS = QSym.QS()
+                sage: YQS._to_monomial_on_basis(Composition([2]))
+                M[1, 1] + M[2]
+                sage: YQS._to_monomial_on_basis(Composition([1,3,1]))
+                2*M[1, 1, 1, 1, 1] + 2*M[1, 1, 2, 1] + M[1, 2, 1, 1] + M[1, 3, 1] + M[2, 1, 1, 1] + M[2, 2, 1]
+            """
+            return self._M(self._QS.monomial(comp.reversed())).star_involution()
+
+        @cached_method
+        def _from_monomial_on_basis(self, comp):
+            r"""
+            The expansion of the quasi-symmetric Schur function indexed
+            by ``comp_shape`` has coefficients which are given by the method
+            :meth:`~sage.combinat.ncsf_qsym.combinatorics.number_of_SSRCT`.
+
+            INPUT:
+
+            - ``comp`` -- a composition
+
+            OUTPUT: a quasi-symmetric function in the Young Quasisymmetric Schur basis
+
+            EXAMPLES::
+
+                sage: QSym = QuasiSymmetricFunctions(QQ)
+                sage: YQS = QSym.YQS()
+                sage: YQS._from_monomial_on_basis(Composition([2]))
+                -YQS[1, 1] + YQS[2]
+                sage: YQS._from_monomial_on_basis(Composition([1,3,1]))
+                YQS[1, 1, 1, 1, 1] - YQS[1, 2, 1, 1] - YQS[1, 2, 2] + YQS[1, 3, 1]
+            """
+            elt = self._QS(self._M.monomial(comp.reversed()))
+            return self._from_dict({al.reversed(): c for al,c in elt},
+                                   coerce=False, remove_zeros=False)
+
+    YQS = Young_Quasisymmetric_Schur
 
     class dualImmaculate(CombinatorialFreeModule, BindableClass):
         def __init__(self, QSym):
@@ -2972,9 +3133,7 @@ class QuasiSymmetricFunctions(UniqueRepresentation, Parent):
 
             - ``J`` -- a composition
 
-            OUTPUT:
-
-            - A quasi-symmetric function in the monomial basis.
+            OUTPUT: a quasi-symmetric function in the monomial basis
 
             EXAMPLES::
 
@@ -3040,9 +3199,7 @@ class QuasiSymmetricFunctions(UniqueRepresentation, Parent):
 
             - ``J`` -- a composition
 
-            OUTPUT:
-
-            - A quasi-symmetric function in the dual immaculate basis.
+            OUTPUT: a quasi-symmetric function in the dual immaculate basis
 
             EXAMPLES::
 
@@ -3082,7 +3239,7 @@ class QuasiSymmetricFunctions(UniqueRepresentation, Parent):
         the `n`-fold concatenation of this Lyndon word with
         itself, occurring `n!` times in that shuffle power. But this
         can be deduced from Section 2 of [Rad1979]_. See also
-        Chapter 6 of [GriRei2014]_, specifically Theorem 6.107, for a
+        Chapter 6 of [GriRei18]_, specifically Theorem 6.5.13, for a
         complete proof.) More precisely, he showed that
         `\mathrm{QSym}` is generated, as a free commutative
         `\mathbf{k}`-algebra, by the elements `\lambda^n(M_I)`, where
@@ -3194,11 +3351,11 @@ class QuasiSymmetricFunctions(UniqueRepresentation, Parent):
             category = self.realization_of()._category
             # This changes Monomial into Hazewinkel Lambda
             M.module_morphism(self._from_Monomial_on_basis,
-                                              codomain = self, category = category
+                                              codomain=self, category=category
                                               ).register_as_coercion()
             # This changes Hazewinkel Lambda into Monomial
             self.module_morphism(self._to_Monomial_on_basis,
-                                              codomain = M, category = category
+                                              codomain=M, category=category
                                               ).register_as_coercion()
 
             # cache for the coordinates of the elements
@@ -3215,7 +3372,7 @@ class QuasiSymmetricFunctions(UniqueRepresentation, Parent):
             self._M_inverse_transition_matrices = {}
 
         def _precompute_cache(self, n, to_self_cache, from_self_cache, transition_matrices, inverse_transition_matrices, from_self_gen_function):
-            """
+            r"""
             Compute the transition matrices between ``self`` and the
             monomial basis in the homogeneous components of degree `n`.
             The results are not returned, but rather stored in the caches.
@@ -3297,7 +3454,7 @@ class QuasiSymmetricFunctions(UniqueRepresentation, Parent):
                 sage: toy_inverse_transition_matrices[2]
                 [2 1]
                 [0 1]
-                sage: toy_transition_matrices.keys()
+                sage: sorted(toy_transition_matrices)
                 [0, 1, 2]
 
             As we see from the fractions in the transition matrices, this
@@ -3377,26 +3534,20 @@ class QuasiSymmetricFunctions(UniqueRepresentation, Parent):
 
             # For every composition I of size n, expand self[I] in terms
             # of the monomial basis M.
-            i = 0
-            for I in compositions_n:
+            for i, I in enumerate(compositions_n):
                 # M_coeffs will be M(self[I])._monomial_coefficients
                 M_coeffs = {}
 
                 self_I_in_M_basis = M.prod([from_self_gen_function(self._indices(list(J)))
                                             for J in Word(I).lyndon_factorization()])
 
-                j = 0
-
-                for J in compositions_n:
+                for j, J in enumerate(compositions_n):
                     if J in self_I_in_M_basis._monomial_coefficients:
                         sp = self_I_in_M_basis._monomial_coefficients[J]
                         M_coeffs[J] = sp
-                        transition_matrix_n[i,j] = sp
-
-                    j += 1
+                        transition_matrix_n[i, j] = sp
 
                 from_self_cache[I] = M_coeffs
-                i += 1
 
             # Save the transition matrix
             inverse_transition_matrices[n] = transition_matrix_n
@@ -3412,6 +3563,7 @@ class QuasiSymmetricFunctions(UniqueRepresentation, Parent):
             # "inverse_transition = ~transition_matrix_n" because that
             # tends to cast the entries of the matrix into a quotient
             # field even if this is unnecessary.
+            # MAYBE use .inverse_of_unit() ?
 
             # TODO: This still looks fragile when the base ring is weird!
             # Possibly work over ZZ in this method?
@@ -3470,7 +3622,7 @@ class QuasiSymmetricFunctions(UniqueRepresentation, Parent):
                 sage: HWL._M_inverse_transition_matrices[2]
                 [2 1]
                 [1 0]
-                sage: HWL._M_transition_matrices.keys()
+                sage: sorted(HWL._M_transition_matrices)
                 [0, 1, 2]
 
             We did not have to call ``HWL._precompute_M(0)``,
@@ -3501,7 +3653,8 @@ class QuasiSymmetricFunctions(UniqueRepresentation, Parent):
             M = self.realization_of().M()
             if l <= n:
                 from sage.misc.cachefunc import cached_function
-                from sage.arith.all import gcd
+                from sage.arith.misc import gcd
+
                 @cached_function
                 def monolambda(I):
                     # expansion of self[I] in monomial basis,
@@ -3525,9 +3678,7 @@ class QuasiSymmetricFunctions(UniqueRepresentation, Parent):
 
             - ``J`` -- a composition
 
-            OUTPUT:
-
-            - A quasi-symmetric function in the Monomial basis.
+            OUTPUT: a quasi-symmetric function in the Monomial basis
 
             EXAMPLES::
 
@@ -3549,9 +3700,7 @@ class QuasiSymmetricFunctions(UniqueRepresentation, Parent):
 
             - ``J`` -- a composition
 
-            OUTPUT:
-
-            - A quasi-symmetric function in the Hazewinkel lambda basis.
+            OUTPUT: a quasi-symmetric function in the Hazewinkel lambda basis
 
             EXAMPLES::
 
@@ -3615,3 +3764,280 @@ class QuasiSymmetricFunctions(UniqueRepresentation, Parent):
             new_factors = sorted(I_factors + J_factors, reverse=True)
             return self.monomial(self._indices(flatten(new_factors)))
 
+    class psi(CombinatorialFreeModule, BindableClass):
+        r"""
+        The Hopf algebra of quasi-symmetric functions in the `\psi` basis.
+
+        The `\psi` basis is defined as a rescaled Hopf dual of the `\Psi`
+        basis of the non-commutative symmetric functions (see Section 3.1
+        of [BDHMN2017]_), where the pairing is
+
+        .. MATH::
+
+            (\psi_I, \Psi_J) = z_I \delta_{I,J},
+
+        where `z_I = 1^{m_1} m_1! 2^{m_2} m_2! \cdots` with `m_i` being the
+        multiplicity of `i` in the composition `I`. Therefore, we call these
+        the *quasi-symmetric power sums of the first kind*.
+
+        Using the duality, we can directly define the `\psi` basis by
+
+        .. MATH::
+
+            \psi_I = \sum_{J \succ I} z_I / \pi_{I,J} M_J,
+
+        where `\pi_{I,J}` is as defined in [NCSF]_.
+
+        The `\psi`-basis is well-defined only when the base ring is a
+        `\QQ`-algebra.
+
+        EXAMPLES::
+
+            sage: QSym = QuasiSymmetricFunctions(QQ)
+            sage: psi = QSym.psi(); psi
+            Quasisymmetric functions over the Rational Field in the psi basis
+            sage: psi.an_element()
+            2*psi[] + 2*psi[1] + 3*psi[1, 1]
+            sage: p = SymmetricFunctions(QQ).p()
+            sage: psi(p[2,2,1])
+            psi[1, 2, 2] + psi[2, 1, 2] + psi[2, 2, 1]
+            sage: all(sum(psi(list(al)) for al in Permutations(la))==psi(p(la)) for la in Partitions(6))
+            True
+            sage: p = SymmetricFunctions(QQ).p()
+            sage: psi(p[3,2,2])
+            psi[2, 2, 3] + psi[2, 3, 2] + psi[3, 2, 2]
+
+        Checking the equivalent definition of `\psi_n`::
+
+            sage: def test_psi(n):
+            ....:     psi = QuasiSymmetricFunctions(QQ).psi()
+            ....:     Psi = NonCommutativeSymmetricFunctions(QQ).Psi()
+            ....:     M = matrix([[psi[I].duality_pairing(Psi[J])
+            ....:                  for I in Compositions(n)]
+            ....:                 for J in Compositions(n)])
+            ....:     def z(J): return J.to_partition().centralizer_size()
+            ....:     return M == matrix.diagonal([z(I) for I in Compositions(n)])
+            sage: all(test_psi(k) for k in range(1,5))
+            True
+        """
+
+        def __init__(self, QSym):
+            r"""
+            Initialize ``self``.
+
+            EXAMPLES::
+
+                sage: psi = QuasiSymmetricFunctions(QQ).psi()
+                sage: TestSuite(psi).run()
+
+            TESTS::
+
+                sage: psi = QuasiSymmetricFunctions(QQ).psi()
+                sage: M = QuasiSymmetricFunctions(QQ).M()
+                sage: all(psi(M(psi[c])) == psi[c] for n in range(5)
+                ....:     for c in Compositions(n))
+                True
+                sage: all(M(psi(M[c])) == M[c] for n in range(5)
+                ....:     for c in Compositions(n))
+                True
+            """
+            CombinatorialFreeModule.__init__(self, QSym.base_ring(), Compositions(),
+                                             prefix='psi', bracket=False,
+                                             category=QSym.Bases())
+
+            category = self.realization_of()._category
+            Monomial = self.realization_of().Monomial()
+            self.module_morphism(self._to_Monomial_on_basis,
+                                 codomain=Monomial, category=category
+                                 ).register_as_coercion()
+            Monomial.module_morphism(self._from_Monomial_on_basis,
+                                     codomain=self, category=category
+                                     ).register_as_coercion()
+
+        def _from_Monomial_on_basis(self, I):
+            r"""
+            Expand a Monomial basis element indexed by ``I`` in the
+            `\psi` basis.
+
+            INPUT:
+
+            - ``I`` -- a composition
+
+            OUTPUT: a quasi-symmetric function in the `\psi` basis
+
+            TESTS::
+
+                sage: psi = QuasiSymmetricFunctions(QQ).psi()
+                sage: I = Composition([2, 3, 2])
+                sage: psi._from_Monomial_on_basis(I)
+                1/2*psi[2, 3, 2] - 2/5*psi[2, 5] - 3/5*psi[5, 2] + 2/7*psi[7]
+            """
+            R = self.base_ring()
+            minus_one = -R.one()
+
+            def z(J):
+                return R(J.to_partition().centralizer_size())
+            return self._from_dict({J: minus_one**(len(I)-len(J)) / z(J) * coeff_lp(I, J)
+                                    for J in I.fatter()})
+
+        def _to_Monomial_on_basis(self, I):
+            r"""
+            Expand a `\psi` basis element indexed by ``I`` in the
+            Monomial basis.
+
+            INPUT:
+
+            - ``I`` -- a composition
+
+            OUTPUT: a quasi-symmetric function in the Monomial basis
+
+            TESTS::
+
+                sage: psi = QuasiSymmetricFunctions(QQ).psi()
+                sage: I = Composition([2, 3, 2])
+                sage: psi._to_Monomial_on_basis(I)
+                2*M[2, 3, 2] + 4/5*M[2, 5] + 6/5*M[5, 2] + 12/35*M[7]
+            """
+            R = self.base_ring()
+            z = R(I.to_partition().centralizer_size())
+            Monomial = self.realization_of().Monomial()
+            return Monomial._from_dict({J: z / coeff_pi(I,J) for J in I.fatter()})
+
+    class phi(CombinatorialFreeModule, BindableClass):
+        r"""
+        The Hopf algebra of quasi-symmetric functions in the `\phi` basis.
+
+        The `\phi` basis is defined as a rescaled Hopf dual of the `\Phi`
+        basis of the non-commutative symmetric functions (see Section 3.1
+        of [BDHMN2017]_), where the pairing is
+
+        .. MATH::
+
+            (\phi_I, \Phi_J) = z_I \delta_{I,J},
+
+        where `z_I = 1^{m_1} m_1! 2^{m_2} m_2! \cdots` with `m_i` being the
+        multiplicity of `i` in the composition `I`. Therefore, we call these
+        the *quasi-symmetric power sums of the second kind*.
+
+        Using the duality, we can directly define the `\phi` basis by
+
+        .. MATH::
+
+            \phi_I = \sum_{J \succ I} z_I / sp_{I,J} M_J,
+
+        where `sp_{I,J}` is as defined in [NCSF]_.
+
+        The `\phi`-basis is well-defined only when the base ring is a
+        `\QQ`-algebra.
+
+        EXAMPLES::
+
+            sage: QSym = QuasiSymmetricFunctions(QQ)
+            sage: phi = QSym.phi(); phi
+            Quasisymmetric functions over the Rational Field in the phi basis
+            sage: phi.an_element()
+            2*phi[] + 2*phi[1] + 3*phi[1, 1]
+            sage: p = SymmetricFunctions(QQ).p()
+            sage: phi(p[2,2,1])
+            phi[1, 2, 2] + phi[2, 1, 2] + phi[2, 2, 1]
+            sage: all(sum(phi(list(al)) for al in Permutations(la))==phi(p(la)) for la in Partitions(6))
+            True
+            sage: p = SymmetricFunctions(QQ).p()
+            sage: phi(p[3,2,2])
+            phi[2, 2, 3] + phi[2, 3, 2] + phi[3, 2, 2]
+
+        Checking the equivalent definition of `\phi_n`::
+
+            sage: def test_phi(n):
+            ....:     phi = QuasiSymmetricFunctions(QQ).phi()
+            ....:     Phi = NonCommutativeSymmetricFunctions(QQ).Phi()
+            ....:     M = matrix([[phi[I].duality_pairing(Phi[J])
+            ....:                  for I in Compositions(n)]
+            ....:                 for J in Compositions(n)])
+            ....:     def z(J): return J.to_partition().centralizer_size()
+            ....:     return M == matrix.diagonal([z(I) for I in Compositions(n)])
+            sage: all(test_phi(k) for k in range(1,5))
+            True
+        """
+
+        def __init__(self, QSym):
+            r"""
+            Initialize ``self``.
+
+            EXAMPLES::
+
+                sage: phi = QuasiSymmetricFunctions(QQ).phi()
+                sage: TestSuite(phi).run()
+
+            TESTS::
+
+                sage: phi = QuasiSymmetricFunctions(QQ).phi()
+                sage: M = QuasiSymmetricFunctions(QQ).M()
+                sage: all(phi(M(phi[c])) == phi[c] for n in range(5)
+                ....:     for c in Compositions(n))
+                True
+                sage: all(M(phi(M[c])) == M[c] for n in range(5)
+                ....:     for c in Compositions(n))
+                True
+            """
+            CombinatorialFreeModule.__init__(self, QSym.base_ring(), Compositions(),
+                                             prefix='phi', bracket=False,
+                                             category=QSym.Bases())
+
+            category = self.realization_of()._category
+            Monomial = self.realization_of().Monomial()
+            self.module_morphism(self._to_Monomial_on_basis,
+                                 codomain=Monomial, category=category
+                                 ).register_as_coercion()
+            Monomial.module_morphism(self._from_Monomial_on_basis,
+                                     codomain=self, category=category
+                                     ).register_as_coercion()
+
+        def _from_Monomial_on_basis(self, I):
+            r"""
+            Expand a Monomial basis element indexed by ``I`` in the
+            `\phi` basis.
+
+            INPUT:
+
+            - ``I`` -- a composition
+
+            OUTPUT: a quasi-symmetric function in the `\psi` basis
+
+            TESTS::
+
+                sage: phi = QuasiSymmetricFunctions(QQ).phi()
+                sage: I = Composition([3, 2, 2])
+                sage: phi._from_Monomial_on_basis(I)
+                1/2*phi[3, 2, 2] - 1/2*phi[3, 4] - 1/2*phi[5, 2] + 1/3*phi[7]
+            """
+            R = self.base_ring()
+            minus_one = -R.one()
+
+            def z(J):
+                return R(J.to_partition().centralizer_size())
+            return self._from_dict({J: minus_one**(len(I)-len(J)) * R.prod(J) / (coeff_ell(I, J) * z(J))
+                                    for J in I.fatter()})
+
+        def _to_Monomial_on_basis(self, I):
+            r"""
+            Expand a `\phi` basis element indexed by ``I`` in the
+            Monomial basis.
+
+            INPUT:
+
+            - ``I`` -- a composition
+
+            OUTPUT: a quasi-symmetric function in the Monomial basis
+
+            TESTS::
+
+                sage: phi = QuasiSymmetricFunctions(QQ).phi()
+                sage: I = Composition([3, 2, 2])
+                sage: phi._to_Monomial_on_basis(I)
+                2*M[3, 2, 2] + M[3, 4] + M[5, 2] + 1/3*M[7]
+            """
+            R = self.base_ring()
+            z = R(I.to_partition().centralizer_size())
+            Monomial = self.realization_of().Monomial()
+            return Monomial._from_dict({J: z / coeff_sp(I,J) for J in I.fatter()})

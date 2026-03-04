@@ -1,3 +1,4 @@
+# sage.doctest: needs sage.libs.pari       (for charpoly, minimal_polynomial in __init__)
 r"""
 `J`-ideals of matrices
 
@@ -114,11 +115,8 @@ Classes and Methods
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
-# http://www.gnu.org/licenses/
+# https://www.gnu.org/licenses/
 # *****************************************************************************
-from __future__ import print_function
-from __future__ import absolute_import
-from six import iteritems, iterkeys
 
 from sage.matrix.constructor import matrix
 from sage.structure.sage_object import SageObject
@@ -133,7 +131,7 @@ def lifting(p, t, A, G):
 
     - ``p`` -- a prime element of some principal ideal domain `D`
 
-    - ``t`` -- a non-negative integer
+    - ``t`` -- nonnegative integer
 
     - ``A`` -- a `c\times d` matrix over `D[X]`
 
@@ -193,7 +191,6 @@ def lifting(p, t, A, G):
     """
     from sage.rings.polynomial.polynomial_ring_constructor import PolynomialRing
 
-
     DX = A.parent().base()
     (X,) = DX.variable_names()
     D = DX.base_ring()
@@ -205,7 +202,6 @@ def lifting(p, t, A, G):
 
     if not (A*G % p**(t-1)).is_zero():
         raise ValueError("A*G not zero mod %s^%s" % (p, t-1))
-
 
     R = A*G/p**(t-1)
     R.change_ring(DX)
@@ -247,7 +243,7 @@ def p_part(f, p):
     OUTPUT:
 
     A polynomial `g` such that `\deg g \le \deg f` and
-    all non-zero coefficients of `f - p g` are not divisible by `p`.
+    all nonzero coefficients of `f - p g` are not divisible by `p`.
 
     EXAMPLES::
 
@@ -261,12 +257,11 @@ def p_part(f, p):
 
     TESTS:
 
-    Return value is supposed to be a polynomial, see :trac:`22402`
+    Return value is supposed to be a polynomial, see :issue:`22402`
 
         sage: g = p_part(X+1, 2)
         sage: g.parent()
         Univariate Polynomial Ring in X over Integer Ring
-
     """
     DX = f.parent()
     (X,) = DX.gens()
@@ -338,22 +333,21 @@ class ComputeMinimalPolynomials(SageObject):
         """
         from sage.rings.polynomial.polynomial_ring import polygen
 
-        super(ComputeMinimalPolynomials, self).__init__()
+        super().__init__()
         if not B.is_square():
             raise TypeError("square matrix required")
 
         self._B = B
         self._D = B.base_ring()
         X = polygen(self._D)
-        adjoint = (X - B).adjoint()
+        adjugate = (X - B).adjugate()
         d = B.nrows()**2
-        b = matrix(d, 1, adjoint.list())
+        b = matrix(d, 1, adjugate.list())
         self.chi_B = B.charpoly(X)
         self.mu_B = B.minimal_polynomial()
         self._A = matrix.block([[b , -self.chi_B*matrix.identity(d)]])
         self._DX = X.parent()
         self._cache = {}
-
 
     def find_monic_replacements(self, p, t, pt_generators, prev_nu):
         r"""
@@ -364,9 +358,9 @@ class ComputeMinimalPolynomials(SageObject):
 
         - ``p`` -- a prime element of `D`
 
-        - ``t`` -- a non-negative integer
+        - ``t`` -- nonnegative integer
 
-        - ``pt_generators`` -- a list `(g_1, \ldots, g_s)` of polynomials in
+        - ``pt_generators`` -- list `(g_1, \ldots, g_s)` of polynomials in
           `D[X]` such that `N_{(p^t)}(B) = (g_1, \ldots, g_s) + pN_{(p^{t-1})}(B)`
 
         - ``prev_nu`` -- a `(p^{t-1})`-minimal polynomial of `B`
@@ -435,7 +429,6 @@ class ComputeMinimalPolynomials(SageObject):
 
         return replacements
 
-
     def current_nu(self, p, t, pt_generators, prev_nu):
         r"""
         Compute `(p^t)`-minimal polynomial of `B`.
@@ -444,9 +437,9 @@ class ComputeMinimalPolynomials(SageObject):
 
         - ``p`` -- a prime element of `D`
 
-        - ``t`` -- a positive integer
+        - ``t`` -- positive integer
 
-        - ``pt_generators`` -- a list `(g_1, \ldots, g_s)` of polynomials in
+        - ``pt_generators`` -- list `(g_1, \ldots, g_s)` of polynomials in
           `D[X]` such that `N_{(p^t)}(B) = (g_1, \ldots, g_s) + pN_{(p^{t-1})}(B)`
 
         - ``prev_nu`` -- a `(p^{t-1})`-minimal polynomial of `B`
@@ -483,8 +476,7 @@ class ComputeMinimalPolynomials(SageObject):
         """
         import heapq
 
-        from sage.misc.misc import verbose
-
+        from sage.misc.verbose import verbose
 
         if not all((g(self._B) % p**t).is_zero()
                    for g in pt_generators):
@@ -501,7 +493,7 @@ class ComputeMinimalPolynomials(SageObject):
         verbose("Generators with (p^t)-generating property:")
         verbose(generators)
 
-        heap = list((f.degree(), f) for f in generators)
+        heap = [(f.degree(), f) for f in generators]
         heapq.heapify(heap)
 
         # find poly of minimal degree
@@ -522,7 +514,6 @@ class ComputeMinimalPolynomials(SageObject):
 
         return g
 
-
     def mccoy_column(self, p, t, nu):
         r"""
         Compute matrix for McCoy's criterion.
@@ -531,7 +522,7 @@ class ComputeMinimalPolynomials(SageObject):
 
         - ``p`` -- a prime element in `D`
 
-        - ``t`` -- a positive integer
+        - ``t`` -- positive integer
 
         - ``nu`` -- a `(p^t)`-minimal polynomial of `B`
 
@@ -549,8 +540,8 @@ class ComputeMinimalPolynomials(SageObject):
             sage: x = polygen(ZZ, 'x')
             sage: nu_4 = x^2 + 3*x + 2
             sage: g = C.mccoy_column(2, 2, nu_4)
-            sage: b = matrix(9, 1, (x-B).adjoint().list())
-            sage: M = matrix.block([[b , -B.charpoly(x)*matrix.identity(9)]])
+            sage: b = matrix(9, 1, (x - B).adjugate().list())
+            sage: M = matrix.block([[b, -B.charpoly(x)*matrix.identity(9)]])
             sage: (M*g % 4).is_zero()
             True
 
@@ -565,7 +556,6 @@ class ComputeMinimalPolynomials(SageObject):
             Traceback (most recent call last):
             ...
             ValueError: x^2 + x not in (2^2)-ideal
-
         """
         if not (nu(self._B) % p**t).is_zero():
             raise ValueError(
@@ -579,7 +569,6 @@ class ComputeMinimalPolynomials(SageObject):
                                  "McCoy column incorrect"
 
         return column
-
 
     def p_minimal_polynomials(self, p, s_max=None):
         r"""
@@ -599,7 +588,7 @@ class ComputeMinimalPolynomials(SageObject):
 
         - ``p`` -- a prime in `D`
 
-        - ``s_max`` -- a positive integer (default: ``None``); if set, only
+        - ``s_max`` -- positive integer (default: ``None``); if set, only
           `(p^s)`-minimal polynomials for ``s <= s_max`` are computed
           (see below for details)
 
@@ -735,7 +724,7 @@ class ComputeMinimalPolynomials(SageObject):
             verbose 1 (...: compute_J_ideal.py, current_nu)
             Generators with (p^t)-generating property:
             verbose 1 (...: compute_J_ideal.py, current_nu)
-            [x^3 + 7*x^2 + 6*x, x^3 + 3*x^2 + 2*x]
+            ...
             verbose 1 (...: compute_J_ideal.py, current_nu)
             [x^3 + 3*x^2 + 2*x]
             verbose 1 (...: compute_J_ideal.py, p_minimal_polynomials)
@@ -753,7 +742,7 @@ class ComputeMinimalPolynomials(SageObject):
 
         [HR2016]_, Algorithm 5.
         """
-        from sage.misc.misc import verbose
+        from sage.misc.verbose import verbose
         from sage.rings.infinity import Infinity
 
         deg_mu = self.mu_B.degree()
@@ -770,7 +759,6 @@ class ComputeMinimalPolynomials(SageObject):
             nu = self._DX(1)
             d = self._A.ncols()
             G = matrix(self._DX, d, 0)
-
 
         while t < s_max:
             deg_prev_nu = nu.degree()
@@ -805,9 +793,8 @@ class ComputeMinimalPolynomials(SageObject):
 
         if s_max < t:
             result = {r: polynomial
-                      for r, polynomial in iteritems(p_min_polys)
-                      if r < s_max}
-            next_t_candidates = list(r for r in p_min_polys if r >= s_max)
+                      for r, polynomial in p_min_polys.items() if r < s_max}
+            next_t_candidates = [r for r in p_min_polys if r >= s_max]
             if next_t_candidates:
                 next_t = min(next_t_candidates)
                 result.update({s_max: p_min_polys[next_t] % p**s_max})
@@ -815,7 +802,6 @@ class ComputeMinimalPolynomials(SageObject):
             return result
 
         return p_min_polys
-
 
     def null_ideal(self, b=0):
         r"""
@@ -825,9 +811,7 @@ class ComputeMinimalPolynomials(SageObject):
 
         - ``b`` -- an element of `D` (default: 0)
 
-        OUTPUT:
-
-        An ideal in `D[X]`.
+        OUTPUT: an ideal in `D[X]`
 
         EXAMPLES::
 
@@ -865,8 +849,8 @@ class ComputeMinimalPolynomials(SageObject):
                 cofactor = b // p**t
                 p_polynomials = self.p_minimal_polynomials(p, t)
                 generators += [cofactor*p**(t-s)*nu
-                               for s, nu in iteritems(p_polynomials)]
-                if not p_polynomials or max(iterkeys(p_polynomials)) < t:
+                               for s, nu in p_polynomials.items()]
+                if not p_polynomials or max(p_polynomials) < t:
                     mu_B_coefficients.append(cofactor)
 
             assert all((g(self._B) % b).is_zero() for g in generators), \
@@ -881,15 +865,12 @@ class ComputeMinimalPolynomials(SageObject):
 
         return self._DX.ideal(generators)
 
-
     def prime_candidates(self):
         r"""
         Determine those primes `p` where `\mu_B` might not be a
         `(p)`-minimal polynomial.
 
-        OUTPUT:
-
-        A list of primes.
+        OUTPUT: list of primes
 
         EXAMPLES::
 
@@ -910,10 +891,9 @@ class ComputeMinimalPolynomials(SageObject):
         """
         from sage.arith.misc import factor
 
-        F, T = self._B.frobenius(2)
+        _, T = self._B.frobenius_form(2)
 
-        return [p for (p, t) in factor(T.det())]
-
+        return [p for p, _ in factor(T.det())]
 
     def integer_valued_polynomials_generators(self):
         r"""
@@ -940,6 +920,6 @@ class ComputeMinimalPolynomials(SageObject):
             (x^3 + x^2 - 12*x - 20, [1, 1/4*x^2 + 3/4*x + 1/2])
         """
         return (self.mu_B, [self._DX(1)] +
-                [nu/p**s
+                [nu / p**s
                  for p in self.prime_candidates()
-                 for s, nu in iteritems(self.p_minimal_polynomials(p))])
+                 for s, nu in self.p_minimal_polynomials(p).items()])

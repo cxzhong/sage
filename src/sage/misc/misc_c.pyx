@@ -1,8 +1,8 @@
 """
 Miscellaneous functions (Cython)
 
-This file contains support for products, running totals and balanced
-sums.
+This file contains support for products, running totals, balanced
+sums, and also a function to flush output from external library calls.
 
 AUTHORS:
 
@@ -13,23 +13,21 @@ AUTHORS:
 - Stefan van Zwam (2013-06-06): Added bitset tests, some docstring cleanup
 """
 
-#*****************************************************************************
+# ****************************************************************************
 #       Copyright (C) 2005 William Stein <wstein@gmail.com>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
-from __future__ import absolute_import
-
-import sys
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
 from cpython.sequence cimport *
 from cpython.list cimport *
 from cpython.tuple cimport *
 from cpython.number cimport *
+from libc.stdio cimport fflush
 
 cdef extern from *:
     bint PyGen_Check(x)
@@ -37,7 +35,8 @@ cdef extern from *:
 
 def running_total(L, start=None):
     """
-    Return a list where the i-th entry is the sum of all entries up to (and including) i.
+    Return a list where the `i`-th entry is the sum of all entries up to (and
+    including) `i`.
 
     INPUT:
 
@@ -77,7 +76,7 @@ def prod(x, z=None, Py_ssize_t recursion_cutoff=5):
     element of the list, otherwise use z.  The empty product is the int 1 if z
     is not specified, and is z if given.
 
-    This assumes that your multiplication is associative; we don't promise
+    This assumes that your multiplication is associative; we do not promise
     which end of the list we start at.
 
     .. SEEALSO::
@@ -176,7 +175,7 @@ cdef balanced_list_prod(L, Py_ssize_t offset, Py_ssize_t count, Py_ssize_t cutof
     cdef Py_ssize_t k
     if count <= cutoff:
         prod = <object>PySequence_Fast_GET_ITEM(L, offset)
-        for k from offset < k < offset + count:
+        for k in range(offset + 1, offset + count):
             prod *= <object>PySequence_Fast_GET_ITEM(L, k)
         return prod
     else:
@@ -184,7 +183,7 @@ cdef balanced_list_prod(L, Py_ssize_t offset, Py_ssize_t count, Py_ssize_t cutof
         return balanced_list_prod(L, offset, k, cutoff) * balanced_list_prod(L, offset + k, count - k, cutoff)
 
 
-cpdef iterator_prod(L, z=None):
+cpdef iterator_prod(L, z=None, bint multiply=True):
     """
     Attempt to do a balanced product of an arbitrary and unknown length
     sequence (such as a generator). Intermediate multiplications are always
@@ -206,11 +205,18 @@ cpdef iterator_prod(L, z=None):
         sage: L = [NonAssociative(label) for label in 'abcdef']
         sage: iterator_prod(L)
         (((a*b)*(c*d))*(e*f))
+
+    When ``multiply=False``, the items are added up instead (however this
+    interface should not be used directly, use :func:`balanced_sum` instead)::
+
+        sage: iterator_prod((1..5), multiply=False)
+        15
     """
-    # TODO: declaring sub_prods as a list should speed much of this up.
+    cdef list sub_prods
     L = iter(L)
     if z is None:
-        sub_prods = [next(L)] * 10
+        sub_prods = [next(L)] * 10  # only take one element from L, the rest are just placeholders
+        # the list size can be dynamically increased later
     else:
         sub_prods = [z] * 10
 
@@ -231,17 +237,26 @@ cpdef iterator_prod(L, z=None):
         else:
             # for even i we multiply the stack down
             # by the number of factors of 2 in i
-            x = sub_prods[tip] * x
-            for j from 1 <= j < 64:
+            if multiply:
+                x = sub_prods[tip] * x
+            else:
+                x = sub_prods[tip] + x
+            for j in range(1, 64):
                 if i & (1 << j):
                     break
                 tip -= 1
-                x = sub_prods[tip] * x
+                if multiply:
+                    x = sub_prods[tip] * x
+                else:
+                    x = sub_prods[tip] + x
             sub_prods[tip] = x
 
     while tip > 0:
         tip -= 1
-        sub_prods[tip] *= sub_prods[tip + 1]
+        if multiply:
+            sub_prods[tip] *= sub_prods[tip + 1]
+        else:
+            sub_prods[tip] += sub_prods[tip + 1]
 
     return sub_prods[0]
 
@@ -306,8 +321,6 @@ class NonAssociative:
         """
         return NonAssociative(self, other)
 
-from copy import copy
-
 
 def balanced_sum(x, z=None, Py_ssize_t recursion_cutoff=5):
     """
@@ -318,7 +331,7 @@ def balanced_sum(x, z=None, Py_ssize_t recursion_cutoff=5):
     recursively, where the sum is split up if the list is greater than
     recursion_cutoff.  recursion_cutoff must be at least 3.
 
-    This assumes that your addition is associative; we don't promise
+    This assumes that your addition is associative; we do not promise
     which end of the list we start at.
 
     EXAMPLES::
@@ -335,11 +348,12 @@ def balanced_sum(x, z=None, Py_ssize_t recursion_cutoff=5):
         sage: balanced_sum([[i] for i in range(10)], [], recursion_cutoff=3)
         [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
 
-    We make copies when appropriate so that we don't accidentally modify the arguments::
+    We make copies when appropriate so that we do not accidentally
+    modify the arguments::
 
-        sage: list(range(10e4))==balanced_sum([[i] for i in range(10e4)], [])
+        sage: list(range(10^5))==balanced_sum([[i] for i in range(10^5)], [])
         True
-        sage: list(range(10e4))==balanced_sum([[i] for i in range(10e4)], [])
+        sage: list(range(10^5))==balanced_sum([[i] for i in range(10^5)], [])
         True
 
     TESTS::
@@ -352,6 +366,8 @@ def balanced_sum(x, z=None, Py_ssize_t recursion_cutoff=5):
         11
         sage: balanced_sum((1..-1), 5) # empty, z is not None
         5
+        sage: balanced_sum([1])
+        1
 
     AUTHORS:
 
@@ -364,14 +380,7 @@ def balanced_sum(x, z=None, Py_ssize_t recursion_cutoff=5):
     if type(x) is not list and type(x) is not tuple:
 
         if PyGen_Check(x):
-            # lazy list, do lazy product
-            try:
-                sum = copy(next(x)) if z is None else z + next(x)
-                for a in x:
-                    sum += a
-                return sum
-            except StopIteration:
-                x = []
+            return iterator_prod(x, z, multiply=False)
         else:
             try:
                 return x.sum()
@@ -396,14 +405,15 @@ def balanced_sum(x, z=None, Py_ssize_t recursion_cutoff=5):
 
     return sum
 
+
 cdef balanced_list_sum(L, Py_ssize_t offset, Py_ssize_t count, Py_ssize_t cutoff):
     """
     INPUT:
 
     - ``L`` -- the terms (MUST be a tuple or list)
     - ``off`` -- offset in the list from which to start
-    - ``count`` -- how many terms in the product
-    - ``cutoff`` -- the minimum count to recurse on.  Must be at least 2
+    - ``count`` -- how many terms in the sum; must be positive
+    - ``cutoff`` -- the minimum count to recurse on; must be at least 2
 
     OUTPUT:
 
@@ -422,8 +432,8 @@ cdef balanced_list_sum(L, Py_ssize_t offset, Py_ssize_t count, Py_ssize_t cutoff
     """
     cdef Py_ssize_t k
     if count <= cutoff:
-        sum = <object>PySequence_Fast_GET_ITEM(L, offset) + <object>PySequence_Fast_GET_ITEM(L, offset + 1)
-        for k from offset + 1 < k < offset + count:
+        sum = <object>PySequence_Fast_GET_ITEM(L, offset)
+        for k in range(offset + 1, offset + count):
             sum += <object>PySequence_Fast_GET_ITEM(L, k)
         return sum
     else:
@@ -438,7 +448,8 @@ cpdef list normalize_index(object key, int size):
 
     INPUT:
 
-    - ``key`` -- the index key, which can be either an integer, a tuple/list of integers, or a slice.
+    - ``key`` -- the index key, which can be either an integer, a tuple/list of
+      integers, or a slice
     - ``size`` -- the size of the collection
 
     OUTPUT:
@@ -584,15 +595,17 @@ cpdef list normalize_index(object key, int size):
             raise IndexError("index out of range")
         return [index]
     elif isinstance(key, slice):
-        return list(xrange(*key.indices(size)))
+        return list(range(*key.indices(size)))
     elif type(key) is tuple:
         index_tuple = key
     elif type(key) is list:
         index_tuple = PyList_AsTuple(key)
+    elif type(key) is range:
+        index_tuple = tuple(key)
     else:
         raise TypeError("index must be an integer or slice or a tuple/list of integers and slices")
 
-    # Cython doesn't automatically use PyTuple_GET_SIZE, even though
+    # Cython does not automatically use PyTuple_GET_SIZE, even though
     # it knows that index_tuple is tuple
     for i in range(PyTuple_GET_SIZE(index_tuple)):
         index_obj = index_tuple[i]
@@ -608,3 +621,144 @@ cpdef list normalize_index(object key, int size):
         else:
             raise TypeError("index must be an integer or slice")
     return return_list
+
+
+cdef class sized_iter:
+    """
+    Wrapper for an iterator to verify that it has a specified length.
+
+    INPUT:
+
+    - ``iterable`` -- object to be iterated over
+
+    - ``length`` -- (optional) the required length; if this is not
+      given, then ``len(iterable)`` will be used
+
+    If the iterable does not have the given length, a :exc:`ValueError` is
+    raised during iteration.
+
+    EXAMPLES::
+
+        sage: from sage.misc.misc_c import sized_iter
+        sage: list(sized_iter(range(4)))
+        [0, 1, 2, 3]
+        sage: list(sized_iter(range(4), 4))
+        [0, 1, 2, 3]
+        sage: list(sized_iter(range(5), 4))
+        Traceback (most recent call last):
+        ...
+        ValueError: sequence too long (expected length 4, got more)
+        sage: list(sized_iter(range(3), 4))
+        Traceback (most recent call last):
+        ...
+        ValueError: sequence too short (expected length 4, got 3)
+
+    If the iterable is too long, we get the error on the last entry::
+
+        sage: it = sized_iter(range(5), 2)
+        sage: next(it)
+        0
+        sage: next(it)
+        Traceback (most recent call last):
+        ...
+        ValueError: sequence too long (expected length 2, got more)
+
+    When the expected length is zero, the iterator is checked on
+    construction::
+
+        sage: list(sized_iter([], 0))
+        []
+        sage: sized_iter([1], 0)
+        Traceback (most recent call last):
+        ...
+        ValueError: sequence too long (expected length 0, got more)
+
+    If no ``length`` is given, the iterable must implement ``__len__``::
+
+        sage: sized_iter(x for x in range(4))
+        Traceback (most recent call last):
+        ...
+        TypeError: object of type 'generator' has no len()
+    """
+    cdef iterator
+    cdef Py_ssize_t index, size
+
+    def __init__(self, iterable, length=None):
+        self.iterator = iter(iterable)
+        self.index = 0
+        if length is None:
+            self.size = len(iterable)
+        else:
+            self.size = length
+        self.check()
+
+    def __iter__(self):
+        return self
+
+    def __len__(self):
+        """
+        Number of entries remaining, assuming that the expected length
+        is the actual length.
+
+        EXAMPLES::
+
+            sage: from sage.misc.misc_c import sized_iter
+            sage: it = sized_iter(range(4), 4)
+            sage: len(it)
+            4
+            sage: next(it)
+            0
+            sage: len(it)
+            3
+        """
+        return self.size - self.index
+
+    cdef inline int check(self) except -1:
+        """
+        If the iterator is supposed to be exhausted, check that it is.
+        """
+        if self.index < self.size:
+            return 0
+        try:
+            next(self.iterator)
+        except StopIteration:
+            pass
+        else:
+            raise ValueError(f"sequence too long (expected length {self.size}, got more)")
+
+    def __next__(self):
+        if self.index >= self.size:
+            raise StopIteration
+        try:
+            x = next(self.iterator)
+        except StopIteration:
+            raise ValueError(f"sequence too short (expected length {self.size}, got {self.index})")
+        self.index += 1
+        self.check()
+        return x
+
+
+def cyflush():
+    """
+    Flush any output left over from external library calls.
+
+    Starting with Python 3, some output from external libraries (like
+    FLINT) is not flushed, and so if a doctest produces such output,
+    the output may not appear until a later doctest. See
+    :issue:`28649`.
+
+    Use this function after a doctest which produces potentially
+    unflushed output to force it to be flushed.
+
+    EXAMPLES::
+
+        sage: R.<t> = QQ[]
+        sage: t^(sys.maxsize//2)                                                        # needs sage.libs.flint
+        Traceback (most recent call last):
+        ...
+        RuntimeError: FLINT exception
+        sage: from sage.misc.misc_c import cyflush
+        sage: cyflush()
+        ...
+    """
+    fflush(NULL)

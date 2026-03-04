@@ -9,9 +9,10 @@ Finite dimensional coalgebras with basis
 #                  http://www.gnu.org/licenses/
 #******************************************************************************
 
+
 def FiniteDimensionalCoalgebrasWithBasis(base_ring):
     """
-    The category of finite dimensional coalgebras with a distinguished basis
+    The category of finite dimensional coalgebras with a distinguished basis.
 
     EXAMPLES::
 
@@ -19,7 +20,7 @@ def FiniteDimensionalCoalgebrasWithBasis(base_ring):
         Category of finite dimensional coalgebras with basis over Rational Field
         sage: sorted(C.super_categories(), key=str)
         [Category of coalgebras with basis over Rational Field,
-         Category of finite dimensional modules with basis over Rational Field]
+         Category of finite dimensional vector spaces with basis over Rational Field]
         sage: C is Coalgebras(QQ).WithBasis().FiniteDimensional()
         True
 
@@ -27,5 +28,5 @@ def FiniteDimensionalCoalgebrasWithBasis(base_ring):
 
         sage: TestSuite(C).run()
     """
-    from sage.categories.all import CoalgebrasWithBasis
+    from sage.categories.coalgebras_with_basis import CoalgebrasWithBasis
     return CoalgebrasWithBasis(base_ring).FiniteDimensional()

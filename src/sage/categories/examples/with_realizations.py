@@ -1,3 +1,4 @@
+# sage.doctest: needs sage.combinat sage.modules
 r"""
 Examples of parents endowed with multiple realizations
 """
@@ -10,7 +11,9 @@ Examples of parents endowed with multiple realizations
 
 from sage.misc.cachefunc import cached_method
 from sage.misc.bindable_class import BindableClass
-from sage.categories.all import Rings, Algebras, AlgebrasWithBasis
+from sage.categories.rings import Rings
+from sage.categories.algebras import Algebras
+from sage.categories.algebras_with_basis import AlgebrasWithBasis
 from sage.categories.realizations import Category_realization_of_parent
 from sage.structure.unique_representation import UniqueRepresentation
 from sage.structure.parent import Parent
@@ -18,9 +21,10 @@ from sage.sets.set import Set
 from sage.combinat.free_module import CombinatorialFreeModule
 from sage.combinat.subset import Subsets
 
+
 class SubsetAlgebra(UniqueRepresentation, Parent):
     r"""
-    An example of parent endowed with several realizations
+    An example of parent endowed with several realizations.
 
     We consider an algebra `A(S)` whose bases are indexed by the
     subsets `s` of a given set `S`. We consider three natural basis of
@@ -116,7 +120,6 @@ class SubsetAlgebra(UniqueRepresentation, Parent):
 
         sage: (1 + Out[1]) * In[2,3]
         Out[{}] + 2*Out[{1}] + 2*Out[{2}] + 2*Out[{3}] + 2*Out[{1, 2}] + 2*Out[{1, 3}] + 4*Out[{2, 3}] + 4*Out[{1, 2, 3}]
-
     """
 
     def __init__(self, R, S):
@@ -166,19 +169,19 @@ class SubsetAlgebra(UniqueRepresentation, Parent):
                       From: The subset algebra of {1, 2, 3} over Rational Field in the Fundamental basis
                       To:   The subset algebra of {1, 2, 3} over Rational Field in the Out basis
         """
-        assert(R in Rings())
-        self._base = R # Won't be needed when CategoryObject won't override anymore base_ring
+        assert R in Rings()
+        self._base = R  # Won't be needed when CategoryObject won't override anymore base_ring
         self._S = S
-        Parent.__init__(self, category = Algebras(R).Commutative().WithRealizations())
+        Parent.__init__(self, category=Algebras(R).Commutative().WithRealizations())
 
         # Initializes the bases and change of bases of ``self``
 
-        F   = self.F()
-        In  = self.In()
+        F = self.F()
+        In = self.In()
         Out = self.Out()
 
         category = self.Bases()
-        key = lambda x: self.indices_key(x)
+        key = self.indices_key
         In_to_F = In.module_morphism(F.sum_of_monomials * Subsets,
                                      codomain=F, category=category,
                                      triangular='upper', unitriangular=True,
@@ -193,11 +196,11 @@ class SubsetAlgebra(UniqueRepresentation, Parent):
         F_to_Out   .register_as_coercion()
         (~F_to_Out).register_as_coercion()
 
-    _shorthands = ["F", "In", "Out"]
+    _shorthands = ("F", "In", "Out")
 
     def a_realization(self):
         r"""
-        Returns the default realization of ``self``
+        Return the default realization of ``self``.
 
         EXAMPLES::
 
@@ -232,33 +235,6 @@ class SubsetAlgebra(UniqueRepresentation, Parent):
         """
         return Subsets(self._S)
 
-    def indices_cmp(self, x, y):
-        r"""
-        A comparison function on sets which gives a linear extension
-        of the inclusion order.
-
-        INPUT:
-
-        - ``x``, ``y`` -- sets
-
-        EXAMPLES::
-
-            sage: from functools import cmp_to_key
-            sage: A = Sets().WithRealizations().example(); A
-            The subset algebra of {1, 2, 3} over Rational Field
-            sage: sorted(A.indices(), key=cmp_to_key(A.indices_cmp))
-            doctest:...: DeprecationWarning: indices_cmp is deprecated, use indices_key instead.
-            See http://trac.sagemath.org/17229 for details.
-            [{}, {1}, {2}, {3}, {1, 2}, {1, 3}, {2, 3}, {1, 2, 3}]
-        """
-        from sage.misc.superseded import deprecation
-        deprecation(17229, "indices_cmp is deprecated, use indices_key instead.")
-
-        s = (len(x) > len(y)) - (len(x) < len(y))
-        if s != 0:
-            return s
-        return (list(x) > list(y)) - (list(x) < list(y))
-
     def indices_key(self, x):
         r"""
         A key function on a set which gives a linear extension
@@ -279,7 +255,7 @@ class SubsetAlgebra(UniqueRepresentation, Parent):
 
     def supsets(self, set):
         r"""
-        Returns all the subsets of `S` containing ``set``
+        Return all the subsets of `S` containing ``set``.
 
         INPUT:
 
@@ -293,7 +269,7 @@ class SubsetAlgebra(UniqueRepresentation, Parent):
             [{1, 2, 3}, {2, 3}, {1, 2}, {2}]
         """
         S = self.base_set()
-        return list(S.difference(s) for s in Subsets(S.difference(set)))
+        return [S.difference(s) for s in Subsets(S.difference(set))]
 
     def _repr_(self):
         r"""
@@ -302,7 +278,7 @@ class SubsetAlgebra(UniqueRepresentation, Parent):
             sage: Sets().WithRealizations().example()   # indirect doctest
             The subset algebra of {1, 2, 3} over Rational Field
         """
-        return "The subset algebra of %s over %s"%(self.base_set(), self.base_ring())
+        return "The subset algebra of %s over %s" % (self.base_set(), self.base_ring())
 
     class Bases(Category_realization_of_parent):
         r"""
@@ -327,7 +303,6 @@ class SubsetAlgebra(UniqueRepresentation, Parent):
             category = Algebras(A.base_ring()).Commutative()
             return [A.Realizations(),
                     category.Realizations().WithBasis()]
-
 
         class ParentMethods:
 
@@ -386,7 +361,7 @@ class SubsetAlgebra(UniqueRepresentation, Parent):
             @cached_method
             def one(self):
                 r"""
-                Returns the unit of this algebra.
+                Return the unit of this algebra.
 
                 This default implementation takes the unit in the
                 fundamental basis, and coerces it in ``self``.
@@ -405,7 +380,7 @@ class SubsetAlgebra(UniqueRepresentation, Parent):
 
     class Fundamental(CombinatorialFreeModule, BindableClass):
         r"""
-        The Subset algebra, in the fundamental basis
+        The Subset algebra, in the fundamental basis.
 
         INPUT:
 
@@ -459,7 +434,7 @@ class SubsetAlgebra(UniqueRepresentation, Parent):
 
         def one_basis(self):
             r"""
-            Returns the index of the basis element which is equal to '1'.
+            Return the index of the basis element which is equal to '1'.
 
             EXAMPLES::
 
@@ -481,7 +456,7 @@ class SubsetAlgebra(UniqueRepresentation, Parent):
 
     class In(CombinatorialFreeModule, BindableClass):
         r"""
-        The Subset Algebra, in the ``In`` basis
+        The Subset Algebra, in the ``In`` basis.
 
         INPUT:
 
@@ -524,7 +499,7 @@ class SubsetAlgebra(UniqueRepresentation, Parent):
 
     class Out(CombinatorialFreeModule, BindableClass):
         r"""
-        The Subset Algebra, in the `Out` basis
+        The Subset Algebra, in the `Out` basis.
 
         INPUT:
 

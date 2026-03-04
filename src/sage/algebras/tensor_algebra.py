@@ -1,3 +1,4 @@
+# sage.doctest: needs sage.combinat sage.modules
 r"""
 Tensor Algebras
 
@@ -10,12 +11,12 @@ AUTHORS:
     - Coerce to/from free algebra.
 """
 
-#*****************************************************************************
+# ***************************************************************************
 #  Copyright (C) 2014 Travis Scrimshaw <tscrim at ucdavis.edu>
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ***************************************************************************
 
 from sage.categories.algebras import Algebras
 from sage.categories.pushout import ConstructionFunctor
@@ -28,6 +29,7 @@ from sage.combinat.free_module import CombinatorialFreeModule, CombinatorialFree
 from sage.monoids.indexed_free_monoid import IndexedFreeMonoid
 from sage.misc.cachefunc import cached_method
 from sage.sets.family import Family
+
 
 class TensorAlgebra(CombinatorialFreeModule):
     r"""
@@ -87,7 +89,7 @@ class TensorAlgebra(CombinatorialFreeModule):
         sage: TA.base_ring()
         Rational Field
         sage: TA.algebra_generators()
-        Finite family {'a': B['a'], 'c': B['c'], 'b': B['b']}
+        Finite family {'a': B['a'], 'b': B['b'], 'c': B['c']}
     """
     def __init__(self, M, prefix='T', category=None, **options):
         r"""
@@ -112,7 +114,7 @@ class TensorAlgebra(CombinatorialFreeModule):
         # the following is not the best option, but it's better than nothing.
         self._print_options['tensor_symbol'] = options.get('tensor_symbol', tensor.symbol)
 
-    def _repr_(self):
+    def _repr_(self) -> str:
         r"""
         Return a string representation of ``self``.
 
@@ -124,7 +126,7 @@ class TensorAlgebra(CombinatorialFreeModule):
         """
         return "Tensor Algebra of {}".format(self._base_module)
 
-    def _repr_term(self, m):
+    def _repr_term(self, m) -> str:
         """
         Return a string of representation of the term indexed by ``m``.
 
@@ -150,7 +152,7 @@ class TensorAlgebra(CombinatorialFreeModule):
             symb = tensor.symbol
         return symb.join(self._base_module._repr_term(k) for k,e in m._monomial for i in range(e))
 
-    def _latex_term(self, m):
+    def _latex_term(self, m) -> str:
         r"""
         Return a latex representation of the term indexed by ``m``.
 
@@ -187,12 +189,14 @@ class TensorAlgebra(CombinatorialFreeModule):
              **
              *
             sage: s = TA([Partition([3,2,2,1])]*2 + [Partition([3])]*3 + [Partition([1])]*2).leading_support()
-            sage: TA._ascii_art_term(s)
+            sage: t = TA._ascii_art_term(s); t
             B    # B    # B    # B    # B    # B  # B
              ***    ***    ***    ***    ***    *    *
              **     **
              **     **
              *      *
+            sage: t._breakpoints
+            [7, 14, 21, 28, 35, 40]
 
             sage: I = TA.indices()
             sage: TA._ascii_art_term(I.one())
@@ -200,23 +204,14 @@ class TensorAlgebra(CombinatorialFreeModule):
         """
         if len(m) == 0:
             return '1'
-        from sage.typeset.ascii_art import AsciiArt
+        from sage.typeset.ascii_art import AsciiArt, ascii_art
         symb = self._print_options['tensor_symbol']
         if symb is None:
             symb = tensor.symbol
         M = self._base_module
-
-        it = iter(m._monomial)
-        k, e = next(it)
-        rpr = M._ascii_art_term(k)
-        for i in range(e-1):
-            rpr += AsciiArt([symb], [len(symb)])
-            rpr += M._ascii_art_term(k)
-        for k,e in it:
-            for i in range(e):
-                rpr += AsciiArt([symb], [len(symb)])
-                rpr += M._ascii_art_term(k)
-        return rpr
+        return ascii_art(*(M._ascii_art_term(k)
+                           for k, e in m._monomial for _ in range(e)),
+                         sep=AsciiArt([symb], breakpoints=[len(symb)]))
 
     def _element_constructor_(self, x):
         """
@@ -382,7 +377,7 @@ class TensorAlgebra(CombinatorialFreeModule):
                                                 for i,M in enumerate(modules)]),
                                      codomain=self)
 
-        return super(TensorAlgebra, self)._coerce_map_from_(R)
+        return super()._coerce_map_from_(R)
 
     def construction(self):
         """
@@ -432,7 +427,7 @@ class TensorAlgebra(CombinatorialFreeModule):
     @cached_method
     def one_basis(self):
         r"""
-        Return the empty word, which indexes of `1` of this algebra.
+        Return the empty word, which indexes the `1` of this algebra.
 
         EXAMPLES::
 
@@ -461,7 +456,7 @@ class TensorAlgebra(CombinatorialFreeModule):
             sage: C = CombinatorialFreeModule(QQ, ['a','b','c'])
             sage: TA = TensorAlgebra(C)
             sage: TA.algebra_generators()
-            Finite family {'a': B['a'], 'c': B['c'], 'b': B['b']}
+            Finite family {'a': B['a'], 'b': B['b'], 'c': B['c']}
             sage: m = SymmetricFunctions(QQ).m()
             sage: Tm = TensorAlgebra(m)
             sage: Tm.algebra_generators()
@@ -537,7 +532,7 @@ class TensorAlgebra(CombinatorialFreeModule):
             return self.term(m, R.one())
 
     def coproduct_on_basis(self, m):
-        """
+        r"""
         Return the coproduct of the simple tensor indexed by ``m``.
 
         EXAMPLES::
@@ -588,7 +583,8 @@ class TensorAlgebra(CombinatorialFreeModule):
         #                          for w in Word(range(p)).shuffle(range(p, k)) )
 
 #####################################################################
-## TensorAlgebra functor
+# TensorAlgebra functor
+
 
 class TensorAlgebraFunctor(ConstructionFunctor):
     r"""
@@ -620,7 +616,7 @@ class TensorAlgebraFunctor(ConstructionFunctor):
         """
         ConstructionFunctor.__init__(self, Modules(base), Algebras(base))
 
-    def _repr_(self):
+    def _repr_(self) -> str:
         """
         Return a string representation of ``self``.
 
@@ -688,7 +684,8 @@ class TensorAlgebraFunctor(ConstructionFunctor):
         return D.module_morphism(phi, codomain=C)
 
 #####################################################################
-## Lift map from the base ring
+# Lift map from the base ring
+
 
 class BaseRingLift(Morphism):
     r"""
@@ -709,4 +706,3 @@ class BaseRingLift(Morphism):
         T = self.codomain()
         R = T.base_ring()
         return T.term(T.indices().one(), R(x))
-

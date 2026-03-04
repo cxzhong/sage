@@ -1,19 +1,9 @@
 r"""
 Gray codes
 
-REFERENCES:
-
-.. [Knuth-TAOCP2A] \D. Knuth "The art of computer programming", fascicules 2A,
-   "generating all n-tuples"
-
-.. [Knuth-TAOCP3A] \D. Knuth "The art of computer programming", fascicule 3A
-   "generating all combinations"
-
 Functions
 ---------
 """
-from __future__ import print_function
-from six.moves import range
 
 
 def product(m):
@@ -26,12 +16,12 @@ def product(m):
     apply the increment ``i`` at the position ``p``. By construction, the
     increment is either ``+1`` or ``-1``.
 
-    This is algorithm H in [Knuth-TAOCP2A]_: loopless reflected mixed-radix Gray
-    generation.
+    This is algorithm H in [Knu2011]_ Section 7.2.1.1, "Generating All
+    `n`-Tuples": loopless reflected mixed-radix Gray generation.
 
     INPUT:
 
-    - ``m`` -- a list or tuple of positive integers that correspond to the size
+    - ``m`` -- list or tuple of positive integers that correspond to the size
       of the sets in the product
 
     EXAMPLES::
@@ -79,19 +69,18 @@ def product(m):
         ....:     assert sum(1 for _ in product(t)) == prod(t)-1
     """
     # n is the length of the element (we ignore sets of size 1)
-    n = k = 0
+    n = 0
 
     new_m = []   # will be the set of upper bounds m_i different from 1
     mm = []      # index of each set (we skip sets of cardinality 1)
-    for i in m:
+    for k, i in enumerate(m):
         i = int(i)
         if i <= 0:
             raise ValueError("accept only positive integers")
         if i > 1:
-            new_m.append(i-1)
+            new_m.append(i - 1)
             mm.append(k)
             n += 1
-        k += 1
 
     m = new_m
     f = list(range(n + 1))  # focus pointer
@@ -112,7 +101,8 @@ def product(m):
 
         j = f[0]
 
-def combinations(n,t):
+
+def combinations(n, t):
     r"""
     Iterator through the switches of the revolving door algorithm.
 
@@ -124,13 +114,13 @@ def combinations(n,t):
     The ground set is always `\{0, 1, ..., n-1\}`. Note that ``n`` can be
     infinity in that algorithm.
 
-    See [Knuth-TAOCP3A]_.
+    See [Knu2011]_ Section 7.2.1.3, "Generating All Combinations".
 
     INPUT:
 
-    - ``n`` -- (integer or ``Infinity``) -- size of the ground set
+    - ``n`` -- integer or ``Infinity``; size of the ground set
 
-    - ``t`` -- (integer) -- size of the subsets
+    - ``t`` -- integer; size of the subsets
 
     EXAMPLES::
 
@@ -153,12 +143,12 @@ def combinations(n,t):
         sage: for i,j in combinations(4,2):
         ....:     s.remove(i)
         ....:     s.add(j)
-        ....:     print(s)
-        set([1, 2])
-        set([0, 2])
-        set([2, 3])
-        set([1, 3])
-        set([0, 3])
+        ....:     print(sorted(s))
+        [1, 2]
+        [0, 2]
+        [2, 3]
+        [1, 3]
+        [0, 3]
 
     Note that ``n`` can be infinity::
 
@@ -167,26 +157,26 @@ def combinations(n,t):
         sage: for _ in range(10):
         ....:     i,j = next(c)
         ....:     s.remove(i); s.add(j)
-        ....:     print(s)
-        set([0, 1, 3, 4])
-        set([1, 2, 3, 4])
-        set([0, 2, 3, 4])
-        set([0, 1, 2, 4])
-        set([0, 1, 4, 5])
-        set([1, 2, 4, 5])
-        set([0, 2, 4, 5])
-        set([2, 3, 4, 5])
-        set([1, 3, 4, 5])
-        set([0, 3, 4, 5])
+        ....:     print(sorted(s))
+        [0, 1, 3, 4]
+        [1, 2, 3, 4]
+        [0, 2, 3, 4]
+        [0, 1, 2, 4]
+        [0, 1, 4, 5]
+        [1, 2, 4, 5]
+        [0, 2, 4, 5]
+        [2, 3, 4, 5]
+        [1, 3, 4, 5]
+        [0, 3, 4, 5]
         sage: for _ in range(1000):
         ....:     i,j = next(c)
         ....:     s.remove(i); s.add(j)
-        sage: s
-        {0, 4, 13, 14}
+        sage: sorted(s)
+        [0, 4, 13, 14]
 
     TESTS::
 
-        sage: def check_sets_from_iter(n,k):
+        sage: def check_sets_from_iter(n, k):
         ....:     l = []
         ....:     s = set(range(k))
         ....:     l.append(frozenset(s))
@@ -202,7 +192,6 @@ def combinations(n,t):
         Traceback (most recent call last):
         ...
         AssertionError: t(=6) must be >=0 and <=n(=5)
-
     """
     from sage.rings.infinity import Infinity
     t = int(t)
@@ -210,15 +199,15 @@ def combinations(n,t):
         n = int(n)
     else:
         n = Infinity
-    assert 0 <= t and t <= n, "t(={}) must be >=0 and <=n(={})".format(t,n)
+    assert 0 <= t <= n, "t(={}) must be >=0 and <=n(={})".format(t, n)
     if t == 0 or t == n:
         return iter([])
     if t % 2:
-        return _revolving_door_odd(n,t)
-    else:
-        return _revolving_door_even(n,t)
+        return _revolving_door_odd(n, t)
+    return _revolving_door_even(n, t)
 
-def _revolving_door_odd(n,t):
+
+def _revolving_door_odd(n, t):
     r"""
     Revolving door switch for odd `t`.
 
@@ -230,7 +219,7 @@ def _revolving_door_odd(n,t):
         sage: sum(1 for _ in _revolving_door_odd(10,5)) == binomial(10,5) - 1
         True
     """
-    # note: the numerotation of the steps below follows Kunth TAOCP
+    # note: the numbering of the steps below follows Knuth TAOCP
     c = list(range(t)) + [n]    # the combination (ordered list of numbers of length t+1)
 
     while True:
@@ -263,7 +252,8 @@ def _revolving_door_odd(n,t):
         else: # j == t
             break
 
-def _revolving_door_even(n,t):
+
+def _revolving_door_even(n, t):
     r"""
     Revolving door algorithm for even `t`.
 
@@ -275,7 +265,7 @@ def _revolving_door_even(n,t):
         sage: sum(1 for _ in _revolving_door_even(12,6)) == binomial(12,6) - 1
         True
     """
-    # note: the numerotation of the setps below follows Kunth TAOCP
+    # note: the numbering of the steps below follows Knuth TAOCP
 
     c = list(range(t)) + [n]    # the combination (ordered list of numbers of length t+1)
 

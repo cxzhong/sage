@@ -1,7 +1,7 @@
 """
 Polygons
 """
-#*****************************************************************************
+# ****************************************************************************
 #       Copyright (C) 2006 Alex Clemesha <clemesha@gmail.com>,
 #                          William Stein <wstein@gmail.com>,
 #                     2008 Mike Hansen <mhansen@gmail.com>,
@@ -16,8 +16,7 @@ Polygons
 #  The full text of the GPL is available at:
 #
 #                  http://www.gnu.org/licenses/
-#*****************************************************************************
-from six.moves import range
+# ****************************************************************************
 
 from sage.plot.primitive import GraphicPrimitive_xydata
 from sage.misc.decorators import options, rename_keyword
@@ -32,11 +31,11 @@ class Polygon(GraphicPrimitive_xydata):
 
     INPUT:
 
-    - xdata - list of `x`-coordinates of points defining Polygon
+    - ``xdata`` -- list of `x`-coordinates of points defining Polygon
 
-    - ydata - list of `y`-coordinates of points defining Polygon
+    - ``ydata`` -- list of `y`-coordinates of points defining Polygon
 
-    - options - dict of valid plot options to pass to constructor
+    - ``options`` -- dictionary of valid plot options to pass to constructor
 
     EXAMPLES:
 
@@ -62,10 +61,15 @@ class Polygon(GraphicPrimitive_xydata):
 
         sage: polygon([(0,0,1), (1,1,1), (2,0,1)])
         Graphics3d Object
+
+    ::
+
+        sage: polygon2d([(1, 1), (0, 1), (1, 0)], fill=False, linestyle='dashed')
+        Graphics object consisting of 1 graphics primitive
     """
     def __init__(self, xdata, ydata, options):
         """
-        Initializes base class Polygon.
+        Initialize base class Polygon.
 
         EXAMPLES::
 
@@ -89,12 +93,13 @@ class Polygon(GraphicPrimitive_xydata):
             sage: p=P[0]; p
             Polygon defined by 3 points
         """
-        return "Polygon defined by %s points"%len(self)
+        return "Polygon defined by %s points" % len(self)
 
     def __getitem__(self, i):
         """
-        Returns `i`th vertex of Polygon primitive, starting count
-        from 0th vertex.
+        Return `i`-th vertex of Polygon primitive.
+
+        It is starting count from 0th vertex.
 
         EXAMPLES::
 
@@ -107,9 +112,11 @@ class Polygon(GraphicPrimitive_xydata):
 
     def __setitem__(self, i, point):
         """
-        Changes `i`th vertex of Polygon primitive, starting count
-        from 0th vertex.  Note that this only changes a vertex,
-        but does not create new vertices.
+        Change `i`-th vertex of Polygon primitive.
+
+        It is starting count from 0th vertex.
+
+        Note that this only changes a vertex, but does not create new vertices.
 
         EXAMPLES::
 
@@ -127,7 +134,7 @@ class Polygon(GraphicPrimitive_xydata):
 
     def __len__(self):
         """
-        Returns number of vertices of Polygon primitive.
+        Return number of vertices of Polygon primitive.
 
         EXAMPLES::
 
@@ -154,6 +161,7 @@ class Polygon(GraphicPrimitive_xydata):
                 'fill': 'Whether or not to fill the polygon.',
                 'legend_label': 'The label for this item in the legend.',
                 'legend_color': 'The color of the legend text.',
+                'linestyle': 'The style of the enclosing line.',
                 'rgbcolor': 'The color as an RGB tuple.',
                 'hue': 'The color given as a hue.',
                 'zorder': 'The layer level in which to draw'}
@@ -183,15 +191,15 @@ class Polygon(GraphicPrimitive_xydata):
 
         INPUT:
 
-
-        -  ``z`` - optional 3D height above `xy`-plane, or a list of
-           heights corresponding to the list of 2D polygon points.
+        - ``z`` -- (optional) 3D height above `xy`-plane, or a list of
+          heights corresponding to the list of 2D polygon points
 
         EXAMPLES:
 
         A pentagon::
 
-            sage: polygon([(cos(t), sin(t)) for t in srange(0, 2*pi, 2*pi/5)]).plot3d()
+            sage: polygon([(cos(t), sin(t))                                             # needs sage.symbolic
+            ....:          for t in srange(0, 2*pi, 2*pi/5)]).plot3d()
             Graphics3d Object
 
         .. PLOT::
@@ -233,9 +241,10 @@ class Polygon(GraphicPrimitive_xydata):
         if isinstance(z, list):
             zdata = z
         else:
-            zdata = [z]*len(self.xdata)
+            zdata = [z] * len(self.xdata)
         if len(zdata) == len(self.xdata):
-            return IndexFaceSet([[(x, y, z) for x, y, z in zip(self.xdata, self.ydata, zdata)]], **options)
+            return IndexFaceSet([list(zip(self.xdata, self.ydata, zdata))],
+                                **options)
         else:
             raise ValueError('Incorrect number of heights given')
 
@@ -250,6 +259,8 @@ class Polygon(GraphicPrimitive_xydata):
         p = patches.Polygon([(self.xdata[i], self.ydata[i])
                              for i in range(len(self.xdata))])
         p.set_linewidth(float(options['thickness']))
+        if 'linestyle' in options:
+            p.set_linestyle(options['linestyle'])
         a = float(options['alpha'])
         z = int(options.pop('zorder', 1))
         p.set_alpha(a)
@@ -272,7 +283,7 @@ class Polygon(GraphicPrimitive_xydata):
 
 def polygon(points, **options):
     """
-    Returns either a 2-dimensional or 3-dimensional polygon depending
+    Return either a 2-dimensional or 3-dimensional polygon depending
     on value of points.
 
     For information regarding additional arguments, see either
@@ -306,13 +317,14 @@ def polygon(points, **options):
         from sage.plot.plot3d.shapes2 import polygon3d
         return polygon3d(points, **options)
 
+
 @rename_keyword(color='rgbcolor')
-@options(alpha=1, rgbcolor=(0,0,1), edgecolor=None, thickness=None,
+@options(alpha=1, rgbcolor=(0, 0, 1), edgecolor=None, thickness=None,
          legend_label=None, legend_color=None,
          aspect_ratio=1.0, fill=True)
 def polygon2d(points, **options):
     r"""
-    Returns a 2-dimensional polygon defined by ``points``.
+    Return a 2-dimensional polygon defined by ``points``.
 
     Type ``polygon2d.options`` for a dictionary of the default
     options for polygons.  You can change this to change the
@@ -353,14 +365,14 @@ def polygon2d(points, **options):
     For filled polygons, one can use different colors for the border
     and the interior as follows::
 
-        sage: L = [[0,0]]+[[i/100, 1.1+cos(i/20)] for i in range(100)]+[[1,0]]
-        sage: polygon2d(L, color="limegreen", edgecolor="black", axes=False)
+        sage: L = [[0,0]]+[[i/100, 1.1+cos(i/20)] for i in range(100)]+[[1,0]]          # needs sage.symbolic
+        sage: polygon2d(L, color='limegreen', edgecolor='black', axes=False)            # needs sage.symbolic
         Graphics object consisting of 1 graphics primitive
 
     .. PLOT::
 
         L = [[0,0]]+[[i*0.01, 1.1+cos(i*0.05)] for i in range(100)]+[[1,0]]
-        P = polygon2d(L, color="limegreen", edgecolor="black", axes=False)
+        P = polygon2d(L, color='limegreen', edgecolor='black', axes=False)
         sphinx_plot(P)
 
     Some modern art -- a random polygon, with legend::
@@ -375,10 +387,25 @@ def polygon2d(points, **options):
         P = polygon2d(v, legend_label='some form')
         sphinx_plot(P)
 
+    An aperiodic monotile, [Smi2023]_::
+
+        sage: s = sqrt(3)                                                               # needs sage.symbolic
+        sage: polygon2d([[0, 0], [0, s], [1, s], [3/2, 3/2*s], [3, s], [3, 0], [4, 0],  # needs sage.symbolic
+        ....:            [9/2, -1/2*s], [3, -s], [3/2, -1/2*s], [1, -s], [-1, -s],
+        ....:            [-3/2, -1/2*s]], axes=False)
+        Graphics object consisting of 1 graphics primitive
+
+    .. PLOT::
+
+        s = sqrt(3)
+        P = polygon2d([[0, 0], [0, s], [1, s], [3/2, 3/2*s], [3, s], [3, 0], [4, 0], [9/2, -1/2*s], [3, -s], \
+                       [3/2, -1/2*s], [1, -s], [-1, -s], [-3/2, -1/2*s]], axes=False)
+        sphinx_plot(P)
+
     A purple hexagon::
 
-        sage: L = [[cos(pi*i/3),sin(pi*i/3)] for i in range(6)]
-        sage: polygon2d(L, rgbcolor=(1,0,1))
+        sage: L = [[cos(pi*i/3),sin(pi*i/3)] for i in range(6)]                         # needs sage.symbolic
+        sage: polygon2d(L, rgbcolor=(1,0,1))                                            # needs sage.symbolic
         Graphics object consisting of 1 graphics primitive
 
     .. PLOT::
@@ -389,8 +416,9 @@ def polygon2d(points, **options):
 
     A green deltoid::
 
-        sage: L = [[-1+cos(pi*i/100)*(1+cos(pi*i/100)),2*sin(pi*i/100)*(1-cos(pi*i/100))] for i in range(200)]
-        sage: polygon2d(L, rgbcolor=(1/8,3/4,1/2))
+        sage: L = [[-1+cos(pi*i/100)*(1+cos(pi*i/100)),                                 # needs sage.symbolic
+        ....:       2*sin(pi*i/100)*(1-cos(pi*i/100))] for i in range(200)]
+        sage: polygon2d(L, rgbcolor=(1/8,3/4,1/2))                                      # needs sage.symbolic
         Graphics object consisting of 1 graphics primitive
 
     .. PLOT::
@@ -401,8 +429,9 @@ def polygon2d(points, **options):
 
     A blue hypotrochoid::
 
-        sage: L = [[6*cos(pi*i/100)+5*cos((6/2)*pi*i/100),6*sin(pi*i/100)-5*sin((6/2)*pi*i/100)] for i in range(200)]
-        sage: polygon2d(L, rgbcolor=(1/8,1/4,1/2))
+        sage: L = [[6*cos(pi*i/100)+5*cos((6/2)*pi*i/100),                              # needs sage.symbolic
+        ....:       6*sin(pi*i/100)-5*sin((6/2)*pi*i/100)] for i in range(200)]
+        sage: polygon2d(L, rgbcolor=(1/8,1/4,1/2))                                      # needs sage.symbolic
         Graphics object consisting of 1 graphics primitive
 
     .. PLOT::
@@ -414,8 +443,9 @@ def polygon2d(points, **options):
     Another one::
 
         sage: n = 4; h = 5; b = 2
-        sage: L = [[n*cos(pi*i/100)+h*cos((n/b)*pi*i/100),n*sin(pi*i/100)-h*sin((n/b)*pi*i/100)] for i in range(200)]
-        sage: polygon2d(L, rgbcolor=(1/8,1/4,3/4))
+        sage: L = [[n*cos(pi*i/100)+h*cos((n/b)*pi*i/100),                              # needs sage.symbolic
+        ....:       n*sin(pi*i/100)-h*sin((n/b)*pi*i/100)] for i in range(200)]
+        sage: polygon2d(L, rgbcolor=(1/8,1/4,3/4))                                      # needs sage.symbolic
         Graphics object consisting of 1 graphics primitive
 
     .. PLOT::
@@ -428,8 +458,9 @@ def polygon2d(points, **options):
     A purple epicycloid::
 
         sage: m = 9; b = 1
-        sage: L = [[m*cos(pi*i/100)+b*cos((m/b)*pi*i/100),m*sin(pi*i/100)-b*sin((m/b)*pi*i/100)] for i in range(200)]
-        sage: polygon2d(L, rgbcolor=(7/8,1/4,3/4))
+        sage: L = [[m*cos(pi*i/100)+b*cos((m/b)*pi*i/100),                              # needs sage.symbolic
+        ....:       m*sin(pi*i/100)-b*sin((m/b)*pi*i/100)] for i in range(200)]
+        sage: polygon2d(L, rgbcolor=(7/8,1/4,3/4))                                      # needs sage.symbolic
         Graphics object consisting of 1 graphics primitive
 
     .. PLOT::
@@ -441,8 +472,8 @@ def polygon2d(points, **options):
 
     A brown astroid::
 
-        sage: L = [[cos(pi*i/100)^3,sin(pi*i/100)^3] for i in range(200)]
-        sage: polygon2d(L, rgbcolor=(3/4,1/4,1/4))
+        sage: L = [[cos(pi*i/100)^3, sin(pi*i/100)^3] for i in range(200)]              # needs sage.symbolic
+        sage: polygon2d(L, rgbcolor=(3/4,1/4,1/4))                                      # needs sage.symbolic
         Graphics object consisting of 1 graphics primitive
 
     .. PLOT::
@@ -453,8 +484,9 @@ def polygon2d(points, **options):
 
     And, my favorite, a greenish blob::
 
-        sage: L = [[cos(pi*i/100)*(1+cos(pi*i/50)), sin(pi*i/100)*(1+sin(pi*i/50))] for i in range(200)]
-        sage: polygon2d(L, rgbcolor=(1/8,3/4,1/2))
+        sage: L = [[cos(pi*i/100)*(1+cos(pi*i/50)),                                     # needs sage.symbolic
+        ....:       sin(pi*i/100)*(1+sin(pi*i/50))] for i in range(200)]
+        sage: polygon2d(L, rgbcolor=(1/8,3/4,1/2))                                      # needs sage.symbolic
         Graphics object consisting of 1 graphics primitive
 
     .. PLOT::
@@ -465,8 +497,9 @@ def polygon2d(points, **options):
 
     This one is for my wife::
 
-        sage: L = [[sin(pi*i/100)+sin(pi*i/50),-(1+cos(pi*i/100)+cos(pi*i/50))] for i in range(-100,100)]
-        sage: polygon2d(L, rgbcolor=(1,1/4,1/2))
+        sage: L = [[sin(pi*i/100)+sin(pi*i/50),                                         # needs sage.symbolic
+        ....:       -(1+cos(pi*i/100)+cos(pi*i/50))] for i in range(-100,100)]
+        sage: polygon2d(L, rgbcolor=(1,1/4,1/2))                                        # needs sage.symbolic
         Graphics object consisting of 1 graphics primitive
 
     .. PLOT::
@@ -477,7 +510,7 @@ def polygon2d(points, **options):
 
     One can do the same one with a colored legend label::
 
-        sage: polygon2d(L, color='red', legend_label='For you!', legend_color='red')
+        sage: polygon2d(L, color='red', legend_label='For you!', legend_color='red')    # needs sage.symbolic
         Graphics object consisting of 1 graphics primitive
 
     .. PLOT::
@@ -491,13 +524,18 @@ def polygon2d(points, **options):
         sage: polygon2d([[1,2], [5,6], [5,0]]).aspect_ratio()
         1.0
 
+    TESTS:
+
+    Verify that :issue:`36153` does not arise::
+
+        sage: P = polygon2d([[1,2], [5,6], [5,0]], legend_label='test')
+
     AUTHORS:
 
     - David Joyner (2006-04-14): the long list of examples above.
-
     """
     from sage.plot.plot import xydata_from_point_list
-    from sage.plot.all import Graphics
+    from sage.plot.graphics import Graphics
     if options["thickness"] is None:   # If the user did not specify thickness
         if options["fill"] and options["edgecolor"] is None:
             # If the user chose fill

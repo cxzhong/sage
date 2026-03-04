@@ -6,7 +6,6 @@ AUTHORS:
 - Peter Bruin (June 2013): initial version, based on
   finite_field_ext_pari.py by William Stein et al.
 """
-from __future__ import absolute_import
 
 #*****************************************************************************
 #       Copyright (C) 2013 Peter Bruin <peter.bruin@math.uzh.ch>
@@ -18,9 +17,12 @@ from __future__ import absolute_import
 #*****************************************************************************
 
 
-from .element_pari_ffelt import FiniteFieldElement_pari_ffelt
-from .finite_field_base import FiniteField
-from .finite_field_constructor import GF
+from cypari2.handle_error import PariError
+
+from sage.rings.finite_rings.element_pari_ffelt import FiniteFieldElement_pari_ffelt
+from sage.rings.finite_rings.finite_field_base import FiniteField
+from sage.rings.finite_rings.finite_field_constructor import GF
+
 
 class FiniteField_pari_ffelt(FiniteField):
     """
@@ -49,13 +51,13 @@ class FiniteField_pari_ffelt(FiniteField):
         requires specifying a characteristic and a modulus.  To
         construct a finite field by specifying a cardinality and an
         algorithm for finding an irreducible polynomial, use the
-        ``FiniteField`` constructor with ``impl='pari_ffelt'``.
+        ``FiniteField`` constructor with ``implementation='pari_ffelt'``.
 
     EXAMPLES:
 
     Some computations with a finite field of order 9::
 
-        sage: k = FiniteField(9, 'a', impl='pari_ffelt')
+        sage: k = FiniteField(9, 'a', implementation='pari_ffelt')
         sage: k
         Finite Field in a of size 3^2
         sage: k.is_field()
@@ -75,7 +77,7 @@ class FiniteField_pari_ffelt(FiniteField):
 
     Next we compute with a finite field of order 16::
 
-        sage: k16 = FiniteField(16, 'b', impl='pari_ffelt')
+        sage: k16 = FiniteField(16, 'b', implementation='pari_ffelt')
         sage: z = k16.gen()
         sage: z
         b
@@ -90,11 +92,11 @@ class FiniteField_pari_ffelt(FiniteField):
 
     Illustration of dumping and loading::
 
-        sage: K = FiniteField(7^10, 'b', impl='pari_ffelt')
+        sage: K = FiniteField(7^10, 'b', implementation='pari_ffelt')
         sage: loads(K.dumps()) == K
         True
 
-        sage: K = FiniteField(10007^10, 'a', impl='pari_ffelt')
+        sage: K = FiniteField(10007^10, 'a', implementation='pari_ffelt')
         sage: loads(K.dumps()) == K
         True
     """
@@ -110,6 +112,13 @@ class FiniteField_pari_ffelt(FiniteField):
             sage: R.<x> = PolynomialRing(GF(3))
             sage: k = FiniteField_pari_ffelt(3, x^2 + 2*x + 2, 'a'); k
             Finite Field in a of size 3^2
+
+        TESTS::
+
+            sage: F.<I> = GF((2^128+51)^2); F
+            Finite Field in I of size 340282366920938463463374607431768211507^2
+            sage: type(F)
+            <class 'sage.rings.finite_rings.finite_field_pari_ffelt.FiniteField_pari_ffelt_with_category'>
         """
         n = modulus.degree()
         if n < 2:
@@ -120,10 +129,19 @@ class FiniteField_pari_ffelt(FiniteField):
         self._modulus = modulus
         self._degree = n
 
-        self._gen_pari = modulus._pari_with_name(self._names[0]).ffgen()
+        self._need_replace_varname = False
+        try:
+            modulus_pari = modulus._pari_with_name(self.variable_name())
+        except PariError:
+            self._need_replace_varname = True
+            modulus_pari = modulus._pari_with_name()
+        self._gen_pari = modulus_pari.ffgen()
         self._zero_element = self.element_class(self, 0)
         self._one_element = self.element_class(self, 1)
         self._gen = self.element_class(self, self._gen_pari)
+
+        # Cache for Frobenius endomorphisms (O(n) field elements)
+        self.__pari_frobenius_powers = []
 
     Element = FiniteFieldElement_pari_ffelt
 
@@ -133,7 +151,7 @@ class FiniteField_pari_ffelt(FiniteField):
 
         EXAMPLES::
 
-            sage: k.<b> = FiniteField(5^20, impl='pari_ffelt')
+            sage: k.<b> = FiniteField(5^20, implementation='pari_ffelt')
             sage: type(k)
             <class 'sage.rings.finite_rings.finite_field_pari_ffelt.FiniteField_pari_ffelt_with_category'>
             sage: k is loads(dumps(k))
@@ -165,9 +183,9 @@ class FiniteField_pari_ffelt(FiniteField):
         EXAMPLES::
 
             sage: R.<x> = PolynomialRing(GF(2))
-            sage: FiniteField(2^4, 'b', impl='pari_ffelt').gen()
+            sage: FiniteField(2^4, 'b', implementation='pari_ffelt').gen()
             b
-            sage: k = FiniteField(3^4, 'alpha', impl='pari_ffelt')
+            sage: k = FiniteField(3^4, 'alpha', implementation='pari_ffelt')
             sage: a = k.gen()
             sage: a
             alpha
@@ -184,7 +202,7 @@ class FiniteField_pari_ffelt(FiniteField):
 
         EXAMPLES::
 
-            sage: F = FiniteField(3^4, 'a', impl='pari_ffelt')
+            sage: F = FiniteField(3^4, 'a', implementation='pari_ffelt')
             sage: F.characteristic()
             3
         """
@@ -193,217 +211,45 @@ class FiniteField_pari_ffelt(FiniteField):
 
     def degree(self):
         """
-        Returns the degree of ``self`` over its prime field.
+        Return the degree of ``self`` over its prime field.
 
         EXAMPLES::
 
-            sage: F = FiniteField(3^20, 'a', impl='pari_ffelt')
+            sage: F = FiniteField(3^20, 'a', implementation='pari_ffelt')
             sage: F.degree()
             20
+
+        .. SEEALSO::
+
+            :meth:`~sage.rings.finite_rings.finite_field_base.FiniteField.absolute_degree`
         """
         return self._degree
 
-    def _element_constructor_(self, x):
+    def _pari_frobenius(self, k=1):
         """
-        Construct an element of ``self``.
-
-        INPUT:
-
-        - ``x`` -- object
-
-        OUTPUT:
-
-        A finite field element generated from `x`, if possible.
-
-        .. NOTE::
-
-            If `x` is a list or an element of the underlying vector
-            space of the finite field, then it is interpreted as the
-            list of coefficients of a polynomial over the prime field,
-            and that polynomial is interpreted as an element of the
-            finite field.
-
-        EXAMPLES::
-
-            sage: k = FiniteField(3^4, 'a', impl='pari_ffelt')
-            sage: b = k(5) # indirect doctest
-            sage: b.parent()
-            Finite Field in a of size 3^4
-            sage: a = k.gen()
-            sage: k(a + 2)
-            a + 2
-
-        Univariate polynomials coerce into finite fields by evaluating
-        the polynomial at the field's generator::
-
-            sage: R.<x> = QQ[]
-            sage: k.<a> = FiniteField(5^2, 'a', impl='pari_ffelt')
-            sage: k(R(2/3))
-            4
-            sage: k(x^2)
-            a + 3
-
-            sage: R.<x> = GF(5)[]
-            sage: k(x^3-2*x+1)
-            2*a + 4
-
-            sage: x = polygen(QQ)
-            sage: k(x^25)
-            a
-
-            sage: Q.<q> = FiniteField(5^7, 'q', impl='pari_ffelt')
-            sage: L = GF(5)
-            sage: LL.<xx> = L[]
-            sage: Q(xx^2 + 2*xx + 4)
-            q^2 + 2*q + 4
-
-            sage: k = FiniteField(3^11, 't', impl='pari_ffelt')
-            sage: k.polynomial()
-            t^11 + 2*t^2 + 1
-            sage: P = k.polynomial_ring()
-            sage: k(P.0^11)
-            t^2 + 2
-
-        An element can be specified by its vector of coordinates with
-        respect to the basis consisting of powers of the generator:
-
-            sage: k = FiniteField(3^11, 't', impl='pari_ffelt')
-            sage: V = k.vector_space()
-            sage: V
-            Vector space of dimension 11 over Finite Field of size 3
-            sage: v = V([0,1,2,0,1,2,0,1,2,0,1])
-            sage: k(v)
-            t^10 + 2*t^8 + t^7 + 2*t^5 + t^4 + 2*t^2 + t
-
-        Multivariate polynomials only coerce if constant::
-
-            sage: k = FiniteField(5^2, 'a', impl='pari_ffelt')
-            sage: R = k['x,y,z']; R
-            Multivariate Polynomial Ring in x, y, z over Finite Field in a of size 5^2
-            sage: k(R(2))
-            2
-            sage: R = QQ['x,y,z']
-            sage: k(R(1/5))
-            Traceback (most recent call last):
-            ...
-            ZeroDivisionError: Inverse does not exist.
-
-        Gap elements can also be coerced into finite fields::
-
-            sage: F = FiniteField(2^3, 'a', impl='pari_ffelt')
-            sage: a = F.multiplicative_generator(); a
-            a
-            sage: b = gap(a^3); b
-            Z(2^3)^3
-            sage: F(b)
-            a + 1
-            sage: a^3
-            a + 1
-
-            sage: a = GF(13)(gap('0*Z(13)')); a
-            0
-            sage: a.parent()
-            Finite Field of size 13
-
-            sage: F = FiniteField(2^4, 'a', impl='pari_ffelt')
-            sage: F(gap('Z(16)^3'))
-            a^3
-            sage: F(gap('Z(16)^2'))
-            a^2
-
-        You can also call a finite extension field with a string
-        to produce an element of that field, like this::
-
-            sage: k = GF(2^8, 'a')
-            sage: k('a^200')
-            a^4 + a^3 + a^2
-
-        This is especially useful for conversion from Singular etc.
+        Return a cached PARI Frobenius endomorphism (internally defined
+        by the image of the generator).
 
         TESTS::
 
-            sage: k = FiniteField(3^2, 'a', impl='pari_ffelt')
-            sage: a = k(11); a
-            2
-            sage: a.parent()
-            Finite Field in a of size 3^2
-            sage: V = k.vector_space(); v = V((1,2))
-            sage: k(v)
-            2*a + 1
-
-        We create elements using a list and verify that :trac:`10486` has
-        been fixed::
-
-            sage: k = FiniteField(3^11, 't', impl='pari_ffelt')
-            sage: x = k([1,0,2,1]); x
-            t^3 + 2*t^2 + 1
-            sage: x + x + x
-            0
-            sage: pari(x)
-            t^3 + 2*t^2 + 1
-
-        If the list is longer than the degree, we just get the result
-        modulo the modulus::
-
-            sage: from sage.rings.finite_rings.finite_field_pari_ffelt import FiniteField_pari_ffelt
-            sage: R.<a> = PolynomialRing(GF(5))
-            sage: k = FiniteField_pari_ffelt(5, a^2 - 2, 't')
-            sage: x = k([0,0,0,1]); x
-            2*t
-            sage: pari(x)
-            2*t
-
-        When initializing from a list, the elements are first coerced
-        to the prime field (:trac:`11685`)::
-
-            sage: k = FiniteField(3^11, 't', impl='pari_ffelt')
-            sage: k([ 0, 1/2 ])
-            2*t
-            sage: k([ k(0), k(1) ])
-            t
-            sage: k([ GF(3)(2), GF(3^5,'u')(1) ])
-            t + 2
-            sage: R.<x> = PolynomialRing(k)
-            sage: k([ R(-1), x/x ])
-            t + 2
-
-        Check that zeros are created correctly (:trac:`11685`)::
-
-            sage: K = FiniteField(3^11, 't', impl='pari_ffelt'); a = K.0
-            sage: v = 0; pari(K(v))
-            0
-            sage: v = Mod(0,3); pari(K(v))
-            0
-            sage: v = pari(0); pari(K(v))
-            0
-            sage: v = pari("Mod(0,3)"); pari(K(v))
-            0
-            sage: v = []; pari(K(v))
-            0
-            sage: v = [0]; pari(K(v))
-            0
-            sage: v = [0,0]; pari(K(v))
-            0
-            sage: v = pari("Pol(0)"); pari(K(v))
-            0
-            sage: v = pari("Mod(0, %s)"%K.modulus()); pari(K(v))
-            0
-            sage: v = pari("Mod(Pol(0), %s)"%K.modulus()); pari(K(v))
-            0
-            sage: v = K(1) - K(1); pari(K(v))
-            0
-            sage: v = K([1]) - K([1]); pari(K(v))
-            0
-            sage: v = a - a; pari(K(v))
-            0
-            sage: v = K(1)*0; pari(K(v))
-            0
-            sage: v = K([1])*K([0]); pari(K(v))
-            0
-            sage: v = a*0; pari(K(v))
-            0
+            sage: F = FiniteField(37^10, 'a', implementation='pari_ffelt')
+            sage: x = F.random_element()
+            sage: all(x**(37**k) == F(F._pari_frobenius(k).ffmap(x)) for k in range(1, 30) if k % 10 != 0)
+            True
+            sage: F(F._pari_frobenius(-1).ffmap(x))**37 == x                            # needs sage.modules
+            True
         """
-        if isinstance(x, self.element_class) and x.parent() is self:
-            return x
-        else:
-            return self.element_class(self, x)
+        k = k % self.degree()
+        if k == 0:
+            raise ValueError("_pari_frobenius requires a nonzero exponent")
+        g = self.gen()
+        i = len(self.__pari_frobenius_powers)
+        if i == 0:
+            self.__pari_frobenius_powers.append(g.__pari__().fffrobenius(1))
+            i = 1
+        f1 = self.__pari_frobenius_powers[0]
+        while i < k:
+            i += 1
+            fi = self.__pari_frobenius_powers[-1].ffcompomap(f1)
+            self.__pari_frobenius_powers.append(fi)
+        return self.__pari_frobenius_powers[k-1]

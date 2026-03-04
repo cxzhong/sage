@@ -13,9 +13,10 @@ from sage.misc.lazy_import import LazyImport
 from sage.categories.category_with_axiom import CategoryWithAxiom
 from sage.categories.rings import Rings
 
+
 class Domains(CategoryWithAxiom):
     """
-    The category of domains
+    The category of domains.
 
     A domain (or non-commutative integral domain), is a ring, not
     necessarily commutative, with no nonzero zero divisors.
@@ -57,24 +58,24 @@ class Domains(CategoryWithAxiom):
                 In rings whose elements can not be represented exactly, there
                 may be zero divisors in practice, even though these rings do
                 not have them in theory. For such inexact rings, these tests
-                are not performed:
+                are not performed::
 
-                sage: R = ZpFM(5); R
-                5-adic Ring of fixed modulus 5^20
-                sage: R.is_exact()
-                False
-                sage: a = R(5^19)
-                sage: a.is_zero()
-                False
-                sage: (a*a).is_zero()
-                True
-                sage: R._test_zero_divisors()
+                    sage: # needs sage.rings.padics
+                    sage: R = ZpFM(5); R
+                    5-adic Ring of fixed modulus 5^20
+                    sage: R.is_exact()
+                    False
+                    sage: a = R(5^19)
+                    sage: a.is_zero()
+                    False
+                    sage: (a * a).is_zero()
+                    True
+                    sage: R._test_zero_divisors()
 
             EXAMPLES::
 
                 sage: ZZ._test_zero_divisors()
-                sage: ZpFM(5)._test_zero_divisors()
-
+                sage: ZpFM(5)._test_zero_divisors()                                     # needs sage.rings.padics
             """
             if not self.is_exact():
                 return # Can't check on inexact rings

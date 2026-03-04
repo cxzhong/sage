@@ -29,7 +29,7 @@ following additional ways to compute with matrices:
 -  The GSL C-library is included with Sage, and can be used via
    Cython.
 
--  The ``scipy`` module provides support for
+-  The :mod:`scipy:scipy` module provides support for
    *sparse* numerical linear algebra, among many other things.
 
 -  The ``numpy`` module, which you load by typing
@@ -43,29 +43,20 @@ Finally, this module contains some data-structures for matrix-like
 objects like operation tables (e.g. the multiplication table of a group).
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
 
    sage/matrix/matrix_space
-
    sage/matrix/constructor
+   sage/matrix/special
+   sage/matrix/args
 
    sage/matrix/docs
-
-   sage/matrix/matrix_misc
-
-   sage/matrix/special
-
-   sage/matrix/matrix
-
    sage/matrix/matrix0
-
    sage/matrix/matrix1
-
    sage/matrix/matrix2
 
    sage/matrix/strassen
-
    sage/matrix/berlekamp_massey
 
    sage/matrix/matrix_dense
@@ -74,40 +65,37 @@ objects like operation tables (e.g. the multiplication table of a group).
    sage/matrix/matrix_generic_dense
    sage/matrix/matrix_generic_sparse
 
-   sage/matrix/matrix_modn_sparse
-
-   sage/matrix/matrix_symbolic_dense
-
    sage/matrix/matrix_integer_dense
-
+   sage/matrix/matrix_integer_sparse
+   sage/matrix/matrix_integer_dense_hnf
+   sage/matrix/matrix_integer_dense_saturation
    sage/matrix/matrix_rational_dense
-
+   sage/matrix/matrix_rational_sparse
    sage/matrix/matrix_double_dense
-
    sage/matrix/matrix_real_double_dense
-
+   sage/matrix/matrix_mod2_dense
+   sage/matrix/matrix_gf2e_dense
+   sage/matrix/matrix_modn_dense_double
+   sage/matrix/matrix_modn_dense_float
+   sage/matrix/matrix_modn_sparse
+   sage/matrix/matrix_symbolic_dense
+   sage/matrix/matrix_symbolic_sparse
    sage/matrix/matrix_complex_double_dense
    sage/matrix/matrix_complex_ball_dense
-
    sage/matrix/matrix_polynomial_dense
    sage/matrix/matrix_mpolynomial_dense
+   sage/matrix/matrix_cyclo_dense
 
    sage/matrix/operation_table
 
    sage/matrix/action
    sage/matrix/change_ring
    sage/matrix/echelon_matrix
-   sage/matrix/matrix_cyclo_dense
-   sage/matrix/matrix_integer_dense_hnf
-   sage/matrix/matrix_integer_dense_saturation
-   sage/matrix/matrix_integer_sparse
-   sage/matrix/matrix_mod2_dense
-   sage/matrix/matrix_gf2e_dense
-   sage/matrix/matrix_modn_dense_double
-   sage/matrix/matrix_modn_dense_float
-   sage/matrix/matrix_rational_sparse
+   sage/matrix/matrix_misc
    sage/matrix/matrix_window
    sage/matrix/misc
+   sage/matrix/misc_mpfr
+   sage/matrix/misc_flint
    sage/matrix/symplectic_basis
    sage/matrix/compute_J_ideal
 

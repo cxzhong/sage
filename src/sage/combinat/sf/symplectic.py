@@ -1,12 +1,12 @@
+# sage.doctest: needs sage.combinat sage.modules
 """
-Symplectic Symmetric Functions
+Symplectic symmetric functions
 
 AUTHORS:
 
 - Travis Scrimshaw (2013-11-10): Initial version
 """
-from __future__ import absolute_import
-#*****************************************************************************
+# ****************************************************************************
 #       Copyright (C) 2013 Travis Scrimshaw <tscrim at ucdavis.edu>
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
@@ -18,14 +18,15 @@ from __future__ import absolute_import
 #
 #  The full text of the GPL is available at:
 #
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
-from . import sfa
-import sage.libs.lrcalc.lrcalc as lrcalc
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
+
 from sage.combinat.partition import Partitions
+from sage.libs.lrcalc import lrcalc
 from sage.misc.cachefunc import cached_method
-from sage.rings.all import ZZ, QQ, Integer
-from sage.matrix.all import matrix
+
+from . import sfa
+
 
 class SymmetricFunctionAlgebra_symplectic(sfa.SymmetricFunctionAlgebra_generic):
     r"""
@@ -58,7 +59,7 @@ class SymmetricFunctionAlgebra_symplectic(sfa.SymmetricFunctionAlgebra_generic):
 
     .. [ChariKleber2000] Vyjayanthi Chari and Michael Kleber.
        *Symmetric functions and representations of quantum affine algebras*.
-       :arXiv:`math/0011161v1`
+       :arxiv:`math/0011161v1`
 
     .. [KoikeTerada1987] \K. Koike, I. Terada, *Young-diagrammatic methods for
        the representation theory of the classical groups of type Bn, Cn, Dn*.
@@ -166,6 +167,7 @@ class SymmetricFunctionAlgebra_symplectic(sfa.SymmetricFunctionAlgebra_generic):
         sage: sp.one().counit()
         1
     """
+
     def __init__(self, Sym):
         """
         Initialize ``self``.
@@ -228,9 +230,7 @@ class SymmetricFunctionAlgebra_symplectic(sfa.SymmetricFunctionAlgebra_generic):
 
         - ``lam`` -- a partition
 
-        OUTPUT:
-
-        - the expansion of ``s[lam]`` in the symplectic basis ``self``
+        OUTPUT: the expansion of ``s[lam]`` in the symplectic basis ``self``
 
         EXAMPLES::
 
@@ -250,4 +250,3 @@ class SymmetricFunctionAlgebra_symplectic(sfa.SymmetricFunctionAlgebra_generic):
                                             for nu in Partitions(j) )
                                  for j in range(n//2+1) # // 2 for vertical dominoes
                                  for mu in Partitions(n-2*j) })
-

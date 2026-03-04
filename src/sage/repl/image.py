@@ -1,4 +1,4 @@
-# -*- encoding: utf-8 -*-
+# sage.doctest: needs pillow
 """
 Sage Wrapper for Bitmap Images
 
@@ -23,15 +23,16 @@ EXAMPLES::
     <class 'sage.repl.image.Image'>
 """
 
-#*****************************************************************************
+# ****************************************************************************
 #       Copyright (C) 2015 Volker Braun <vbraun.name@gmail.com>
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
 #  as published by the Free Software Foundation; either version 2 of
 #  the License, or (at your option) any later version.
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
+import io
 
 import PIL.Image
 from sage.structure.sage_object import SageObject
@@ -41,13 +42,13 @@ class Image(SageObject):
 
     def __init__(self, mode, size, color='white'):
         """
-        Creates a new image with the given mode and size.
+        Create a new image with the given mode and size.
 
         INPUT:
 
         - ``mode`` -- string. The mode to use for the new image. Valid
           options are:
-                     
+
               * ``'1'`` (1-bit pixels, black and white, stored with
                 one pixel per byte)
 
@@ -74,48 +75,50 @@ class Image(SageObject):
 
               * ``'F'`` (32-bit floating point pixels)
 
-        - ``size`` -- 2-tuple, containing (width, height) in pixels.
+        - ``size`` -- 2-tuple, containing (width, height) in pixels
 
-        - ``color`` -- string or tuple of numeric. What colour to use
+        - ``color`` -- string, numeric or tuple of numeric. What colour to use
           for the image. Default is black.  If given, this should be a
           a tuple with one value per band. When creating RGB images,
           you can also use colour strings as supported by the
           ImageColor module.  If the colour is None, the image is not
           initialised.
 
-        OUTPUT:
-        
-        A new :class:`Image` object.
+        OUTPUT: a new :class:`Image` object
 
         EXAMPLES::
 
             sage: from sage.repl.image import Image
-            sage: Image('P', (16, 16), (13,))
+            sage: Image('P', (16, 16), 13)
             16x16px 8-bit Color image
         """
+        # pillow does not support Sage integers as color
+        from sage.rings.integer import Integer
+        if isinstance(color, Integer):
+            color = int(color)
+        elif isinstance(color, tuple):
+            color = tuple(int(i) if isinstance(i, Integer) else i for i in color)
         self._pil = PIL.Image.new(mode, size, color)
 
     @property
     def pil(self):
         """
-        Access the wrapped PIL(low) Image
-        
-        OUTPUT:
+        Access the wrapped PIL(low) Image.
 
-        The underlying ``PIL.Image.Image object``.
+        OUTPUT: the underlying ``PIL.Image.Image object``
 
         EXAMPLES::
 
             sage: from sage.repl.image import Image
             sage: img = Image('RGB', (16, 16), 'white')
             sage: img.pil
-            <PIL.Image.Image image mode=RGB size=16x16 at 0x...>
+            <PIL.Image.Image image mode=RGB size=16x16...>
         """
         return self._pil
 
     def pixels(self):
         """
-        Return the pixel map
+        Return the pixel map.
 
         OUTPUT:
 
@@ -130,14 +133,12 @@ class Image(SageObject):
             <PixelAccess object at 0x...>
         """
         return self._pil.load()
-    
-    def _repr_(self):
+
+    def _repr_(self) -> str:
         """
         Return string representation.
 
-        OUTPUT:
-
-        String.
+        OUTPUT: string
 
         EXAMPLES::
 
@@ -146,17 +147,17 @@ class Image(SageObject):
             16x16px 24-bit RGB image
         """
         modestr = {
-            '1':     '{0}x{1}px BW image',
-            'L':     '{0}x{1}px 8-bit BW image',
-            'P':     '{0}x{1}px 8-bit Color image',
-            'RGB':   '{0}x{1}px 24-bit RGB image',
-            'RGBA':  '{0}x{1}px 32-bit RGBA image',
-            'CMYK':  '{0}x{1}px 24-bit CMYK image',
+            '1': '{0}x{1}px BW image',
+            'L': '{0}x{1}px 8-bit BW image',
+            'P': '{0}x{1}px 8-bit Color image',
+            'RGB': '{0}x{1}px 24-bit RGB image',
+            'RGBA': '{0}x{1}px 32-bit RGBA image',
+            'CMYK': '{0}x{1}px 24-bit CMYK image',
             'YCbCr': '{0}x{1}px 24-bit YCbCr mage',
-            'LAB':   '{0}x{1}px 24-bit LAB image',
-            'HSV':   '{0}x{1}px 24-bit HSV image',
-            'I':     '{0}x{1}px 32-bit signed integer image',
-            'F':     '{0}x{1}px 32-bit float image',
+            'LAB': '{0}x{1}px 24-bit LAB image',
+            'HSV': '{0}x{1}px 24-bit HSV image',
+            'I': '{0}x{1}px 32-bit signed integer image',
+            'F': '{0}x{1}px 32-bit float image',
         }
         try:
             mode = modestr[self.pil.mode]
@@ -167,11 +168,9 @@ class Image(SageObject):
 
     def mode(self):
         """
-        Return the color mode
-        
-        OUTPUT:
+        Return the color mode.
 
-        String. As given when constructing the image.
+        OUTPUT: string; as given when constructing the image
 
         EXAMPLES::
 
@@ -184,11 +183,9 @@ class Image(SageObject):
 
     def width(self):
         """
-        Return the horizontal dimension in pixels
+        Return the horizontal dimension in pixels.
 
-        OUTPUT:
-
-        Integer.
+        OUTPUT: integer
 
         EXAMPLES::
 
@@ -200,14 +197,12 @@ class Image(SageObject):
             34
         """
         return self.pil.size[0]
-    
+
     def height(self):
         """
-        Return the vertical dimension in pixels
+        Return the vertical dimension in pixels.
 
-        OUTPUT:
-
-        Integer.
+        OUTPUT: integer
 
         EXAMPLES::
 
@@ -222,20 +217,21 @@ class Image(SageObject):
 
     def save(self, filename):
         r"""
-        Save the bitmap image
+        Save the bitmap image.
 
         INPUT:
 
-        - ``filename`` -- string. The filename to save as. The given
-          extension automatically determines the image file type.
+        - ``filename`` -- string; the filename to save as. The given
+          extension automatically determines the image file type
 
         EXAMPLES::
 
             sage: from sage.repl.image import Image
-            sage: img = Image('P', (12, 34), (13,))
+            sage: img = Image('P', (12, 34), 13)
             sage: filename = tmp_filename(ext='.png')
             sage: img.save(filename)
-            sage: open(filename).read().startswith('\x89PNG')
+            sage: with open(filename, 'rb') as f:
+            ....:     f.read(4) == b'\x89PNG'
             True
         """
         self.pil.save(filename)
@@ -267,7 +263,7 @@ class Image(SageObject):
 
     def _rich_repr_(self, display_manager, **kwds):
         """
-        Rich Output Magic Method
+        Rich Output Magic Method.
 
         See :mod:`sage.repl.rich_output` for details.
 
@@ -288,18 +284,17 @@ class Image(SageObject):
             return
         types = display_manager.types
         preferred = (
-            ('PNG',  types.OutputImagePng),
+            ('PNG', types.OutputImagePng),
             ('JPEG', types.OutputImageJpg),
-            ('GIF',  types.OutputImageGif),
+            ('GIF', types.OutputImageGif),
         )
-        from six import StringIO
         from sage.repl.rich_output.buffer import OutputBuffer
         for format, output_container in preferred:
             if output_container in display_manager.supported_output():
-                stream = StringIO()
+                stream = io.BytesIO()
                 try:
                     self.pil.save(stream, format=format)
-                except IOError:
+                except OSError:
                     # not all formats support all modes, e.g. no alpha support in gif
                     continue
                 buf = OutputBuffer(stream.getvalue())

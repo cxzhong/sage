@@ -1,17 +1,15 @@
 """
 Cremona matrices
 """
-from __future__ import print_function
 
-from ..eclib cimport scalar, addscalar
+from sage.libs.eclib cimport scalar, addscalar
 
-from sage.matrix.all import MatrixSpace
-from sage.rings.all import ZZ
+from sage.matrix.matrix_space import MatrixSpace
+from sage.rings.integer_ring import ZZ
 
 from sage.matrix.matrix_integer_sparse cimport Matrix_integer_sparse
 from sage.matrix.matrix_integer_dense cimport Matrix_integer_dense
 from sage.rings.integer cimport Integer
-
 
 cdef class Matrix:
     """
@@ -22,7 +20,7 @@ cdef class Matrix:
         sage: M = CremonaModularSymbols(225)
         sage: t = M.hecke_matrix(2)
         sage: type(t)
-        <type 'sage.libs.eclib.mat.Matrix'>
+        <class 'sage.libs.eclib.mat.Matrix'>
         sage: t
         61 x 61 Cremona matrix over Rational Field
 
@@ -31,7 +29,7 @@ cdef class Matrix:
         sage: t = CremonaModularSymbols(11).hecke_matrix(2); t
         3 x 3 Cremona matrix over Rational Field
         sage: type(t)
-        <type 'sage.libs.eclib.mat.Matrix'>
+        <class 'sage.libs.eclib.mat.Matrix'>
     """
     def __repr__(self):
         """
@@ -50,7 +48,7 @@ cdef class Matrix:
             [-1  1  1 -1  0]
             [ 0 -1  0  0  0]
         """
-        return "%s x %s Cremona matrix over Rational Field"%(self.nrows(), self.ncols())
+        return "%s x %s Cremona matrix over Rational Field" % (self.nrows(), self.ncols())
 
     def str(self):
         r"""
@@ -132,7 +130,8 @@ cdef class Matrix:
 ##         """
 ##         Return the rank of this matrix.
 
-##         EXAMPLES:
+##         EXAMPLES::
+##
 ##             sage: M = CremonaModularSymbols(389)
 ##             sage: t = M.hecke_matrix(2)
 ##             sage: t.rank()
@@ -151,7 +150,7 @@ cdef class Matrix:
 
     def add_scalar(self, scalar s):
         """
-        Return new matrix obtained by adding s to each diagonal entry of self.
+        Return new matrix obtained by adding `s` to each diagonal entry of ``self``.
 
         EXAMPLES::
 
@@ -193,7 +192,7 @@ cdef class Matrix:
 
         INPUT:
 
-        - ``sparse`` -- (default: True) whether the return matrix has
+        - ``sparse`` -- boolean (default: ``True``); whether the return matrix has
           a sparse representation
 
         EXAMPLES::
@@ -204,16 +203,15 @@ cdef class Matrix:
             [ 0  1]
             [ 1 -1]
             sage: type(s)
-            <type 'sage.matrix.matrix_integer_sparse.Matrix_integer_sparse'>
+            <class 'sage.matrix.matrix_integer_sparse.Matrix_integer_sparse'>
             sage: s = t.sage_matrix_over_ZZ(sparse=False); s
             [ 0  1]
             [ 1 -1]
             sage: type(s)
-            <type 'sage.matrix.matrix_integer_dense.Matrix_integer_dense'>
+            <class 'sage.matrix.matrix_integer_dense.Matrix_integer_dense'>
         """
         cdef long n = self.nrows()
-        cdef long i, j, k
-        cdef scalar* v = <scalar*> self.M.get_entries()   # coercion needed to deal with const
+        cdef long i, j
 
         cdef Matrix_integer_dense Td
         cdef Matrix_integer_sparse Ts
@@ -221,21 +219,19 @@ cdef class Matrix:
         # Ugly code...
         if sparse:
             Ts = MatrixSpace(ZZ, n, sparse=sparse).zero_matrix().__copy__()
-            k = 0
             for i from 0 <= i < n:
                 for j from 0 <= j < n:
-                    if v[k]:
-                        Ts.set_unsafe(i, j, Integer(v[k]))
-                    k += 1
+                    Mij = Integer(self.M.sub(i+1,j+1))
+                    if Mij:
+                        Ts.set_unsafe(i, j, Mij)
             return Ts
         else:
             Td = MatrixSpace(ZZ, n, sparse=sparse).zero_matrix().__copy__()
-            k = 0
             for i from 0 <= i < n:
                 for j from 0 <= j < n:
-                    if v[k]:
-                        Td.set_unsafe(i, j, Integer(v[k]))
-                    k += 1
+                    Mij = Integer(self.M.sub(i+1,j+1))
+                    if Mij:
+                        Td.set_unsafe(i, j, Mij)
             return Td
 
 

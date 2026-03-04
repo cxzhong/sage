@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Coercion Maps Between Hyperbolic Plane Models
 
@@ -20,14 +19,17 @@ AUTHORS:
 #***********************************************************************
 
 from sage.categories.morphism import Morphism
-from sage.symbolic.all import I
+from sage.symbolic.constants import I
 from sage.matrix.constructor import matrix
 from sage.modules.free_module_element import vector
 from sage.rings.integer import Integer
 from sage.rings.infinity import infinity
-from sage.functions.other import real, imag, sqrt
+from sage.functions.other import real, imag
+from sage.misc.functional import sqrt
+from sage.geometry.hyperbolic_space.hyperbolic_constants import EPSILON
 from sage.misc.lazy_import import lazy_import
-lazy_import('sage.misc.misc', 'attrcall')
+lazy_import('sage.misc.call', 'attrcall')
+
 
 class HyperbolicModelCoercion(Morphism):
     """
@@ -81,7 +83,7 @@ class HyperbolicModelCoercion(Morphism):
         """
         C = self.codomain()
         if not C.is_bounded() and self.domain().is_bounded() and x.is_boundary():
-            msg = u"boundary points are not implemented for the {}"
+            msg = "boundary points are not implemented for the {}"
             raise NotImplementedError(msg.format(C.name()))
 
         y = self.image_coordinates(x.coordinates())
@@ -148,6 +150,7 @@ class HyperbolicModelCoercion(Morphism):
 # From UHP #
 ############
 
+
 class CoercionUHPtoPD(HyperbolicModelCoercion):
     """
     Coercion from the UHP to PD model.
@@ -184,9 +187,10 @@ class CoercionUHPtoPD(HyperbolicModelCoercion):
             [0 1]
         """
         if x.det() < 0:
-#            x = I * x
+            # x = I * x
             return matrix([[1,-I],[-I,1]]) * x * matrix([[1,I],[I,1]]).conjugate()/Integer(2)
         return matrix([[1,-I],[-I,1]]) * x * matrix([[1,I],[I,1]])/Integer(2)
+
 
 class CoercionUHPtoKM(HyperbolicModelCoercion):
     """
@@ -226,6 +230,7 @@ class CoercionUHPtoKM(HyperbolicModelCoercion):
             [0 0 1]
         """
         return SL2R_to_SO21(x)
+
 
 class CoercionUHPtoHM(HyperbolicModelCoercion):
     """
@@ -269,6 +274,7 @@ class CoercionUHPtoHM(HyperbolicModelCoercion):
 # From PD #
 ###########
 
+
 class CoercionPDtoUHP(HyperbolicModelCoercion):
     """
     Coercion from the PD to UHP model.
@@ -291,8 +297,19 @@ class CoercionPDtoUHP(HyperbolicModelCoercion):
             +Infinity
             sage: phi.image_coordinates(-I)
             0
+
+        TESTS:
+
+        Check that the second bug discussed in :issue:`32362` is fixed::
+
+            sage: PD = HyperbolicPlane().PD()
+            sage: UHP = HyperbolicPlane().UHP()
+            sage: r = exp((pi*I/2).n())
+            sage: p = PD.get_point(r)
+            sage: UHP(p)
+            Boundary point in UHP +Infinity
         """
-        if x == I:
+        if abs(x - I) < EPSILON:
             return infinity
         return (x + I)/(Integer(1) + I*x)
 
@@ -317,6 +334,7 @@ class CoercionPDtoUHP(HyperbolicModelCoercion):
         if not HyperbolicIsometryPD._orientation_preserving(x):
             return matrix([[1,I],[I,1]]) * x * matrix([[1,-I],[-I,1]]).conjugate() / Integer(2)
         return matrix([[1,I],[I,1]]) * x * matrix([[1,-I],[-I,1]]) / Integer(2)
+
 
 class CoercionPDtoKM(HyperbolicModelCoercion):
     """
@@ -444,6 +462,7 @@ class CoercionKMtoUHP(HyperbolicModelCoercion):
         """
         return SO21_to_SL2R(x)
 
+
 class CoercionKMtoPD(HyperbolicModelCoercion):
     """
     Coercion from the KM to PD model.
@@ -481,6 +500,7 @@ class CoercionKMtoPD(HyperbolicModelCoercion):
         """
         return (matrix(2,[1,-I,-I,1]) * SO21_to_SL2R(x) *
                 matrix(2,[1,I,I,1])/Integer(2))
+
 
 class CoercionKMtoHM(HyperbolicModelCoercion):
     """
@@ -524,6 +544,7 @@ class CoercionKMtoHM(HyperbolicModelCoercion):
 # From HM #
 ###########
 
+
 class CoercionHMtoUHP(HyperbolicModelCoercion):
     """
     Coercion from the HM to UHP model.
@@ -560,6 +581,7 @@ class CoercionHMtoUHP(HyperbolicModelCoercion):
         """
         return SO21_to_SL2R(x)
 
+
 class CoercionHMtoPD(HyperbolicModelCoercion):
     """
     Coercion from the HM to PD model.
@@ -595,6 +617,7 @@ class CoercionHMtoPD(HyperbolicModelCoercion):
         """
         return (matrix(2,[1,-I,-I,1]) * SO21_to_SL2R(x) *
                 matrix(2,[1,I,I,1])/Integer(2))
+
 
 class CoercionHMtoKM(HyperbolicModelCoercion):
     """
@@ -635,6 +658,7 @@ class CoercionHMtoKM(HyperbolicModelCoercion):
 #####################################################################
 ## Helper functions
 
+
 def SL2R_to_SO21(A):
     r"""
     Given a matrix in `SL(2, \RR)` return its irreducible representation in
@@ -649,23 +673,25 @@ def SL2R_to_SO21(A):
         sage: from sage.geometry.hyperbolic_space.hyperbolic_coercion import SL2R_to_SO21
         sage: A = SL2R_to_SO21(identity_matrix(2))
         sage: J = matrix([[1,0,0],[0,1,0],[0,0,-1]]) #Lorentzian Gram matrix
-        sage: norm(A.transpose()*J*A - J) < 10**-4
+        sage: norm(A.transpose()*J*A - J) < 10**-4                                      # needs scipy
         True
     """
     a, b, c, d = (A/A.det().sqrt()).list()
 
     # Kill ~0 imaginary parts
-    B = matrix(3, map(real,
-                      [a*d + b*c, a*c - b*d, a*c + b*d, a*b - c*d,
-                       Integer(1)/Integer(2)*a**2 - Integer(1)/Integer(2)*b**2 -
-                       Integer(1)/Integer(2)*c**2 + Integer(1)/Integer(2)*d**2,
-                       Integer(1)/Integer(2)*a**2 + Integer(1)/Integer(2)*b**2 -
-                       Integer(1)/Integer(2)*c**2 - Integer(1)/Integer(2)*d**2,
-                       a*b + c*d, Integer(1)/Integer(2)*a**2 -
-                       Integer(1)/Integer(2)*b**2 + Integer(1)/Integer(2)*c**2 -
-                       Integer(1)/Integer(2)*d**2, Integer(1)/Integer(2)*a**2 +
-                       Integer(1)/Integer(2)*b**2 + Integer(1)/Integer(2)*c**2 +
-                       Integer(1)/Integer(2)*d**2]))
+    components = [
+        a*d + b*c, a*c - b*d, a*c + b*d, a*b - c*d,
+        Integer(1)/Integer(2)*a**2 - Integer(1)/Integer(2)*b**2 -
+                Integer(1)/Integer(2)*c**2 + Integer(1)/Integer(2)*d**2,
+        Integer(1)/Integer(2)*a**2 + Integer(1)/Integer(2)*b**2 -
+                Integer(1)/Integer(2)*c**2 - Integer(1)/Integer(2)*d**2,
+        a*b + c*d, Integer(1)/Integer(2)*a**2 -
+                Integer(1)/Integer(2)*b**2 + Integer(1)/Integer(2)*c**2 -
+        Integer(1)/Integer(2)*d**2, Integer(1)/Integer(2)*a**2 +
+                Integer(1)/Integer(2)*b**2 + Integer(1)/Integer(2)*c**2 +
+        Integer(1)/Integer(2)*d**2
+    ]
+    B = matrix(3, [real(comp) for comp in components])
 
     #B = B.apply_map(attrcall('real'))
     if A.det() > 0:
@@ -674,6 +700,7 @@ def SL2R_to_SO21(A):
         # Orientation-reversing isometries swap the nappes of
         #  the lightcone.  This fixes that issue.
         return -B
+
 
 def SO21_to_SL2R(M):
     r"""
@@ -686,7 +713,7 @@ def SO21_to_SL2R(M):
     EXAMPLES::
 
         sage: from sage.geometry.hyperbolic_space.hyperbolic_coercion import SO21_to_SL2R
-        sage: (SO21_to_SL2R(identity_matrix(3)) - identity_matrix(2)).norm() < 10**-4
+        sage: (SO21_to_SL2R(identity_matrix(3)) - identity_matrix(2)).norm() < 10**-4   # needs scipy
         True
     """
     ####################################################################

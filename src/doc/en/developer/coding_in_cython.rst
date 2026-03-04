@@ -32,13 +32,13 @@ up-to-date information or check out the
 to get started immediately.
 
 
-Writing Cython Code in Sage
+Writing Cython code in Sage
 ===========================
 
 There are several ways to create and build Cython code in Sage.
 
-#. In the Sage Notebook, begin any cell with ``%cython``. When you
-   evaluate that cell,
+#. In the Sage notebook or the Sage command line, begin any cell with
+   a line containing ``%%cython``. When you evaluate that cell,
 
    #. It is saved to a file.
 
@@ -53,67 +53,22 @@ There are several ways to create and build Cython code in Sage.
       program that was compiled to create the ``.so`` file.
 
    #. A ``cpdef`` or ``def`` function, say ``testfunction``, defined in
-      a ``%cython`` cell in a worksheet can be imported and made available
-      in a different ``%cython`` cell within the same worksheet by
+      a ``%%cython`` cell in a worksheet can be imported and made available
+      in a different ``%%cython`` cell within the same worksheet by
       importing it as shown below::
 
-          %cython
+          %%cython
           from __main__ import testfunction
 
-#. Create an ``.spyx`` file and attach or load it from the command
-   line. This is similar to creating a ``%cython`` cell in the
-   notebook but works completely from the command line (and not from
-   the notebook).
+   Refer to :meth:`sage.repl.ipython_extension.SageMagics.cython`.
+
+#. Create an ``.spyx`` file and attach or load it
+   from the command line.
 
 #. Create a ``.pyx`` file and add it to the Sage library.
+   Then run ``sage -b`` to rebuild Sage.
 
-   #. First, add a listing for the Cython extension to the variable
-      ``ext_modules`` in the file
-      ``SAGE_ROOT/src/module_list.py``. See the
-      ``distutils.extension.Extension`` class for more information on
-      creating a new Cython extension.
-
-   #. Run ``sage -b`` to rebuild Sage.
-
-   For example, in order to compile
-   ``SAGE_ROOT/src/sage/graphs/chrompoly.pyx``, we see the following
-   lines in ``module_list.py``::
-
-    Extension('sage.graphs.chrompoly',
-              sources = ['sage/graphs/chrompoly.pyx'],
-              libraries = ['gmp']),
-
-
-Special Pragmas
-===============
-
-If Cython code is either attached or loaded as a ``.spyx`` file or
-loaded from the notebook as a ``%cython`` block, the following
-pragmas are available:
-
-* clang --- may be either c or c++ indicating whether a C or C++
-  compiler should be used.
-
-* clib --- additional libraries to be linked in, the space separated
-  list is split and passed to distutils.
-
-* cinclude --- additional directories to search for header files. The
-  space separated list is split and passed to distutils.
-
-* cfile -- additional C or C++ files to be compiled
-
-* cargs -- additional parameters passed to the compiler
-
-For example::
-
-    #clang C++
-    #clib givaro
-    #cinclude /usr/local/include/
-    #cargs -ggdb
-    #cfile foo.c
-
-
-Attaching or Loading .spyx Files
+Attaching or loading .spyx files
 ================================
 
 The easiest way to try out Cython without having to learn anything
@@ -122,7 +77,9 @@ about distutils, etc., is to create a file with the extension
 
 #. Create a file ``power2.spyx``.
 
-#. Put the following in it::
+#. Put the following in it:
+
+   .. CODE-BLOCK:: cython
 
        def is2pow(n):
            while n != 0 and n%2 == 0:
@@ -184,7 +141,7 @@ version with a type declaration, by changing ``def is2pow(n):`` to
 
 .. _section-interrupt:
 
-Interrupt and Signal Handling
+Interrupt and signal handling
 =============================
 
 When writing Cython code for Sage, special care must be taken to ensure
@@ -194,7 +151,7 @@ Sage uses the `cysignals package <https://github.com/sagemath/cysignals>`_
 for this, see the `cysignals documentation <http://cysignals.readthedocs.org/>`_
 for more information.
 
-Unpickling Cython Code
+Unpickling Cython code
 ======================
 
 Pickling for Python classes and extension classes, such as Cython, is different.
@@ -203,7 +160,9 @@ extension classes you need to write a :meth:`__reduce__` method which typically
 returns a tuple ``(f, args, ...)`` such that ``f(*args)`` returns (a copy of) the
 original object. As an example, the following code snippet is the
 :meth:`~sage.rings.integer.Integer.__reduce__` method from
-:class:`sage.rings.integer.Integer`::
+:class:`sage.rings.integer.Integer`:
+
+.. CODE-BLOCK:: cython
 
     def __reduce__(self):
         '''
@@ -213,7 +172,7 @@ original object. As an example, the following code snippet is the
 
             sage: n = 5
             sage: t = n.__reduce__(); t
-            (<built-in function make_integer>, ('5',))
+            (<cyfunction make_integer at ...>, ('5',))
             sage: t[0](*t[1])
             5
             sage: loads(dumps(n)) == n
@@ -230,4 +189,24 @@ original object. As an example, the following code snippet is the
 
 
 .. _python pickling documentation: http://docs.python.org/library/pickle.html#pickle-protocol
+
+Deprecation
+===========
+
+When making a **backward-incompatible** modification in Sage, the old code should
+keep working and display a message indicating how it should be updated/written
+in the future. We call this a *deprecation*.
+
+.. NOTE::
+
+    Deprecated code can only be removed one year after the first
+    stable release in which it appeared.
+
+Each deprecation warning contains the number of the GitHub PR that defines
+it. We use 666 in the example below.
+
+.. CODE-BLOCK:: cython
+
+      from sage.misc.superseded import deprecation_cython
+      deprecation_cython(666, "Do not use your computer to compute 1+1. Use your brain.")
 

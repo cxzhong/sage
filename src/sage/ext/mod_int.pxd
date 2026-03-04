@@ -5,7 +5,7 @@ The `mod_int` Data Type
 * In Cython files, use `from sage.ext.mod_int cimport *`
 """
 
-#*****************************************************************************
+# ***************************************************************************
 #       Copyright (C) 2013 Volker Braun <vbraun.name@gmail.com>
 #       Copyright (C) 2013 William Stein <wstein@gmail.com>
 #
@@ -13,11 +13,11 @@ The `mod_int` Data Type
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ***************************************************************************
 
 
-cdef extern from "sage/ext/mod_int.h":
+cdef extern from "mod_int.h":
     ctypedef long mod_int
     mod_int MOD_INT_MAX
     mod_int MOD_INT_OVERFLOW

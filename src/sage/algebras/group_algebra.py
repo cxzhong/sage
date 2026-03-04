@@ -1,3 +1,4 @@
+# sage.doctest: needs sage.groups sage.modules
 r"""
 Group algebras
 
@@ -5,21 +6,21 @@ This functionality has been moved to :mod:`sage.categories.algebra_functor`.
 
 TESTS:
 
-Check that unpicking old group algebra classes work::
+Check that unpicking old group algebra classes works::
 
-sage: G = loads("x\x9cM\xceM\n\xc20\x10\x86a\xac\xff\xf1$n\xb2\xf1\x04\x82"
-....:           "\xe8>\xe0:\xc4fL\x83i\xda\x99$K\xc1M\xf5\xdaj\x1a\xc1\xdd<"
-....:           "\xf0\xbd0\x8f\xaa\x0e\xca\x00\x0f\x91R\x1d\x13\x01O\xdeb\x02I"
-....:           "\xd0\x13\x04\xf0QE\xdby\x96<\x81N50\x9c\x8c\x81r\x06.\xa4\x027"
-....:           "\xd4\xa5^\x16\xb2\xd3W\xfb\x02\xac\x9a\xb2\xce\xa3\xc0{\xa0V"
-....:           "\x9ar\x8c\xa1W-hv\xb0\rhR.\xe7\x0c\xa7cE\xd6\x9b\xc0\xad\x8f`"
-....:           "\x80X\xabn \x7f\xc0\xd9y\xb2\x1b\x04\xce\x87\xfb\x0b\x17\x02"
-....:           "\x97\xff\x05\xe5\x9f\x95\x93W\x0bN3Qx\xcc\xc2\xd5V\xe0\xfa\xf9"
-....:           "\xc9\x98\xc0\r\x7f\x03\x9d\xd7^'")
-sage: G
-Algebra of Dihedral group of order 6 as a permutation group over Rational Field
-sage: type(G)
-<class 'sage.algebras.group_algebra.GroupAlgebra_class_with_category'>
+    sage: G = loads(b"x\x9cM\xceM\n\xc20\x10\x86a\xac\xff\xf1$n\xb2\xf1\x04\x82"
+    ....:           b"\xe8>\xe0:\xc4fL\x83i\xda\x99$K\xc1M\xf5\xdaj\x1a\xc1\xdd<"
+    ....:           b"\xf0\xbd0\x8f\xaa\x0e\xca\x00\x0f\x91R\x1d\x13\x01O\xdeb\x02I"
+    ....:           b"\xd0\x13\x04\xf0QE\xdby\x96<\x81N50\x9c\x8c\x81r\x06.\xa4\x027"
+    ....:           b"\xd4\xa5^\x16\xb2\xd3W\xfb\x02\xac\x9a\xb2\xce\xa3\xc0{\xa0V"
+    ....:           b"\x9ar\x8c\xa1W-hv\xb0\rhR.\xe7\x0c\xa7cE\xd6\x9b\xc0\xad\x8f`"
+    ....:           b"\x80X\xabn \x7f\xc0\xd9y\xb2\x1b\x04\xce\x87\xfb\x0b\x17\x02"
+    ....:           b"\x97\xff\x05\xe5\x9f\x95\x93W\x0bN3Qx\xcc\xc2\xd5V\xe0\xfa\xf9"
+    ....:           b"\xc9\x98\xc0\r\x7f\x03\x9d\xd7^'")
+    sage: G
+    Algebra of Dihedral group of order 6 as a permutation group over Rational Field
+    sage: type(G)
+    <class 'sage.algebras.group_algebra.GroupAlgebra_class_with_category'>
 """
 
 #*****************************************************************************
@@ -35,22 +36,23 @@ sage: type(G)
 #                  http://www.gnu.org/licenses/
 #*****************************************************************************
 
-from sage.rings.all import IntegerRing
-from sage.categories.all import Rings
+from sage.rings.integer_ring import IntegerRing
+from sage.categories.rings import Rings
 from sage.categories.magmas import Magmas
 from sage.categories.additive_magmas import AdditiveMagmas
 from sage.categories.sets_cat import Sets
 from sage.categories.morphism import SetMorphism
 from sage.combinat.free_module import CombinatorialFreeModule
 
+
 def GroupAlgebra(G, R=IntegerRing()):
-    """
+    r"""
     Return the group algebra of `G` over `R`.
 
     INPUT:
 
-    - `G` -- a group
-    - `R` -- (default: `\ZZ`) a ring
+    - ``G`` -- a group
+    - ``R`` -- (default: `\ZZ`) a ring
 
     EXAMPLES:
 
@@ -62,7 +64,7 @@ def GroupAlgebra(G, R=IntegerRing()):
         sage: A = GroupAlgebra(G, R); A
         Algebra of Dihedral group of order 6 as a permutation group over Rational Field
         sage: a = A.an_element(); a
-        () + 4*(1,2,3) + 2*(1,3)
+        () + (1,2) + 3*(1,2,3) + 2*(1,3,2)
 
     This space is endowed with an algebra structure, obtained by extending
     by bilinearity the multiplication of `G` to a multiplication on `RG`::
@@ -70,7 +72,7 @@ def GroupAlgebra(G, R=IntegerRing()):
         sage: A in Algebras
         True
         sage: a * a
-        5*() + 8*(2,3) + 8*(1,2) + 8*(1,2,3) + 16*(1,3,2) + 4*(1,3)
+        14*() + 5*(2,3) + 2*(1,2) + 10*(1,2,3) + 13*(1,3,2) + 5*(1,3)
 
     :func:`GroupAlgebra` is just a short hand for a more general
     construction that covers, e.g., monoid algebras, additive group
@@ -107,10 +109,11 @@ def GroupAlgebra(G, R=IntegerRing()):
          over Rational Field
     """
     if not (G in Magmas() or G in AdditiveMagmas()):
-        raise ValueError("%s is not a magma or additive magma"%G)
-    if not R in Rings():
-        raise ValueError("%s is not a ring"%R)
+        raise ValueError("%s is not a magma or additive magma" % G)
+    if R not in Rings():
+        raise ValueError("%s is not a ring" % R)
     return G.algebra(R)
+
 
 class GroupAlgebra_class(CombinatorialFreeModule):
     def _coerce_map_from_(self, S):
@@ -154,9 +157,16 @@ class GroupAlgebra_class(CombinatorialFreeModule):
             sage: QG = G.algebra(QQ)
             sage: ZG = G.algebra(ZZ)
             sage: ZG.coerce_map_from(H)
-            Coercion map:
+            Composite map:
               From: Cyclic group of order 3 as a permutation group
               To:   Algebra of Dihedral group of order 6 as a permutation group over Integer Ring
+              Defn:   Coercion map:
+                      From: Cyclic group of order 3 as a permutation group
+                      To:   Dihedral group of order 6 as a permutation group
+                    then
+                      Coercion map:
+                      From: Dihedral group of order 6 as a permutation group
+                      To:   Algebra of Dihedral group of order 6 as a permutation group over Integer Ring
             sage: QG.coerce_map_from(ZG)
             Generic morphism:
               From: Algebra of Dihedral group of order 6 as a permutation group over Integer Ring
@@ -170,25 +180,18 @@ class GroupAlgebra_class(CombinatorialFreeModule):
               From: Algebra of Cyclic group of order 3 as a permutation group over Integer Ring
               To:   Algebra of Dihedral group of order 6 as a permutation group over Rational Field
 
+            sage: H = PermutationGroup([ [(1,2), (3,4)], [(5,6,7),(12,14,18)] ])
+            sage: kH = H.algebra(GF(2))
+            sage: [a, b] = kH.gens()
+            sage: x = kH(a) + kH(b) + kH.one(); print(x)
+            () + (5,6,7)(12,14,18) + (1,2)(3,4)
+            sage: x*x  #checks :issue:34292
+            (5,7,6)(12,18,14)
+
         As expected, there is no coercion when restricting the
         field::
 
             sage: ZG.coerce_map_from(QG)
-
-        This coercion when restricting the group is unexpected::
-
-            sage: QH.coerce_map_from(QG)
-            Generic morphism:
-              From: Algebra of Dihedral group of order 6 as a permutation group over Rational Field
-              To:   Algebra of Cyclic group of order 3 as a permutation group over Rational Field
-
-        but is induced by the partial coercion at the level of
-        the groups::
-
-            sage: H.coerce_map_from(G)
-            Call morphism:
-              From: Dihedral group of order 6 as a permutation group
-              To:   Cyclic group of order 3 as a permutation group
 
         There is no coercion for additive groups since ``+`` could mean
         both the action (i.e., the group operation) or adding a term::
@@ -201,11 +204,16 @@ class GroupAlgebra_class(CombinatorialFreeModule):
         G = self.basis().keys()
         K = self.base_ring()
 
-        if G.has_coerce_map_from(S):
+        G_coercion = G.coerce_map_from(S)
+        if G_coercion is not None:
             from sage.categories.groups import Groups
             # No coercion for additive groups because of ambiguity of +
             #   being the group action or addition of a new term.
-            return self.category().is_subcategory(Groups().Algebras(K))
+            if not self.category().is_subcategory(Groups().Algebras(K)):
+                return None
+            if S is G:
+                return True
+            return self.coerce_map_from(G) * G_coercion
 
         if S in Sets.Algebras:
             S_K = S.base_ring()
@@ -214,8 +222,9 @@ class GroupAlgebra_class(CombinatorialFreeModule):
             hom_G = G.coerce_map_from(S_G)
             if hom_K is not None and hom_G is not None:
                 return SetMorphism(S.Hom(self, category=self.category() | S.category()),
-                                   lambda x: self.sum_of_terms( (hom_G(g), hom_K(c)) for g,c in x ))
+                                   lambda x: self.sum_of_terms((hom_G(g), hom_K(c)) for g, c in x))
 
-from sage.structure.sage_object import register_unpickle_override
-register_unpickle_override('sage.algebras.group_algebras', 'GroupAlgebra',  GroupAlgebra_class)
 
+from sage.misc.persist import register_unpickle_override
+register_unpickle_override('sage.algebras.group_algebras', 'GroupAlgebra',
+                           GroupAlgebra_class)

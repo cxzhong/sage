@@ -1,4 +1,11 @@
-#*****************************************************************************
+# distutils: libraries = NTL_LIBRARIES gmp m
+# distutils: extra_compile_args = NTL_CFLAGS
+# distutils: include_dirs = NTL_INCDIR
+# distutils: library_dirs = NTL_LIBDIR
+# distutils: extra_link_args = NTL_LIBEXTRA
+# distutils: language = c++
+
+# ****************************************************************************
 #       Copyright (C) 2005 William Stein <wstein@gmail.com>
 #       Copyright (C) 2007 Martin Albrecht <malb@informatik.uni-bremen.de>
 #
@@ -11,12 +18,10 @@
 #
 #  The full text of the GPL is available at:
 #
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
-from __future__ import absolute_import, division
-
-from cysignals.signals cimport sig_on, sig_off
+from sage.ext.cplusplus cimport ccrepr, ccreadstr
 
 include 'misc.pxi'
 include 'decl.pxi'
@@ -24,8 +29,8 @@ include 'decl.pxi'
 from cpython.object cimport Py_EQ, Py_NE
 from sage.rings.integer cimport Integer
 
-from .ntl_ZZ import unpickle_class_value
-from .ntl_GF2 cimport ntl_GF2
+from sage.libs.ntl.ntl_ZZ import unpickle_class_value
+from sage.libs.ntl.ntl_GF2 cimport ntl_GF2
 
 
 ##############################################################################
@@ -49,9 +54,11 @@ def GF2XHexOutput(have_hex=None):
     returned.
 
     INPUT:
-        have_hex if True hex representation will be used
 
-    EXAMPLES:
+    - ``have_hex`` -- if ``True`` hex representation will be used
+
+    EXAMPLES::
+
         sage: m = ntl.GF2EContext(ntl.GF2X([1,1,0,1,1,0,0,0,1]))
         sage: x = ntl.GF2E([1,0,1,0,1], m) ; x
         [1 0 1 0 1]
@@ -77,13 +84,14 @@ def GF2XHexOutput(have_hex=None):
     else:
         GF2XHexOutput_c[0] = 0
 
-cdef class ntl_GF2X(object):
+
+cdef class ntl_GF2X():
     """
     Univariate Polynomials over GF(2) via NTL.
     """
     def __init__(self, x=[]):
         """
-        Constructs a new polynomial over GF(2).
+        Construct a new polynomial over GF(2).
 
         A value may be passed to this constructor. If you pass a string
         to the constructor please note that byte sequences and the hexadecimal
@@ -94,12 +102,13 @@ cdef class ntl_GF2X(object):
         extension fields over GF(2) (uses modulus).
 
         INPUT:
-            x -- value to be assigned to this element. See examples.
 
-        OUTPUT:
-            a new ntl.GF2X element
+        - ``x`` -- value to be assigned to this element. See examples.
 
-        EXAMPLES:
+        OUTPUT: a new ntl.GF2X element
+
+        EXAMPLES::
+
             sage: ntl.GF2X(ntl.ZZ_pX([1,1,3],2))
             [1 1 1]
             sage: ntl.GF2X('0x1c')
@@ -147,20 +156,19 @@ cdef class ntl_GF2X(object):
             x = x.list() # this is slow but cimport leads to circular imports
         elif isinstance(x, FiniteField):
             if x.characteristic() == 2:
-                x= list(x.modulus())
+                x = list(x.modulus())
         elif isinstance(x, FiniteField_givaroElement):
-            x = "0x"+hex(x.integer_representation())[2:][::-1]
+            x = "0x" + hex(x.to_integer())[2:][::-1]
         elif isinstance(x, FiniteField_ntl_gf2eElement):
             x = x.polynomial().list()
         s = str(x).replace(","," ")
-        sig_on()
         # TODO: this is very slow, but we wait until somebody complains
-        GF2X_from_str(&self.x, s)
-        sig_off()
+        ccreadstr(self.x, s)
 
     def __reduce__(self):
         """
-        EXAMPLES:
+        EXAMPLES::
+
             sage: f = ntl.GF2X(ntl.ZZ_pX([1,1,3],2))
             sage: loads(dumps(f)) == f
             True
@@ -168,21 +176,23 @@ cdef class ntl_GF2X(object):
             sage: loads(dumps(f)) == f
             True
         """
-        return unpickle_class_value, (ntl_GF2X, hex(self))
+        return unpickle_class_value, (ntl_GF2X, self.hex())
 
     def __repr__(self):
         """
-        Return the string representation of self.
+        Return the string representation of ``self``.
 
-        EXAMPLES:
+        EXAMPLES::
+
             sage: ntl.GF2X(ntl.ZZ_pX([1,1,3],2)).__repr__()
             '[1 1 1]'
         """
-        return GF2X_to_PyString(&self.x)
+        return ccrepr(self.x)
 
     def __mul__(ntl_GF2X self, other):
         """
-        EXAMPLES:
+        EXAMPLES::
+
             sage: f = ntl.GF2X([1,0,1,1]) ; g = ntl.GF2X([0,1])
             sage: f*g ## indirect doctest
             [0 1 0 1 1]
@@ -195,7 +205,8 @@ cdef class ntl_GF2X(object):
 
     def __truediv__(ntl_GF2X self, b):
         """
-        EXAMPLES:
+        EXAMPLES::
+
             sage: a = ntl.GF2X(4)
             sage: a / ntl.GF2X(2)
             [0 1]
@@ -215,12 +226,10 @@ cdef class ntl_GF2X(object):
             raise ArithmeticError("self (=%s) is not divisible by b (=%s)" % (self, b))
         return q
 
-    def __div__(self, other):
-        return self / other
-
     def DivRem(ntl_GF2X self, b):
         """
-        EXAMPLES:
+        EXAMPLES::
+
             sage: a = ntl.GF2X(4)
             sage: a.DivRem( ntl.GF2X(2) )
             ([0 1], [])
@@ -238,7 +247,8 @@ cdef class ntl_GF2X(object):
 
     def __floordiv__(ntl_GF2X self, b):
         """
-        EXAMPLES:
+        EXAMPLES::
+
             sage: a = ntl.GF2X(4)
             sage: a // ntl.GF2X(2)
             [0 1]
@@ -255,7 +265,8 @@ cdef class ntl_GF2X(object):
 
     def __mod__(ntl_GF2X self, b):
         """
-        EXAMPLES:
+        EXAMPLES::
+
             sage: a = ntl.GF2X(4)
             sage: a % ntl.GF2X(2)
             []
@@ -272,7 +283,8 @@ cdef class ntl_GF2X(object):
 
     def __sub__(ntl_GF2X self, other):
         """
-        EXAMPLES:
+        EXAMPLES::
+
             sage: f = ntl.GF2X([1,0,1,1]) ; g = ntl.GF2X([0,1])
             sage: f - g ## indirect doctest
             [1 1 1 1]
@@ -287,7 +299,8 @@ cdef class ntl_GF2X(object):
 
     def __add__(ntl_GF2X self, other):
         """
-        EXAMPLES:
+        EXAMPLES::
+
             sage: f = ntl.GF2X([1,0,1,1]) ; g = ntl.GF2X([0,1,0])
             sage: f + g ## indirect doctest
             [1 1 1 1]
@@ -300,7 +313,8 @@ cdef class ntl_GF2X(object):
 
     def __neg__(ntl_GF2X self):
         """
-        EXAMPLES:
+        EXAMPLES::
+
             sage: f = ntl.GF2X([1,0,1,1])
             sage: -f ## indirect doctest
             [1 0 1 1]
@@ -313,7 +327,8 @@ cdef class ntl_GF2X(object):
 
     def __pow__(ntl_GF2X self, long e, ignored):
         """
-        EXAMPLES:
+        EXAMPLES::
+
             sage: f = ntl.GF2X([1,0,1,1]) ; g = ntl.GF2X([0,1,0])
             sage: f**3 ## indirect doctest
             [1 0 1 1 1 0 0 1 1 1]
@@ -324,7 +339,7 @@ cdef class ntl_GF2X(object):
 
     def __richcmp__(ntl_GF2X self, other, int op):
         """
-        Compare self to other.
+        Compare ``self`` to ``other``.
 
         EXAMPLES::
 
@@ -350,13 +365,15 @@ cdef class ntl_GF2X(object):
 
     def __lshift__(ntl_GF2X self, int i):
         """
-        Return left shift of self by i bits ( == multiplication by
-        $X^i$).
+        Return left shift of ``self`` by i bits ( == multiplication by
+        `X^i`).
 
         INPUT:
-            i -- offset/power of X
 
-        EXAMPLES:
+        - ``i`` -- offset/power of X
+
+        EXAMPLES::
+
             sage: a = ntl.GF2X(4); a
             [0 0 1]
             sage: a << 2
@@ -368,13 +385,15 @@ cdef class ntl_GF2X(object):
 
     def __rshift__(ntl_GF2X self, int offset):
         """
-        Return right shift of self by i bits ( == floor division by
-        $X^i$).
+        Return right shift of ``self`` by i bits ( == floor division by
+        `X^i`).
 
         INPUT:
-            i -- offset/power of X
 
-        EXAMPLES:
+        - ``i`` -- offset/power of X
+
+        EXAMPLES::
+
             sage: a = ntl.GF2X(4); a
             [0 0 1]
             sage: a >> 1
@@ -386,12 +405,14 @@ cdef class ntl_GF2X(object):
 
     def GCD(ntl_GF2X self, other):
         """
-        Return GCD of self and other.
+        Return GCD of ``self`` and ``other``.
 
         INPUT:
-            other -- ntl.GF2X
 
-        EXAMPLES:
+        - ``other`` -- ntl.GF2X
+
+        EXAMPLES::
+
             sage: a = ntl.GF2X(10)
             sage: b = ntl.GF2X(4)
             sage: a.GCD(b)
@@ -407,20 +428,21 @@ cdef class ntl_GF2X(object):
 
     def XGCD(ntl_GF2X self, other):
         """
-        Return the extended gcd of self and other, i.e., elements r, s, t such that
+        Return the extended gcd of ``self`` and ``other``, i.e., elements r, s, t such that.
 
             r = s  * self + t  * other.
 
         INPUT:
-            other -- ntl.GF2X
 
-        EXAMPLES:
+        - ``other`` -- ntl.GF2X
+
+        EXAMPLES::
+
             sage: a = ntl.GF2X(10)
             sage: b = ntl.GF2X(4)
             sage: r,s,t = a.XGCD(b)
             sage: r == a*s + t*b
             True
-
         """
         cdef ntl_GF2X r = ntl_GF2X.__new__(ntl_GF2X)
         cdef ntl_GF2X s = ntl_GF2X.__new__(ntl_GF2X)
@@ -434,9 +456,10 @@ cdef class ntl_GF2X(object):
 
     def deg(ntl_GF2X self):
         """
-        Returns the degree of this polynomial
+        Return the degree of this polynomial.
 
-        EXAMPLES:
+        EXAMPLES::
+
             sage: ntl.GF2X([1,0,1,1]).deg()
             3
         """
@@ -444,9 +467,10 @@ cdef class ntl_GF2X(object):
 
     def list(ntl_GF2X self):
         """
-        Represents this element as a list of binary digits.
+        Represent this element as a list of binary digits.
 
-        EXAMPLES:
+        EXAMPLES::
+
              sage: e=ntl.GF2X([0,1,1])
              sage: e.list()
              [0, 1, 1]
@@ -454,75 +478,76 @@ cdef class ntl_GF2X(object):
              sage: e.list()
              [1, 1, 1, 1, 1, 1, 1, 1]
 
-        OUTPUT:
-             a list of digits representing the coefficients in this element's
-             polynomial representation
+        OUTPUT: list of digits representing the coefficients in this element's
+        polynomial representation
         """
         return [self[i] for i in range(GF2X_deg(self.x)+1)]
 
     def bin(ntl_GF2X self):
-        """
-        Returns binary representation of this element. It is
-        the same as setting \code{ntl.GF2XHexOutput(False)} and
-        representing this element afterwards. However it should be
-        faster and preserves the HexOutput state as opposed to
-        the above code.
+        r"""
+        Return binary representation of this element.
 
-        EXAMPLES:
+        It is the same as setting \code{ntl.GF2XHexOutput(False)} and
+        representing this element afterwards. However it should be
+        faster and preserves the HexOutput state as opposed to the above code.
+
+        EXAMPLES::
+
              sage: e=ntl.GF2X([1,1,0,1,1,1,0,0,1])
              sage: e.bin()
              '[1 1 0 1 1 1 0 0 1]'
 
         OUTPUT:
-            string representing this element in binary digits
+
+        string representing this element in binary digits
         """
         cdef long _hex = GF2XHexOutput_c[0]
         GF2XHexOutput_c[0] = 0
-        s = GF2X_to_PyString(&self.x)
+        s = ccrepr(self.x)
         GF2XHexOutput_c[0] = _hex
         return s
 
-    def __hex__(ntl_GF2X self):
-        """
-        Returns hexadecimal representation of this element. It is
-        the same as setting \code{ntl.GF2XHexOutput(True)} and
-        representing this element afterwards. However it should be
-        faster and preserves the HexOutput state as opposed to
-        the above code.
+    def hex(ntl_GF2X self):
+        r"""
+        Return a hexadecimal representation of this element.
 
-        EXAMPLES:
-             sage: e=ntl.GF2X([1,1,0,1,1,1,0,0,1])
-             sage: hex(e)
-             '0xb31'
+        It is the same as setting \code{ntl.GF2XHexOutput(True)} and
+        representing this element afterwards. However it should be faster and
+        preserves the HexOutput state as opposed to the above code.
 
-        OUTPUT:
-            string representing this element in hexadecimal
+        OUTPUT: string representing this element in hexadecimal
 
+        EXAMPLES::
+
+            sage: e = ntl.GF2X([1,1,0,1,1,1,0,0,1])
+            sage: e.hex()
+            '0xb31'
         """
         cdef long _hex = GF2XHexOutput_c[0]
         GF2XHexOutput_c[0] = 1
-        s = GF2X_to_PyString(&self.x)
+        s = ccrepr(self.x)
         GF2XHexOutput_c[0] = _hex
         return s
 
     def __hash__(self):
-        return hash(hex(self))
+        return hash(self.hex())
 
     def _sage_(ntl_GF2X self, R=None):
         """
-        Returns a Sage polynomial over GF(2) equivalent to
-        this element. If a ring R is provided it is used
-        to construct the polynomial in, otherwise
-        an appropriate ring is generated.
+        Return a Sage polynomial over GF(2) equivalent to this element.
+
+        If a ring R is provided, it is used to construct the polynomial
+        in. Otherwise, an appropriate ring is generated.
 
         INPUT:
-            self  -- GF2X element
-            R     -- PolynomialRing over GF(2)
 
-        OUTPUT:
-            polynomial in R
+        - ``self`` -- GF2X element
+        - ``R`` -- PolynomialRing over GF(2)
 
-        EXAMPLES:
+        OUTPUT: polynomial in R
+
+        EXAMPLES::
+
             sage: f = ntl.GF2X([1,0,1,1,0,1])
             sage: f._sage_()
             x^5 + x^3 + x^2 + 1
@@ -534,16 +559,18 @@ cdef class ntl_GF2X(object):
             from sage.rings.finite_rings.finite_field_constructor import FiniteField
             R = PolynomialRing(FiniteField(2), 'x')
 
-        return R(map(int,self.list()))
+        return R([int(c) for c in self.list()])
 
     def coeff(self, int i):
         """
-        Return the coefficient of the monomial $X^i$ in self.
+        Return the coefficient of the monomial `X^i` in ``self``.
 
         INPUT:
-            i -- degree of X
 
-        EXAMPLES:
+        - ``i`` -- degree of X
+
+        EXAMPLES::
+
             sage: e = ntl.GF2X([0,1,0,1])
             sage: e.coeff(0)
             0
@@ -556,6 +583,8 @@ cdef class ntl_GF2X(object):
 
     def __getitem__(self, int i):
         """
+        EXAMPLES::
+
             sage: e = ntl.GF2X([0,1,0,1])
             sage: e[0] # indirect doctest
             0
@@ -568,10 +597,12 @@ cdef class ntl_GF2X(object):
 
     def LeadCoeff(self):
         """
-        Return the leading coefficient of self. This is always 1
-        except when self == 0.
+        Return the leading coefficient of ``self``.
 
-        EXAMPLES:
+        This is always 1 except when ``self == 0``.
+
+        EXAMPLES::
+
             sage: e = ntl.GF2X([0,1])
             sage: e.LeadCoeff()
             1
@@ -585,9 +616,10 @@ cdef class ntl_GF2X(object):
 
     def ConstTerm(self):
         """
-        Return the constant term of self.
+        Return the constant term of ``self``.
 
-        EXAMPLES:
+        EXAMPLES::
+
             sage: e = ntl.GF2X([1,0,1])
             sage: e.ConstTerm()
             1
@@ -601,9 +633,10 @@ cdef class ntl_GF2X(object):
 
     def SetCoeff(self, int i, a):
         """
-        Return the constant term of self.
+        Set the value of a coefficient of ``self``.
 
-        EXAMPLES:
+        EXAMPLES::
+
             sage: e = ntl.GF2X([1,0,1]); e
             [1 0 1]
             sage: e.SetCoeff(1,1)
@@ -616,6 +649,8 @@ cdef class ntl_GF2X(object):
 
     def __setitem__(self, int i, a):
         """
+        EXAMPLES::
+
             sage: e = ntl.GF2X([1,0,1]); e
             [1 0 1]
             sage: e[1] = 1 # indirect doctest
@@ -627,7 +662,10 @@ cdef class ntl_GF2X(object):
 
     def diff(self):
         """
-        Differentiate self.
+        Differentiate ``self``.
+
+        EXAMPLES::
+
             sage: e = ntl.GF2X([1,0,1,1,0])
             sage: e.diff()
             [0 0 1]
@@ -636,15 +674,17 @@ cdef class ntl_GF2X(object):
         d.x = GF2X_diff(self.x)
         return d
 
-    def reverse(self, int hi = -2):
+    def reverse(self, int hi=-2):
         """
         Return reverse of a[0]..a[hi] (hi >= -1)
         hi defaults to deg(a)
 
         INPUT:
-            hi -- bit position until which reverse is requested
 
-        EXAMPLES:
+        - ``hi`` -- bit position until which reverse is requested
+
+        EXAMPLES::
+
             sage: e = ntl.GF2X([1,0,1,1,0])
             sage: e.reverse()
             [1 1 0 1]
@@ -657,9 +697,10 @@ cdef class ntl_GF2X(object):
 
     def weight(self):
         """
-        Return the number of nonzero coefficients in self.
+        Return the number of nonzero coefficients in ``self``.
 
-        EXAMPLES:
+        EXAMPLES::
+
             sage: e = ntl.GF2X([1,0,1,1,0])
             sage: e.weight()
             3
@@ -668,6 +709,8 @@ cdef class ntl_GF2X(object):
 
     def __int__(self):
         """
+        EXAMPLES::
+
             sage: e = ntl.GF2X([1,0,1,1,0])
             sage: int(e)
             Traceback (most recent call last):
@@ -684,9 +727,10 @@ cdef class ntl_GF2X(object):
 
     def NumBits(self):
         """
-        returns number of bits of self, i.e., deg(self) + 1.
+        Return the number of bits of self, i.e., deg(self) + 1.
 
-        EXAMPLES:
+        EXAMPLES::
+
             sage: e = ntl.GF2X([1,0,1,1,0])
             sage: e.NumBits()
             4
@@ -695,6 +739,8 @@ cdef class ntl_GF2X(object):
 
     def __len__(self):
         """
+        EXAMPLES::
+
             sage: e = ntl.GF2X([1,0,1,1,0])
             sage: len(e)
             4
@@ -703,9 +749,10 @@ cdef class ntl_GF2X(object):
 
     def NumBytes(self):
         """
-        Returns number of bytes of self, i.e., floor((NumBits(self)+7)/8)
+        Return the number of bytes of ``self``, i.e., floor((NumBits(self)+7)/8).
 
-        EXAMPLES:
+        EXAMPLES::
+
             sage: e = ntl.GF2X([1,0,1,1,0,0,0,0,1,1,1,0,0,1,1,0,1,1])
             sage: e.NumBytes()
             3

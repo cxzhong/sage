@@ -1,1 +1,1 @@
-$(PYTHON) singular | pip
+ singular | $(PYTHON_TOOLCHAIN) $(PYTHON)

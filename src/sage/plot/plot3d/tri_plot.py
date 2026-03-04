@@ -20,17 +20,17 @@ AUTHOR:
 #  Distributed under the terms of the GNU General Public License (GPL)
 #                  http://www.gnu.org/licenses/
 ###########################################################################
-from __future__ import print_function
 
 from sage.plot.colors import hue
 from math import sqrt
 import random
 
+
 class Triangle:
     """
     A graphical triangle class.
     """
-    def __init__(self,a,b,c,color=0):
+    def __init__(self, a, b, c, color=0):
         """
         a, b, c : triples (x,y,z) representing corners on a triangle in 3-space.
 
@@ -51,7 +51,7 @@ class Triangle:
 
     def str(self):
         """
-        Returns a string representation of an instance of the Triangle
+        Return a string representation of an instance of the Triangle
         class of the form
 
             a b c color
@@ -65,7 +65,7 @@ class Triangle:
             sage: print(tri.str())
             [0, 0, 0] [-1, 2, 3] [0, 2, 0] 0
         """
-        return "%s %s %s %s"%(self._a, self._b, self._c, self._color)
+        return f"{self._a} {self._b} {self._c} {self._color}"
 
     def set_color(self, color):
         """
@@ -85,7 +85,7 @@ class Triangle:
 
     def get_vertices(self):
         """
-        Returns a tuple of vertex coordinates of the triangle.
+        Return a tuple of vertex coordinates of the triangle.
 
         TESTS::
 
@@ -96,11 +96,12 @@ class Triangle:
         """
         return (self._a, self._b, self._c)
 
+
 class SmoothTriangle(Triangle):
     """
     A class for smoothed triangles.
     """
-    def __init__(self,a,b,c,da,db,dc,color=0):
+    def __init__(self, a, b, c, da, db, dc, color=0):
         """
         a, b, c : triples (x,y,z) representing corners on a triangle in 3-space
         da, db, dc : triples (dx,dy,dz) representing the normal vector at each point a,b,c
@@ -122,7 +123,7 @@ class SmoothTriangle(Triangle):
 
     def str(self):
         """
-        Returns a string representation of the SmoothTriangle of the form
+        Return a string representation of the SmoothTriangle of the form.
 
             a b c color da db dc
 
@@ -136,11 +137,11 @@ class SmoothTriangle(Triangle):
             sage: print(t.str())
             [1, 2, 3] [2, 3, 4] [0, 0, 0] 0 [0, 0, 1] [0, 1, 0] [1, 0, 0]
         """
-        return "%s %s %s %s %s %s %s"%(self._a, self._b, self._c, self._color, self._da, self._db, self._dc)
+        return "{} {} {} {} {} {} {}".format(self._a, self._b, self._c, self._color, self._da, self._db, self._dc)
 
     def get_normals(self):
         """
-        Returns the normals to vertices a, b, and c.
+        Return the normals to vertices a, b, and c.
 
         TESTS::
 
@@ -153,7 +154,7 @@ class SmoothTriangle(Triangle):
 
 
 class TriangleFactory:
-    def triangle(self, a, b, c, color = None):
+    def triangle(self, a, b, c, color=None):
         """
         Parameters:
         a, b, c : triples (x,y,z) representing corners on a triangle in 3-space
@@ -174,7 +175,7 @@ class TriangleFactory:
         else:
             return Triangle(a,b,c,color)
 
-    def smooth_triangle(self, a, b, c, da, db, dc, color = None):
+    def smooth_triangle(self, a, b, c, da, db, dc, color=None):
         """
         Parameters:
 
@@ -218,17 +219,16 @@ class TriangleFactory:
         return list
 
 
-
 class TrianglePlot:
     """
-    Recursively plots a function of two variables by building squares of 4 triangles, checking at
+    Recursively plot a function of two variables by building squares of 4 triangles, checking at
     every stage whether or not each square should be split into four more squares.  This way,
     more planar areas get fewer triangles, and areas with higher curvature get more triangles.
     """
 
     def str(self):
         """
-        Returns a string listing the objects in the instance of the TrianglePlot class.
+        Return a string listing the objects in the instance of the TrianglePlot class.
 
         TESTS::
 
@@ -238,10 +238,10 @@ class TrianglePlot:
             sage: len(t.str())
             68980
         """
-        return "".join([o.str() for o in self._objects])
+        return "".join(o.str() for o in self._objects)
 
-    def __init__(self, triangle_factory, f, min_x__max_x, min_y__max_y, g = None,
-                       min_depth=4, max_depth=8, num_colors = None, max_bend=.3):
+    def __init__(self, triangle_factory, f, min_x__max_x, min_y__max_y, g=None,
+                 min_depth=4, max_depth=8, num_colors=None, max_bend=.3):
         """
 
         TESTS::
@@ -252,7 +252,7 @@ class TrianglePlot:
             sage: t._f(1,1)
             2
         """
-        (min_x, max_x) = min_x__max_x 
+        (min_x, max_x) = min_x__max_x
         (min_y, max_y) = min_y__max_y
         self._triangle_factory = triangle_factory
         self._f = f
@@ -262,17 +262,16 @@ class TrianglePlot:
         self._max_bend = max_bend
         self._objects = []
         if min(max_x - min_x, max_y - min_y) == 0:
-            raise ValueError('Plot rectangle is really a line.  Make sure min_x != max_x and min_y != max_y.')
+            raise ValueError('plot rectangle is really a line; make sure min_x != max_x and min_y != max_y')
         self._num_colors = num_colors
         if g is None:
-            def fcn(x,y):
+            def fcn(x, y):
                 return [self._f(x,y)]
         else:
-            def fcn(x,y):
+            def fcn(x, y):
                 return [self._f(x,y), self._g(x,y)]
 
         self._fcn = fcn
-
 
         # generate the necessary data to kick-start the recursion
         mid_x = (min_x + max_x)/2
@@ -303,7 +302,6 @@ class TrianglePlot:
                 vertices = o.get_vertices()
                 avg_z = (vertices[0][2] + vertices[1][2] + vertices[2][2])/3
                 o.set_color(colors[int(num_colors * (avg_z - self._min) / zrange)])
-
 
     def plot_block(self, min_x, mid_x, max_x, min_y, mid_y, max_y, sw_z, nw_z, se_z, ne_z, mid_z, depth):
         """
@@ -347,28 +345,28 @@ class TrianglePlot:
                 se_depth = next_depth
                 ne_depth = next_depth
             else:
-                #compute the midpoint-to-corner vectors
+                # compute the midpoint-to-corner vectors
                 sw_v = (min_x - mid_x, min_y - mid_y, sw_z[0] - mid_z[0])
                 nw_v = (min_x - mid_x, max_y - mid_y, nw_z[0] - mid_z[0])
                 se_v = (max_x - mid_x, min_y - mid_y, se_z[0] - mid_z[0])
                 ne_v = (max_x - mid_x, max_y - mid_y, ne_z[0] - mid_z[0])
 
-                #compute triangle normal unit vectors by taking the cross-products
-                #of the midpoint-to-corner vectors.  always go around clockwise
-                #so we're guaranteed to have a positive value near 1 when neighboring
-                #triangles are parallel
-                #However -- crossunit doesn't really return a unit vector.  It returns
-                #the length of the vector to avoid numerical instability when the
-                #length is nearly zero -- rather than divide by nearly zero, we multiply
-                #the other side of the inequality by nearly zero -- in general, this
-                #should work a bit better because of the density of floating-point
-                #numbers near zero.
+                # compute triangle normal unit vectors by taking the cross-products
+                # of the midpoint-to-corner vectors.  always go around clockwise
+                # so we're guaranteed to have a positive value near 1 when neighboring
+                # triangles are parallel
+                # However -- crossunit doesn't really return a unit vector.  It returns
+                # the length of the vector to avoid numerical instability when the
+                # length is nearly zero -- rather than divide by nearly zero, we multiply
+                # the other side of the inequality by nearly zero -- in general, this
+                # should work a bit better because of the density of floating-point
+                # numbers near zero.
                 norm_w = crossunit(sw_v, nw_v)
                 norm_n = crossunit(nw_v, ne_v)
                 norm_e = crossunit(ne_v, se_v)
                 norm_s = crossunit(se_v, sw_v)
 
-                #compute the dot products of the triangle unit norms
+                # compute the dot products of the triangle unit norms
                 e_sw = norm_w[0]*norm_s[0] + norm_w[1]*norm_s[1] + norm_w[2]*norm_s[2]
                 e_nw = norm_w[0]*norm_n[0] + norm_w[1]*norm_n[1] + norm_w[2]*norm_n[2]
                 e_se = norm_e[0]*norm_s[0] + norm_e[1]*norm_s[1] + norm_e[2]*norm_s[2]
@@ -402,7 +400,6 @@ class TrianglePlot:
             mid_se_z = self._fcn(qtr3_x,qtr1_y)
             mid_ne_z = self._fcn(qtr3_x,qtr3_y)
 
-
             self.extrema([mid_w_z[0], mid_n_z[0], mid_e_z[0], mid_s_z[0], mid_sw_z[0], mid_se_z[0], mid_nw_z[0], mid_sw_z[0]])
 
             # recurse into the sub-squares
@@ -417,46 +414,45 @@ class TrianglePlot:
             self.interface(0, sw.top, sw.top_c, nw.bottom, nw.bottom_c)
             self.interface(0, se.top, se.top_c, ne.bottom, ne.bottom_c)
 
-            #get the boundary information about the subsquares
-            left     = sw.left     + nw.left[1:]
-            left_c   = sw.left_c   + nw.left_c
-            right    = se.right    + ne.right[1:]
-            right_c  = se.right_c  + ne.right_c
-            top      = nw.top      + ne.top[1:]
-            top_c    = nw.top_c    + ne.top_c
-            bottom   = sw.bottom   + se.bottom[1:]
+            # get the boundary information about the subsquares
+            left = sw.left + nw.left[1:]
+            left_c = sw.left_c + nw.left_c
+            right = se.right + ne.right[1:]
+            right_c = se.right_c + ne.right_c
+            top = nw.top + ne.top[1:]
+            top_c = nw.top_c + ne.top_c
+            bottom = sw.bottom + se.bottom[1:]
             bottom_c = sw.bottom_c + se.bottom_c
 
         else:
             # just build the square we're in
             if self._g is None:
-                sw = [(min_x,min_y,sw_z[0])]
-                nw = [(min_x,max_y,nw_z[0])]
-                se = [(max_x,min_y,se_z[0])]
-                ne = [(max_x,max_y,ne_z[0])]
-                c  = [[(mid_x,mid_y,mid_z[0])]]
+                sw = [(min_x, min_y, sw_z[0])]
+                nw = [(min_x, max_y, nw_z[0])]
+                se = [(max_x, min_y, se_z[0])]
+                ne = [(max_x, max_y, ne_z[0])]
+                c = [[(mid_x, mid_y, mid_z[0])]]
             else:
-                sw = [(min_x,min_y,sw_z[0]),sw_z[1]]
-                nw = [(min_x,max_y,nw_z[0]),nw_z[1]]
-                se = [(max_x,min_y,se_z[0]),se_z[1]]
-                ne = [(max_x,max_y,ne_z[0]),ne_z[1]]
-                c  = [[(mid_x,mid_y,mid_z[0]),mid_z[1]]]
+                sw = [(min_x, min_y, sw_z[0]), sw_z[1]]
+                nw = [(min_x, max_y, nw_z[0]), nw_z[1]]
+                se = [(max_x, min_y, se_z[0]), se_z[1]]
+                ne = [(max_x, max_y, ne_z[0]), ne_z[1]]
+                c = [[(mid_x, mid_y, mid_z[0]), mid_z[1]]]
 
-
-            left     = [sw,nw]
-            left_c   = c
-            top      = [nw,ne]
-            top_c    = c
-            right    = [se,ne]
-            right_c  = c
-            bottom   = [sw,se]
+            left = [sw, nw]
+            left_c = c
+            top = [nw, ne]
+            top_c = c
+            right = [se, ne]
+            right_c = c
+            bottom = [sw, se]
             bottom_c = c
 
         return PlotBlock(left, left_c, top, top_c, right, right_c, bottom, bottom_c)
 
     def interface(self, n, p, p_c, q, q_c):
         """
-        Takes a pair of lists of points, and compares the (n)th coordinate, and
+        Take a pair of lists of points, and compares the (n)th coordinate, and
         "zips" the lists together into one.  The "centers", supplied in p_c and
         q_c are matched up such that the lists describe triangles whose sides
         are "perfectly" aligned.  This algorithm assumes that p and q start and
@@ -471,9 +467,9 @@ class TrianglePlot:
             sage: t._objects[-1].get_vertices()
             ((-1/4, 0, 1/16), (-1/4, 1/4, 1/8), (-3/8, 1/8, 3/16))
         """
-        m   = [p[0]] # a sorted union of p and q
-        mpc = [p_c[0]] # centers from p_c corresponding to m
-        mqc = [q_c[0]] # centers from q_c corresponding to m
+        m = [p[0]]      # a sorted union of p and q
+        mpc = [p_c[0]]  # centers from p_c corresponding to m
+        mqc = [q_c[0]]  # centers from q_c corresponding to m
 
         i = 1
         j = 1
@@ -501,7 +497,6 @@ class TrianglePlot:
         self.triangulate(m, mpc)
         self.triangulate(m, mqc)
 
-
     def triangulate(self, p, c):
         """
         Pass in a list of edge points (p) and center points (c).
@@ -519,12 +514,11 @@ class TrianglePlot:
         """
 
         if self._g is None:
-            for i in range(0,len(p)-1):
+            for i in range(len(p)-1):
                 self._objects.append(self._triangle_factory.triangle(p[i][0], p[i+1][0], c[i][0]))
         else:
-            for i in range(0,len(p)-1):
+            for i in range(len(p)-1):
                 self._objects.append(self._triangle_factory.smooth_triangle(p[i][0], p[i+1][0], c[i][0],p[i][1], p[i+1][1], c[i][1]))
-
 
     def extrema(self, list):
         """
@@ -547,7 +541,7 @@ class TrianglePlot:
             self._max = max(list+[self._max])
 
 
-def crossunit(u,v):
+def crossunit(u, v):
     """
     This function computes triangle normal unit vectors by taking the
     cross-products of the midpoint-to-corner vectors.  It always goes

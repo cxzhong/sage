@@ -1,9 +1,8 @@
 """
 Path Algebras
 """
-from __future__ import absolute_import
 
-#*****************************************************************************
+# ****************************************************************************
 #  Copyright (C) 2012 Jim Stark <jstarx@gmail.com>
 #                2013 Simon King <simon.king@uni-jena.de>
 #                2014 Simon King <simon.king@uni-jena.de>
@@ -17,13 +16,13 @@ from __future__ import absolute_import
 #  See the GNU General Public License for more details; the full text
 #  is available at:
 #
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
-import six
-from sage.misc.cachefunc import cached_method
 from sage.combinat.free_module import CombinatorialFreeModule
-from .algebra_elements import PathAlgebraElement
+from sage.misc.cachefunc import cached_method
+from sage.quivers.algebra_elements import PathAlgebraElement
+
 
 class PathAlgebra(CombinatorialFreeModule):
     r"""
@@ -42,17 +41,15 @@ class PathAlgebra(CombinatorialFreeModule):
 
     - ``P`` -- the path semigroup of a quiver `Q`
 
-    - ``order`` -- optional string, one of "negdegrevlex" (default),
-      "degrevlex", "negdeglex" or "deglex", defining the monomial order to be
-      used.
+    - ``order`` -- string; one of ``'negdegrevlex'`` (default),
+      ``'degrevlex'``, ``'negdeglex'`` or ``'deglex'``, defining the monomial
+      order to be used
 
-    OUTPUT:
+    OUTPUT: the path algebra `kP` with the given monomial order
 
-    - the path algebra `kP` with the given monomial order
+    .. NOTE::
 
-    NOTE:
-
-    Monomial orders that are not degree orders are not supported.
+        Monomial orders that are not degree orders are not supported.
 
     EXAMPLES::
 
@@ -68,7 +65,7 @@ class PathAlgebra(CombinatorialFreeModule):
 
         sage: A is P.algebra(GF(7))
         True
-        sage: A is P.algebra(GF(7), order="degrevlex")
+        sage: A is P.algebra(GF(7), order='degrevlex')
         False
         sage: A is P.algebra(RR)
         False
@@ -109,7 +106,7 @@ class PathAlgebra(CombinatorialFreeModule):
         sage: x.degree()
         Traceback (most recent call last):
         ...
-        ValueError: Element is not homogeneous.
+        ValueError: element is not homogeneous
         sage: y.is_homogeneous()
         True
         sage: y.degree()
@@ -133,10 +130,11 @@ class PathAlgebra(CombinatorialFreeModule):
     #                                                                         #
     ###########################################################################
 
-    def __init__(self, k, P, order = "negdegrevlex"):
+    def __init__(self, k, P, order='negdegrevlex'):
         """
-        Creates a :class:`PathAlgebra` object.  Type ``PathAlgebra?`` for
-        more information.
+        Create a :class:`PathAlgebra` object.
+
+        Type ``PathAlgebra?`` for more information.
 
         INPUT:
 
@@ -165,23 +163,23 @@ class PathAlgebra(CombinatorialFreeModule):
         self._quiver = P.quiver()
         self._semigroup = P
         self._ordstr = order
-        super(PathAlgebra, self).__init__(k, self._semigroup,
-                                             prefix='',
-                                             #element_class=self.Element,
-                                             category=GradedAlgebrasWithBasis(k),
-                                             bracket=False)
+        super().__init__(k, self._semigroup,
+                         prefix='',
+                         # element_class=self.Element,
+                         category=GradedAlgebrasWithBasis(k),
+                         bracket=False)
         self._assign_names(self._semigroup.variable_names())
 
-    def order_string(self):
+    def order_string(self) -> str:
         """
         Return the string that defines the monomial order of this algebra.
 
         EXAMPLES::
 
             sage: P1 = DiGraph({1:{1:['x','y','z']}}).path_semigroup().algebra(GF(25,'t'))
-            sage: P2 = DiGraph({1:{1:['x','y','z']}}).path_semigroup().algebra(GF(25,'t'), order="degrevlex")
-            sage: P3 = DiGraph({1:{1:['x','y','z']}}).path_semigroup().algebra(GF(25,'t'), order="negdeglex")
-            sage: P4 = DiGraph({1:{1:['x','y','z']}}).path_semigroup().algebra(GF(25,'t'), order="deglex")
+            sage: P2 = DiGraph({1:{1:['x','y','z']}}).path_semigroup().algebra(GF(25,'t'), order='degrevlex')
+            sage: P3 = DiGraph({1:{1:['x','y','z']}}).path_semigroup().algebra(GF(25,'t'), order='negdeglex')
+            sage: P4 = DiGraph({1:{1:['x','y','z']}}).path_semigroup().algebra(GF(25,'t'), order='deglex')
             sage: P1.order_string()
             'negdegrevlex'
             sage: P2.order_string()
@@ -190,12 +188,11 @@ class PathAlgebra(CombinatorialFreeModule):
             'negdeglex'
             sage: P4.order_string()
             'deglex'
-
         """
         return self._ordstr
 
     @cached_method
-    def gens(self):
+    def gens(self) -> tuple:
         """
         Return the generators of this algebra (idempotents and arrows).
 
@@ -223,8 +220,8 @@ class PathAlgebra(CombinatorialFreeModule):
             sage: A.arrows()
             (a, b, c)
         """
-        return tuple(self._from_dict( {index: self.base_ring().one()},
-                                      remove_zeros=False )
+        return tuple(self._from_dict({index: self.base_ring().one()},
+                                     remove_zeros=False)
                      for index in self._semigroup.arrows())
 
     @cached_method
@@ -240,8 +237,8 @@ class PathAlgebra(CombinatorialFreeModule):
             sage: A.idempotents()
             (e_1, e_2, e_3, e_4)
         """
-        return tuple(self._from_dict( {index: self.base_ring().one()},
-                                      remove_zeros=False )
+        return tuple(self._from_dict({index: self.base_ring().one()},
+                                     remove_zeros=False)
                      for index in self._semigroup.idempotents())
 
     @cached_method
@@ -264,8 +261,8 @@ class PathAlgebra(CombinatorialFreeModule):
             sage: A.gen(5)
             b
         """
-        return self._from_dict( {self._semigroup.gen(i): self.base_ring().one()},
-                                remove_zeros = False )
+        return self._from_dict({self._semigroup.gen(i): self.base_ring().one()},
+                               remove_zeros=False)
 
     def ngens(self):
         """
@@ -277,7 +274,6 @@ class PathAlgebra(CombinatorialFreeModule):
             sage: A = P.algebra(GF(5))
             sage: A.ngens()
             7
-
         """
         return self._semigroup.ngens()
 
@@ -300,7 +296,6 @@ class PathAlgebra(CombinatorialFreeModule):
             2*e_0 + 2*e_1 + 2*e_2 + 2*e_3
             sage: B([(0,1,'a'),(1,2,'c')])  # indirect doctest
             a*c
-
         """
         from sage.quivers.paths import QuiverPath
         # If it's an element of another path algebra, do a linear combination
@@ -318,18 +313,18 @@ class PathAlgebra(CombinatorialFreeModule):
 
         # If it's a scalar, return a multiple of one:
         if x in self.base_ring():
-            return self.one()*x
+            return self.one() * x
 
         # If it's a tuple or a list, try and create a QuiverPath from it and
         # then return the associated basis element
-        if isinstance(x, (tuple, list, six.string_types)):
+        if isinstance(x, (tuple, list, str)):
             return self.element_class(self, {self._semigroup(x): self.base_ring().one()})
 
         if isinstance(x, dict):
             return self.element_class(self, x)
 
         # Otherwise let CombinatorialFreeModule try
-        return super(PathAlgebra, self)._element_constructor_(x)
+        return super()._element_constructor_(x)
 
     def _coerce_map_from_(self, other):
         """
@@ -399,13 +394,12 @@ class PathAlgebra(CombinatorialFreeModule):
             2*e_0 + 2*e_1 + 2*e_2 + 2*e_3
             sage: B(2)*x*B(3)  # indirect doctest
             e_2 + b + e_3
-
         """
         if isinstance(other, PathAlgebra) and self._base.has_coerce_map_from(other._base):
             OQ = other._quiver
             SQ = self._quiver
             SQE = self._semigroup._sorted_edges
-            if all(v in SQ for v in OQ.vertices()) and all(e in SQE for e in other._semigroup._sorted_edges):
+            if all(v in SQ for v in OQ.vertex_iterator()) and all(e in SQE for e in other._semigroup._sorted_edges):
                 return True
         if self._semigroup.has_coerce_map_from(other):
             return True
@@ -430,8 +424,8 @@ class PathAlgebra(CombinatorialFreeModule):
 
         INPUT:
 
-        A list providing the indices of the path algebra generators occurring
-        in the monomial.
+        - ``data`` -- list providing the indices of the path algebra
+          generators occurring in the monomial
 
         EXAMPLES::
 
@@ -439,13 +433,12 @@ class PathAlgebra(CombinatorialFreeModule):
             sage: X = sage_eval('a+2*b+3*c+5*e_0+3*e_2', A.gens_dict())
             sage: X         # indirect doctest
             5*e_0 + a + 2*b + 3*c + 3*e_2
-
         """
         # m is [list, pos, mid], where the list gives the nb of arrows, pos
         # gives the component in the module, and mid gives the length of the
         # left factor in a two-sided module.
         arrows = self.variable_names()
-        return '*'.join( [arrows[n] for n in data] )
+        return '*'.join(arrows[n] for n in data)
 
     def _latex_monomial(self, data):
         """
@@ -453,19 +446,18 @@ class PathAlgebra(CombinatorialFreeModule):
 
         INPUT:
 
-        A list providing the indices of the path algebra generators occurring
-        in the monomial.
+        - ``data`` -- list providing the indices of the path algebra
+          generators occurring in the monomial
 
         EXAMPLES::
 
             sage: A = DiGraph({0:{1:['a'], 2:['b']}, 1:{0:['c'], 1:['d']}, 2:{0:['e'],2:['f']}}).path_semigroup().algebra(ZZ.quo(15))
             sage: X = sage_eval('a+2*b+3*c+5*e_0+3*e_2', A.gens_dict())
             sage: latex(X)  # indirect doctest
-            5e_0 + a + 2b + 3c + 3e_2
-
+            5 e_0 + a + 2 b + 3 c + 3 e_2
         """
         arrows = self.variable_names()
-        return '\\cdot '.join( [arrows[n] for n in data] )
+        return '\\cdot '.join(arrows[n] for n in data)
 
     @cached_method
     def one(self):
@@ -482,8 +474,8 @@ class PathAlgebra(CombinatorialFreeModule):
             e_1 + e_2 + e_3
         """
         one = self.base_ring().one()
-        D = dict((index,one) for index in self._semigroup.idempotents())
-        return self._from_dict( D )
+        D = {index: one for index in self._semigroup.idempotents()}
+        return self._from_dict(D)
 
     ###########################################################################
     #                                                                         #
@@ -496,11 +488,9 @@ class PathAlgebra(CombinatorialFreeModule):
         """
         Return the quiver from which the algebra ``self`` was formed.
 
-        OUTPUT:
+        OUTPUT: :class:`DiGraph`; the quiver of the algebra
 
-        - :class:`DiGraph`, the quiver of the algebra
-
-        EXAMPLES:
+        EXAMPLES::
 
             sage: P = DiGraph({1:{2:['a', 'b']}}).path_semigroup()
             sage: A = P.algebra(GF(3))
@@ -526,7 +516,7 @@ class PathAlgebra(CombinatorialFreeModule):
         - the path semigroup from which ``self`` was formed (a partial
           semigroup)
 
-        EXAMPLES:
+        EXAMPLES::
 
             sage: P = DiGraph({1:{2:['a', 'b']}}).path_semigroup()
             sage: A = P.algebra(GF(3))
@@ -563,19 +553,19 @@ class PathAlgebra(CombinatorialFreeModule):
 
     def sum(self, iter_of_elements):
         """
-        Returns the sum of all elements in ``iter_of_elements``
+        Return the sum of all elements in ``iter_of_elements``.
 
         INPUT:
 
-        - ``iter_of_elements``: iterator of elements of ``self``
+        - ``iter_of_elements`` -- iterator of elements of ``self``
 
-        NOTE:
+        .. NOTE::
 
-        It overrides a method inherited from
-        :class:`~sage.combinat.free_module.CombinatorialFreeModule`, which
-        relies on a private attribute of elements---an implementation
-        detail that is simply not available for
-        :class:`~sage.quivers.algebra_elements.PathAlgebraElement`.
+            It overrides a method inherited from
+            :class:`~sage.combinat.free_module.CombinatorialFreeModule`,
+            which relies on a private attribute of elements---an
+            implementation detail that is simply not available for
+            :class:`~sage.quivers.algebra_elements.PathAlgebraElement`.
 
         EXAMPLES::
 
@@ -586,6 +576,48 @@ class PathAlgebra(CombinatorialFreeModule):
             5*e_0 + a - a*d + 2*b + 3*e_2
         """
         return sum(iter_of_elements, self.zero())
+
+    def linear_combination(self, iter_of_elements_coeff, factor_on_left=True):
+        r"""
+        Return the linear combination `\lambda_1 v_1 + \cdots +
+        \lambda_k v_k` (resp.  the linear combination `v_1 \lambda_1 +
+        \cdots + v_k \lambda_k`) where ``iter_of_elements_coeff`` iterates
+        through the sequence `((v_1, \lambda_1), ..., (v_k, \lambda_k))`.
+
+        INPUT:
+
+        - ``iter_of_elements_coeff`` -- iterator of pairs ``(element, coeff)``
+          with ``element`` in ``self`` and ``coeff`` in ``self.base_ring()``
+
+        - ``factor_on_left`` -- (optional) if ``True``, the coefficients are
+          multiplied from the left if ``False``, the coefficients are
+          multiplied from the right
+
+        .. NOTE::
+
+            It overrides a method inherited from
+            :class:`~sage.combinat.free_module.CombinatorialFreeModule`,
+            which relies on a private attribute of elements---an
+            implementation detail that is simply not available for
+            :class:`~sage.quivers.algebra_elements.PathAlgebraElement`.
+
+        EXAMPLES::
+
+            sage: A = DiGraph({0: {1: ['a'], 2: ['b']},
+            ....:              1: {0: ['c'], 1: ['d']},
+            ....:              2: {0: ['e'], 2: ['f']}}).path_semigroup().algebra(ZZ)
+            sage: A.inject_variables()
+            Defining e_0, e_1, e_2, a, b, c, d, e, f
+            sage: A.linear_combination([(a, 1), (b, 2), (c*e, 3),
+            ....:                       (a*d, -1), (e_0, 5), (e_2, 3)])
+            5*e_0 + a - a*d + 2*b + 3*e_2
+        """
+        if factor_on_left:
+            return self.sum(coeff * element
+                            for element, coeff in iter_of_elements_coeff)
+        else:
+            return self.sum(element * coeff
+                            for element, coeff in iter_of_elements_coeff)
 
     def homogeneous_component(self, n):
         """
@@ -612,7 +644,6 @@ class PathAlgebra(CombinatorialFreeModule):
             sage: A = P.algebra(ZZ)
             sage: A.homogeneous_component(3)
             Free module spanned by [a*b*c, b*c*a, c*a*b] over Integer Ring
-
         """
         basis = []
         for v in self._semigroup._quiver:
@@ -625,7 +656,7 @@ class PathAlgebra(CombinatorialFreeModule):
 
     def homogeneous_components(self):
         r"""
-        Return the non-zero homogeneous components of ``self``.
+        Return the nonzero homogeneous components of ``self``.
 
         EXAMPLES::
 
@@ -640,8 +671,8 @@ class PathAlgebra(CombinatorialFreeModule):
 
         .. WARNING::
 
-             Backward incompatible change: since :trac:`12630` and
-             until :trac:`8678`, this feature was implemented under
+             Backward incompatible change: since :issue:`12630` and
+             until :issue:`8678`, this feature was implemented under
              the syntax ``list(A)`` by means of ``A.__iter__``. This
              was incorrect since ``A.__iter__``, when defined for a
              parent, should iterate through the elements of `A`.

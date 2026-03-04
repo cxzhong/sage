@@ -14,7 +14,7 @@ EXAMPLES:
 You can use :func:`trace_method` to see how a method
 communicates with its surroundings::
 
-    sage: class Foo(object):
+    sage: class Foo():
     ....:     def f(self):
     ....:         self.y = self.g(self.x)
     ....:     def g(self, arg):
@@ -32,15 +32,15 @@ communicates with its surroundings::
     exit f -> None
 """
 
-#*****************************************************************************
-#       Copyright (C) 2014 Martin von Gagern <Martin.vGagern@gmx.net>
+# ****************************************************************************
+#       Copyright (C) 2014-2015 Martin von Gagern <Martin.vGagern@gmx.net>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
 from functools import wraps
 
@@ -48,6 +48,15 @@ from functools import wraps
 def reproducible_repr(val):
     r"""
     String representation of an object in a reproducible way.
+
+    .. NOTE::
+
+        This function is deprecated, in most cases it suffices to use
+        the automatic sorting of dictionary keys and set items by a displayhook.
+        See :func:`sage.doctest.forker.init_sage`.
+        If used in a format string, use :func:`IPython.lib.pretty.pretty`.
+        In the rare cases where the ordering of the elements is not reliable
+        or transitive, ``sorted`` with a sane key can be used instead.
 
     This tries to ensure that the returned string does not depend on
     factors outside the control of the doctest.
@@ -57,8 +66,8 @@ def reproducible_repr(val):
     All types for which special handling had been implemented are
     covered by the examples below. If a doctest requires special
     handling for additional types, this function may be extended
-    apropriately. It is an error if an argument to this function has
-    a non-reproducible ``repr`` implementation and is not explicitely
+    appropriately. It is an error if an argument to this function has
+    a non-reproducible ``repr`` implementation and is not explicitly
     mentioned in an example case below.
 
     INPUT:
@@ -73,6 +82,7 @@ def reproducible_repr(val):
 
     EXAMPLES::
 
+        sage: # not tested (test fails because of deprecation warning)
         sage: from sage.doctest.fixtures import reproducible_repr
         sage: print(reproducible_repr(set(["a", "c", "b", "d"])))
         set(['a', 'b', 'c', 'd'])
@@ -80,11 +90,24 @@ def reproducible_repr(val):
         frozenset(['a', 'b', 'c', 'd'])
         sage: print(reproducible_repr([1, frozenset("cab"), set("bar"), 0]))
         [1, frozenset(['a', 'b', 'c']), set(['a', 'b', 'r']), 0]
-        sage: print(reproducible_repr({3.0:"three","2":"two",1:"one"}))
+        sage: print(reproducible_repr({3.0: "three", "2": "two", 1: "one"}))            # needs sage.rings.real_mpfr
         {'2': 'two', 1: 'one', 3.00000000000000: 'three'}
-        sage: print(reproducible_repr("foo\nbar")) # demonstrate default case
+        sage: print(reproducible_repr("foo\nbar"))  # demonstrate default case
         'foo\nbar'
+
+    TESTS:
+
+    Ensures deprecation warning is printed out::
+
+        sage: from sage.doctest.fixtures import reproducible_repr
+        sage: print(reproducible_repr(set(["a", "c", "b", "d"])))
+        doctest:warning...
+        DeprecationWarning: reproducible_repr is deprecated, see its documentation for details
+        See https://github.com/sagemath/sage/issues/39420 for details.
+        set(['a', 'b', 'c', 'd'])
     """
+    from sage.misc.superseded import deprecation
+    deprecation(39420, 'reproducible_repr is deprecated, see its documentation for details')
 
     def sorted_pairs(iterable, pairs=False):
         # We don't know whether container data structures will have
@@ -111,7 +134,7 @@ def reproducible_repr(val):
     return repr(val)
 
 
-class AttributeAccessTracerHelper(object):
+class AttributeAccessTracerHelper:
 
     def __init__(self, delegate, prefix="  ", reads=True):
         r"""
@@ -124,17 +147,15 @@ class AttributeAccessTracerHelper(object):
 
         INPUT:
 
-        - ``delegate`` -- the actual object to be proxied.
+        - ``delegate`` -- the actual object to be proxied
 
-        - ``prefix`` -- (default: ``"  "``)
-          string to prepend to each printed output.
+        - ``prefix`` -- (default: ``"  "``) string to prepend to each printed output
 
-        - ``reads`` -- (default: ``True``)
-          whether to trace read access as well.
+        - ``reads`` -- (default: ``True``) whether to trace read access as well
 
         EXAMPLES::
 
-            sage: class Foo(object):
+            sage: class Foo():
             ....:     def f(self, *args):
             ....:         return self.x*self.x
             ....:
@@ -166,7 +187,7 @@ class AttributeAccessTracerHelper(object):
 
         EXAMPLES::
 
-            sage: class Foo(object):
+            sage: class Foo():
             ....:     def f(self, *args):
             ....:         return self.x*self.x
             ....:
@@ -182,22 +203,23 @@ class AttributeAccessTracerHelper(object):
             4
         """
         val = getattr(self.delegate, name)
+        from IPython.lib.pretty import pretty
         if callable(val) and name not in self.delegate.__dict__:
             @wraps(val)
             def wrapper(*args, **kwds):
-                arglst = [reproducible_repr(arg) for arg in args]
-                arglst.extend("{}={}".format(k, reproducible_repr(v))
+                arglst = [pretty(arg) for arg in args]
+                arglst.extend("{}={}".format(k, pretty(v))
                               for k, v in sorted(kwds.items()))
                 res = val(*args, **kwds)
                 print("{}call {}({}) -> {}"
                       .format(self.prefix, name, ", ".join(arglst),
-                              reproducible_repr(res)))
+                              pretty(res)))
                 return res
             return wrapper
         else:
             if self.reads:
                 print("{}read {} = {}".format(self.prefix, name,
-                                              reproducible_repr(val)))
+                                              pretty(val)))
             return val
 
     def set(self, name, val):
@@ -208,7 +230,7 @@ class AttributeAccessTracerHelper(object):
 
         EXAMPLES::
 
-            sage: class Foo(object):
+            sage: class Foo():
             ....:     pass
             ....:
             sage: foo = Foo()
@@ -219,12 +241,13 @@ class AttributeAccessTracerHelper(object):
             sage: foo.x
             2
         """
+        from IPython.lib.pretty import pretty
         print("{}write {} = {}".format(self.prefix, name,
-                                       reproducible_repr(val)))
+                                       pretty(val)))
         setattr(self.delegate, name, val)
 
 
-class AttributeAccessTracerProxy(object):
+class AttributeAccessTracerProxy:
 
     def __init__(self, delegate, **kwds):
         r"""
@@ -237,17 +260,17 @@ class AttributeAccessTracerProxy(object):
 
         INPUT:
 
-        - ``delegate`` -- the actual object to be proxied.
+        - ``delegate`` -- the actual object to be proxied
 
         - ``prefix`` -- (default: ``"  "``)
-          string to prepend to each printed output.
+          string to prepend to each printed output
 
         - ``reads`` -- (default: ``True``)
-          whether to trace read access as well.
+          whether to trace read access as well
 
         EXAMPLES::
 
-            sage: class Foo(object):
+            sage: class Foo():
             ....:     def f(self, *args):
             ....:         return self.x*self.x
             ....:
@@ -281,7 +304,7 @@ class AttributeAccessTracerProxy(object):
 
         EXAMPLES::
 
-            sage: class Foo(object):
+            sage: class Foo():
             ....:     def f(self, *args):
             ....:         return self.x*self.x
             ....:
@@ -307,7 +330,7 @@ class AttributeAccessTracerProxy(object):
 
         EXAMPLES::
 
-            sage: class Foo(object):
+            sage: class Foo():
             ....:     pass
             ....:
             sage: foo = Foo()
@@ -331,20 +354,19 @@ def trace_method(obj, meth, **kwds):
 
     INPUT:
 
-    - ``obj`` -- the object containing the method.
+    - ``obj`` -- the object containing the method
 
-    - ``meth`` -- the name of the method to be traced.
+    - ``meth`` -- the name of the method to be traced
 
     - ``prefix`` -- (default: ``"  "``)
-      string to prepend to each printed output.
+      string to prepend to each printed output
 
     - ``reads`` -- (default: ``True``)
-      whether to trace read access as well.
-      
+      whether to trace read access as well
 
     EXAMPLES::
 
-        sage: class Foo(object):
+        sage: class Foo():
         ....:     def f(self, arg=None):
         ....:         self.y = self.g(self.x)
         ....:         if arg: return arg*arg
@@ -369,15 +391,18 @@ def trace_method(obj, meth, **kwds):
         exit f -> 9
         9
     """
-    f = getattr(obj, meth).__func__
+    from sage.cpython.getattr import raw_getattr
+    f = raw_getattr(obj, meth)
     t = AttributeAccessTracerProxy(obj, **kwds)
+
     @wraps(f)
     def g(*args, **kwds):
-        arglst = [reproducible_repr(arg) for arg in args]
-        arglst.extend("{}={}".format(k, reproducible_repr(v))
+        from IPython.lib.pretty import pretty
+        arglst = [pretty(arg) for arg in args]
+        arglst.extend("{}={}".format(k, pretty(v))
                       for k, v in sorted(kwds.items()))
         print("enter {}({})".format(meth, ", ".join(arglst)))
         res = f(t, *args, **kwds)
-        print("exit {} -> {}".format(meth, reproducible_repr(res)))
+        print("exit {} -> {}".format(meth, pretty(res)))
         return res
     setattr(obj, meth, g)

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Performance Test for Clone Protocol
 
@@ -73,24 +72,22 @@ Various timings using a Python class::
     cy_add1_mutable(e)                   :  625 loops, best of 3: 14.1 µs per loop
     cy_add1_with(e)                      :  625 loops, best of 3: 17.5 µs per loop
 """
-#*****************************************************************************
+# ****************************************************************************
 #  Copyright (C) 2009-2010 Florent Hivert <Florent.Hivert@univ-rouen.fr>
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
-from __future__ import print_function
-
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
 from sage.structure.list_clone import ClonableArray
 from sage.structure.list_clone_demo import IncreasingArrays
-from sage.structure.list_clone_timings_cy import *
+
 
 class IncreasingArraysPy(IncreasingArrays):
 
     class Element(ClonableArray):
         """
-        A small class for testing :class:`ClonableArray`: Increasing Lists
+        A small class for testing :class:`ClonableArray`: Increasing Lists.
 
         TESTS::
 
@@ -118,7 +115,7 @@ class IncreasingArraysPy(IncreasingArrays):
 
 
 #####################################################################
-######                    Timings functions                    ######
+#                         Timings functions                         #
 #####################################################################
 def add1_internal(bla):
     """
@@ -130,10 +127,12 @@ def add1_internal(bla):
     """
     blo = bla.__copy__()
     lst = blo._get_list()
-    for i in range(len(blo)): lst[i] += 1
+    for i in range(len(blo)):
+        lst[i] += 1
     blo.set_immutable()
     blo.check()
     return blo
+
 
 def add1_immutable(bla):
     """
@@ -144,8 +143,10 @@ def add1_immutable(bla):
         [2, 5, 6]
     """
     lbla = bla[:]
-    for i in range(len(lbla)): lbla[i] += 1
+    for i in range(len(lbla)):
+        lbla[i] += 1
     return bla.__class__(bla.parent(), lbla)
+
 
 def add1_mutable(bla):
     """
@@ -156,10 +157,12 @@ def add1_mutable(bla):
         [2, 5, 6]
     """
     blo = bla.__copy__()
-    for i in range(len(blo)): blo[i] += 1
+    for i in range(len(blo)):
+        blo[i] += 1
     blo.set_immutable()
     blo.check()
     return blo
+
 
 def add1_with(bla):
     """
@@ -170,5 +173,6 @@ def add1_with(bla):
         [2, 5, 6]
     """
     with bla.clone() as blo:
-        for i in range(len(blo)): blo[i] += 1
+        for i in range(len(blo)):
+            blo[i] += 1
     return blo

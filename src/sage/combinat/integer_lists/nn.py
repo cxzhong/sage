@@ -1,8 +1,11 @@
-from __future__ import print_function
+"""
+Lists of nonnegative integers with constraints.
+"""
 from sage.sets.family import Family
 from sage.combinat.integer_lists import IntegerListsLex
 from sage.rings.semirings.non_negative_integer_semiring import NN
 from sage.sets.disjoint_union_enumerated_sets import DisjointUnionEnumeratedSets
+
 
 def IntegerListsNN(**kwds):
     """

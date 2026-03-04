@@ -4,11 +4,11 @@ Discrete dynamics
 =================
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
-   interval_exchanges
-   flat_surfaces
+   cellular_automata
    complex_dynamics
+   sage/dynamics/finite_dynamical_system
    sage/sandpiles/sandpile
 
 .. SEEALSO::
@@ -21,13 +21,15 @@ Arithmetic Dynamical Systems
 ----------------------------
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    sage/dynamics/arithmetic_dynamics/generic_ds
    sage/dynamics/arithmetic_dynamics/affine_ds
    sage/dynamics/arithmetic_dynamics/projective_ds
    sage/dynamics/arithmetic_dynamics/product_projective_ds
    sage/dynamics/arithmetic_dynamics/wehlerK3
+   sage/dynamics/arithmetic_dynamics/berkovich_ds
+   sage/dynamics/arithmetic_dynamics/dynamical_semigroup
 
 
 .. SEEALSO::

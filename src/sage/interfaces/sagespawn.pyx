@@ -1,24 +1,25 @@
+# sage.doctest: optional - ptyprocess
 """
 Sage wrapper around pexpect's ``spawn`` class and
 the ptyprocess's ``PtyProcess`` class.
 
 AUTHOR:
 
-- Jeroen Demeyer (2015-02-01): initial version, see :trac:`17686`.
+- Jeroen Demeyer (2015-02-01): initial version, see :issue:`17686`.
 
 - Jeroen Demeyer (2015-12-04): add support for pexpect 4 + ptyprocess,
-  see :trac:`10295`.
+  see :issue:`10295`.
 """
 
-#*****************************************************************************
+# ***************************************************************************
 #       Copyright (C) 2015 Jeroen Demeyer <jdemeyer@cage.ugent.be>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ***************************************************************************
 
 from pexpect import *
 from ptyprocess import PtyProcess
@@ -26,10 +27,11 @@ from ptyprocess import PtyProcess
 from cpython.ref cimport Py_INCREF
 from libc.signal cimport *
 from posix.signal cimport killpg
-from posix.unistd cimport getpid, getpgid, close, fork
+from posix.unistd cimport getpid, getpgid, fork
 
 from time import sleep
 
+from sage.cpython.string cimport str_to_bytes
 from sage.interfaces.process cimport ContainChildren
 
 
@@ -38,13 +40,13 @@ class SageSpawn(spawn):
         """
         Spawn a subprocess in a pseudo-tty.
 
-        - ``*args``, ``**kwds``: see :class:`pexpect.spawn`.
+        - ``*args``, ``**kwds`` -- see :class:`pexpect.spawn`
 
         - ``name`` -- human-readable name for this process, used for
-          display purposes only.
+          display purposes only
 
         - ``quit_string`` -- (default: ``None``) if not ``None``, send
-          this string to the child process before killing it.
+          this string to the child process before killing it
 
         EXAMPLES::
 
@@ -93,7 +95,7 @@ class SageSpawn(spawn):
             sage: s  # indirect doctest
             stupid process with PID ... running .../true
             sage: while s.isalive():  # Wait until the process finishes
-            ....:     sleep(0.1)
+            ....:     sleep(float(0.1))
             sage: s  # indirect doctest
             stupid process finished running .../true
         """
@@ -144,11 +146,12 @@ class SageSpawn(spawn):
             sage: from sage.interfaces.sagespawn import SageSpawn
             sage: E = SageSpawn("sh", ["-c", "echo hello world"])
             sage: _ = E.expect_peek("w")
-            sage: E.read()
+            sage: E.read().decode('ascii')
             'hello world\r\n'
         """
         ret = self.expect(*args, **kwds)
-        self.buffer = self.before + self.after + self.buffer
+        self._before = self.buffer_type()
+        self._before.write(self.before + self.after + self.buffer)
         return ret
 
     def expect_upto(self, *args, **kwds):
@@ -162,11 +165,12 @@ class SageSpawn(spawn):
             sage: from sage.interfaces.sagespawn import SageSpawn
             sage: E = SageSpawn("sh", ["-c", "echo hello world"])
             sage: _ = E.expect_upto("w")
-            sage: E.read()
+            sage: E.read().decode('ascii')
             'world\r\n'
         """
         ret = self.expect(*args, **kwds)
-        self.buffer = self.after + self.buffer
+        self._before = self.buffer_type()
+        self._before.write(self.after + self.buffer)
         return ret
 
 
@@ -185,13 +189,17 @@ class SagePtyProcess(PtyProcess):
             sage: s = SageSpawn("sleep 1000")
             sage: s.close()
             sage: while s.isalive():  # long time (5 seconds)
-            ....:     sleep(0.1)
+            ....:     sleep(float(0.1))
         """
         if not self.closed:
             if self.quit_string is not None:
                 try:
                     # This can fail if the process already exited
-                    self.write(self.quit_string)
+                    # PtyProcess.write takes bytes; ideally we would use
+                    # an encoding picked specifically for the target process
+                    # but the default (UTF-8) will do now, since I don't
+                    # think we have any non-ASCII quit_strings anyways.
+                    self.write(str_to_bytes(self.quit_string))
                 except (OSError, IOError):
                     pass
             self.fileobj.close()
@@ -209,7 +217,7 @@ class SagePtyProcess(PtyProcess):
         INPUT:
 
         - ``interval`` -- (default: 5) how much seconds to wait between
-          sending two signals.
+          sending two signals
 
         EXAMPLES:
 
@@ -221,12 +229,12 @@ class SagePtyProcess(PtyProcess):
         Check that the process eventually dies after calling
         ``terminate_async``::
 
-            sage: s.ptyproc.terminate_async(interval=0.2)
+            sage: s.ptyproc.terminate_async(interval=float(0.2))
             sage: while True:
             ....:     try:
             ....:         os.kill(s.pid, 0)
             ....:     except OSError:
-            ....:         sleep(0.1)
+            ....:         sleep(float(0.1))
             ....:     else:
             ....:         break  # process got killed
         """
@@ -242,7 +250,7 @@ class SagePtyProcess(PtyProcess):
             # We need to avoid a race condition where the spawned
             # process has not started up completely yet: we need to
             # wait until the spawned process has changed its process
-            # group. See Trac #18741.
+            # group. See Issue #18741.
             pg = getpgid(self.pid)
             while pg == thispg:
                 counter += 1
@@ -259,12 +267,17 @@ class SagePtyProcess(PtyProcess):
 
             # If any of these killpg() calls fail, it's most likely
             # because the process is actually killed.
-            if killpg(pg, SIGCONT): return
+            if killpg(pg, SIGCONT):
+                return
             sleep(interval)
-            if killpg(pg, SIGINT): return
+            if killpg(pg, SIGINT):
+                return
             sleep(interval)
-            if killpg(pg, SIGHUP): return
+            if killpg(pg, SIGHUP):
+                return
             sleep(interval)
-            if killpg(pg, SIGTERM): return
+            if killpg(pg, SIGTERM):
+                return
             sleep(interval)
-            if killpg(pg, SIGKILL): return
+            if killpg(pg, SIGKILL):
+                return

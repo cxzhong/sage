@@ -1,8 +1,7 @@
 """
 Weight lattice realizations
 """
-from __future__ import absolute_import
-#*****************************************************************************
+# ****************************************************************************
 #       Copyright (C) 2007-2012 Nicolas M. Thiery <nthiery at users.sf.net>
 #
 #       (with contributions of many others)
@@ -16,20 +15,22 @@ from __future__ import absolute_import
 #
 #  The full text of the GPL is available at:
 #
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
 from sage.misc.abstract_method import abstract_method
 from sage.misc.cachefunc import cached_method
 from sage.misc.lazy_attribute import lazy_attribute
-from sage.misc.all import prod
+from sage.misc.misc_c import prod
 from sage.categories.category_types import Category_over_base_ring
-from sage.combinat.family import Family
+from sage.sets.family import Family
 from .root_lattice_realizations import RootLatticeRealizations
+from sage.rings.rational_field import QQ
+
 
 class WeightLatticeRealizations(Category_over_base_ring):
     r"""
-    The category of weight lattice realizations over a given base ring
+    The category of weight lattice realizations over a given base ring.
 
     A *weight lattice realization* `L` over a base ring `R` is a free
     module (or vector space if `R` is a field) endowed with an embedding
@@ -93,7 +94,8 @@ class WeightLatticeRealizations(Category_over_base_ring):
         sage: L(x)
         Traceback (most recent call last):
         ...
-        TypeError: do not know how to make x (= Lambda[2] + 1/2*Lambda[5]) an element of self (=Ambient lattice of the Root system of type ['A', 7])
+        TypeError: do not know how to make x (= Lambda[2] + 1/2*Lambda[5])
+        an element of self (=Ambient lattice of the Root system of type ['A', 7])
 
     If `K_1` is a subring of `K_2`, then one could in theory have an
     embedding from the weight space over `K_1` to any weight lattice
@@ -111,7 +113,8 @@ class WeightLatticeRealizations(Category_over_base_ring):
         sage: L(Lambda[1])
         Traceback (most recent call last):
         ...
-        TypeError: do not know how to make x (= Lambda[1]) an element of self (=Ambient space of the Root system of type ['A', 7])
+        TypeError: do not know how to make x (= Lambda[1]) an element
+        of self (=Ambient space of the Root system of type ['A', 7])
     """
 
     @cached_method
@@ -129,15 +132,15 @@ class WeightLatticeRealizations(Category_over_base_ring):
 
         @abstract_method
         def fundamental_weight(self, i):
-            """
-            Returns the `i^{th}` fundamental weight
+            r"""
+            Return the `i`-th fundamental weight.
 
             INPUT:
 
             - ``i`` -- an element of the index set
 
             By a slight notational abuse, for an affine type this method
-            should also accept ``"delta"`` as input, and return the image
+            should also accept ``'delta'`` as input, and return the image
             of `\delta` of the extended weight lattice in this
             realization.
 
@@ -165,31 +168,30 @@ class WeightLatticeRealizations(Category_over_base_ring):
             """
 
         def is_extended(self):
-          """
-          Returns whether this is a realization of the extended weight lattice
+            """
+            Return whether this is a realization of the extended weight lattice.
 
-          .. SEEALSO:: :class:`sage.combinat.root_system.weight_space.WeightSpace`
+            .. SEEALSO:: :class:`sage.combinat.root_system.weight_space.WeightSpace`
 
-          EXAMPLES::
+            EXAMPLES::
 
-              sage: RootSystem(["A",3,1]).weight_lattice().is_extended()
-              False
-              sage: RootSystem(["A",3,1]).weight_lattice(extended=True).is_extended()
-              True
+                sage: RootSystem(["A",3,1]).weight_lattice().is_extended()
+                False
+                sage: RootSystem(["A",3,1]).weight_lattice(extended=True).is_extended()
+                True
 
-          This method is irrelevant for finite root systems, since the
-          weight lattice need not be extended to ensure that the root
-          lattice embeds faithfully::
+            This method is irrelevant for finite root systems, since the
+            weight lattice need not be extended to ensure that the root
+            lattice embeds faithfully::
 
-              sage: RootSystem(["A",3]).weight_lattice().is_extended()
-              False
-
-          """
-          return False
+                sage: RootSystem(["A",3]).weight_lattice().is_extended()
+                False
+            """
+            return False
 
         def __init_extra__(self):
-            """
-            Registers the embedding of the weight lattice into ``self``
+            r"""
+            Registers the embedding of the weight lattice into ``self``.
 
             Also registers the embedding of the weight space over the same
             base field `K` into ``self`` if `K` is not `\ZZ`.
@@ -209,13 +211,13 @@ class WeightLatticeRealizations(Category_over_base_ring):
                 sage: L(Lambda[2])
                 (0, 1, -1, 0)
 
-            .. note::
+            .. NOTE::
 
                 More examples are given in :class:`WeightLatticeRealizations`;
                 The embeddings are systematically tested in
                 :meth:`_test_weight_lattice_realization`.
             """
-            from sage.rings.all import ZZ
+            from sage.rings.integer_ring import ZZ
             from .weight_space import WeightSpace
             K = self.base_ring()
             # If self is the root lattice or the root space, we don't want
@@ -229,13 +231,12 @@ class WeightLatticeRealizations(Category_over_base_ring):
             # Build and register the embeddings
             for domain in domains:
                 domain.module_morphism(self.fundamental_weight,
-                                       codomain = self
+                                       codomain=self
                                        ).register_as_coercion()
-
 
         def _test_weight_lattice_realization(self, **options):
             """
-            Runs sanity checks on this weight lattice realization
+            Run sanity checks on this weight lattice realization.
 
             - scalar products between the fundamental weights and simple coroots
             - embeddings from the weight lattice and weight space
@@ -245,12 +246,17 @@ class WeightLatticeRealizations(Category_over_base_ring):
 
             EXAMPLES::
 
-                sage: RootSystem(['A',3]).weight_lattice()._test_weight_lattice_realization()
+                sage: RootSystem(['A',3]).weight_lattice()._test_weight_lattice_realization()       # needs sage.graphs
             """
-            from sage.rings.all import ZZ
-            tester     = self._tester(**options)
-            Lambda     = self.fundamental_weights()
-            alphacheck = self.simple_coroots()
+            from sage.rings.integer_ring import ZZ
+            tester = self._tester(**options)
+
+            try:
+                Lambda = self.fundamental_weights()
+                alphacheck = self.simple_coroots()
+            except ImportError:
+                return
+
             tester.assertEqual(tuple(Lambda.keys()), self.index_set())
 
             # Check the consistency between simple_root and simple_roots
@@ -264,11 +270,11 @@ class WeightLatticeRealizations(Category_over_base_ring):
             # For an affine root system, this will check the embedding of
             # the extended ones, and also of the non extended ones if this
             # realization is not extended
-            domains = [self.root_system.weight_space(base_ring, extended = extended)
+            domains = [self.root_system.weight_space(base_ring, extended=extended)
                        for base_ring in set([ZZ, self.base_ring()])
-                       for extended  in set([self.cartan_type().is_affine(), self.is_extended()])]
+                       for extended in set([self.cartan_type().is_affine(), self.is_extended()])]
             for domain in domains:
-                tester.assert_(self._internal_coerce_map_from(domain) is not None)
+                tester.assertIsNot(self._internal_coerce_map_from(domain), None)
                 for i in self.index_set():
                     # This embedding maps fundamental weights to fundamental weights
                     tester.assertEqual(self(domain.fundamental_weight(i)), Lambda[i])
@@ -287,18 +293,21 @@ class WeightLatticeRealizations(Category_over_base_ring):
 
             # Check that the fundamental weights form the dual basis of the simple coroots
             for i in self.index_set():
-                assert(Lambda[i].is_dominant())
+                assert (Lambda[i].is_dominant())
                 for j in self.index_set():
-                    tester.assertEqual(Lambda[j].scalar(alphacheck[i]), (1 if i==j else 0))
+                    tester.assertEqual(Lambda[j].scalar(alphacheck[i]), (1 if i == j else 0))
 
-            tester.assert_(self.rho().is_dominant())
+            tester.assertTrue(self.rho().is_dominant())
             if self.root_system.is_finite() and self.root_system.is_irreducible():
-                tester.assert_(self.highest_root().is_dominant())
+                try:
+                    tester.assertTrue(self.highest_root().is_dominant())
+                except ImportError:  # when sage.graphs is missing (Dynkin diagram)
+                    pass
 
         @cached_method
         def fundamental_weights(self):
             r"""
-            Returns the family `(\Lambda_i)_{i\in I}` of the fundamental weights.
+            Return the family `(\Lambda_i)_{i\in I}` of the fundamental weights.
 
             EXAMPLES::
 
@@ -314,7 +323,7 @@ class WeightLatticeRealizations(Category_over_base_ring):
         @cached_method
         def simple_root(self, i):
             r"""
-            Returns the `i`-th simple root
+            Return the `i`-th simple root.
 
             This default implementation takes the `i`-th simple root in
             the weight lattice and embeds it in ``self``.
@@ -322,23 +331,23 @@ class WeightLatticeRealizations(Category_over_base_ring):
             EXAMPLES:
 
             Since all the weight lattice realizations in Sage currently
-            implement a simple_root method, we have to call this one by
+            implement a ``simple_root`` method, we have to call this one by
             hand::
 
                 sage: from sage.combinat.root_system.weight_lattice_realizations import WeightLatticeRealizations
                 sage: simple_root = WeightLatticeRealizations(QQ).parent_class.simple_root.f
                 sage: L = RootSystem("A3").ambient_space()
-                sage: simple_root(L, 1)
+                sage: simple_root(L, 1)                                                 # needs sage.graphs
                 (1, -1, 0, 0)
-                sage: simple_root(L, 2)
+                sage: simple_root(L, 2)                                                 # needs sage.graphs
                 (0, 1, -1, 0)
-                sage: simple_root(L, 3)
+                sage: simple_root(L, 3)                                                 # needs sage.graphs
                 (1, 1, 2, 0)
 
             Note that this last root differs from the one implemented in
             ``L`` by a multiple of the vector ``(1,1,1,1)``::
 
-                sage: L.simple_roots()
+                sage: L.simple_roots()                                                  # needs sage.graphs
                 Finite family {1: (1, -1, 0, 0), 2: (0, 1, -1, 0), 3: (0, 0, 1, -1)}
 
             This is a harmless artefact of the `SL` versus `GL`
@@ -367,15 +376,17 @@ class WeightLatticeRealizations(Category_over_base_ring):
 
         def reduced_word_of_alcove_morphism(self, f):
             r"""
+            Return the reduced word of an alcove morphism.
+
             INPUT:
 
-            - `f` -- a linear map from ``self`` to ``self`` which
-              preserves alcoves.
+            - ``f`` -- a linear map from ``self`` to ``self`` which
+              preserves alcoves
 
             Let `A` be the fundamental alcove. This returns a reduced word
-            `i_1,...,i_k` such that the affine Weyl group element `w =
-            s_{i_1} \circ \dots \circ s_{i_k}` maps the alcove `f(A)` back
-            to `A`. In other words, the alcove walk `i_1,...,i_k` brings
+            `i_1, \ldots, i_k` such that the affine Weyl group element `w =
+            s_{i_1} \circ \cdots \circ s_{i_k}` maps the alcove `f(A)` back
+            to `A`. In other words, the alcove walk `i_1, \ldots, i_k` brings
             the fundamental alcove to the corresponding translated alcove.
 
             Let us throw in a bit of context to explain the main use
@@ -416,16 +427,16 @@ class WeightLatticeRealizations(Category_over_base_ring):
             coweight lattice::
 
                 sage: R = RootSystem(["A",2,1]).weight_lattice()
-                sage: alpha = R.simple_roots()
+                sage: alpha = R.simple_roots()                                          # needs sage.graphs
                 sage: Lambda = R.fundamental_weights()
 
             We consider first translations by elements of the root lattice::
 
-                sage: R.reduced_word_of_alcove_morphism(alpha[0].translation)
+                sage: R.reduced_word_of_alcove_morphism(alpha[0].translation)           # needs sage.graphs
                 [1, 2, 1, 0]
-                sage: R.reduced_word_of_alcove_morphism(alpha[1].translation)
+                sage: R.reduced_word_of_alcove_morphism(alpha[1].translation)           # needs sage.graphs
                 [0, 2, 0, 1]
-                sage: R.reduced_word_of_alcove_morphism(alpha[2].translation)
+                sage: R.reduced_word_of_alcove_morphism(alpha[2].translation)           # needs sage.graphs
                 [0, 1, 0, 2]
 
             We continue with translations by elements of the classical
@@ -434,9 +445,9 @@ class WeightLatticeRealizations(Category_over_base_ring):
                 sage: omega1 = Lambda[1] - Lambda[0]
                 sage: omega2 = Lambda[2] - Lambda[0]
 
-                sage: R.reduced_word_of_alcove_morphism(omega1.translation)
+                sage: R.reduced_word_of_alcove_morphism(omega1.translation)             # needs sage.graphs
                 [0, 2]
-                sage: R.reduced_word_of_alcove_morphism(omega2.translation)
+                sage: R.reduced_word_of_alcove_morphism(omega2.translation)             # needs sage.graphs
                 [0, 1]
 
             The following tests ensure that the code agrees with the tables
@@ -444,6 +455,7 @@ class WeightLatticeRealizations(Category_over_base_ring):
 
             TESTS::
 
+                sage: # needs sage.graphs
                 sage: R = RootSystem(['A',5,1]).weight_lattice()
                 sage: alpha = R.simple_roots()
                 sage: Lambda = R.fundamental_weights()
@@ -453,6 +465,7 @@ class WeightLatticeRealizations(Category_over_base_ring):
                 sage: R.reduced_word_of_alcove_morphism(alpha[0].translation)
                 [1, 2, 3, 4, 5, 4, 3, 2, 1, 0]
 
+                sage: # needs sage.graphs
                 sage: R = RootSystem(['C',3,1]).weight_lattice()
                 sage: alpha = R.simple_roots()
                 sage: Lambda = R.fundamental_weights()
@@ -465,15 +478,18 @@ class WeightLatticeRealizations(Category_over_base_ring):
                 [0, 1, 0, 2, 1, 3, 2, 1, 3, 2]
                 sage: R.reduced_word_of_alcove_morphism(omega3.translation)
                 [0, 1, 0, 2, 1, 0]
+
+                sage: # needs sage.libs.gap
                 sage: W = WeylGroup(['C',3,1])
                 sage: s = W.simple_reflections()
                 sage: w = s[0]*s[1]*s[2]*s[3]*s[2]
-                sage: W.from_reduced_word(R.reduced_word_of_alcove_morphism(omega2.translation)) == w*w
+                sage: W.from_reduced_word(R.reduced_word_of_alcove_morphism(omega2.translation)) == w*w                 # needs sage.graphs
                 True
                 sage: w = s[0]*s[1]*s[2]*s[0]*s[1]*s[0]
-                sage: W.from_reduced_word(R.reduced_word_of_alcove_morphism(omega3.translation)) == w
+                sage: W.from_reduced_word(R.reduced_word_of_alcove_morphism(omega3.translation)) == w                   # needs sage.graphs
                 True
 
+                sage: # needs sage.graphs
                 sage: R = RootSystem(['D',4,1]).weight_lattice()
                 sage: Lambda = R.fundamental_weights()
                 sage: omega1 = Lambda[1] - Lambda[0]
@@ -488,35 +504,39 @@ class WeightLatticeRealizations(Category_over_base_ring):
                 [0, 2, 1, 4, 2, 0]
                 sage: R.reduced_word_of_alcove_morphism(omega4.translation)
                 [0, 2, 1, 3, 2, 0]
+
+                sage: # needs sage.libs.gap
                 sage: W = WeylGroup(['D',4,1])
                 sage: s = W.simple_reflections()
                 sage: w = s[0]*s[2]*s[3]*s[4]*s[2]
                 sage: w1= s[1]*s[2]*s[3]*s[4]*s[2]
-                sage: W.from_reduced_word(R.reduced_word_of_alcove_morphism(omega2.translation)) == w*w1
+                sage: W.from_reduced_word(R.reduced_word_of_alcove_morphism(omega2.translation)) == w*w1                # needs sage.graphs
                 True
 
                 sage: R = RootSystem(['D',5,1]).weight_lattice()
                 sage: Lambda = R.fundamental_weights()
                 sage: omega1 = Lambda[1] - Lambda[0]
                 sage: omega2 = Lambda[2] - 2*Lambda[0]
-                sage: R.reduced_word_of_alcove_morphism(omega1.translation)
+                sage: R.reduced_word_of_alcove_morphism(omega1.translation)             # needs sage.graphs
                 [0, 2, 3, 4, 5, 3, 2, 0]
+
+                sage: # needs sage.libs.gap
                 sage: W = WeylGroup(['D',5,1])
                 sage: s = W.simple_reflections()
                 sage: w = s[0]*s[2]*s[3]*s[4]*s[5]*s[3]*s[2]
                 sage: w1= s[1]*s[2]*s[3]*s[4]*s[5]*s[3]*s[2]
-                sage: W.from_reduced_word(R.reduced_word_of_alcove_morphism(omega2.translation)) == w*w1
+                sage: W.from_reduced_word(R.reduced_word_of_alcove_morphism(omega2.translation)) == w*w1                # needs sage.graphs
                 True
             """
             return f(self.rho()).reduced_word()
 
         def dynkin_diagram_automorphism_of_alcove_morphism(self, f):
-            """
-            Returns the Dynkin diagram automorphism induced by an alcove morphism
+            r"""
+            Return the Dynkin diagram automorphism induced by an alcove morphism.
 
             INPUT:
 
-            - ``f`` - a linear map from ``self`` to ``self`` which preserves alcoves
+            - ``f`` -- a linear map from ``self`` to ``self`` which preserves alcoves
 
             This method returns the Dynkin diagram automorphism for
             the decomposition `f = d w` (see
@@ -526,12 +546,13 @@ class WeightLatticeRealizations(Category_over_base_ring):
             EXAMPLES::
 
                 sage: R = RootSystem(["A",2,1]).weight_lattice()
-                sage: alpha = R.simple_roots()
+                sage: alpha = R.simple_roots()                                          # needs sage.graphs
                 sage: Lambda = R.fundamental_weights()
 
             Translations by elements of the root lattice induce a
             trivial Dynkin diagram automorphism::
 
+                sage: # needs sage.graphs sage.libs.gap
                 sage: R.dynkin_diagram_automorphism_of_alcove_morphism(alpha[0].translation)
                 {0: 0, 1: 1, 2: 2}
                 sage: R.dynkin_diagram_automorphism_of_alcove_morphism(alpha[1].translation)
@@ -545,16 +566,19 @@ class WeightLatticeRealizations(Category_over_base_ring):
                 sage: omega1 = Lambda[1] - Lambda[0]
                 sage: omega2 = Lambda[2] - Lambda[0]
 
+                sage: # needs sage.graphs sage.libs.gap
                 sage: R.dynkin_diagram_automorphism_of_alcove_morphism(omega1.translation)
                 {0: 1, 1: 2, 2: 0}
                 sage: R.dynkin_diagram_automorphism_of_alcove_morphism(omega2.translation)
                 {0: 2, 1: 0, 2: 1}
 
+                sage: # needs sage.graphs sage.libs.gap
                 sage: R = RootSystem(['C',2,1]).weight_lattice()
                 sage: alpha = R.simple_roots()
                 sage: R.dynkin_diagram_automorphism_of_alcove_morphism(alpha[1].translation)
                 {0: 2, 1: 1, 2: 0}
 
+                sage: # needs sage.graphs sage.libs.gap
                 sage: R = RootSystem(['D',5,1]).weight_lattice()
                 sage: Lambda = R.fundamental_weights()
                 sage: omega1 = Lambda[1] - Lambda[0]
@@ -572,29 +596,32 @@ class WeightLatticeRealizations(Category_over_base_ring):
             # Now, we have d = f w^-1
             winv = ~w
             assert all(alpha[i].level().is_zero() for i in self.index_set())
-            rank_simple_roots = dict( (alpha[i],i) for i in self.index_set())
+            rank_simple_roots = {alpha[i]: i for i in self.index_set()}
             permutation = dict()
             for i in self.index_set():
-                root = f(winv.action(alpha[i])) # This is d(alpha_i)
+                root = f(winv.action(alpha[i]))  # This is d(alpha_i)
                 assert root in rank_simple_roots
                 permutation[i] = rank_simple_roots[root]
                 assert set(permutation.values()), set(self.index_set())
             return permutation
 
         def reduced_word_of_translation(self, t):
-            """
+            r"""
             Given an element of the root lattice, this returns a reduced
-            word `i_1,...,i_k` such that the Weyl group element `s_{i_1}
-            \circ \dots \circ s_{i_k}` implements the "translation"
+            word `i_1, \ldots, i_k` such that the Weyl group element `s_{i_1}
+            \circ \cdots \circ s_{i_k}` implements the "translation"
             where `x` maps to `x + level(x)*t`. In other words, the alcove walk
-            `i_1,...,i_k` brings the fundamental alcove to the
+            `i_1, \ldots, i_k` brings the fundamental alcove to the
             corresponding translated alcove.
 
-            Note: there are some technical conditions for `t` to actually
-            be a translation; those are not tested (TODO: detail).
+            .. NOTE::
+
+                There are some technical conditions for `t` to actually
+                be a translation; those are not tested (TODO: detail).
 
             EXAMPLES::
 
+                sage: # needs sage.graphs
                 sage: R = RootSystem(["A",2,1]).weight_lattice()
                 sage: alpha = R.simple_roots()
                 sage: R.reduced_word_of_translation(alpha[1])
@@ -608,52 +635,54 @@ class WeightLatticeRealizations(Category_over_base_ring):
                 sage: Lambda = R.fundamental_weights()
                 sage: omega1 = Lambda[1] - Lambda[0]
                 sage: omega2 = Lambda[2] - 2*Lambda[0]
-                sage: R.reduced_word_of_translation(omega1)
+                sage: R.reduced_word_of_translation(omega1)                             # needs sage.graphs
                 [0, 2, 3, 4, 5, 3, 2, 0]
-                sage: R.reduced_word_of_translation(omega2)
+                sage: R.reduced_word_of_translation(omega2)                             # needs sage.graphs
                 [0, 2, 1, 3, 2, 4, 3, 5, 3, 2, 1, 4, 3, 2]
 
             A non simply laced case::
 
                 sage: R = RootSystem(["C",2,1]).weight_lattice()
                 sage: Lambda = R.fundamental_weights()
-                sage: c = R.cartan_type().translation_factors()
-                sage: c
+                sage: c = R.cartan_type().translation_factors(); c                      # needs sage.graphs
                 Finite family {0: 1, 1: 2, 2: 1}
-                sage: R.reduced_word_of_translation((Lambda[1]-Lambda[0]) * c[1])
+                sage: R.reduced_word_of_translation((Lambda[1]-Lambda[0]) * c[1])       # needs sage.graphs
                 [0, 1, 2, 1]
-                sage: R.reduced_word_of_translation((Lambda[2]-Lambda[0]) * c[2])
+                sage: R.reduced_word_of_translation((Lambda[2]-Lambda[0]) * c[2])       # needs sage.graphs
                 [0, 1, 0]
 
             See also :meth:`_test_reduced_word_of_translation`.
 
-            TODO:
+            .. TODO::
 
-             - Add a picture in the doc
-             - Add a method which, given an element of the classical
-               weight lattice, constructs the appropriate value for t
+                 - Add a picture in the doc
+                 - Add a method which, given an element of the classical
+                   weight lattice, constructs the appropriate value for t
             """
             return self.reduced_word_of_alcove_morphism(t.translation)
 
         def _test_reduced_word_of_translation(self, elements=None, **options):
             r"""
-            Tests the method :meth:`reduced_word_of_translation`.
+            Test the method :meth:`reduced_word_of_translation`.
 
             INPUT:
 
-            - ``options`` -- any keyword arguments accepted by :meth:`_tester`.
+            - ``options`` -- any keyword arguments accepted by :meth:`_tester`
 
             EXAMPLES::
 
                 sage: R = RootSystem(['D',4,1]).weight_lattice()
-                sage: R._test_reduced_word_of_translation()
+                sage: R._test_reduced_word_of_translation()                             # needs sage.graphs
 
             See the documentation for :class:`TestSuite` for more information.
             """
             tester = self._tester(**options)
             if not self.cartan_type().is_affine(): # won't be necessary anymore once root systems are categorified
                 return
-            alpha = self.simple_roots()
+            try:
+                alpha = self.simple_roots()
+            except ImportError:  # when sage.graphs is not available
+                return
             Lambda = self.fundamental_weights()
             rho = self.rho()
             G = self.dynkin_diagram()
@@ -665,7 +694,8 @@ class WeightLatticeRealizations(Category_over_base_ring):
             # preserving the alcoves.
             if elements is None:
                 c = self.cartan_type().c()
-                elements = [ c[i] * Lambda[i] for i in self.cartan_type().classical().index_set() ]
+                elements = [c[i] * Lambda[i]
+                            for i in self.cartan_type().classical().index_set()]
 
             # When the null root is zero in this root lattice realization,
             # the roots correspond to the classical roots. We use that to
@@ -674,28 +704,32 @@ class WeightLatticeRealizations(Category_over_base_ring):
             # set to be of the form 0..n
             test_automorphism = self.null_root().is_zero() and set(self.index_set()) == set(i for i in range(len(self.index_set())))
             # dictionary assigning a simple root to its index
-            rank_simple_roots = dict( (alpha[i],i) for i in self.index_set() )
+            rank_simple_roots = {alpha[i]: i for i in self.index_set()}
+
+            try:
+                W = self.weyl_group()
+            except ImportError:
+                return
 
             for t in elements:
                 t = t - self.base_ring()(t.level()/Lambda[0].level()) * Lambda[0]
-                w = self.weyl_group().from_reduced_word(self.reduced_word_of_translation(t))
+                w = W.from_reduced_word(self.reduced_word_of_translation(t))
                 if self.null_root().is_zero():
                     # The following formula is only valid when the null root is zero
-                    tester.assertEquals(w.action(rho), rho + rho.level()*t)
+                    tester.assertEqual(w.action(rho), rho + rho.level()*t)
                     # TODO: fix this formula to take delta into account,
                     # and remove the above condition
                 if test_automorphism:
                     permutation = [None for i in self.index_set()]
                     for i in self.index_set():
                         root = w.action(alpha[i])
-                        tester.assert_(root in rank_simple_roots)
+                        tester.assertIn(root, rank_simple_roots)
                         permutation[i] = rank_simple_roots[root]
-                    tester.assertEquals(set(permutation), set(self.index_set()))
-                    #print permutation
+                    tester.assertEqual(set(permutation), set(self.index_set()))
                     # It could be nicer to test equality of G and its relabelling
                     for i in self.index_set():
                         for j in self.index_set():
-                            tester.assertEquals(G[permutation[i],permutation[j]], G[i,j])
+                            tester.assertEqual(G[permutation[i],permutation[j]], G[i,j])
                     permutations.append(permutation)
 
             if test_automorphism and elements is None: # note: the test on elements is broken
@@ -705,13 +739,12 @@ class WeightLatticeRealizations(Category_over_base_ring):
                 # automorphisms, which are in bijection with the special nodes
                 #from sage.groups.perm_gps.permgroup import PermutationGroup
                 #P = PermutationGroup([[i+1 for i in permutation] for permutation in permutations])
-                #print P, len(P)
-                #tester.assertEquals(P, G.automorphism_group())
+                #tester.assertEqual(P, G.automorphism_group())
                 pass
 
         def signs_of_alcovewalk(self, walk):
             r"""
-            Let walk = `[i_1,\dots,i_n]` denote an alcove walk starting
+            Let walk = `[i_1,\ldots,i_n]` denote an alcove walk starting
             from the fundamental alcove `y_0`, crossing at step 1 the
             wall `i_1`, and so on.
 
@@ -722,7 +755,7 @@ class WeightLatticeRealizations(Category_over_base_ring):
 
             .. MATH::
 
-                  y_k = s_{w_{k-1} \alpha_{i_k}} y_{k-1}
+                  y_k = s_{w_{k-1} \alpha_{i_k}} y_{k-1}.
 
             The step is said positive if `w_{k-1} \alpha_{i_k}` is a
             negative root (considering `w_{k-1}` as element of the
@@ -738,23 +771,23 @@ class WeightLatticeRealizations(Category_over_base_ring):
             simple coroot associated to `\alpha_{i_k}`.
 
             This function returns a list of the form `[+1,+1,-1,...]`,
-            where the `k^{th}` entry denotes whether the `k^{th}` step was
+            where the `k`-th entry denotes whether the `k`-th step was
             positive or negative.
 
-            See equation 3.4, of Ram: Alcove walks ..., arxiv:math/0601343v1 [math.RT]
+            See equation 3.4, of Ram: Alcove walks ..., :arxiv:`math/0601343v1`
 
             EXAMPLES::
 
                 sage: L = RootSystem(['C',2,1]).weight_lattice()
-                sage: L.signs_of_alcovewalk([1,2,0,1,2,1,2,0,1,2])
+                sage: L.signs_of_alcovewalk([1,2,0,1,2,1,2,0,1,2])                      # needs sage.libs.gap
                 [-1, -1, 1, -1, 1, 1, 1, 1, 1, 1]
 
                 sage: L = RootSystem(['A',2,1]).weight_lattice()
-                sage: L.signs_of_alcovewalk([0,1,2,1,2,0,1,2,0,1,2,0])
+                sage: L.signs_of_alcovewalk([0,1,2,1,2,0,1,2,0,1,2,0])                  # needs sage.libs.gap
                 [1, 1, 1, 1, -1, 1, -1, 1, -1, 1, -1, 1]
 
                 sage: L = RootSystem(['B',2,1]).coweight_lattice()
-                sage: L.signs_of_alcovewalk([0,1,2,0,1,2])
+                sage: L.signs_of_alcovewalk([0,1,2,0,1,2])                              # needs sage.libs.gap
                 [1, -1, 1, -1, 1, 1]
 
             .. WARNING::
@@ -790,10 +823,10 @@ class WeightLatticeRealizations(Category_over_base_ring):
 
             EXAMPLES::
 
-                sage: RootSystem(['C',4,1]).weight_lattice().rho_classical()
+                sage: RootSystem(['C',4,1]).weight_lattice().rho_classical()            # needs sage.graphs
                 -4*Lambda[0] + Lambda[1] + Lambda[2] + Lambda[3] + Lambda[4]
                 sage: L = RootSystem(['D',4,1]).weight_lattice()
-                sage: L.rho_classical().scalar(L.null_coroot())
+                sage: L.rho_classical().scalar(L.null_coroot())                         # needs sage.graphs
                 0
 
             .. WARNING::
@@ -801,10 +834,10 @@ class WeightLatticeRealizations(Category_over_base_ring):
                 In affine type BC dual, this does not live in the weight lattice::
 
                     sage: L = CartanType(["BC",2,2]).dual().root_system().weight_space()
-                    sage: L.rho_classical()
+                    sage: L.rho_classical()                                             # needs sage.graphs
                     -3/2*Lambda[0] + Lambda[1] + Lambda[2]
                     sage: L = CartanType(["BC",2,2]).dual().root_system().weight_lattice()
-                    sage: L.rho_classical()
+                    sage: L.rho_classical()                                             # needs sage.graphs
                     Traceback (most recent call last):
                     ...
                     ValueError: 5 is not divisible by 2
@@ -813,9 +846,9 @@ class WeightLatticeRealizations(Category_over_base_ring):
             Lambda = self.fundamental_weights()
             return rho - Lambda[0] * rho.level() / Lambda[0].level()
 
-        def embed_at_level(self, x, level = 1):
+        def embed_at_level(self, x, level=1):
             r"""
-            Embed the classical weight `x` in the level ``level`` hyperplane
+            Embed the classical weight `x` in the level ``level`` hyperplane.
 
             This is achieved by translating the straightforward
             embedding of `x` by `c\Lambda_0` for `c` some appropriate
@@ -824,10 +857,11 @@ class WeightLatticeRealizations(Category_over_base_ring):
             INPUT:
 
             - ``x`` -- an element of the corresponding classical weight/ambient lattice
-            - ``level`` -- an integer or element of the base ring (default: 1)
+            - ``level`` -- integer or element of the base ring (default: 1)
 
             EXAMPLES::
 
+                sage: # needs sage.graphs
                 sage: L = RootSystem(["B",3,1]).weight_space()
                 sage: L0 = L.classical()
                 sage: alpha = L0.simple_roots()
@@ -860,11 +894,11 @@ class WeightLatticeRealizations(Category_over_base_ring):
                 20
                 sage: P = RootSystem(['C',2]).weight_lattice()
                 sage: La = P.basis()
-                sage: P.weyl_dimension(La[1]+La[2])
+                sage: P.weyl_dimension(La[1]+La[2])                                     # needs sage.graphs
                 16
 
                 sage: type(RootSystem(['A',3]).ambient_lattice().weyl_dimension([2,1,0,0]))
-                <type 'sage.rings.integer.Integer'>
+                <class 'sage.rings.integer.Integer'>
             """
             highest_weight = self(highest_weight)
             if not highest_weight.is_dominant():
@@ -875,6 +909,25 @@ class WeightLatticeRealizations(Category_over_base_ring):
             n = prod(((rho+highest_weight).scalar(x) for x in pr), Integer(1))
             d = prod((rho.scalar(x) for x in pr), Integer(1))
             return Integer(n/d)
+
+        @lazy_attribute
+        def _inverse_cartan_matrix(self):
+            r"""
+            Return the inverse Cartan matrix defining ``self``.
+
+            EXAMPLES::
+
+                sage: RootSystem(['A', 3]).ambient_lattice()._inverse_cartan_matrix
+                [3/4 1/2 1/4]
+                [1/2   1 1/2]
+                [1/4 1/2 3/4]
+                sage: RootSystem(['G', 2]).weight_lattice()._inverse_cartan_matrix
+                [2 3]
+                [1 2]
+            """
+            ret = self.cartan_type().cartan_matrix().inverse()
+            ret.set_immutable()
+            return ret
 
         @lazy_attribute
         def _symmetric_form_matrix(self):
@@ -898,20 +951,25 @@ class WeightLatticeRealizations(Category_over_base_ring):
 
             EXAMPLES::
 
+                sage: P = RootSystem(['B',2]).weight_lattice()
+                sage: P._symmetric_form_matrix                                          # needs sage.graphs
+                [2 1]
+                [1 1]
+
                 sage: P = RootSystem(['C',2]).weight_lattice()
-                sage: P._symmetric_form_matrix
+                sage: P._symmetric_form_matrix                                          # needs sage.graphs
                 [1 1]
                 [1 2]
 
                 sage: P = RootSystem(['C',2,1]).weight_lattice()
-                sage: P._symmetric_form_matrix
+                sage: P._symmetric_form_matrix                                          # needs sage.graphs
                 [0 0 0 1]
                 [0 1 1 1]
                 [0 1 2 1]
                 [1 1 1 0]
 
                 sage: P = RootSystem(['A',4,2]).weight_lattice()
-                sage: P._symmetric_form_matrix
+                sage: P._symmetric_form_matrix                                          # needs sage.graphs
                 [  0   0   0 1/2]
                 [  0   2   2   1]
                 [  0   2   4   1]
@@ -921,9 +979,8 @@ class WeightLatticeRealizations(Category_over_base_ring):
             ct = self.cartan_type()
             cm = ct.cartan_matrix()
             if cm.det() != 0:
-                cm_inv = cm.inverse()
-                diag = cm.is_symmetrizable(True)
-                return cm_inv.transpose() * matrix.diagonal(diag)
+                diag = matrix.diagonal(cm.symmetrizer())
+                return self._inverse_cartan_matrix.transpose() * diag
 
             if not ct.is_affine():
                 raise ValueError("only implemented for affine types when the"
@@ -938,7 +995,7 @@ class WeightLatticeRealizations(Category_over_base_ring):
             M = M.inverse()
 
             if a[0] != 1:
-                from sage.rings.all import QQ
+                from sage.rings.rational_field import QQ
                 S = matrix([~a[0]]+[0]*(r-1))
                 A = cm.symmetrized_matrix().change_ring(QQ).stack(S)
             else:
@@ -962,6 +1019,7 @@ class WeightLatticeRealizations(Category_over_base_ring):
 
             EXAMPLES::
 
+                sage: # needs sage.graphs
                 sage: P = RootSystem(['C',2]).weight_lattice()
                 sage: al = P.simple_roots()
                 sage: al[1].symmetric_form(al[1])
@@ -976,6 +1034,7 @@ class WeightLatticeRealizations(Category_over_base_ring):
                 ....:     for i in P.index_set() for j in P.index_set())
                 True
 
+                sage: # needs sage.graphs
                 sage: P = RootSystem(['C',2,1]).weight_lattice(extended=True)
                 sage: al = P.simple_roots()
                 sage: al[1].symmetric_form(al[1])
@@ -999,9 +1058,9 @@ class WeightLatticeRealizations(Category_over_base_ring):
 
                 sage: P = RootSystem(['C',2,1]).weight_lattice()
                 sage: Q = RootSystem(['C',2,1]).root_lattice()
-                sage: al = P.simple_roots()
-                sage: alQ = Q.simple_roots()
-                sage: all(al[i].symmetric_form(al[j]) == alQ[i].symmetric_form(alQ[j])
+                sage: al = P.simple_roots()                                             # needs sage.graphs
+                sage: alQ = Q.simple_roots()                                            # needs sage.graphs
+                sage: all(al[i].symmetric_form(al[j]) == alQ[i].symmetric_form(alQ[j])  # needs sage.graphs
                 ....:     for i in P.index_set() for j in P.index_set())
                 True
 
@@ -1010,7 +1069,7 @@ class WeightLatticeRealizations(Category_over_base_ring):
             lattice::
 
                 sage: La = P.basis()
-                sage: [La[0].symmetric_form(al) for al in P.simple_roots()]
+                sage: [La[0].symmetric_form(al) for al in P.simple_roots()]             # needs sage.graphs
                 [0, 0, 0]
 
             TESTS:
@@ -1018,9 +1077,29 @@ class WeightLatticeRealizations(Category_over_base_ring):
             We check that `A_{2n}^{(2)}` has 3 different root lengths::
 
                 sage: P = RootSystem(['A',4,2]).weight_lattice()
-                sage: al = P.simple_roots()
-                sage: [al[i].symmetric_form(al[i]) for i in P.index_set()]
+                sage: al = P.simple_roots()                                             # needs sage.graphs
+                sage: [al[i].symmetric_form(al[i]) for i in P.index_set()]              # needs sage.graphs
                 [2, 4, 8]
+
+            Check that :issue:`31410` is fixed, and the symmetric form
+            computed on the weight space is the same as the symmetric
+            form computed on the root space::
+
+                sage: def s1(ct):
+                ....:    L = RootSystem(ct).weight_space()
+                ....:    P = L.positive_roots()
+                ....:    rho = L.rho()
+                ....:    return [beta.symmetric_form(rho) for beta in P]
+
+                sage: def s2(ct):
+                ....:    R = RootSystem(ct).root_space()
+                ....:    P = R.positive_roots()
+                ....:    rho = 1/2*sum(P)
+                ....:    return [beta.symmetric_form(rho) for beta in P]
+
+                sage: all(s1(ct) == s2(ct)                                              # needs sage.graphs
+                ....:     for ct in CartanType.samples(finite=True, crystallographic=True))
+                True
             """
             P = self.parent()
             ct = P.cartan_type()
@@ -1032,15 +1111,15 @@ class WeightLatticeRealizations(Category_over_base_ring):
                 iset = P.index_set() + ('delta',)
 
             return sum(cl*sym[iset.index(ml),iset.index(mr)]*cr
-                       for ml,cl in self for mr,cr in la)
+                       for ml, cl in self for mr, cr in la)
 
         #    # This should be in a method to_weight_lattice()
         #    alphac = self.simple_coroots()
         #    Lambda = self.fundamental_weights()
-        #    assert( t == self.plus(t.scalar(alphac[i]) * Lambda[i] for i in self.index_set() ) )
-        #    t = self.plus( t.scalar(alphac[i]) * c[i] * Lambda[i] for i in self.index_set() )
+        #    assert t == self.plus(t.scalar(alphac[i]) * Lambda[i] for i in self.index_set())
+        #    t = self.plus( t.scalar(alphac[i]) * c[i] * Lambda[i] for i in self.index_set())
 
-        def to_weight_space(self, base_ring = None):
+        def to_weight_space(self, base_ring=None):
             r"""
             Map ``self`` to the weight space.
 
@@ -1070,5 +1149,38 @@ class WeightLatticeRealizations(Category_over_base_ring):
             L = self.parent()
             if base_ring is None:
                 base_ring = L.base_ring()
-            
-            return L.root_system.weight_space(base_ring).sum_of_terms([i, base_ring(self.scalar(L.simple_coroot(i)))] for i in L.cartan_type().index_set())
+
+            wt_space = L.root_system.weight_space(base_ring)
+            simple_coroots = L.simple_coroots()
+            return wt_space.sum_of_terms(((i, base_ring(self.scalar(ac)))
+                                          for i, ac in simple_coroots.items()),
+                                         distinct=True)
+
+        @cached_method
+        def _to_root_vector(self):
+            r"""
+            Helper method to express ``self`` as a linear combination
+            of simple roots.
+
+            OUTPUT:
+
+            A list with entries in `\QQ` representing ``self`` as a linear
+            combination of simple roots.
+
+            EXAMPLES::
+
+                sage: L = RootSystem(['A', 3]).ambient_space()
+                sage: e = L.basis()
+                sage: (e[0] + 3*e[3])._to_root_vector()  # not in the root space
+                sage: (e[0] - e[1])._to_root_vector()
+                (1, 0, 0)
+                sage: (e[0] + 2*e[1] - 3*e[2])._to_root_vector()
+                (1, 3, 0)
+            """
+            v = self.to_vector().change_ring(QQ)
+            al = [a.to_vector() for a in self.parent().simple_roots()]
+            b = v.parent().linear_dependence([v] + al)
+            if len(b) != 1 or b[0] == 0:
+                return None
+            b = b[0]  # Get the actual vector that gives the linear dependency
+            return b[1:].change_ring(QQ) / -b[0]

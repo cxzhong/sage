@@ -1,32 +1,31 @@
+# sage.doctest: needs sage.all
 r"""
 Interface to Sage
 
 This is an expect interface to *another* copy of the Sage
 interpreter.
 """
-from __future__ import absolute_import
 
-#*****************************************************************************
+# ****************************************************************************
 #       Copyright (C) 2005 William Stein <wstein@gmail.com>
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
 #
 #  The full text of the GPL is available at:
 #
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
-from six import iteritems, string_types
-from six.moves import cPickle
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
 import os
+import pickle
 import re
+import textwrap
 
-from .expect import Expect, ExpectElement, FunctionElement
 import sage.repl.preparse
-
+from sage.interfaces.expect import Expect, ExpectElement, FunctionElement
 from sage.interfaces.tab_completion import ExtraTabCompletion
-from sage.structure.sage_object import dumps, load
-from sage.docs.instancedoc import instancedoc
+from sage.misc.instancedoc import instancedoc
+from sage.misc.persist import dumps, load
 
 
 class Sage(ExtraTabCompletion, Expect):
@@ -35,12 +34,11 @@ class Sage(ExtraTabCompletion, Expect):
 
     INPUT:
 
-
-    -  ``server`` - (optional); if specified runs Sage on a
-       remote machine with address. You must have ssh keys setup so you
-       can login to the remote machine by typing "ssh remote_machine" and
-       no password, call _install_hints_ssh() for hints on how to do
-       that.
+    - ``server`` -- (optional) if specified runs Sage on a
+      remote machine with address. You must have ssh keys setup so you
+      can login to the remote machine by typing "ssh remote_machine" and
+      no password, call _install_hints_ssh() for hints on how to do
+      that.
 
 
     The version of Sage should be the same as on the local machine,
@@ -126,13 +124,11 @@ class Sage(ExtraTabCompletion, Expect):
 
     The double quotes are needed because the call to s3 first evaluates
     its arguments using the s interpreter, so the call to s3 is passed
-    ``s('"x"')``, which is the string ``"x"``
-    in the s interpreter.
+    ``s('"x"')``, which is the string ``'x'`` in the s interpreter.
     """
     def __init__(self,
                  logfile=None,
                  preparse=True,
-                 python=False,
                  init_code=None,
                  server=None,
                  server_tmpdir=None,
@@ -144,26 +140,34 @@ class Sage(ExtraTabCompletion, Expect):
             sage: sage0 == loads(dumps(sage0))
             True
         """
-        if python:
-            command = "python -u"
-            prompt = ">>>"
-            if init_code is None:
-                init_code = ['from sage.all import *',
-                             'from six.moves import cPickle']
+
+        if init_code is None:
+            init_code = []
+        elif isinstance(init_code, str):
+            init_code = init_code.splitlines()
         else:
-            command = ' '.join([
-                'sage-ipython',
-                # Disable the IPython history (implemented as SQLite database)
-                # to avoid problems with locking.
-                '--HistoryManager.hist_file=:memory:',
-                # Disable everything that prints ANSI codes
-                '--colors=NoColor',
-                '--no-term-title',
-                '--simple-prompt',
-            ])
-            prompt = re.compile('In \[\d+\]: ')
-            if init_code is None:
-                init_code = ['from six.moves import cPickle']
+            try:
+                init_code = list(init_code)
+            except TypeError:
+                raise TypeError(
+                    'init_code should be a string or an iterable of lines '
+                    'of code')
+
+        command = 'python3 -u'
+        prompt = re.compile(b'>>> |sage: |In : ')
+        environment = 'sage.all'
+        init_code.append(f'from {environment} import *')
+        init_code.append('import pickle')
+        init_code.append(textwrap.dedent("""
+            def _sage0_load_local(filename):
+                with open(filename, 'rb') as f:
+                    return pickle.load(f)
+        """))
+        init_code.append(textwrap.dedent("""
+            def _sage0_load_remote(filename):
+                with open(filename, 'rb') as f:
+                    return loads(f.read())
+        """))
 
         Expect.__init__(self,
                         name='sage',
@@ -208,7 +212,7 @@ class Sage(ExtraTabCompletion, Expect):
             sage: 'gcd' in t
             True
         """
-        return eval(self.eval('print(repr(globals().keys()))'))
+        return eval(self.eval('print(repr(list(globals())))'))
 
     def __call__(self, x):
         """
@@ -224,7 +228,6 @@ class Sage(ExtraTabCompletion, Expect):
 
             sage: sage0(axiom(x^2+1)) #optional - axiom
             x^2 + 1
-
         """
         if isinstance(x, ExpectElement):
             if x.parent() is self:
@@ -232,16 +235,20 @@ class Sage(ExtraTabCompletion, Expect):
             else:
                 return self(x.sage())
 
-        if isinstance(x, string_types):
+        if isinstance(x, str):
             return SageElement(self, x)
 
         if self.is_local():
-            open(self._local_tmpfile(), 'w').write(cPickle.dumps(x, 2))
-            return SageElement(self, 'cPickle.load(open("%s"))' % self._local_tmpfile())
+            with open(self._local_tmpfile(), 'wb') as fobj:
+                fobj.write(pickle.dumps(x, 2))
+            code = '_sage0_load_local({!r})'.format(self._local_tmpfile())
+            return SageElement(self, code)
         else:
-            open(self._local_tmpfile(), 'w').write(dumps(x))   # my dumps is compressed by default
+            with open(self._local_tmpfile(), 'wb') as fobj:
+                fobj.write(dumps(x))   # my dumps is compressed by default
             self._send_tmpfile_to_server()
-            return SageElement(self, 'loads(open("%s").read())' % self._remote_tmpfile())
+            code = '_sage0_load_remote({!r})'.format(self._remote_tmpfile())
+            return SageElement(self, code)
 
     def __reduce__(self):
         """
@@ -263,7 +270,7 @@ class Sage(ExtraTabCompletion, Expect):
 
     def preparse(self, x):
         """
-        Returns the preparsed version of the string s.
+        Return the preparsed version of the string s.
 
         EXAMPLES::
 
@@ -282,11 +289,9 @@ class Sage(ExtraTabCompletion, Expect):
 
         INPUT:
 
+        - ``line`` -- input line of code
 
-        -  ``line`` - input line of code
-
-        -  ``strip`` - ignored
-
+        - ``strip`` -- ignored
 
         EXAMPLES::
 
@@ -295,6 +300,7 @@ class Sage(ExtraTabCompletion, Expect):
         """
         if self._preparse:
             line = self.preparse(line)
+        line = self._wrap_multiline(line)
         return Expect.eval(self, line, **kwds).strip()
 
     def set(self, var, value):
@@ -328,8 +334,8 @@ class Sage(ExtraTabCompletion, Expect):
         """
         Clear the variable named var.
 
-        Note that the exact format of the NameError for a cleared variable
-        is slightly platform dependent, see :trac:`10539`.
+        Note that the exact format of the :exc:`NameError` for a cleared
+        variable is slightly platform dependent, see :issue:`10539`.
 
         EXAMPLES::
 
@@ -360,7 +366,7 @@ class Sage(ExtraTabCompletion, Expect):
             sage: sage0.console() #not tested
             ----------------------------------------------------------------------
             | SageMath version ..., Release Date: ...                            |
-            | Type notebook() for the GUI, and license() for information.        |
+            | Using Python ....   Type "help()" for help.                        |
             ----------------------------------------------------------------------
             ...
         """
@@ -397,13 +403,42 @@ class Sage(ExtraTabCompletion, Expect):
         """
         return SageElement(self, x)
 
+    @staticmethod
+    def _wrap_multiline(s):
+        r"""
+        The Sage interface does not currently handle multi-line Python
+        statements well.
+
+        So given a multi-line Python statement, it is converted to an
+        equivalent ``eval()`` call.
+
+        EXAMPLES::
+
+            sage: import textwrap
+            sage: code = textwrap.dedent('''
+            ....:     def foo():
+            ....:         return 'foo'
+            ....: ''')
+            sage: print(sage0._wrap_multiline(code))
+            eval(compile("def foo():\n    return 'foo'", '<stdin>', 'single'))
+            sage: sage0.eval(code)
+            ''
+            sage: sage0.eval('foo()')
+            "'foo'"
+        """
+
+        if '\n' in s:
+            return "eval(compile({!r}, '<stdin>', 'single'))".format(s.strip())
+        else:
+            return s
+
 
 @instancedoc
 class SageElement(ExpectElement):
 
     def _rich_repr_(self, display_manager, **kwds):
         """
-        Disable rich output
+        Disable rich output.
 
         This is necessary because otherwise our :meth:`__getattr__`
         would be called.
@@ -447,22 +482,22 @@ class SageElement(ExpectElement):
 
     def _sage_(self):
         """
-        Return local copy of self.
+        Return local copy of ``self``.
 
         EXAMPLES::
 
-            sage: sr = mq.SR(allow_zero_inversions=True)
-            sage: F,s = sr.polynomial_system()
-            sage: F == sage0(F)._sage_()
+            sage: sr = mq.SR(allow_zero_inversions=True)                                # needs sage.modules sage.rings.finite_rings
+            sage: F,s = sr.polynomial_system()                                          # needs sage.modules sage.rings.finite_rings
+            sage: F == sage0(F)._sage_()                                                # needs sage.modules sage.rings.finite_rings
             True
         """
         P = self.parent()
         if P.is_remote():
-            P.eval('save(%s, "%s")' % (self.name(), P._remote_tmpfile()))
+            P.eval('save({}, {!r})'.format(self.name(), P._remote_tmpfile()))
             P._get_tmpfile_from_server(self)
             return load(P._local_tmp_file())
         else:
-            P.eval('save(%s, "%s")' % (self.name(), P._local_tmpfile()))
+            P.eval('save({}, {!r})'.format(self.name(), P._local_tmpfile()))
             return load(P._local_tmpfile())
 
 
@@ -477,26 +512,30 @@ class SageFunction(FunctionElement):
             2
         """
         P = self._obj.parent()
+
+        # Important! Keep references to the argument values or else they may
+        # get cleared from the interpreter before we complete the function
+        # call.
         args = [P(x) for x in args]
-        args = ','.join([x.name() for x in args])
-        kwds = ",".join(["%s=%s" % (k, P(v).name())
-                         for k, v in iteritems(kwds)])
-        if args != "" and kwds != "":
-            callstr = '%s.%s(%s,%s)' % (self._obj._name, self._name, args, kwds)
-        elif kwds != "":
-            callstr = '%s.%s(%s)' % (self._obj._name, self._name, kwds)
-        elif args != "":
-            callstr = '%s.%s(%s)' % (self._obj._name, self._name, args)
+        kwds = [(k, P(v)) for k, v in kwds.items()]
+
+        arg_str = ','.join(x.name() for x in args)
+        kwd_str = ','.join('%s=%s' % (k, v.name()) for k, v in kwds)
+
+        if arg_str and kwd_str:
+            args_str = '%s,%s' % (arg_str, kwd_str)
         else:
-            callstr = '%s.%s()' % (self._obj._name, self._name)
-        return SageElement(P, callstr)
+            args_str = arg_str + kwd_str  # At least one of these is empty
+
+        call_str = '%s.%s(%s)' % (self._obj._name, self._name, args_str)
+        return SageElement(P, call_str)
 
     def _repr_(self):
         """
         EXAMPLES::
 
             sage: sage0(4).gcd
-            <built-in method gcd of sage.rings.integer.Integer object at 0x...>
+            <bound method PrincipalIdealDomainElement.gcd of 4>
         """
         return str(self._obj.parent().eval('%s.%s' % (self._obj._name,
                                                       self._name)))
@@ -530,7 +569,7 @@ def reduce_load_element(s):
     import base64
     s = base64.b32encode(s)
     sage0.eval('import base64')
-    return sage0('loads(base64.b32decode("%s"))' % s)
+    return sage0('loads(base64.b32decode({!r}))'.format(s))
 
 
 def sage0_console():
@@ -542,7 +581,7 @@ def sage0_console():
         sage: sage0_console() #not tested
         ----------------------------------------------------------------------
         | SageMath version ..., Release Date: ...                            |
-        | Type notebook() for the GUI, and license() for information.        |
+        | Using Python ....   Type "help()" for help.                        |
         ----------------------------------------------------------------------
         ...
     """

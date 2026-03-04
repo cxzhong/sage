@@ -25,7 +25,7 @@ additional paths as listed by the :class:`~sage.graphs.digraph.DiGraph`
 class; for example only two paths are listed from 1 to 3 in ``Q``::
 
     sage: Q = DiGraph({1:{2:['a','b'], 3:['c']}, 2:{3:['d']}})
-    sage: Q.edges()
+    sage: Q.edges(sort=True)
     [(1, 2, 'a'), (1, 2, 'b'), (1, 3, 'c'), (2, 3, 'd')]
     sage: Q.all_paths(1, 3)
     [[1, 2, 3], [1, 3]]
@@ -86,11 +86,11 @@ If the vertices along the path do not match, a value error is raised::
     sage: inv1 = PQ([(2, 3, 'd'), (1, 2, 'a')])
     Traceback (most recent call last):
     ...
-    ValueError: Edge d ends at 3, but edge a starts at 1
+    ValueError: edge d ends at 3, but edge a starts at 1
     sage: inv2 = PQ([(1, 2, 'a'), (1, 2, 'a')])
     Traceback (most recent call last):
     ...
-    ValueError: Edge a ends at 2, but edge a starts at 1
+    ValueError: edge a ends at 2, but edge a starts at 1
     sage: inv3 = PQ([(1, 2, 'x')])
     Traceback (most recent call last):
     ...
@@ -204,7 +204,7 @@ path corresponding to that basis element::
     sage: x.degree()
     Traceback (most recent call last):
     ...
-    ValueError: Element is not homogeneous.
+    ValueError: element is not homogeneous
     sage: y.is_homogeneous()
     True
     sage: y.degree()
@@ -228,7 +228,7 @@ base ring and the path semigroup::
 
 To each vertex of a quiver there is associated a simple module, an
 indecomposable projective, and an indecomposable injective, and these can
-be created from the qQuiver::
+be created from the quiver::
 
     sage: S = PQ.S(GF(3), 1)
     sage: I = PQ.I(QQ, 2)
@@ -432,7 +432,7 @@ the ``*`` operator::
     True
 """
 
-#*****************************************************************************
+# ****************************************************************************
 #  Copyright (C) 2012 Jim Stark <jstarx@gmail.com>
 #                2013 Simon King <simon.king@uni-jena.de>
 #
@@ -445,15 +445,16 @@ the ``*`` operator::
 #  See the GNU General Public License for more details; the full text
 #  is available at:
 #
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
-from __future__ import print_function
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
+from __future__ import annotations
 
-from sage.structure.factory import UniqueFactory
-from sage.modules.module import Module
-from sage.structure.element import ModuleElement
 from sage.misc.cachefunc import cached_method
 from sage.misc.fast_methods import WithEqualityById
+from sage.modules.module import Module
+from sage.structure.element import ModuleElement
+from sage.structure.factory import UniqueFactory
+
 
 class QuiverRepFactory(UniqueFactory):
     r"""
@@ -480,16 +481,16 @@ class QuiverRepFactory(UniqueFactory):
     are ignored; the keywords are only checked in the event that the argument
     list does not have enough entries after ``P``.
 
-    - ``spaces`` -- dict (default: empty); a dictionary associating to each
-      vertex a free module over the base ring `k`.  Not all vertices must be
-      specified; unspecified vertices are automatically set to `k^0`.  Keys
-      of the dictionary  that don't correspond to vertices are ignored.
+    - ``spaces`` -- dictionary (default: empty) associating to each vertex a
+      free module over the base ring `k`.  Not all vertices must be specified;
+      unspecified vertices are automatically set to `k^0`.  Keys of the
+      dictionary  that don't correspond to vertices are ignored.
 
-    - ``maps`` - dict (default: empty); a dictionary associating to each edge
-      a map whose domain and codomain are the spaces associated to the initial
-      and terminal vertex of the edge respectively.  Not all edges must be
-      specified; unspecified edges are automatically set to the zero map.
-      Keys of the dictionary that don't correspond to edges are ignored.
+    - ``maps`` -- dictionary (default: empty) associating to each edge a map
+      whose domain and codomain are the spaces associated to the initial and
+      terminal vertex of the edge respectively.  Not all edges must be
+      specified; unspecified edges are automatically set to the zero map. Keys
+      of the dictionary that don't correspond to edges are ignored.
 
     The second option is the ``paths`` option which creates a module by
     generating a right ideal from a list of paths.  Thus the basis elements
@@ -499,10 +500,10 @@ class QuiverRepFactory(UniqueFactory):
     The keyword is only checked if there is no entry in the argument list
     after ``Q``.
 
-    - ``basis`` - list; a nonempty list of paths in the quiver ``Q``.
+    - ``basis`` -- list; a nonempty list of paths in the quiver ``Q``.
       Entries that do not represent valid paths are ignored and duplicate
       paths are deleted.  There must be at least one valid path in the list
-      or a ``ValueError`` is raised.  The closure of this list under right
+      or a :exc:`ValueError` is raised.  The closure of this list under right
       multiplication forms the basis of the resulting representation.
 
     The third option is the ``dual paths`` option which creates the dual of
@@ -516,18 +517,16 @@ class QuiverRepFactory(UniqueFactory):
     - ``basis`` -- list; a nonempty list of paths in the quiver ``Q``.
       Entries that do not represent valid paths are ignored and duplicate
       paths are deleted.  There must be at least one valid path in the list
-      or a ``ValueError`` is raised.  The closure of this list under left
+      or a :exc:`ValueError` is raised.  The closure of this list under left
       multiplication of edges forms the basis of  the resulting representation.
 
     Using the second and third options requires that the following keyword be
     passed to the constructor.  This must be passed as a keyword.
 
-    - ``option`` - string (default: ``None``), either ``'values'`` or
-      ``'paths'`` or ``'dual paths'``. ``None`` is equivalent to ``'values'``.
+    - ``option`` -- string (default: ``None``); either ``'values'`` or
+      ``'paths'`` or ``'dual paths'``. ``None`` is equivalent to ``'values'``
 
-    OUTPUT:
-
-    - :class:`QuiverRep`
+    OUTPUT: :class:`QuiverRep`
 
     EXAMPLES::
 
@@ -573,7 +572,8 @@ class QuiverRepFactory(UniqueFactory):
     In the following example, the 3rd and 4th paths are actually the same,
     so the duplicate is removed::
 
-        sage: N = Q1.representation(QQ, [[(1, 1)], [(2, 2)], [(1, 2, 'a')], [(1, 2, 'a')]], option='paths')
+        sage: N = Q1.representation(QQ, [[(1, 1)], [(2, 2)], [(1, 2, 'a')],
+        ....:                           [(1, 2, 'a')]], option='paths')
         sage: N.dimension()
         3
 
@@ -599,7 +599,7 @@ class QuiverRepFactory(UniqueFactory):
         has `n` vertices then the next `n` entries are the vector spaces
         to be assigned to those vertices.  After that are the matrices of
         the maps assigned to edges, listed in the same order that
-        ``Q.edges()`` uses.  If the option is ``'paths'`` or ``'dual paths'``
+        ``Q.edges(sort=True)`` uses.  If the option is ``'paths'`` or ``'dual paths'``
         then the next entry is a tuple containing a sorted list of the
         paths that form a basis of the quiver.
 
@@ -607,9 +607,7 @@ class QuiverRepFactory(UniqueFactory):
 
         See the class documentation.
 
-        OUTPUT:
-
-        - tuple
+        OUTPUT: tuple
 
         EXAMPLES::
 
@@ -646,7 +644,7 @@ class QuiverRepFactory(UniqueFactory):
                     to_be_added = []
                     for e in edges:
                         for p in just_added:
-                            pe = p*e
+                            pe = p * e
                             if pe is not None and pe not in paths:
                                 to_be_added.append(pe)
 
@@ -661,7 +659,7 @@ class QuiverRepFactory(UniqueFactory):
                     to_be_added = []
                     for e in edges:
                         for p in just_added:
-                            ep = e*p
+                            ep = e * p
                             if ep is not None and ep not in paths:
                                 to_be_added.append(ep)
 
@@ -691,7 +689,7 @@ class QuiverRepFactory(UniqueFactory):
             # an integer is given set it as a free module of that rank, otherwise
             # assume the object is a module and assign it to the vertex.
             from sage.rings.finite_rings.integer_mod_ring import Integers
-            verts = Q.vertices()
+            verts = Q.vertices(sort=True)
             for x in verts:
                 if x not in spaces:
                     key.append(k**0)
@@ -703,14 +701,14 @@ class QuiverRepFactory(UniqueFactory):
             # The preferred method of specifying an edge is as a tuple
             # (i, t, l) where i is the initial vertex, t is the terminal
             # vertex, and l is the label.  This is the form in which
-            # quiver.edges() and other such functions give the edge.  But here
+            # quiver.edges(sort=True) and other such functions give the edge.  But here
             # edges can be specified by giving only the two vertices or giving
             # only the edge label.
             #
             # Note that the first space is assigned to key[3] and the first
             # vertex is 1 so the space assigned to vertex v is key[2 + v]
+            from sage.categories.morphism import Morphism
             from sage.matrix.constructor import Matrix
-            from sage.categories.morphism import is_Morphism
             for x in P._sorted_edges:
                 if x in maps:
                     e = maps[x]
@@ -724,12 +722,12 @@ class QuiverRepFactory(UniqueFactory):
                 # If a morphism is specified take it's matrix.  Create one if
                 # needed.  Otherwise assume the Matrix function can convert the
                 # object to a Matrix.
-                if is_Morphism(e):
+                if isinstance(e, Morphism):
                     if hasattr(e, 'matrix'):
                         key.append(e.matrix())
                     else:
                         gens_images = [key[3 + verts.index(x[1])].coordinate_vector(e(x))
-                                        for x in key[3 + verts.index(x[0])].gens()]
+                                       for x in key[3 + verts.index(x[0])].gens()]
                         key.append(Matrix(k, key[3 + verts.index(x[0])].dimension(),
                                           key[3 + verts.index(x[1])].dimension(), gens_images))
                 else:
@@ -754,7 +752,7 @@ class QuiverRepFactory(UniqueFactory):
         vertices then the next `n` entries are the vector spaces to be
         assigned to those vertices.  After that are the matrices
         of the maps assigned to edges, listed in the same order that
-        ``Q.edges()`` uses.  If the option is ``'paths'`` or ``'dual paths'``
+        ``Q.edges(sort=True)`` uses.  If the option is ``'paths'`` or ``'dual paths'``
         then the next entry is a tuple containing a sorted list of the
         paths that form a basis of the quiver.
 
@@ -763,9 +761,7 @@ class QuiverRepFactory(UniqueFactory):
         - ``version`` -- the version of sage, this is currently ignored
         - ``key`` -- tuple
 
-        OUTPUT:
-
-        - :class:`QuiverRep_generic` or :class:`QuiverRep_with_path_basis`
+        OUTPUT: :class:`QuiverRep_generic` or :class:`QuiverRep_with_path_basis`
 
         EXAMPLES::
 
@@ -775,9 +771,8 @@ class QuiverRepFactory(UniqueFactory):
             sage: QuiverRep.create_object(0, key)
             Representation with dimension vector (0, 0)
         """
-
         if len(key) < 4:
-            raise ValueError("invalid key used in QuiverRepFactory!")
+            raise ValueError("invalid key used in QuiverRepFactory")
 
         # Get the quiver
         P = key[1]
@@ -808,13 +803,14 @@ class QuiverRepFactory(UniqueFactory):
             # Create and return the module
             return QuiverRep_with_dual_path_basis(key[0], P, key[3])
 
-        else:
-            raise ValueError("invalid key used in QuiverRepFactory!")
+        raise ValueError("invalid key used in QuiverRepFactory")
+
 
 QuiverRep = QuiverRepFactory("sage.quivers.representation.QuiverRep")
 
 #########################################################################
-##  Elements
+#  Elements
+
 
 class QuiverRepElement(ModuleElement):
     r"""
@@ -825,20 +821,18 @@ class QuiverRepElement(ModuleElement):
 
     INPUT:
 
-    - ``module`` -- :class:`QuiverRep` (default: ``None``), the module to
+    - ``module`` -- :class:`QuiverRep` (default: ``None``); the module to
       which the element belongs
 
-    - ``elements`` - dict (default: empty), a dictionary associating to each
-      vertex a vector or an object from which sage can create a vector.
-      Not all vertices must be specified, unspecified vertices will be
-      assigned the zero vector of the space associated to that vertex in
-      the given module.  Keys that do not correspond to a vertex are ignored.
+    - ``elements`` -- dictionary (default: empty) associating to each vertex a
+      vector or an object from which sage can create a vector. Not all vertices
+      must be specified, unspecified vertices will be assigned the zero vector
+      of the space associated to that vertex in the given module.  Keys that do
+      not correspond to a vertex are ignored.
 
-    - ``name`` -- string (default: ``None``), the name of the element
+    - ``name`` -- string (default: ``None``); the name of the element
 
-    OUTPUT:
-
-    - :class:`QuiverRepElement`
+    OUTPUT: :class:`QuiverRepElement`
 
     .. NOTE::
 
@@ -898,7 +892,7 @@ class QuiverRepElement(ModuleElement):
         # * _quiver
         #      The quiver of the representation.
 
-        super(QuiverRepElement, self).__init__(parent)
+        super().__init__(parent)
 
         self._elems = {}
         self._quiver = parent._quiver
@@ -986,7 +980,7 @@ class QuiverRepElement(ModuleElement):
 
     def __mul__(self, other):
         """
-        Implements ``*`` for right multiplication by quiver algebra elements.
+        Implement ``*`` for right multiplication by quiver algebra elements.
 
         TESTS::
 
@@ -1009,15 +1003,17 @@ class QuiverRepElement(ModuleElement):
         # coefficients of the monomials in it
         parent = self.parent()
         mons = parent._actor(other).monomial_coefficients()
-        result = parent()   # this must not be the cached parent.zero(),
-                             # since otherwise it gets changed in place!!
+
+        # this must not be the cached parent.zero(),
+        # since otherwise it gets changed in place!!
+        result = parent()
 
         for path in mons:
             # Multiply by the scalar
-            x = mons[path]*self._elems[path.initial_vertex()]
+            x = mons[path] * self._elems[path.initial_vertex()]
 
             # If the edge isn't trivial apply the corresponding maps
-            if len(path) > 0:
+            if path:
                 for edge in path:
                     x = parent.get_map(edge)(x)
 
@@ -1048,7 +1044,8 @@ class QuiverRepElement(ModuleElement):
             sage: h1 == hash(v)
             True
         """
-        return hash(frozenset((v,tuple(self._elems[v])) for v in self._quiver))
+        return hash(frozenset((v, tuple(self._elems[v]))
+                              for v in self._quiver))
 
     def __eq__(self, other):
         """
@@ -1075,11 +1072,7 @@ class QuiverRepElement(ModuleElement):
             return False
 
         # Return False if the elements differ at any vertex
-        for v in self._quiver:
-            if self._elems[v] != other._elems[v]:
-                return False
-
-        return True
+        return all(self._elems[v] == other._elems[v] for v in self._quiver)
 
     def __ne__(self, other):
         """
@@ -1106,11 +1099,7 @@ class QuiverRepElement(ModuleElement):
             return True
 
         # Return True if the elements differ at any vertex
-        for v in self._quiver:
-            if self._elems[v] != other._elems[v]:
-                return True
-
-        return False
+        return any(self._elems[v] != other._elems[v] for v in self._quiver)
 
     ###########################################################################
     #                                                                         #
@@ -1123,9 +1112,7 @@ class QuiverRepElement(ModuleElement):
         """
         Return the quiver of the representation.
 
-        OUTPUT:
-
-        - :class:`DiGraph`, the quiver of the representation
+        OUTPUT: :class:`DiGraph`, the quiver of the representation
 
         EXAMPLES::
 
@@ -1143,11 +1130,9 @@ class QuiverRepElement(ModuleElement):
 
         INPUT:
 
-        - ``vertex`` -- integer, a vertex of the quiver
+        - ``vertex`` -- integer; a vertex of the quiver
 
-        OUTPUT:
-
-        - vector, the vector assigned to the given vertex
+        OUTPUT: the vector assigned to the given vertex
 
         EXAMPLES::
 
@@ -1175,7 +1160,7 @@ class QuiverRepElement(ModuleElement):
         - ``vector`` -- a vector or an object from which the space
           associated to the given vertex in the parent can create a vector
 
-        - ``vertex`` -- integer, a vertex of the quiver
+        - ``vertex`` -- integer; a vertex of the quiver
 
         .. WARNING::
 
@@ -1205,14 +1190,12 @@ class QuiverRepElement(ModuleElement):
     #                                                                         #
     ###########################################################################
 
-    def is_zero(self):
+    def is_zero(self) -> bool:
         """
         Test whether ``self`` is zero.
 
-        OUTPUT:
-
-        - bool, ``True`` if the element is the zero element, ``False``
-          otherwise
+        OUTPUT: boolean, ``True`` if the element is the zero element, ``False``
+        otherwise
 
         EXAMPLES::
 
@@ -1233,11 +1216,7 @@ class QuiverRepElement(ModuleElement):
             sage: M.zero().is_zero()
             True
         """
-        for v in self._quiver:
-            if not self._elems[v].is_zero():
-                return False
-
-        return True
+        return all(self._elems[v].is_zero() for v in self._quiver)
 
     def support(self):
         """
@@ -1246,9 +1225,7 @@ class QuiverRepElement(ModuleElement):
         The support is the set of vertices to which a nonzero vector is
         associated.
 
-        OUTPUT:
-
-        - list, the support
+        OUTPUT: list; the support
 
         EXAMPLES::
 
@@ -1294,14 +1271,12 @@ class QuiverRepElement(ModuleElement):
             sage: v.get_element(1)
             (1, 0)
         """
-        if hasattr(self, '__custom_name'):
-            name = self.__custom_name
-        else:
-            name = None
+        name = self.get_custom_name()
         return self.parent()(self._elems.copy(), name)
 
 ####################################################################
 # The representations
+
 
 class QuiverRep_generic(WithEqualityById, Module):
     """
@@ -1318,22 +1293,18 @@ class QuiverRep_generic(WithEqualityById, Module):
 
     - ``P`` -- the path semigroup of the quiver `Q` of the representation
 
-    - ``spaces`` -- dict (default: empty), a dictionary associating to each
-      vertex a free module over the base ring `k`.  Not all vertices need
-      to be specified, unspecified vertices are automatically set to
-      `k^0`.  Keys of the dictionary that don't correspond to vertices are
-      ignored.
+    - ``spaces`` -- dictionary (default: empty) associating to each vertex a
+      free module over the base ring `k`.  Not all vertices need to be
+      specified, unspecified vertices are automatically set to `k^0`.  Keys of
+      the dictionary that don't correspond to vertices are ignored.
 
-    - ``maps`` -- dict (default: empty), a dictionary associating to each
-      edge a map whose domain and codomain are the spaces associated to
-      the initial and terminal vertex of the edge respectively.  Not all
-      edges need to be specified, unspecified edges are automatically set
-      to the zero map.  Keys of the dictionary that don't correspond to
-      edges are ignored.
+    - ``maps`` -- dictionary (default: empty) associating to each edge a map
+      whose domain and codomain are the spaces associated to the initial and
+      terminal vertex of the edge respectively.  Not all edges need to be
+      specified, unspecified edges are automatically set to the zero map.  Keys
+      of the dictionary that don't correspond to edges are ignored.
 
-    OUTPUT:
-
-    - :class:`QuiverRep`
+    OUTPUT: :class:`QuiverRep`
 
     EXAMPLES::
 
@@ -1424,7 +1395,7 @@ class QuiverRep_generic(WithEqualityById, Module):
 
         # The preferred method of specifying an edge is as a tuple (i, t, l)
         # where i is the initial vertex, t is the terminal vertex, and l is the
-        # label.  This is the form in which quiver.edges() and other such
+        # label.  This is the form in which quiver.edges(sort=True) and other such
         # functions give the edge.  But here edges can be specified by giving
         # only the two vertices or giving only the edge label.
         for x in P._sorted_edges:
@@ -1437,7 +1408,7 @@ class QuiverRep_generic(WithEqualityById, Module):
             else:
                 e = self._spaces[x[0]].Hom(self._spaces[x[1]]).zero()
 
-            #If a morphism is specified use it, otherwise assume the hom
+            # If a morphism is specified use it, otherwise assume the hom
             # function can convert the object to a morphism.  Matrices and the
             # zero and one of the base ring are valid inputs (one is valid only
             # when the domain and codomain are equal).
@@ -1449,7 +1420,7 @@ class QuiverRep_generic(WithEqualityById, Module):
 
         self._assert_valid_quiverrep()
 
-        super(QuiverRep_generic, self).__init__(k) # Or explicitly Module.__init__(self, k)?
+        super().__init__(k)  # Or explicitly Module.__init__(self, k)?
 
     def _assert_valid_quiverrep(self):
         r"""
@@ -1517,7 +1488,7 @@ class QuiverRep_generic(WithEqualityById, Module):
         """
         return self.quotient(sub)
 
-    def _submodule(self, spaces={}):
+    def _submodule(self, spaces=None):
         """
         Return the submodule specified by the data.
 
@@ -1547,7 +1518,8 @@ class QuiverRep_generic(WithEqualityById, Module):
             sage: M.submodule(M.gens()) is M # indirect doctest
             True
         """
-
+        if spaces is None:
+            spaces = {}
         # Add zero submodules
         for v in self._quiver:
             if v not in spaces:
@@ -1574,11 +1546,9 @@ class QuiverRep_generic(WithEqualityById, Module):
 
         INPUT:
 
-        - ``domain`` -= a Sage object
+        - ``domain`` -- a Sage object
 
-        OUTPUT:
-
-        - :class:`QuiverRepHom` or bool
+        OUTPUT: :class:`QuiverRepHom` or boolean
 
         TESTS::
 
@@ -1656,7 +1626,7 @@ class QuiverRep_generic(WithEqualityById, Module):
 
         INPUT:
 
-        - ``vertex`` -- integer, a vertex of the quiver of the module
+        - ``vertex`` -- integer; a vertex of the quiver of the module
 
         EXAMPLES::
 
@@ -1692,9 +1662,7 @@ class QuiverRep_generic(WithEqualityById, Module):
         """
         Return the quiver of the representation.
 
-        OUTPUT:
-
-        - :class:`DiGraph`
+        OUTPUT: :class:`DiGraph`
 
         EXAMPLES::
 
@@ -1709,9 +1677,7 @@ class QuiverRep_generic(WithEqualityById, Module):
         r"""
         Return the quiver path algebra acting on this representation.
 
-        OUTPUT:
-
-        - a quiver path algebra
+        OUTPUT: a quiver path algebra
 
         EXAMPLES::
 
@@ -1776,9 +1742,7 @@ class QuiverRep_generic(WithEqualityById, Module):
         """
         Return the dimension vector of the representation.
 
-        OUTPUT:
-
-        - tuple
+        OUTPUT: tuple
 
         .. NOTE::
 
@@ -1800,13 +1764,11 @@ class QuiverRep_generic(WithEqualityById, Module):
         """
         return tuple(self._spaces[x].dimension() for x in self._quiver)
 
-    def is_zero(self):
+    def is_zero(self) -> bool:
         """
         Test whether the representation is zero.
 
-        OUTPUT:
-
-        - bool
+        OUTPUT: boolean
 
         EXAMPLES::
 
@@ -1824,13 +1786,11 @@ class QuiverRep_generic(WithEqualityById, Module):
         """
         return self.dimension() == 0
 
-    def is_simple(self):
+    def is_simple(self) -> bool:
         """
         Test whether the representation is simple.
 
-        OUTPUT:
-
-        - bool
+        OUTPUT: boolean
 
         EXAMPLES::
 
@@ -1844,13 +1804,11 @@ class QuiverRep_generic(WithEqualityById, Module):
         # dimension 1.
         return self.dimension() == 1
 
-    def is_semisimple(self):
+    def is_semisimple(self) -> bool:
         """
         Test whether the representation is semisimple.
 
-        OUTPUT:
-
-        - bool
+        OUTPUT: boolean
 
         EXAMPLES::
 
@@ -1861,18 +1819,13 @@ class QuiverRep_generic(WithEqualityById, Module):
         """
         # A quiver representation is semisimple if and only if the zero map is
         # assigned to each edge.
-        for x in self._semigroup._sorted_edges:
-            if not self._maps[x].is_zero():
-                return False
-        return True
+        return all(self._maps[x].is_zero() for x in self._semigroup._sorted_edges)
 
     def an_element(self):
         """
         Return an element of ``self``.
 
-        OUTPUT:
-
-        - :class:`QuiverRepElement`
+        OUTPUT: :class:`QuiverRepElement`
 
         EXAMPLES::
 
@@ -1882,7 +1835,7 @@ class QuiverRep_generic(WithEqualityById, Module):
             Element of quiver representation
         """
         # Here we just use the an_element function from each space.
-        elements = dict((v, self._spaces[v].an_element()) for v in self._quiver)
+        elements = {v: self._spaces[v].an_element() for v in self._quiver}
         return self(elements)
 
     def support(self):
@@ -1910,9 +1863,9 @@ class QuiverRep_generic(WithEqualityById, Module):
 
         return sup
 
-    def gens(self, names='v'):
+    def gens(self, names='v') -> tuple:
         """
-        Return a list of generators of ``self`` as a `k`-module.
+        Return a tuple of generators of ``self`` as a `k`-module.
 
         INPUT:
 
@@ -1923,7 +1876,7 @@ class QuiverRep_generic(WithEqualityById, Module):
 
         OUTPUT:
 
-        - list of :class:`QuiverRepElement` objects, the linear generators
+        - tuple of :class:`QuiverRepElement` objects, the linear generators
           of the module (over the base ring)
 
         .. NOTE::
@@ -1937,14 +1890,14 @@ class QuiverRep_generic(WithEqualityById, Module):
             sage: Q = DiGraph({1:{2:['a', 'b']}}).path_semigroup()
             sage: M = Q.P(QQ, 1)
             sage: M.gens()
-            [v_0, v_1, v_2]
+            (v_0, v_1, v_2)
 
         If a string is given then it is used as the name of each generator,
         with the index of the generator appended in order to differentiate
         them::
 
             sage: M.gens('generator')
-            [generator_0, generator_1, generator_2]
+            (generator_0, generator_1, generator_2)
 
         If a list or other iterable variable is given then each generator
         is named using the appropriate entry.  The length of the variable
@@ -1955,14 +1908,14 @@ class QuiverRep_generic(WithEqualityById, Module):
             ...
             TypeError: can only concatenate list (not "str") to list
             sage: M.gens(['x', 'y', 'z'])
-            [x, y, z]
+            (x, y, z)
 
         Strings are iterable, so if the length of the string is equal to the
         number of generators then the characters of the string will be used
         as the names::
 
             sage: M.gens('xyz')
-            [x, y, z]
+            (x, y, z)
         """
         # Use names as a list if and only if it is the correct length
         uselist = (len(names) == self.dimension())
@@ -1981,7 +1934,7 @@ class QuiverRep_generic(WithEqualityById, Module):
                     basis.append(self({v: m}, names + "_" + str(i)))
                 i += 1
 
-        return basis
+        return tuple(basis)
 
     def coordinates(self, vector):
         """
@@ -2028,9 +1981,7 @@ class QuiverRep_generic(WithEqualityById, Module):
           coefficient of the `i`-th basis vector in the linear
           combination.
 
-        OUTPUT:
-
-        - :class:`QuiverRepElement`
+        OUTPUT: :class:`QuiverRepElement`
 
         EXAMPLES::
 
@@ -2047,12 +1998,7 @@ class QuiverRep_generic(WithEqualityById, Module):
         gens = self.gens()
         if len(gens) != len(coordinates):
             raise ValueError("the coordinates do not match the dimension of the module")
-
-        result = self()  # this must not be self.zero(), which is cached
-        for i in range(0, len(gens)):
-            result += coordinates[i]*gens[i]
-
-        return result
+        return self.sum(ci * gi for ci, gi in zip(coordinates, gens))
 
     ###########################################################################
     #                                                                         #
@@ -2063,17 +2009,16 @@ class QuiverRep_generic(WithEqualityById, Module):
 
     def submodule(self, elements=[], spaces=None):
         """
-        Returns the submodule generated by the data.
+        Return the submodule generated by the data.
 
         INPUT:
 
         - ``elements`` -- a collection of QuiverRepElements (default:
           empty list), each should be an element of ``self``
 
-        - ``spaces`` -- dictionary (default: empty), this dictionary
-          should contain entries of the form ``{v: S}`` where `v` is a
-          vertex of the quiver and `S` is a subspace of the vector space
-          associated to `v`
+        - ``spaces`` -- dictionary (default: empty); should contain entries of
+          the form ``{v: S}`` where `v` is a vertex of the quiver and `S` is a
+          subspace of the vector space associated to `v`
 
         OUTPUT:
 
@@ -2135,7 +2080,7 @@ class QuiverRep_generic(WithEqualityById, Module):
         # For each vertex generate a submodule from the given data
         dim = old_dim = 0
         for v in self._quiver:
-            #Start with the zero submodule if no space is specified
+            # Start with the zero submodule if no space is specified
             if v not in spaces:
                 spaces[v] = self._spaces[v].zero_submodule()
 
@@ -2182,13 +2127,11 @@ class QuiverRep_generic(WithEqualityById, Module):
           associated to each edge `e` of ``sub`` is the restriction of
           the map associated to `e` in ``self``
 
-        - ``check`` -- bool; if ``True`` then ``sub`` is checked to verify
+        - ``check`` -- boolean; if ``True`` then ``sub`` is checked to verify
           that it is indeed a submodule of ``self`` and an error is raised
           if it is not
 
-        OUTPUT:
-
-        - :class:`QuiverRep`, the quotient module ``self / sub``
+        OUTPUT: :class:`QuiverRep`, the quotient module ``self / sub``
 
         .. NOTE::
 
@@ -2196,7 +2139,7 @@ class QuiverRep_generic(WithEqualityById, Module):
             projection map from ``self`` to ``quot`` can be obtained by
             calling ``quot.coerce_map_from(self)``.
 
-        EXAMPLES:
+        EXAMPLES::
 
             sage: Q = DiGraph({1:{2:['a','b']}, 2:{3:['c']}}).path_semigroup()
             sage: M = Q.I(GF(3), 3)
@@ -2228,12 +2171,12 @@ class QuiverRep_generic(WithEqualityById, Module):
             # element of a quotient of that module but not the other way
             # around.  So in order to pass a map to the quotient we need to
             # construct the quotient map for the domain so that we can take
-            # inverse images to lift elments.  As sage can coerce to a quotient
+            # inverse images to lift elements.  As sage can coerce to a quotient
             # this is easy, we just send generators to themselves and set the
             # domain to be the quotient.
 
             # TODO: This 'if' shouldn't need to be here, but sage crashes when
-            # coercing elements into a quotient that is zero.  Once Trac ticket
+            # coercing elements into a quotient that is zero.  Once Github issue
             # 12413 gets fixed only the else should need to execute.
             # NOTE: This is no longer necessary. Keep around for speed or
             # remove? -- darij, 16 Feb 2014
@@ -2255,9 +2198,7 @@ class QuiverRep_generic(WithEqualityById, Module):
         """
         The socle of ``self``.
 
-        OUTPUT:
-
-        - :class:`QuiverRep`, the socle
+        OUTPUT: :class:`QuiverRep`; the socle
 
         EXAMPLES::
 
@@ -2279,9 +2220,7 @@ class QuiverRep_generic(WithEqualityById, Module):
         """
         Return the Jacobson radical of ``self``.
 
-        OUTPUT:
-
-        - :class:`QuiverRep`, the Jacobson radical
+        OUTPUT: :class:`QuiverRep`; the Jacobson radical
 
         EXAMPLES::
 
@@ -2290,10 +2229,10 @@ class QuiverRep_generic(WithEqualityById, Module):
             sage: M.radical()
             Representation with dimension vector (0, 2, 2)
         """
-        #The Jacobson radical of a representation is the sum of the images of
+        # The Jacobson radical of a representation is the sum of the images of
         # all of the edge maps.  The empty sum is defined to be zero so this is
         # what we start with.
-        spaces = dict((v, self._spaces[v].zero_submodule()) for v in self._quiver)
+        spaces = {v: self._spaces[v].zero_submodule() for v in self._quiver}
         for e in self._semigroup._sorted_edges:
             spaces[e[1]] += self._maps[e].image()
 
@@ -2303,9 +2242,7 @@ class QuiverRep_generic(WithEqualityById, Module):
         """
         Return the top of ``self``.
 
-        OUTPUT:
-
-        - :class:`QuiverRep`, the quotient of ``self`` by its radical
+        OUTPUT: :class:`QuiverRep`; the quotient of ``self`` by its radical
 
         EXAMPLES::
 
@@ -2322,9 +2259,7 @@ class QuiverRep_generic(WithEqualityById, Module):
         """
         Return the zero submodule of ``self``.
 
-        OUTPUT:
-
-        - :class:`QuiverRep`, the zero submodule of ``self``.
+        OUTPUT: :class:`QuiverRep`; the zero submodule of ``self``
 
         EXAMPLES::
 
@@ -2344,9 +2279,7 @@ class QuiverRep_generic(WithEqualityById, Module):
         Compute the linear dual `Hom_k(M, k)` of the module
         `M =` ``self`` over the base ring `k`.
 
-        OUTPUT:
-
-        - :class:`QuiverRep`, the dual representation
+        OUTPUT: :class:`QuiverRep`; the dual representation
 
         .. NOTE::
 
@@ -2365,10 +2298,10 @@ class QuiverRep_generic(WithEqualityById, Module):
         """
         # This module is formed by taking the transpose of the edge maps.
         spaces = self._spaces.copy()
-        maps = dict(((e[1], e[0], e[2]),
-                     self._spaces[e[1]].hom(self._maps[e].matrix().transpose(), 
-                                            self._spaces[e[0]]))
-                    for e in self._semigroup._sorted_edges)
+        maps = {(e[1], e[0], e[2]):
+                self._spaces[e[1]].hom(self._maps[e].matrix().transpose(),
+                                       self._spaces[e[0]])
+                for e in self._semigroup._sorted_edges}
 
         # Reverse the bases if present
         if hasattr(self, '_bases'):
@@ -2398,16 +2331,14 @@ class QuiverRep_generic(WithEqualityById, Module):
 
         INPUT:
 
-        - ``basis`` -- bool; if ``False``, then only the module is
+        - ``basis`` -- boolean; if ``False``, then only the module is
           returned.  If ``True``, then a tuple is returned.  The first
           element is the :class:`QuiverRep` and the second element is a
           dictionary which associates to each vertex a list.  The elements
           of this list are the homomorphisms which correspond to the basis
           elements of that vertex in the module.
 
-        OUTPUT:
-
-        - :class:`QuiverRep` or tuple
+        OUTPUT: :class:`QuiverRep` or tuple
 
         .. NOTE::
 
@@ -2451,7 +2382,7 @@ class QuiverRep_generic(WithEqualityById, Module):
 
         - ``modules`` -- :class:`QuiverRep` or list of :class:`QuiverRep`'s
 
-        - ``return_maps`` -- Boolean (default: ``False``); if ``False``, then
+        - ``return_maps`` -- boolean (default: ``False``); if ``False``, then
           the output is a single QuiverRep object which is the direct sum
           of ``self`` with the given module or modules.  If ``True``, then
           the output is a list ``[sum, iota, pi]``.  The first entry
@@ -2462,9 +2393,7 @@ class QuiverRep_generic(WithEqualityById, Module):
           The summands are ordered as given with ``self`` being the zeroth
           summand.
 
-        OUTPUT:
-
-        - :class:`QuiverRep` or tuple
+        OUTPUT: :class:`QuiverRep` or tuple
 
         EXAMPLES::
 
@@ -2522,10 +2451,11 @@ class QuiverRep_generic(WithEqualityById, Module):
                 raise ValueError("cannot direct sum modules with different base rings")
 
         # Get the dimensions of all spaces at each vertex
-        dims = dict((v, [x._spaces[v].dimension() for x in mods]) for v in self._quiver)
+        dims = {v: [x._spaces[v].dimension() for x in mods]
+                for v in self._quiver}
 
         # Create spaces of the correct dimensions
-        spaces = dict((v, self.base_ring()**sum(dims[v])) for v in self._quiver)
+        spaces = {v: self.base_ring()**sum(dims[v]) for v in self._quiver}
 
         # Take block sums of matrices to form the maps
         from sage.matrix.constructor import block_diagonal_matrix
@@ -2539,11 +2469,11 @@ class QuiverRep_generic(WithEqualityById, Module):
             return result
 
         # Create the inclusions and projections
-        from sage.matrix.constructor import block_matrix, Matrix
+        from sage.matrix.constructor import Matrix, block_matrix
         from sage.rings.integer import Integer
         iota = []
         pi = []
-        for i in range(0, len(mods)):
+        for i in range(len(mods)):
             incl_maps = {}
             proj_maps = {}
             for v in self._quiver:
@@ -2602,7 +2532,7 @@ class QuiverRep_generic(WithEqualityById, Module):
         Ps = [self._semigroup.P(self.base_ring(), x.support()[0]) for x in gens]
 
         # Factor the maps through self
-        maps = [Ps[i].hom(lifts[i], self) for i in range(0, len(gens))]
+        maps = [Ps[i].hom(lifts[i], self) for i in range(len(gens))]
 
         # Sum them and return
         return maps[0].direct_sum(maps[1:], return_maps, 'codomain')
@@ -2617,9 +2547,7 @@ class QuiverRep_generic(WithEqualityById, Module):
         If `p^t` is the algebraic dual of `p` then define
         `\mbox{Tr} M = \mbox{coker} p^t`.
 
-        OUTPUT:
-
-        - :class:`QuiverRep`
+        OUTPUT: :class:`QuiverRep`
 
         EXAMPLES::
 
@@ -2634,7 +2562,7 @@ class QuiverRep_generic(WithEqualityById, Module):
         # need to alter the codomain to be the projective and not the kernel.
         p1 = self.projective_cover()
         k = p1.kernel()
-        p = p1.domain().coerce_map_from(k)*k.projective_cover()
+        p = p1.domain().coerce_map_from(k) * k.projective_cover()
 
         # Return the cokernel
         return p.algebraic_dual().cokernel()
@@ -2721,6 +2649,7 @@ class QuiverRep_generic(WithEqualityById, Module):
         result._elems[qpath.terminal_vertex()] = x
         return result
 
+
 class QuiverRep_with_path_basis(QuiverRep_generic):
     r"""
     The basis of the module must be closed under right multiplication by
@@ -2790,10 +2719,10 @@ class QuiverRep_with_path_basis(QuiverRep_generic):
 
         # Add the paths to the basis dictionary.  The terminal vertex is the
         # key
-        self._bases = dict((v, []) for v in Q)
+        self._bases = {v: [] for v in Q}
         for path in basis:
-            #if path:
-                self._bases[path.terminal_vertex()].append(path)
+            # if path:
+            self._bases[path.terminal_vertex()].append(path)
 
         # Create the matrices of the maps
         from sage.matrix.constructor import Matrix
@@ -2802,14 +2731,14 @@ class QuiverRep_with_path_basis(QuiverRep_generic):
             arrow = P([e], check=False)
             # Start with the zero matrix and fill in from there
             maps[e] = Matrix(k, len(self._bases[e[0]]), len(self._bases[e[1]]))
-            for i in range(0, len(self._bases[e[0]])):
-                # Add an entry to the matrix coresponding to where the new path is found
-                j = self._bases[e[1]].index(self._bases[e[0]][i]*arrow)
+            for i in range(len(self._bases[e[0]])):
+                # Add an entry to the matrix corresponding to where the new path is found
+                j = self._bases[e[1]].index(self._bases[e[0]][i] * arrow)
                 maps[e][i, j] = k.one()
 
         # Create the spaces and then the representation
-        spaces = dict((v, len(self._bases[v])) for v in Q)
-        super(QuiverRep_with_path_basis, self).__init__(k, P, spaces, maps)
+        spaces = {v: len(self._bases[v]) for v in Q}
+        super().__init__(k, P, spaces, maps)
 
         # Try and create the matrices for the left edge action of edges.  If it
         # fails just return, there's no edge action and the construction is
@@ -2819,13 +2748,13 @@ class QuiverRep_with_path_basis(QuiverRep_generic):
             action_mats[e] = {}
             for v in self._quiver:
                 # Start with the zero matrix and fill in
-                l = len(self._bases[v])
-                action_mats[e][v] = Matrix(k, l, l)
+                ell = len(self._bases[v])
+                action_mats[e][v] = Matrix(k, ell, ell)
 
-                for j in range(0, l):
+                for j in range(ell):
                     if e[1] == self._bases[v][j].initial_vertex():
                         try:
-                            action_mats[e][v][self._bases[v].index(P([e],check=False)*self._bases[v][j]), j] = k.one()
+                            action_mats[e][v][self._bases[v].index(P([e], check=False) * self._bases[v][j]), j] = k.one()
                         except ValueError:
                             # There is no left action
                             return
@@ -2837,12 +2766,12 @@ class QuiverRep_with_path_basis(QuiverRep_generic):
             action_mats[e] = {}
             for v in self._quiver:
                 # Start with the zero matrix and fill in
-                l = len(self._bases[v])
-                action_mats[e][v] = Matrix(k, l, l)
+                ell = len(self._bases[v])
+                action_mats[e][v] = Matrix(k, ell, ell)
 
                 # Paths not beginning at vert are sent to zero, paths beginning
                 # at vert are fixed
-                for i in range(0, l):
+                for i in range(ell):
                     if self._bases[v][i].initial_vertex() == vert:
                         action_mats[e][v][i, i] = k.one()
 
@@ -2858,7 +2787,7 @@ class QuiverRep_with_path_basis(QuiverRep_generic):
 
         - ``element`` -- :class:`QuiverRepElement`; an element of ``self``
 
-        - ``edge`` -- An edge of the quiver (a tuple) or a list of edges in
+        - ``edge`` -- an edge of the quiver (a tuple) or a list of edges in
           the quiver.  Such a list can be empty (in which case no action
           is performed) and can contain trivial paths (tuples of the form
           `(v, v)` where `v` is a vertex of the quiver)
@@ -2902,15 +2831,16 @@ class QuiverRep_with_path_basis(QuiverRep_generic):
         # Deal with lists by calling this function recursively
         if isinstance(edge, list):
             if not edge:
-                return element;
+                return element
             else:
                 return self.left_edge_action(edge[:-1], self.left_edge_action(edge[-1], element))
 
         # Now we are just acting by a single edge
-        elems = dict((v, self._left_action_mats[edge][v]*element._elems[v]) for v in self._quiver)
+        elems = {v: self._left_action_mats[edge][v] * element._elems[v]
+                 for v in self._quiver}
         return self(elems)
 
-    def is_left_module(self):
+    def is_left_module(self) -> bool:
         """
         Test whether the basis is closed under left multiplication.
 
@@ -2946,6 +2876,7 @@ class QuiverRep_with_path_basis(QuiverRep_generic):
             False
         """
         return hasattr(self, 'left_edge_action')
+
 
 class QuiverRep_with_dual_path_basis(QuiverRep_generic):
     r"""
@@ -3004,25 +2935,24 @@ class QuiverRep_with_dual_path_basis(QuiverRep_generic):
 
         # Add the paths to the basis dictionary.  The initial vertex is the
         # key
-        self._bases = dict((v, []) for v in Q)
+        self._bases = {v: [] for v in Q}
         for path in basis:
-            #if path:
-                self._bases[path.initial_vertex()].append(path)
+            # if path:
+            self._bases[path.initial_vertex()].append(path)
 
         # Create the matrices of the maps
         from sage.matrix.constructor import Matrix
         maps = {}
         for e in P._sorted_edges:
-            arrow = P([e],check=False)
+            arrow = P([e], check=False)
             # Start with the zero matrix and fill in from there
             maps[e] = Matrix(k, len(self._bases[e[0]]), len(self._bases[e[1]]))
-            for i in range(0, len(self._bases[e[0]])):
-                # Add an entry to the matrix coresponding to where the new path is found
+            for i in range(len(self._bases[e[0]])):
+                # Add an entry to the matrix corresponding to where the new path is found
                 if self._bases[e[0]][i] % arrow in self._bases[e[1]]:
                     j = self._bases[e[1]].index(self._bases[e[0]][i] % arrow)
                     maps[e][i, j] = k.one()
 
         # Create the spaces and then the representation
-        spaces = dict((v, len(self._bases[v])) for v in Q)
-        super(QuiverRep_with_dual_path_basis, self).__init__(k, P, spaces, maps)
-
+        spaces = {v: len(self._bases[v]) for v in Q}
+        super().__init__(k, P, spaces, maps)

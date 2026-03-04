@@ -15,6 +15,7 @@ from sage.categories.category import Category
 from sage.misc.cachefunc import cached_method
 from sage.categories.basic import Fields
 
+
 class FunctionFields(Category):
     r"""
     The category of function fields.
@@ -34,38 +35,38 @@ class FunctionFields(Category):
     @cached_method
     def super_categories(self):
         """
-        Returns the Category of which this is a direct sub-Category
-        For a list off all super caategories see all_super_categories
+        Return the Category of which this is a direct sub-Category
+        For a list off all super categories see all_super_categories
 
         EXAMPLES::
 
             sage: FunctionFields().super_categories()
             [Category of fields]
         """
-        return[Fields()]
+        return [Fields()]
 
     def _call_(self, x):
         r"""
-        Constructs an object in this category from the data in ``x``,
-        or throws a TypeError.
+        Construct an object in this category from the data in ``x``,
+        or throw a :exc:`TypeError`.
 
         EXAMPLES::
 
             sage: C = FunctionFields()
-            sage: K.<x>=FunctionField(QQ)
+            sage: K.<x> = FunctionField(QQ)
             sage: C(K)
             Rational function field in x over Rational Field
             sage: Ky.<y> = K[]
-            sage: L = K.extension(y^2-x)
-            sage: C(L)
+            sage: L = K.extension(y^2 - x)                                              # needs sage.rings.function_field
+            sage: C(L)                                                                  # needs sage.rings.function_field
             Function field in y defined by y^2 - x
-            sage: C(L.equation_order())
+            sage: C(L.equation_order())                                                 # needs sage.rings.function_field
             Function field in y defined by y^2 - x
         """
         try:
             return x.function_field()
         except AttributeError:
-            raise  TypeError("unable to canonically associate a function field to %s"%x)
+            raise TypeError("unable to canonically associate a function field to %s" % x)
 
     class ParentMethods:
         pass

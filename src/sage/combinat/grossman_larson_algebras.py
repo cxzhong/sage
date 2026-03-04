@@ -1,20 +1,20 @@
-# -*- coding: utf-8 -*-
+# sage.doctest: needs sage.combinat sage.graphs sage.modules
 r"""
-Grossman-Larson Hopf Algebras
+Grossman-Larson Hopf algebras
 
 AUTHORS:
 
 - Frédéric Chapoton (2017)
 """
 
-#*****************************************************************************
+# ****************************************************************************
 #       Copyright (C) 2017 Frédéric Chapoton
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
 #  as published by the Free Software Foundation; either version 2 of
 #  the License, or (at your option) any later version.
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
 from sage.categories.hopf_algebras import HopfAlgebras
 from sage.combinat.free_module import CombinatorialFreeModule
@@ -22,7 +22,6 @@ from sage.combinat.words.alphabet import Alphabet
 from sage.combinat.rooted_tree import (RootedTrees, RootedTree,
                                        LabelledRootedTrees,
                                        LabelledRootedTree)
-from sage.misc.cachefunc import cached_method
 from sage.categories.rings import Rings
 from sage.sets.family import Family
 from sage.rings.integer_ring import ZZ
@@ -161,7 +160,7 @@ class GrossmanLarsonAlgebra(CombinatorialFreeModule):
 
         if R not in Rings():
             raise TypeError("argument R must be a ring")
-        return super(GrossmanLarsonAlgebra, cls).__classcall__(cls, R, names)
+        return super().__classcall__(cls, R, names)
 
     def __init__(self, R, names=None):
         """
@@ -202,7 +201,7 @@ class GrossmanLarsonAlgebra(CombinatorialFreeModule):
 
         cat = HopfAlgebras(R).WithBasis().Graded()
         CombinatorialFreeModule.__init__(self, R, Trees,
-                                         latex_prefix="",
+                                         latex_prefix='',
                                          sorting_key=key,
                                          category=cat)
 
@@ -267,7 +266,7 @@ class GrossmanLarsonAlgebra(CombinatorialFreeModule):
 
         INPUT:
 
-        - ``i`` -- a nonnegative integer
+        - ``i`` -- nonnegative integer
 
         EXAMPLES::
 
@@ -336,7 +335,7 @@ class GrossmanLarsonAlgebra(CombinatorialFreeModule):
 
         INPUT:
 
-        - `R` -- a ring
+        - ``R`` -- a ring
 
         EXAMPLES::
 
@@ -360,10 +359,9 @@ class GrossmanLarsonAlgebra(CombinatorialFreeModule):
             sage: A.degree_on_basis(RT([RT([])]))
             1
         """
-        return t.node_number() - 1
+        return t.number_of_nodes() - 1
 
-    @cached_method
-    def an_element(self):
+    def _an_element_(self):
         """
         Return an element of ``self``.
 
@@ -461,13 +459,28 @@ class GrossmanLarsonAlgebra(CombinatorialFreeModule):
                  |    |
                  0    0
 
-            sage: ascii_art(G.coproduct(y*x))  # indirect doctest
+            sage: Delta_xy = G.coproduct(y*x)
+            sage: ascii_art(Delta_xy)  # random indirect doctest
             1 # B     + 1 # B  + B  # B  + B     # 1 + B  # B  + B  # 1
                    #_        #    #    #      #_        #    #    #
                   / /        |    |    |     / /        |    |    |
                  0 1         1    0    1    0 1         1    0    1
                              |                                    |
                              0                                    0
+
+        TESTS::
+
+            sage: Delta_xy.coefficients()
+            [1, 1, 1, 1, 1, 1]
+            sage: sortkey = G.print_options()['sorting_key']
+            sage: doublekey = lambda tt: (sortkey(tt[0]), sortkey(tt[1]))
+            sage: sorted(Delta_xy.monomial_coefficients(), key=doublekey)
+            [(#[], #[1[0[]]]),
+             (#[], #[0[], 1[]]),
+             (#[0[]], #[1[]]),
+             (#[1[]], #[0[]]),
+             (#[1[0[]]], #[]),
+             (#[0[], 1[]], #[])]
         """
         B = self.basis()
         Trees = B.keys()
@@ -495,7 +508,7 @@ class GrossmanLarsonAlgebra(CombinatorialFreeModule):
             sage: A.counit_on_basis(RT([],'#'))
             1
         """
-        if x.node_number() == 1:
+        if x.number_of_nodes() == 1:
             return self.base_ring().one()
         return self.base_ring().zero()
 
@@ -556,6 +569,8 @@ class GrossmanLarsonAlgebra(CombinatorialFreeModule):
             ValueError: incorrect root label
 
             sage: R.<x,y> = algebras.GrossmanLarson(QQ)
+            sage: R(x) is x
+            True
             sage: S.<z> = algebras.GrossmanLarson(GF(3))
             sage: R(z)
             Traceback (most recent call last):
@@ -588,7 +603,7 @@ class GrossmanLarsonAlgebra(CombinatorialFreeModule):
         The things that coerce into ``self`` are
 
         - Grossman-Larson Hopf algebras whose set `E` of labels is
-          a subset of the corresponding self of ``set`, and whose base
+          a subset of the corresponding set of ``self``, and whose base
           ring has a coercion map into ``self.base_ring()``
 
         EXAMPLES::

@@ -1,3 +1,4 @@
+# sage.doctest: needs sage.combinat sage.modules
 """
 Crystals of Kac modules of the general-linear Lie superalgebra
 """
@@ -12,20 +13,16 @@ Crystals of Kac modules of the general-linear Lie superalgebra
 #                  http://www.gnu.org/licenses/
 #*****************************************************************************
 
-from sage.misc.cachefunc import cached_method
-from sage.misc.lazy_attribute import lazy_attribute
 from sage.structure.parent import Parent
 from sage.structure.element_wrapper import ElementWrapper
 from sage.structure.unique_representation import UniqueRepresentation
-from sage.rings.all import ZZ
+from sage.rings.integer_ring import ZZ
 
 from sage.categories.regular_supercrystals import RegularSuperCrystals
 from sage.combinat.crystals.tensor_product import CrystalOfTableaux
 from sage.combinat.root_system.cartan_type import CartanType
 from sage.combinat.partition import _Partitions
 
-from sage.combinat.crystals.letters import CrystalOfBKKLetters
-from sage.combinat.crystals.tensor_product_element import CrystalOfBKKTableauxElement
 
 class CrystalOfOddNegativeRoots(UniqueRepresentation, Parent):
     r"""
@@ -66,7 +63,7 @@ class CrystalOfOddNegativeRoots(UniqueRepresentation, Parent):
             sage: S1 is S2
             True
         """
-        return super(CrystalOfOddNegativeRoots, cls).__classcall__(cls, CartanType(cartan_type))
+        return super().__classcall__(cls, CartanType(cartan_type))
 
     def __init__(self, cartan_type):
         """
@@ -126,6 +123,7 @@ class CrystalOfOddNegativeRoots(UniqueRepresentation, Parent):
             sage: 2^len(S.weight_lattice_realization().positive_odd_roots())
             4096
         """
+
         def _repr_(self):
             r"""
             Return a string representation of ``self``.
@@ -160,10 +158,10 @@ class CrystalOfOddNegativeRoots(UniqueRepresentation, Parent):
                 sage: latex(mg.f_string([0,-1,0]))
                 \{-e_{-2}+e_{1}, -e_{-1}+e_{1}\}
             """
-            return ('\{'
+            return (r'\{'
                     + ", ".join("-e_{{{}}}+e_{{{}}}".format(*i)
                                 for i in sorted(self.value))
-                    + '\}')
+                    + r'\}')
 
         def e(self, i):
             r"""
@@ -432,7 +430,8 @@ class CrystalOfOddNegativeRoots(UniqueRepresentation, Parent):
             """
             WLR = self.parent().weight_lattice_realization()
             e = WLR.basis()
-            return WLR.sum(-e[i]+e[j] for (i,j) in self.value)
+            return WLR.sum(-e[i] + e[j] for i, j in self.value)
+
 
 class CrystalOfKacModule(UniqueRepresentation, Parent):
     r"""
@@ -488,10 +487,10 @@ class CrystalOfKacModule(UniqueRepresentation, Parent):
         sage: mg.f(2)
         ({}, [[-2, -2]], [[1], [3]])
 
-        sage: K.highest_weight_vectors()
-        (({-e[-1]+e[3]}, [[-2, -1]], [[1], [2]]),
-         ({}, [[-2, -2]], [[1], [2]]),
-         ({-e[-1]+e[3]}, [[-2, -2]], [[1], [2]]))
+        sage: sorted(K.highest_weight_vectors(), key=str)
+        [({-e[-1]+e[3]}, [[-2, -1]], [[1], [2]]),
+         ({-e[-1]+e[3]}, [[-2, -2]], [[1], [2]]),
+         ({}, [[-2, -2]], [[1], [2]])]
 
     ::
 
@@ -503,17 +502,17 @@ class CrystalOfKacModule(UniqueRepresentation, Parent):
         sage: len(K.cartan_type().root_system().ambient_space().positive_odd_roots())
         4
 
-        sage: K.highest_weight_vectors()
-        (({}, [[-2, -2]], [[1]]),
-         ({-e[-1]+e[2]}, [[-2, -1]], [[1]]),
-         ({-e[-1]+e[2]}, [[-2, -2]], [[1]]))
+        sage: sorted(K.highest_weight_vectors(), key=str)
+        [({-e[-1]+e[2]}, [[-2, -1]], [[1]]),
+         ({-e[-1]+e[2]}, [[-2, -2]], [[1]]),
+         ({}, [[-2, -2]], [[1]])]
         sage: K.genuine_lowest_weight_vectors()
         (({-e[-2]+e[1], -e[-2]+e[2], -e[-1]+e[1], -e[-1]+e[2]}, [[-1, -1]], [[2]]),)
-        sage: K.lowest_weight_vectors()
-        (({-e[-2]+e[1], -e[-2]+e[2], -e[-1]+e[1], -e[-1]+e[2]}, [[-1, -1]], [[2]]),
-         ({-e[-1]+e[1], -e[-1]+e[2]}, [[-1, -1]], [[2]]),
-         ({-e[-2]+e[2], -e[-1]+e[1], -e[-1]+e[2]}, [[-1, -1]], [[2]]),
-         ({-e[-2]+e[2], -e[-1]+e[1], -e[-1]+e[2]}, [[-1, -1]], [[1]]))
+        sage: sorted(K.lowest_weight_vectors(), key=str)
+        [({-e[-1]+e[1], -e[-1]+e[2]}, [[-1, -1]], [[2]]),
+         ({-e[-2]+e[1], -e[-2]+e[2], -e[-1]+e[1], -e[-1]+e[2]}, [[-1, -1]], [[2]]),
+         ({-e[-2]+e[2], -e[-1]+e[1], -e[-1]+e[2]}, [[-1, -1]], [[1]]),
+         ({-e[-2]+e[2], -e[-1]+e[1], -e[-1]+e[2]}, [[-1, -1]], [[2]])]
 
     REFERENCES:
 
@@ -534,7 +533,7 @@ class CrystalOfKacModule(UniqueRepresentation, Parent):
         cartan_type = CartanType(cartan_type)
         la = _Partitions(la)
         mu = _Partitions(mu)
-        return super(CrystalOfKacModule, cls).__classcall__(cls, cartan_type, la, mu)
+        return super().__classcall__(cls, cartan_type, la, mu)
 
     def __init__(self, cartan_type, la, mu):
         """
@@ -595,6 +594,7 @@ class CrystalOfKacModule(UniqueRepresentation, Parent):
             ....:         y = x.f(i)
             ....:         assert y is None or y.e(i) == x
         """
+
         def _repr_(self):
             """
             Return a string representation of ``self``.
@@ -643,9 +643,9 @@ class CrystalOfKacModule(UniqueRepresentation, Parent):
                 }
             """
             from sage.misc.latex import latex
-            return " \otimes ".join([latex(self.value[0]),
-                                     latex_dual(self.value[1]),
-                                     latex(self.value[2])])
+            return r" \otimes ".join([latex(self.value[0]),
+                                      latex_dual(self.value[1]),
+                                      latex(self.value[2])])
 
         def e(self, i):
             r"""
@@ -776,6 +776,7 @@ class CrystalOfKacModule(UniqueRepresentation, Parent):
 #####################################################################
 ## Helper functions
 
+
 def to_dual_tableau(elt):
     r"""
     Return a type `A_n` crystal tableau ``elt`` as a tableau expressed
@@ -791,7 +792,21 @@ def to_dual_tableau(elt):
         sage: ascii_art([to_dual_tableau(t) for t in T])
         [  -3 -3   -3 -2   -3 -1   -3 -1   -2 -1   -3 -3   -3 -2   -2 -2 ]
         [  -2   ,  -2   ,  -2   ,  -1   ,  -1   ,  -1   ,  -1   ,  -1    ]
+
+    TESTS:
+
+    Check that :issue:`23935` is fixed::
+
+        sage: from sage.combinat.crystals.kac_modules import to_dual_tableau
+        sage: T = crystals.Tableaux(['A',2], shape=[])
+        sage: to_dual_tableau(T[0])
+        []
+
+        sage: Ktriv = crystals.KacModule(['A',[1,1]], [], [])
+        sage: Ktriv.module_generator()
+        ({}, [], [])
     """
+    from sage.combinat.tableau import Tableau
     M = elt.parent().cartan_type().rank() + 2
     if not elt:
         return Tableau([])
@@ -803,8 +818,8 @@ def to_dual_tableau(elt):
             tab[len(tab)-1].append(elt[i].value-M)
     for x in tab:
         x.reverse()
-    from sage.combinat.tableau import Tableau
     return Tableau(tab).conjugate()
+
 
 def latex_dual(elt):
     r"""
@@ -826,6 +841,7 @@ def latex_dual(elt):
         }
     """
     M = elt.parent().cartan_type().rank() + 2
+    from sage.combinat.tableau import Tableau
     from sage.combinat.output import tex_from_array
     # Modified version of to_tableau() to have the entries be letters
     #   rather than their values
@@ -841,8 +857,6 @@ def latex_dual(elt):
             tab[l].append("\\overline{{{}}}".format(M-elt[i].value))
     for x in tab:
         x.reverse()
-    from sage.combinat.tableau import Tableau
-    T = Tableau(tab).conjugate()
-    from sage.combinat.output import tex_from_array
-    return tex_from_array([list(row) for row in T])
 
+    T = Tableau(tab).conjugate()
+    return tex_from_array([list(row) for row in T])

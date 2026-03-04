@@ -1,18 +1,17 @@
 """
 Examples of graphs
 """
-#*****************************************************************************
+# ****************************************************************************
 #  Copyright (C) 2015 Travis Scrimshaw <tscrim at ucdavis.edu>
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
-#                  http://www.gnu.org/licenses/
-#******************************************************************************
-
+#                  https://www.gnu.org/licenses/
+# *****************************************************************************
 from sage.structure.parent import Parent
 from sage.structure.unique_representation import UniqueRepresentation
 from sage.structure.element_wrapper import ElementWrapper
 from sage.categories.graphs import Graphs
-from sage.rings.all import QQ
+
 
 class Cycle(UniqueRepresentation, Parent):
     r"""
@@ -118,5 +117,5 @@ class Cycle(UniqueRepresentation, Parent):
                 return 2
             return 1
 
-Example = Cycle
 
+Example = Cycle

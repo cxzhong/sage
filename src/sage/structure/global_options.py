@@ -12,8 +12,8 @@ These options should be "attached" to one or more classes as an options method.
 .. SEEALSO::
 
     For good examples of :class:`GlobalOptions` in action see
-    :meth:`sage.combinat.partition.Partitions.options` and
-    :meth:`sage.combinat.tableau.Tableaux.options`.
+    :obj:`sage.combinat.partition.Partitions.options` and
+    :obj:`sage.combinat.tableau.Tableaux.options`.
 
 .. _construction_section:
 
@@ -48,13 +48,13 @@ syntax, ``MyOptions`` is not a class.
 The options constructed by :class:`GlobalOptions` have to be explicitly
 associated to the class that they control using the following arguments:
 
-- ``NAME`` -- A descriptive name for the options class. This is
-  optional; the default is the name of the constructed class.
+- ``NAME`` -- a descriptive name for the options class; this is
+  optional. The default is the name of the constructed class.
 
-- ``module`` -- The sage module containing the options class (optional)
+- ``module`` -- the sage module containing the options class (optional)
 
-- ``option_class`` -- The name of the options class. This is optional and
-  defaults to ``NAME`` if not explicitly set.
+- ``option_class`` -- the name of the options class; this is optional and
+  defaults to ``NAME`` if not explicitly set
 
 It is only possible to pickle a :class:`GlobalOptions` class if the
 corresponding module is specified *and* if the options are explicitly
@@ -64,31 +64,31 @@ Each option is specified as a dictionary which describes the possible
 values for the option and its documentation. The possible entries in this
 dictionary are:
 
-- ``alias`` -- Allows for several option values to do the same thing.
+- ``alias`` -- allows for several option values to do the same thing
 
-- ``alt_name`` -- An alternative name for this option.
+- ``alt_name`` -- an alternative name for this option
 
-- ``checker`` -- A validation function which returns whether a user
+- ``checker`` -- a validation function which returns whether a user
   supplied value is valid or not. This is typically useful for large
   lists of legal values such as :class:`~sage.rings.semirings.non_negative_integer_semiring.NN`.
 
-- ``default`` -- Gives the default value for the option.
+- ``default`` -- gives the default value for the option
 
-- ``description`` -- A one line description of the option.
+- ``description`` -- a one line description of the option
 
-- ``link_to`` -- Links this option to another one in another set of
+- ``link_to`` -- links this option to another one in another set of
   global options. This is used for example to allow
   :class:`Partitions` and :class:`Tableaux` to share the same
   ``convention`` option.
 
-- ``setter`` -- A function which is called **after** the value of the
-  option is changed.
+- ``setter`` -- a function which is called **after** the value of the
+  option is changed
 
-- ``values`` -- A dictionary assigning each valid value for the option
-  to a short description of what it does.
+- ``values`` -- dictionary assigning each valid value for the option
+  to a short description of what it does
 
-- ``case_sensitive`` -- (Default: ``True``) ``True`` or ``False`` depending on
-  whether the values of the option are case sensitive.
+- ``case_sensitive`` -- boolean (default: ``True``); depending on
+  whether the values of the option are case sensitive
 
 For each option, either a complete list of possible values, via ``values``, or a
 validation function, via ``checker``, must be given. The values can be quite
@@ -105,7 +105,7 @@ The basic structure for defining a :class:`GlobalOptions` class is best
 illustrated by an example::
 
     sage: from sage.structure.global_options import GlobalOptions
-    sage: class Menu(object):
+    sage: class Menu():
     ....:     class options(GlobalOptions):
     ....:         '''
     ....:         Fancy documentation
@@ -129,7 +129,7 @@ illustrated by an example::
     ....:                                  cake='waist begins again',
     ....:                                  cream='fluffy, white stuff'))
     ....:         tip = dict(default=10, description='Reward for good service',
-    ....:                    checker = lambda tip: tip in range(0,20))
+    ....:                    checker = lambda tip: tip in range(20))
     sage: Menu.options
     Current options for menu
       - dessert: espresso
@@ -137,7 +137,7 @@ illustrated by an example::
       - main:    pizza
       - tip:     10
 
-In the examples above, the options are contructed when the ``options``
+In the examples above, the options are constructed when the ``options``
 object is created. However, it is also possible to construct the options
 dynamically using the :meth:`GlobalOptions._add_to_options` methods.
 
@@ -231,7 +231,9 @@ Documentation for options
 
 The documentation for a :class:`GlobalOptions` is automatically generated from
 the supplied options. For example, the generated documentation for the options
-``menu`` defined in :ref:`construction_section` is the following::
+``menu`` defined in :ref:`construction_section` is the following:
+
+.. CODE-BLOCK:: text
 
     Fancy documentation
     -------------------
@@ -261,7 +263,6 @@ the supplied options. For example, the generated documentation for the options
 
     - ``tip`` -- (default: ``10``)
       Reward for good service
-
 
 
     The END!
@@ -297,7 +298,9 @@ If the value of a dispatchable option is set equal to a (user defined) function
 then this function is called instead of a class method.
 
 For example, the options ``MyOptions`` can be used to dispatch the ``_repr_``
-method of the associated class ``MyClass`` as follows::
+method of the associated class ``MyClass`` as follows:
+
+.. CODE-BLOCK:: python
 
     class MyClass(...):
         def _repr_(self):
@@ -317,7 +320,9 @@ and not a method of ``MyClass``. Apart from ``MyOptions``, as it is a method of
 this class, the arguments are the attached class (here ``MyClass``), the prefix
 of the method of ``MyClass`` being dispatched, the option of ``MyOptions``
 which controls the dispatching. All other arguments are passed through to the
-corresponding methods of ``MyClass``. In general, a dispatcher is invoked as::
+corresponding methods of ``MyClass``. In general, a dispatcher is invoked as:
+
+.. CODE-BLOCK:: python
 
     self.options._dispatch(self, dispatch_to, option, *args, **kargs)
 
@@ -334,7 +339,9 @@ customise the default behaviour of this method. See
 The dispatching capabilities of :class:`GlobalOptions` allows options to be
 applied automatically without needing to parse different values of the option
 (the cost is that there must be a method for each value). The dispatching
-capabilities can also be used to make one option control several methods::
+capabilities can also be used to make one option control several methods:
+
+.. CODE-BLOCK:: python
 
     def __le__(self, other):
         return self.options._dispatch(self, '_le_','cmp', other)
@@ -366,7 +373,9 @@ Pickling
 Options classes can only be pickled if they are the options for some standard
 sage class. In this case the class is specified using the arguments to
 :class:`GlobalOptions`. For example
-:meth:`~sage.combinat.partition.Partitions.options` is defined as::
+:meth:`~sage.combinat.partition.Partitions.options` is defined as:
+
+.. CODE-BLOCK:: python
 
      class Partitions(UniqueRepresentation, Parent):
          ...
@@ -377,13 +386,13 @@ sage class. In this case the class is specified using the arguments to
 
 Here is an example to test the pickling of a :class:`GlobalOptions` instance::
 
-    sage: TestSuite(Partitions.options).run()
+    sage: TestSuite(Partitions.options).run()                                           # needs sage.combinat
 
 TESTS:
 
 Check that the old call syntax still works::
 
-    sage: class Menu(object):
+    sage: class Menu():
     ....:     options = GlobalOptions('menu',
     ....:         doc='Fancy documentation\n'+'-'*19, end_doc='The END!',
     ....:         entree=dict(default='soup',
@@ -399,7 +408,7 @@ Check that the old call syntax still works::
     ....:                                  cake='waist begins again',
     ....:                                  cream='fluffy, white stuff')),
     ....:         tip=dict(default=10, description='Reward for good service',
-    ....:         checker=lambda tip: tip in range(0,20))
+    ....:         checker=lambda tip: tip in range(20))
     ....:     )
     sage: Menu.options
     Current options for menu
@@ -419,9 +428,9 @@ We can have a ``name`` option::
 Check that the ``name`` and ``NAME`` keywords are both supported with
 this syntax::
 
-    sage: GlobalOptions(name="menu")
+    sage: GlobalOptions(name='menu')
     Current options for menu
-    sage: GlobalOptions(NAME="menu")
+    sage: GlobalOptions(NAME='menu')
     Current options for menu
     sage: GlobalOptions()
     Traceback (most recent call last):
@@ -485,7 +494,7 @@ AUTHORS:
 - Jeroen Demeyer (2017): use subclassing to create instances
 """
 
-#*****************************************************************************
+# ****************************************************************************
 #       Copyright (C) 2013,2016 Andrew Mathas <andrew dot mathas at sydney dot edu dot au>
 #       Copyright (C) 2017 Jeroen Demeyer <J.Demeyer@UGent.be>
 #
@@ -493,20 +502,18 @@ AUTHORS:
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
-from __future__ import absolute_import, print_function
 
-from six import iteritems, add_metaclass
 from importlib import import_module
 from pickle import PicklingError
 from textwrap import dedent
 
-from sage.docs.instancedoc import instancedoc
+from sage.misc.instancedoc import instancedoc
 
 
-class Option(object):
+class Option:
     r"""
     An option.
 
@@ -518,15 +525,16 @@ class Option(object):
 
     EXAMPLES::
 
+        sage: # needs sage.combinat
         sage: Partitions.options.display
         list
-        sage: Partitions.options.display='compact'
+        sage: Partitions.options.display = 'compact'
         sage: Partitions.options.display('list')
         sage: Partitions.options._reset()
 
     TESTS::
 
-        sage: TestSuite(Partitions.options.display).run()
+        sage: TestSuite(Partitions.options.display).run()                               # needs sage.combinat
     """
     __name__ = 'Option class'
 
@@ -537,13 +545,13 @@ class Option(object):
 
         EXAMPLES::
 
-            sage: type(Partitions.options.display)    # indirect doctest
+            sage: type(Partitions.options.display)    # indirect doctest                # needs sage.combinat
             <class 'sage.structure.global_options.Option'>
         """
         self._name = name
         self._options = options
-        self.__doc__= options._doc[name]
-        super(Option, self).__init__()
+        self.__doc__ = options._doc[name]
+        super().__init__()
 
     def __repr__(self):
         r"""
@@ -551,7 +559,7 @@ class Option(object):
 
         EXAMPLES::
 
-            sage: Partitions.options.display # indirect doctest
+            sage: Partitions.options.display  # indirect doctest                        # needs sage.combinat
             list
         """
         # NOTE: we intentionally use str() instead of repr()
@@ -560,11 +568,11 @@ class Option(object):
     def __add__(self, other):
         r"""
         Return the object obtained by adding ``self`` and ``other``, where
-        ``self`` behaves likes it's value.
+        ``self`` behaves like its value.
 
         EXAMPLES::
 
-            sage: Tableaux.options.convention +' is good'
+            sage: Tableaux.options.convention + ' is good'                              # needs sage.combinat
             'English is good'
         """
         return self._options[self._name] + other
@@ -572,11 +580,11 @@ class Option(object):
     def __radd__(self, other):
         r"""
         Return the object obtained by adding ``other`` and ``self``, where
-        ``self`` behaves likes it's value.
+        ``self`` behaves like its value.
 
         EXAMPLES::
 
-            sage: 'Good '+Tableaux.options.convention
+            sage: 'Good ' + Tableaux.options.convention                                 # needs sage.combinat
             'Good English'
         """
         return other + self._options[self._name]
@@ -584,11 +592,11 @@ class Option(object):
     def __mul__(self, other):
         r"""
         Return the object obtained by adding ``self`` and ``other``, where
-        ``self`` behaves likes it's value.
+        ``self`` behaves like its value.
 
         EXAMPLES::
 
-            sage: Tableaux.options.convention +' is good'
+            sage: Tableaux.options.convention + ' is good'                              # needs sage.combinat
             'English is good'
         """
         return self._options[self._name] * other
@@ -596,104 +604,127 @@ class Option(object):
     def __rmul__(self, other):
         r"""
         Return the object obtained by r-adding ``other`` and ``self``, where
-        ``self`` behaves likes it's value.
+        ``self`` behaves like its value.
 
         EXAMPLES::
 
-            sage: 'Good '+Tableaux.options.convention
+            sage: 'Good ' + Tableaux.options.convention                                 # needs sage.combinat
             'Good English'
         """
         return other * self._options[self._name]
 
-    def __bool__(self):
+    def __bool__(self) -> bool:
         r"""
-        Return the value of ye option interpreted as a boolean.
+        Return the value of this option interpreted as a boolean.
 
         EXAMPLES::
 
+            sage: # needs sage.combinat sage.graphs sage.modules
             sage: RiggedConfigurations.options.half_width_boxes_type_B
             True
-            sage: 'yes' if RiggedConfigurations.options.half_width_boxes_type_B else  'no'
+            sage: 'yes' if RiggedConfigurations.options.half_width_boxes_type_B else 'no'
             'yes'
-            sage: RiggedConfigurations.options.half_width_boxes_type_B=False
-            sage: 'yes' if RiggedConfigurations.options.half_width_boxes_type_B else  'no'
+            sage: RiggedConfigurations.options.half_width_boxes_type_B = False
+            sage: 'yes' if RiggedConfigurations.options.half_width_boxes_type_B else 'no'
             'no'
             sage: RiggedConfigurations.options._reset()
         """
         return bool(self._options[self._name])
 
-    # for the less sensibly named python 2 family
-    __nonzero__ = __bool__
-
-    def __call__(self, value=None):
+    def __call__(self, *args):
         r"""
         Get or set value of the option ``self``.
 
         EXAMPLES::
 
-            sage: Partitions.options.display() # indirect doctest
+            sage: # needs sage.combinat
+            sage: Partitions.options.display()       # indirect doctest
             'list'
-            sage: Partitions.options.display('exp') # indirect doctest
-            sage: Partitions.options.display() # indirect doctest
+            sage: Partitions.options.display('exp')  # indirect doctest
+            sage: Partitions.options.display()       # indirect doctest
             'exp_low'
             sage: Partitions.options._reset()
-        """
-        if value is None:
-            return self._options[self._name]
-        else:
-            self._options[self._name] = value
 
-    def __eq__(self, other):
+        TESTS:
+
+        Check that values can be set to ``None`` (:issue:`30763`)::
+
+            sage: from sage.structure.global_options import GlobalOptions
+            sage: class config(GlobalOptions):
+            ....:     size = dict(default=42,
+            ....:                 description='integer or None',
+            ....:                 checker=lambda val: val is None or val >= 0)
+            sage: config.size()
+            42
+            sage: config.size(None)
+            sage: config.size() is None
+            True
+            sage: config._reset()
+
+        Check the input::
+
+            sage: config.size(1, 2)
+            Traceback (most recent call last):
+            ...
+            TypeError: option takes at most one argument
+        """
+        if not args:
+            return self._options[self._name]
+        if len(args) > 1:
+            raise TypeError('option takes at most one argument')
+        self._options[self._name] = args[0]
+
+    def __eq__(self, other) -> bool:
         r"""
         Equality testing for an option in based on the value of the attribute.
 
         EXAMPLES::
 
-            sage: Tableaux.options.convention
+            sage: Tableaux.options.convention                                           # needs sage.combinat
             English
-            sage: Tableaux.options.convention == "English"
+            sage: Tableaux.options.convention == "English"                              # needs sage.combinat
             True
-            sage: Tableaux.options.convention == "French"
+            sage: Tableaux.options.convention == "French"                               # needs sage.combinat
             False
         """
         return self._options[self._name] == other
 
-    def __ne__(self, other):
+    def __ne__(self, other) -> bool:
         r"""
         Inequality testing for an option in based on the value of
         the attribute.
 
         EXAMPLES::
 
-            sage: Tableaux.options.convention
+            sage: Tableaux.options.convention                                           # needs sage.combinat
             English
-            sage: Tableaux.options.convention != "English"
+            sage: Tableaux.options.convention != "English"                              # needs sage.combinat
             False
-            sage: Tableaux.options.convention != "French"
+            sage: Tableaux.options.convention != "French"                               # needs sage.combinat
             True
         """
         return self._options[self._name] != other
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         r"""
         Return the hash of ``self``, which is the hash of the corresponding
         value.
 
         EXAMPLES::
 
-            sage: hash(Tableaux.options.convention) == hash(Tableaux.options('convention'))
+            sage: hash(Tableaux.options.convention) == hash(Tableaux.options('convention'))         # needs sage.combinat
             True
         """
         return hash(self._options[self._name])
 
-    def __str__(self):
+    def __str__(self) -> str:
         r"""
         Return the string representation of ``self``, which is the string of
         the corresponding value.
 
         EXAMPLES::
 
-            sage: str(Tableaux.options.convention)
+            sage: str(Tableaux.options.convention)                                      # needs sage.combinat
             'English'
         """
         return str(self._options[self._name])
@@ -743,6 +774,12 @@ class GlobalOptionsMetaMeta(type):
         # classes, note that Python 2 and Python 3 have different
         # semantics for determining the metaclass when multiple base
         # classes are involved.
+        #
+        # Note: On Python 3 bases is empty if the class was declared
+        # without any explicted bases:
+        if not bases:
+            bases = (object,)
+
         if len(bases) != 1:
             raise TypeError("GlobalOptions must be the only base class")
 
@@ -759,7 +796,7 @@ class GlobalOptionsMetaMeta(type):
         # Split dict in options for instance.__init__ and attributes to
         # insert in the class __dict__
         kwds = {"NAME": name}
-        for key, value in iteritems(dict):
+        for key, value in dict.items():
             if key.startswith("__"):
                 instance.__dict__[key] = value
             else:
@@ -769,10 +806,9 @@ class GlobalOptionsMetaMeta(type):
         return instance
 
 
-@add_metaclass(GlobalOptionsMetaMeta)
-class GlobalOptionsMeta(type):
+class GlobalOptionsMeta(type, metaclass=GlobalOptionsMetaMeta):
     """
-    Metaclass for :class:`GlobalOptions`
+    Metaclass for :class:`GlobalOptions`.
 
     This class is itself an instance of :class:`GlobalOptionsMetaMeta`,
     which implements the subclass magic.
@@ -780,8 +816,7 @@ class GlobalOptionsMeta(type):
 
 
 @instancedoc
-@add_metaclass(GlobalOptionsMeta)
-class GlobalOptions(object):
+class GlobalOptions(metaclass=GlobalOptionsMeta):
     r"""
     The :class:`GlobalOptions` class is a generic class for setting and
     accessing global options for Sage objects.
@@ -817,12 +852,12 @@ class GlobalOptions(object):
       option in another :class:`GlobalOptions`
     - ``setter`` -- a function (class method) which is called whenever this
       option changes
-    - ``values`` -- a dictionary of the legal values for this option (this
+    - ``values`` -- dictionary of the legal values for this option (this
       automatically defines the corresponding ``checker``); this dictionary
       gives the possible options, as keys, together with a brief description
       of them
-    - ``case_sensitive`` -- (default: ``True``) ``True`` or ``False``
-      depending on whether the values of the option are case sensitive
+    - ``case_sensitive`` -- boolean (default: ``True``); depending on whether
+      the values of the option are case sensitive
 
     Options and their values can be abbreviated provided that this
     abbreviation is a prefix of a unique option.
@@ -830,7 +865,7 @@ class GlobalOptions(object):
     EXAMPLES::
 
         sage: from sage.structure.global_options import GlobalOptions
-        sage: class Menu(object):
+        sage: class Menu():
         ....:     class options(GlobalOptions):
         ....:         '''
         ....:         Fancy documentation
@@ -854,7 +889,7 @@ class GlobalOptions(object):
         ....:                                  cake='waist begins again',
         ....:                                  cream='fluffy white stuff'))
         ....:         tip = dict(default=10, description='Reward for good service',
-        ....:                  checker=lambda tip: tip in range(0,20))
+        ....:                  checker=lambda tip: tip in range(20))
         sage: Menu.options
         Current options for menu
           - dessert: espresso
@@ -887,7 +922,9 @@ class GlobalOptions(object):
         ValueError: p is not a valid value for main in the options for menu
 
     The documentation for the options class is automatically generated from the
-    information which specifies the options::
+    information which specifies the options:
+
+    .. CODE-BLOCK:: text
 
         Fancy documentation
         -------------------
@@ -957,7 +994,7 @@ class GlobalOptions(object):
             ....:                              cake='waist begins again',
             ....:                              cream='fluffy white stuff'))
             ....:     tip = dict(default=10, description='Reward for good service',
-            ....:              checker=lambda tip: tip in range(0,20))
+            ....:              checker=lambda tip: tip in range(20))
             sage: menu._name  # Default name is class name
             'menu'
             sage: class specials(GlobalOptions):
@@ -970,12 +1007,12 @@ class GlobalOptions(object):
 
             sage: class alias_test(GlobalOptions):
             ....:       "Test aliases with case sensitivity"
-            ....:       test_opt = dict(default="Upper",
+            ....:       test_opt = dict(default='Upper',
             ....:           description = 'Starts with an uppercase',
             ....:           values = dict(Upper="Starts with uppercase",
             ....:                         lower="only lowercase"),
             ....:           case_sensitive = False,
-            ....:           alias = dict(UpperAlias="Upper", lower_alias="lower"))
+            ....:           alias = dict(UpperAlias='Upper', lower_alias='lower'))
             sage: alias_test['test_opt'] = 'Lower_Alias'
             sage: alias_test['test_opt']
             'lower'
@@ -992,17 +1029,17 @@ class GlobalOptions(object):
         self._name = NAME
 
         # initialise the various dictionaries used by GlobalOptions
-        self._alias = {}          # a dictionary of alias for the values of some options
-        self._alt_names = {}      # a dictionary of alternative names for some options
-        self._case_sensitive = {} # a dictionary of booleans indicating to check case sensitivity
-        self._checker = {}        # a dictionary of validity checkers for each option
-        self.__default_value = {} # a dictionary of the default options
-        self._display_values = {} # a dictionary of the output of the values
-        self._doc = {}            # a dictionary of doc strings, forced by the linked options
-        self._legal_values = {}   # a dictionary of lists of the legal values for each option
-        self._linked_value = {}   # a dictionary of linked to other global options as (link, linked_option)
-        self._setter = {}         # a dictionary of the list of setters
-        self._value = {}          # a dictionary of the current options
+        self._alias = {}           # a dictionary of alias for the values of some options
+        self._alt_names = {}       # a dictionary of alternative names for some options
+        self._case_sensitive = {}  # a dictionary of booleans indicating to check case sensitivity
+        self._checker = {}         # a dictionary of validity checkers for each option
+        self.__default_value = {}  # a dictionary of the default options
+        self._display_values = {}  # a dictionary of the output of the values
+        self._doc = {}             # a dictionary of doc strings, forced by the linked options
+        self._legal_values = {}    # a dictionary of lists of the legal values for each option
+        self._linked_value = {}    # a dictionary of linked to other global options as (link, linked_option)
+        self._setter = {}          # a dictionary of the list of setters
+        self._value = {}           # a dictionary of the current options
         for option in options:
             self._add_option(option, options[option])
 
@@ -1051,9 +1088,9 @@ class GlobalOptions(object):
 
         options.sort()
         width = 1 + max(len(option) for option in options)
-        return  'Current options for {}\n{}'.format(self._name,
-                    '\n'.join('  - {:{}} {}'.format(option+':',width,self[option]) for option in options)
-                )
+        txt = '\n'.join('  - {:{}} {}'.format(option + ':', width, self[option])
+                        for option in options)
+        return 'Current options for {}\n{}'.format(self._name, txt)
 
     def __call__(self, *get_value, **set_value):
         r"""
@@ -1073,13 +1110,13 @@ class GlobalOptions(object):
               - food:  apple
             sage: FoodOptions('food')
             'apple'
-            sage: FoodOptions(food="pair"); FoodOptions()
+            sage: FoodOptions(food='pair'); FoodOptions()
             Current options for daily meal
               - drink: water
               - food:  pair
             sage: FoodOptions('beverage')
             'water'
-            sage: FoodOptions(food="apple", drink="coffee"); FoodOptions()
+            sage: FoodOptions(food='apple', drink='coffee'); FoodOptions()
             Current options for daily meal
               - drink: coffee
               - food:  apple
@@ -1117,7 +1154,7 @@ class GlobalOptions(object):
         """
         option = self._match_option(option)
         if option in self._linked_value:
-            link,linked_opt = self._linked_value[option]
+            link, linked_opt = self._linked_value[option]
             return link[linked_opt]
         elif option in self._value:
             if option in self._display_values:
@@ -1157,7 +1194,7 @@ class GlobalOptions(object):
         if not callable(value):
             value = self._match_value(option, value)
 
-        if value=='?':  # return help
+        if value == '?':  # return help
             print('%s\nCurrent value: %s' % (self._doc[option], self[option]))
             return      # we do not want to call the setter below
 
@@ -1179,9 +1216,9 @@ class GlobalOptions(object):
 
         EXAMPLES::
 
-            sage: print(Partitions.options.__doc__)
+            sage: print(Partitions.options.__doc__)                                     # needs sage.combinat
             <BLANKLINE>
-            Sets and displays the global options for elements of the partition,
+            Set and display the global options for elements of the partition,
             skew partition, and partition tuple classes.  If no parameters are
             set, then the function returns a copy of the options dictionary.
             <BLANKLINE>
@@ -1211,7 +1248,7 @@ class GlobalOptions(object):
 
     def __setattr__(self, name, value=None):
         r"""
-        Set the attribute ``name`` of the option class self equal to
+        Set the attribute ``name`` of the option class ``self`` equal to
         ``value``, if the attribute ``name`` exists.
 
         As the attributes of an option class are the actual options we need
@@ -1220,16 +1257,16 @@ class GlobalOptions(object):
 
         EXAMPLES::
 
-            sage: Partitions.options.display = 'exp'
-            sage: Partitions.options.dispplay = 'list'
+            sage: Partitions.options.display = 'exp'                                    # needs sage.combinat
+            sage: Partitions.options.dispplay = 'list'                                  # needs sage.combinat
             Traceback (most recent call last):
             ...
             ValueError: dispplay is not an option for Partitions
-            sage: Partitions.options._reset()
+            sage: Partitions.options._reset()                                           # needs sage.combinat
         """
         # Underscore, and "special", attributes are set using type.__setattr__
         if name[0] == '_' or name in ['reset', 'dispatch', 'default_value']:
-            return super(GlobalOptions, self).__setattr__(name, value)
+            return super().__setattr__(name, value)
 
         # General case: redirect to __setitem__
         self[name] = value
@@ -1240,11 +1277,12 @@ class GlobalOptions(object):
         the :class:`GlobalOptions` class.
 
         The :meth:`__getstate__` method returns a dictionary with an
-        `options_class` key which identifies the "parent" class for the options.
+        ``options_class`` key which identifies the "parent" class for the options.
         This is then used to unpickle the options class.
 
         EXAMPLES::
 
+            sage: # needs sage.combinat
             sage: Partitions.options()
             Current options for Partitions
               - convention:        English
@@ -1252,7 +1290,7 @@ class GlobalOptions(object):
               - display:           list
               - latex:             young_diagram
               - latex_diagram_str: \ast
-            sage: Partitions.options.convention="French"
+            sage: Partitions.options.convention = "French"
             sage: pickle = dumps(Partitions.options)
             sage: Partitions.options._reset()        # reset options
             sage: loads(pickle)                      # indirect doctest
@@ -1265,7 +1303,7 @@ class GlobalOptions(object):
             sage: Partitions.options._reset()
         """
         # open the options for the corresponding "parent" and copy all of
-        # the data from its' options class into unpickle
+        # the data from its options class into unpickle
         options_class = getattr(import_module(state['options_module']), state['option_class'])
         unpickle = options_class.options
         state.pop('option_class')
@@ -1273,7 +1311,7 @@ class GlobalOptions(object):
         for setting in unpickle.__dict__:
             self.__dict__[setting] = unpickle.__dict__[setting]
 
-        # reset the options in `self` to their defaults
+        # reset the options in ``self`` to their defaults
         self._reset()
         # apply the options stored in state
         for opt in state:
@@ -1297,8 +1335,8 @@ class GlobalOptions(object):
 
         EXAMPLES::
 
-            sage: Partitions.options._reset()
-            sage: Partitions.options.__getstate__()
+            sage: Partitions.options._reset()                                           # needs sage.combinat
+            sage: Partitions.options.__getstate__()                                     # needs sage.combinat
              {'convention': 'English',
              'option_class': 'Partitions',
              'options_module': 'sage.combinat.partition'}
@@ -1311,33 +1349,33 @@ class GlobalOptions(object):
             pickleable = False
         else:
             opt_mod = import_module(self._options_module)
-            pickleable = hasattr(opt_mod, self._name) and hasattr(getattr(opt_mod, self._name),'options')
+            pickleable = hasattr(opt_mod, self._name) and hasattr(getattr(opt_mod, self._name), 'options')
 
         if not pickleable:
             raise PicklingError('%s cannot be pickled because it is not associated with a class' % self)
 
-        pickle={'option_class': self._option_class, 'options_module': self._options_module}
+        pickle = {'option_class': self._option_class, 'options_module': self._options_module}
         for opt in self._value:
-            if opt not in self._alt_names and self[opt]!=self.__default_value[opt]:
+            if opt not in self._alt_names and self[opt] != self.__default_value[opt]:
                 pickle[opt] = self[opt]
         for opt in self._linked_value:
             link, linked_opt = self._linked_value[opt]
-            if opt not in self._alt_names and link[opt]!=link.__default_value[opt]:
+            if opt not in self._alt_names and link[opt] != link.__default_value[opt]:
                 pickle[opt] = self[opt]
         return pickle
 
     def __eq__(self, other):
         r"""
-        Two options classes are equal if they return the same :meth:`__getstate__.
+        Two options classes are equal if they return the same :meth:`__getstate__`.
 
         EXAMPLES::
 
-            sage: Partitions.options == PartitionsGreatestLE.options # indirect doctest
+            sage: Partitions.options == PartitionsGreatestLE.options  # indirect doctest            # needs sage.combinat
             True
-            sage: Partitions.options == Tableaux.options
+            sage: Partitions.options == Tableaux.options                                # needs sage.combinat
             False
         """
-        return self.__getstate__() == other.__getstate__()
+        return isinstance(other, GlobalOptions) and self.__getstate__() == other.__getstate__()
 
     def _add_option(self, option, specifications):
         r"""
@@ -1345,8 +1383,8 @@ class GlobalOptions(object):
 
         INPUT:
 
-        - ``option`` -- a string
-        - ``specifications`` -- a dictionary
+        - ``option`` -- string
+        - ``specifications`` -- dictionary
 
         .. SEEALSO::
 
@@ -1356,7 +1394,7 @@ class GlobalOptions(object):
         if not isinstance(specifications, dict):
             raise TypeError("expected dict as specification of %r, got %r" % (option, specifications))
 
-        doc={}  # will be used to build the doc string
+        doc = {}  # will be used to build the doc string
         self._case_sensitive[option] = True    # ``True`` by default
         self._legal_values[option] = []
         for spec in sorted(specifications):   # NB: options processed alphabetically!
@@ -1364,30 +1402,30 @@ class GlobalOptions(object):
                 self._alias[option] = specifications[spec]
                 self._legal_values[option] += list(specifications[spec])
                 for opt in specifications[spec]:
-                    doc[opt] = 'alias for ``%s``'%specifications[spec][opt]
+                    doc[opt] = 'alias for ``%s``' % specifications[spec][opt]
             elif spec == 'alt_name':
                 self._alt_names[option] = specifications[spec]
                 self._linked_value[option] = (self, specifications[spec])
-                doc = '- ``%s`` -- alternative name for ``%s``'%(option, specifications[spec].lower())
+                doc = '- ``%s`` -- alternative name for ``%s``' % (option, specifications[spec].lower())
             elif spec == 'case_sensitive':
                 if not specifications[spec]:
                     for opt in self._legal_values:
-                        self._display_values[option] = {val.lower():val for val in self._legal_values[option]}
+                        self._display_values[option] = {val.lower(): val for val in self._legal_values[option]}
                         self._legal_values[option] = [val.lower() for val in self._legal_values[option]]
                     if option in self._alias:
-                        self._alias[option] = {k.lower():v.lower()
-                                               for k, v in iteritems(self._alias[option])}
+                        self._alias[option] = {k.lower(): v.lower()
+                                               for k, v in self._alias[option].items()}
                 self._case_sensitive[option] = bool(specifications[spec])
             elif spec == 'checker':
                 if not callable(specifications[spec]):
-                    raise ValueError('the checker for %s must be callable'%option)
-                self._checker[option]=specifications[spec]
+                    raise ValueError('the checker for %s must be callable' % option)
+                self._checker[option] = specifications[spec]
             elif spec == 'default':
-                self.__default_value[option]=specifications[spec]
+                self.__default_value[option] = specifications[spec]
             elif spec == 'link_to':
-                if (isinstance(specifications[spec], tuple)
-                        and len(specifications[spec]) == 2
-                        and isinstance(specifications[spec][0], GlobalOptions)):
+                if (isinstance(specifications[spec], tuple) and
+                        len(specifications[spec]) == 2 and
+                        isinstance(specifications[spec][0], GlobalOptions)):
                     link, linked_opt = specifications['link_to']  # for sanity
                     if linked_opt in link._value:
                         self._linked_value[option] = specifications['link_to']
@@ -1402,10 +1440,10 @@ class GlobalOptions(object):
                     raise ValueError("linked options must be specified as a string: 'linked_option' or a tuple: (link,linked_option)")
             elif spec == 'setter':
                 if callable(specifications[spec]):
-                    self._setter[option]=specifications[spec]
+                    self._setter[option] = specifications[spec]
                 else:
                     raise ValueError('the setter for %s must be a function' % option)
-            elif spec=='values':
+            elif spec == 'values':
                 for val in specifications[spec]:
                     doc[val] = specifications[spec][val]
                 doc.update(specifications[spec])
@@ -1416,30 +1454,31 @@ class GlobalOptions(object):
                     self._legal_values[option] += [val.lower() for val in specifications[spec]]
                     self._display_values[option] = {val.lower(): val for val in specifications[spec]}
             elif spec != 'description':
-                raise ValueError('Initialization error in Global options for %s: %s not recognized!'%(self._name, spec))
+                raise ValueError('Initialization error in Global options for %s: %s not recognized!' % (self._name, spec))
 
         # now build the doc string for this option
-        if doc == {} and not 'description' in specifications:
+        if doc == {} and 'description' not in specifications:
             raise ValueError('no documentation specified for %s in the options for %s' % (option, self._name))
 
         # first a necessary hack to initialise the option in self._doc because __setitem__ calls _match_option
         self._doc[option] = ''
         if option in self._linked_value:
-            self._doc[option]=doc
+            self._doc[option] = doc
         else:
             width = max(len(v) for v in doc) + 4 if doc != {} else 4
             if len(doc) > 0:
-                self._doc[option]='- ``{}`` -- (default: ``{}``)\n{}\n{}\n'.format(
+                self._doc[option] = '- ``{}`` -- (default: ``{}``)\n{}\n{}\n'.format(
                     option, self._default_value(option),
-                    '  %s\n'%specifications['description'] if 'description' in specifications else '',
-                    '\n'.join('  - {:{}} -- {}'.format('``'+val+'``',width,doc[val]) for val in sorted(doc)))
+                    '  %s\n' % specifications['description'] if 'description' in specifications else '',
+                    '\n'.join('  - {:{}} -- {}'.format('``' + val + '``', width, doc[val])
+                              for val in sorted(doc)))
             else:
-                self._doc[option]='- ``{}`` -- (default: ``{}``)\n{}'.format(
+                self._doc[option] = '- ``{}`` -- (default: ``{}``)\n{}'.format(
                     option, self._default_value(option),
-                    '  %s\n'%specifications['description'] if 'description' in specifications else '')
+                    '  %s\n' % specifications['description'] if 'description' in specifications else '')
 
         # sanity check for non-linked options
-        if not option in self._linked_value:
+        if option not in self._linked_value:
             if 'default' not in specifications:
                 raise ValueError('a default value for %s must be given' % option)
 
@@ -1447,12 +1486,12 @@ class GlobalOptions(object):
                 raise ValueError('a value checker or a list of valid values for %s must be given' % option)
 
             # finally, set, check and process the default value using  __setitem__
-            self[option]=self.__default_value[option]
-            self.__default_value[option]=self._value[option]  # in case the default is an alias
+            self[option] = self.__default_value[option]
+            self.__default_value[option] = self._value[option]  # in case the default is an alias
 
         # Build getters and setters for this option. As we have
         # overridden __setattr__, we call object.__setattr__ directly
-        super(GlobalOptions, self).__setattr__(option, Option(self, option))
+        super().__setattr__(option, Option(self, option))
 
     def _match_option(self, option):
         r"""
@@ -1461,7 +1500,7 @@ class GlobalOptions(object):
 
         INPUT:
 
-        - ``option`` -- a string
+        - ``option`` -- string
 
         EXAMPLES::
 
@@ -1475,7 +1514,8 @@ class GlobalOptions(object):
             sage: FoodOptions('f')
             'apple'
         """
-        if option in self._doc: return option
+        if option in self._doc:
+            return option
 
         # a lower case version of the option
         loption = option.lower()
@@ -1483,16 +1523,16 @@ class GlobalOptions(object):
         # as it is not an option try and match it with a prefix to an option,
         # without checking case using the fact that the keys of self._doc is a
         # list of the options, both normal and linked
-        matches=[opt for opt in self._doc if opt.lower().startswith(loption)]
-        if len(matches)>0 and all(m.startswith(matches[0]) for m in matches):
+        matches = [opt for opt in self._doc if opt.lower().startswith(loption)]
+        if matches and all(m.startswith(matches[0]) for m in matches):
             return matches[0]
-        elif len(matches)>1:
+        elif len(matches) > 1:
             # as there is more than one match check case as well
-            matches=[mat for mat in matches if mat.startswith(option)]
-            if len(matches)>0 and all(m.startswith(matches[0]) for m in matches):
+            matches = [mat for mat in matches if mat.startswith(option)]
+            if matches and all(m.startswith(matches[0]) for m in matches):
                 return matches[0]
             else:
-                raise ValueError('%s is an ambiguous option for %s'%(option, self._name))
+                raise ValueError('%s is an ambiguous option for %s' % (option, self._name))
 
         # if we are still here this is not a good option!
         raise ValueError('%s is not an option for %s' % (option, self._name))
@@ -1503,8 +1543,8 @@ class GlobalOptions(object):
 
         INPUT:
 
-        - ``option`` -- a string: the name of an option, or prefix thereof
-        - ``value``  -- a value or ``'?'``
+        - ``option`` -- string: the name of an option, or prefix thereof
+        - ``value`` -- a value or ``'?'``
 
         EXAMPLES::
 
@@ -1523,7 +1563,8 @@ class GlobalOptions(object):
             ...
             ValueError: w is not a valid value for drink in the options for daily meal
         """
-        if value == "?": return value   # help on this value
+        if value == "?":
+            return value   # help on this value
 
         if option in self._linked_value:
             link, linked_opt = self._linked_value[option]
@@ -1542,9 +1583,9 @@ class GlobalOptions(object):
                 return value
 
             # as it is not a value try and match it with a prefix of a value
-            matches=[val for val in self._legal_values[option] if val.startswith(value)]
-            if len(matches)>0 and all(m.startswith(matches[0]) for m in matches):
-                val=matches[0]
+            matches = [val for val in self._legal_values[option] if val.startswith(value)]
+            if matches and all(m.startswith(matches[0]) for m in matches):
+                val = matches[0]
                 if option in self._alias and val in self._alias[option]:
                     return self._alias[option][val]
                 return val
@@ -1557,7 +1598,7 @@ class GlobalOptions(object):
         # replace any value alias with its "real" value
         if option in self._alias and value in self._alias[option]:
             orig_value = self._alias[option][value]
-        raise ValueError('%s is not a valid value for %s in the options for %s'%(orig_value, option, self._name))
+        raise ValueError('%s is not a valid value for %s in the options for %s' % (orig_value, option, self._name))
 
     def _default_value(self, option):
         r"""
@@ -1573,17 +1614,15 @@ class GlobalOptions(object):
             sage: FoodOptions._default_value('food')
             'apple'
         """
-        option=self._match_option(option)
+        option = self._match_option(option)
         if option in self.__default_value:
             return self.__default_value[option]
         else:
-            link, linked_opt=self._linked_value[option]
+            link, linked_opt = self._linked_value[option]
             return link._default_value(linked_opt)
 
     def _dispatch(self, obj, dispatch_to, option, *args, **kargs):
         r"""
-        .. TODO:: title
-
         The *dispatchable* options are options which dispatch related methods of
         the corresponding class - or user defined methods which are passed to
         :class:`GlobalOptions`. The format for specifying a dispatchable option
@@ -1608,8 +1647,10 @@ class GlobalOptions(object):
             sage: from sage.structure.global_options import GlobalOptions
             sage: class DelimitedListOptions(GlobalOptions):
             ....:           delim=dict(default='b', values={'b':'brackets', 'p':'parentheses'})
-            sage: class DelimitedList(CombinatorialObject):
+            sage: class DelimitedList(SageObject):
             ....:    options = DelimitedListOptions
+            ....:    def __init__(self, L):
+            ....:        self._list = L
             ....:    def _repr_b(self): return '[%s]' % ','.join('%s'%i for i in self._list)
             ....:    def _repr_p(self): return '(%s)' % ','.join('%s'%i for i in self._list)
             ....:    def _repr_(self): return self.options._dispatch(self, '_repr_','delim')
@@ -1626,8 +1667,9 @@ class GlobalOptions(object):
             except TypeError:
                 raise ValueError('the user defined dispatcher function failed!')
         else:
-            if dispatch_to[-1]=='_': dispatch_to=dispatch_to[:-1]
-            dispatch=getattr(obj, dispatch_to+'_'+self._value[option])
+            if dispatch_to[-1] == '_':
+                dispatch_to = dispatch_to[:-1]
+            dispatch = getattr(obj, dispatch_to + '_' + self._value[option])
             return dispatch(*args, **kargs)
 
         raise ValueError('%s is not a dispatchable option!' % option)
@@ -1638,14 +1680,14 @@ class GlobalOptions(object):
 
         INPUT:
 
-        - ``option`` -- (Default: ``None``) The name of an option as a string
+        - ``option`` -- (default: ``None``) the name of an option as a string
           or ``None``. If ``option`` is specified only this option is reset to
           its default value; otherwise all options are reset.
 
         EXAMPLES::
 
             sage: from sage.structure.global_options import GlobalOptions
-            sage: class Meal(object):
+            sage: class Meal():
             ....:     class options(GlobalOptions):
             ....:         NAME = 'daily meal'
             ....:         food = dict(default='bread', values=dict(bread='rye bread', salmon='a fish'))
@@ -1666,24 +1708,17 @@ class GlobalOptions(object):
         if option is None:
             for option in self.__default_value:
                 self._value[option] = self.__default_value[option]
-                if not self._case_sensitive[option] and isinstance(self._value[option],str):
+                if not self._case_sensitive[option] and isinstance(self._value[option], str):
                     self._value[option] = self._value[option].lower()
             for option in self._linked_value:
-                link, linked_opt=self._linked_value[option]
+                link, linked_opt = self._linked_value[option]
                 link._reset(linked_opt)
         else:
-            option=self._match_option(option)
+            option = self._match_option(option)
             if option in self.__default_value:
                 self._value[option] = self.__default_value[option]
-                if not self._case_sensitive[option] and isinstance(self._value[option],str):
+                if not self._case_sensitive[option] and isinstance(self._value[option], str):
                     self._value[option] = self._value[option].lower()
             elif option in self._linked_value:
-                link, linked_opt=self._linked_value[option]
+                link, linked_opt = self._linked_value[option]
                 link._reset(linked_opt)
-
-
-# Deprecations from trac:18555. July 2016
-from sage.misc.superseded import deprecated_function_alias
-GlobalOptions.default_value=deprecated_function_alias(18555, GlobalOptions._default_value)
-GlobalOptions.dispatch=deprecated_function_alias(18555, GlobalOptions._dispatch)
-GlobalOptions.reset=deprecated_function_alias(18555, GlobalOptions._reset)

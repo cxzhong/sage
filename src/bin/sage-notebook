@@ -1,89 +1,23 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python3
+# -*- coding: utf-8; mode: python -*-
 
-import os
-import sys
-import ast
 import argparse
 import logging
-import textwrap
+import os
+import sys
+from contextlib import contextmanager
+
 logging.basicConfig()
 logger = logging.getLogger()
 
-from sage.env import SAGE_ROOT
 from sage.misc.banner import banner
 
-
-class NotebookSageNB(object):
-
-    def print_banner(self):
-        banner()
-        print('Please wait while the old SageNB Notebook server starts...')
-
-    @classmethod
-    def print_help(cls):
-        cls([], help=True)
-
-    def cmdline2argspec(self, cmdline_args):
-        """
-        Convert command line arguments to Python argspec
-
-        AKA the crappy copy of argparse. Only here for the legacy
-        notebook, do not use.
-
-        INPUT:
-
-        - ``cmdline_args`` -- list of string.
-
-        OUTPUT:
-
-        A python argspec: A pair consisting of a tuple and a dict.
-        """
-        args = []
-        kwds = dict()
-        for x in cmdline_args:
-            logger.info('Parsing %s', x)
-            if '=' in x:
-                key, value = x.split('=', 2)
-                logger.debug('keyword argument %s = %s', key, value)
-                try:
-                    value = ast.literal_eval(value)
-                except Exception:
-                    logger.debug('cannot evaluate, treat as string')
-                kwds[key] = value
-            else:
-                logger.debug('positional argument %s', x)
-                try:
-                    value = ast.literal_eval(x)
-                except Exception:
-                    value = x
-                    logger.debug('cannot evaluate, treat as string')
-                args.append(value)
-        return tuple(args), kwds
-
-    def __init__(self, argv, help=False):
-        self.print_banner()
-        self.args, self.kwds = self.cmdline2argspec(argv)
-        logger.info('notebook positional arguments = %s', self.args)
-        logger.info('notebook keyword arguments = %s', self.kwds)
-        from sagenb.notebook.notebook_object import notebook
-        if help:
-            from sage.misc.sageinspect import sage_getdoc
-            print(sage_getdoc(notebook))
-        else:
-            notebook(*self.args, **self.kwds)
+_system_jupyter_url = "https://doc.sagemath.org/html/en/installation/launching.html#setting-up-sagemath-as-a-jupyter-kernel-in-an-existing-jupyter-notebook-or-jupyterlab-installation"
 
 
-class NotebookJupyter(object):
-
-    PREREQUISITE_ERROR = textwrap.dedent("""
-    The Jupyter notebook requires ssl, even if you do not use
-    https. Install the openssl development packages in your system and
-    then rebuild Python (sage -f python2).
-    """)
+class NotebookJupyter():
 
     def print_banner(self):
-        banner()
         print('Please wait while the Sage Jupyter Notebook server starts...')
 
     @classmethod
@@ -92,17 +26,28 @@ class NotebookJupyter(object):
 
     def __init__(self, argv):
         self.print_banner()
-        from sage.repl.ipython_kernel.install import have_prerequisites
-        if not have_prerequisites():
-            print(self.PREREQUISITE_ERROR)
+        try:
+            try:
+                # notebook 6
+                from notebook.notebookapp import main
+            except ImportError:
+                # notebook 7
+                from notebook.app import main
+        except ImportError:
+            import traceback
+            traceback.print_exc()
+            print("The Jupyter notebook is not installed (at least not in this Sage installation).")
+            print("You can install it by running")
+            print("  sage -i notebook")
+            print("Alternatively, you can follow the instructions at")
+            print("  " + _system_jupyter_url)
+            print("to use Sage with an existing Jupyter notebook installation.")
             raise SystemExit(1)
-        from notebook.notebookapp import main
         main(argv)
 
 
-class NotebookJupyterlab(object):
+class NotebookJupyterlab():
     def print_banner(self):
-        banner()
         print('Please wait while the Jupyterlab server starts...')
 
     @classmethod
@@ -113,9 +58,14 @@ class NotebookJupyterlab(object):
         try:
             from jupyterlab.labapp import main
         except ImportError:
+            import traceback
+            traceback.print_exc()
             print("Jupyterlab is not installed (at least not in this Sage installation).")
             print("You can install it by running")
-            print("  sage --pip install jupyterlab")
+            print("  sage -i jupyterlab")
+            print("Alternatively, you can follow the instructions at")
+            print("  " + _system_jupyter_url)
+            print("to use Sage with an existing Jupyterlab installation.")
             raise SystemExit(1)
         self.print_banner()
         main(argv)
@@ -124,7 +74,6 @@ class NotebookJupyterlab(object):
 class SageNBExport(NotebookJupyter):
 
     def print_banner(self):
-        banner()
         print('Please wait while the SageNB export server starts...')
 
     @classmethod
@@ -136,7 +85,7 @@ class SageNBExport(NotebookJupyter):
             SAGENB_EXPORT = 'sagenb-export'
             os.execvp(SAGENB_EXPORT, [SAGENB_EXPORT] + argv)
         argv += [
-            "--NotebookApp.server_extensions=['sagenb_export.nbextension']",
+            "--NotebookApp.nbserver_extensions={'sagenb_export.nbextension':True}",
             "--NotebookApp.default_url='/sagenb'",
         ]
         super(SageNBExport, self).__init__(argv)
@@ -159,13 +108,10 @@ epilog = \
 """
 EXAMPLES:
 
-* Run default notebook on port 1234. Note that the first argument
-  after "-n" will be interpreted as notebook name unless you stop
-  processing with "--":
+* Run default notebook on port 1234.
 
-      sage -n default port=1234
-      sage -n -- port=1234      # equivalent
-      sage -n port=1234         # ERROR: invalid notebook name
+      sage -n default --port=1234
+      sage -n --port=1234      # equivalent
 
 * Run Jupyter notebook in custom directory:
 
@@ -178,13 +124,10 @@ EXAMPLES:
 * Export a legacy Sage notebook as a Jupyter notebook:
 
       sage --notebook=export --ipynb=Output.ipynb admin:10
-
 """
 
-
 notebook_launcher = {
-    'default': SageNBExport,   # change this to change the default
-    'sagenb': NotebookSageNB,
+    'default': NotebookJupyter,   # change this to change the default
     'ipython': NotebookJupyter,
     'jupyter': NotebookJupyter,
     'jupyterlab': NotebookJupyterlab,
@@ -237,10 +180,38 @@ def trac_23428_browser_workaround():
         os.environ['BROWSER'] = 'open'
 
 
+@contextmanager
+def sage_doc_server():
+    from functools import partial
+    from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+    from threading import Thread
+
+    from sage.env import SAGE_DOC
+    from sage.env import SAGE_DOC_LOCAL_PORT as port
+
+    server = ThreadingHTTPServer(('127.0.0.1', int(port)),
+        partial(SimpleHTTPRequestHandler, directory=SAGE_DOC))
+
+    if port == '0':
+        port = str(server.server_address[1])
+        os.environ['SAGE_DOC_LOCAL_PORT'] = port
+
+    server_thread = Thread(target=server.serve_forever, name="sage_doc_server")
+    server_thread.start()
+    print(f'Sage doc server started running at http://127.0.0.1:{port}')
+
+    try:
+        yield
+    finally:
+        server.shutdown()
+        server_thread.join()
+        print(f'Sage doc server stopped runnning at http://127.0.0.1:{port}')
+
+
 if __name__ == '__main__':
     parser = make_parser()
     args, unknown = parser.parse_known_args(sys.argv[1:])
-    if len(unknown) > 0 and unknown[0] == '--':
+    if unknown and unknown[0] == '--':
         unknown = unknown[1:]
     trac_23428_browser_workaround()
     if args.log is not None:
@@ -249,6 +220,18 @@ if __name__ == '__main__':
         logger.setLevel(level=level)
     logger.info('Main parser got arguments %s', args)
     logger.info('Passing on to notebook implementation: %s', unknown)
+
+    if args.notebook == "sagenb":
+        logger.critical('cannot use the legacy notebook SageNB with Python 3')
+        print('The legacy notebook does not work under Python 3; '
+              'use the Jupyter notebook.')
+        print('See https://wiki.sagemath.org/Python3-Switch')
+        print('Use \"sage --notebook=export\" to export SageNB notebooks '
+              'to Jupyter')
+        sys.exit(1)
+
+    from sage.repl.ipython_kernel.install import SageKernelSpec
+    SageKernelSpec.check()
 
     try:
         launcher = notebook_launcher[args.notebook]
@@ -265,6 +248,19 @@ if __name__ == '__main__':
             launcher.print_help()
         sys.exit(0)
 
-    launcher(unknown)
+    banner()
 
+    # Start a Sage doc server if the Sage documentation is available locally.
+    # See the corresponding code in src/sage/repl/ipython_kernel/kernel.py.
 
+    from sage.env import SAGE_DOC_SERVER_URL
+    from sage.features.sagemath import sagemath_doc_html
+
+    if SAGE_DOC_SERVER_URL:
+        print(f'Sage doc server is running at {SAGE_DOC_SERVER_URL}')
+        launcher(unknown)
+    elif sagemath_doc_html().is_present():
+        with sage_doc_server():
+            launcher(unknown)
+    else:
+        launcher(unknown)

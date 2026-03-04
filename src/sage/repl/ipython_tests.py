@@ -2,7 +2,7 @@
 Tests for the IPython integration
 
 First, test the pinfo magic for Python code. This is what IPython
-calls when you ask for the single-questionmark help, like `foo?` ::
+calls when you ask for the single-questionmark help, like ``foo?`` ::
 
     sage: from sage.repl.interpreter import get_test_shell
     sage: shell = get_test_shell()
@@ -10,20 +10,20 @@ calls when you ask for the single-questionmark help, like `foo?` ::
     sage: shell.run_cell(u'%pinfo dummy')
     Signature:      dummy(argument, optional=None)
     Docstring:
-       Dummy Docstring Title
+       Dummy Docstring Title.
     <BLANKLINE>
        Dummy docstring explanation.
     <BLANKLINE>
        INPUT:
     <BLANKLINE>
-       * "argument" -- anything. Dummy argument.
+       ... "argument" -- anything; dummy argument
     <BLANKLINE>
-       * "optional" -- anything (optional). Dummy optional.
+       ... "optional" -- anything (optional); dummy optional
     <BLANKLINE>
-       EXAMPLES:
+       EXAMPLES...
     <BLANKLINE>
     ...
-    Init docstring: x.__init__(...) initializes x; see help(type(x)) for signature
+    Init docstring: ...ee help(type(...)) for...signature...
     File:           .../sage/repl/ipython_tests.py
     Type:           function
 
@@ -33,36 +33,71 @@ Next, test the pinfo magic for Cython code::
     sage: shell = get_test_shell()
     sage: shell.run_cell(u'from sage.tests.stl_vector import stl_int_vector')
     sage: shell.run_cell(u'%pinfo stl_int_vector')
-    Docstring:
-       Example class wrapping an STL vector
+    ...
+       Example class wrapping an STL vector.
     <BLANKLINE>
-       EXAMPLES:
+       EXAMPLES...
     <BLANKLINE>
     ...
-    Init docstring: x.__init__(...) initializes x; see help(type(x)) for signature
+    Init docstring: ...ee help(type(...)) for...signature...
     File:           .../sage/tests/stl_vector.pyx
     Type:           type
+    ...
+
+Test that the signature is displayed even with ``binding=False``
+as long as ``embedsignature=True`` is set
+(unfortunately the type is not displayed, see ``sage_signature``)::
+
+    sage: shell.run_cell(r"""
+    ....: %%cython
+    ....: # cython: binding=False, embedsignature=True
+    ....: cpdef int f(int a):
+    ....:     return a+1
+    ....: """)
+    sage: shell.run_cell(u'print(f.__doc__)')
+    f(int a) -> int
+    File: ....pyx (starting at line 2)
+    sage: shell.run_cell(u'%pinfo f')
+    Signature:      f(a)
+    ...
+
+Next, test the ``pinfo`` magic for ``R`` interface code, see :issue:`26906`::
+
+    sage: from sage.repl.interpreter import get_test_shell   # optional - rpy2
+    sage: shell = get_test_shell()                           # optional - rpy2
+    sage: shell.run_cell(u'%pinfo r.lm')                     # optional - rpy2
+    Signature:       r.lm(...*args, **kwds)
+    ...
+    String form:     lm
+    File:            .../sage/interfaces/r.py
+    Docstring:...
+    title
+    *****
+    <BLANKLINE>
+    Fitting Linear Models
+    ...
 
 Next, test the pinfo2 magic for Python code. This is what IPython
-calls when you ask for the double-questionmark help, like `foo??` ::
+calls when you ask for the double-questionmark help, like ``foo??`` ::
 
     sage: from sage.repl.interpreter import get_test_shell
     sage: shell = get_test_shell()
     sage: shell.run_cell(u'from sage.repl.ipython_tests import dummy')
     sage: shell.run_cell(u'%pinfo2 dummy')
     Signature: dummy(argument, optional=None)
+    ...
     Source:
     def dummy(argument, optional=None):
         """
-        Dummy Docstring Title
+        Dummy Docstring Title.
     <BLANKLINE>
         Dummy docstring explanation.
     <BLANKLINE>
         INPUT:
     <BLANKLINE>
-        - ``argument`` -- anything. Dummy argument.
+        - ``argument`` -- anything; dummy argument
     <BLANKLINE>
-        - ``optional`` -- anything (optional). Dummy optional.
+        - ``optional`` -- anything (optional); dummy optional
     <BLANKLINE>
         EXAMPLES::
     <BLANKLINE>
@@ -78,10 +113,10 @@ Next, test the pinfo2 magic for Cython code::
     sage: shell = get_test_shell()
     sage: shell.run_cell(u'from sage.tests.stl_vector import stl_int_vector')
     sage: shell.run_cell(u'%pinfo2 stl_int_vector')
-    Source:
+    ...
     cdef class stl_int_vector(SageObject):
         """
-        Example class wrapping an STL vector
+        Example class wrapping an STL vector.
     <BLANKLINE>
         EXAMPLES::
     <BLANKLINE>
@@ -100,6 +135,20 @@ Next, test the pinfo2 magic for Cython code::
     ...
     File:   .../sage/tests/stl_vector.pyx
     Type:   type
+    ...
+
+Next, test the ``pinfo2`` magic for ``R`` interface code, see :issue:`26906`::
+
+    sage: from sage.repl.interpreter import get_test_shell   # optional - rpy2
+    sage: shell = get_test_shell()                           # optional - rpy2
+    sage: shell.run_cell(u'%pinfo2 r.lm')                    # optional - rpy2
+    Signature:       r.lm(...*args, **kwds)
+    ...
+    String form:     lm
+    File:            .../sage/interfaces/r.py
+    Source:
+    function (formula, data, subset, weights, na.action, method = "qr",
+    ...
 
 Test that there are no warnings being ignored internally::
 
@@ -111,20 +160,20 @@ Test that there are no warnings being ignored internally::
 
 def dummy(argument, optional=None):
     """
-    Dummy Docstring Title
+    Dummy Docstring Title.
 
     Dummy docstring explanation.
 
     INPUT:
 
-    - ``argument`` -- anything. Dummy argument.
+    - ``argument`` -- anything; dummy argument
 
-    - ``optional`` -- anything (optional). Dummy optional.
+    - ``optional`` -- anything (optional); dummy optional
 
     EXAMPLES::
 
         sage: from sage.repl.ipython_tests import dummy
         sage: dummy(1)
-        'Source code would be here' 
+        'Source code would be here'
     """
     return 'Source code would be here'

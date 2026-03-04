@@ -1,21 +1,21 @@
-# -*- coding: utf-8 -*-
+# sage.doctest: needs sage.libs.gap sage.libs.flint sage.libs.pari sage.modules
 r"""
 Functions that compute some of the sequences in Sloane's tables
 
 EXAMPLES:
 
-Type sloane.[tab] to see a list of the sequences that are defined.
+Type ``sloane.[tab]`` to see a list of the sequences that are defined.
 
 ::
 
     sage: a = sloane.A000005; a
-     The integer sequence tau(n), which is the number of divisors of n.
-     sage: a(1)
-     1
-     sage: a(6)
-     4
-     sage: a(100)
-     9
+    The integer sequence tau(n), which is the number of divisors of n.
+    sage: a(1)
+    1
+    sage: a(6)
+    4
+    sage: a(100)
+    9
 
 Type ``d._eval??`` to see how the function that
 computes an individual term of the sequence is implemented.
@@ -50,7 +50,7 @@ TESTS::
 
 We agree with the online database::
 
-    sage: for t in sloane.trait_names():    # long time; optional -- internet; known bug
+    sage: for t in sloane.__dir__():    # long time; optional -- internet; known bug
     ....:     online_list = list(oeis(t).first_terms())
     ....:     L = max(2, len(online_list) // 2)
     ....:     sage_list = sloane.__getattribute__(t).list(L)
@@ -84,7 +84,7 @@ AUTHORS:
 # 1. Add a new class to Section II below, which you should
 #    do by copying an existing class and modifying it.
 #    Make sure to at least define _eval and _repr_.
-#    NOTES:  (a) define the _eval method only, which you may
+#    NOTE:   (a) define the _eval method only, which you may
 #                assume has as input a *positive* Sage integer (offset > 0).
 #                Each sequence in the OEIS has an offset >= 0, indicating the
 #                value of the first index. The default offset = 1.
@@ -123,28 +123,29 @@ AUTHORS:
 ########################################################################
 
 # just used for handy .load, .save, etc.
-from __future__ import print_function, absolute_import
-from six.moves import range
-from six import integer_types
-
+import sys
 import inspect
+
 from sage.structure.sage_object import SageObject
 from sage.arith.srange import srange
 from sage.rings.integer_ring import ZZ
-from sage.functions.all import prime_pi
-from . import partition
+from sage.misc.lazy_import import lazy_import
 from sage.rings.integer import Integer as Integer_class
+# You may have to import more here when defining new sequences
+import sage.arith.all as arith
+from sage.rings.rational_field import QQ
+from sage.combinat import combinat
+from sage.misc.misc_c import prod
 
-Integer = ZZ
+lazy_import("sage.functions.all", "prime_pi")
+lazy_import('sage.matrix.matrix_space', 'MatrixSpace')
+
 
 class SloaneSequence(SageObject):
     r"""
     Base class for a Sloane integer sequence.
-
-    EXAMPLES:
-
-    We create a dummy sequence:
     """
+
     def __init__(self, offset=1):
         r"""
         A sequence starting at offset (=1 by default).
@@ -197,7 +198,7 @@ class SloaneSequence(SageObject):
 
     def _sage_src_(self):
         """
-        Returns the source code for the class of self.
+        Return the source code for the class of ``self``.
 
         EXAMPLES::
 
@@ -206,7 +207,6 @@ class SloaneSequence(SageObject):
         """
         from sage.misc.sageinspect import sage_getsource
         return sage_getsource(self.__class__)
-
 
     def __call__(self, n):
         """
@@ -227,7 +227,7 @@ class SloaneSequence(SageObject):
             ...
             ValueError: input n (=0) must be a positive integer
         """
-        if not isinstance(n, integer_types + (Integer_class,)):
+        if not isinstance(n, (int, Integer_class)):
             raise TypeError("input must be an int or Integer")
         m = ZZ(n)
         if m < self.offset:
@@ -252,7 +252,11 @@ class SloaneSequence(SageObject):
         raise NotImplementedError
 
     def list(self, n):
-        r"""Return n terms of the sequence: sequence[offset], sequence[offset+1], ... , sequence[offset+n-1].
+        r"""
+        Return ``n`` terms of the sequence::
+
+            sequence[offset], sequence[offset+1], ..., sequence[offset+n-1].
+
         EXAMPLES::
 
             sage: sloane.A000012.list(4)
@@ -275,7 +279,9 @@ class SloaneSequence(SageObject):
         raise NotImplementedError
 
     def __getitem__(self, n):
-        r"""Return sequence[n].
+        r"""
+        Return the ``n``-th item of ``self``.
+
         We interpret slices as best we can, but our sequences are infinite
         so we want to prevent some mis-incantations.
 
@@ -298,30 +304,28 @@ class SloaneSequence(SageObject):
             Traceback (most recent call last):
             ...
             IndexError: slice (=slice(0, 1000000000, None)) too long
+
+            sage: sloane.A000001[:8]
+            [1, 1, 1, 2, 1, 2, 1]
+            sage: sloane.A000001[0:8:2]
+            [1, 2, 2]
+            sage: sloane.A000001[1:8:2]
+            [1, 1, 1, 1]
         """
         if not isinstance(n, slice):
             return self(n)
 
         LENGTH = 100000
-        (start, stop, step) = n.indices(2*LENGTH)
+        start, stop, step = n.indices(2 * LENGTH)
         if abs(stop - start) > LENGTH:
-            raise IndexError("slice (=%s) too long"%n)
-        # The dirty work of generating indices is left to a range list
-        # This could be slow but in practice seems fine
-        # NOTE: n is a SLICE, not an index
-        return [self(i) for i in list(range(LENGTH))[n] if i >= self.offset]
+            raise IndexError("slice (=%s) too long" % n)
+        return [self(i) for i in range(start, stop, step) if i >= self.offset]
+
 
 ########################################################################
 # II. Actual implementations of Sloane sequences.
 ########################################################################
 
-# You may have to import more here when defining new sequences
-import sage.arith.all as arith
-from sage.matrix.matrix_space import MatrixSpace
-from sage.rings.rational_field import QQ
-from sage.combinat import combinat
-from sage.misc.all import prod
-import sage.interfaces.gap as gap
 
 # This one should be here!
 class A000001(SloaneSequence):
@@ -329,12 +333,9 @@ class A000001(SloaneSequence):
         r"""
         Number of groups of order `n`.
 
-        Note: The package database_gap must be installed for
-        `n > 50`: run ``sage -i database_gap`` first.
-
         INPUT:
 
-        -  ``n`` -- positive integer
+        - ``n`` -- positive integer
 
         OUTPUT: integer
 
@@ -354,7 +355,7 @@ class A000001(SloaneSequence):
             2
             sage: a.list(16)
             [1, 1, 1, 2, 1, 2, 1, 5, 2, 2, 1, 5, 1, 2, 1, 14]
-            sage: a(60)  # optional - database_gap
+            sage: a(60)
             13
 
         AUTHORS:
@@ -379,15 +380,17 @@ class A000001(SloaneSequence):
 
             sage: sloane.A000001._eval(4)
             2
-            sage: sloane.A000001._eval(51) # optional - database_gap
+            sage: sloane.A000001._eval(51)
             1
+            sage: sloane.A000001._eval(5000)
+            Traceback (most recent call last):
+            ...
+            GAPError: Error, the library of groups of size 5000 is not available
         """
         if n <= 50:
-            return self._small[n-1]
-        try:
-            return Integer(gap.gap.eval('NumberSmallGroups(%s)' % n))
-        except Exception:  # help, don't know what to do here? Jaap
-            print("Install database_gap first. See optional packages.")
+            return self._small[n - 1]
+        from sage.libs.gap.libgap import libgap
+        return ZZ(libgap.NumberSmallGroups(n))
 
 
 class A000027(SloaneSequence):
@@ -453,11 +456,7 @@ class A000004(SloaneSequence):
 
         INPUT:
 
-
-        -  ``n`` - non negative integer
-
-
-        OUTPUT:
+        - ``n`` -- nonnegative integer
 
         EXAMPLES::
 
@@ -492,26 +491,21 @@ class A000004(SloaneSequence):
             sage: sloane.A000004._eval(5)
             0
         """
-        return 0
+        return ZZ.zero()
 
 
 class A000005(SloaneSequence):
     def __init__(self):
         r"""
-        The sequence `tau(n)`, which is the number of divisors of
-        `n`.
+        The sequence `tau(n)`, which is the number of divisors of `n`.
 
         This sequence is also denoted `d(n)` (also called
         `\tau(n)` or `\sigma_0(n)`), the number of
-        divisors of n.
+        divisors of `n`.
 
         INPUT:
 
-
-        -  ``n`` - positive integer
-
-
-        OUTPUT:
+        - ``n`` -- positive integer
 
         EXAMPLES::
 
@@ -558,18 +552,18 @@ class A000005(SloaneSequence):
         """
         return arith.number_of_divisors(n)
 
+
 class A000008(SloaneSequence):
     def __init__(self):
         r"""
-        Number of ways of making change for n cents using coins of 1, 2, 5, 10 cents.
+        Number of ways of making change for n cents using coins
+        of 1, 2, 5, 10 cents.
 
         INPUT:
 
-        -  ``n`` - non negative integer
+        - ``n`` -- nonnegative integer
 
-        OUTPUT:
-
-        -  ``integer`` - function value
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -590,7 +584,6 @@ class A000008(SloaneSequence):
         """
         SloaneSequence.__init__(self, offset=0)
 
-
     def _repr_(self):
         """
         EXAMPLES::
@@ -600,7 +593,6 @@ class A000008(SloaneSequence):
         """
         return "Number of ways of making change for n cents using coins of 1, 2, 5, 10 cents."
 
-
     def _eval(self, n):
         """
         EXAMPLES::
@@ -608,10 +600,8 @@ class A000008(SloaneSequence):
             sage: [sloane.A000008._eval(n) for n in range(14)]
             [1, 1, 2, 2, 3, 4, 5, 6, 7, 8, 11, 12, 15, 16]
         """
-        from sage.rings.big_oh import O
-        R, x = QQ[['x']].objgen()
-        p = 1/((1-x)*(1-x**2)*(1-x**5)*(1-x**10)+O(x**(n+4)))
-        return ZZ(p.coefficients()[n])
+        from sage.combinat.partition import Partitions
+        return Partitions(n, parts_in=[1, 2, 5, 10]).cardinality()
 
 
 class A000009(SloaneSequence):
@@ -621,15 +611,9 @@ class A000009(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - non negative integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -649,7 +633,7 @@ class A000009(SloaneSequence):
         - Jaap Spies (2007-01-30)
         """
         SloaneSequence.__init__(self, offset=0)
-        self._b=[]
+        self._b = []
         self._precompute(2)
 
     def _repr_(self):
@@ -669,9 +653,9 @@ class A000009(SloaneSequence):
             sage: [next(it) for i in range(14)]
             [1, 1, 1, 2, 2, 3, 4, 5, 6, 8, 10, 12, 15, 18]
         """
-        R, x = QQ['x'].objgen()
+        _, x = QQ['x'].objgen()
         k = 0
-        yield ZZ(1)
+        yield ZZ.one()
         p = 1
         while True:
             k += 1
@@ -694,7 +678,6 @@ class A000009(SloaneSequence):
             f = self._f
         self._b += [next(f) for i in range(how_many)]
 
-
     def _eval(self, n):
         """
         EXAMPLES::
@@ -716,6 +699,7 @@ class A000009(SloaneSequence):
         self._eval(n)   # force computation
         return self._b[:n]
 
+
 class A000796(SloaneSequence):
     def __init__(self):
         r"""
@@ -723,15 +707,9 @@ class A000796(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- positive integer
 
-        -  ``n`` - positive integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -755,7 +733,7 @@ class A000796(SloaneSequence):
         - Jaap Spies (2007-01-30)
         """
         SloaneSequence.__init__(self, offset=1)
-        self._b=[]
+        self._b = []
 
     def _repr_(self):
         """
@@ -777,16 +755,15 @@ class A000796(SloaneSequence):
             sage: [next(it) for i in range(10)]
             [3, 1, 4, 1, 5, 9, 2, 6, 5, 3]
         """
-        k, a, b, a1, b1 = ZZ(2), ZZ(4), ZZ(1), ZZ(12), ZZ(4)
+        k, a, b, a1, b1 = ZZ(2), ZZ(4), ZZ.one(), ZZ(12), ZZ(4)
         while True:
             p, q, k = k*k, 2*k+1, k+1
             a, b, a1, b1 = a1, b1, p*a+q*a1, p*b+q*b1
             d, d1 = a//b, a1//b1
             while d == d1:
                 yield d
-                a, a1 = 10*(a%b), 10*(a1%b1)
+                a, a1 = 10*(a % b), 10*(a1 % b1)
                 d, d1 = a//b, a1//b1
-
 
     def _precompute(self, how_many=1000):
         """
@@ -803,7 +780,6 @@ class A000796(SloaneSequence):
             self._f = self.pi()
             f = self._f
         self._b += [next(f) for i in range(how_many)]
-
 
     def _eval(self, n):
         """
@@ -830,19 +806,13 @@ class A000796(SloaneSequence):
 class A003418(SloaneSequence):
     def __init__(self):
         r"""
-        Least common multiple (or lcm) of `\{1, 2, \cdots, n\}`.
+        Least common multiple (or lcm) of `\{1, 2, \ldots, n\}`.
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - non negative integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -867,7 +837,6 @@ class A003418(SloaneSequence):
         """
         SloaneSequence.__init__(self, offset=0)
 
-
     def _repr_(self):
         """
         EXAMPLES::
@@ -877,7 +846,6 @@ class A003418(SloaneSequence):
         """
         return "Least common multiple (or lcm) of {1, 2, ..., n}."
 
-
     def _eval(self, n):
         """
         EXAMPLES::
@@ -885,8 +853,7 @@ class A003418(SloaneSequence):
             sage: [sloane.A003418._eval(n) for n in range(1,11)]
             [1, 2, 6, 12, 60, 60, 420, 840, 2520, 2520]
         """
-        return arith.lcm([i for i in range(1,n+1)])
-
+        return arith.lcm(range(1, n + 1))
 
 
 class A007318(SloaneSequence):
@@ -898,15 +865,9 @@ class A007318(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - non negative integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -939,8 +900,6 @@ class A007318(SloaneSequence):
         """
         return "Pascal's triangle read by rows: C(n,k) = binomial(n,k) = n!/(k!*(n-k)!), 0<=k<=n."
 
-
-
     def _eval(self, n):
         """
         EXAMPLES::
@@ -953,7 +912,8 @@ class A007318(SloaneSequence):
             m += 1
         m -= 1
         k = n - m*(m+1)//2
-        return arith.binomial(m,k)
+        return arith.binomial(m, k)
+
 
 class A008275(SloaneSequence):
     def __init__(self):
@@ -968,15 +928,9 @@ class A008275(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - positive integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -1025,7 +979,7 @@ class A008275(SloaneSequence):
             sage: sloane.A008275.s(5,3)
             35
         """
-        return (-1)**(n-k) * combinat.stirling_number1(n,k)
+        return (-1)**(n-k) * combinat.stirling_number1(n, k)
 
     def _eval(self, n):
         """
@@ -1041,7 +995,6 @@ class A008275(SloaneSequence):
         return self.s(m, k)  # (-1)**(m-k) * combinat.stirling_number1(m,k)
 
 
-
 class A008277(SloaneSequence):
     def __init__(self):
         r"""
@@ -1050,15 +1003,9 @@ class A008277(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - positive integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -1098,17 +1045,16 @@ class A008277(SloaneSequence):
         """
         return "Triangle of Stirling numbers of 2nd kind, S2(n,k), n >= 1, 1<=k<=n."
 
-
     def s2(self, n, k):
         """
-        Returns the Stirling number S2(n,k) of the 2nd kind.
+        Return the Stirling number S2(n,k) of the 2nd kind.
 
         EXAMPLES::
 
             sage: sloane.A008277.s2(4,2)
             7
         """
-        return combinat.stirling_number2(n,k)
+        return combinat.stirling_number2(n, k)
 
     def _eval(self, n):
         """
@@ -1124,9 +1070,6 @@ class A008277(SloaneSequence):
         return self.s2(m, k)  # combinat.stirling_number2(m,k)
 
 
-
-
-
 class A049310(SloaneSequence):
     def __init__(self):
         r"""
@@ -1136,15 +1079,9 @@ class A049310(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - non negative integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -1180,8 +1117,6 @@ class A049310(SloaneSequence):
         """
         return "Triangle of coefficients of Chebyshev's S(n,x) := U(n,x/2) polynomials (exponents in increasing order)."
 
-
-
     def _eval(self, n):
         """
         EXAMPLES::
@@ -1194,13 +1129,10 @@ class A049310(SloaneSequence):
             m += 1
         m -= 1
         k = n - m*(m+1)//2
-        if (m+k)%2:
+        if (m+k) % 2:
             return ZZ(0)
         sign = (-1)**((m+k)//2 + k)
-        return sign * arith.binomial((m+k)//2,k)
-
-
-
+        return sign * arith.binomial((m+k)//2, k)
 
 
 class A000010(SloaneSequence):
@@ -1212,20 +1144,14 @@ class A000010(SloaneSequence):
         to `n`. Number of totatives of `n`.
 
         Euler totient function `\phi(n)`: count numbers `n`
-        and prime to `n`. euler_phi is a standard Sage function
-        implemented in PARI
+        and prime to `n`. ``euler_phi`` is a standard Sage function
+        implemented in PARI.
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - positive integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -1272,6 +1198,7 @@ class A000010(SloaneSequence):
 
 # Theme: simple functions
 
+
 class A000007(SloaneSequence):
     def __init__(self):
         r"""
@@ -1279,15 +1206,9 @@ class A000007(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - non negative integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -1324,7 +1245,8 @@ class A000007(SloaneSequence):
             sage: [sloane.A000007._eval(n) for n in range(10)]
             [1, 0, 0, 0, 0, 0, 0, 0, 0, 0]
         """
-        return Integer(0**n)
+        return ZZ(0**n)
+
 
 class A005843(SloaneSequence):
     def __init__(self):
@@ -1333,15 +1255,9 @@ class A005843(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - non negative integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -1382,8 +1298,7 @@ class A005843(SloaneSequence):
             sage: [sloane.A005843._eval(n) for n in range(10)]
             [0, 2, 4, 6, 8, 10, 12, 14, 16, 18]
         """
-        return Integer(2*n)
-
+        return ZZ(2*n)
 
 
 class A000035(SloaneSequence):
@@ -1393,15 +1308,9 @@ class A000035(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - non negative integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -1442,8 +1351,7 @@ class A000035(SloaneSequence):
             sage: [sloane.A000035._eval(n) for n in range(10)]
             [0, 1, 0, 1, 0, 1, 0, 1, 0, 1]
         """
-        return Integer(n%2)
-
+        return ZZ(n % 2)
 
 
 class A000169(SloaneSequence):
@@ -1454,15 +1362,9 @@ class A000169(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - positive integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -1503,25 +1405,19 @@ class A000169(SloaneSequence):
             sage: [sloane.A000169._eval(n) for n in range(1,11)]
             [1, 2, 9, 64, 625, 7776, 117649, 2097152, 43046721, 1000000000]
         """
-        return Integer(n**(n-1))
+        return ZZ(n**(n-1))
+
 
 class A000272(SloaneSequence):
     def __init__(self):
         r"""
-        Number of labeled rooted trees on `n` nodes:
-        `n^{(n-2)}`.
+        Number of labeled rooted trees on `n` nodes: `n^{(n-2)}`.
 
         INPUT:
 
+        - ``n`` -- integer
 
-        -  ``n`` - integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -1561,11 +1457,8 @@ class A000272(SloaneSequence):
             [1, 1, 3, 16, 125, 1296, 16807, 262144, 4782969, 100000000]
         """
         if n == 0:
-            return 1
-        return Integer(ZZ(n)**(ZZ(n)-2))
-
-
-
+            return ZZ.one()
+        return ZZ(n) ** (ZZ(n) - 2)
 
 
 class A000312(SloaneSequence):
@@ -1576,15 +1469,9 @@ class A000312(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - non negative integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -1626,11 +1513,9 @@ class A000312(SloaneSequence):
             [1, 1, 4, 27, 256, 3125, 46656, 823543, 16777216, 387420489]
         """
         if n == 0:
-            return Integer(1)
+            return ZZ.one()
         else:
-            return Integer(n**n)
-
-
+            return ZZ(n**n)
 
 
 class A001477(SloaneSequence):
@@ -1640,15 +1525,9 @@ class A001477(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - non negative integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -1689,24 +1568,19 @@ class A001477(SloaneSequence):
             sage: [sloane.A001477._eval(n) for n in range(10)]
             [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
         """
-        return Integer(n)
+        return ZZ(n)
+
 
 class A004526(SloaneSequence):
     def __init__(self):
         r"""
-        The nonnegative integers repeated
+        The nonnegative integers repeated.
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - non negative integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -1745,7 +1619,7 @@ class A004526(SloaneSequence):
             sage: [sloane.A004526._eval(n) for n in range(10)]
             [0, 0, 1, 1, 2, 2, 3, 3, 4, 4]
         """
-        return Integer(n//2)
+        return ZZ(n // 2)
 
 
 class A000326(SloaneSequence):
@@ -1755,15 +1629,9 @@ class A000326(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - non negative integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -1806,10 +1674,7 @@ class A000326(SloaneSequence):
             sage: [sloane.A000326._eval(n) for n in range(10)]
             [0, 1, 5, 12, 22, 35, 51, 70, 92, 117]
         """
-        return Integer(n*(3*n-1)//2)
-
-
-
+        return ZZ(n * (3*n-1) // 2)
 
 
 class A002378(SloaneSequence):
@@ -1819,15 +1684,9 @@ class A002378(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - non negative integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -1868,7 +1727,8 @@ class A002378(SloaneSequence):
             sage: [sloane.A002378._eval(n) for n in range(10)]
             [0, 2, 6, 12, 20, 30, 42, 56, 72, 90]
         """
-        return Integer(n*(n+1))
+        return ZZ(n * (n+1))
+
 
 class A002620(SloaneSequence):
     def __init__(self):
@@ -1878,15 +1738,9 @@ class A002620(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - non negative integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -1925,10 +1779,7 @@ class A002620(SloaneSequence):
             sage: [sloane.A002620._eval(n) for n in range(10)]
             [0, 0, 1, 2, 4, 6, 9, 12, 16, 20]
         """
-        return Integer(n**2 // 4)
-
-
-
+        return ZZ(n**2 // 4)
 
 
 class A005408(SloaneSequence):
@@ -1938,15 +1789,9 @@ class A005408(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - non negative integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -1987,31 +1832,24 @@ class A005408(SloaneSequence):
             sage: [sloane.A005408._eval(n) for n in range(10)]
             [1, 3, 5, 7, 9, 11, 13, 15, 17, 19]
         """
-        return Integer(2*n+1)
-
+        return ZZ(2*n + 1)
 
 
 class A000012(SloaneSequence):
     def __init__(self):
         r"""
-        The all 1's sequence.
+        The all 1s sequence.
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - non negative integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
             sage: a = sloane.A000012; a
-            The all 1's sequence.
+            The all 1s sequence.
             sage: a(1)
             1
             sage: a(2007)
@@ -2030,9 +1868,9 @@ class A000012(SloaneSequence):
         EXAMPLES::
 
             sage: sloane.A000012._repr_()
-            "The all 1's sequence."
+            'The all 1s sequence.'
         """
-        return "The all 1's sequence."
+        return 'The all 1s sequence.'
 
     def _eval(self, n):
         """
@@ -2041,30 +1879,24 @@ class A000012(SloaneSequence):
             sage: [sloane.A000012._eval(n) for n in range(10)]
             [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
         """
-        return Integer(1)
+        return ZZ.one()
+
 
 class A000120(SloaneSequence):
     def __init__(self):
         r"""
-        1's-counting sequence: number of 1's in binary expansion of
-        `n`.
+        1s-counting sequence: number of 1s in binary expansion of `n`.
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - non negative integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
             sage: a = sloane.A000120;a
-            1's-counting sequence: number of 1's in binary expansion of n.
+            1s-counting sequence: number of 1s in binary expansion of n.
             sage: a(0)
             0
             sage: a(2)
@@ -2085,11 +1917,11 @@ class A000120(SloaneSequence):
         EXAMPLES::
 
             sage: sloane.A000120._repr_()
-            "1's-counting sequence: number of 1's in binary expansion of n."
+            '1s-counting sequence: number of 1s in binary expansion of n.'
         """
-        return "1's-counting sequence: number of 1's in binary expansion of n."
+        return '1s-counting sequence: number of 1s in binary expansion of n.'
 
-    def f(self,n):
+    def f(self, n):
         """
         EXAMPLES::
 
@@ -2097,8 +1929,8 @@ class A000120(SloaneSequence):
             [0, 1, 1, 2, 1, 2, 2, 3, 1, 2]
         """
         if n <= 1:
-            return Integer(n)
-        return self.f(n//2) + n%2
+            return ZZ(n)
+        return self.f(n // 2) + n % 2
 
     def _eval(self, n):
         """
@@ -2109,6 +1941,7 @@ class A000120(SloaneSequence):
         """
         return self.f(n)
 
+
 class A010060(SloaneSequence):
     def __init__(self):
         r"""
@@ -2117,19 +1950,13 @@ class A010060(SloaneSequence):
         Let `A_k` denote the first `2^k` terms; then
         `A_0 = 0`, and for `k \ge 0`,
         `A_{k+1} = A_k B_k`, where `B_k` is obtained
-        from `A_k` by interchanging 0's and 1's.
+        from `A_k` by interchanging 0s and 1s.
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - non negative integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -2170,27 +1997,22 @@ class A010060(SloaneSequence):
         """
         return sloane.A000120(n) % 2
 
+
 class A000069(SloaneSequence):
     def __init__(self):
         r"""
-        Odious numbers: odd number of 1's in binary expansion.
+        Odious numbers: odd number of 1s in binary expansion.
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - non negative integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
             sage: a = sloane.A000069; a
-            Odious numbers: odd number of 1's in binary expansion.
+            Odious numbers: odd number of 1s in binary expansion.
             sage: a(0)
             1
             sage: a(2)
@@ -2209,9 +2031,9 @@ class A000069(SloaneSequence):
         EXAMPLES::
 
             sage: sloane.A000069._repr_()
-            "Odious numbers: odd number of 1's in binary expansion."
+            'Odious numbers: odd number of 1s in binary expansion.'
         """
-        return "Odious numbers: odd number of 1's in binary expansion."
+        return 'Odious numbers: odd number of 1s in binary expansion.'
 
     def _eval(self, n):
         """
@@ -2220,29 +2042,24 @@ class A000069(SloaneSequence):
             sage: [sloane.A000069._eval(n) for n in range(10)]
             [1, 2, 4, 7, 8, 11, 13, 14, 16, 19]
         """
-        return Integer(2*n + 1) - sloane.A010060(n)
+        return ZZ(2*n + 1) - sloane.A010060(n)
+
 
 class A001969(SloaneSequence):
     def __init__(self):
         r"""
-        Evil numbers: even number of 1's in binary expansion.
+        Evil numbers: even number of 1s in binary expansion.
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - non negative integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
             sage: a = sloane.A001969;a
-            Evil numbers: even number of 1's in binary expansion.
+            Evil numbers: even number of 1s in binary expansion.
             sage: a(0)
             0
             sage: a(1)
@@ -2265,9 +2082,9 @@ class A001969(SloaneSequence):
         EXAMPLES::
 
             sage: sloane.A001969._repr_()
-            "Evil numbers: even number of 1's in binary expansion."
+            'Evil numbers: even number of 1s in binary expansion.'
         """
-        return "Evil numbers: even number of 1's in binary expansion."
+        return 'Evil numbers: even number of 1s in binary expansion.'
 
     def _eval(self, n):
         """
@@ -2276,8 +2093,7 @@ class A001969(SloaneSequence):
             sage: [sloane.A001969._eval(n) for n in range(10)]
             [0, 3, 5, 6, 9, 10, 12, 15, 17, 18]
         """
-        return Integer(2*n) + sloane.A010060(n)
-
+        return ZZ(2*n) + sloane.A010060(n)
 
 
 class A000290(SloaneSequence):
@@ -2287,15 +2103,9 @@ class A000290(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - non negative integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -2334,9 +2144,7 @@ class A000290(SloaneSequence):
             sage: [sloane.A000290._eval(n) for n in range(10)]
             [0, 1, 4, 9, 16, 25, 36, 49, 64, 81]
         """
-        return Integer(n**2)
-
-
+        return ZZ(n ** 2)
 
 
 class A000225(SloaneSequence):
@@ -2346,15 +2154,9 @@ class A000225(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - non negative integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -2393,7 +2195,7 @@ class A000225(SloaneSequence):
             sage: [sloane.A000225._eval(n) for n in range(10)]
             [0, 1, 3, 7, 15, 31, 63, 127, 255, 511]
         """
-        return Integer(2**n - 1)
+        return ZZ(2**n - 1)
 
 
 class A000015(SloaneSequence):
@@ -2404,15 +2206,9 @@ class A000015(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - positive integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -2462,22 +2258,17 @@ class A000015(SloaneSequence):
         else:
             return arith.next_prime_power(n)
 
+
 class A000016(SloaneSequence):
     def __init__(self):
         r"""
-        Sloane's A000016
+        Sloane's A000016.
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - non negative integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -2521,8 +2312,10 @@ class A000016(SloaneSequence):
             [1, 1, 1, 2, 2, 4, 6, 10, 16, 30]
         """
         if n == 0:
-            return 1
-        return sum( (i%2)*arith.euler_phi(i)*2**(Integer(n/i))/(2*n) for i in arith.divisors(n) )
+            return ZZ.one()
+        return ZZ(sum((i % 2) * arith.euler_phi(i) * 2**(n//i) / (2*n)
+                      for i in arith.divisors(n)))
+
 
 class A000032(SloaneSequence):
     def __init__(self):
@@ -2531,15 +2324,9 @@ class A000032(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - non negative integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -2583,14 +2370,15 @@ class A000032(SloaneSequence):
             [2, 1, 3, 4, 7, 11, 18, 29, 47, 76]
         """
         if n == 0:
-            return Integer(2)
+            return ZZ(2)
         elif n == 1:
-            return Integer(1)
+            return ZZ.one()
         else:
             return sloane.A000045(n+1) + sloane.A000045(n-1)
 
 
 # Theme numbers as strings of digits
+
 
 class A004086(SloaneSequence):
     def __init__(self):
@@ -2600,15 +2388,9 @@ class A004086(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - non negative integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -2649,10 +2431,9 @@ class A004086(SloaneSequence):
             sage: [sloane.A004086._eval(n) for n in range(10)]
             [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
         """
-        a = list(str(n))
-        a.reverse()
-        a = ''.join(a)
-        return ZZ(int(a))
+        a = ''.join(reversed(str(n)))
+        return ZZ(a)
+
 
 class A002113(SloaneSequence):
     def __init__(self):
@@ -2661,15 +2442,9 @@ class A002113(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - non negative integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -2712,12 +2487,12 @@ class A002113(SloaneSequence):
         """
         try:
             self._b
-            n = self._n
+            self._n
         except AttributeError:
             self._b = []
-            n = self.offset
-            self._n = n
-        self._b += [i for i in range(self._n, self._n+how_many) if sloane.A004086(i) == i]
+            self._n = self.offset
+        self._b += [i for i in range(self._n, self._n + how_many)
+                    if sloane.A004086(i) == i]
         self._n += how_many
 
     def _eval(self, n):
@@ -2752,7 +2527,6 @@ class A002113(SloaneSequence):
             return self.list(n)
 
 
-
 class A000030(SloaneSequence):
     def __init__(self):
         r"""
@@ -2760,15 +2534,9 @@ class A000030(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - non negative integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -2817,7 +2585,6 @@ class A000030(SloaneSequence):
             return self(n//10)
 
 
-
 # Theme: primes and factoring
 class A000040(SloaneSequence):
     def __init__(self):
@@ -2826,15 +2593,9 @@ class A000040(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - positive integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -2886,15 +2647,9 @@ class A002808(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - positive integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -2971,6 +2726,7 @@ class A002808(SloaneSequence):
             # try again
             return self.list(n)
 
+
 class A018252(SloaneSequence):
     def __init__(self):
         r"""
@@ -2978,15 +2734,9 @@ class A018252(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - positive integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -3028,10 +2778,8 @@ class A018252(SloaneSequence):
             [1, 4, 6, 8, 9, 10, 12, 14, 15, 16]
         """
         if n == 1:
-             return Integer(1)
-        return sloane.A002808(n-1)
-
-
+            return ZZ.one()
+        return sloane.A002808(n - 1)
 
 
 class A000043(SloaneSequence):
@@ -3042,15 +2790,9 @@ class A000043(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - positive integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -3092,10 +2834,13 @@ class A000043(SloaneSequence):
             [2, 3, 5, 7, 13, 17, 19, 31, 61, 89]
         """
         try:
-            return Integer(self._b[n-1])
+            return ZZ(self._b[n-1])
         except (AttributeError, IndexError):
-            self._b = [2,3,5,7,13,17,19,31,61,89,107,127,521,607,1279,2203,2281,3217,4253,4423,9689,9941,11213,19937,21701,23209,44497,86243,110503,132049,216091,756839,859433,1257787,1398269,2976221,3021377,6972593,13466917]
-            return Integer(self._b[n-1])
+            self._b = [2,3,5,7,13,17,19,31,61,89,107,127,521,607,1279,2203,2281,3217,4253,
+                       4423,9689,9941,11213,19937,21701,23209,44497,86243,110503,132049,
+                       216091,756839,859433,1257787,1398269,2976221,3021377,6972593,13466917]
+            return ZZ(self._b[n-1])
+
 
 class A000668(SloaneSequence):
     def __init__(self):
@@ -3109,15 +2854,9 @@ class A000668(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - positive integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -3162,17 +2901,18 @@ class A000668(SloaneSequence):
 
             sage: [sloane.A000668._eval(n) for n in range(1,11)]
             [3,
-                    7,
-                    31,
-                    127,
-                    8191,
-                    131071,
-                    524287,
-                    2147483647,
-                    2305843009213693951,
-                    618970019642690137449562111]
+             7,
+             31,
+             127,
+             8191,
+             131071,
+             524287,
+             2147483647,
+             2305843009213693951,
+             618970019642690137449562111]
         """
-        return Integer(2**sloane.A000043(n) - 1)
+        return ZZ(2**sloane.A000043(n) - 1)
+
 
 class A000396(SloaneSequence):
     def __init__(self):
@@ -3181,15 +2921,9 @@ class A000396(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - positive integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -3231,7 +2965,8 @@ class A000396(SloaneSequence):
             [6, 28, 496, 8128, 33550336]
         """
         p = sloane.A000043(n)
-        return Integer(2**(p-1) * (2**p - 1))
+        return ZZ(2**(p-1) * (2**p - 1))
+
 
 class A005100(SloaneSequence):
     def __init__(self):
@@ -3240,15 +2975,9 @@ class A005100(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - positive integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -3327,6 +3056,7 @@ class A005100(SloaneSequence):
             # try again
             return self.list(n)
 
+
 class A005101(SloaneSequence):
     def __init__(self):
         r"""
@@ -3335,15 +3065,9 @@ class A005101(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - positive integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -3423,7 +3147,6 @@ class A005101(SloaneSequence):
             return self.list(n)
 
 
-
 class A002110(SloaneSequence):
     def __init__(self):
         r"""
@@ -3432,15 +3155,9 @@ class A002110(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - non negative integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -3479,7 +3196,8 @@ class A002110(SloaneSequence):
             sage: [sloane.A002110._eval(n) for n in range(10)]
             [1, 2, 6, 30, 210, 2310, 30030, 510510, 9699690, 223092870]
         """
-        return prod([sloane.A000040(i) for i in range(1,n+1)]) #n-th prime = A000040(n)
+        return prod([sloane.A000040(i) for i in range(1, n + 1)])  # n-th prime = A000040(n)
+
 
 class A000720(SloaneSequence):
     def __init__(self):
@@ -3489,15 +3207,9 @@ class A000720(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - positive integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -3540,6 +3252,7 @@ class A000720(SloaneSequence):
         """
         return prime_pi(n)
 
+
 class A064553(SloaneSequence):
     def __init__(self):
         r"""
@@ -3549,15 +3262,9 @@ class A064553(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - positive integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -3598,8 +3305,7 @@ class A064553(SloaneSequence):
             sage: [sloane.A064553._eval(n) for n in range(1,11)]
             [1, 2, 3, 4, 4, 6, 5, 8, 9, 8]
         """
-        return prod([(prime_pi(p)+1)**e for p,e in arith.factor(n)])
-
+        return prod([(prime_pi(p)+1)**e for p, e in arith.factor(n)])
 
 
 class A001055(SloaneSequence):
@@ -3609,15 +3315,9 @@ class A001055(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - positive integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -3665,18 +3365,18 @@ class A001055(SloaneSequence):
             2
         """
         if n == 1:
-            return ZZ(1)
+            return ZZ.one()
         if arith.is_prime(n):
             if m < n:
-                return ZZ(0)
+                return ZZ.zero()
             else:
-                return ZZ(1)
+                return ZZ.one()
         s = ZZ(0)
         for d in arith.divisors(n):
             if d > 1 and d <= m and d < n:
-                 s += self.nwf(n//d, d)
+                s += self.nwf(n // d, d)
         if n <= m:
-             s += 1
+            s += 1
         return s
 
     def _eval(self, n):
@@ -3689,7 +3389,6 @@ class A001055(SloaneSequence):
         return self.nwf(n, n)
 
 
-
 class A006530(SloaneSequence):
     def __init__(self):
         r"""
@@ -3697,15 +3396,9 @@ class A006530(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - positive integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -3749,25 +3442,20 @@ class A006530(SloaneSequence):
             [1, 2, 3, 2, 5, 3, 7, 2, 3, 5]
         """
         if n == 1:
-            return Integer(1)
+            return ZZ.one()
         return max(p for p,_ in arith.factor(n))
+
 
 class A000961(SloaneSequence):
     def __init__(self):
         r"""
-        Prime powers
+        Prime powers.
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - positive integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -3845,23 +3533,16 @@ class A000961(SloaneSequence):
             return self.list(n)
 
 
-
 class A005117(SloaneSequence):
     def __init__(self):
         r"""
-        Square-free numbers
+        Square-free numbers.
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - positive integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -3904,7 +3585,8 @@ class A005117(SloaneSequence):
             sage: len(sloane.A005117._b) - initial > 0
             True
         """
-        self._b += [i for i in range(self._n, self._n+how_many) if max(e for _,e in arith.factor(i)) <= 1]
+        self._b += [i for i in range(self._n, self._n+how_many)
+                    if max(e for _, e in arith.factor(i)) <= 1]
         self._n += how_many
 
     def _eval(self, n):
@@ -3946,15 +3628,9 @@ class A020639(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - positive integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -4032,8 +3708,6 @@ class A020639(SloaneSequence):
             return self.list(n)
 
 
-
-
 class A000041(SloaneSequence):
     def __init__(self):
         r"""
@@ -4042,15 +3716,9 @@ class A000041(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - non negative integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -4089,9 +3757,8 @@ class A000041(SloaneSequence):
             sage: [sloane.A000041._eval(n) for n in range(1,11)]
             [1, 2, 3, 5, 7, 11, 15, 22, 30, 42]
         """
-        return partition.Partitions(n).cardinality()
-
-
+        from sage.combinat.partition import Partitions
+        return Partitions(n).cardinality()
 
 
 class A000045(SloaneSequence):
@@ -4109,15 +3776,9 @@ class A000045(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - non negative integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -4169,7 +3830,7 @@ class A000045(SloaneSequence):
 
     def fib(self):
         """
-        Returns a generator over all Fibonacci numbers, starting with 0.
+        Return a generator over all Fibonacci numbers, starting with 0.
 
         EXAMPLES::
 
@@ -4177,12 +3838,11 @@ class A000045(SloaneSequence):
             sage: [next(it) for i in range(10)]
             [0, 1, 1, 2, 3, 5, 8, 13, 21, 34]
         """
-        x, y = Integer(0), Integer(1)
+        x, y = ZZ.zero(), ZZ.one()
         yield x
         while True:
             x, y = y, x+y
             yield x
-
 
     def _eval(self, n):
         """
@@ -4205,6 +3865,7 @@ class A000045(SloaneSequence):
         self._eval(n)   # force computation
         return self._b[:n]
 
+
 class A000108(SloaneSequence):
     def __init__(self):
         r"""
@@ -4215,11 +3876,9 @@ class A000108(SloaneSequence):
 
         INPUT:
 
-        -  ``n`` - non negative integer
+        - ``n`` -- nonnegative integer
 
-        OUTPUT:
-
-        -  ``integer`` - function value
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -4269,15 +3928,9 @@ class A001006(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - non negative integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -4319,7 +3972,6 @@ class A001006(SloaneSequence):
         return sum((-1)**(n-k)*arith.binomial(n, k)*sloane.A000108(k+1) for k in range(n+1))
 
 
-
 class A000079(SloaneSequence):
     def __init__(self):
         r"""
@@ -4327,15 +3979,9 @@ class A000079(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - non negative integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -4374,7 +4020,8 @@ class A000079(SloaneSequence):
             sage: [sloane.A000079._eval(n) for n in range(10)]
             [1, 2, 4, 8, 16, 32, 64, 128, 256, 512]
         """
-        return Integer(2**n)
+        return ZZ(2 ** n)
+
 
 class A000578(SloaneSequence):
     def __init__(self):
@@ -4383,15 +4030,9 @@ class A000578(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - non negative integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -4432,8 +4073,7 @@ class A000578(SloaneSequence):
             sage: [sloane.A000578._eval(n) for n in range(10)]
             [0, 1, 8, 27, 64, 125, 216, 343, 512, 729]
         """
-        return Integer(n**3)
-
+        return ZZ(n ** 3)
 
 
 class A000244(SloaneSequence):
@@ -4443,15 +4083,9 @@ class A000244(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - non negative integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -4492,7 +4126,8 @@ class A000244(SloaneSequence):
             sage: [sloane.A000244._eval(n) for n in range(10)]
             [1, 3, 9, 27, 81, 243, 729, 2187, 6561, 19683]
         """
-        return Integer(3**n)
+        return ZZ(3**n)
+
 
 class A000302(SloaneSequence):
     def __init__(self):
@@ -4501,15 +4136,9 @@ class A000302(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - non negative integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -4548,7 +4177,8 @@ class A000302(SloaneSequence):
             sage: [sloane.A000302._eval(n) for n in range(10)]
             [1, 4, 16, 64, 256, 1024, 4096, 16384, 65536, 262144]
         """
-        return Integer(4**n)
+        return ZZ(4 ** n)
+
 
 class A000583(SloaneSequence):
     def __init__(self):
@@ -4557,15 +4187,9 @@ class A000583(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - non negative integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -4606,29 +4230,22 @@ class A000583(SloaneSequence):
             sage: [sloane.A000583._eval(n) for n in range(10)]
             [0, 1, 16, 81, 256, 625, 1296, 2401, 4096, 6561]
         """
-        return Integer(n**4)
-
+        return ZZ(n ** 4)
 
 
 class A000142(SloaneSequence):
     def __init__(self):
         r"""
-        Factorial numbers: `n! = 1 \cdot 2 \cdot 3 \cdots n`
+        Factorial numbers: `n! = 1 \cdot 2 \cdot 3 \cdots n`.
 
         Order of symmetric group `S_n`, number of permutations of
         `n` letters.
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - non negative integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -4667,6 +4284,7 @@ class A000142(SloaneSequence):
         """
         return arith.factorial(n)
 
+
 class A000085(SloaneSequence):
     def __init__(self):
         r"""
@@ -4676,15 +4294,9 @@ class A000085(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - non negative integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -4723,7 +4335,9 @@ class A000085(SloaneSequence):
             sage: [sloane.A000085._eval(n) for n in range(10)]
             [1, 1, 2, 4, 10, 26, 76, 232, 764, 2620]
         """
-        return sum([arith.factorial(n)//(arith.factorial(n-2*k)*(2**k)*arith.factorial(k)) for k in range(n//2+1)])
+        return sum(arith.factorial(n) // (arith.factorial(n-2*k) * (2**k) * arith.factorial(k))
+                   for k in range(n//2+1))
+
 
 class A001189(SloaneSequence):
     def __init__(self):
@@ -4732,15 +4346,9 @@ class A001189(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - positive integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -4783,6 +4391,7 @@ class A001189(SloaneSequence):
         """
         return sloane.A000085(n) - 1
 
+
 class A000670(SloaneSequence):
     def __init__(self):
         r"""
@@ -4792,15 +4401,9 @@ class A000670(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - non negative integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -4841,9 +4444,9 @@ class A000670(SloaneSequence):
         """
         # a(n) = Sum from k=1 to n of k! StirlingS2(n, k)
         if n == 0:
-            return Integer(1)
-        return sum([arith.factorial(k)*combinat.stirling_number2(n,k) for k in range(1,n+1)])
-
+            return ZZ.one()
+        return sum(arith.factorial(k) * combinat.stirling_number2(n, k)
+                   for k in range(1, n+1))
 
 
 class A006318(SloaneSequence):
@@ -4853,15 +4456,9 @@ class A006318(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - non negative integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -4901,9 +4498,9 @@ class A006318(SloaneSequence):
             [1, 2, 6, 22, 90, 394, 1806, 8558, 41586, 206098]
         """
         if n == 0:
-            return Integer(1)
+            return ZZ.one()
 #  (PARI) a(n)=if(n<1, 1, sum(k=0, n, 2^k*binomial(n, k)*binomial(n, k-1))/n)
-        return sum([2**k * arith.binomial(n, k) * arith.binomial(n, k-1) for k in range(n+1)]) // n
+        return ZZ(sum(2**k * arith.binomial(n, k) * arith.binomial(n, k-1) for k in range(n+1)) // n)
 
 
 class A000165(SloaneSequence):
@@ -4913,15 +4510,9 @@ class A000165(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - non negative integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -4960,8 +4551,7 @@ class A000165(SloaneSequence):
             sage: [sloane.A000165._eval(n) for n in range(10)]
             [1, 2, 8, 48, 384, 3840, 46080, 645120, 10321920, 185794560]
         """
-        return (2**n)*arith.factorial(n)
-
+        return (2**n) * arith.factorial(n)
 
 
 class A001147(SloaneSequence):
@@ -4972,15 +4562,9 @@ class A001147(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - non negative integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -5019,7 +4603,8 @@ class A001147(SloaneSequence):
             sage: [sloane.A001147._eval(n) for n in range(10)]
             [1, 1, 3, 15, 105, 945, 10395, 135135, 2027025, 34459425]
         """
-        return arith.factorial(2*n)/(arith.factorial(n)*2**n)
+        return arith.factorial(2*n) / (arith.factorial(n)*2**n)
+
 
 class A006882(SloaneSequence):
     def __init__(self):
@@ -5028,15 +4613,9 @@ class A006882(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - non negative integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -5087,7 +4666,7 @@ class A006882(SloaneSequence):
         self._b += [next(f) for i in range(how_many)]
 
     def df(self):
-        """
+        r"""
         Double factorials n!!: a(n)=n\*a(n-2).
 
         EXAMPLES::
@@ -5096,7 +4675,7 @@ class A006882(SloaneSequence):
             sage: [next(it) for i in range(10)]
             [1, 1, 2, 3, 8, 15, 48, 105, 384, 945]
         """
-        x = Integer(1)
+        x = ZZ.one()
         k = 1
         y = x
         yield x
@@ -5104,7 +4683,6 @@ class A006882(SloaneSequence):
             k = k+1
             x, y = y, k*x
             yield x
-
 
     def _eval(self, n):
         """
@@ -5127,6 +4705,7 @@ class A006882(SloaneSequence):
         self._eval(n)   # force computation
         return self._b[:n]
 
+
 class A000984(SloaneSequence):
     def __init__(self):
         r"""
@@ -5135,15 +4714,9 @@ class A000984(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - non negative integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -5180,7 +4753,8 @@ class A000984(SloaneSequence):
             sage: [sloane.A000984._eval(n) for n in range(10)]
             [1, 2, 6, 20, 70, 252, 924, 3432, 12870, 48620]
         """
-        return arith.binomial(2*n,n)
+        return arith.binomial(2 * n, n)
+
 
 class A001405(SloaneSequence):
     def __init__(self):
@@ -5190,15 +4764,9 @@ class A001405(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - non negative integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -5235,8 +4803,8 @@ class A001405(SloaneSequence):
             sage: [sloane.A001405._eval(n) for n in range(10)]
             [1, 1, 2, 3, 6, 10, 20, 35, 70, 126]
         """
-        from sage.functions.all import floor
-        return arith.binomial(n, int(floor(n//2)))
+        return arith.binomial(n, n//2)
+
 
 class A000292(SloaneSequence):
     def __init__(self):
@@ -5246,15 +4814,9 @@ class A000292(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - non negative integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -5291,7 +4853,8 @@ class A000292(SloaneSequence):
             sage: [sloane.A000292._eval(n) for n in range(10)]
             [0, 1, 4, 10, 20, 35, 56, 84, 120, 165]
         """
-        return Integer(n*(n+1)*(n+2)//6)  # or arith.binomial(n+2,3))
+        return ZZ(n * (n+1) * (n+2) // 6)  # or arith.binomial(n+2,3))
+
 
 class A000330(SloaneSequence):
     def __init__(self):
@@ -5301,15 +4864,9 @@ class A000330(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - non negative integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -5350,9 +4907,7 @@ class A000330(SloaneSequence):
             sage: [sloane.A000330._eval(n) for n in range(10)]
             [0, 1, 5, 14, 30, 55, 91, 140, 204, 285]
         """
-        return Integer(n*(n+1)*(2*n+1)//6)
-
-
+        return ZZ(n * (n+1) * (2*n+1) // 6)
 
 
 # Theme:  maximal permanent of an m x n (0,1)- matrix:
@@ -5376,7 +4931,7 @@ class ExtremesOfPermanentsSequence(SloaneSequence):
             f = self._f
         self._b += [next(f) for i in range(how_many)]
 
-    def gen(self,a0,a1,d):
+    def gen(self, a0, a1, d):
         """
         EXAMPLES::
 
@@ -5391,7 +4946,6 @@ class ExtremesOfPermanentsSequence(SloaneSequence):
             k = k+1
             x, y = y, (k)*y+(k-d)*x
             yield x
-
 
     def _eval(self, n):
         """
@@ -5413,7 +4967,7 @@ class ExtremesOfPermanentsSequence(SloaneSequence):
         """
         self._eval(n)   # force computation
         return self._b[:n]
-    _k  = 1
+    _k = 1
 
 
 class A000153(ExtremesOfPermanentsSequence):
@@ -5429,15 +4983,9 @@ class A000153(ExtremesOfPermanentsSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - non negative integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -5460,7 +5008,7 @@ class A000153(ExtremesOfPermanentsSequence):
         """
         SloaneSequence.__init__(self, offset=0)
         self._b = []
-        self._a0a1d = (0,1,2)
+        self._a0a1d = (0, 1, 2)
         self._precompute(2)  # force precomputation, e.g. a(0) will fail when asked first
 
     def _repr_(self):
@@ -5471,6 +5019,7 @@ class A000153(ExtremesOfPermanentsSequence):
             'a(n) = n*a(n-1) + (n-2)*a(n-2), with a(0) = 0, a(1) = 1.'
         """
         return "a(n) = n*a(n-1) + (n-2)*a(n-2), with a(0) = 0, a(1) = 1."
+
 
 class A000255(ExtremesOfPermanentsSequence):
     def __init__(self):
@@ -5485,15 +5034,9 @@ class A000255(ExtremesOfPermanentsSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - non negative integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -5518,7 +5061,7 @@ class A000255(ExtremesOfPermanentsSequence):
         """
         SloaneSequence.__init__(self, offset=0)
         self._b = []
-        self._a0a1d = (1,1,1)
+        self._a0a1d = (1, 1, 1)
         self._precompute(2)  # force precomputation, e.g. a(0) will fail when asked first
 
     def _repr_(self):
@@ -5529,8 +5072,6 @@ class A000255(ExtremesOfPermanentsSequence):
             'a(n) = n*a(n-1) + (n-1)*a(n-2), a(0) = 1, a(1) = 1.'
         """
         return "a(n) = n*a(n-1) + (n-1)*a(n-2), a(0) = 1, a(1) = 1."
-
-
 
 
 class A000261(ExtremesOfPermanentsSequence):
@@ -5549,15 +5090,9 @@ class A000261(ExtremesOfPermanentsSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - positive integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -5583,7 +5118,7 @@ class A000261(ExtremesOfPermanentsSequence):
         - Jaap Spies (2007-01-23)
         """
         SloaneSequence.__init__(self, offset=1)
-        self._a0a1d = (0,1,3)
+        self._a0a1d = (0, 1, 3)
         self._b = []
         self._k = self.offset + 1
 
@@ -5595,6 +5130,7 @@ class A000261(ExtremesOfPermanentsSequence):
             'a(n) = n*a(n-1) + (n-3)*a(n-2), a(1) = 0, a(2) = 1.'
         """
         return "a(n) = n*a(n-1) + (n-3)*a(n-2), a(1) = 0, a(2) = 1."
+
 
 class A001909(ExtremesOfPermanentsSequence):
     def __init__(self):
@@ -5612,15 +5148,9 @@ class A001909(ExtremesOfPermanentsSequence):
 
         INPUT:
 
+        - ``n`` -- positive integer >= 2
 
-        -  ``n`` - positive integer = 2
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -5646,7 +5176,7 @@ class A001909(ExtremesOfPermanentsSequence):
         - Jaap Spies (2007-01-13)
         """
         SloaneSequence.__init__(self, offset=2)
-        self._a0a1d = (0,1,4)
+        self._a0a1d = (0, 1, 4)
         self._b = []
         self._k = self.offset + 1
 
@@ -5676,15 +5206,9 @@ class A001910(ExtremesOfPermanentsSequence):
 
         INPUT:
 
+        - ``n`` -- positive integer `\geq 3`
 
-        -  ``n`` - positive integer = 3
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -5710,7 +5234,7 @@ class A001910(ExtremesOfPermanentsSequence):
         - Jaap Spies (2007-01-13)
         """
         SloaneSequence.__init__(self, offset=3)
-        self._a0a1d = (0,1,5)
+        self._a0a1d = (0, 1, 5)
         self._b = []
         self._k = self.offset + 1
 
@@ -5723,8 +5247,9 @@ class A001910(ExtremesOfPermanentsSequence):
         """
         return "a(n) = n*a(n-1) + (n-5)*a(n-2), a(3) = 0, a(4) = 1."
 
+
 class ExtremesOfPermanentsSequence2(ExtremesOfPermanentsSequence):
-    def gen(self,a0,a1,d):
+    def gen(self, a0, a1, d):
         """
         EXAMPLES::
 
@@ -5764,15 +5289,9 @@ class A090010(ExtremesOfPermanentsSequence2):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - positive integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -5800,7 +5319,7 @@ class A090010(ExtremesOfPermanentsSequence2):
         - Jaap Spies (2007-01-23)
         """
         SloaneSequence.__init__(self, offset=1)
-        self._a0a1d = (6,43,6)
+        self._a0a1d = (6, 43, 6)
         self._k = self.offset + 1
         self._b = []
 
@@ -5832,15 +5351,9 @@ class A055790(ExtremesOfPermanentsSequence2):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - non negative integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -5866,7 +5379,7 @@ class A055790(ExtremesOfPermanentsSequence2):
         - Jaap Spies (2007-01-23)
         """
         SloaneSequence.__init__(self, offset=0)
-        self._a0a1d = (0,2,1)
+        self._a0a1d = (0, 2, 1)
         self._b = []
         self._precompute(2)
         self._k1 = 2
@@ -5901,15 +5414,9 @@ class A090012(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - positive integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -5956,8 +5463,8 @@ class A090012(SloaneSequence):
         """
         if n == 1:
             return ZZ(3)
-        else:
-            return  sloane.A000153(n+1) + sloane.A000153(n)
+        return sloane.A000153(n+1) + sloane.A000153(n)
+
 
 class A090013(SloaneSequence):
     def __init__(self):
@@ -5978,15 +5485,9 @@ class A090013(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - positive integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -6033,8 +5534,8 @@ class A090013(SloaneSequence):
         """
         if n == 1:
             return ZZ(4)
-        else:
-            return  sloane.A000261(n+2) + sloane.A000261(n+1)
+        return sloane.A000261(n+2) + sloane.A000261(n+1)
+
 
 class A090014(SloaneSequence):
     def __init__(self):
@@ -6055,15 +5556,9 @@ class A090014(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - positive integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -6110,8 +5605,7 @@ class A090014(SloaneSequence):
         """
         if n == 1:
             return ZZ(5)
-        else:
-            return  sloane.A001909(n+3) + sloane.A001909(n+2)
+        return sloane.A001909(n+3) + sloane.A001909(n+2)
 
 
 class A090015(SloaneSequence):
@@ -6133,15 +5627,9 @@ class A090015(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - positive integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -6188,8 +5676,8 @@ class A090015(SloaneSequence):
         """
         if n == 1:
             return ZZ(6)
-        else:
-            return  sloane.A001910(n+4) + sloane.A001910(n+3)
+        return sloane.A001910(n+4) + sloane.A001910(n+3)
+
 
 class A090016(SloaneSequence):
     def __init__(self):
@@ -6212,15 +5700,9 @@ class A090016(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - positive integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -6258,7 +5740,6 @@ class A090016(SloaneSequence):
         """
         return "Permanent of (0,1)-matrix of size n X (n+d) with d=6 and n-1 zeros not on a line."
 
-
     def _eval(self, n):
         """
         EXAMPLES::
@@ -6268,8 +5749,8 @@ class A090016(SloaneSequence):
         """
         if n == 1:
             return ZZ(7)
-        else:
-            return  sloane.A090010(n-1) + sloane.A090010(n)
+        return sloane.A090010(n-1) + sloane.A090010(n)
+
 
 class A000166(SloaneSequence):
     def __init__(self):
@@ -6278,19 +5759,13 @@ class A000166(SloaneSequence):
         permutations of `n` elements with no fixed points.
 
         With offset 1 also the permanent of a (0,1)-matrix of order
-        `n` with `n` 0's not on a line.
+        `n` with `n` 0s not on a line.
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - non negative integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -6348,15 +5823,9 @@ class A000203(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - positive integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -6399,7 +5868,8 @@ class A000203(SloaneSequence):
             sage: [sloane.A000203._eval(n) for n in range(1,11)]
             [1, 3, 4, 7, 6, 12, 8, 15, 13, 18]
         """
-        return sum(arith.divisors(n)) #alternative: return arith.sigma(n)
+        return sum(arith.divisors(n))  # alternative: return arith.sigma(n)
+
 
 class A001157(SloaneSequence):
     def __init__(self):
@@ -6411,15 +5881,9 @@ class A001157(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - positive integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -6458,7 +5922,8 @@ class A001157(SloaneSequence):
             sage: [sloane.A001157._eval(n) for n in range(1,11)]
             [1, 5, 10, 21, 26, 50, 50, 85, 91, 130]
         """
-        return  arith.sigma(n,2)
+        return arith.sigma(n, 2)
+
 
 class A008683(SloaneSequence):
     def __init__(self):
@@ -6467,15 +5932,9 @@ class A008683(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - positive integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -6514,8 +5973,7 @@ class A008683(SloaneSequence):
             sage: [sloane.A008683._eval(n) for n in range(1,11)]
             [1, -1, -1, 0, -1, 1, -1, 0, 0, 1]
         """
-        return  arith.moebius(n)
-
+        return arith.moebius(n)
 
 
 class A000204(SloaneSequence):
@@ -6526,15 +5984,9 @@ class A000204(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - positive integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -6580,11 +6032,11 @@ class A000204(SloaneSequence):
             [1, 3, 4, 7, 11, 18, 29, 47, 76, 123]
         """
         if n == 1:
-            return 1
+            return ZZ.one()
         elif n == 2:
             return 3
-        else:
-            return sloane.A000045(n+1) + sloane.A000045(n-1)
+        return sloane.A000045(n+1) + sloane.A000045(n-1)
+
 
 class A000217(SloaneSequence):
     def __init__(self):
@@ -6593,11 +6045,9 @@ class A000217(SloaneSequence):
 
         INPUT:
 
-        -  ``n`` - non negative integer
+        - ``n`` -- nonnegative integer
 
-        OUTPUT:
-
-        -  ``integer`` - function value
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -6636,7 +6086,8 @@ class A000217(SloaneSequence):
             sage: [sloane.A000217._eval(n) for n in range(10)]
             [0, 1, 3, 6, 10, 15, 21, 28, 36, 45]
         """
-        return Integer(n*(n+1)//2)
+        return ZZ(n*(n+1)//2)
+
 
 class A000124(SloaneSequence):
     def __init__(self):
@@ -6649,15 +6100,9 @@ class A000124(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - non negative integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -6696,9 +6141,7 @@ class A000124(SloaneSequence):
             sage: [sloane.A000124._eval(n) for n in range(10)]
             [1, 2, 4, 7, 11, 16, 22, 29, 37, 46]
         """
-        return Integer(n*(n+1)//2 + 1)
-
-
+        return ZZ(n*(n+1)//2 + 1)
 
 
 class A002275(SloaneSequence):
@@ -6709,15 +6152,9 @@ class A002275(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - non negative integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -6756,16 +6193,13 @@ class A002275(SloaneSequence):
             sage: [sloane.A002275._eval(n) for n in range(10)]
             [0, 1, 11, 111, 1111, 11111, 111111, 1111111, 11111111, 111111111]
         """
-        return Integer(10**n-1)//9
+        return ZZ(10**n-1)//9
 
 
-
-
-
-# inhomogenous second order recurrences
-def recur_gen2b(a0,a1,a2,a3,b):
+# inhomogeneous second order recurrences
+def recur_gen2b(a0, a1, a2, a3, b):
     r"""
-    inhomogenous second-order linear recurrence generator with fixed
+    Inhomogeneous second-order linear recurrence generator with fixed
     coefficients and `b = f(n)`
 
     `a(0) = a0`, `a(1) = a1`,
@@ -6785,6 +6219,7 @@ def recur_gen2b(a0,a1,a2,a3,b):
         n = n+1
         x, y = y, a3*x+a2*y + b(n)
         yield x
+
 
 class RecurrenceSequence(SloaneSequence):
     def _precompute(self, how_many=20):
@@ -6825,7 +6260,6 @@ class RecurrenceSequence(SloaneSequence):
         return self._b[:n]
 
 
-
 class A001110(RecurrenceSequence):
     def __init__(self):
         r"""
@@ -6834,15 +6268,9 @@ class A001110(RecurrenceSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - non negative integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -6864,7 +6292,7 @@ class A001110(RecurrenceSequence):
         - Jaap Spies (2007-01-19)
         """
         SloaneSequence.__init__(self, offset=0)
-        self._params = (0,1,34,-1,self.g)
+        self._params = (0, 1, 34, -1, self.g)
         self._b = []
         self._precompute()
 
@@ -6879,7 +6307,7 @@ class A001110(RecurrenceSequence):
         """
         return "Numbers that are both triangular and square: a(n) = 34a(n-1) - a(n-2) + 2."
 
-    def g(self,k):
+    def g(self, k):
         """
         EXAMPLES::
 
@@ -6891,7 +6319,7 @@ class A001110(RecurrenceSequence):
         if k > 1:
             return 2
         else:
-            return 0
+            return ZZ.zero()
 
 
 class A051959(RecurrenceSequence):
@@ -6901,15 +6329,9 @@ class A051959(RecurrenceSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - non negative integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -6935,7 +6357,6 @@ class A051959(RecurrenceSequence):
         self._b = []
         self._precompute(2)
 
-
     def _repr_(self):
         """
         EXAMPLES::
@@ -6945,7 +6366,7 @@ class A051959(RecurrenceSequence):
         """
         return "Linear second order recurrence. A051959."
 
-    def g(self,k):
+    def g(self, k):
         """
         EXAMPLES::
 
@@ -6957,14 +6378,13 @@ class A051959(RecurrenceSequence):
         if k > 1:
             return 7*k+1
         else:
-            return 0
-
+            return ZZ.zero()
 
 
 class A001221(SloaneSequence):
     def __init__(self):
         r"""
-        Number of different prime divisors of `n`
+        Number of different prime divisors of `n`.
 
         Also called omega(n) or `\omega(n)`. Maximal number of
         terms in any factorization of `n`. Number of prime powers
@@ -6972,15 +6392,9 @@ class A001221(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - positive integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -7023,8 +6437,7 @@ class A001221(SloaneSequence):
             sage: [sloane.A001221._eval(n) for n in range(1,10)]
             [0, 1, 1, 1, 1, 2, 1, 1, 1]
         """
-        return len(arith.prime_divisors(n)) # there is a PARI function omega
-
+        return len(arith.prime_divisors(n))  # there is a PARI function omega
 
 
 class A001222(SloaneSequence):
@@ -7039,15 +6452,9 @@ class A001222(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - positive integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -7090,7 +6497,8 @@ class A001222(SloaneSequence):
             sage: [sloane.A001222._eval(n) for n in range(1,10)]
             [0, 1, 1, 2, 1, 2, 1, 3, 2]
         """
-        return sum([e for i,e in arith.factor(n)])
+        return sum(e for i,e in arith.factor(n))
+
 
 # A046660() = A001222(n) - A001221(n)
 class A046660(SloaneSequence):
@@ -7102,15 +6510,9 @@ class A046660(SloaneSequence):
 
     INPUT:
 
+    - ``n`` -- positive integer
 
-    -  ``n`` - positive integer
-
-
-    OUTPUT:
-
-
-    -  ``integer`` - function value
-
+    OUTPUT: integer; function value
 
     EXAMPLES::
 
@@ -7155,7 +6557,6 @@ class A046660(SloaneSequence):
         return sloane.A001222(n) - sloane.A001221(n)
 
 
-
 class A001227(SloaneSequence):
     def __init__(self):
         r"""
@@ -7163,15 +6564,9 @@ class A001227(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - positive integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -7220,7 +6615,8 @@ class A001227(SloaneSequence):
             sage: [sloane.A001227._eval(n) for n in range(1,10)]
             [1, 1, 2, 1, 2, 2, 2, 1, 3]
         """
-        return sum(i%2 for i in arith.divisors(n))
+        return sum(i % 2 for i in arith.divisors(n))
+
 
 class A001358(SloaneSequence):
     def __init__(self):
@@ -7232,15 +6628,9 @@ class A001358(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - positive integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -7285,12 +6675,12 @@ class A001358(SloaneSequence):
         """
         try:
             self._b
-            n = self._n
+            self._n
         except AttributeError:
             self._b = []
-            n = 1
-            self._n = n
-        self._b += [i for i in range(self._n, self._n+how_many) if sum(e for _,e in arith.factor(i)) == 2]
+            self._n = 1
+        self._b += [i for i in range(self._n, self._n + how_many)
+                    if sum(e for _, e in arith.factor(i)) == 2]
         self._n += how_many
 
     def _eval(self, n):
@@ -7325,7 +6715,6 @@ class A001358(SloaneSequence):
             return self.list(n)
 
 
-
 class A001694(SloaneSequence):
     def __init__(self):
         r"""
@@ -7337,15 +6726,9 @@ class A001694(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - positive integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -7394,12 +6777,11 @@ class A001694(SloaneSequence):
         """
         try:
             self._b
-            n = self._n
+            self._n
         except AttributeError:
             self._b = [1]
-            n = 1
-            self._n = n
-        self._b += self._powerful_numbers_in_range(self._n, self._n+how_many)
+            self._n = 1
+        self._b += self._powerful_numbers_in_range(self._n, self._n + how_many)
         self._n += how_many
 
     def _powerful_numbers_in_range(self, n, m):
@@ -7412,11 +6794,10 @@ class A001694(SloaneSequence):
         # This is naive -- too slow; too much overhead
         #  return [i for i in range(self._n, self._n+how_many) if self.is_powerful(i)]
 
-        if n < 4:
-            n = 4
+        n = max(n, 4)
         # Use PARI directly -- much faster.
-        from sage.libs.pari.all import pari
-        L = pari('v=listcreate(); for(i=%s,%s,if(vecmin(factor(i)[,2])>1,listput(v,i))); v'%(n,m))
+        from sage.libs.pari import pari
+        L = pari('v=listcreate(); for(i=%s,%s,if(vecmin(factor(i)[,2])>1,listput(v,i))); v' % (n, m))
         return [ZZ(x) for x in L]  # not very many, so not much overhead
 
     def _eval(self, n):
@@ -7457,27 +6838,20 @@ class A001694(SloaneSequence):
             self._precompute(10000)
         return self._b[:n]
 
-    def is_powerful(self,n):
+    def is_powerful(self, n) -> bool:
         r"""
-        This function returns True if and only if `n` is a Powerful
-        Number:
+        Return ``True`` if and only if `n` is a powerful number.
 
-        A positive integer `n` is powerful if for every prime
-        `p` dividing `n`, `p^2` also divides
-        `n`. See Sloane's OEIS A001694.
+        A positive integer `n` is powerful if for every prime `p`
+        dividing `n`, `p^2` also divides `n`.
+
+        See :oeis:`A001694`.
 
         INPUT:
 
+        - ``n`` -- integer
 
-        -  ``n`` - integer
-
-
-        OUTPUT:
-
-
-        -  ``True`` - if `n` is a Powerful number, else
-           False
-
+        OUTPUT: ``True`` if `n` is a powerful number, else ``False``
 
         EXAMPLES::
 
@@ -7493,11 +6867,7 @@ class A001694(SloaneSequence):
         """
         if n <= 1:
             return True
-        ex = [e for _,e in arith.factor(n)]
-        for e in ex:
-            if e < 2:
-                return False
-        return True
+        return all(e >= 2 for _, e in arith.factor(n))
 
 
 class A001836(SloaneSequence):
@@ -7506,20 +6876,14 @@ class A001836(SloaneSequence):
         Numbers `n` such that `\phi(2n-1) < \phi(2n)`,
         where `\phi` is Euler's totient function.
 
-        Euler's totient function is also known as euler_phi, euler_phi is
-        a standard Sage function.
+        Euler's totient function is also known as ``euler_phi``; ``euler_phi``
+        is a standard Sage function.
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - positive integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -7550,7 +6914,6 @@ class A001836(SloaneSequence):
         """
         SloaneSequence.__init__(self, offset=1)
 
-
     def _repr_(self):
         """
         EXAMPLES::
@@ -7571,12 +6934,12 @@ class A001836(SloaneSequence):
         """
         try:
             self._b
-            n = self._n
+            self._n
         except AttributeError:
             self._b = []
-            n = self.offset
-            self._n = n
-        self._b += [i for i in range(self._n, self._n+how_many) if arith.euler_phi(2*i-1) < arith.euler_phi(2*i)]
+            self._n = self.offset
+        self._b += [i for i in range(self._n, self._n + how_many)
+                    if arith.euler_phi(2 * i - 1) < arith.euler_phi(2 * i)]
         self._n += how_many
 
     def _eval(self, n):
@@ -7611,13 +6974,11 @@ class A001836(SloaneSequence):
             return self.list(n)
 
 
-
-
 # a group of sequences uses this function:
-def recur_gen2(a0,a1,a2,a3):
-    """
-    homogeneous general second-order linear recurrence generator with
-    fixed coefficients
+def recur_gen2(a0, a1, a2, a3):
+    r"""
+    Homogeneous general second-order linear recurrence generator with
+    fixed coefficients.
 
     a(0) = a0, a(1) = a1, a(n) = a2\*a(n-1) + a3\*a(n-2)
 
@@ -7679,8 +7040,6 @@ class RecurrenceSequence2(SloaneSequence):
         return self._b[:n]
 
 
-
-
 class A001906(RecurrenceSequence2):
     def __init__(self):
         r"""
@@ -7689,15 +7048,9 @@ class A001906(RecurrenceSequence2):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - non negative integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -7733,7 +7086,6 @@ class A001906(RecurrenceSequence2):
         return "F(2n) = bisection of Fibonacci sequence: a(n)=3a(n-1)-a(n-2)."
 
 
-
 class A001333(RecurrenceSequence2):
     def __init__(self):
         r"""
@@ -7743,15 +7095,9 @@ class A001333(RecurrenceSequence2):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - non negative integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -7789,7 +7135,6 @@ class A001333(RecurrenceSequence2):
         return "Numerators of continued fraction convergents to sqrt(2)."
 
 
-
 class A001045(RecurrenceSequence2):
     def __init__(self):
         r"""
@@ -7798,15 +7143,9 @@ class A001045(RecurrenceSequence2):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - non negative integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -7855,15 +7194,9 @@ class A000129(RecurrenceSequence2):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - non negative integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -7906,15 +7239,9 @@ class A001109(RecurrenceSequence2):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - non negative integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -7954,8 +7281,6 @@ class A001109(RecurrenceSequence2):
         return "a(n)^2 is a triangular number: a(n) = 6*a(n-1) - a(n-2) with a(0)=0, a(1)=1"
 
 
-
-
 class A015521(RecurrenceSequence2):
     def __init__(self):
         r"""
@@ -7964,15 +7289,9 @@ class A015521(RecurrenceSequence2):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - non negative integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -8007,6 +7326,7 @@ class A015521(RecurrenceSequence2):
         """
         return "Linear 2nd order recurrence, a(n) = 3 a(n-1) + 4 a(n-2)."
 
+
 class A015523(RecurrenceSequence2):
     def __init__(self):
         r"""
@@ -8015,15 +7335,9 @@ class A015523(RecurrenceSequence2):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - non negative integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -8059,7 +7373,6 @@ class A015523(RecurrenceSequence2):
         return "Linear 2nd order recurrence, a(n) = 3 a(n-1) + 5 a(n-2)."
 
 
-
 class A015530(RecurrenceSequence2):
     def __init__(self):
         r"""
@@ -8068,15 +7381,9 @@ class A015530(RecurrenceSequence2):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - non negative integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -8122,15 +7429,9 @@ class A015531(RecurrenceSequence2):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - non negative integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -8169,6 +7470,7 @@ class A015531(RecurrenceSequence2):
         """
         return "Linear 2nd order recurrence, a(n) = 4 a(n-1) + 5 a(n-2)."
 
+
 class A015551(RecurrenceSequence2):
     def __init__(self):
         r"""
@@ -8177,15 +7479,9 @@ class A015551(RecurrenceSequence2):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - non negative integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -8223,9 +7519,6 @@ class A015551(RecurrenceSequence2):
             'Linear 2nd order recurrence, a(n) = 6 a(n-1) + 5 a(n-2).'
         """
         return "Linear 2nd order recurrence, a(n) = 6 a(n-1) + 5 a(n-2)."
-
-
-
 
 
 # todo jsp
@@ -8266,15 +7559,9 @@ class A082411(RecurrenceSequence2):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - non negative integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -8310,7 +7597,6 @@ class A082411(RecurrenceSequence2):
         return "Second-order linear recurrence sequence with a(n) = a(n-1) + a(n-2)."
 
 
-
 class A083103(RecurrenceSequence2):
     def __init__(self):
         r"""
@@ -8326,15 +7612,9 @@ class A083103(RecurrenceSequence2):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - non negative integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -8373,6 +7653,7 @@ class A083103(RecurrenceSequence2):
         """
         return "Second-order linear recurrence sequence with a(n) = a(n-1) + a(n-2)."
 
+
 class A083104(RecurrenceSequence2):
     def __init__(self):
         r"""
@@ -8386,15 +7667,9 @@ class A083104(RecurrenceSequence2):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - non negative integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -8441,15 +7716,9 @@ class A083105(RecurrenceSequence2):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - non negative integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -8489,8 +7758,6 @@ class A083105(RecurrenceSequence2):
         return "Second-order linear recurrence sequence with a(n) = a(n-1) + a(n-2)."
 
 
-
-
 class A083216(RecurrenceSequence2):
     def __init__(self):
         r"""
@@ -8505,15 +7772,9 @@ class A083216(RecurrenceSequence2):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - non negative integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -8549,7 +7810,6 @@ class A083216(RecurrenceSequence2):
         return "Second-order linear recurrence sequence with a(n) = a(n-1) + a(n-2)."
 
 
-
 class A061084(SloaneSequence):
     def __init__(self):
         r"""
@@ -8558,15 +7818,9 @@ class A061084(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - non negative integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -8610,7 +7864,7 @@ class A061084(SloaneSequence):
             [1, 2, -1, 3, -4, 7, -11, 18, -29, 47]
         """
         if n == 0:
-            return 1
+            return ZZ.one()
         elif n == 1:
             return 2
         else:
@@ -8618,9 +7872,9 @@ class A061084(SloaneSequence):
 
 
 # a group of sequences uses this function:
-def recur_gen3(a0,a1,a2,a3,a4,a5):
-    """
-    homogeneous general third-order linear recurrence generator with
+def recur_gen3(a0, a1, a2, a3, a4, a5):
+    r"""
+    Homogeneous general third-order linear recurrence generator with
     fixed coefficients
 
     a(0) = a0, a(1) = a1, a(2) = a2, a(n) = a3\*a(n-1) + a4\*a(n-2) +
@@ -8633,13 +7887,12 @@ def recur_gen3(a0,a1,a2,a3,a4,a5):
         sage: [next(it) for i in range(10)]
         [1, 1, 1, 3, 5, 9, 17, 31, 57, 105]
     """
-    x, y ,z = Integer(a0), Integer(a1), Integer(a2)
-    n = 0
+    x, y, z = ZZ(a0), ZZ(a1), ZZ(a2)
     yield x
     while True:
-        n = n+1
         x, y, z = y, z, a5*x+a4*y+a3*z
         yield x
+
 
 class A000213(SloaneSequence):
     def __init__(self):
@@ -8649,15 +7902,9 @@ class A000213(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - non negative integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -8728,6 +7975,7 @@ class A000213(SloaneSequence):
         self._eval(n)   # force computation
         return self._b[:n]
 
+
 class A000073(SloaneSequence):
     def __init__(self):
         r"""
@@ -8736,15 +7984,9 @@ class A000073(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - non negative integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -8816,22 +8058,17 @@ class A000073(SloaneSequence):
         return self._b[:n]
 
 
-
-
 def perm_mh(m, h):
-    """
+    r"""
     This functions calculates `f(g,h)` from Sloane's sequences
     A079908-A079928
 
     INPUT:
 
+    - ``m`` -- positive integer
+    - ``h`` -- nonnegative integer
 
-    -  ``m`` - positive integer
-
-    -  ``h`` - non negative integer
-
-
-    OUTPUT: permanent of the m x (m+h) matrix, etc.
+    OUTPUT: permanent of the `m \times (m+h)` matrix, etc.
 
     EXAMPLES::
 
@@ -8850,15 +8087,14 @@ def perm_mh(m, h):
     A = M(0)
     for i in range(m):
         for j in range(n):
-            if i <= j and j <= i + h:
-                A[i,j] = 1
+            if i <= j <= i + h:
+                A[i, j] = 1
     return A.permanent()
-
 
 
 class A079922(SloaneSequence):
     r"""
-    function returns solutions to the Dancing School problem with
+    Function returns solutions to the Dancing School problem with
     `n` girls and `n+3` boys.
 
     The value is `per(B)`, the permanent of the (0,1)-matrix
@@ -8871,15 +8107,9 @@ class A079922(SloaneSequence):
 
     INPUT:
 
+    - ``n`` -- positive integer
 
-    -  ``n`` - positive integer
-
-
-    OUTPUT:
-
-
-    -  ``integer`` - function value
-
+    OUTPUT: integer; function value
 
     EXAMPLES::
 
@@ -8919,7 +8149,6 @@ class A079922(SloaneSequence):
         """
         return "Solutions to the Dancing School problem with n girls and n+3 boys"
 
-
     def _eval(self, n):
         """
         EXAMPLES::
@@ -8930,10 +8159,9 @@ class A079922(SloaneSequence):
         return perm_mh(n, 3)
 
 
-
 class A079923(SloaneSequence):
     r"""
-    function returns solutions to the Dancing School problem with
+    Function returns solutions to the Dancing School problem with
     `n` girls and `n+4` boys.
 
     The value is `per(B)`, the permanent of the (0,1)-matrix
@@ -8947,15 +8175,9 @@ class A079923(SloaneSequence):
 
     INPUT:
 
+    - ``n`` -- positive integer
 
-    -  ``n`` - positive integer
-
-
-    OUTPUT:
-
-
-    -  ``integer`` - function value
-
+    OUTPUT: integer; function value
 
     EXAMPLES::
 
@@ -9004,6 +8226,7 @@ class A079923(SloaneSequence):
         """
         return perm_mh(n, 4)
 
+
 class A109814(SloaneSequence):
     r"""
     The `n` th term of the sequence `a(n)` is the
@@ -9020,8 +8243,7 @@ class A109814(SloaneSequence):
 
     .. SEEALSO::
 
-        * `Wikipedia article on polite numbers
-          <http://en.wikipedia.org/wiki/Polite_number>`_.
+        * :wikipedia:`Polite_number`
 
         * `An exercise sheet (with answers) about sums of
           consecutive integers
@@ -9029,12 +8251,9 @@ class A109814(SloaneSequence):
 
     INPUT:
 
-    -  ``n`` - non negative integer
+    - ``n`` -- nonnegative integer
 
-
-    OUTPUT:
-
-    -  ``integer`` - function value
+    OUTPUT: integer; function value
 
     EXAMPLES::
 
@@ -9052,7 +8271,7 @@ class A109814(SloaneSequence):
     AUTHORS:
 
     - Jaap Spies (2007-01-13)
-        """
+    """
 
     def __init__(self):
         r"""
@@ -9088,13 +8307,16 @@ class A109814(SloaneSequence):
             [1, 1, 2, 1, 2, 3, 2, 1, 3]
         """
         if n == 1:
-            return 1
+            return ZZ.one()
         m = 0
-        for d in [i for i in arith.divisors(n) if i%2]: # d is odd divisor
-            k = min(d, 2*n/d)
-            if k > m:
-                m = k
+        for d in arith.divisors(n):
+            if not d % 2:
+                continue
+            # d is odd divisor
+            k = min(d, 2 * n // d)
+            m = max(k, m)
         return ZZ(m)
+
 
 class A111774(SloaneSequence):
     def __init__(self):
@@ -9111,15 +8333,9 @@ class A111774(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - positive integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -9170,12 +8386,12 @@ class A111774(SloaneSequence):
         """
         try:
             self._b
-            n = self._n
+            self._n
         except AttributeError:
             self._b = []
-            n = 1
-            self._n = n
-        self._b += [i for i in range(self._n, self._n+how_many) if self.is_number_of_the_third_kind(i)]
+            self._n = 1
+        self._b += [i for i in range(self._n, self._n + how_many)
+                    if self.is_number_of_the_third_kind(i)]
         self._n += how_many
 
     def _eval(self, n):
@@ -9209,10 +8425,9 @@ class A111774(SloaneSequence):
             # try again
             return self.list(n)
 
-    def is_number_of_the_third_kind(self, n):
+    def is_number_of_the_third_kind(self, n) -> bool:
         r"""
-        This function returns True if and only if `n` is a number
-        of the third kind.
+        Return ``True`` if and only if `n` is a number of the third kind.
 
         A number is of the third kind if it can be written as a sum of at
         least three consecutive positive integers. Odd primes can only be
@@ -9224,16 +8439,9 @@ class A111774(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- positive integer
 
-        -  ``n`` - positive integer
-
-
-        OUTPUT:
-
-
-        -  ``True`` - if n is not prime and not a power of 2
-           False -
-
+        OUTPUT: ``True`` if `n` is not prime and not a power of 2
 
         EXAMPLES::
 
@@ -9251,10 +8459,7 @@ class A111774(SloaneSequence):
 
         - Jaap Spies (2006-12-09)
         """
-        if (not arith.is_prime(n)) and (not arith.is_power_of_two(n)):
-            return True
-        else:
-            return False
+        return not arith.is_prime(n) and not arith.is_power_of_two(n)
 
 
 class A111775(SloaneSequence):
@@ -9276,15 +8481,9 @@ class A111775(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - non negative integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -9344,12 +8543,13 @@ class A111775(SloaneSequence):
             [0, 0, 0, 0, 0, 0, 1, 0, 0, 1]
         """
         if n == 1 or n == 0:
-            return 0
-        k = sum(i%2 for i in arith.divisors(n)) # A001227, the number of odd divisors
-        if n % 2 ==0:
-            return k-1
+            return ZZ.zero()
+        k = sum(i % 2 for i in arith.divisors(n))  # A001227, the number of odd divisors
+        if n % 2 == 0:
+            return k - 1
         else:
-            return k-2
+            return k - 2
+
 
 class A111787(SloaneSequence):
     def __init__(self):
@@ -9368,15 +8568,9 @@ class A111787(SloaneSequence):
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - positive integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -9426,11 +8620,11 @@ class A111787(SloaneSequence):
             [0, 0, 0, 0, 0, 3, 0, 0, 3, 4]
         """
         if arith.is_prime(n) or arith.is_power_of_two(n):
-            return 0
-        else:
-            for d in srange(3,n,2):
-                if n % d == 0:
-                    return min(d, 2*n//d)
+            return ZZ.zero()
+
+        for d in srange(3, n, 2):
+            if n % d == 0:
+                return min(d, 2*n//d)
 
 
 class ExponentialNumbers(SloaneSequence):
@@ -9468,9 +8662,10 @@ class ExponentialNumbers(SloaneSequence):
             if n < self.__n:
                 return self.__data[n]
         from sage.combinat.expnums import expnums
-        self.__data = expnums(n+1, self.a)
-        self.__n = n+1
+        self.__data = expnums(n + 1, self.a)
+        self.__n = n + 1
         return self.__data[n]
+
 
 class A000110(ExponentialNumbers):
     def __init__(self):
@@ -9486,21 +8681,13 @@ class A000110(ExponentialNumbers):
 
         .. MATH::
 
-            B_n = \sum{k=0}^{n} S(n, k) .
-
-
+            B_n = \sum{k=0}^{n} S(n, k).
 
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - integer = 0
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - `B_n`
-
+        OUTPUT: integer; `B_n`
 
         EXAMPLES::
 
@@ -9548,19 +8735,11 @@ class A000587(ExponentialNumbers):
 
             C_n = \sum{k=0}^{n} (-1)^k S(n, k) .
 
-
-
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - integer = 0
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - `C_n`
-
+        OUTPUT: integer; `C_n`
 
         EXAMPLES::
 
@@ -9595,20 +8774,15 @@ class A000587(ExponentialNumbers):
 #  a(n+3) = Sum[k=0..n, F(k)*T(n-k) ], F(i)=A000045(i+1), T(i)=A000073(i+2).
 #  0, 0, 0, 1, 2, 5, 11, 23, 47, 94, 185, 360, 694, 1328, 2526, 4781, 9012, 16929, 31709, 59247
 
+
 class A000100(SloaneSequence):
     def __init__(self):
         r"""
         INPUT:
 
+        - ``n`` -- nonnegative integer
 
-        -  ``n`` - non negative integer
-
-
-        OUTPUT:
-
-
-        -  ``integer`` - function value
-
+        OUTPUT: integer; function value
 
         EXAMPLES::
 
@@ -9650,12 +8824,9 @@ class A000100(SloaneSequence):
             [0, 0, 0, 1, 2, 5, 11, 23, 47, 94]
         """
         if n <= 2:
-            return 0
-        else:
-            return sum(sloane.A000045(i+1)*sloane.A000073(n-i-1) for i in range(n-2))
-
-
-
+            return ZZ.zero()
+        return sum(sloane.A000045(i + 1) * sloane.A000073(n - i - 1)
+                   for i in range(n - 2))
 
 
 #############################################################
@@ -9671,14 +8842,16 @@ class Sloane(SageObject):
     all the SloaneSequence classes starting with 'A'. These are listed
     for tab completion, but not instantiated until requested.
 
-    EXAMPLES: Ensure we have lots of entries::
+    EXAMPLES:
 
-        sage: len(sloane.trait_names()) > 100
+    Ensure we have lots of entries::
+
+        sage: len(sloane.__dir__()) > 100
         True
 
-    And ensure none are being incorrectly returned::
+    Ensure none are being incorrectly returned::
 
-        sage: [ None for n in sloane.trait_names() if not n.startswith('A') ]
+        sage: [ None for n in sloane.__dir__() if not n.startswith('A') ]
         []
 
     Ensure we can access dynamic constructions and cache correctly::
@@ -9687,7 +8860,7 @@ class Sloane(SageObject):
         sage: s is sloane.A000587
         True
 
-    And that we can access other functions in parent classes::
+    Ensure that we can access other functions in parent classes::
 
         sage: sloane.__class__
         <class 'sage.combinat.sloane_functions.Sloane'>
@@ -9697,10 +8870,12 @@ class Sloane(SageObject):
     - Nick Alexander
     """
 
-    def trait_names(self):
-        r"""List Sloane generating functions for tab-completion.
+    def __dir__(self):
+        r"""
+        List Sloane generating functions for tab-completion.
+
         The member classes are inspected from module
-        sage.combinat.sloane_functions.
+        :mod:`sage.combinat.sloane_functions`.
 
         They must be sub classes of SloaneSequence and must start with 'A'.
         These restrictions are only to prevent typos, incorrect inspecting,
@@ -9708,20 +8883,21 @@ class Sloane(SageObject):
 
         EXAMPLES::
 
-            sage: type(sloane.trait_names())
-            <... 'list'>
+            sage: type(sloane.__dir__())
+            <class 'list'>
         """
         try:
-            return self.__trait_names
+            return self.__stored_dir
         except AttributeError:
-            import sage.combinat.sloane_functions
-            xs = inspect.getmembers(sage.combinat.sloane_functions, inspect.isclass)
-            self.__trait_names = [ n for (n, c) in xs if n.startswith('A') and issubclass(c, SloaneSequence) ]
-            return self.__trait_names
+            xs = inspect.getmembers(sys.modules[__name__], inspect.isclass)
+            self.__stored_dir = [n for n, c in xs
+                                 if n.startswith('A') and issubclass(c, SloaneSequence)]
+            return self.__stored_dir
 
     def __getattribute__(self, name):
-        r"""Construct and cache unique instances of Sloane generating function objects
-        .
+        r"""
+        Construct and cache unique instances of Sloane generating
+        function objects.
 
         EXAMPLES::
 
@@ -9735,7 +8911,7 @@ class Sloane(SageObject):
         ::
 
             sage: sloane.__repr__
-            <method-wrapper '__repr__' of Sloane object at 0x...>
+            <...__repr__...of Sloane object at 0x...>
             sage: sloane.__name__
             Traceback (most recent call last):
             ...
@@ -9745,12 +8921,12 @@ class Sloane(SageObject):
             return SageObject.__getattribute__(self, name)
         except AttributeError:
             try:
-                import sage.combinat.sloane_functions
-                f = getattr(sage.combinat.sloane_functions, name)
+                f = getattr(sys.modules[__name__], name)
                 seq = f()
                 setattr(self, name, seq)
                 return seq
             except (AttributeError, TypeError):
                 raise AttributeError(name)
+
 
 sloane = Sloane()

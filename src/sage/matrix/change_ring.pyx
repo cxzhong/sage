@@ -1,11 +1,10 @@
 """
-Functions for changing the base ring of matrices quickly.
+Functions for changing the base ring of matrices quickly
 """
-from __future__ import absolute_import
 
-from .matrix_space import MatrixSpace
-from .matrix_real_double_dense cimport Matrix_real_double_dense
-from .matrix_integer_dense cimport Matrix_integer_dense
+from sage.matrix.matrix_space import MatrixSpace
+from sage.matrix.matrix_real_double_dense cimport Matrix_real_double_dense
+from sage.matrix.matrix_integer_dense cimport Matrix_integer_dense
 
 from sage.rings.real_double import RDF
 
@@ -16,12 +15,13 @@ def integer_to_real_double_dense(Matrix_integer_dense A):
     real double entries.
 
     INPUT:
-        A -- a dense matrix over the integers
 
-    OUTPUT:
-        -- a dense real double matrix
+    - ``A`` -- a dense matrix over the integers
 
-    EXAMPLES:
+    OUTPUT: a dense real double matrix
+
+    EXAMPLES::
+
         sage: a = matrix(ZZ,2,3,[-2,-5,3,4,8,1030339830489349908])
         sage: a.change_ring(RDF)
         [                  -2.0                   -5.0                    3.0]
@@ -38,8 +38,5 @@ def integer_to_real_double_dense(Matrix_integer_dense A):
                                          S, None, None, None)
     for i from 0 <= i < A._nrows:
         for j from 0 <= j < A._ncols:
-            M.set_unsafe_double(i,j,A.get_unsafe_double(i,j))
+            M.set_unsafe_double(i, j, A.get_unsafe_double(i, j))
     return M
-
-
-

@@ -7,37 +7,36 @@ AUTHORS:
   element_ext_pari.py by William Stein et al. and
   element_ntl_gf2e.pyx by Martin Albrecht.
 """
-
-#*****************************************************************************
+# ****************************************************************************
 #      Copyright (C) 2013 Peter Bruin <peter.bruin@math.uzh.ch>
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
 #  as published by the Free Software Foundation; either version 2 of
 #  the License, or (at your option) any later version.
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
-from __future__ import absolute_import
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
-from cysignals.memory cimport sig_free
 from cysignals.signals cimport sig_on, sig_off
 
 from cypari2.paridecl cimport *
 from cypari2.paripriv cimport *
 from sage.libs.pari.convert_gmp cimport _new_GEN_from_mpz_t
-from cypari2.stack cimport new_gen, clear_stack, deepcopy_to_python_heap
+from cypari2.stack cimport new_gen, new_gen_noclear, clear_stack
 from cypari2.gen cimport Gen as pari_gen, objtogen
 
-from .element_base cimport FinitePolyExtElement
-from .integer_mod import IntegerMod_abstract
+from sage.rings.finite_rings.element_base cimport FinitePolyExtElement
+from sage.rings.finite_rings.integer_mod import IntegerMod_abstract
 
 import sage.rings.integer
-from sage.interfaces.gap import is_GapElement
-from sage.modules.free_module_element import FreeModuleElement
 from sage.rings.integer cimport Integer
 from sage.rings.polynomial.polynomial_element import Polynomial
 from sage.rings.polynomial.multi_polynomial_element import MPolynomial
 from sage.rings.rational import Rational
-from sage.structure.element cimport Element, ModuleElement, RingElement
+from sage.structure.element cimport Vector
+from sage.structure.richcmp cimport rich_to_bool
+
+from sage.interfaces.abc import GapElement
+
 
 cdef GEN _INT_to_FFELT(GEN g, GEN x) except NULL:
     """
@@ -49,13 +48,12 @@ cdef GEN _INT_to_FFELT(GEN g, GEN x) except NULL:
     TESTS:
 
     Converting large integers to finite field elements does not lead
-    to overflow errors (see :trac:`16807`)::
+    to overflow errors (see :issue:`16807`)::
 
         sage: p = previous_prime(2^64)
         sage: F.<x> = GF(p^2)
         sage: x * 2^63
         9223372036854775808*x
-
     """
     cdef GEN f, p = gel(g, 4), result
     cdef long t
@@ -90,21 +88,21 @@ cdef GEN _INT_to_FFELT(GEN g, GEN x) except NULL:
 
 cdef class FiniteFieldElement_pari_ffelt(FinitePolyExtElement):
     """
-    An element of a finite field.
+    An element of a finite field implemented using PARI.
 
     EXAMPLES::
 
-        sage: K = FiniteField(10007^10, 'a', impl='pari_ffelt')
+        sage: K = FiniteField(10007^10, 'a', implementation='pari_ffelt')
         sage: a = K.gen(); a
         a
         sage: type(a)
-        <type 'sage.rings.finite_rings.element_pari_ffelt.FiniteFieldElement_pari_ffelt'>
+        <class 'sage.rings.finite_rings.element_pari_ffelt.FiniteFieldElement_pari_ffelt'>
 
     TESTS::
 
         sage: n = 63
-        sage: m = 3;
-        sage: K.<a> = GF(2^n, impl='pari_ffelt')
+        sage: m = 3
+        sage: K.<a> = GF(2^n, implementation='pari_ffelt')
         sage: f = conway_polynomial(2, n)
         sage: f(a) == 0
         True
@@ -112,7 +110,7 @@ cdef class FiniteFieldElement_pari_ffelt(FinitePolyExtElement):
         sage: conway_polynomial(2, m)(a^e) == 0
         True
 
-        sage: K.<a> = FiniteField(2^16, impl='pari_ffelt')
+        sage: K.<a> = FiniteField(2^16, implementation='pari_ffelt')
         sage: K(0).is_zero()
         True
         sage: (a - a).is_zero()
@@ -129,14 +127,198 @@ cdef class FiniteFieldElement_pari_ffelt(FinitePolyExtElement):
 
     Test creating elements from basic Python types::
 
-        sage: K.<a> = FiniteField(7^20, impl='pari_ffelt')
+        sage: K.<a> = FiniteField(7^20, implementation='pari_ffelt')
         sage: K(int(8))
         1
-        sage: K(long(-2^300))
-        6
+
+    ::
+
+        sage: k = FiniteField(3^4, 'a', implementation='pari_ffelt')
+        sage: b = k(5) # indirect doctest
+        sage: b.parent()
+        Finite Field in a of size 3^4
+        sage: a = k.gen()
+        sage: k(a + 2)
+        a + 2
+
+    Univariate polynomials coerce into finite fields by evaluating
+    the polynomial at the field's generator::
+
+        sage: R.<x> = QQ[]
+        sage: k.<a> = FiniteField(5^2, 'a', implementation='pari_ffelt')
+        sage: k(R(2/3))
+        4
+        sage: k(x^2)
+        a + 3
+
+        sage: R.<x> = GF(5)[]
+        sage: k(x^3-2*x+1)
+        2*a + 4
+
+        sage: x = polygen(QQ)
+        sage: k(x^25)
+        a
+
+        sage: Q.<q> = FiniteField(5^7, 'q', implementation='pari_ffelt')
+        sage: L = GF(5)
+        sage: LL.<xx> = L[]
+        sage: Q(xx^2 + 2*xx + 4)
+        q^2 + 2*q + 4
+
+        sage: k = FiniteField(3^11, 't', implementation='pari_ffelt')
+        sage: k.polynomial()
+        t^11 + 2*t^2 + 1
+        sage: P = k.polynomial_ring()
+        sage: k(P.0^11)
+        t^2 + 2
+
+    An element can be specified by its vector of coordinates with
+    respect to the basis consisting of powers of the generator:
+
+        sage: k = FiniteField(3^11, 't', implementation='pari_ffelt')
+        sage: V = k.vector_space(map=False)
+        sage: V
+        Vector space of dimension 11 over Finite Field of size 3
+        sage: v = V([0,1,2,0,1,2,0,1,2,0,1])
+        sage: k(v)
+        t^10 + 2*t^8 + t^7 + 2*t^5 + t^4 + 2*t^2 + t
+
+    Multivariate polynomials only coerce if constant::
+
+        sage: k = FiniteField(5^2, 'a', implementation='pari_ffelt')
+        sage: R = k['x,y,z']; R
+        Multivariate Polynomial Ring in x, y, z over Finite Field in a of size 5^2
+        sage: k(R(2))
+        2
+        sage: R = QQ['x,y,z']
+        sage: k(R(1/5))
+        Traceback (most recent call last):
+        ...
+        ZeroDivisionError: inverse of Mod(0, 5) does not exist
+
+    Gap elements can also be coerced into finite fields::
+
+        sage: F = FiniteField(2^3, 'a', implementation='pari_ffelt')
+        sage: a = F.multiplicative_generator(); a
+        a
+        sage: b = gap(a^3); b                                                           # needs sage.libs.gap
+        Z(2^3)^3
+        sage: F(b)
+        a + 1
+        sage: a^3
+        a + 1
+
+        sage: a = GF(13)(gap('0*Z(13)')); a                                             # needs sage.libs.gap
+        0
+        sage: a.parent()
+        Finite Field of size 13
+
+        sage: F = FiniteField(2^4, 'a', implementation='pari_ffelt')
+        sage: F(gap('Z(16)^3'))                                                         # needs sage.libs.gap
+        a^3
+        sage: F(gap('Z(16)^2'))                                                         # needs sage.libs.gap
+        a^2
+
+    You can also call a finite extension field with a string
+    to produce an element of that field, like this::
+
+        sage: k = GF(2^8, 'a')
+        sage: k('a^200')
+        a^4 + a^3 + a^2
+
+    This is especially useful for conversion from Singular etc.
+
+    TESTS::
+
+        sage: k = FiniteField(3^2, 'a', implementation='pari_ffelt')
+        sage: a = k(11); a
+        2
+        sage: a.parent()
+        Finite Field in a of size 3^2
+        sage: V = k.vector_space(map=False); v = V((1,2))
+        sage: k(v)
+        2*a + 1
+
+    We create elements using a list and verify that :issue:`10486` has
+    been fixed::
+
+        sage: k = FiniteField(3^11, 't', implementation='pari_ffelt')
+        sage: x = k([1,0,2,1]); x
+        t^3 + 2*t^2 + 1
+        sage: x + x + x
+        0
+        sage: pari(x)
+        t^3 + 2*t^2 + 1
+
+    If the list is longer than the degree, we just get the result
+    modulo the modulus::
+
+        sage: from sage.rings.finite_rings.finite_field_pari_ffelt import FiniteField_pari_ffelt
+        sage: R.<a> = PolynomialRing(GF(5))
+        sage: k = FiniteField_pari_ffelt(5, a^2 - 2, 't')
+        sage: x = k([0,0,0,1]); x
+        2*t
+        sage: pari(x)
+        2*t
+
+    When initializing from a list, the elements are first coerced
+    to the prime field (:issue:`11685`)::
+
+        sage: k = FiniteField(3^11, 't', implementation='pari_ffelt')
+        sage: k([ 0, 1/2 ])
+        2*t
+        sage: k([ 0, 1/2, 0, 0, 0, 0, 0, 0, 0, -1, 0 ])
+        2*t^9 + 2*t
+        sage: k([ k(0), k(1) ])
+        t
+        sage: k([ GF(3)(2), GF(3^5,'u')(1) ])
+        t + 2
+        sage: R.<x> = PolynomialRing(k)
+        sage: k([ x/x ])
+        1
+        sage: k([ R(-1), x/x ])
+        t + 2
+        sage: k([ R(-1), R(0), 0 ])
+        2
+
+    Check that zeros are created correctly (:issue:`11685`)::
+
+        sage: K = FiniteField(3^11, 't', implementation='pari_ffelt'); a = K.0
+        sage: v = 0; pari(K(v))
+        0
+        sage: v = Mod(0,3); pari(K(v))
+        0
+        sage: v = pari(0); pari(K(v))
+        0
+        sage: v = pari("Mod(0,3)"); pari(K(v))
+        0
+        sage: v = []; pari(K(v))
+        0
+        sage: v = [0]; pari(K(v))
+        0
+        sage: v = [0,0]; pari(K(v))
+        0
+        sage: v = pari("Pol(0)"); pari(K(v))
+        0
+        sage: v = pari("Mod(0, %s)"%K.modulus()); pari(K(v))
+        0
+        sage: v = pari("Mod(Pol(0), %s)"%K.modulus()); pari(K(v))
+        0
+        sage: v = K(1) - K(1); pari(K(v))
+        0
+        sage: v = K([1]) - K([1]); pari(K(v))
+        0
+        sage: v = a - a; pari(K(v))
+        0
+        sage: v = K(1)*0; pari(K(v))
+        0
+        sage: v = K([1])*K([0]); pari(K(v))
+        0
+        sage: v = a*0; pari(K(v))
+        0
     """
 
-    def __init__(FiniteFieldElement_pari_ffelt self, object parent, object x):
+    def __init__(self, parent, x):
         """
         Initialise ``self`` with the given ``parent`` and value
         converted from ``x``.
@@ -146,7 +328,7 @@ cdef class FiniteFieldElement_pari_ffelt(FinitePolyExtElement):
         TESTS::
 
             sage: from sage.rings.finite_rings.element_pari_ffelt import FiniteFieldElement_pari_ffelt
-            sage: K = FiniteField(101^2, 'a', impl='pari_ffelt')
+            sage: K = FiniteField(101^2, 'a', implementation='pari_ffelt')
             sage: x = FiniteFieldElement_pari_ffelt(K, 'a + 1')
             sage: x
             a + 1
@@ -155,13 +337,14 @@ cdef class FiniteFieldElement_pari_ffelt(FinitePolyExtElement):
         self._parent = parent
         self.construct_from(x)
 
-    def __dealloc__(FiniteFieldElement_pari_ffelt self):
+    def __dealloc__(self):
         """
-        Cython deconstructor.
+        Cython destructor.
         """
-        sig_free(self.chunk)
+        if self.val is not NULL:
+            gunclone_deep(self.val)
 
-    cdef FiniteFieldElement_pari_ffelt _new(FiniteFieldElement_pari_ffelt self):
+    cdef FiniteFieldElement_pari_ffelt _new(self):
         """
         Create an empty element with the same parent as ``self``.
         """
@@ -170,17 +353,17 @@ cdef class FiniteFieldElement_pari_ffelt(FinitePolyExtElement):
         x._parent = self._parent
         return x
 
-    cdef void construct(FiniteFieldElement_pari_ffelt self, GEN g):
+    cdef void construct(self, GEN g) noexcept:
         """
         Initialise ``self`` to the FFELT ``g``, reset the PARI stack,
         and call sig_off().
 
         This should be called exactly once on every instance.
         """
-        self.val = deepcopy_to_python_heap(g, &self.chunk)
+        self.val = gcloneref(g)
         clear_stack()
 
-    cdef void construct_from(FiniteFieldElement_pari_ffelt self, object x) except *:
+    cdef int construct_from(self, x) except -1:
         """
         Initialise ``self`` to an FFELT constructed from the Sage
         object `x`.
@@ -188,7 +371,7 @@ cdef class FiniteFieldElement_pari_ffelt(FinitePolyExtElement):
         TESTS:
 
         Conversion of elements of the underlying vector space works in
-        large characteristic (see :trac:`21186`)::
+        large characteristic (see :issue:`21186`)::
 
             sage: p = 13189065031705623239
             sage: Fq = FiniteField(p^3, "a")
@@ -197,7 +380,6 @@ cdef class FiniteFieldElement_pari_ffelt(FinitePolyExtElement):
             sage: R = [r[0] for r in pol.roots()]
             sage: prod(Fq_X.gen() - r for r in R) == pol
             True
-
         """
         cdef GEN f, g, result, x_GEN
         cdef long i, n, t
@@ -216,7 +398,7 @@ cdef class FiniteFieldElement_pari_ffelt(FinitePolyExtElement):
             x_GEN = _new_GEN_from_mpz_t((<Integer>x).value)
             self.construct(_INT_to_FFELT(g, x_GEN))
 
-        elif isinstance(x, int) or isinstance(x, long):
+        elif isinstance(x, int):
             g = (<pari_gen>self._parent._gen_pari).g
             x = objtogen(x)
             sig_on()
@@ -244,27 +426,34 @@ cdef class FiniteFieldElement_pari_ffelt(FinitePolyExtElement):
             sig_on()
             if gequal0(x_GEN):
                 self.construct(FF_zero(g))
-                return
+                return 0
             elif gequal1(x_GEN):
                 self.construct(FF_1(g))
-                return
+                return 0
 
             t = typ(x_GEN)
-            if t == t_FFELT and FF_samefield(x_GEN, g):
-                self.construct(x_GEN)
+            if t == t_FFELT:
+                if FF_samefield(x_GEN, g):
+                    self.construct(x_GEN)
+                    return 0
             elif t == t_INT:
                 self.construct(_INT_to_FFELT(g, x_GEN))
-            elif t == t_INTMOD and gequal0(modii(gel(x_GEN, 1), FF_p_i(g))):
-                self.construct(_INT_to_FFELT(g, gel(x_GEN, 2)))
-            elif t == t_FRAC and not gequal0(modii(gel(x_GEN, 2), FF_p_i(g))):
-                self.construct(FF_div(_INT_to_FFELT(g, gel(x_GEN, 1)),
-                                      _INT_to_FFELT(g, gel(x_GEN, 2))))
-            else:
-                sig_off()
-                raise TypeError("no coercion defined")
+                return 0
+            elif t == t_INTMOD:
+                if gequal0(modii(gel(x_GEN, 1), FF_p_i(g))):
+                    self.construct(_INT_to_FFELT(g, gel(x_GEN, 2)))
+                    return 0
+            elif t == t_FRAC:
+                if not gequal0(modii(gel(x_GEN, 2), FF_p_i(g))):
+                    elt = FF_div(_INT_to_FFELT(g, gel(x_GEN, 1)),
+                                 _INT_to_FFELT(g, gel(x_GEN, 2)))
+                    self.construct(elt)
+                    return 0
+            sig_off()
+            raise TypeError(f"unable to convert PARI {x.type()} to finite field element")
 
-        elif (isinstance(x, FreeModuleElement)
-              and x.parent() is self._parent.vector_space()):
+        elif (isinstance(x, Vector)
+              and x.parent() is self._parent.vector_space(map=False)):
             g = (<pari_gen>self._parent._gen_pari).g
             t = g[1]  # codeword: t_FF_FpXQ, t_FF_Flxq, t_FF_F2xq
             n = len(x)
@@ -273,17 +462,17 @@ cdef class FiniteFieldElement_pari_ffelt(FinitePolyExtElement):
             sig_on()
             if n == 0:
                 self.construct(FF_zero(g))
-                return
+                return 0
             if t == t_FF_FpXQ:
                 f = cgetg(n + 2, t_POL)
                 set_gel(f, 1, gmael(g, 2, 1))
-                for i in xrange(n):
+                for i in range(n):
                     xi = Integer(x[i])
                     set_gel(f, i + 2, _new_GEN_from_mpz_t(xi.value))
             elif t == t_FF_Flxq or t == t_FF_F2xq:
                 f = cgetg(n + 2, t_VECSMALL)
                 set_gel(f, 1, gmael(g, 2, 1))
-                for i in xrange(n):
+                for i in range(n):
                     set_uel(f, i + 2, x[i])
                 if t == t_FF_F2xq:
                     f = Flx_to_F2x(f)
@@ -309,8 +498,14 @@ cdef class FiniteFieldElement_pari_ffelt(FinitePolyExtElement):
             self.construct_from(x.constant_coefficient())
 
         elif isinstance(x, list):
-            if len(x) == self._parent.degree():
-                self.construct_from(self._parent.vector_space()(x))
+            n = len(x)
+            if n == 0:
+                self.construct_from(None)
+            elif n == 1:
+                Fp = self._parent.base_ring()
+                self.construct_from(Fp(x[0]))
+            elif n == self._parent.degree():
+                self.construct_from(self._parent.vector_space(map=False)(x))
             else:
                 Fp = self._parent.base_ring()
                 self.construct_from(self._parent.polynomial_ring()([Fp(y) for y in x]))
@@ -318,77 +513,100 @@ cdef class FiniteFieldElement_pari_ffelt(FinitePolyExtElement):
         elif isinstance(x, str):
             self.construct_from(self._parent.polynomial_ring()(x))
 
-        elif is_GapElement(x):
-            from sage.interfaces.gap import gfq_gap_to_sage
+        elif isinstance(x, GapElement):
             try:
-                self.construct_from(gfq_gap_to_sage(x, self._parent))
+                from sage.libs.gap.libgap import libgap
+                self.construct_from(libgap(x).sage(ring=self._parent))
+            except (ValueError, IndexError, TypeError):
+                raise TypeError("no coercion defined")
+
+        elif isinstance(x, sage.libs.gap.element.GapElement_FiniteField):
+            try:
+                self.construct_from(x.sage(ring=self._parent))
             except (ValueError, IndexError, TypeError):
                 raise TypeError("no coercion defined")
 
         else:
             raise TypeError("no coercion defined")
 
-    def _repr_(FiniteFieldElement_pari_ffelt self):
+    def _repr_(self):
         """
         Return the string representation of ``self``.
 
         EXAMPLES::
 
-            sage: k.<c> = GF(3^17, impl='pari_ffelt')
+            sage: k.<c> = GF(3^17, implementation='pari_ffelt')
             sage: c^20  # indirect doctest
             c^4 + 2*c^3
-        """
-        sig_on()
-        return str(new_gen(self.val))
 
-    def __hash__(FiniteFieldElement_pari_ffelt self):
+        TESTS::
+
+            sage: F.<I> = GF((2^128+51)^2)
+            sage: I
+            I
+        """
+        s = str(new_gen_noclear(self.val))
+        if self._parent._need_replace_varname:
+            s = s.replace("x", self._parent._names[0])  # .variable_name() is slower
+        return s
+
+    def __hash__(self):
         """
         Return the hash of ``self``.  This is by definition equal to
         the hash of ``self.polynomial()``.
 
         EXAMPLES::
 
-            sage: k.<a> = GF(3^15, impl='pari_ffelt')
+            sage: k.<a> = GF(3^15, implementation='pari_ffelt')
             sage: R = GF(3)['a']; aa = R.gen()
             sage: hash(a^2 + 1) == hash(aa^2 + 1)
             True
         """
         return hash(self.polynomial())
 
-    def __reduce__(FiniteFieldElement_pari_ffelt self):
+    def __reduce__(self):
         """
         For pickling.
 
         TESTS::
 
-            sage: K.<a> = FiniteField(10007^10, impl='pari_ffelt')
+            sage: K.<a> = FiniteField(10007^10, implementation='pari_ffelt')
             sage: loads(a.dumps()) == a
             True
         """
         return unpickle_FiniteFieldElement_pari_ffelt, (self._parent, str(self))
 
-    def __copy__(FiniteFieldElement_pari_ffelt self):
+    def __copy__(self):
         """
-        Return a copy of ``self``.
-
         TESTS::
 
-            sage: k.<a> = FiniteField(3^3, impl='pari_ffelt')
+            sage: k.<a> = FiniteField(3^3, implementation='pari_ffelt')
             sage: a
             a
             sage: b = copy(a); b
             a
-            sage: a == b
-            True
             sage: a is b
-            False
+            True
         """
-        cdef FiniteFieldElement_pari_ffelt x = self._new()
-        sig_on()
-        x.construct(self.val)
-        return x
+        # immutable
+        return self
 
-    cpdef int _cmp_(self, other) except -2:
+    def __deepcopy__(self, memo):
+        """
+        TESTS::
+
+            sage: k.<a> = FiniteField(3^3, implementation='pari_ffelt')
+            sage: a
+            a
+            sage: b = deepcopy(a); b
+            a
+            sage: a is b
+            True
+        """
+        # immutable
+        return self
+
+    cpdef _richcmp_(self, other, int op):
         """
         Comparison of finite field elements.
 
@@ -400,7 +618,8 @@ cdef class FiniteFieldElement_pari_ffelt(FinitePolyExtElement):
 
         EXAMPLES::
 
-            sage: k.<a> = GF(2^20, impl='pari_ffelt')
+            sage: # needs sage.modules
+            sage: k.<a> = GF(2^20, implementation='pari_ffelt')
             sage: e = k.random_element()
             sage: f = loads(dumps(e))
             sage: e is f
@@ -412,7 +631,7 @@ cdef class FiniteFieldElement_pari_ffelt(FinitePolyExtElement):
 
         ::
 
-            sage: K.<a> = GF(2^100, impl='pari_ffelt')
+            sage: K.<a> = GF(2^100, implementation='pari_ffelt')
             sage: a < a^2
             True
             sage: a > a^2
@@ -430,7 +649,7 @@ cdef class FiniteFieldElement_pari_ffelt(FinitePolyExtElement):
 
         TESTS::
 
-            sage: k.<a> = FiniteField(3^3, impl='pari_ffelt')
+            sage: k.<a> = FiniteField(3^3, implementation='pari_ffelt')
             sage: a == 1
             False
             sage: a^0 == 1
@@ -446,7 +665,7 @@ cdef class FiniteFieldElement_pari_ffelt(FinitePolyExtElement):
         sig_on()
         r = cmp_universal(self.val, (<FiniteFieldElement_pari_ffelt>other).val)
         sig_off()
-        return r
+        return rich_to_bool(op, r)
 
     cpdef _add_(self, right):
         """
@@ -454,7 +673,7 @@ cdef class FiniteFieldElement_pari_ffelt(FinitePolyExtElement):
 
         EXAMPLES::
 
-            sage: k.<a> = GF(3^17, impl='pari_ffelt')
+            sage: k.<a> = GF(3^17, implementation='pari_ffelt')
             sage: a + a^2 # indirect doctest
             a^2 + a
         """
@@ -470,7 +689,7 @@ cdef class FiniteFieldElement_pari_ffelt(FinitePolyExtElement):
 
         EXAMPLES::
 
-            sage: k.<a> = GF(3^17, impl='pari_ffelt')
+            sage: k.<a> = GF(3^17, implementation='pari_ffelt')
             sage: a - a # indirect doctest
             0
         """
@@ -486,7 +705,7 @@ cdef class FiniteFieldElement_pari_ffelt(FinitePolyExtElement):
 
         EXAMPLES::
 
-            sage: k.<a> = GF(3^17, impl='pari_ffelt')
+            sage: k.<a> = GF(3^17, implementation='pari_ffelt')
             sage: (a^12 + 1)*(a^15 - 1) # indirect doctest
             a^15 + 2*a^12 + a^11 + 2*a^10 + 2
         """
@@ -502,7 +721,7 @@ cdef class FiniteFieldElement_pari_ffelt(FinitePolyExtElement):
 
         EXAMPLES::
 
-            sage: k.<a> = GF(3^17, impl='pari_ffelt')
+            sage: k.<a> = GF(3^17, implementation='pari_ffelt')
             sage: (a - 1) / (a + 1) # indirect doctest
             2*a^16 + a^15 + 2*a^14 + a^13 + 2*a^12 + a^11 + 2*a^10 + a^9 + 2*a^8 + a^7 + 2*a^6 + a^5 + 2*a^4 + a^3 + 2*a^2 + a + 1
         """
@@ -514,13 +733,13 @@ cdef class FiniteFieldElement_pari_ffelt(FinitePolyExtElement):
                            (<FiniteFieldElement_pari_ffelt>right).val))
         return x
 
-    def is_zero(FiniteFieldElement_pari_ffelt self):
+    def is_zero(self):
         """
         Return ``True`` if ``self`` equals 0.
 
         EXAMPLES::
 
-            sage: F.<a> = FiniteField(5^3, impl='pari_ffelt')
+            sage: F.<a> = FiniteField(5^3, implementation='pari_ffelt')
             sage: a.is_zero()
             False
             sage: (a - a).is_zero()
@@ -528,13 +747,13 @@ cdef class FiniteFieldElement_pari_ffelt(FinitePolyExtElement):
         """
         return bool(FF_equal0(self.val))
 
-    def is_one(FiniteFieldElement_pari_ffelt self):
+    def is_one(self):
         """
         Return ``True`` if ``self`` equals 1.
 
         EXAMPLES::
 
-            sage: F.<a> = FiniteField(5^3, impl='pari_ffelt')
+            sage: F.<a> = FiniteField(5^3, implementation='pari_ffelt')
             sage: a.is_one()
             False
             sage: (a/a).is_one()
@@ -542,39 +761,39 @@ cdef class FiniteFieldElement_pari_ffelt(FinitePolyExtElement):
         """
         return bool(FF_equal1(self.val))
 
-    def is_unit(FiniteFieldElement_pari_ffelt self):
+    def is_unit(self):
         """
-        Return ``True`` if ``self`` is non-zero.
+        Return ``True`` if ``self`` is nonzero.
 
         EXAMPLES::
 
-            sage: F.<a> = FiniteField(5^3, impl='pari_ffelt')
+            sage: F.<a> = FiniteField(5^3, implementation='pari_ffelt')
             sage: a.is_unit()
             True
         """
         return not bool(FF_equal0(self.val))
 
-    __nonzero__ = is_unit
+    __bool__ = is_unit
 
-    def __pos__(FiniteFieldElement_pari_ffelt self):
+    def __pos__(self):
         """
         Unitary positive operator...
 
         EXAMPLES::
 
-            sage: k.<a> = GF(3^17, impl='pari_ffelt')
+            sage: k.<a> = GF(3^17, implementation='pari_ffelt')
             sage: +a
             a
         """
         return self
 
-    def __neg__(FiniteFieldElement_pari_ffelt self):
+    def __neg__(self):
         """
         Negation.
 
         EXAMPLES::
 
-            sage: k.<a> = GF(3^17, impl='pari_ffelt')
+            sage: k.<a> = GF(3^17, implementation='pari_ffelt')
             sage: -a
             2*a
         """
@@ -583,13 +802,13 @@ cdef class FiniteFieldElement_pari_ffelt(FinitePolyExtElement):
         x.construct(FF_neg_i((<FiniteFieldElement_pari_ffelt>self).val))
         return x
 
-    def __invert__(FiniteFieldElement_pari_ffelt self):
+    def __invert__(self):
         """
         Return the multiplicative inverse of ``self``.
 
         EXAMPLES::
 
-            sage: k.<a> = FiniteField(3^2, impl='pari_ffelt')
+            sage: k.<a> = FiniteField(3^2, implementation='pari_ffelt')
             sage: ~a
             a + 2
             sage: (a+1)*a
@@ -604,13 +823,13 @@ cdef class FiniteFieldElement_pari_ffelt(FinitePolyExtElement):
         x.construct(FF_inv((<FiniteFieldElement_pari_ffelt>self).val))
         return x
 
-    def __pow__(FiniteFieldElement_pari_ffelt self, object exp, object other):
+    def __pow__(FiniteFieldElement_pari_ffelt self, exp, other):
         """
         Exponentiation.
 
         TESTS::
 
-            sage: K.<a> = GF(5^10, impl='pari_ffelt')
+            sage: K.<a> = GF(5^10, implementation='pari_ffelt')
             sage: n = (2*a)/a
             sage: n^-15
             2
@@ -623,7 +842,7 @@ cdef class FiniteFieldElement_pari_ffelt(FinitePolyExtElement):
             sage: a^(e % (5^10 - 1))
             2*a^9 + a^5 + 4*a^4 + 4*a^3 + a^2 + 3*a
 
-        The exponent is converted to an integer (see :trac:`16540`)::
+        The exponent is converted to an integer (see :issue:`16540`)::
 
             sage: q = 11^23
             sage: F.<a> = FiniteField(q)
@@ -637,7 +856,6 @@ cdef class FiniteFieldElement_pari_ffelt(FinitePolyExtElement):
             exponent to an integer.  This means that ``a^Mod(1, n)``
             returns `a` even if `n` is not a multiple of the
             multiplicative order of `a`.
-
         """
         if exp == 0:
             return self._parent.one()
@@ -649,7 +867,64 @@ cdef class FiniteFieldElement_pari_ffelt(FinitePolyExtElement):
         x.construct(FF_pow(self.val, (<pari_gen>exp).g))
         return x
 
-    def polynomial(FiniteFieldElement_pari_ffelt self, name=None):
+    def pth_power(FiniteFieldElement_pari_ffelt self, int k=1):
+        r"""
+        Return the `(p^k)`-th power of ``self``, where `p` is the
+        characteristic of the field.
+
+        INPUT:
+
+        - ``k`` -- integer (default: 1); must fit in a C ``int``
+
+        Note that if `k` is negative, then this computes the appropriate root.
+
+        TESTS::
+
+            sage: # needs sage.modules
+            sage: F.<a> = GF(13^64, implementation='pari_ffelt'); F
+            Finite Field in a of size 13^64
+            sage: x = F.random_element()
+            sage: x.pth_power(0) == x
+            True
+            sage: x.pth_power(1) == x**13
+            True
+            sage: x.pth_power(2) == x**(13**2)
+            True
+            sage: x.pth_power(-1)**13 == x
+            True
+
+            sage: # needs sage.modules
+            sage: F.<a> = GF(127^16, implementation='pari_ffelt'); F
+            Finite Field in a of size 127^16
+            sage: x = F.random_element()
+            sage: x.pth_power(0) == x
+            True
+            sage: x.pth_power(1) == x**127
+            True
+            sage: x.pth_power(2) == x**(127**2)
+            True
+            sage: x.pth_power(-1)**127 == x
+            True
+        """
+        cdef int n = int(self._parent.degree())
+        if k % n == 0:
+            return self
+        cdef Integer p = self._parent.characteristic()
+        if k == 1 and (p < 100 or p.bit_length()**2 < n):
+            # For extremely small primes or very large extension degrees,
+            # exponentiation is faster.
+            return self**p
+        # Otherwise use PARI field morphism (evaluation of a Fp polynomial
+        # at the image of the generator).
+        f = self._parent._pari_frobenius(k)
+        cdef FiniteFieldElement_pari_ffelt x = self._new()
+        sig_on()
+        x.construct(ffmap((<pari_gen>f).g, self.val))
+        return x
+
+    frobenius = pth_power
+
+    def polynomial(self, name=None):
         """
         Return the unique representative of ``self`` as a polynomial
         over the prime field whose degree is less than the degree of
@@ -661,7 +936,7 @@ cdef class FiniteFieldElement_pari_ffelt(FinitePolyExtElement):
 
         EXAMPLES::
 
-            sage: k.<a> = FiniteField(3^2, impl='pari_ffelt')
+            sage: k.<a> = FiniteField(3^2, implementation='pari_ffelt')
             sage: pol = a.polynomial()
             sage: pol
             a
@@ -670,7 +945,7 @@ cdef class FiniteFieldElement_pari_ffelt(FinitePolyExtElement):
 
         ::
 
-            sage: k = FiniteField(3^4, 'alpha', impl='pari_ffelt')
+            sage: k = FiniteField(3^4, 'alpha', implementation='pari_ffelt')
             sage: a = k.gen()
             sage: a.polynomial()
             alpha
@@ -682,7 +957,8 @@ cdef class FiniteFieldElement_pari_ffelt(FinitePolyExtElement):
             Univariate Polynomial Ring in beta over Finite Field of size 3
         """
         sig_on()
-        return self._parent.polynomial_ring(name)(new_gen(FF_to_FpXQ_i(self.val)))
+        pol = new_gen(FF_to_FpXQ(self.val))
+        return self._parent.polynomial_ring(name)(pol)
 
     def minpoly(self, var='x'):
         """
@@ -690,54 +966,56 @@ cdef class FiniteFieldElement_pari_ffelt(FinitePolyExtElement):
 
         INPUT:
 
-        - ``var`` -- string (default: 'x'): variable name to use.
+        - ``var`` -- string (default: ``'x'``); variable name to use
 
         EXAMPLES::
 
             sage: R.<x> = PolynomialRing(FiniteField(3))
-            sage: F.<a> = FiniteField(3^2, modulus=x^2 + 1, impl='pari_ffelt')
+            sage: F.<a> = FiniteField(3^2, modulus=x^2 + 1, implementation='pari_ffelt')
             sage: a.minpoly('y')
             y^2 + 1
         """
         sig_on()
-        return self._parent.polynomial_ring(var)(new_gen(FF_minpoly(self.val)))
+        pol = new_gen(FF_minpoly(self.val))
+        return self._parent.polynomial_ring(var)(pol)
 
-    def charpoly(FiniteFieldElement_pari_ffelt self, object var='x'):
+    def charpoly(self, var='x'):
         """
         Return the characteristic polynomial of ``self``.
 
         INPUT:
 
-        - ``var`` -- string (default: 'x'): variable name to use.
+        - ``var`` -- string (default: ``'x'``); variable name to use
 
         EXAMPLES::
 
             sage: R.<x> = PolynomialRing(FiniteField(3))
-            sage: F.<a> = FiniteField(3^2, modulus=x^2 + 1, impl='pari_ffelt')
+            sage: F.<a> = FiniteField(3^2, modulus=x^2 + 1, implementation='pari_ffelt')
             sage: a.charpoly('y')
             y^2 + 1
         """
         sig_on()
-        return self._parent.polynomial_ring(var)(new_gen(FF_charpoly(self.val)))
+        pol = new_gen(FF_charpoly(self.val))
+        return self._parent.polynomial_ring(var)(pol)
 
-    def is_square(FiniteFieldElement_pari_ffelt self):
+    def is_square(self):
         """
         Return ``True`` if and only if ``self`` is a square in the
         finite field.
 
         EXAMPLES::
 
-            sage: k.<a> = FiniteField(3^2, impl='pari_ffelt')
+            sage: k.<a> = FiniteField(3^2, implementation='pari_ffelt')
             sage: a.is_square()
             False
             sage: (a**2).is_square()
             True
 
-            sage: k.<a> = FiniteField(2^2, impl='pari_ffelt')
+            sage: k.<a> = FiniteField(2^2, implementation='pari_ffelt')
             sage: (a**2).is_square()
             True
 
-            sage: k.<a> = FiniteField(17^5, impl='pari_ffelt')
+            sage: k.<a> = FiniteField(17^5, implementation='pari_ffelt')
             sage: (a**2).is_square()
             True
             sage: a.is_square()
@@ -751,19 +1029,19 @@ cdef class FiniteFieldElement_pari_ffelt(FinitePolyExtElement):
         sig_off()
         return bool(i)
 
-    def sqrt(FiniteFieldElement_pari_ffelt self, extend=False, all=False):
+    def sqrt(self, extend=False, all=False):
         """
         Return a square root of ``self``, if it exists.
 
         INPUT:
 
-        - ``extend`` -- bool (default: ``False``)
+        - ``extend`` -- boolean (default: ``False``)
 
            .. WARNING::
 
                This option is not implemented.
 
-        - ``all`` - bool (default: ``False``)
+        - ``all`` -- boolean (default: ``False``)
 
         OUTPUT:
 
@@ -773,7 +1051,7 @@ cdef class FiniteFieldElement_pari_ffelt(FinitePolyExtElement):
 
         If ``extend`` is ``True``, a square root is chosen in an
         extension field if necessary.  If ``extend`` is ``False``, a
-        ValueError is raised if the element is not a square in the
+        :exc:`ValueError` is raised if the element is not a square in the
         base field.
 
         .. WARNING::
@@ -782,7 +1060,7 @@ cdef class FiniteFieldElement_pari_ffelt(FinitePolyExtElement):
 
         EXAMPLES::
 
-            sage: F = FiniteField(7^2, 'a', impl='pari_ffelt')
+            sage: F = FiniteField(7^2, 'a', implementation='pari_ffelt')
             sage: F(2).sqrt()
             4
             sage: F(3).sqrt() in (2*F.gen() + 6, 5*F.gen() + 1)
@@ -792,7 +1070,7 @@ cdef class FiniteFieldElement_pari_ffelt(FinitePolyExtElement):
             sage: F(4).sqrt(all=True)
             [2, 5]
 
-            sage: K = FiniteField(7^3, 'alpha', impl='pari_ffelt')
+            sage: K = FiniteField(7^3, 'alpha', implementation='pari_ffelt')
             sage: K(3).sqrt()
             Traceback (most recent call last):
             ...
@@ -800,7 +1078,7 @@ cdef class FiniteFieldElement_pari_ffelt(FinitePolyExtElement):
             sage: K(3).sqrt(all=True)
             []
 
-            sage: K.<a> = GF(3^17, impl='pari_ffelt')
+            sage: K.<a> = GF(3^17, implementation='pari_ffelt')
             sage: (a^3 - a - 1).sqrt()
             a^16 + 2*a^15 + a^13 + 2*a^12 + a^10 + 2*a^9 + 2*a^8 + a^7 + a^6 + 2*a^5 + a^4 + 2*a^2 + 2*a + 2
         """
@@ -828,24 +1106,27 @@ cdef class FiniteFieldElement_pari_ffelt(FinitePolyExtElement):
             else:
                 raise ValueError("element is not a square")
 
-    def log(FiniteFieldElement_pari_ffelt self, object base):
+    def log(self, base, order=None, *, check=False):
         """
         Return a discrete logarithm of ``self`` with respect to the
         given base.
 
         INPUT:
 
-        - ``base`` -- non-zero field element
+        - ``base`` -- nonzero field element
+        - ``order`` -- integer (optional), the order of the base
+        - ``check`` -- boolean (default: ``False``); if set,
+          test whether the given ``order`` is correct
 
         OUTPUT:
 
         An integer `x` such that ``self`` equals ``base`` raised to
-        the power `x`.  If no such `x` exists, a ``ValueError`` is
+        the power `x`.  If no such `x` exists, a :exc:`ValueError` is
         raised.
 
         EXAMPLES::
 
-            sage: F.<g> = FiniteField(2^10, impl='pari_ffelt')
+            sage: F.<g> = FiniteField(2^10, implementation='pari_ffelt')
             sage: b = g; a = g^37
             sage: a.log(b)
             37
@@ -855,15 +1136,32 @@ cdef class FiniteFieldElement_pari_ffelt(FinitePolyExtElement):
 
         ::
 
-            sage: F.<a> = FiniteField(5^2, impl='pari_ffelt')
+            sage: F.<a> = FiniteField(5^2, implementation='pari_ffelt')
             sage: F(-1).log(F(2))
             2
             sage: F(1).log(a)
             0
 
+        ::
+
+            sage: p = 2^127-1
+            sage: F.<t> = GF((p, 3))
+            sage: elt = F.random_element()^(p^2+p+1)
+            sage: (elt^2).log(elt, p-1)
+            2
+
+        Passing the ``order`` argument can lead to huge speedups when
+        factoring the order of the entire unit group is expensive but
+        the order of the base element is much smaller::
+
+            sage: %timeit (elt^2).log(elt)       # not tested
+            6.18 s ± 85 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
+            sage: %timeit (elt^2).log(elt, p-1)  # not tested
+            147 ms ± 1.39 ms per loop (mean ± std. dev. of 7 runs, 10 loops each)
+
         Some cases where the logarithm is not defined or does not exist::
 
-            sage: F.<a> = GF(3^10, impl='pari_ffelt')
+            sage: F.<a> = GF(3^10, implementation='pari_ffelt')
             sage: a.log(-1)
             Traceback (most recent call last):
             ...
@@ -876,6 +1174,18 @@ cdef class FiniteFieldElement_pari_ffelt(FinitePolyExtElement):
             Traceback (most recent call last):
             ...
             ArithmeticError: discrete logarithm of 0 is not defined
+
+        TESTS:
+
+        An example for ``check=True``::
+
+            sage: a = GF(101^5).primitive_element()
+            sage: a.log(a, 10510100500, check=True)
+            1
+            sage: a.log(a, 5255050250, check=True)
+            Traceback (most recent call last):
+            ...
+            ValueError: element does not have the provided order
         """
         base = self._parent(base)
         if self.is_zero():
@@ -883,30 +1193,35 @@ cdef class FiniteFieldElement_pari_ffelt(FinitePolyExtElement):
         if base.is_zero():
             raise ArithmeticError("discrete logarithm with base 0 is not defined")
 
-        # Compute the orders of self and base to check whether self
-        # actually lies in the cyclic group generated by base. PARI
-        # requires that this is the case.
-        # We also have to specify the order of the base anyway
-        # because PARI assumes by default that this element generates
-        # the multiplicative group.
-        cdef GEN x, base_order, self_order
+        # Compute the order of the base to check whether the element actually
+        # lies in the group generated by the base. PARI may otherwise enter an
+        # infinite loop.
+        # We also have to specify the order of the base anyway as PARI assumes
+        # by default that the base generates the entire multiplicative group.
+        cdef GEN x, base_order
         sig_on()
-        base_order = FF_order((<FiniteFieldElement_pari_ffelt>base).val, NULL)
-        self_order = FF_order(self.val, NULL)
-        if not dvdii(base_order, self_order):
-            # self_order does not divide base_order
+        if order is None:
+            base_order = FF_order((<FiniteFieldElement_pari_ffelt>base).val, NULL)
+        else:
+            if check:
+                from sage.groups.generic import has_order
+                if not has_order(base, order, '*'):
+                    clear_stack()
+                    raise ValueError('element does not have the provided order')
+            base_order = _new_GEN_from_mpz_t((<Integer>order).value)
+        if not gequal1(powgi(self.val, base_order)):
             clear_stack()
-            raise ArithmeticError("element %s does not lie in group generated by %s"%(self, base))
+            raise ArithmeticError(f'element {self} does not lie in group generated by {base}')
         x = FF_log(self.val, (<FiniteFieldElement_pari_ffelt>base).val, base_order)
         return Integer(new_gen(x))
 
-    def multiplicative_order(FiniteFieldElement_pari_ffelt self):
+    def multiplicative_order(self):
         """
-        Returns the order of ``self`` in the multiplicative group.
+        Return the order of ``self`` in the multiplicative group.
 
         EXAMPLES::
 
-            sage: a = FiniteField(5^3, 'a', impl='pari_ffelt').0
+            sage: a = FiniteField(5^3, 'a', implementation='pari_ffelt').0
             sage: a.multiplicative_order()
             124
             sage: a**124
@@ -919,14 +1234,14 @@ cdef class FiniteFieldElement_pari_ffelt(FinitePolyExtElement):
         order = FF_order(self.val, NULL)
         return Integer(new_gen(order))
 
-    def lift(FiniteFieldElement_pari_ffelt self):
+    def lift(self):
         """
         If ``self`` is an element of the prime field, return a lift of
         this element to an integer.
 
         EXAMPLES::
 
-            sage: k = FiniteField(next_prime(10^10)^2, 'u', impl='pari_ffelt')
+            sage: k = FiniteField(next_prime(10^10)^2, 'u', implementation='pari_ffelt')
             sage: a = k(17)/k(19)
             sage: b = a.lift(); b
             7894736858
@@ -947,7 +1262,7 @@ cdef class FiniteFieldElement_pari_ffelt(FinitePolyExtElement):
 
         EXAMPLES::
 
-            sage: k.<a> = GF(3^17, impl='pari_ffelt')
+            sage: k.<a> = GF(3^17, implementation='pari_ffelt')
             sage: b = k(2)
             sage: b._integer_()
             2
@@ -964,7 +1279,7 @@ cdef class FiniteFieldElement_pari_ffelt(FinitePolyExtElement):
 
         EXAMPLES::
 
-            sage: k.<a> = GF(3^17, impl='pari_ffelt')
+            sage: k.<a> = GF(3^17, implementation='pari_ffelt')
             sage: b = k(2)
             sage: int(b)
             2
@@ -975,26 +1290,13 @@ cdef class FiniteFieldElement_pari_ffelt(FinitePolyExtElement):
         """
         return int(self.lift())
 
-    def __long__(self):
-        """
-        Lift to a python long, if possible.
-
-        EXAMPLES::
-
-            sage: k.<a> = GF(3^17, impl='pari_ffelt')
-            sage: b = k(2)
-            sage: long(b)
-            2L
-        """
-        return long(self.lift())
-
     def __float__(self):
         """
         Lift to a python float, if possible.
 
         EXAMPLES::
 
-            sage: k.<a> = GF(3^17, impl='pari_ffelt')
+            sage: k.<a> = GF(3^17, implementation='pari_ffelt')
             sage: b = k(2)
             sage: float(b)
             2.0
@@ -1005,19 +1307,24 @@ cdef class FiniteFieldElement_pari_ffelt(FinitePolyExtElement):
         """
         Return a PARI object representing ``self``.
 
-        INPUT:
-
-        - var -- ignored
-
         EXAMPLES::
 
-            sage: k.<a> = FiniteField(3^3, impl='pari_ffelt')
+            sage: k.<a> = FiniteField(3^3, implementation='pari_ffelt')
             sage: b = a**2 + 2*a + 1
             sage: b.__pari__()
             a^2 + 2*a + 1
+
+        TESTS::
+
+            sage: F.<I> = GF((2^128+51)^2)
+            sage: pari(I)
+            Traceback (most recent call last):
+            ...
+            ValueError: variable name illegal in PARI
         """
-        sig_on()
-        return new_gen(self.val)
+        if self._parent._need_replace_varname:
+            raise ValueError("variable name illegal in PARI")
+        return new_gen_noclear(self.val)
 
     def _pari_init_(self):
         """
@@ -1025,7 +1332,7 @@ cdef class FiniteFieldElement_pari_ffelt(FinitePolyExtElement):
 
         EXAMPLES::
 
-            sage: k.<a> = GF(3^17, impl='pari_ffelt')
+            sage: k.<a> = GF(3^17, implementation='pari_ffelt')
             sage: a._pari_init_()
             'subst(a+3*a,a,ffgen(Mod(1, 3)*x^17 + Mod(2, 3)*x + Mod(1, 3),a))'
             sage: k(1)._pari_init_()
@@ -1052,7 +1359,7 @@ cdef class FiniteFieldElement_pari_ffelt(FinitePolyExtElement):
         zero = "%s*a" % self._parent.characteristic()
         return "subst(%s+%s,a,%s)" % (self, zero, ffgen)
 
-    def _magma_init_(self, magma):
+    def _magma_init_(self, magma) -> str:
         """
         Return a string representing ``self`` in Magma.
 
@@ -1065,23 +1372,24 @@ cdef class FiniteFieldElement_pari_ffelt(FinitePolyExtElement):
         km = magma(k)
         return str(self).replace(k.variable_name(), km.gen(1).name())
 
-    def _gap_init_(self):
+    def _gap_init_(self) -> str:
         r"""
-        Return the a string representing ``self`` in GAP.
+        Return the string representing ``self`` in GAP.
 
         .. NOTE::
 
-           The order of the parent field must be `\leq 65536`.  This
-           function can be slow since elements of non-prime finite
-           fields are represented in GAP as powers of a generator for
-           the multiplicative group, so a discrete logarithm must be
-           computed.
+            The order of the parent field must be `\leq 65536`.  This
+            function can be slow since elements of non-prime finite
+            fields are represented in GAP as powers of a generator for
+            the multiplicative group, so a discrete logarithm must be
+            computed.
 
         EXAMPLES::
 
-            sage: F = FiniteField(2^3, 'a', impl='pari_ffelt')
-            sage: a = F.multiplicative_generator()
-            sage: gap(a) # indirect doctest
+            sage: # needs sage.libs.gap
+            sage: F = FiniteField(2^3, 'aa', implementation='pari_ffelt')
+            sage: aa = F.multiplicative_generator()
+            sage: gap(aa)  # indirect doctest
             Z(2^3)
             sage: b = F.multiplicative_generator()
             sage: a = b^3
@@ -1089,42 +1397,53 @@ cdef class FiniteFieldElement_pari_ffelt(FinitePolyExtElement):
             Z(2^3)^3
             sage: gap(a^3)
             Z(2^3)^2
+            sage: F(gap('Z(8)^3'))
+            aa + 1
+            sage: F(libgap.Z(8)^3)
+            aa + 1
 
         You can specify the instance of the Gap interpreter that is used::
 
-            sage: F = FiniteField(next_prime(200)^2, 'a', impl='pari_ffelt')
-            sage: a = F.multiplicative_generator ()
-            sage: a._gap_ (gap)
+            sage: # needs sage.libs.gap
+            sage: F = FiniteField(next_prime(200)^2, 'a', implementation='pari_ffelt')
+            sage: a = F.multiplicative_generator()
+            sage: a._gap_(gap)
             Z(211^2)
             sage: (a^20)._gap_(gap)
             Z(211^2)^20
 
         Gap only supports relatively small finite fields::
 
-            sage: F = FiniteField(next_prime(1000)^2, 'a', impl='pari_ffelt')
-            sage: a = F.multiplicative_generator ()
-            sage: gap._coerce_(a)
+            sage: # needs sage.libs.gap
+            sage: F = FiniteField(next_prime(1000)^2, 'a', implementation='pari_ffelt')
+            sage: a = F.multiplicative_generator()
+            sage: a._gap_init_()
             Traceback (most recent call last):
             ...
             TypeError: order must be at most 65536
+            sage: gap.coerce(a)
+            Traceback (most recent call last):
+            ...
+            TypeError: no canonical coercion from Finite Field in a of size 1009^2 to Gap
         """
         F = self._parent
         if F.order() > 65536:
             raise TypeError("order must be at most 65536")
 
         if self == 0:
-            return '0*Z(%s)'%F.order()
+            return '0*Z(%s)' % F.order()
         assert F.degree() > 1
         g = F.multiplicative_generator()
         n = self.log(g)
-        return 'Z(%s)^%s'%(F.order(), n)
+        return 'Z(%s)^%s' % (F.order(), n)
 
 
 def unpickle_FiniteFieldElement_pari_ffelt(parent, elem):
     """
     EXAMPLES::
 
-        sage: k.<a> = GF(2^20, impl='pari_ffelt')
+        sage: # needs sage.modules
+        sage: k.<a> = GF(2^20, implementation='pari_ffelt')
         sage: e = k.random_element()
         sage: f = loads(dumps(e)) # indirect doctest
         sage: e == f

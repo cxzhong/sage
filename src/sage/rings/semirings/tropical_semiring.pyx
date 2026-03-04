@@ -5,7 +5,7 @@ AUTHORS:
 
 - Travis Scrimshaw (2013-04-28) - Initial version
 """
-#*****************************************************************************
+# ****************************************************************************
 #       Copyright (C) 2013 Travis Scrimshaw <tscrim@ucdavis.edu>
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
@@ -17,20 +17,18 @@ AUTHORS:
 #
 #  The full text of the GPL is available at:
 #
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
-from __future__ import absolute_import
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
 from sage.misc.cachefunc import cached_method
 from sage.structure.parent import Parent
 from sage.structure.unique_representation import UniqueRepresentation
 from sage.structure.element cimport Element, ModuleElement
+from sage.structure.richcmp cimport rich_to_bool
 from sage.categories.semirings import Semirings
 from sage.categories.map cimport Map
-from sage.sets.family import Family
-from sage.rings.all import ZZ
+from sage.rings.integer_ring import ZZ
 
-import operator
 
 cdef class TropicalSemiringElement(Element):
     r"""
@@ -42,7 +40,7 @@ cdef class TropicalSemiringElement(Element):
 
     cdef TropicalSemiringElement _new(self):
         """
-        Return a new tropical semiring element with parent ``self`.
+        Return a new tropical semiring element with parent ``self``.
         """
         cdef TropicalSemiringElement x
         x = TropicalSemiringElement.__new__(TropicalSemiringElement)
@@ -72,7 +70,7 @@ cdef class TropicalSemiringElement(Element):
             sage: T = TropicalSemiring(QQ)
             sage: elt = T(2)
             sage: elt.__reduce__()
-            (<type 'sage.rings.semirings.tropical_semiring.TropicalSemiringElement'>,
+            (<class 'sage.rings.semirings.tropical_semiring.TropicalSemiringElement'>,
              (Tropical semiring over Rational Field, 2))
         """
         return (TropicalSemiringElement, (self.parent(), self._val))
@@ -99,7 +97,7 @@ cdef class TropicalSemiringElement(Element):
         return repr(self._val)
 
     def _latex_(self):
-        """
+        r"""
         Return a latex representation of ``self``.
 
         EXAMPLES::
@@ -134,11 +132,9 @@ cdef class TropicalSemiringElement(Element):
         return hash(self._val)
 
     # Comparisons
-    cpdef int _cmp_(left, right) except -2:
-        """
-        Return ``-1`` if ``left`` is less than ``right``, ``0`` if
-        ``left`` and ``right`` are equal, and ``1`` if ``left`` is
-        greater than ``right``.
+    cpdef _richcmp_(left, right, int op):
+        r"""
+        Return the standard comparison of ``left`` and ``right``.
 
         EXAMPLES::
 
@@ -194,21 +190,21 @@ cdef class TropicalSemiringElement(Element):
 
         if self._val is None:
             if x._val is None:
-                return 0
+                return rich_to_bool(op, 0)
             if self.parent()._use_min:
-                return 1
-            return -1
+                return rich_to_bool(op, 1)
+            return rich_to_bool(op, -1)
 
         if x._val is None:
             if self.parent()._use_min:
-                return -1
-            return 1
+                return rich_to_bool(op, -1)
+            return rich_to_bool(op, 1)
 
         if self._val < x._val:
-            return -1
+            return rich_to_bool(op, -1)
         if self._val > x._val:
-            return 1
-        return 0
+            return rich_to_bool(op, 1)
+        return rich_to_bool(op, 0)
 
     cpdef _add_(left, right):
         """
@@ -261,7 +257,7 @@ cdef class TropicalSemiringElement(Element):
         return x
 
     def __neg__(self):
-        """
+        r"""
         Return the additive inverse, which only exists for `\infty`.
 
         EXAMPLES::
@@ -422,6 +418,7 @@ cdef class TropicalSemiringElement(Element):
             return infinity
         return self._val
 
+
 class TropicalSemiring(Parent, UniqueRepresentation):
     r"""
     The tropical semiring.
@@ -471,8 +468,8 @@ class TropicalSemiring(Parent, UniqueRepresentation):
     INPUT:
 
     - ``base`` -- the base ordered additive semigroup `R`
-    - ``use_min`` -- (default: ``True``) if ``True``, then the semiring uses
-      `a \oplus b = \min(a, b)`; otherwise uses `a \oplus b = \max(a, b)`
+    - ``use_min`` -- boolean (default: ``True``); if ``True``, then the semiring uses
+      `a \oplus b = \min(a, b)`. Otherwise uses `a \oplus b = \max(a, b)`.
 
     EXAMPLES::
 
@@ -559,16 +556,18 @@ class TropicalSemiring(Parent, UniqueRepresentation):
 
         EXAMPLES::
 
+            sage: TQ = TropicalSemiring(QQ)
+            sage: TQ.has_coerce_map_from(TQ)
+            True
+            sage: TQ.has_coerce_map_from(TropicalSemiring(ZZ))
+            True
+
+            sage: # needs sage.rings.real_mpfr
             sage: TR = TropicalSemiring(RR)
             sage: T60 = TropicalSemiring(RealField(60))
             sage: TR.has_coerce_map_from(T60)
             True
-            sage: TQ = TropicalSemiring(QQ)
-            sage: TQ.has_coerce_map_from(TropicalSemiring(ZZ))
-            True
             sage: TR.has_coerce_map_from(TR)
-            True
-            sage: TQ.has_coerce_map_from(TQ)
             True
             sage: TR.has_coerce_map_from(TQ)
             True
@@ -612,7 +611,7 @@ class TropicalSemiring(Parent, UniqueRepresentation):
 
     @cached_method
     def zero(self):
-        """
+        r"""
         Return the (tropical) additive identity element `+\infty`.
 
         EXAMPLES::
@@ -641,7 +640,7 @@ class TropicalSemiring(Parent, UniqueRepresentation):
 
     multiplicative_identity = one
 
-    def gens(self):
+    def gens(self) -> tuple:
         """
         Return the generators of ``self``.
 
@@ -652,6 +651,7 @@ class TropicalSemiring(Parent, UniqueRepresentation):
             (1, +infinity)
         """
         return (self.element_class(self, self.base().one()), self.infinity())
+
 
 cdef class TropicalToTropical(Map):
     """
@@ -673,4 +673,3 @@ cdef class TropicalToTropical(Map):
             +infinity
         """
         return self.codomain()((<TropicalSemiringElement>x)._val)
-

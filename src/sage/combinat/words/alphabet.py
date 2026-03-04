@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 r"""
 Alphabet
 
@@ -15,51 +14,46 @@ EXAMPLES::
     {'a', 'b'}
     sage: build_alphabet([0,1,2])
     {0, 1, 2}
-    sage: build_alphabet(name="PP")
+    sage: build_alphabet(name='PP')
     Positive integers
-    sage: build_alphabet(name="NN")
+    sage: build_alphabet(name='NN')
     Non negative integers
-    sage: build_alphabet(name="lower")
+    sage: build_alphabet(name='lower')
     {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'}
 """
-#*****************************************************************************
+# ****************************************************************************
 #       Copyright (C) 2008 Franco Saliola <saliola@gmail.com>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
-from __future__ import print_function
-from six.moves import range
-from six import integer_types
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
+
+import collections.abc
 
 from sage.categories.sets_cat import Sets
-
-from sage.sets.totally_ordered_finite_set import TotallyOrderedFiniteSet
-from sage.sets.family import Family
-
-from sage.rings.integer import Integer
 from sage.rings.infinity import Infinity
-
+from sage.rings.integer import Integer
+from sage.sets.family import Family
 from sage.sets.non_negative_integers import NonNegativeIntegers
-from sage.sets.positive_integers import PositiveIntegers
+from sage.sets.totally_ordered_finite_set import TotallyOrderedFiniteSet
 
 
 set_of_letters = {
-    'lower'       : "abcdefghijklmnopqrstuvwxyz",
-    'upper'       : "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
-    'space'       : " ",
-    'underscore'  : "_",
-    'punctuation' : " ,.;:!?",
-    'printable'   : "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~",
-    'binary'      : "01",
-    'octal'       : "01234567",
-    'decimal'     : "0123456789",
-    'hexadecimal' : "0123456789abcdef",
-    'radix64'     : "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/",
-    }
+    'lower': "abcdefghijklmnopqrstuvwxyz",
+    'upper': "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+    'space': " ",
+    'underscore': "_",
+    'punctuation': " ,.;:!?",
+    'printable': "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~",
+    'binary': "01",
+    'octal': "01234567",
+    'decimal': "0123456789",
+    'hexadecimal': "0123456789abcdef",
+    'radix64': "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"}
+
 
 def build_alphabet(data=None, names=None, name=None):
     r"""
@@ -86,8 +80,8 @@ def build_alphabet(data=None, names=None, name=None):
       punctuation'`` represents the union of the two alphabets ``'lower'`` and
       ``'punctuation'``.
 
-      Alternatively, ``name`` can be set to ``"positive integers"`` (or
-      ``"PP"``) or ``"natural numbers"`` (or ``"NN"``).
+      Alternatively, ``name`` can be set to ``'positive integers'`` (or
+      ``'PP'``) or ``'natural numbers'`` (or ``'NN'``).
 
       ``name`` cannot be combined with ``data``.
 
@@ -130,7 +124,7 @@ def build_alphabet(data=None, names=None, name=None):
 
         sage: build_alphabet(name="positive integers")
         Positive integers
-        sage: build_alphabet(name="PP")
+        sage: build_alphabet(name='PP')
         Positive integers
         sage: build_alphabet(name="natural numbers")
         Non negative integers
@@ -140,11 +134,11 @@ def build_alphabet(data=None, names=None, name=None):
     The other families for the option ``name`` are among 'lower', 'upper',
     'space', 'underscore', 'punctuation', 'printable', 'binary', 'octal',
     'decimal', 'hexadecimal', 'radix64' which refer to standard set of
-    charaters. Theses names may be combined by separating them by a space::
+    characters. Theses names may be combined by separating them by a space::
 
-        sage: build_alphabet(name="lower")
+        sage: build_alphabet(name='lower')
         {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'}
-        sage: build_alphabet(name="hexadecimal")
+        sage: build_alphabet(name='hexadecimal')
         {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'}
         sage: build_alphabet(name="decimal punctuation")
         {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', ' ', ',', '.', ';', ':', '!', '?'}
@@ -189,7 +183,7 @@ def build_alphabet(data=None, names=None, name=None):
 
     TESTS::
 
-        sage: Alphabet(3, name="punctuation")
+        sage: Alphabet(3, name='punctuation')
         Traceback (most recent call last):
         ...
         ValueError: name cannot be specified with any other argument
@@ -197,15 +191,15 @@ def build_alphabet(data=None, names=None, name=None):
         Traceback (most recent call last):
         ...
         ValueError: invalid value for names
-        sage: Alphabet(8, x)
+        sage: Alphabet(8, x)                                                            # needs sage.symbolic
         Traceback (most recent call last):
         ...
         ValueError: invalid value for names
-        sage: Alphabet(name=x, names="punctuation")
+        sage: Alphabet(name=x, names='punctuation')                                     # needs sage.symbolic
         Traceback (most recent call last):
         ...
         ValueError: name cannot be specified with any other argument
-        sage: Alphabet(x)
+        sage: Alphabet(x)                                                               # needs sage.symbolic
         Traceback (most recent call last):
         ...
         ValueError: unable to construct an alphabet from the given parameters
@@ -215,18 +209,18 @@ def build_alphabet(data=None, names=None, name=None):
         raise ValueError("name cannot be specified with any other argument")
 
     # Swap arguments if we need to try and make sure we have "good" user input
-    if isinstance(names, integer_types + (Integer,)) or names == Infinity \
+    if isinstance(names, (int, Integer)) or names == Infinity \
             or (data is None and names is not None):
-        data,names = names,data
+        data, names = names, data
 
     # data is an integer
-    if isinstance(data, integer_types + (Integer,)):
+    if isinstance(data, (int, Integer)):
         if names is None:
             from sage.sets.integer_range import IntegerRange
             return IntegerRange(Integer(data))
         if isinstance(names, str):
-            return TotallyOrderedFiniteSet([names + '%d'%i for i in range(data)])
-        if len(names) == data:
+            return TotallyOrderedFiniteSet([names + '%d' % i for i in range(data)])
+        if isinstance(names, collections.abc.Sequence) and len(names) == data:
             return TotallyOrderedFiniteSet(names)
         raise ValueError("invalid value for names")
 
@@ -262,104 +256,12 @@ def build_alphabet(data=None, names=None, name=None):
         return TotallyOrderedFiniteSet(data)
 
     # Alphabet(**nothing**)
-    if data is None: # name is also None
-        from sage.structure.parent import Set_PythonType
+    if data is None:  # name is also None
+        from sage.sets.pythonclass import Set_PythonType
         return Set_PythonType(object)
 
     raise ValueError("unable to construct an alphabet from the given parameters")
 
+
 # TODO: should it be deprecated as it is no more a class ?
 Alphabet = build_alphabet
-
-# NOTE: all of the classes below are here for backward compatibility (pickling).
-# More precisely, the ticket #8920 suppress several classes. The following code
-# just allows to unpickle old style alphabet saved from previous version of
-# Sage.
-
-class OrderedAlphabet(object):
-    r"""
-    .. WARNING::
-
-        Not to be used! (backward compatibility)
-
-    Returns a finite or infinite ordered alphabet.
-
-    EXAMPLES::
-
-        sage: from sage.combinat.words.alphabet import OrderedAlphabet
-        sage: A = OrderedAlphabet('ab'); A
-        doctest:...: DeprecationWarning: OrderedAlphabet is deprecated; use Alphabet instead.
-        See http://trac.sagemath.org/8920 for details.
-        {'a', 'b'}
-        sage: type(A)
-        <class 'sage.sets.totally_ordered_finite_set.TotallyOrderedFiniteSet_with_category'>
-    """
-    def __new__(self, alphabet=None, name=None):
-        """
-        EXAMPLES::
-
-            sage: from sage.combinat.words.alphabet import OrderedAlphabet
-            sage: A = OrderedAlphabet('ab'); A # indirect doctest
-            doctest:...: DeprecationWarning: OrderedAlphabet is deprecated; use Alphabet instead.
-            See http://trac.sagemath.org/8920 for details.
-            {'a', 'b'}
-        """
-        from sage.misc.superseded import deprecation
-        deprecation(8920, 'OrderedAlphabet is deprecated; use Alphabet instead.')
-
-        if alphabet is not None or name is not None:
-            return build_alphabet(data=alphabet, name=name)
-        from sage.structure.parent import Parent
-        return Parent.__new__(OrderedAlphabet_backward_compatibility)
-
-OrderedAlphabet_Finite = OrderedAlphabet
-
-class OrderedAlphabet_backward_compatibility(TotallyOrderedFiniteSet):
-    r"""
-    .. WARNING::
-
-        Not to be used! (backward compatibility)
-
-    Version prior to :trac:`8920` uses classes ``Alphabet`` with an argument
-    ``._alphabet`` instead of ``._elements`` used in
-    :class:`TotallyOrderedFiniteSet`. This class is dedicated to handle this
-    problem which occurs when unpickling ``OrderedAlphabet``.
-    """
-    def __getattr__(self, name):
-        r"""
-        If the attribute '_elements' is called then it is set to '_alphabet'.
-
-        EXAMPLES::
-
-            sage: from sage.combinat.words.alphabet import OrderedAlphabet
-            sage: O = OrderedAlphabet()
-            doctest:...: DeprecationWarning: OrderedAlphabet is deprecated; use Alphabet instead.
-            See http://trac.sagemath.org/8920 for details.
-            sage: O._alphabet = ['a', 'b']
-            sage: O._elements
-            ('a', 'b')
-        """
-        if name == '_elements':
-            if not hasattr(self, '_alphabet'):
-                raise AttributeError("no attribute '_elements'")
-            self._elements = tuple(self._alphabet)
-            from sage.structure.parent import Parent
-            from sage.categories.finite_enumerated_sets import FiniteEnumeratedSets
-            Parent.__init__(self, category=FiniteEnumeratedSets(), facade=True)
-            return self._elements
-        raise AttributeError("no attribute %s"%name)
-
-from sage.structure.sage_object import register_unpickle_override
-
-register_unpickle_override(
-    'sage.combinat.words.alphabet',
-    'OrderedAlphabet_NaturalNumbers',
-    NonNegativeIntegers,
-    call_name=('sage.sets.non_negative_integers', 'NonNegativeIntegers'))
-
-register_unpickle_override(
-    'sage.combinat.words.alphabet',
-    'OrderedAlphabet_PositiveIntegers',
-    PositiveIntegers,
-    call_name=('sage.sets.positive_integers', 'PositiveIntegers'))
-

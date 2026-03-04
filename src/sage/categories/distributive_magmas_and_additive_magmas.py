@@ -1,20 +1,21 @@
 r"""
 Distributive Magmas and Additive Magmas
 """
-#*****************************************************************************
+# ****************************************************************************
 #  Copyright (C) 2010 Nicolas Borie <nicolas.borie@math.u-psud.fr>
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
-#                  http://www.gnu.org/licenses/
-#******************************************************************************
+#                  https://www.gnu.org/licenses/
+# *****************************************************************************
 
 from sage.misc.lazy_import import LazyImport
 from sage.categories.category_with_axiom import CategoryWithAxiom
 from sage.categories.cartesian_product import CartesianProductsCategory
 
+
 class DistributiveMagmasAndAdditiveMagmas(CategoryWithAxiom):
     """
-    The category of sets `(S,+,*)` with `*` distributing on `+`.
+    The category of sets `(S, +, *)` with `*` distributing on `+`.
 
     This is similar to a ring, but `+` and `*` are only required to be
     (additive) magmas.
@@ -42,7 +43,7 @@ class DistributiveMagmasAndAdditiveMagmas(CategoryWithAxiom):
             class AdditiveUnital(CategoryWithAxiom):
                 class Associative(CategoryWithAxiom):
                     AdditiveInverse = LazyImport('sage.categories.rngs', 'Rngs', at_startup=True)
-                    Unital          = LazyImport('sage.categories.semirings', 'Semirings', at_startup=True)
+                    Unital = LazyImport('sage.categories.semirings', 'Semirings', at_startup=True)
 
     class ParentMethods:
 
@@ -67,18 +68,18 @@ class DistributiveMagmasAndAdditiveMagmas(CategoryWithAxiom):
             However, the elements tested can be customized with the
             ``elements`` keyword argument::
 
-                sage: CC._test_distributivity(elements=[CC(0),CC(1),CC(3),CC(I)])
+                sage: CC._test_distributivity(elements=[CC(0),CC(1),CC(3),CC(I)])       # needs sage.symbolic
 
             See the documentation for :class:`TestSuite` for more information.
             """
             tester = self._tester(**options)
-            S = tester.some_elements()
+            tester.some_elements()
             from sage.misc.misc import some_tuples
-            for x,y,z in some_tuples(tester.some_elements(), 3, tester._max_runs):
+            for x, y, z in some_tuples(tester.some_elements(), 3, tester._max_runs):
                 # left distributivity
-                tester.assert_(x * (y + z) == (x * y) + (x * z))
+                tester.assertEqual(x * (y + z), (x * y) + (x * z))
                 # right distributivity
-                tester.assert_((x + y) * z == (x * z) + (y * z))
+                tester.assertEqual((x + y) * z, (x * z) + (y * z))
 
     class CartesianProducts(CartesianProductsCategory):
         def extra_super_categories(self):
@@ -90,7 +91,7 @@ class DistributiveMagmasAndAdditiveMagmas(CategoryWithAxiom):
             EXAMPLES::
 
                 sage: C = (Magmas() & AdditiveMagmas()).Distributive().CartesianProducts()
-                sage: C.extra_super_categories();
+                sage: C.extra_super_categories()
                 [Category of distributive magmas and additive magmas]
                 sage: C.axioms()
                 frozenset({'Distributive'})

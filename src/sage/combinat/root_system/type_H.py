@@ -1,7 +1,6 @@
 """
 Root system data for type H
 """
-from __future__ import absolute_import
 #*****************************************************************************
 #       Copyright (C) 2008-2009 Nicolas M. Thiery <nthiery at users.sf.net>,
 #
@@ -10,6 +9,8 @@ from __future__ import absolute_import
 #*****************************************************************************
 
 from .cartan_type import CartanType_standard_finite, CartanType_simple
+
+
 class CartanType(CartanType_standard_finite, CartanType_simple):
     def __init__(self, n):
         """
@@ -41,28 +42,39 @@ class CartanType(CartanType_standard_finite, CartanType_simple):
         assert n in [3, 4]
         CartanType_standard_finite.__init__(self, "H", n)
 
+    def _latex_(self):
+        r"""
+        Return a latex representation of ``self``.
+
+        EXAMPLES::
+
+            sage: latex(CartanType(['H',3]))
+            H_3
+        """
+        return "H_{}".format(self.n)
+
     def coxeter_diagram(self):
         """
-        Returns a Coxeter diagram for type H.
+        Return a Coxeter diagram for type H.
 
         EXAMPLES::
 
              sage: ct = CartanType(['H',3])
-             sage: ct.coxeter_diagram()
+             sage: ct.coxeter_diagram()                                                 # needs sage.graphs
              Graph on 3 vertices
-             sage: sorted(ct.coxeter_diagram().edges())
+             sage: ct.coxeter_diagram().edges(sort=True)                                # needs sage.graphs
              [(1, 2, 3), (2, 3, 5)]
-             sage: ct.coxeter_matrix()
+             sage: ct.coxeter_matrix()                                                  # needs sage.graphs
              [1 3 2]
              [3 1 5]
              [2 5 1]
 
              sage: ct = CartanType(['H',4])
-             sage: ct.coxeter_diagram()
+             sage: ct.coxeter_diagram()                                                 # needs sage.graphs
              Graph on 4 vertices
-             sage: sorted(ct.coxeter_diagram().edges())
+             sage: ct.coxeter_diagram().edges(sort=True)                                # needs sage.graphs
              [(1, 2, 3), (2, 3, 3), (3, 4, 5)]
-             sage: ct.coxeter_matrix()
+             sage: ct.coxeter_matrix()                                                  # needs sage.graphs
              [1 3 2 2]
              [3 1 3 2]
              [2 3 1 5]
@@ -90,4 +102,3 @@ class CartanType(CartanType_standard_finite, CartanType_simple):
         if self.n == 3:
             return 10
         return 30
-

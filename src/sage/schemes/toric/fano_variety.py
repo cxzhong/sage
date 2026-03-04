@@ -1,3 +1,4 @@
+# sage.doctest: needs sage.geometry.polyhedron sage.graphs
 r"""
 Fano toric varieties
 
@@ -8,7 +9,7 @@ varieties, corresponding to crepant subdivisions of face fans of reflexive
 The interface is provided via :func:`CPRFanoToricVariety`.
 
 A careful exposition of different flavours of Fano varieties can be found in
-the paper by Benjamin Nill [Nill2005]_. The main goal of this module is to
+the paper by Benjamin Nill [Nil2005]_. The main goal of this module is to
 support work with **Gorenstein weak Fano toric varieties**. Such a variety
 corresponds to a **coherent crepant refinement of the normal fan of a
 reflexive polytope** `\Delta`, where crepant means that primitive generators
@@ -18,9 +19,9 @@ upper convex piecewise linear function whose domains of linearity are
 precisely the maximal cones of the subdivision. These varieties are important
 for string theory in physics, as they serve as ambient spaces for mirror pairs
 of Calabi-Yau manifolds via constructions due to Victor V. Batyrev
-[Batyrev1994]_ and Lev A. Borisov [Borisov1993]_.
+[Bat1994]_ and Lev A. Borisov [Bor1993]_.
 
-From the combinatorial point of view "crepant" requirement is much more simple
+From the combinatorial point of view, the "crepant" requirement is much more simple
 and natural to work with than "coherent." For this reason, the code in this
 module will allow work with arbitrary crepant subdivisions without checking
 whether they are coherent or not. We refer to corresponding toric varieties as
@@ -28,30 +29,10 @@ whether they are coherent or not. We refer to corresponding toric varieties as
 
 REFERENCES:
 
-..  [Batyrev1994]
-    Victor V. Batyrev,
-    "Dual polyhedra and mirror symmetry for Calabi-Yau hypersurfaces in toric
-    varieties",
-    J. Algebraic Geom. 3 (1994), no. 3, 493-535.
-    arXiv:alg-geom/9310003v1
-
-..  [Borisov1993]
-    Lev A. Borisov,
-    "Towards the mirror symmetry for Calabi-Yau complete intersections in
-    Gorenstein Fano toric varieties", 1993.
-    arXiv:alg-geom/9310001v1
-
-..  [CD2007]
-    Adrian Clingher and Charles F. Doran,
-    "Modular invariants for lattice polarized K3 surfaces",
-    Michigan Math. J. 55 (2007), no. 2, 355-393.
-    arXiv:math/0602146v1 [math.AG]
-
-..  [Nill2005]
-    Benjamin Nill,
-    "Gorenstein toric Fano varieties",
-    Manuscripta Math. 116 (2005), no. 2, 183-210.
-    arXiv:math/0405448v1 [math.AG]
+- [Bat1994]_
+- [Bor1993]_
+- [CD2007]_
+- [Nil2005]_
 
 AUTHORS:
 
@@ -73,49 +54,35 @@ variety::
 Its anticanonical "hypersurface" is a one-dimensional Calabi-Yau
 manifold::
 
-    sage: P2.anticanonical_hypersurface(
-    ....:       monomial_points="all")
-    Closed subscheme of 2-d CPR-Fano toric variety
-    covered by 3 affine patches defined by:
-      a0*z0^3 + a9*z0^2*z1 + a7*z0*z1^2
-    + a1*z1^3 + a8*z0^2*z2 + a6*z0*z1*z2
-    + a4*z1^2*z2 + a5*z0*z2^2
-    + a3*z1*z2^2 + a2*z2^3
+    sage: P2.anticanonical_hypersurface(monomial_points='all')
+    Closed subscheme of 2-d CPR-Fano toric variety covered by 3 affine patches defined by:
+      a0*z0^3 + a9*z0^2*z1 + a7*z0*z1^2 + a1*z1^3 + a8*z0^2*z2 + a6*z0*z1*z2
+      + a4*z1^2*z2 + a5*z0*z2^2 + a3*z1*z2^2 + a2*z2^3
 
-In many cases it is sufficient to work with the "simplified polynomial
+In many cases, it is sufficient to work with the "simplified polynomial
 moduli space" of anticanonical hypersurfaces::
 
-    sage: P2.anticanonical_hypersurface(
-    ....:       monomial_points="simplified")
-    Closed subscheme of 2-d CPR-Fano toric variety
-    covered by 3 affine patches defined by:
+    sage: P2.anticanonical_hypersurface(monomial_points='simplified')
+    Closed subscheme of 2-d CPR-Fano toric variety covered by 3 affine patches defined by:
       a0*z0^3 + a1*z1^3 + a6*z0*z1*z2 + a2*z2^3
 
 The mirror family to these hypersurfaces lives inside the Fano toric
 variety obtained using ``simplex`` as ``Delta`` instead of ``Delta_polar``::
 
-    sage: FTV = CPRFanoToricVariety(Delta=simplex,
-    ....:       coordinate_points="all")
-    sage: FTV.anticanonical_hypersurface(
-    ....:       monomial_points="simplified")
-    Closed subscheme of 2-d CPR-Fano toric variety
-    covered by 9 affine patches defined by:
-      a2*z2^3*z3^2*z4*z5^2*z8
-    + a1*z1^3*z3*z4^2*z7^2*z9
-    + a3*z0*z1*z2*z3*z4*z5*z7*z8*z9
-    + a0*z0^3*z5*z7*z8^2*z9^2
+    sage: FTV = CPRFanoToricVariety(Delta=simplex, coordinate_points='all')
+    sage: FTV.anticanonical_hypersurface(monomial_points='simplified')
+    Closed subscheme of 2-d CPR-Fano toric variety covered by 9 affine patches defined by:
+      a2*z2^3*z3^2*z4*z5^2*z8 + a1*z1^3*z3*z4^2*z7^2*z9
+      + a3*z0*z1*z2*z3*z4*z5*z7*z8*z9 + a0*z0^3*z5*z7*z8^2*z9^2
 
 Here we have taken the resolved version of the ambient space for the
 mirror family, but in fact we don't have to resolve singularities
 corresponding to the interior points of facets - they are singular
 points which do not lie on a generic anticanonical hypersurface::
 
-    sage: FTV = CPRFanoToricVariety(Delta=simplex,
-    ....:       coordinate_points="all but facets")
-    sage: FTV.anticanonical_hypersurface(
-    ....:       monomial_points="simplified")
-    Closed subscheme of 2-d CPR-Fano toric variety
-    covered by 3 affine patches defined by:
+    sage: FTV = CPRFanoToricVariety(Delta=simplex, coordinate_points="all but facets")
+    sage: FTV.anticanonical_hypersurface(monomial_points='simplified')
+    Closed subscheme of 2-d CPR-Fano toric variety covered by 3 affine patches defined by:
       a0*z0^3 + a1*z1^3 + a3*z0*z1*z2 + a2*z2^3
 
 This looks very similar to our second version of the anticanonical
@@ -125,13 +92,11 @@ one-dimensional Calabi-Yau manifolds are elliptic curves!
 Now let's take a look at a toric realization of `M`-polarized K3 surfaces
 studied by Adrian Clingher and Charles F. Doran in [CD2007]_::
 
-    sage: p4318 = ReflexivePolytope(3, 4318)  # long time
-    sage: FTV = CPRFanoToricVariety(Delta_polar=p4318)  # long time
-    sage: FTV.anticanonical_hypersurface()  # long time
-    Closed subscheme of 3-d CPR-Fano toric variety
-    covered by 4 affine patches defined by:
-      a3*z2^12 + a4*z2^6*z3^6 + a2*z3^12
-    + a8*z0*z1*z2*z3 + a0*z1^3 + a1*z0^2
+    sage: p4318 = ReflexivePolytope(3, 4318)
+    sage: FTV = CPRFanoToricVariety(Delta_polar=p4318)
+    sage: FTV.anticanonical_hypersurface()
+    Closed subscheme of 3-d CPR-Fano toric variety covered by 4 affine patches defined by:
+      a0*z2^12 + a4*z2^6*z3^6 + a3*z3^12 + a8*z0*z1*z2*z3 + a2*z1^3 + a1*z0^2
 
 Below you will find detailed descriptions of available functions. Current
 functionality of this module is very basic, but it is under active
@@ -143,29 +108,31 @@ implementing them on your own as a patch for inclusion!
 # The first example of the tutorial is taken from
 # CPRFanoToricVariety_field.anticanonical_hypersurface
 
-
-#*****************************************************************************
+# ****************************************************************************
 #       Copyright (C) 2010 Andrey Novoseltsev <novoselt@gmail.com>
 #       Copyright (C) 2010 William Stein <wstein@gmail.com>
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
 #
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
-from __future__ import print_function
-from six.moves import range
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
 import re
 
-from sage.geometry.all import Cone, FaceFan, Fan, LatticePolytope
-from sage.misc.all import latex, prod
-from sage.rings.all import (PolynomialRing, QQ)
+from sage.geometry.cone import Cone
+from sage.geometry.fan import FaceFan
+from sage.geometry.fan import Fan
+from sage.geometry.lattice_polytope import LatticePolytope
+from sage.misc.latex import latex
+from sage.misc.misc_c import prod
+from sage.rings.polynomial.polynomial_ring_constructor import PolynomialRing
+from sage.rings.rational_field import QQ
 
-from sage.rings.polynomial.multi_polynomial_ring import is_MPolynomialRing
-from sage.rings.polynomial.polynomial_ring import is_PolynomialRing
-from sage.rings.fraction_field import is_FractionField
+from sage.rings.polynomial.multi_polynomial_ring import MPolynomialRing_base
+from sage.rings.polynomial.polynomial_ring import PolynomialRing_generic
+from sage.rings.fraction_field import FractionField_generic
 
-from sage.schemes.generic.algebraic_scheme import AlgebraicScheme_subscheme_toric
+from sage.schemes.toric.toric_subscheme import AlgebraicScheme_subscheme_toric
 from sage.schemes.toric.variety import (
                                             ToricVariety_field,
                                             normalize_names)
@@ -178,42 +145,6 @@ _Fields = Fields()
 DEFAULT_COEFFICIENT = "a"
 # Default coefficients for nef complete intersections
 DEFAULT_COEFFICIENTS = tuple(chr(i) for i in range(ord("a"), ord("z") + 1))
-
-
-def is_CPRFanoToricVariety(x):
-    r"""
-    Check if ``x`` is a CPR-Fano toric variety.
-
-    INPUT:
-
-    - ``x`` -- anything.
-
-    OUTPUT:
-
-    - ``True`` if ``x`` is a :class:`CPR-Fano toric variety
-      <CPRFanoToricVariety_field>` and ``False`` otherwise.
-
-    .. NOTE::
-
-        While projective spaces are Fano toric varieties mathematically, they
-        are not toric varieties in Sage due to efficiency considerations, so
-        this function will return ``False``.
-
-    EXAMPLES::
-
-        sage: from sage.schemes.toric.fano_variety import (
-        ....:   is_CPRFanoToricVariety)
-        sage: is_CPRFanoToricVariety(1)
-        False
-        sage: FTV = toric_varieties.P2()
-        sage: FTV
-        2-d CPR-Fano toric variety covered by 3 affine patches
-        sage: is_CPRFanoToricVariety(FTV)
-        True
-        sage: is_CPRFanoToricVariety(ProjectiveSpace(2))
-        False
-    """
-    return isinstance(x, CPRFanoToricVariety_field)
 
 
 def CPRFanoToricVariety(Delta=None,
@@ -247,7 +178,7 @@ def CPRFanoToricVariety(Delta=None,
       *normal fan* of ``Delta``. Either ``Delta`` or ``Delta_polar`` must be
       given, but not both at the same time, since one is completely determined
       by another via :meth:`polar
-      <sage.geometry.lattice_polytope.LatticePolytopeClass.polar>` method;
+      <sage.geometry.lattice_polytope.LatticePolytopeClass.polar>` method.
 
     - ``Delta_polar`` -- reflexive :class:`lattice polytope
       <sage.geometry.lattice_polytope.LatticePolytopeClass>`. The fan of the
@@ -255,7 +186,7 @@ def CPRFanoToricVariety(Delta=None,
       *face fan* of ``Delta_polar``. Either ``Delta`` or ``Delta_polar`` must
       be given, but not both at the same time, since one is completely
       determined by another via :meth:`polar
-      <sage.geometry.lattice_polytope.LatticePolytopeClass.polar>` method;
+      <sage.geometry.lattice_polytope.LatticePolytopeClass.polar>` method.
 
     - ``coordinate_points`` -- list of integers or string. A list will be
       interpreted as indices of (boundary) points of ``Delta_polar`` which
@@ -272,26 +203,26 @@ def CPRFanoToricVariety(Delta=None,
       of these lists must define a generating cone of a fan subdividing the
       normal fan of ``Delta``. Default ``charts`` correspond to the normal fan
       of ``Delta`` without subdivision. The fan specified by ``charts`` will
-      be subdivided to include all of the requested ``coordinate_points``;
+      be subdivided to include all of the requested ``coordinate_points``.
 
     - ``coordinate_names`` -- names of variables for the coordinate ring, see
       :func:`~sage.schemes.toric.variety.normalize_names`
       for acceptable formats. If not given, indexed variable names will be
-      created automatically;
+      created automatically.
 
     - ``names`` -- an alias of ``coordinate_names`` for internal
       use. You may specify either ``names`` or ``coordinate_names``,
-      but not both;
+      but not both.
 
     - ``coordinate_name_indices`` -- list of integers, indices for indexed
       variables. If not given, the index of each variable will coincide with
-      the index of the corresponding point of ``Delta_polar``;
+      the index of the corresponding point of ``Delta_polar``.
 
     - ``make_simplicial`` -- if ``True``, the underlying fan will be made
-      simplicial (default: ``False``);
+      simplicial (default: ``False``)
 
     - ``base_ring`` -- base field of the CPR-Fano toric variety
-      (default: `\QQ`);
+      (default: `\QQ`)
 
     - ``base_field`` -- alias for ``base_ring``. Takes precedence if
       both are specified.
@@ -301,9 +232,7 @@ def CPRFanoToricVariety(Delta=None,
       ``Delta``). If you know for sure that the input is valid, you may
       significantly decrease construction time using ``check=False`` option.
 
-    OUTPUT:
-
-    - :class:`CPR-Fano toric variety <CPRFanoToricVariety_field>`.
+    OUTPUT: :class:`CPR-Fano toric variety <CPRFanoToricVariety_field>`
 
     EXAMPLES:
 
@@ -311,10 +240,8 @@ def CPRFanoToricVariety(Delta=None,
 
         sage: diamond = lattice_polytope.cross_polytope(2)
         sage: diamond.vertices()
-        M( 1,  0),
-        M( 0,  1),
-        M(-1,  0),
-        M( 0, -1)
+        M( 1,  0),        M( 0,  1),
+        M(-1,  0),        M( 0, -1)
         in 2-d lattice M
         sage: P1xP1 = CPRFanoToricVariety(Delta_polar=diamond)
         sage: P1xP1
@@ -322,10 +249,8 @@ def CPRFanoToricVariety(Delta=None,
         sage: P1xP1.fan()
         Rational polyhedral fan in 2-d lattice M
         sage: P1xP1.fan().rays()
-        M( 1,  0),
-        M( 0,  1),
-        M(-1,  0),
-        M( 0, -1)
+        M( 1,  0),        M( 0,  1),
+        M(-1,  0),        M( 0, -1)
         in 2-d lattice M
 
     "Unfortunately," this variety is smooth to start with and we cannot
@@ -335,72 +260,50 @@ def CPRFanoToricVariety(Delta=None,
 
         sage: square = diamond.polar()
         sage: square.vertices()
-        N( 1,  1),
-        N( 1, -1),
-        N(-1, -1),
-        N(-1,  1)
+        N( 1,  1),        N( 1, -1),
+        N(-1, -1),        N(-1,  1)
         in 2-d lattice N
         sage: square.points()
-        N( 1,  1),
-        N( 1, -1),
-        N(-1, -1),
-        N(-1,  1),
-        N(-1,  0),
-        N( 0, -1),
-        N( 0,  0),
-        N( 0,  1),
-        N( 1,  0)
+        N( 1,  1),        N( 1, -1),        N(-1, -1),
+        N(-1,  1),        N(-1,  0),        N( 0, -1),
+        N( 0,  0),        N( 0,  1),        N( 1,  0)
         in 2-d lattice N
 
     We will construct several varieties associated to it::
 
         sage: FTV = CPRFanoToricVariety(Delta_polar=square)
         sage: FTV.fan().rays()
-        N( 1,  1),
-        N( 1, -1),
-        N(-1, -1),
-        N(-1,  1)
+        N( 1,  1),        N( 1, -1),
+        N(-1, -1),        N(-1,  1)
         in 2-d lattice N
         sage: FTV.gens()
         (z0, z1, z2, z3)
 
         sage: FTV = CPRFanoToricVariety(Delta_polar=square,
-        ....:       coordinate_points=[0,1,2,3,8])
+        ....:                           coordinate_points=[0,1,2,3,8])
         sage: FTV.fan().rays()
-        N( 1,  1),
-        N( 1, -1),
-        N(-1, -1),
-        N(-1,  1),
-        N( 1,  0)
+        N( 1,  1),        N( 1, -1),        N(-1, -1),
+        N(-1,  1),        N( 1,  0)
         in 2-d lattice N
         sage: FTV.gens()
         (z0, z1, z2, z3, z8)
 
         sage: FTV = CPRFanoToricVariety(Delta_polar=square,
-        ....:       coordinate_points=[8,0,2,1,3],
-        ....:       coordinate_names="x+")
+        ....:                           coordinate_points=[8,0,2,1,3],
+        ....:                           coordinate_names='x+')
         sage: FTV.fan().rays()
-        N( 1,  0),
-        N( 1,  1),
-        N(-1, -1),
-        N( 1, -1),
-        N(-1,  1)
+        N( 1,  0),        N( 1,  1),        N(-1, -1),
+        N( 1, -1),        N(-1,  1)
         in 2-d lattice N
         sage: FTV.gens()
         (x8, x0, x2, x1, x3)
 
         sage: FTV = CPRFanoToricVariety(Delta_polar=square,
-        ....:       coordinate_points="all",
-        ....:       coordinate_names="x y Z+")
+        ....:                           coordinate_points='all',
+        ....:                           coordinate_names="x y Z+")
         sage: FTV.fan().rays()
-        N( 1,  1),
-        N( 1, -1),
-        N(-1, -1),
-        N(-1,  1),
-        N(-1,  0),
-        N( 0, -1),
-        N( 0,  1),
-        N( 1,  0)
+        N( 1,  1),        N( 1, -1),        N(-1, -1),        N(-1,  1),
+        N(-1,  0),        N( 0, -1),        N( 0,  1),        N( 1,  0)
         in 2-d lattice N
         sage: FTV.gens()
         (x, y, Z2, Z3, Z4, Z5, Z7, Z8)
@@ -414,9 +317,9 @@ def CPRFanoToricVariety(Delta=None,
     you want::
 
         sage: FTV = CPRFanoToricVariety(Delta_polar=square,
-        ....:       coordinate_points="all",
-        ....:       coordinate_names="x y Z+",
-        ....:       coordinate_name_indices=list(range(8)))
+        ....:                           coordinate_points='all',
+        ....:                           coordinate_names="x y Z+",
+        ....:                           coordinate_name_indices=list(range(8)))
         sage: FTV.gens()
         (x, y, Z2, Z3, Z4, Z5, Z6, Z7)
 
@@ -426,9 +329,9 @@ def CPRFanoToricVariety(Delta=None,
     much "automatic" ones::
 
         sage: FTV = CPRFanoToricVariety(Delta_polar=square,
-        ....:       coordinate_points="all",
-        ....:       coordinate_names="x Z+",
-        ....:       coordinate_name_indices=list(range(8)))
+        ....:                           coordinate_points='all',
+        ....:                           coordinate_names="x Z+",
+        ....:                           coordinate_name_indices=list(range(8)))
         sage: FTV.gens()
         (x, Z1, Z2, Z3, Z4, Z5, Z6, Z7)
 
@@ -436,16 +339,16 @@ def CPRFanoToricVariety(Delta=None,
     accordingly::
 
         sage: FTV = CPRFanoToricVariety(Delta_polar=square,
-        ....:       coordinate_points="all",
-        ....:       coordinate_names="x Z+",
-        ....:       coordinate_name_indices=[0] + list(range(7)))
+        ....:                           coordinate_points='all',
+        ....:                           coordinate_names="x Z+",
+        ....:                           coordinate_name_indices=[0] + list(range(7)))
         sage: FTV.gens()
         (x, Z0, Z1, Z2, Z3, Z4, Z5, Z6)
 
         sage: FTV = CPRFanoToricVariety(Delta_polar=square,
-        ....:       coordinate_points="all",
-        ....:       coordinate_names="x y Z+",
-        ....:       coordinate_name_indices=[0]*2 + list(range(6)))
+        ....:                           coordinate_points='all',
+        ....:                           coordinate_names="x y Z+",
+        ....:                           coordinate_name_indices=[0]*2 + list(range(6)))
         sage: FTV.gens()
         (x, y, Z0, Z1, Z2, Z3, Z4, Z5)
 
@@ -460,38 +363,34 @@ def CPRFanoToricVariety(Delta=None,
     (these charts actually form exactly the face fan of our square) ::
 
         sage: FTV = CPRFanoToricVariety(Delta_polar=square,
-        ....:       coordinate_points=[0,1,2,3,4],
-        ....:       charts=charts)
+        ....:                           coordinate_points=[0,1,2,3,4],
+        ....:                           charts=charts)
         sage: FTV.fan().rays()
-        N( 1,  1),
-        N( 1, -1),
-        N(-1, -1),
-        N(-1,  1),
-        N(-1,  0)
+        N( 1,  1),        N( 1, -1),        N(-1, -1),
+        N(-1,  1),        N(-1,  0)
         in 2-d lattice N
         sage: [cone.ambient_ray_indices() for cone in FTV.fan()]
-        [(0, 1), (1, 2), (3, 4), (2, 4), (0, 3)]
+        [(0, 1), (1, 2), (2, 4), (3, 4), (0, 3)]
 
     If charts are wrong, it should be detected::
 
         sage: bad_charts = charts + [(3,0)]
         sage: FTV = CPRFanoToricVariety(Delta_polar=square,
-        ....:       coordinate_points=[0,1,2,3,4],
-        ....:       charts=bad_charts)
+        ....:                           coordinate_points=[0,1,2,3,4],
+        ....:                           charts=bad_charts)
         Traceback (most recent call last):
         ...
         ValueError: you have provided 5 cones, but only 4 of them are maximal!
-        Use discard_faces=True if you indeed need to construct a fan from
-        these cones.
+        Use discard_faces=True if you indeed need to construct a fan from these cones.
 
     These charts are technically correct, they just happened to list one of
     them twice, but it is assumed that such a situation will not happen. It is
     especially important when you try to speed up your code::
 
         sage: FTV = CPRFanoToricVariety(Delta_polar=square,
-        ....:       coordinate_points=[0,1,2,3,4],
-        ....:       charts=bad_charts,
-        ....:       check=False)
+        ....:                           coordinate_points=[0,1,2,3,4],
+        ....:                           charts=bad_charts,
+        ....:                           check=False)
         Traceback (most recent call last):
         ...
         IndexError: list assignment index out of range
@@ -505,8 +404,8 @@ def CPRFanoToricVariety(Delta=None,
 
         sage: bad_charts = charts + [(0,2)]
         sage: FTV = CPRFanoToricVariety(Delta_polar=square,
-        ....:       coordinate_points=[0,1,2,3,4],
-        ....:       charts=bad_charts)
+        ....:                           coordinate_points=[0,1,2,3,4],
+        ....:                           charts=bad_charts)
         Traceback (most recent call last):
         ...
         ValueError: (0, 2) does not form a chart of a subdivision of
@@ -514,34 +413,31 @@ def CPRFanoToricVariety(Delta=None,
 
         sage: bad_charts = charts[:-1]
         sage: FTV = CPRFanoToricVariety(Delta_polar=square,
-        ....:       coordinate_points=[0,1,2,3,4],
-        ....:       charts=bad_charts)
+        ....:                           coordinate_points=[0,1,2,3,4],
+        ....:                           charts=bad_charts)
         Traceback (most recent call last):
         ...
         ValueError: given charts do not form a complete fan!
 
         sage: FTV = CPRFanoToricVariety(Delta_polar=square,
-        ....:       coordinate_points=[1,2,3,4])
+        ....:                           coordinate_points=[1,2,3,4])
         Traceback (most recent call last):
         ...
-        ValueError: all 4 vertices of Delta_polar
-        must be used for coordinates!
+        ValueError: all 4 vertices of Delta_polar must be used for coordinates!
         Got: [1, 2, 3, 4]
 
         sage: FTV = CPRFanoToricVariety(Delta_polar=square,
-        ....:       coordinate_points=[0,0,1,2,3,4])
+        ....:                           coordinate_points=[0,0,1,2,3,4])
         Traceback (most recent call last):
         ...
-        ValueError: no repetitions are
-        allowed for coordinate points!
+        ValueError: no repetitions are allowed for coordinate points!
         Got: [0, 0, 1, 2, 3, 4]
 
         sage: FTV = CPRFanoToricVariety(Delta_polar=square,
-        ....:       coordinate_points=[0,1,2,3,6])
+        ....:                           coordinate_points=[0,1,2,3,6])
         Traceback (most recent call last):
         ...
-        ValueError: the origin (point #6)
-        cannot be used for a coordinate!
+        ValueError: the origin (point #6) cannot be used for a coordinate!
         Got: [0, 1, 2, 3, 6]
 
     Here is a shorthand for defining the toric variety and homogeneous
@@ -566,16 +462,16 @@ def CPRFanoToricVariety(Delta=None,
         raise ValueError("Delta_polar must be reflexive!")
     # Check/normalize coordinate_points and construct fan rays
     if coordinate_points is None:
-        coordinate_points = list(range(Delta_polar.nvertices()))
+        coordinate_points = list(range(Delta_polar.n_vertices()))
         if charts is not None:
             for chart in charts:
                 for point in chart:
                     if point not in coordinate_points:
                         coordinate_points.append(point)
     elif coordinate_points == "vertices":
-        coordinate_points = list(range(Delta_polar.nvertices()))
+        coordinate_points = list(range(Delta_polar.n_vertices()))
     elif coordinate_points == "all":
-        coordinate_points = list(range(Delta_polar.npoints()))
+        coordinate_points = list(range(Delta_polar.n_points()))
         coordinate_points.remove(Delta_polar.origin())
     elif coordinate_points == "all but facets":
         coordinate_points = Delta_polar.skeleton_points(Delta_polar.dim() - 2)
@@ -588,17 +484,16 @@ def CPRFanoToricVariety(Delta=None,
             raise ValueError(
                 "no repetitions are allowed for coordinate points!\nGot: %s"
                 % coordinate_points)
-        if not cp_set.issuperset(list(range(Delta_polar.nvertices()))):
+        if not cp_set.issuperset(list(range(Delta_polar.n_vertices()))):
             raise ValueError("all %d vertices of Delta_polar must be used "
                 "for coordinates!\nGot: %s"
-                % (Delta_polar.nvertices(), coordinate_points))
+                % (Delta_polar.n_vertices(), coordinate_points))
         if Delta_polar.origin() in cp_set:
             raise ValueError("the origin (point #%d) cannot be used for a "
                 "coordinate!\nGot: %s"
                 % (Delta_polar.origin(), coordinate_points))
-    point_to_ray = dict()
-    for n, point in enumerate(coordinate_points):
-        point_to_ray[point] = n
+    point_to_ray = {point: n
+                    for n, point in enumerate(coordinate_points)}
     # This can be simplified if LatticePolytopeClass is adjusted.
     rays = [Delta_polar.point(p) for p in coordinate_points]
     # Check/normalize charts and construct the fan based on them.
@@ -637,7 +532,7 @@ def CPRFanoToricVariety(Delta=None,
                         make_simplicial=make_simplicial)
     # Now create yet another fan making sure that the order of the rays is
     # the same as requested (it is a bit difficult to get it from the start)
-    trans = dict()
+    trans = {}
     for n, ray in enumerate(fan.rays()):
         trans[n] = rays.index(ray)
     cones = tuple(tuple(sorted(trans[r] for r in cone.ambient_ray_indices()))
@@ -676,29 +571,27 @@ class CPRFanoToricVariety_field(ToricVariety_field):
 
     INPUT:
 
-    - ``Delta_polar`` -- reflexive polytope;
+    - ``Delta_polar`` -- reflexive polytope
 
     - ``fan`` -- rational polyhedral fan subdividing the face fan of
-      ``Delta_polar``;
+      ``Delta_polar``
 
     - ``coordinate_points`` -- list of indices of points of ``Delta_polar``
-      used for rays of ``fan``;
+      used for rays of ``fan``
 
     - ``point_to_ray`` -- dictionary mapping the index of a coordinate point
-      to the index of the corresponding ray;
+      to the index of the corresponding ray
 
     - ``coordinate_names`` -- names of the variables of the coordinate ring in
       the format accepted by
-      :func:`~sage.schemes.toric.variety.normalize_names`;
+      :func:`~sage.schemes.toric.variety.normalize_names`
 
     - ``coordinate_name_indices`` -- indices for indexed variables,
-      if ``None``, will be equal to ``coordinate_points``;
+      if ``None``, will be equal to ``coordinate_points``
 
-    - ``base_field`` -- base field of the CPR-Fano toric variety.
+    - ``base_field`` -- base field of the CPR-Fano toric variety
 
-    OUTPUT:
-
-    - :class:`CPR-Fano toric variety <CPRFanoToricVariety_field>`.
+    OUTPUT: :class:`CPR-Fano toric variety <CPRFanoToricVariety_field>`
 
     TESTS::
 
@@ -728,16 +621,14 @@ class CPRFanoToricVariety_field(ToricVariety_field):
         # Check/normalize coordinate_indices
         if coordinate_name_indices is None:
             coordinate_name_indices = coordinate_points
-        super(CPRFanoToricVariety_field, self).__init__(fan, coordinate_names,
-                                        coordinate_name_indices, base_field)
+        super().__init__(fan, coordinate_names,
+                         coordinate_name_indices, base_field)
 
     def _latex_(self):
         r"""
         Return a LaTeX representation of ``self``.
 
-        OUTPUT:
-
-        - string.
+        OUTPUT: string
 
         TESTS::
 
@@ -751,9 +642,7 @@ class CPRFanoToricVariety_field(ToricVariety_field):
         r"""
         Return a string representation of ``self``.
 
-        OUTPUT:
-
-        - string.
+        OUTPUT: string
 
         TESTS::
 
@@ -781,7 +670,7 @@ class CPRFanoToricVariety_field(ToricVariety_field):
 
         INPUT:
 
-        - ``monomial points`` -- a list of integers or a string. A list will be
+        - ``monomial_points`` -- list of integers or a string. A list will be
           interpreted as indices of points of `\Delta` which should be used
           for monomials of this hypersurface. A string must be one of the
           following descriptions of points of `\Delta`:
@@ -797,11 +686,11 @@ class CPRFanoToricVariety_field(ToricVariety_field):
         - ``coefficient_names`` -- names for the monomial coefficients, see
           :func:`~sage.schemes.toric.variety.normalize_names`
           for acceptable formats. If not given, indexed coefficient names will
-          be created automatically;
+          be created automatically.
 
-        - ``coefficient_name_indices`` -- a list of integers, indices for
+        - ``coefficient_name_indices`` -- list of integers, indices for
           indexed coefficients. If not given, the index of each coefficient
-          will coincide with the index of the corresponding point of `\Delta`;
+          will coincide with the index of the corresponding point of `\Delta`.
 
         - ``coefficients`` -- as an alternative to specifying coefficient
           names and/or indices, you can give the coefficients themselves as
@@ -824,22 +713,18 @@ class CPRFanoToricVariety_field(ToricVariety_field):
         Its anticanonical "hypersurface" is a one-dimensional Calabi-Yau
         manifold::
 
-            sage: P2.anticanonical_hypersurface(
-            ....:       monomial_points="all")
+            sage: P2.anticanonical_hypersurface(monomial_points='all')
             Closed subscheme of 2-d CPR-Fano toric variety
-            covered by 3 affine patches defined by:
-              a0*z0^3 + a9*z0^2*z1 + a7*z0*z1^2
-            + a1*z1^3 + a8*z0^2*z2 + a6*z0*z1*z2
-            + a4*z1^2*z2 + a5*z0*z2^2
-            + a3*z1*z2^2 + a2*z2^3
+             covered by 3 affine patches defined by:
+              a0*z0^3 + a9*z0^2*z1 + a7*z0*z1^2 + a1*z1^3 + a8*z0^2*z2 + a6*z0*z1*z2
+              + a4*z1^2*z2 + a5*z0*z2^2 + a3*z1*z2^2 + a2*z2^3
 
         In many cases it is sufficient to work with the "simplified polynomial
         moduli space" of anticanonical hypersurfaces::
 
-            sage: P2.anticanonical_hypersurface(
-            ....:       monomial_points="simplified")
+            sage: P2.anticanonical_hypersurface(monomial_points='simplified')
             Closed subscheme of 2-d CPR-Fano toric variety
-            covered by 3 affine patches defined by:
+             covered by 3 affine patches defined by:
               a0*z0^3 + a1*z1^3 + a6*z0*z1*z2 + a2*z2^3
 
         The mirror family to these hypersurfaces lives inside the Fano toric
@@ -847,15 +732,12 @@ class CPRFanoToricVariety_field(ToricVariety_field):
         ``Delta_polar``::
 
             sage: FTV = CPRFanoToricVariety(Delta=simplex,
-            ....:       coordinate_points="all")
-            sage: FTV.anticanonical_hypersurface(
-            ....:       monomial_points="simplified")
+            ....:                           coordinate_points='all')
+            sage: FTV.anticanonical_hypersurface(monomial_points='simplified')
             Closed subscheme of 2-d CPR-Fano toric variety
-            covered by 9 affine patches defined by:
-              a2*z2^3*z3^2*z4*z5^2*z8
-            + a1*z1^3*z3*z4^2*z7^2*z9
-            + a3*z0*z1*z2*z3*z4*z5*z7*z8*z9
-            + a0*z0^3*z5*z7*z8^2*z9^2
+             covered by 9 affine patches defined by:
+              a2*z2^3*z3^2*z4*z5^2*z8 + a1*z1^3*z3*z4^2*z7^2*z9
+              + a3*z0*z1*z2*z3*z4*z5*z7*z8*z9 + a0*z0^3*z5*z7*z8^2*z9^2
 
         Here we have taken the resolved version of the ambient space for the
         mirror family, but in fact we don't have to resolve singularities
@@ -863,11 +745,10 @@ class CPRFanoToricVariety_field(ToricVariety_field):
         points which do not lie on a generic anticanonical hypersurface::
 
             sage: FTV = CPRFanoToricVariety(Delta=simplex,
-            ....:       coordinate_points="all but facets")
-            sage: FTV.anticanonical_hypersurface(
-            ....:       monomial_points="simplified")
+            ....:                           coordinate_points="all but facets")
+            sage: FTV.anticanonical_hypersurface(monomial_points='simplified')
             Closed subscheme of 2-d CPR-Fano toric variety
-            covered by 3 affine patches defined by:
+             covered by 3 affine patches defined by:
               a0*z0^3 + a1*z1^3 + a3*z0*z1*z2 + a2*z2^3
 
         This looks very similar to our second anticanonical
@@ -878,18 +759,16 @@ class CPRFanoToricVariety_field(ToricVariety_field):
         automatically generated coefficients. If you want, you can specify your
         own names ::
 
-            sage: FTV.anticanonical_hypersurface(
-            ....:       coefficient_names="a b c d")
+            sage: FTV.anticanonical_hypersurface(coefficient_names="a b c d")
             Closed subscheme of 2-d CPR-Fano toric variety
-            covered by 3 affine patches defined by:
+             covered by 3 affine patches defined by:
               a*z0^3 + b*z1^3 + d*z0*z1*z2 + c*z2^3
 
         or give concrete coefficients ::
 
-            sage: FTV.anticanonical_hypersurface(
-            ....:       coefficients=[1, 2, 3, 4])
+            sage: FTV.anticanonical_hypersurface(coefficients=[1, 2, 3, 4])
             Closed subscheme of 2-d CPR-Fano toric variety
-            covered by 3 affine patches defined by:
+             covered by 3 affine patches defined by:
               z0^3 + 2*z1^3 + 4*z0*z1*z2 + 3*z2^3
 
         or even mix numerical coefficients with some expressions ::
@@ -898,13 +777,12 @@ class CPRFanoToricVariety_field(ToricVariety_field):
             ....:   coefficients=[0, "t", "1/t", "psi/(psi^2 + phi)"])
             sage: H
             Closed subscheme of 2-d CPR-Fano toric variety
-            covered by 3 affine patches defined by:
-              t*z1^3 + (psi/(psi^2 + phi))*z0*z1*z2 + 1/t*z2^3
+             covered by 3 affine patches defined by:
+              t*z1^3 + psi/(phi + psi^2)*z0*z1*z2 + 1/t*z2^3
             sage: R = H.ambient_space().base_ring()
             sage: R
             Fraction Field of
-            Multivariate Polynomial Ring in phi, psi, t
-            over Rational Field
+             Multivariate Polynomial Ring in phi, psi, t over Rational Field
         """
         # The example above is also copied to the tutorial section in the
         # main documentation of the module.
@@ -917,12 +795,9 @@ class CPRFanoToricVariety_field(ToricVariety_field):
 
         INPUT:
 
-        - ``F`` -- field.
+        - ``F`` -- field
 
-        OUTPUT:
-
-        - :class:`CPR-Fano toric variety <CPRFanoToricVariety_field>` over
-          ``F``.
+        OUTPUT: :class:`CPR-Fano toric variety <CPRFanoToricVariety_field>` over ``F``
 
         .. NOTE::
 
@@ -945,14 +820,13 @@ class CPRFanoToricVariety_field(ToricVariety_field):
             Traceback (most recent call last):
             ...
             ValueError: no natural map from the base ring
-            (=Real Field with 53 bits of precision)
-            to R (=Rational Field)!
+            (=Real Field with 53 bits of precision) to R (=Rational Field)!
             sage: R = PolynomialRing(QQ, 2, 'a')
             sage: P1xP1.change_ring(R)
             Traceback (most recent call last):
             ...
             TypeError: need a field to construct a Fano toric variety!
-             Got Multivariate Polynomial Ring in a0, a1 over Rational Field
+            Got Multivariate Polynomial Ring in a0, a1 over Rational Field
         """
         if self.base_ring() == F:
             return self
@@ -972,17 +846,14 @@ class CPRFanoToricVariety_field(ToricVariety_field):
 
         INPUT:
 
-        - ``point`` -- integer from the list of :meth:`coordinate_points`.
+        - ``point`` -- integer from the list of :meth:`coordinate_points`
 
-        OUTPUT:
-
-        - the corresponding generator of the coordinate ring of ``self``.
+        OUTPUT: the corresponding generator of the coordinate ring of ``self``
 
         EXAMPLES::
 
             sage: diamond = lattice_polytope.cross_polytope(2)
-            sage: FTV = CPRFanoToricVariety(diamond,
-            ....:       coordinate_points=[0,1,2,3,8])
+            sage: FTV = CPRFanoToricVariety(diamond, coordinate_points=[0,1,2,3,8])
             sage: FTV.coordinate_points()
             (0, 1, 2, 3, 8)
             sage: FTV.gens()
@@ -996,23 +867,21 @@ class CPRFanoToricVariety_field(ToricVariety_field):
         r"""
         Return indices of points of :meth:`Delta_polar` used for coordinates.
 
-        OUTPUT:
-
-        - :class:`tuple` of integers.
+        OUTPUT: :class:`tuple` of integers
 
         EXAMPLES::
 
             sage: diamond = lattice_polytope.cross_polytope(2)
             sage: square = diamond.polar()
             sage: FTV = CPRFanoToricVariety(Delta_polar=square,
-            ....:       coordinate_points=[0,1,2,3,8])
+            ....:                           coordinate_points=[0,1,2,3,8])
             sage: FTV.coordinate_points()
             (0, 1, 2, 3, 8)
             sage: FTV.gens()
             (z0, z1, z2, z3, z8)
 
             sage: FTV = CPRFanoToricVariety(Delta_polar=square,
-            ....:       coordinate_points="all")
+            ....:                           coordinate_points='all')
             sage: FTV.coordinate_points()
             (0, 1, 2, 3, 4, 5, 7, 8)
             sage: FTV.gens()
@@ -1096,7 +965,7 @@ class CPRFanoToricVariety_field(ToricVariety_field):
 
         - ``nef_partition`` -- a `k`-part :class:`nef-partition
           <sage.geometry.lattice_polytope.NefPartition>` of `\Delta^\circ`, all
-          other parameters (if given) must be lists of length `k`;
+          other parameters (if given) must be lists of length `k`
 
         - ``monomial_points`` -- the `i`-th element of this list is either a
           list of integers or a string. A list will be interpreted as indices
@@ -1109,18 +978,18 @@ class CPRFanoToricVariety_field(ToricVariety_field):
           * "all" (default),
 
           when using this description, it is also OK to pass a single string as
-          ``monomial_points`` instead of repeating it `k` times;
+          ``monomial_points`` instead of repeating it `k` times.
 
         - ``coefficient_names`` -- the `i`-th element of this list specifies
           names for the monomial coefficients of the `i`-th polynomial, see
           :func:`~sage.schemes.toric.variety.normalize_names`
           for acceptable formats. If not given, indexed coefficient names will
-          be created automatically;
+          be created automatically.
 
-        - ``coefficient_name_indices`` --  the `i`-th element of this list
+        - ``coefficient_name_indices`` -- the `i`-th element of this list
           specifies indices for indexed coefficients of the `i`-th polynomial.
           If not given, the index of each coefficient will coincide with the
-          index of the corresponding point of `\Delta_i`;
+          index of the corresponding point of `\Delta_i`.
 
         - ``coefficients`` -- as an alternative to specifying coefficient
           names and/or indices, you can give the coefficients themselves as
@@ -1138,14 +1007,13 @@ class CPRFanoToricVariety_field(ToricVariety_field):
         We construct several complete intersections associated to the same
         nef-partition of the 3-dimensional reflexive polytope #2254::
 
-            sage: p = ReflexivePolytope(3, 2254)  # long time (7s on sage.math, 2011)
-            sage: np = p.nef_partitions()[1]      # long time
-            sage: np  # long time
-            Nef-partition {2, 3, 4, 7, 8} U {0, 1, 5, 6}
-            sage: X = CPRFanoToricVariety(Delta_polar=p)  # long time
-            sage: X.nef_complete_intersection(np)  # long time
+            sage: p = ReflexivePolytope(3, 2254)
+            sage: np = p.nef_partitions()[1]; np
+            Nef-partition {2, 3, 4, 7, 8} ⊔ {0, 1, 5, 6}
+            sage: X = CPRFanoToricVariety(Delta_polar=p)
+            sage: X.nef_complete_intersection(np)
             Closed subscheme of 3-d CPR-Fano toric variety
-            covered by 10 affine patches defined by:
+             covered by 10 affine patches defined by:
               a0*z1*z4^2*z5^2*z7^3 + a2*z2*z4*z5*z6*z7^2*z8^2
               + a3*z2*z3*z4*z7*z8 + a1*z0*z2,
               b3*z1*z4*z5^2*z6^2*z7^2*z8^2 + b0*z2*z5*z6^3*z7*z8^4
@@ -1154,9 +1022,9 @@ class CPRFanoToricVariety_field(ToricVariety_field):
 
         Now we include only monomials associated to vertices of `\Delta_i`::
 
-            sage: X.nef_complete_intersection(np, monomial_points="vertices")  # long time
+            sage: X.nef_complete_intersection(np, monomial_points='vertices')
             Closed subscheme of 3-d CPR-Fano toric variety
-            covered by 10 affine patches defined by:
+             covered by 10 affine patches defined by:
               a0*z1*z4^2*z5^2*z7^3 + a2*z2*z4*z5*z6*z7^2*z8^2
               + a3*z2*z3*z4*z7*z8 + a1*z0*z2,
               b3*z1*z4*z5^2*z6^2*z7^2*z8^2 + b0*z2*z5*z6^3*z7*z8^4
@@ -1165,24 +1033,24 @@ class CPRFanoToricVariety_field(ToricVariety_field):
         (effectively, we set ``b5=0``). Next we provide coefficients explicitly
         instead of using default generic names::
 
-            sage: X.nef_complete_intersection(np,  # long time
-            ....:       monomial_points="vertices",
+            sage: X.nef_complete_intersection(np,
+            ....:       monomial_points='vertices',
             ....:       coefficients=[("a", "a^2", "a/e", "c_i"), list(range(1,6))])
             Closed subscheme of 3-d CPR-Fano toric variety
-            covered by 10 affine patches defined by:
+             covered by 10 affine patches defined by:
               a*z1*z4^2*z5^2*z7^3 + a/e*z2*z4*z5*z6*z7^2*z8^2
-              + c_i*z2*z3*z4*z7*z8 + a^2*z0*z2,
+              + (c_i)*z2*z3*z4*z7*z8 + (a^2)*z0*z2,
               4*z1*z4*z5^2*z6^2*z7^2*z8^2 + z2*z5*z6^3*z7*z8^4
               + 3*z2*z3*z6^2*z8^3 + 2*z1*z3^2*z4 + 5*z0*z1*z5*z6
 
         Finally, we take a look at the generic representative of these complete
         intersections in a completely resolved ambient toric variety::
 
-            sage: X = CPRFanoToricVariety(Delta_polar=p,  # long time
-            ....:                    coordinate_points="all")
-            sage: X.nef_complete_intersection(np)  # long time
+            sage: X = CPRFanoToricVariety(Delta_polar=p,
+            ....:                         coordinate_points='all')
+            sage: X.nef_complete_intersection(np)
             Closed subscheme of 3-d CPR-Fano toric variety
-            covered by 22 affine patches defined by:
+             covered by 22 affine patches defined by:
               a2*z2*z4*z5*z6*z7^2*z8^2*z9^2*z10^2*z11*z12*z13
               + a0*z1*z4^2*z5^2*z7^3*z9*z10^2*z12*z13
               + a3*z2*z3*z4*z7*z8*z9*z10*z11*z12 + a1*z0*z2,
@@ -1203,11 +1071,11 @@ class CPRFanoToricVariety_field(ToricVariety_field):
 
         - ``other`` -- a (possibly
           :class:`CPR-Fano <CPRFanoToricVariety_field>`) :class:`toric variety
-          <sage.schemes.toric.variety.ToricVariety_field>`;
+          <sage.schemes.toric.variety.ToricVariety_field>`
 
         - ``coordinate_names`` -- names of variables for the coordinate ring,
           see :func:`normalize_names` for acceptable formats. If not given,
-          indexed variable names will be created automatically;
+          indexed variable names will be created automatically.
 
         - ``coordinate_indices`` -- list of integers, indices for indexed
           variables. If not given, the index of each variable will coincide
@@ -1226,21 +1094,18 @@ class CPRFanoToricVariety_field(ToricVariety_field):
             sage: P1xP2 = P1.cartesian_product(P2); P1xP2
             3-d CPR-Fano toric variety covered by 6 affine patches
             sage: P1xP2.fan().rays()
-            N+N( 1,  0,  0),
-            N+N(-1,  0,  0),
-            N+N( 0,  1,  0),
-            N+N( 0,  0,  1),
-            N+N( 0, -1, -1)
+            N+N( 1,  0,  0),        N+N(-1,  0,  0),        N+N( 0,  1,  0),
+            N+N( 0,  0,  1),        N+N( 0, -1, -1)
             in 3-d lattice N+N
             sage: P1xP2.Delta_polar()
             3-d reflexive polytope in 3-d lattice N+N
         """
-        if is_CPRFanoToricVariety(other):
+        if isinstance(other, CPRFanoToricVariety_field):
             fan = self.fan().cartesian_product(other.fan())
             Delta_polar = LatticePolytope(fan.rays())
 
             points = Delta_polar.points()
-            point_to_ray = dict()
+            point_to_ray = {}
             coordinate_points = []
             for ray_index, ray in enumerate(fan.rays()):
                 point = points.index(ray)
@@ -1251,7 +1116,7 @@ class CPRFanoToricVariety_field(ToricVariety_field):
                                         coordinate_points, point_to_ray,
                                         coordinate_names, coordinate_indices,
                                         self.base_ring())
-        return super(CPRFanoToricVariety_field, self).cartesian_product(other)
+        return super().cartesian_product(other)
 
     def resolve(self, **kwds):
         r"""
@@ -1264,12 +1129,12 @@ class CPRFanoToricVariety_field(ToricVariety_field):
 
         - ``new_points`` -- list of integers, indices of boundary points of
           :meth:`Delta_polar`, which should be added as rays to the
-          subdividing fan;
+          subdividing fan
 
         - all other arguments will be passed to
           :meth:`~sage.schemes.toric.variety.ToricVariety_field.resolve`
-          method of (general) toric varieties, see its documentation for
-          details.
+          method of (general) toric varieties; see its documentation for
+          details
 
         OUTPUT:
 
@@ -1290,16 +1155,14 @@ class CPRFanoToricVariety_field(ToricVariety_field):
             ...
             ValueError: the origin (point #6)
             cannot be used for subdivision!
-            sage: FTV_res = FTV.resolve(new_points=[8,5])
-            sage: FTV_res
+            sage: FTV_res = FTV.resolve(new_points=[8,5]); FTV_res
             2-d CPR-Fano toric variety covered by 6 affine patches
             sage: FTV_res.coordinate_points()
             (0, 1, 2, 3, 8, 5)
             sage: FTV_res.gens()
             (z0, z1, z2, z3, z8, z5)
 
-            sage: TV_res = FTV.resolve(new_rays=[(1,2)])
-            sage: TV_res
+            sage: TV_res = FTV.resolve(new_rays=[(1,2)]); TV_res
             2-d toric variety covered by 5 affine patches
             sage: TV_res.gens()
             (z0, z1, z2, z3, z4)
@@ -1313,21 +1176,20 @@ class CPRFanoToricVariety_field(ToricVariety_field):
             if "new_points" in kwds:
                 raise ValueError("you cannot give new_points and new_rays at "
                                  "the same time!")
-            return super(CPRFanoToricVariety_field, self).resolve(**kwds)
+            return super().resolve(**kwds)
         # Now we need to construct another Fano variety
         new_points = kwds.pop("new_points", ())
         coordinate_points = self.coordinate_points()
         new_points = tuple(point for point in new_points
-                                 if point not in coordinate_points)
+                           if point not in coordinate_points)
         Delta_polar = self._Delta_polar
         if Delta_polar.origin() in new_points:
             raise ValueError("the origin (point #%d) cannot be used for "
                              "subdivision!" % Delta_polar.origin())
         if new_points:
             coordinate_points = coordinate_points + new_points
-            point_to_ray = dict()
-            for n, point in enumerate(coordinate_points):
-                point_to_ray[point] = n
+            point_to_ray = {point: n
+                            for n, point in enumerate(coordinate_points)}
         else:
             point_to_ray = self._point_to_ray
         new_rays = [Delta_polar.point(point) for point in new_points]
@@ -1360,16 +1222,15 @@ class AnticanonicalHypersurface(AlgebraicScheme_subscheme_toric):
     INPUT:
 
     - ``P_Delta`` -- :class:`CPR-Fano toric variety
-      <CPRFanoToricVariety_field>` associated to a reflexive polytope
-      `\Delta`;
+      <CPRFanoToricVariety_field>` associated to a reflexive polytope `\Delta`
 
-    -  see :meth:`CPRFanoToricVariety_field.anticanonical_hypersurface` for
-       documentation on all other acceptable parameters.
+    - see :meth:`CPRFanoToricVariety_field.anticanonical_hypersurface` for
+      documentation on all other acceptable parameters
 
     OUTPUT:
 
-    - :class:`anticanonical hypersurface <AnticanonicalHypersurface>` of
-      ``P_Delta`` (with the extended base field, if necessary).
+    :class:`anticanonical hypersurface <AnticanonicalHypersurface>` of
+    ``P_Delta`` (with the extended base field, if necessary).
 
     EXAMPLES::
 
@@ -1377,7 +1238,7 @@ class AnticanonicalHypersurface(AlgebraicScheme_subscheme_toric):
         sage: import sage.schemes.toric.fano_variety as ftv
         sage: ftv.AnticanonicalHypersurface(P1xP1)
         Closed subscheme of 2-d CPR-Fano toric variety
-        covered by 4 affine patches defined by:
+         covered by 4 affine patches defined by:
           a0*s^2*x^2 + a3*t^2*x^2 + a6*s*t*x*y + a1*s^2*y^2 + a2*t^2*y^2
 
     See :meth:`~CPRFanoToricVariety_field.anticanonical_hypersurface()` for a
@@ -1395,21 +1256,21 @@ class AnticanonicalHypersurface(AlgebraicScheme_subscheme_toric):
             sage: import sage.schemes.toric.fano_variety as ftv
             sage: ftv.AnticanonicalHypersurface(P1xP1)
             Closed subscheme of 2-d CPR-Fano toric variety
-            covered by 4 affine patches defined by:
+             covered by 4 affine patches defined by:
               a0*s^2*x^2 + a3*t^2*x^2 + a6*s*t*x*y + a1*s^2*y^2 + a2*t^2*y^2
 
-        Check that finite fields are handled correctly :trac:`14899`::
+        Check that finite fields are handled correctly :issue:`14899`::
 
-            sage: F = GF(5^2, "a")
-            sage: X = P1xP1.change_ring(F)
-            sage: X.anticanonical_hypersurface(monomial_points="all",
-            ....:                   coefficients=[1]*X.Delta().npoints())
+            sage: F = GF(5^2, "a")                                                      # needs sage.rings.finite_rings
+            sage: X = P1xP1.change_ring(F)                                              # needs sage.rings.finite_rings
+            sage: X.anticanonical_hypersurface(monomial_points='all',                   # needs sage.rings.finite_rings
+            ....:                   coefficients=[1]*X.Delta().n_points())
             Closed subscheme of 2-d CPR-Fano toric variety
-            covered by 4 affine patches defined by:
+             covered by 4 affine patches defined by:
               s^2*x^2 + s*t*x^2 + t^2*x^2 + s^2*x*y + s*t*x*y
-            + t^2*x*y + s^2*y^2 + s*t*y^2 + t^2*y^2
+              + t^2*x*y + s^2*y^2 + s*t*y^2 + t^2*y^2
         """
-        if not is_CPRFanoToricVariety(P_Delta):
+        if not isinstance(P_Delta, CPRFanoToricVariety_field):
             raise TypeError("anticanonical hypersurfaces can only be "
                             "constructed for CPR-Fano toric varieties!"
                             "\nGot: %s" % P_Delta)
@@ -1417,11 +1278,11 @@ class AnticanonicalHypersurface(AlgebraicScheme_subscheme_toric):
         Delta_polar = Delta.polar()
         # Monomial points normalization
         if monomial_points == "vertices":
-            monomial_points = list(range(Delta.nvertices()))
+            monomial_points = list(range(Delta.n_vertices()))
         elif monomial_points == "all":
-            monomial_points = list(range(Delta.npoints()))
+            monomial_points = list(range(Delta.n_points()))
         elif monomial_points == "vertices+origin":
-            monomial_points = list(range(Delta.nvertices()))
+            monomial_points = list(range(Delta.n_vertices()))
             monomial_points.append(Delta.origin())
         elif monomial_points == "simplified" or monomial_points is None:
             monomial_points = Delta.skeleton_points(Delta.dim() - 2)
@@ -1445,7 +1306,7 @@ class AnticanonicalHypersurface(AlgebraicScheme_subscheme_toric):
         else:
             variables = set()
             nonstr = []
-            regex = re.compile("[_A-Za-z]\w*")
+            regex = re.compile(r"[_A-Za-z]\w*")
             for c in coefficients:
                 if isinstance(c, str):
                     variables.update(regex.findall(c))
@@ -1462,9 +1323,9 @@ class AnticanonicalHypersurface(AlgebraicScheme_subscheme_toric):
         # Defining polynomial
         h = sum(coef * prod(P_Delta.coordinate_point_to_coordinate(n)
                             ** (Delta.point(m) * Delta_polar.point(n) + 1)
-                       for n in P_Delta.coordinate_points())
+                            for n in P_Delta.coordinate_points())
             for m, coef in zip(monomial_points, coefficients))
-        super(AnticanonicalHypersurface, self).__init__(P_Delta, h)
+        super().__init__(P_Delta, h)
 
 
 class NefCompleteIntersection(AlgebraicScheme_subscheme_toric):
@@ -1474,11 +1335,10 @@ class NefCompleteIntersection(AlgebraicScheme_subscheme_toric):
     INPUT:
 
     - ``P_Delta`` -- a :class:`CPR-Fano toric variety
-      <CPRFanoToricVariety_field>` associated to a reflexive polytope
-      `\Delta`;
+      <CPRFanoToricVariety_field>` associated to a reflexive polytope `\Delta`
 
     - see :meth:`CPRFanoToricVariety_field.nef_complete_intersection` for
-      documentation on all other acceptable parameters.
+      documentation on all other acceptable parameters
 
     OUTPUT:
 
@@ -1488,23 +1348,20 @@ class NefCompleteIntersection(AlgebraicScheme_subscheme_toric):
     EXAMPLES::
 
         sage: o = lattice_polytope.cross_polytope(3)
-        sage: np = o.nef_partitions()[0]
-        sage: np
-        Nef-partition {0, 1, 3} U {2, 4, 5}
+        sage: np = o.nef_partitions()[0]; np
+        Nef-partition {0, 1, 3} ⊔ {2, 4, 5}
         sage: X = CPRFanoToricVariety(Delta_polar=o)
         sage: X.nef_complete_intersection(np)
         Closed subscheme of 3-d CPR-Fano toric variety
-        covered by 8 affine patches defined by:
-          a2*z0^2*z1 + a5*z0*z1*z3 + a1*z1*z3^2
-          + a3*z0^2*z4 + a4*z0*z3*z4 + a0*z3^2*z4,
-          b1*z1*z2^2 + b2*z2^2*z4 + b5*z1*z2*z5
-          + b4*z2*z4*z5 + b3*z1*z5^2 + b0*z4*z5^2
+         covered by 8 affine patches defined by:
+          a2*z0^2*z1 + a5*z0*z1*z3 + a1*z1*z3^2 + a3*z0^2*z4 + a4*z0*z3*z4 + a0*z3^2*z4,
+          b1*z1*z2^2 + b2*z2^2*z4 + b5*z1*z2*z5 + b4*z2*z4*z5 + b3*z1*z5^2 + b0*z4*z5^2
 
     See :meth:`CPRFanoToricVariety_field.nef_complete_intersection` for a
     more elaborate example.
     """
     def __init__(self, P_Delta, nef_partition,
-                 monomial_points="all", coefficient_names=None,
+                 monomial_points='all', coefficient_names=None,
                  coefficient_name_indices=None, coefficients=None):
         r"""
         See :meth:`CPRFanoToricVariety_field.nef_complete_intersection` for
@@ -1515,18 +1372,18 @@ class NefCompleteIntersection(AlgebraicScheme_subscheme_toric):
             sage: o = lattice_polytope.cross_polytope(3)
             sage: np = o.nef_partitions()[0]
             sage: np
-            Nef-partition {0, 1, 3} U {2, 4, 5}
+            Nef-partition {0, 1, 3} ⊔ {2, 4, 5}
             sage: X = CPRFanoToricVariety(Delta_polar=o)
             sage: from sage.schemes.toric.fano_variety import *
             sage: NefCompleteIntersection(X, np)
             Closed subscheme of 3-d CPR-Fano toric variety
-            covered by 8 affine patches defined by:
+             covered by 8 affine patches defined by:
               a2*z0^2*z1 + a5*z0*z1*z3 + a1*z1*z3^2
               + a3*z0^2*z4 + a4*z0*z3*z4 + a0*z3^2*z4,
               b1*z1*z2^2 + b2*z2^2*z4 + b5*z1*z2*z5
               + b4*z2*z4*z5 + b3*z1*z5^2 + b0*z4*z5^2
         """
-        if not is_CPRFanoToricVariety(P_Delta):
+        if not isinstance(P_Delta, CPRFanoToricVariety_field):
             raise TypeError("nef complete intersections can only be "
                             "constructed for CPR-Fano toric varieties!"
                             "\nGot: %s" % P_Delta)
@@ -1534,7 +1391,7 @@ class NefCompleteIntersection(AlgebraicScheme_subscheme_toric):
             raise ValueError("polytopes 'Delta' of the nef-partition and the "
                              "CPR-Fano toric variety must be the same!")
         self._nef_partition = nef_partition
-        k = nef_partition.nparts()
+        k = nef_partition.n_parts()
         # Pre-normalize all parameters
         if isinstance(monomial_points, str):
             monomial_points = [monomial_points] * k
@@ -1551,13 +1408,13 @@ class NefCompleteIntersection(AlgebraicScheme_subscheme_toric):
             Delta_i = nef_partition.Delta(i)
             # Monomial points normalization
             if monomial_points[i] == "vertices":
-                monomial_points[i] = list(range(Delta_i.nvertices()))
+                monomial_points[i] = list(range(Delta_i.n_vertices()))
             elif monomial_points[i] == "all":
-                monomial_points[i] = list(range(Delta_i.npoints()))
+                monomial_points[i] = list(range(Delta_i.n_points()))
             elif monomial_points[i] == "vertices+origin":
-                monomial_points[i] = list(range(Delta_i.nvertices()))
+                monomial_points[i] = list(range(Delta_i.n_vertices()))
                 if (Delta_i.origin() is not None
-                    and Delta_i.origin() >= Delta_i.nvertices()):
+                    and Delta_i.origin() >= Delta_i.n_vertices()):
                     monomial_points[i].append(Delta_i.origin())
             elif isinstance(monomial_points[i], str):
                 raise ValueError("'%s' is an unsupported description of "
@@ -1575,7 +1432,7 @@ class NefCompleteIntersection(AlgebraicScheme_subscheme_toric):
             else:
                 variables = set()
                 nonstr = []
-                regex = re.compile("[_A-Za-z]\w*")
+                regex = re.compile(r"[_A-Za-z]\w*")
                 for c in coefficients[i]:
                     if isinstance(c, str):
                         variables.update(regex.findall(c))
@@ -1593,37 +1450,30 @@ class NefCompleteIntersection(AlgebraicScheme_subscheme_toric):
             h = sum(coef * prod(P_Delta.coordinate_point_to_coordinate(n)
                                 ** (Delta_i.point(m) * Delta_polar.point(n)
                                     + (nef_partition.part_of_point(n) == i))
-                           for n in P_Delta.coordinate_points())
+                                for n in P_Delta.coordinate_points())
                 for m, coef in zip(monomial_points[i], coefficients[i]))
             polynomials.append(h)
         self._monomial_points = tuple(monomial_points)
-        super(NefCompleteIntersection, self).__init__(P_Delta, polynomials)
+        super().__init__(P_Delta, polynomials)
 
     def cohomology_class(self):
         r"""
         Return the class of ``self`` in the ambient space cohomology ring.
-        
-        OUTPUT:
-        
-        - a :class:`cohomology class
-          <sage.schemes.generic.toric_variety.CohomologyClass>`.
+
+        OUTPUT: a :class:`cohomology class <sage.schemes.generic.toric_variety.CohomologyClass>`
 
         EXAMPLES::
 
             sage: o = lattice_polytope.cross_polytope(3)
-            sage: np = o.nef_partitions()[0]
-            sage: np
-            Nef-partition {0, 1, 3} U {2, 4, 5}
+            sage: np = o.nef_partitions()[0]; np
+            Nef-partition {0, 1, 3} ⊔ {2, 4, 5}
             sage: X = CPRFanoToricVariety(Delta_polar=o)
-            sage: CI = X.nef_complete_intersection(np)
-            sage: CI
+            sage: CI = X.nef_complete_intersection(np); CI
             Closed subscheme of 3-d CPR-Fano toric variety
-            covered by 8 affine patches defined by:
-              a2*z0^2*z1 + a5*z0*z1*z3 + a1*z1*z3^2
-              + a3*z0^2*z4 + a4*z0*z3*z4 + a0*z3^2*z4,
-              b1*z1*z2^2 + b2*z2^2*z4 + b5*z1*z2*z5
-              + b4*z2*z4*z5 + b3*z1*z5^2 + b0*z4*z5^2
-            sage: CI.cohomology_class()
+             covered by 8 affine patches defined by:
+              a2*z0^2*z1 + a5*z0*z1*z3 + a1*z1*z3^2 + a3*z0^2*z4 + a4*z0*z3*z4 + a0*z3^2*z4,
+              b1*z1*z2^2 + b2*z2^2*z4 + b5*z1*z2*z5 + b4*z2*z4*z5 + b3*z1*z5^2 + b0*z4*z5^2
+            sage: CI.cohomology_class()                                                 # needs sage.libs.singular
             [2*z3*z4 + 4*z3*z5 + 2*z4*z5]
         """
         X = self.ambient_space()
@@ -1631,33 +1481,26 @@ class NefCompleteIntersection(AlgebraicScheme_subscheme_toric):
         return prod(sum(H.gen(X._point_to_ray[point])
                     for point in part if point in X._coordinate_points)
                for part in self.nef_partition().parts(all_points=True))
-    
+
     def nef_partition(self):
         r"""
         Return the nef-partition associated to ``self``.
 
-        OUTPUT:
-
-        - a :class:`nef-partition
-          <sage.geometry.lattice_polytope.NefPartition>`.
+        OUTPUT: a :class:`nef-partition <sage.geometry.lattice_polytope.NefPartition>`
 
         EXAMPLES::
 
             sage: o = lattice_polytope.cross_polytope(3)
-            sage: np = o.nef_partitions()[0]
-            sage: np
-            Nef-partition {0, 1, 3} U {2, 4, 5}
+            sage: np = o.nef_partitions()[0]; np
+            Nef-partition {0, 1, 3} ⊔ {2, 4, 5}
             sage: X = CPRFanoToricVariety(Delta_polar=o)
-            sage: CI = X.nef_complete_intersection(np)
-            sage: CI
+            sage: CI = X.nef_complete_intersection(np); CI
             Closed subscheme of 3-d CPR-Fano toric variety
-            covered by 8 affine patches defined by:
-              a2*z0^2*z1 + a5*z0*z1*z3 + a1*z1*z3^2
-              + a3*z0^2*z4 + a4*z0*z3*z4 + a0*z3^2*z4,
-              b1*z1*z2^2 + b2*z2^2*z4 + b5*z1*z2*z5
-              + b4*z2*z4*z5 + b3*z1*z5^2 + b0*z4*z5^2
+             covered by 8 affine patches defined by:
+              a2*z0^2*z1 + a5*z0*z1*z3 + a1*z1*z3^2 + a3*z0^2*z4 + a4*z0*z3*z4 + a0*z3^2*z4,
+              b1*z1*z2^2 + b2*z2^2*z4 + b5*z1*z2*z5 + b4*z2*z4*z5 + b3*z1*z5^2 + b0*z4*z5^2
             sage: CI.nef_partition()
-            Nef-partition {0, 1, 3} U {2, 4, 5}
+            Nef-partition {0, 1, 3} ⊔ {2, 4, 5}
             sage: CI.nef_partition() is np
             True
         """
@@ -1670,9 +1513,9 @@ def add_variables(field, variables):
 
     INPUT:
 
-    - ``field`` - a field;
+    - ``field`` -- a field
 
-    - ``variables`` - a list of strings.
+    - ``variables`` -- list of strings
 
     OUTPUT:
 
@@ -1687,24 +1530,20 @@ def add_variables(field, variables):
         sage: F = add_variables(QQ, []); F      # No extension
         Rational Field
         sage: F = add_variables(QQ, ["a"]); F
-        Fraction Field of Univariate Polynomial Ring
-        in a over Rational Field
+        Fraction Field of Univariate Polynomial Ring in a over Rational Field
         sage: F = add_variables(F, ["a"]); F
-        Fraction Field of Univariate Polynomial Ring
-        in a over Rational Field
+        Fraction Field of Univariate Polynomial Ring in a over Rational Field
         sage: F = add_variables(F, ["b", "c"]); F
-        Fraction Field of Multivariate Polynomial Ring
-        in a, b, c over Rational Field
+        Fraction Field of Multivariate Polynomial Ring in a, b, c over Rational Field
         sage: F = add_variables(F, ["c", "d", "b", "c", "d"]); F
-        Fraction Field of Multivariate Polynomial Ring
-        in a, b, c, d over Rational Field
+        Fraction Field of Multivariate Polynomial Ring in a, b, c, d over Rational Field
     """
     if not variables:
         return field
-    if is_FractionField(field):
+    if isinstance(field, FractionField_generic):
         # Q(a) ---> Q(a, b) rather than Q(a)(b)
         R = field.ring()
-        if is_PolynomialRing(R) or is_MPolynomialRing(R):
+        if isinstance(R, (PolynomialRing_generic, MPolynomialRing_base)):
             new_variables = list(R.variable_names())
             for v in variables:
                 if v not in new_variables:
@@ -1720,4 +1559,3 @@ def add_variables(field, variables):
         if v not in new_variables:
             new_variables.append(v)
     return PolynomialRing(field, new_variables).fraction_field()
-

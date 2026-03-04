@@ -4,11 +4,6 @@
 #include "data.h"
 #include <Python.h>
 
-#if PY_MAJOR_VERSION >= 3
-  #define PyInt_FromLong               PyLong_FromLong
-  #define PyInt_AsLong                 PyLong_AsLong
-  #define PyInt_AS_LONG                PyLong_AS_LONG
-#endif
 
 class triangulations: public std::vector<compact_simplices>
 {
@@ -37,8 +32,6 @@ public:
   bool have_more_triangulations();
   const compact_simplices& next_triangulation();
 };
-
-
 
 
 typedef triangulations* triangulations_ptr;

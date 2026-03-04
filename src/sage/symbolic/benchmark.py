@@ -2,7 +2,7 @@ r"""
 Benchmarks
 
 Tests that will take a long time if something is wrong, but be very
-quick otherwise.  See http://wiki.sagemath.org/symbench.  The
+quick otherwise.  See https://wiki.sagemath.org/symbench.  The
 parameters chosen below are such that with pynac most of these take
 well less than a second, but would not even be feasible using Sage's
 Maxima-based symbolics.
@@ -19,7 +19,7 @@ Important note. Below we do s.expand().real() because s.real() takes forever (TO
 
 Problem R2::
 
-    sage: def hermite(n,y):
+    sage: def hermite(n, y):
     ....:     if n == 1: return 2*y
     ....:     if n == 0: return 1
     ....:     return expand(2*y*hermite(n-1,y) - 2*(n-1)*hermite(n-2,y))
@@ -28,33 +28,30 @@ Problem R2::
 
 Problem R3::
 
-    sage: from six.moves import range
     sage: f = sum(var('x,y,z')); a = [bool(f==f) for _ in range(100000)]
 
 Problem R4::
 
-    sage: u=[e,pi,sqrt(2)]; Tuples(u,3).cardinality()
+    sage: u = [e,pi,sqrt(2)]; Tuples(u,3).cardinality()
     27
 
 Problem R5::
 
-    sage: def blowup(L,n):
+    sage: def blowup(L, n):
     ....:    for i in [0..n]:
     ....:        L.append( (L[i] + L[i+1]) * L[i+2] )
     sage: L = list(var('x,y,z'))
     sage: blowup(L,15)
-    sage: len(uniq(L))
+    sage: len(set(L))
     19
 
 Problem R6::
 
-    sage: from six.moves import range
     sage: sum(((x+sin(i))/x+(x-sin(i))/x) for i in range(100)).expand()
     200
 
 Problem R7::
 
-    sage: from six.moves import range
     sage: f = x^24+34*x^12+45*x^3+9*x^18 +34*x^10+ 32*x^21
     sage: a = [f(x=random()) for _ in range(10^4)]
 
@@ -67,7 +64,6 @@ Problem R11::
     sage: a = [random() + random()*I for w in [0..100]]
     sage: a.sort()
 
-
 Problem W3::
 
     sage: acos(cos(x))
@@ -75,26 +71,22 @@ Problem W3::
 
 PROBLEM S1::
 
-    sage: _=var('x,y,z')
+    sage: _ = var('x,y,z')
     sage: f = (x+y+z+1)^10
     sage: g = expand(f*(f+1))
 
-
 PROBLEM S2::
 
-    sage: _=var('x,y')
+    sage: _ = var('x,y')
     sage: a = expand((x^sin(x) + y^cos(y) - z^(x+y))^100)
 
 PROBLEM S3::
 
-    sage: _=var('x,y,z')
+    sage: _ = var('x,y,z')
     sage: f = expand((x^y + y^z + z^x)^50)
     sage: g = f.diff(x)
 
 PROBLEM S4::
 
-    w = (sin(x)*cos(x)).series(x,400)
-
-
-
+    sage: w = (sin(x)*cos(x)).series(x,400)
 """

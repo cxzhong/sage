@@ -1,5 +1,6 @@
+# sage.doctest: needs sage.groups sage.modules
 r"""
-Examples of algebras with basis
+Examples of Hopf algebras with basis
 """
 #*****************************************************************************
 #  Copyright (C) 2008-2009 Nicolas M. Thiery <nthiery at users.sf.net>
@@ -10,13 +11,14 @@ Examples of algebras with basis
 
 from sage.misc.cachefunc import cached_method
 from sage.sets.family import Family
-from sage.categories.all import HopfAlgebrasWithBasis
+from sage.categories.hopf_algebras_with_basis import HopfAlgebrasWithBasis
 from sage.combinat.free_module import CombinatorialFreeModule
-from sage.categories.all import tensor
+from sage.categories.tensor import tensor
+
 
 class MyGroupAlgebra(CombinatorialFreeModule):
     r"""
-    An of a Hopf algebra with basis: the group algebra of a group
+    An example of a Hopf algebra with basis: the group algebra of a group.
 
     This class illustrates a minimal implementation of a Hopf algebra with basis.
     """
@@ -28,11 +30,12 @@ class MyGroupAlgebra(CombinatorialFreeModule):
             sage: from sage.categories.examples.hopf_algebras_with_basis import MyGroupAlgebra
             sage: A = MyGroupAlgebra(QQ, DihedralGroup(6))
             sage: A.category()
-            Category of finite dimensional hopf algebras with basis over Rational Field
+            Category of finite dimensional Hopf algebras with basis over Rational Field
             sage: TestSuite(A).run()
         """
         self._group = G
-        CombinatorialFreeModule.__init__(self, R, G, category = HopfAlgebrasWithBasis(R))
+        CombinatorialFreeModule.__init__(self, R, G,
+                                         category=HopfAlgebrasWithBasis(R))
 
     def _repr_(self):
         """
@@ -41,12 +44,12 @@ class MyGroupAlgebra(CombinatorialFreeModule):
             sage: HopfAlgebrasWithBasis(QQ).example() # indirect doctest
             An example of Hopf algebra with basis: the group algebra of the Dihedral group of order 6 as a permutation group over Rational Field
         """
-        return "An example of Hopf algebra with basis: the group algebra of the %s over %s"%(self._group, self.base_ring())
+        return "An example of Hopf algebra with basis: the group algebra of the %s over %s" % (self._group, self.base_ring())
 
     @cached_method
     def one_basis(self):
         """
-        Returns the one of the group, which index the one of this algebra,
+        Return the one of the group, which index the one of this algebra,
         as per :meth:`AlgebrasWithBasis.ParentMethods.one_basis`.
 
         EXAMPLES::
@@ -70,7 +73,7 @@ class MyGroupAlgebra(CombinatorialFreeModule):
         EXAMPLES::
 
             sage: A = HopfAlgebrasWithBasis(QQ).example()
-            sage: (a, b) = A._group.gens()
+            sage: a, b = A._group.gens()
             sage: a*b
             (1,2)
             sage: A.product_on_basis(a, b)
@@ -90,7 +93,7 @@ class MyGroupAlgebra(CombinatorialFreeModule):
             sage: A = HopfAlgebrasWithBasis(QQ).example(); A
             An example of Hopf algebra with basis: the group algebra of the Dihedral group of order 6 as a permutation group over Rational Field
             sage: A.algebra_generators()
-            Finite family {(1,3): B[(1,3)], (1,2,3): B[(1,2,3)]}
+            Finite family {(1,2,3): B[(1,2,3)], (1,3): B[(1,3)]}
         """
         return Family(self._group.gens(), self.monomial)
 
@@ -103,7 +106,7 @@ class MyGroupAlgebra(CombinatorialFreeModule):
         EXAMPLES::
 
             sage: A = HopfAlgebrasWithBasis(QQ).example()
-            sage: (a, b) = A._group.gens()
+            sage: a, b = A._group.gens()
             sage: A.coproduct_on_basis(a)
             B[(1,2,3)] # B[(1,2,3)]
         """
@@ -119,7 +122,7 @@ class MyGroupAlgebra(CombinatorialFreeModule):
         EXAMPLES::
 
             sage: A = HopfAlgebrasWithBasis(QQ).example()
-            sage: (a, b) = A._group.gens()
+            sage: a, b = A._group.gens()
             sage: A.counit_on_basis(a)
             1
         """
@@ -134,7 +137,7 @@ class MyGroupAlgebra(CombinatorialFreeModule):
         EXAMPLES::
 
             sage: A = HopfAlgebrasWithBasis(QQ).example()
-            sage: (a, b) = A._group.gens()
+            sage: a, b = A._group.gens()
             sage: A.antipode_on_basis(a)
             B[(1,3,2)]
         """

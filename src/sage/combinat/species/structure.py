@@ -1,4 +1,4 @@
-"""
+r"""
 Species structures
 
 We will illustrate the use of the structure classes using the
@@ -12,11 +12,15 @@ BB = o + o\*BB + o\*|\*BB
 
 Here we define this species using the default structures::
 
-    sage: ball = species.SingletonSpecies(); o = var('o')
+    sage: ball = species.SingletonSpecies()
+    doctest:warning...
+    DeprecationWarning: combinat.species is superseded by LazyCombinatorialSpecies
+    See https://github.com/sagemath/sage/issues/38544 for details.
     sage: bar = species.EmptySetSpecies()
     sage: BB = CombinatorialSpecies()
     sage: BB.define(ball + ball*BB + ball*bar*BB)
-    sage: BB.isotypes([o]*3).list()
+    sage: o = var('o')                                                                  # needs sage.symbolic
+    sage: BB.isotypes([o]*3).list()                                                     # needs sage.symbolic
     [o*(o*o), o*((o*{})*o), (o*{})*(o*o), (o*{})*((o*{})*o)]
 
 If we ignore the parentheses, we can read off that the integer
@@ -36,8 +40,10 @@ compositions are [3], [2, 1], [1, 2], and [1, 1, 1].
 #
 #                  http://www.gnu.org/licenses/
 #*****************************************************************************
-from sage.combinat.combinat import CombinatorialClass, CombinatorialObject
+from sage.categories.enumerated_sets import EnumeratedSets
+from sage.combinat.combinat import CombinatorialObject
 from sage.rings.integer import Integer
+from sage.structure.parent import Parent
 from copy import copy
 
 
@@ -47,7 +53,7 @@ class GenericSpeciesStructure(CombinatorialObject):
         This is a base class from which the classes for the structures inherit.
 
         EXAMPLES::
-        
+
             sage: from sage.combinat.species.structure import GenericSpeciesStructure
             sage: a = GenericSpeciesStructure(None, [2,3,4], [1,2,3])
             sage: a
@@ -63,7 +69,7 @@ class GenericSpeciesStructure(CombinatorialObject):
 
     def parent(self):
         """
-        Returns the species that this structure is associated with.
+        Return the species that this structure is associated with.
 
         EXAMPLES::
 
@@ -124,9 +130,9 @@ class GenericSpeciesStructure(CombinatorialObject):
 
     def labels(self):
         """
-        Returns the labels used for this structure.
+        Return the labels used for this structure.
 
-        .. note::
+        .. NOTE::
 
             This includes labels which may not "appear" in this
             particular structure.
@@ -146,11 +152,11 @@ class GenericSpeciesStructure(CombinatorialObject):
 
         INPUT:
 
-        - ``labels``, a list of labels.
+        - ``labels`` -- list of labels
 
         OUTPUT:
 
-        A structure with the i-th label of self replaced with the i-th
+        A structure with the `i`-th label of ``self`` replaced with the `i`-th
         label of the list.
 
         EXAMPLES::
@@ -176,11 +182,10 @@ class GenericSpeciesStructure(CombinatorialObject):
             [1, 2, 3]
         """
         if isinstance(i, (int, Integer)):
-            return self._labels[i-1]
-        else:
-            return i
+            return self._labels[i - 1]
+        return i
 
-    def is_isomorphic(self, x):
+    def is_isomorphic(self, x) -> bool:
         """
         EXAMPLES::
 
@@ -197,16 +202,15 @@ class GenericSpeciesStructure(CombinatorialObject):
         if self.parent() != x.parent():
             return False
 
-        #We don't care about the labels for isomorphism testing
-        if self.canonical_label()._list == x.canonical_label()._list:
-            return True
-        else:
-            return False
+        # We don't care about the labels for isomorphism testing
+        return self.canonical_label()._list == x.canonical_label()._list
+
 
 #For backward compatibility.  This should be removed in the near
 #future since I doubt that there is any code that depends directly on
 #SpeciesStructure.
 SpeciesStructure = GenericSpeciesStructure
+
 
 class SpeciesStructureWrapper(GenericSpeciesStructure):
     def __init__(self, parent, s, **options):
@@ -228,7 +232,7 @@ class SpeciesStructureWrapper(GenericSpeciesStructure):
             sage: from sage.combinat.species.structure import SpeciesStructureWrapper
             sage: issubclass(type(s), SpeciesStructureWrapper)
             True
-        
+
         EXAMPLES::
 
             sage: E = species.SetSpecies(); B = E+E
@@ -259,7 +263,7 @@ class SpeciesStructureWrapper(GenericSpeciesStructure):
 
     def __repr__(self):
         """
-        Returns the repr of the object which this one wraps.
+        Return the repr of the object which this one wraps.
 
         EXAMPLES::
 
@@ -274,9 +278,9 @@ class SpeciesStructureWrapper(GenericSpeciesStructure):
         EXAMPLES::
 
             sage: P = species.PartitionSpecies()
-            sage: s = (P+P).structures([1,2,3]).random_element(); s
+            sage: s = (P+P).structures([1,2,3])[1]; s                                   # needs sage.libs.flint
             {{1, 3}, {2}}
-            sage: s.transport(PermutationGroupElement((2,3)))
+            sage: s.transport(PermutationGroupElement((2,3)))                           # needs sage.groups sage.libs.flint
             {{1, 2}, {3}}
         """
         return self.__class__(self._parent, self._s.transport(perm), **self._options)
@@ -286,9 +290,9 @@ class SpeciesStructureWrapper(GenericSpeciesStructure):
         EXAMPLES::
 
             sage: P = species.PartitionSpecies()
-            sage: s = (P+P).structures([1,2,3]).random_element(); s
+            sage: s = (P+P).structures([1,2,3])[1]; s                                   # needs sage.libs.flint
             {{1, 3}, {2}}
-            sage: s.canonical_label()
+            sage: s.canonical_label()                                                   # needs sage.libs.flint
             {{1, 2}, {3}}
         """
         return self.__class__(self._parent, self._s.canonical_label(), **self._options)
@@ -299,11 +303,11 @@ class SpeciesStructureWrapper(GenericSpeciesStructure):
 
         INPUT:
 
-        - ``labels``, a list of labels.
+        - ``labels`` -- list of labels
 
         OUTPUT:
 
-        A structure with the i-th label of self replaced with the i-th
+        A structure with the `i`-th label of ``self`` replaced with the `i`-th
         label of the list.
 
         EXAMPLES::
@@ -323,18 +327,18 @@ class SpeciesStructureWrapper(GenericSpeciesStructure):
 ##############################################################
 
 
-class SpeciesWrapper(CombinatorialClass):
+class SpeciesWrapper(Parent):
     def __init__(self, species, labels, iterator, generating_series, name, structure_class):
         """
         This is a abstract base class for the set of structures of a
         species as well as the set of isotypes of the species.
-        
-        .. note::
+
+        .. NOTE::
 
             One typically does not use :class:`SpeciesWrapper`
             directly, but instead instantiates one of its subclasses:
             :class:`StructuresWrapper` or :class:`IsotypesWrapper`.
-           
+
         EXAMPLES::
 
             sage: from sage.combinat.species.structure import SpeciesWrapper
@@ -347,6 +351,7 @@ class SpeciesWrapper(CombinatorialClass):
             sage: S.cardinality()
             1
         """
+        Parent.__init__(self, category=EnumeratedSets().Finite())
         self._species = species
         self._labels = labels
         self._iterator = iterator
@@ -354,17 +359,57 @@ class SpeciesWrapper(CombinatorialClass):
         self._name = "%s for %s with labels %s" % (name, species, labels)
         self._structure_class = structure_class if structure_class is not None else species._default_structure_class
 
+    def __eq__(self, other) -> bool:
+        r"""
+        EXAMPLES::
+
+            sage: from sage.combinat.species.structure import SpeciesWrapper
+            sage: F = species.SetSpecies()
+            sage: S = SpeciesWrapper(F, [1,2,3], "_structures", "generating_series", 'Structures', None)
+            sage: S == SpeciesWrapper(F, [1,2,3], "_structures", "generating_series", 'Structures', None)
+            True
+        """
+        return ((self._species, self._labels,
+                 self._iterator, self._generating_series,
+                 self._name, self._structure_class) == (other._species, other._labels,
+                                                        other._iterator, other._generating_series,
+                                                        other._name, other._structure_class))
+
+    def __ne__(self, other) -> bool:
+        r"""
+        EXAMPLES::
+
+            sage: from sage.combinat.species.structure import SpeciesWrapper
+            sage: F = species.SetSpecies()
+            sage: S = SpeciesWrapper(F, [1,2,3], "_structures", "generating_series", 'Structures', None)
+            sage: S != SpeciesWrapper(F, [1,2,3], "_structures", "generating_series", 'Structures', None)
+            False
+        """
+        return not (self == other)
+
+    def _repr_(self) -> str:
+        """
+        EXAMPLES::
+
+            sage: from sage.combinat.species.structure import SpeciesWrapper
+            sage: F = species.SetSpecies()
+            sage: S = SpeciesWrapper(F, [1,2,3], "_structures", "generating_series", 'Structures', None)
+            sage: repr(S)   # indirect doctest
+            'Structures for Set species with labels [1, 2, 3]'
+        """
+        return self._name
+
     def labels(self):
         """
-        Returns the labels used on these structures.  If `X` is the
+        Return the labels used on these structures.  If `X` is the
         species, then :meth:`labels` returns the preimage of these
         structures under the functor `X`.
 
         EXAMPLES::
-        
+
             sage: F = species.SetSpecies()
             sage: F.structures([1,2,3]).labels()
-            [1, 2, 3]            
+            [1, 2, 3]
         """
         return copy(self._labels)
 
@@ -390,15 +435,15 @@ class SpeciesWrapper(CombinatorialClass):
         try:
             if self.cardinality() == 0:
                 return iter([])
-        except RuntimeError:
+        except TypeError:
             raise NotImplementedError
 
         return getattr(self._species, self._iterator)(self._structure_class, self._labels)
 
     def cardinality(self):
         """
-        Returns the number of structures in this set.
-        
+        Return the number of structures in this set.
+
         EXAMPLES::
 
             sage: F = species.SetSpecies()
@@ -406,6 +451,7 @@ class SpeciesWrapper(CombinatorialClass):
             1
         """
         return getattr(self._species, self._generating_series)().count(len(self._labels))
+
 
 class StructuresWrapper(SpeciesWrapper):
     def __init__(self, species, labels, structure_class):
@@ -427,13 +473,14 @@ class StructuresWrapper(SpeciesWrapper):
                                 "Structures",
                                 structure_class)
 
+
 class IsotypesWrapper(SpeciesWrapper):
     def __init__(self, species, labels, structure_class):
         """
         A base class for the set of isotypes of a species with given
         set of labels.  An object of this type is returned when you
         call the :meth:`isotypes` method of a species.
-        
+
         EXAMPLES::
 
             sage: F = species.SetSpecies()

@@ -25,7 +25,7 @@ AUTHORS:
 - Ben Hutz (2017) relocate code and create new class
 """
 
-#*****************************************************************************
+# ****************************************************************************
 #       Copyright (C) 2011 Volker Braun <vbraun.name@gmail.com>
 #       Copyright (C) 2006 David Kohel <kohel@maths.usyd.edu.au>
 #       Copyright (C) 2006 William Stein <wstein@gmail.com>
@@ -34,32 +34,30 @@ AUTHORS:
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
 from sage.categories.fields import Fields
 from sage.dynamics.arithmetic_dynamics.generic_ds import DynamicalSystem
 from sage.matrix.constructor import identity_matrix
 from sage.misc.cachefunc import cached_method
 from sage.misc.classcall_metaclass import typecall
-from sage.rings.all import Integer
-from sage.rings.finite_rings.finite_field_constructor import is_PrimeFiniteField
-from sage.rings.finite_rings.finite_field_constructor import is_FiniteField
+from sage.rings.integer import Integer
+from sage.rings.finite_rings.finite_field_base import FiniteField
 from sage.rings.fraction_field import FractionField
-from sage.rings.fraction_field import is_FractionField
-from sage.rings.polynomial.polynomial_ring import is_PolynomialRing
-from sage.rings.polynomial.multi_polynomial_ring import is_MPolynomialRing
-from sage.rings.quotient_ring import is_QuotientRing
+from sage.rings.fraction_field import FractionField_generic
+from sage.rings.quotient_ring import QuotientRing_nc
 from sage.schemes.affine.affine_morphism import SchemeMorphism_polynomial_affine_space
 from sage.schemes.affine.affine_morphism import SchemeMorphism_polynomial_affine_space_field
 from sage.schemes.affine.affine_morphism import SchemeMorphism_polynomial_affine_space_finite_field
-from sage.schemes.affine.affine_space import is_AffineSpace
+from sage.schemes.affine.affine_space import AffineSpace_generic
 from sage.schemes.affine.affine_space import AffineSpace
-from sage.schemes.generic.algebraic_scheme import AlgebraicScheme_subscheme_affine
+from sage.schemes.affine.affine_subscheme import AlgebraicScheme_subscheme_affine
 from sage.schemes.generic.morphism import SchemeMorphism_polynomial
-from sage.symbolic.ring import is_SymbolicExpressionRing
-from sage.symbolic.ring import var
-from sage.symbolic.ring import SR
+from sage.structure.element import get_coercion_model
+
+import sage.rings.abc
+
 
 class DynamicalSystem_affine(SchemeMorphism_polynomial_affine_space,
                              DynamicalSystem):
@@ -80,7 +78,7 @@ class DynamicalSystem_affine(SchemeMorphism_polynomial_affine_space,
       rational function, or a list or tuple of polynomials or rational
       functions
 
-    - ``domain`` -- optional affine space or subscheme of such;
+    - ``domain`` -- (optional) affine space or subscheme of such;
       the following combinations of ``morphism_or_polys`` and
       ``domain`` are meaningful:
 
@@ -93,7 +91,7 @@ class DynamicalSystem_affine(SchemeMorphism_polynomial_affine_space,
       * ``morphism_or_polys`` is a list of polynomials or rational
         functions and ``domain`` is unspecified; ``domain`` is then
         taken to be the affine space of appropriate dimension over the
-        base ring of the first element of ``morphism_or_polys``
+        common base ring, if one exists, of the elements of ``morphism_or_polys``
 
       * ``morphism_or_polys`` is a single polynomial or rational
         function; ``domain`` is ignored and assumed to be the
@@ -164,8 +162,9 @@ class DynamicalSystem_affine(SchemeMorphism_polynomial_affine_space,
 
     If you pass in quotient ring elements, they are reduced::
 
+        sage: # needs sage.libs.singular
         sage: A.<x,y,z> = AffineSpace(QQ, 3)
-        sage: X = A.subscheme([x-y])
+        sage: X = A.subscheme([x - y])
         sage: u,v,w = X.coordinate_ring().gens()
         sage: DynamicalSystem_affine([u, v, u+v], domain=X)
         Dynamical System of Closed subscheme of Affine Space of dimension 3
@@ -176,9 +175,10 @@ class DynamicalSystem_affine(SchemeMorphism_polynomial_affine_space,
 
     ::
 
+        sage: # needs sage.libs.singular
         sage: R.<t> = PolynomialRing(QQ)
         sage: A.<x,y,z> = AffineSpace(R, 3)
-        sage: X = A.subscheme(x^2-y^2)
+        sage: X = A.subscheme(x^2 - y^2)
         sage: H = End(X)
         sage: f = H([x^2/(t*y), t*y^2, x*z])
         sage: DynamicalSystem_affine(f)
@@ -190,11 +190,11 @@ class DynamicalSystem_affine(SchemeMorphism_polynomial_affine_space,
 
     ::
 
-        sage: x = var('x')
-        sage: DynamicalSystem_affine(x^2+1)
+        sage: x = var('x')                                                              # needs sage.symbolic
+        sage: DynamicalSystem_affine(x^2 + 1)                                           # needs sage.symbolic
         Traceback (most recent call last):
         ...
-        TypeError: Symbolic Ring cannot be the base ring
+        TypeError: symbolic ring cannot be the base ring
     """
 
     @staticmethod
@@ -224,81 +224,85 @@ class DynamicalSystem_affine(SchemeMorphism_polynomial_affine_space,
             Traceback (most recent call last):
             ...
             ValueError: "domain" must be an affine scheme
+
+        ::
+
+            sage: R.<x,y,z> = QQ[]
+            sage: f = DynamicalSystem_affine([x+y+z, y*z])
+            Traceback (most recent call last):
+            ...
+            ValueError: number of polys does not match dimension of Affine Space of dimension 3 over Rational Field
+
+        ::
+
+            sage: A.<x,y> = AffineSpace(QQ,2)
+            sage: f = DynamicalSystem_affine([CC.0*x^2, y^2], domain=A)
+            Traceback (most recent call last):
+            ...
+            TypeError: coefficients of polynomial not in Rational Field
         """
         if isinstance(morphism_or_polys, SchemeMorphism_polynomial):
             morphism = morphism_or_polys
             R = morphism.base_ring()
             polys = list(morphism)
             domain = morphism.domain()
-            if not is_AffineSpace(domain) and not isinstance(domain, AlgebraicScheme_subscheme_affine):
+            if not isinstance(domain, AffineSpace_generic) and not isinstance(domain, AlgebraicScheme_subscheme_affine):
                 raise ValueError('"domain" must be an affine scheme')
             if domain != morphism_or_polys.codomain():
                 raise ValueError('domain and codomain do not agree')
             if R not in Fields():
                 return typecall(cls, polys, domain)
-            if is_FiniteField(R):
+            if isinstance(R, FiniteField):
                 return DynamicalSystem_affine_finite_field(polys, domain)
             return DynamicalSystem_affine_field(polys, domain)
-        elif isinstance(morphism_or_polys,(list, tuple)):
+        elif isinstance(morphism_or_polys, (list, tuple)):
             polys = list(morphism_or_polys)
         else:
             polys = [morphism_or_polys]
 
-        # We now arrange for all of our list entries to lie in the same ring
-        # Fraction field case first
-        fraction_field = False
-        for poly in polys:
-            P = poly.parent()
-            if is_FractionField(P):
-                fraction_field = True
-                break
+        PR = get_coercion_model().common_parent(*polys)
+        fraction_field = any(isinstance(poly.parent(), FractionField_generic) for poly in polys)
         if fraction_field:
-            K = P.base_ring().fraction_field()
+            K = PR.base_ring().fraction_field()
             # Replace base ring with its fraction field
-            P = P.ring().change_ring(K).fraction_field()
-            polys = [P(poly) for poly in polys]
+            PR = PR.ring().change_ring(K).fraction_field()
+            polys = [PR(poly) for poly in polys]
         else:
+            quotient_ring = any(isinstance(poly.parent(), QuotientRing_nc) for poly in polys)
             # If any of the list entries lies in a quotient ring, we try
             # to lift all entries to a common polynomial ring.
-            quotient_ring = False
-            for poly in polys:
-                P = poly.parent()
-                if is_QuotientRing(P):
-                    quotient_ring = True
-                    break
             if quotient_ring:
-                polys = [P(poly).lift() for poly in polys]
+                polys = [PR(poly).lift() for poly in polys]
             else:
-                poly_ring = False
-                for poly in polys:
-                    P = poly.parent()
-                    if is_PolynomialRing(P) or is_MPolynomialRing(P):
-                        poly_ring = True
-                        break
-                if poly_ring:
-                    polys = [P(poly) for poly in polys]
-
+                polys = [PR(poly) for poly in polys]
         if domain is None:
-            f = polys[0]
-            CR = f.parent()
-            if CR is SR:
-                raise TypeError("Symbolic Ring cannot be the base ring")
+            if isinstance(PR, sage.rings.abc.SymbolicRing):
+                raise TypeError("symbolic ring cannot be the base ring")
             if fraction_field:
-                CR = CR.ring()
-            domain = AffineSpace(CR)
-
+                PR = PR.ring()
+            domain = AffineSpace(PR)
+        else:
+            # Check if we can coerce the given polynomials over the given domain
+            PR = domain.ambient_space().coordinate_ring()
+            try:
+                if fraction_field:
+                    PR = PR.fraction_field()
+                polys = [PR(poly) for poly in polys]
+            except TypeError:
+                raise TypeError('coefficients of polynomial not in {}'.format(domain.base_ring()))
+        if len(polys) != domain.ambient_space().coordinate_ring().ngens():
+            raise ValueError(f'number of polys does not match dimension of {domain}')
         R = domain.base_ring()
-        if R is SR:
-            raise TypeError("Symbolic Ring cannot be the base ring")
-        if not is_AffineSpace(domain) and not isinstance(domain, AlgebraicScheme_subscheme_affine):
+        if isinstance(R, sage.rings.abc.SymbolicRing):
+            raise TypeError("symbolic ring cannot be the base ring")
+        if not isinstance(domain, AffineSpace_generic) and not isinstance(domain, AlgebraicScheme_subscheme_affine):
             raise ValueError('"domain" must be an affine scheme')
 
         if R not in Fields():
             return typecall(cls, polys, domain)
-        if is_FiniteField(R):
-                return DynamicalSystem_affine_finite_field(polys, domain)
+        if isinstance(R, FiniteField):
+            return DynamicalSystem_affine_finite_field(polys, domain)
         return DynamicalSystem_affine_field(polys, domain)
-
 
     def __init__(self, polys_or_rat_fncts, domain):
         r"""
@@ -316,7 +320,8 @@ class DynamicalSystem_affine(SchemeMorphism_polynomial_affine_space,
         """
         L = polys_or_rat_fncts
         # Next attribute needed for _fast_eval and _fastpolys
-        self._is_prime_finite_field = is_PrimeFiniteField(L[0].base_ring())
+        R = L[0].base_ring()
+        self._is_prime_finite_field = isinstance(R, FiniteField) and R.degree() == 1
         DynamicalSystem.__init__(self, L, domain)
 
     def __copy__(self):
@@ -348,7 +353,7 @@ class DynamicalSystem_affine(SchemeMorphism_polynomial_affine_space,
 
         INPUT:
 
-        - ``n`` -- a tuple of nonnegative integers. If ``n`` is an integer,
+        - ``n`` -- tuple of nonnegative integers; if `n` is an integer,
           then the two values of the tuple are assumed to be the same
 
         OUTPUT: :class:`DynamicalSystem_projective`
@@ -394,10 +399,11 @@ class DynamicalSystem_affine(SchemeMorphism_polynomial_affine_space,
 
         ::
 
+            sage: # needs sage.rings.number_field
             sage: R.<a> = PolynomialRing(QQbar)
             sage: A.<x,y> = AffineSpace(R, 2)
-            sage: f = DynamicalSystem_affine([QQbar(sqrt(2))*x*y, a*x^2])
-            sage: f.homogenize(2)
+            sage: f = DynamicalSystem_affine([QQbar(sqrt(2))*x*y, a*x^2])               # needs sage.symbolic
+            sage: f.homogenize(2)                                                       # needs sage.symbolic
             Dynamical System of Projective Space of dimension 2 over Univariate
             Polynomial Ring in a over Algebraic Field
               Defn: Defined on coordinates by sending (x0 : x1 : x2) to
@@ -428,7 +434,7 @@ class DynamicalSystem_affine(SchemeMorphism_polynomial_affine_space,
 
         INPUT:
 
-        - ``period`` -- a positive integer or a list/tuple `[m,n]`,
+        - ``period`` -- positive integer or a list/tuple `[m,n]`,
           where `m` is the preperiod and `n` is the period
 
         OUTPUT:
@@ -450,7 +456,7 @@ class DynamicalSystem_affine(SchemeMorphism_polynomial_affine_space,
 
             sage: A.<x> = AffineSpace(ZZ, 1)
             sage: f = DynamicalSystem_affine([(x^2+1)/x])
-            sage: f.dynatomic_polynomial(4)
+            sage: f.dynatomic_polynomial(4)                                             # needs sage.libs.pari
             2*x^12 + 18*x^10 + 57*x^8 + 79*x^6 + 48*x^4 + 12*x^2 + 1
 
         ::
@@ -504,12 +510,21 @@ class DynamicalSystem_affine(SchemeMorphism_polynomial_affine_space,
         ::
 
             sage: A.<x> = AffineSpace(CC,1)
-            sage: F = DynamicalSystem_affine([1/2*x^2 + CC(sqrt(3))])
-            sage: F.dynatomic_polynomial([1,1])
+            sage: F = DynamicalSystem_affine([1/2*x^2 + CC(sqrt(3))])                   # needs sage.symbolic
+            sage: F.dynatomic_polynomial([1,1])                                         # needs sage.symbolic
             (0.125000000000000*x^4 + 0.366025403784439*x^2 + 1.50000000000000)/(0.500000000000000*x^2 - x + 1.73205080756888)
+
+        TESTS::
+
+            sage: R.<c> = QQ[]
+            sage: Pc.<x,y> = ProjectiveSpace(R, 1)
+            sage: G = DynamicalSystem_projective([(1/2*c + 1/2)*x^2 + (-2*c)*x*y + 2*c*y^2 , \
+            ....: (1/4*c + 1/2)*x^2 + (-c - 1)*x*y + (c + 1)*y^2])
+            sage: G.dehomogenize(1).dynatomic_polynomial(2)
+            (1/4*c + 1/4)*x^2 + (-c - 1/2)*x + c + 1
         """
-        from sage.schemes.affine.affine_space import is_AffineSpace
-        if not is_AffineSpace(self.domain()):
+        from sage.schemes.affine.affine_space import AffineSpace_generic
+        if not isinstance(self.domain(), AffineSpace_generic):
             raise NotImplementedError("not implemented for subschemes")
         if self.domain().dimension_relative() > 1:
             raise TypeError("does not make sense in dimension >1")
@@ -517,9 +532,10 @@ class DynamicalSystem_affine(SchemeMorphism_polynomial_affine_space,
         F = G.dynatomic_polynomial(period)
         T = G.domain().coordinate_ring()
         S = self.domain().coordinate_ring()
-        if is_SymbolicExpressionRing(F.parent()):
+        if isinstance(F.parent(), sage.rings.abc.SymbolicRing):
+            from sage.symbolic.ring import var
             u = var(self.domain().coordinate_ring().variable_name())
-            return F.subs({F.variables()[0]:u,F.variables()[1]:1})
+            return F.subs({F.variables()[0]: u, F.variables()[1]: 1})
         elif T(F.denominator()).degree() == 0:
             R = F.parent()
             phi = R.hom([S.gen(0), 1], S)
@@ -527,11 +543,11 @@ class DynamicalSystem_affine(SchemeMorphism_polynomial_affine_space,
         else:
             R = F.numerator().parent()
             phi = R.hom([S.gen(0), 1], S)
-            return phi(F.numerator())/phi(F.denominator())
+            return phi(F.numerator()) / phi(F.denominator())
 
     def nth_iterate_map(self, n):
         r"""
-        Return the ``n``-th iterate of ``self``.
+        Return the `n`-th iterate of ``self``.
 
         ALGORITHM:
 
@@ -543,7 +559,7 @@ class DynamicalSystem_affine(SchemeMorphism_polynomial_affine_space,
 
         INPUT:
 
-        - ``n`` -- a positive integer
+        - ``n`` -- positive integer
 
         OUTPUT: a dynamical system of affine space
 
@@ -596,19 +612,19 @@ class DynamicalSystem_affine(SchemeMorphism_polynomial_affine_space,
         for i in range(len(D)):
             for k in range(D[i]):
                 PHI = [poly(F) for poly in PHI]
-            if i != len(D)-1: #avoid extra iterate
-                F = [R(poly(F)) for poly in F] #'square'
+            if i != len(D) - 1:  # avoid extra iterate
+                F = [R(poly(F)) for poly in F]  # 'square'
         return DynamicalSystem_affine(PHI, domain=self.domain())
 
     def nth_iterate(self, P, n):
         r"""
-        Return the ``n``-th iterate of the point ``P`` by this dynamical system.
+        Return the `n`-th iterate of the point `P` by this dynamical system.
 
         INPUT:
 
         - ``P`` -- a point in the map's domain
 
-        - ``n`` -- a positive integer
+        - ``n`` -- positive integer
 
         OUTPUT: a point in the map's codomain
 
@@ -648,15 +664,15 @@ class DynamicalSystem_affine(SchemeMorphism_polynomial_affine_space,
         """
         n = int(n)
         if n == 0:
-            return(P)
+            return P
         Q = P
         for i in range(n):
             Q = self(Q)
-        return(Q)
+        return Q
 
     def orbit(self, P, n):
         r"""
-        Return the orbit of ``P`` by the dynamical system.
+        Return the orbit of `P` by the dynamical system.
 
         Let `F` be this dynamical system. If `n` is an integer
         return `[P, F(P), \ldots, F^n(P)]`. If `n` is a list or
@@ -666,10 +682,10 @@ class DynamicalSystem_affine(SchemeMorphism_polynomial_affine_space,
 
         - ``P`` -- a point in the map's domain
 
-        - ``n`` -- a non-negative integer or list or tuple of
-          two non-negative integers
+        - ``n`` -- nonnegative integer or list or tuple of
+          two nonnegative integers
 
-        OUTPUT: a list of points in the map's codomain
+        OUTPUT: list of points in the map's codomain
 
         EXAMPLES::
 
@@ -699,41 +715,40 @@ class DynamicalSystem_affine(SchemeMorphism_polynomial_affine_space,
             sage: A.<x,y> = AffineSpace(FractionField(R), 2)
             sage: f = DynamicalSystem_affine([(x-t*y^2)/x, t*x*y])
             sage: f.orbit(A(1, t), 3)
-            [(1, t), (-t^3 + 1, t^2), ((-t^5 - t^3 + 1)/(-t^3 + 1), -t^6 + t^3),
-            ((-t^16 + 3*t^13 - 3*t^10 + t^7 + t^5 + t^3 - 1)/(t^5 + t^3 - 1), -t^9 -
-            t^7 + t^4)]
+            [(1, t),
+             (-t^3 + 1, t^2),
+             ((t^5 + t^3 - 1)/(t^3 - 1), -t^6 + t^3),
+             ((-t^16 + 3*t^13 - 3*t^10 + t^7 + t^5 + t^3 - 1)/(t^5 + t^3 - 1), -t^9 - t^7 + t^4)]
         """
         Q = P
-        if isinstance(n, list) or isinstance(n, tuple):
+        if isinstance(n, (list, tuple)):
             bounds = list(n)
         else:
-            bounds = [0,n]
-        for i in range(1, bounds[0]+1):
+            bounds = [0, n]
+        for i in range(1, bounds[0] + 1):
             Q = self(Q)
         orb = [Q]
-        for i in range(bounds[0]+1, bounds[1]+1):
+        for i in range(bounds[0] + 1, bounds[1] + 1):
             Q = self(Q)
             orb.append(Q)
-        return(orb)
+        return orb
 
     def multiplier(self, P, n, check=True):
         r"""
-        Return the multiplier of the point ``P`` of period ``n`` by this
+        Return the multiplier of the point `P` of period `n` by this
         dynamical system.
 
         INPUT:
 
         - ``P`` -- a point on domain of the map
 
-        - ``n`` -- a positive integer, the period of ``P``
+        - ``n`` -- positive integer, the period of `P`
 
-        - ``check`` -- (default: ``True``) boolean, verify that ``P``
-          has period ``n``
+        - ``check`` -- boolean (default: ``True``); verify that `P`
+          has period `n`
 
-        OUTPUT:
-
-        A square matrix of size ``self.codomain().dimension_relative()`` in
-        the ``base_ring`` of the map.
+        OUTPUT: a square matrix of size ``self.codomain().dimension_relative()``
+        in the ``base_ring`` of the map
 
         EXAMPLES::
 
@@ -756,7 +771,7 @@ class DynamicalSystem_affine(SchemeMorphism_polynomial_affine_space,
 
             sage: P.<x> = AffineSpace(CC, 1)
             sage: f = DynamicalSystem_affine([x^2 + 1/2])
-            sage: f.multiplier(P([0.5 + 0.5*I]), 1)
+            sage: f.multiplier(P([0.5 + 0.5*I]), 1)                                     # needs sage.symbolic
             [1.00000000000000 + 1.00000000000000*I]
 
         ::
@@ -770,7 +785,7 @@ class DynamicalSystem_affine(SchemeMorphism_polynomial_affine_space,
         ::
 
             sage: P.<x,y> = AffineSpace(QQ, 2)
-            sage: X = P.subscheme([x^2-y^2])
+            sage: X = P.subscheme([x^2 - y^2])
             sage: f = DynamicalSystem_affine([x^2, y^2], domain=X)
             sage: f.multiplier(X([1, 1]), 1)
             [2 0]
@@ -785,11 +800,90 @@ class DynamicalSystem_affine(SchemeMorphism_polynomial_affine_space,
         l = identity_matrix(FractionField(self.codomain().base_ring()), N, N)
         Q = P
         J = self.jacobian()
-        for i in range(0, n):
+        for i in range(n):
             R = self(Q)
-            l = J(tuple(Q))*l #chain rule matrix multiplication
+            l = J(tuple(Q)) * l  # chain rule matrix multiplication
             Q = R
         return l
+
+    def conjugate(self, M):
+        r"""
+        Conjugate this dynamical system by ``M``, i.e. `M^{-1} \circ f \circ M`.
+
+        If possible the new map will be defined over the same space.
+        Otherwise, will try to coerce to the base ring of ``M``.
+
+        INPUT:
+
+        - ``M`` -- a square invertible matrix
+
+        OUTPUT: an affine dynamical system
+
+        EXAMPLES::
+
+            sage: A.<t> = AffineSpace(QQ, 1)
+            sage: f = DynamicalSystem_affine([t^2 + 1])
+            sage: f.conjugate(matrix([[1,2], [0,1]]))
+            Dynamical System of Affine Space of dimension 1 over Rational Field
+              Defn: Defined on coordinates by sending (t) to
+                    (t^2 + 4*t + 3)
+
+        ::
+
+            sage: A.<x,y> = AffineSpace(ZZ,2)
+            sage: f = DynamicalSystem_affine([x^3 + y^3, y^2])
+            sage: f.conjugate(matrix([[1,2,3], [0,1,2], [0,0,1]]))
+            Dynamical System of Affine Space of dimension 2 over Integer Ring
+              Defn: Defined on coordinates by sending (x, y) to
+                    (x^3 + 6*x^2*y + 12*x*y^2 + 9*y^3
+                      + 9*x^2 + 36*x*y + 40*y^2 + 27*x + 58*y + 28, y^2 + 4*y + 2)
+
+        ::
+
+            sage: # needs sage.rings.number_field
+            sage: R.<x> = PolynomialRing(QQ)
+            sage: K.<i> = NumberField(x^2 + 1)
+            sage: A.<x> = AffineSpace(ZZ,1)
+            sage: f = DynamicalSystem_affine([x^3 + 2*x^2 + 3])
+            sage: f.conjugate(matrix([[i,i], [0,-i]]))
+            Dynamical System of Affine Space of dimension 1 over Integer Ring
+              Defn: Defined on coordinates by sending (x) to
+                    (x^3 + x^2 - x - 5)
+        """
+        d = self.codomain().ngens()
+        f = self.homogenize(d).conjugate(M)
+        return f.dehomogenize(d)
+
+    def degree(self):
+        r"""
+        Return the degree of the affine dynamical system.
+
+        EXAMPLES::
+
+            sage: # needs sage.rings.number_field
+            sage: R.<c> = QuadraticField(7)
+            sage: A.<x,y,z> = AffineSpace(R, 3)
+            sage: f = DynamicalSystem_affine([x^2 + y^5 + c, x^11, z^19])
+            sage: f.degree()
+            19
+
+        ::
+
+            sage: R.<c> = QQ[]
+            sage: A.<x> = AffineSpace(R, 1)
+            sage: f = DynamicalSystem_affine([x^4])
+            sage: f.degree()
+            4
+
+        ::
+
+            sage: A.<x,y> = AffineSpace(QQ, 2)
+            sage: f = DynamicalSystem_affine([x, y/(1 + x^2)])
+            sage: f.degree()
+            2
+        """
+        return self.as_scheme_morphism().degree()
+
 
 class DynamicalSystem_affine_field(DynamicalSystem_affine,
                                    SchemeMorphism_polynomial_affine_space_field):
@@ -819,9 +913,10 @@ class DynamicalSystem_affine_field(DynamicalSystem_affine,
 
         EXAMPLES::
 
+            sage: # needs sage.rings.number_field
             sage: K.<v> = QuadraticField(5)
             sage: A.<x,y> = AffineSpace(K, 2)
-            sage: f = DynamicalSystem_affine([x^2-y^2, y^2])
+            sage: f = DynamicalSystem_affine([x^2 - y^2, y^2])
             sage: f.weil_restriction()
             Dynamical System of Affine Space of dimension 4 over Rational Field
               Defn: Defined on coordinates by sending (z0, z1, z2, z3) to
@@ -829,6 +924,7 @@ class DynamicalSystem_affine_field(DynamicalSystem_affine,
 
         ::
 
+            sage: # needs sage.rings.number_field
             sage: K.<v> = QuadraticField(5)
             sage: PS.<x,y> = AffineSpace(K, 2)
             sage: f = DynamicalSystem_affine([x, y])
@@ -841,6 +937,56 @@ class DynamicalSystem_affine_field(DynamicalSystem_affine,
         F = self.as_scheme_morphism().weil_restriction()
         return F.as_dynamical_system()
 
+    def reduce_base_field(self):
+        """
+        Return this map defined over the field of definition of the coefficients.
+
+        The base field of the map could be strictly larger than
+        the field where all of the coefficients are defined. This function
+        reduces the base field to the minimal possible. This can be done when
+        the base ring is a number field, ``QQbar``, a finite field, or algebraic
+        closure of a finite field.
+
+        OUTPUT: a dynamical system
+
+        EXAMPLES::
+
+            sage: # needs sage.rings.finite_rings
+            sage: K.<t> = GF(5^2)
+            sage: A.<x,y> = AffineSpace(K, 2)
+            sage: f = DynamicalSystem_affine([x^2 + 3*y^2, 3*y^2])
+            sage: f.reduce_base_field()
+            Dynamical System of Affine Space of dimension 2 over Finite Field of size 5
+              Defn: Defined on coordinates by sending (x, y) to
+                    (x^2 - 2*y^2, -2*y^2)
+
+        ::
+
+            sage: # needs sage.rings.number_field sage.symbolic
+            sage: A.<x,y> = AffineSpace(QQbar, 2)
+            sage: f = DynamicalSystem_affine([x^2 + QQbar(sqrt(3))*y^2,
+            ....:                             QQbar(sqrt(-1))*y^2])
+            sage: f.reduce_base_field()
+            Dynamical System of Affine Space of dimension 2 over Number Field in a
+             with defining polynomial y^4 - y^2 + 1
+             with a = -0.866025403784439? + 0.50000000000000000?*I
+              Defn: Defined on coordinates by sending (x, y) to
+                    (x^2 + (a^3 - 2*a)*y^2, (a^3)*y^2)
+
+        ::
+
+            sage: # needs sage.rings.number_field
+            sage: K.<v> = CyclotomicField(5)
+            sage: A.<x,y> = AffineSpace(K, 2)
+            sage: f = DynamicalSystem_affine([(3*x^2 + y) / (5*x), (y^2+1) / (x+y)])
+            sage: f.reduce_base_field()
+            Dynamical System of Affine Space of dimension 2 over Rational Field
+              Defn: Defined on coordinates by sending (x, y) to
+                    ((3*x^2 + y)/(5*x), (5*y^2 + 5)/(5*x + 5*y))
+        """
+        return self.as_scheme_morphism().reduce_base_field().as_dynamical_system()
+
+
 class DynamicalSystem_affine_finite_field(DynamicalSystem_affine_field,
                                     SchemeMorphism_polynomial_affine_space_finite_field):
 
@@ -849,13 +995,13 @@ class DynamicalSystem_affine_finite_field(DynamicalSystem_affine_field,
         Every point is preperiodic over a finite field.
 
         This function returns the pair `[m,n]` where `m` is the
-        preperiod and `n` is the period of the point ``P`` by this map.
+        preperiod and `n` is the period of the point `P` by this map.
 
         INPUT:
 
         - ``P`` -- a point in the map's domain
 
-        OUTPUT: a list `[m, n]` of integers
+        OUTPUT: list `[m, n]` of integers
 
         EXAMPLES::
 
@@ -866,6 +1012,7 @@ class DynamicalSystem_affine_finite_field(DynamicalSystem_affine_field,
 
         ::
 
+            sage: # needs sage.rings.finite_rings
             sage: A.<x,y,z> = AffineSpace(GF(49, 't'), 3)
             sage: f = DynamicalSystem_affine([x^2 - z, x - y + z, y^2 - x^2])
             sage: f.orbit_structure(A(1, 1, 2))
@@ -874,12 +1021,12 @@ class DynamicalSystem_affine_finite_field(DynamicalSystem_affine_field,
         orbit = []
         index = 1
         Q = P
-        while not Q in orbit:
+        while Q not in orbit:
             orbit.append(Q)
             Q = self(Q)
             index += 1
         I = orbit.index(Q)
-        return([I, index-I-1])
+        return [I, index - I - 1]
 
     def cyclegraph(self):
         r"""
@@ -893,29 +1040,30 @@ class DynamicalSystem_affine_finite_field(DynamicalSystem_affine_field,
         EXAMPLES::
 
             sage: P.<x,y> = AffineSpace(GF(5), 2)
-            sage: f = DynamicalSystem_affine([x^2-y, x*y+1])
-            sage: f.cyclegraph()
+            sage: f = DynamicalSystem_affine([x^2 - y, x*y + 1])
+            sage: f.cyclegraph()                                                        # needs sage.graphs
             Looped digraph on 25 vertices
 
         ::
 
+            sage: # needs sage.rings.finite_rings
             sage: P.<x> = AffineSpace(GF(3^3, 't'), 1)
-            sage: f = DynamicalSystem_affine([x^2-1])
-            sage: f.cyclegraph()
+            sage: f = DynamicalSystem_affine([x^2 - 1])
+            sage: f.cyclegraph()                                                        # needs sage.graphs
             Looped digraph on 27 vertices
 
         ::
 
             sage: P.<x,y> = AffineSpace(GF(7), 2)
-            sage: X = P.subscheme(x-y)
+            sage: X = P.subscheme(x - y)
             sage: f = DynamicalSystem_affine([x^2, y^2], domain=X)
-            sage: f.cyclegraph()
+            sage: f.cyclegraph()                                                        # needs sage.graphs
             Looped digraph on 7 vertices
         """
         V = []
         E = []
-        from sage.schemes.affine.affine_space import is_AffineSpace
-        if is_AffineSpace(self.domain()) == True:
+        from sage.schemes.affine.affine_space import AffineSpace_generic
+        if isinstance(self.domain(), AffineSpace_generic):
             for P in self.domain():
                 V.append(str(P))
                 Q = self(P)
@@ -931,6 +1079,4 @@ class DynamicalSystem_affine_finite_field(DynamicalSystem_affine_field,
                 except TypeError:  # not on the scheme
                     pass
         from sage.graphs.digraph import DiGraph
-        g = DiGraph(dict(zip(V, E)), loops=True)
-        return g
-
+        return DiGraph(dict(zip(V, E)), loops=True)

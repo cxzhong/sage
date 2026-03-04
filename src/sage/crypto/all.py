@@ -1,6 +1,5 @@
-from __future__ import absolute_import
 import sage.crypto.sbox
-from sage.structure.sage_object import register_unpickle_override
+from sage.misc.persist import register_unpickle_override
 register_unpickle_override('sage.crypto.mq.sbox', 'SBox', sage.crypto.sbox.SBox)
 
 from sage.misc.lazy_import import lazy_import
@@ -11,13 +10,17 @@ lazy_import('sage.crypto.classical', ['AffineCryptosystem',
                                       'ShiftCryptosystem',
                                       'TranspositionCryptosystem',
                                       'VigenereCryptosystem',
-                                     ])
+                                      ])
 
 lazy_import('sage.crypto.stream', ['LFSRCryptosystem',
                                    'ShrinkingGeneratorCryptosystem',
-                                  ])
+                                   ])
 
 lazy_import('sage.crypto.lfsr', ['lfsr_sequence',
                                  'lfsr_autocorrelation',
                                  'lfsr_connection_polynomial',
-                                ])
+                                 ])
+
+lazy_import('sage.crypto.public_key.key_exchange', 'all', 'key_exchange')
+
+del lazy_import

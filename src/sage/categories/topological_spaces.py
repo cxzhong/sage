@@ -10,8 +10,10 @@ Topological Spaces
 
 from sage.misc.cachefunc import cached_method
 from sage.categories.category_with_axiom import CategoryWithAxiom
+from sage.categories.cartesian_product import CartesianProductsCategory
 from sage.categories.covariant_functorial_construction import RegressiveCovariantConstructionCategory
 from sage.categories.sets_cat import Sets
+
 
 class TopologicalSpacesCategory(RegressiveCovariantConstructionCategory):
 
@@ -25,6 +27,7 @@ class TopologicalSpacesCategory(RegressiveCovariantConstructionCategory):
             Category of topological groups
         """
         return "topological {}".format(self.base_category()._repr_object_names())
+
 
 class TopologicalSpaces(TopologicalSpacesCategory):
     """
@@ -58,6 +61,25 @@ class TopologicalSpaces(TopologicalSpacesCategory):
             Category of topological spaces
         """
         return "topological spaces"
+
+    class CartesianProducts(CartesianProductsCategory):
+        def extra_super_categories(self):
+            r"""
+            Implement the fact that a (finite) Cartesian product of topological spaces is
+            a topological space.
+
+            EXAMPLES::
+
+                sage: from sage.categories.topological_spaces import TopologicalSpaces
+                sage: C = TopologicalSpaces().CartesianProducts()
+                sage: C.extra_super_categories()
+                [Category of topological spaces]
+                sage: C.super_categories()
+                [Category of Cartesian products of sets, Category of topological spaces]
+                sage: C.axioms()
+                frozenset()
+            """
+            return [TopologicalSpaces()]
 
     class SubcategoryMethods:
         @cached_method
@@ -101,8 +123,47 @@ class TopologicalSpaces(TopologicalSpacesCategory):
         The category of connected topological spaces.
         """
 
+        class CartesianProducts(CartesianProductsCategory):
+            def extra_super_categories(self):
+                r"""
+                Implement the fact that a (finite) Cartesian product of connected
+                topological spaces is connected.
+
+                EXAMPLES::
+
+                    sage: from sage.categories.topological_spaces import TopologicalSpaces
+                    sage: C = TopologicalSpaces().Connected().CartesianProducts()
+                    sage: C.extra_super_categories()
+                    [Category of connected topological spaces]
+                    sage: C.super_categories()
+                    [Category of Cartesian products of topological spaces,
+                     Category of connected topological spaces]
+                    sage: C.axioms()
+                    frozenset({'Connected'})
+                """
+                return [TopologicalSpaces().Connected()]
+
     class Compact(CategoryWithAxiom):
         """
         The category of compact topological spaces.
         """
 
+        class CartesianProducts(CartesianProductsCategory):
+            def extra_super_categories(self):
+                r"""
+                Implement the fact that a (finite) Cartesian product of compact
+                topological spaces is compact.
+
+                EXAMPLES::
+
+                    sage: from sage.categories.topological_spaces import TopologicalSpaces
+                    sage: C = TopologicalSpaces().Compact().CartesianProducts()
+                    sage: C.extra_super_categories()
+                    [Category of compact topological spaces]
+                    sage: C.super_categories()
+                    [Category of Cartesian products of topological spaces,
+                     Category of compact topological spaces]
+                    sage: C.axioms()
+                    frozenset({'Compact'})
+                """
+                return [TopologicalSpaces().Compact()]

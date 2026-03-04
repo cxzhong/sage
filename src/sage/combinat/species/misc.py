@@ -1,7 +1,8 @@
+# sage.doctest: needs sage.groups
 """
-Miscellaneous Functions
+Miscellaneous functions
 """
-#*****************************************************************************
+# ****************************************************************************
 #       Copyright (C) 2008 Mike Hansen <mhansen@gmail.com>,
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
@@ -14,12 +15,17 @@ Miscellaneous Functions
 #  The full text of the GPL is available at:
 #
 #                  http://www.gnu.org/licenses/
-#*****************************************************************************
-from __future__ import print_function
+# ****************************************************************************
 
-from sage.groups.all import PermutationGroup, PermutationGroup_generic, PermutationGroupElement, SymmetricGroup
-from sage.misc.all import prod
 from functools import wraps
+
+from sage.misc.misc_c import prod
+from sage.misc.lazy_import import lazy_import
+
+lazy_import('sage.groups.perm_gps.permgroup', ['PermutationGroup', 'PermutationGroup_generic'])
+lazy_import('sage.groups.perm_gps.constructor', 'PermutationGroupElement')
+lazy_import('sage.groups.perm_gps.permgroup_named', 'SymmetricGroup')
+
 
 def change_support(perm, support, change_perm=None):
     """
@@ -35,7 +41,10 @@ def change_support(perm, support, change_perm=None):
         (3,4,5)
     """
     if change_perm is None:
-        change_perm = prod([PermutationGroupElement((i+1,support[i])) for i in range(len(support)) if i+1 != support[i]],  PermutationGroupElement([], SymmetricGroup(support)))
+        change_perm = prod([PermutationGroupElement((i+1, support[i]))
+                            for i in range(len(support))
+                            if i+1 != support[i]],
+                           PermutationGroupElement([], SymmetricGroup(support)))
 
     if isinstance(perm, PermutationGroup_generic):
         return PermutationGroup([change_support(g, support, change_perm) for g in perm.gens()])
@@ -54,7 +63,7 @@ def accept_size(f):
 
         sage: from sage.combinat.species.misc import accept_size
         sage: def f(*args, **kwds):
-        ....:       print("{} {}".format(args, list(sorted(kwds.items()))))
+        ....:       print("{} {}".format(args, sorted(kwds.items())))
         sage: f = accept_size(f)
         sage: f(min=1)
         () [('min', 1)]

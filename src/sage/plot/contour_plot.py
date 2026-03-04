@@ -1,8 +1,8 @@
+# sage.doctest: needs sage.symbolic
 """
-Contour Plots
+Contour plots
 """
-
-#*****************************************************************************
+# ****************************************************************************
 #       Copyright (C) 2006 Alex Clemesha <clemesha@gmail.com>,
 #                          William Stein <wstein@gmail.com>,
 #                     2008 Mike Hansen <mhansen@gmail.com>,
@@ -16,30 +16,31 @@ Contour Plots
 #
 #  The full text of the GPL is available at:
 #
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
+import operator
 from sage.plot.primitive import GraphicPrimitive
 from sage.misc.decorators import options, suboptions
 from sage.plot.colors import rgbcolor, get_cmap
 from sage.arith.srange import xsrange
-import operator
 
 
 class ContourPlot(GraphicPrimitive):
     """
-    Primitive class for the contour plot graphics type.  See
-    ``contour_plot?`` for help actually doing contour plots.
+    Primitive class for the contour plot graphics type.
+
+    See ``contour_plot?`` for help actually doing contour plots.
 
     INPUT:
 
-    - ``xy_data_array`` - list of lists giving evaluated values of the function
+    - ``xy_data_array`` -- list of lists giving evaluated values of the function
       on the grid
 
-    - ``xrange`` - tuple of 2 floats indicating range for horizontal direction
+    - ``xrange`` -- tuple of 2 floats indicating range for horizontal direction
 
-    - ``yrange`` - tuple of 2 floats indicating range for vertical direction
+    - ``yrange`` -- tuple of 2 floats indicating range for vertical direction
 
-    - ``options`` - dict of valid plot options to pass to constructor
+    - ``options`` -- dictionary of valid plot options to pass to constructor
 
     EXAMPLES:
 
@@ -63,7 +64,7 @@ class ContourPlot(GraphicPrimitive):
     """
     def __init__(self, xy_data_array, xrange, yrange, options):
         """
-        Initializes base class ContourPlot.
+        Initialize base class ``ContourPlot``.
 
         EXAMPLES::
 
@@ -84,7 +85,7 @@ class ContourPlot(GraphicPrimitive):
 
     def get_minmax_data(self):
         """
-        Returns a dictionary with the bounding box data.
+        Return a dictionary with the bounding box data.
 
         EXAMPLES::
 
@@ -131,7 +132,7 @@ class ContourPlot(GraphicPrimitive):
 
     def _repr_(self):
         """
-        String representation of ContourPlot primitive.
+        String representation of ``ContourPlot`` primitive.
 
         EXAMPLES::
 
@@ -140,7 +141,8 @@ class ContourPlot(GraphicPrimitive):
             sage: c = C[0]; c
             ContourPlot defined by a 100 x 100 data grid
         """
-        return "ContourPlot defined by a %s x %s data grid"%(self.xy_array_row, self.xy_array_col)
+        msg = "ContourPlot defined by a %s x %s data grid"
+        return msg % (self.xy_array_row, self.xy_array_col)
 
     def _render_on_subplot(self, subplot):
         """
@@ -163,10 +165,11 @@ class ContourPlot(GraphicPrimitive):
             cmap = get_cmap('gray')
         else:
             if isinstance(contours, (int, Integer)):
-                cmap = get_cmap([(i,i,i) for i in xsrange(0,1,1/contours)])
+                cmap = get_cmap([(i, i, i)
+                                 for i in xsrange(0, 1, 1 / contours)])
             else:
-                l = Integer(len(contours))
-                cmap = get_cmap([(i,i,i) for i in xsrange(0,1,1/l)])
+                step = 1 / Integer(len(contours))
+                cmap = get_cmap([(i, i, i) for i in xsrange(0, 1, step)])
 
         x0, x1 = float(self.xrange[0]), float(self.xrange[1])
         y0, y1 = float(self.yrange[0]), float(self.yrange[1])
@@ -178,12 +181,10 @@ class ContourPlot(GraphicPrimitive):
         if fill:
             if contours is None:
                 CSF = subplot.contourf(self.xy_data_array, cmap=cmap,
-                                       extent=(x0, x1, y0, y1),
-                                       label=options['legend_label'])
+                                       extent=(x0, x1, y0, y1))
             else:
                 CSF = subplot.contourf(self.xy_data_array, contours, cmap=cmap,
-                                       extent=(x0, x1, y0, y1), extend='both',
-                                       label=options['legend_label'])
+                                       extent=(x0, x1, y0, y1), extend='both')
 
         linewidths = options.get('linewidths', None)
         if isinstance(linewidths, (int, Integer)):
@@ -194,19 +195,18 @@ class ContourPlot(GraphicPrimitive):
         from sage.plot.misc import get_matplotlib_linestyle
         linestyles = options.get('linestyles', None)
         if isinstance(linestyles, (list, tuple)):
-            linestyles = [get_matplotlib_linestyle(i, 'long') for i in linestyles]
+            linestyles = [get_matplotlib_linestyle(i, 'long')
+                          for i in linestyles]
         else:
             linestyles = get_matplotlib_linestyle(linestyles, 'long')
         if contours is None:
             CS = subplot.contour(self.xy_data_array, cmap=cmap,
                                  extent=(x0, x1, y0, y1),
-                                 linewidths=linewidths, linestyles=linestyles,
-                                 label=options['legend_label'])
+                                 linewidths=linewidths, linestyles=linestyles)
         else:
             CS = subplot.contour(self.xy_data_array, contours, cmap=cmap,
                                  extent=(x0, x1, y0, y1),
-                                 linewidths=linewidths, linestyles=linestyles,
-                                 label=options['legend_label'])
+                                 linewidths=linewidths, linestyles=linestyles)
         if options.get('labels', False):
             label_options = options['label_options']
             label_options['fontsize'] = int(label_options['fontsize'])
@@ -224,7 +224,7 @@ class ContourPlot(GraphicPrimitive):
                 cb.add_lines(CS)
 
 
-@suboptions('colorbar', orientation='vertical', format=None, spacing=None)
+@suboptions('colorbar', orientation='vertical', format=None, spacing='uniform')
 @suboptions('label', fontsize=9, colors='blue', inline=None, inline_spacing=3,
             fmt="%1.2f")
 @options(plot_points=100, fill=True, contours=None, linewidths=None,
@@ -242,19 +242,19 @@ def contour_plot(f, xrange, yrange, **options):
 
     - ``f`` -- a function of two variables
 
-    - ``(xmin,xmax)`` -- 2-tuple, the range of ``x`` values OR 3-tuple
+    - ``(xmin, xmax)`` -- 2-tuple, the range of ``x`` values OR 3-tuple
       ``(x,xmin,xmax)``
 
-    - ``(ymin,ymax)`` -- 2-tuple, the range of ``y`` values OR 3-tuple
+    - ``(ymin, ymax)`` -- 2-tuple, the range of ``y`` values OR 3-tuple
       ``(y,ymin,ymax)``
 
     The following inputs must all be passed in as named parameters:
 
-    - ``plot_points``  -- integer (default: 100); number of points to plot
+    - ``plot_points`` -- integer (default: 100); number of points to plot
       in each direction of the grid.  For old computers, 25 is fine, but
       should not be used to verify specific intersection points.
 
-    - ``fill`` -- bool (default: ``True``), whether to color in the area
+    - ``fill`` -- boolean (default: ``True``); whether to color in the area
       between contour lines
 
     - ``cmap`` -- a colormap (default: ``'gray'``), the name of
@@ -269,25 +269,25 @@ def contour_plot(f, xrange, yrange, **options):
       is passed (or the option is not given), then the number of contour
       lines is determined automatically, and is usually about 5.
 
-    - ``linewidths`` -- integer or list of integer (default: None), if
+    - ``linewidths`` -- integer or list of integer (default: ``None``), if
       a single integer all levels will be of the width given,
       otherwise the levels will be plotted with the width in the order
       given.  If the list is shorter than the number of contours, then
       the widths will be repeated cyclically.
 
-    - ``linestyles`` -- string or list of strings (default: None), the
-      style of the lines to be plotted, one of: ``"solid"``, ``"dashed"``,
-      ``"dashdot"``, ``"dotted"``, respectively ``"-"``, ``"--"``,
-      ``"-."``, ``":"``.  If the list is shorter than the number of
+    - ``linestyles`` -- string or list of strings (default: ``None``), the
+      style of the lines to be plotted, one of: ``'solid'``, ``'dashed'``,
+      ``'dashdot'``, ``'dotted'``, respectively ``'-'``, ``'--'``,
+      ``'-.'``, ``':'``.  If the list is shorter than the number of
       contours, then the styles will be repeated cyclically.
 
-    - ``labels`` -- boolean (default: False) Show level labels or not.
+    - ``labels`` -- boolean (default: ``False``); show level labels or not
 
       The following options are to adjust the style and placement of
       labels, they have no effect if no labels are shown.
 
-      - ``label_fontsize`` -- integer (default: 9), the font size of
-        the labels.
+      - ``label_fontsize`` -- integer (default: 9); the font size of
+        the labels
 
       - ``label_colors`` -- string or sequence of colors (default:
         None) If a string, gives the name of a single color with which
@@ -295,42 +295,50 @@ def contour_plot(f, xrange, yrange, **options):
         labels.  A color is a string giving the name of one or a
         3-tuple of floats.
 
-      - ``label_inline`` -- boolean (default: False if fill is True,
+      - ``label_inline`` -- boolean (default: ``False`` if fill is True,
         otherwise True), controls whether the underlying contour is
         removed or not.
 
-      - ``label_inline_spacing`` -- integer (default: 3), When inline,
+      - ``label_inline_spacing`` -- integer (default: 3); when inline,
         this is the amount of contour that is removed from each side,
         in pixels.
 
-      - ``label_fmt`` -- a format string (default: "%1.2f"), this is
+      - ``label_fmt`` -- a format string (default: ``"%1.2f"``), this is
         used to get the label text from the level.  This can also be a
         dictionary with the contour levels as keys and corresponding
         text string labels as values.  It can also be any callable which
         returns a string when called with a numeric contour level.
 
-    - ``colorbar`` -- boolean (default: False) Show a colorbar or not.
+    - ``colorbar`` -- boolean (default: ``False``); show a colorbar or not
 
       The following options are to adjust the style and placement of
       colorbars.  They have no effect if a colorbar is not shown.
 
-      - ``colorbar_orientation`` -- string (default: 'vertical'),
+      - ``colorbar_orientation`` -- string (default: ``'vertical'``),
         controls placement of the colorbar, can be either 'vertical'
         or 'horizontal'
 
       - ``colorbar_format`` -- a format string, this is used to format
-        the colorbar labels.
+        the colorbar labels
 
-      - ``colorbar_spacing`` -- string (default: 'proportional').  If
+      - ``colorbar_spacing`` -- string (default: ``'proportional'``); if
         'proportional', make the contour divisions proportional to
         values.  If 'uniform', space the colorbar divisions uniformly,
         without regard for numeric values.
 
     - ``legend_label`` -- the label for this item in the legend
 
-    -  ``region`` - (default: None) If region is given, it must be a function
+    - ``region`` -- (default: ``None``) if region is given, it must be a function
         of two variables. Only segments of the surface where region(x,y)
         returns a number >0 will be included in the plot.
+
+    .. WARNING::
+
+        Due to an implementation detail in matplotlib, single-contour
+        plots whose data all lie on one side of the sole contour may
+        not be plotted correctly. We attempt to detect this situation
+        and to produce something better than an empty plot when it
+        happens; a ``UserWarning`` is emitted in that case.
 
     EXAMPLES:
 
@@ -407,7 +415,7 @@ def contour_plot(f, xrange, yrange, **options):
     .. PLOT::
 
         x,y = var('x,y')
-        def f(x,y): return x**2 + y**2
+        def f(x, y): return x**2 + y**2
         g = contour_plot(f, (-2,2), (-2,2))
         sphinx_plot(g)
 
@@ -419,7 +427,7 @@ def contour_plot(f, xrange, yrange, **options):
     .. PLOT::
 
         x,y = var('x,y')
-        def f(x,y): return x**2 + y**2
+        def f(x, y): return x**2 + y**2
         g = contour_plot(f, (-2, 2), (-2, 2), contours=2, cmap=[(1,0,0), (0,1,0), (0,0,1)])
         sphinx_plot(g)
 
@@ -432,7 +440,7 @@ def contour_plot(f, xrange, yrange, **options):
     .. PLOT::
 
         x,y = var('x,y')
-        def f(x,y): return x**2 + y**2
+        def f(x, y): return x**2 + y**2
         g = contour_plot(f, (-2,2), (-2,2), contours=(0.1,1.0,1.2,1.4), cmap='hsv')
         sphinx_plot(g)
 
@@ -444,7 +452,7 @@ def contour_plot(f, xrange, yrange, **options):
     .. PLOT::
 
         x,y = var('x,y')
-        def f(x,y): return x**2 + y**2
+        def f(x, y): return x**2 + y**2
         g = contour_plot(f, (-2,2), (-2,2), contours=(1.0,), fill=False)
         sphinx_plot(g)
 
@@ -467,7 +475,7 @@ def contour_plot(f, xrange, yrange, **options):
     .. PLOT::
 
         x,y = var('x,y')
-        def f(x,y): return x**2 + y**2
+        def f(x, y): return x**2 + y**2
         g = contour_plot(f, (-2,2), (-2,2), fill=False, linewidths=10)
         sphinx_plot(g)
 
@@ -480,7 +488,7 @@ def contour_plot(f, xrange, yrange, **options):
     .. PLOT::
 
         x,y = var('x,y')
-        def f(x,y): return x**2 + y**2
+        def f(x, y): return x**2 + y**2
         g = contour_plot(f, (-2,2), (-2,2), fill=False, linestyles='dashdot')
         sphinx_plot(g)
 
@@ -659,20 +667,20 @@ def contour_plot(f, xrange, yrange, **options):
     .. PLOT::
 
         x,y = var('x,y')
-        def f(x,y): return x**2 + y**2
+        def f(x, y): return x**2 + y**2
         g = contour_plot(f, (-2,2), (-2,2), labels=True, label_colors='red')
         sphinx_plot(g)
 
     We can add a colorbar as well::
 
-        sage: f(x, y)=x^2-y^2
+        sage: f(x, y) = x^2 + y^2
         sage: contour_plot(f, (x,-3,3), (y,-3,3), colorbar=True)
         Graphics object consisting of 1 graphics primitive
 
     .. PLOT::
 
         x,y = var('x,y')
-        def f(x,y): return x**2 + y**2
+        def f(x, y): return x**2 + y**2
         g = contour_plot(f, (x,-3,3), (y,-3,3), colorbar=True)
         sphinx_plot(g)
 
@@ -684,7 +692,7 @@ def contour_plot(f, xrange, yrange, **options):
     .. PLOT::
 
         x,y = var('x,y')
-        def f(x,y): return x**2 + y**2
+        def f(x, y): return x**2 + y**2
         g = contour_plot(f, (x,-3,3), (y,-3,3), colorbar=True, colorbar_orientation='horizontal')
         sphinx_plot(g)
 
@@ -696,7 +704,7 @@ def contour_plot(f, xrange, yrange, **options):
     .. PLOT::
 
         x,y = var('x,y')
-        def f(x,y): return x**2 + y**2
+        def f(x, y): return x**2 + y**2
         g = contour_plot(f, (x,-3,3), (y,-3,3), contours=[-2,-1,4],
                         colorbar=True)
         sphinx_plot(g)
@@ -710,7 +718,7 @@ def contour_plot(f, xrange, yrange, **options):
     .. PLOT::
 
         x,y = var('x,y')
-        def f(x,y): return x**2 + y**2
+        def f(x, y): return x**2 + y**2
         g = contour_plot(f, (x,-3,3), (y,-3,3), contours=[-2,-1,4],
                          colorbar=True, colorbar_spacing='uniform')
         sphinx_plot(g)
@@ -724,7 +732,7 @@ def contour_plot(f, xrange, yrange, **options):
     .. PLOT::
 
         x,y = var('x,y')
-        def f(x,y): return x**2 + y**2
+        def f(x, y): return x**2 + y**2
         g = contour_plot(f, (x,-3,3), (y,-3,3), contours=[0,2,3,6],
                          colorbar=True, colorbar_format='%.3f')
         sphinx_plot(g)
@@ -739,7 +747,7 @@ def contour_plot(f, xrange, yrange, **options):
     .. PLOT::
 
         x,y = var('x,y')
-        def f(x,y): return x**2 + y**2
+        def f(x, y): return x**2 + y**2
         g = contour_plot(f, (x,-3,3), (y,-3,3), labels=True,
                          label_colors='red', contours=[0,2,3,6],
                          colorbar=True)
@@ -754,7 +762,7 @@ def contour_plot(f, xrange, yrange, **options):
     .. PLOT::
 
         x,y = var('x,y')
-        def f(x,y): return x**2 + y**2
+        def f(x, y): return x**2 + y**2
         g = contour_plot(f, (x,-3,3), (y,-3,3), cmap='winter',
                          contours=20, fill=False, colorbar=True)
         sphinx_plot(g)
@@ -785,7 +793,7 @@ def contour_plot(f, xrange, yrange, **options):
     .. PLOT::
 
         x,y = var('x,y')
-        def f(x,y): return cos(x) + sin(y)
+        def f(x, y): return cos(x) + sin(y)
         g = contour_plot(f, (0,pi), (0,pi), axes=True)
         sphinx_plot(g)
 
@@ -811,32 +819,195 @@ def contour_plot(f, xrange, yrange, **options):
     .. PLOT::
 
         x,y = var('x,y')
-        def f(x,y): return cos(x) + sin(y)
+        def f(x, y): return cos(x) + sin(y)
         g = contour_plot(f, (-pi,pi), (-pi,pi), fill=False, axes=True)
+        sphinx_plot(g)
+
+    If you are plotting a sole contour and if all of your data lie on
+    one side of it, then (as part of :issue:`21042`) a heuristic may be
+    used to improve the result; in that case, a warning is emitted::
+
+        sage: contour_plot(lambda x,y: abs(x^2-y^2), (-1,1), (-1,1),
+        ....:              contours=[0], fill=False, cmap=['blue'])
+        ...
+        UserWarning: pathological contour plot of a function whose values
+        all lie on one side of the sole contour; we are adding more plot
+        points and perturbing your function values.
+        Graphics object consisting of 1 graphics primitive
+
+    .. PLOT::
+
+        import warnings
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            g = contour_plot(lambda x,y: abs(x**2-y**2), (-1,1), (-1,1),
+                             contours=[0], fill=False, cmap=['blue'])
+        sphinx_plot(g)
+
+    Constant functions (with a single contour) can be plotted as well;
+    this was not possible before :issue:`21042`::
+
+        sage: contour_plot(lambda x,y: 0, (-1,1), (-1,1),
+        ....:              contours=[0], fill=False, cmap=['blue'])
+        ...Graphics object consisting of 1 graphics primitive
+
+    .. PLOT::
+
+        import warnings
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            g = contour_plot(lambda x,y: 0, (-1,1), (-1,1),
+                             contours=[0], fill=False, cmap=['blue'])
         sphinx_plot(g)
 
     TESTS:
 
-    To check that :trac:`5221` is fixed, note that this has three curves, not
+    To check that :issue:`5221` is fixed, note that this has three curves, not
     two::
 
         sage: x,y = var('x,y')
         sage: contour_plot(x - y^2, (x,-5,5), (y,-3,3),
         ....:              contours=[-4,-2,0], fill=False)
         Graphics object consisting of 1 graphics primitive
+
+    Check that :issue:`18074` is fixed::
+
+        sage: contour_plot(0, (0,1), (0,1))
+        ...Graphics object consisting of 1 graphics primitive
+
+    Domain points in :issue:`11648` with complex output are now skipped::
+
+        sage: x,y = SR.var('x,y', domain='real')
+        sage: contour_plot(log(x) + log(y), (-1, 5), (-1, 5))
+        Graphics object consisting of 1 graphics primitive
     """
-    from sage.plot.all import Graphics
+    from sage.plot.graphics import Graphics
     from sage.plot.misc import setup_for_eval_on_grid
 
     region = options.pop('region')
     ev = [f] if region is None else [f, region]
 
-    F, ranges = setup_for_eval_on_grid(ev, [xrange, yrange], options['plot_points'])
-    g = F[0]
-    xrange, yrange = [r[:2] for r in ranges]
+    F, ranges = setup_for_eval_on_grid(ev, [xrange, yrange],
+                                       options['plot_points'])
+    h = F[0]
+    xrange, yrange = (r[:2] for r in ranges)
 
-    xy_data_array = [[g(x, y) for x in xsrange(*ranges[0], include_endpoint=True)]
+    xy_data_array = [[h(x, y) for x in xsrange(*ranges[0],
+                                               include_endpoint=True)]
                      for y in xsrange(*ranges[1], include_endpoint=True)]
+
+    g = Graphics()
+
+    # Reset aspect_ratio to 'automatic' in case scale is 'semilog[xy]'.
+    # Otherwise matplotlib complains.
+    scale = options.get('scale', None)
+    if isinstance(scale, (list, tuple)):
+        scale = scale[0]
+    if scale in ('semilogy', 'semilogx'):
+        options['aspect_ratio'] = 'automatic'
+
+    g._set_extra_kwds(Graphics._extract_kwds_for_show(options,
+                                                      ignore=['xmin', 'xmax']))
+
+    # Was a single contour level explicitly given? If "contours" is
+    # the integer 1, then there will be a single level, but we can't
+    # know what it is because it's determined within matplotlib's
+    # "contour" or "contourf" function. So we punt in that case. If
+    # there's a single contour and fill=True, we fall through to let
+    # matplotlib complain that "Filled contours require at least 2
+    # levels."
+    if (isinstance(options["contours"], (list, tuple))
+        and len(options["contours"]) == 1
+        and options.get("fill") is False):
+        # When there's only one level (say, zero), matplotlib doesn't
+        # handle it well. If all of the data lie on one side of that
+        # level -- for example, if f(x,y) >= 0 for all x,y -- then it
+        # will fail to plot the points where f(x,y) == 0. This is
+        # especially catastrophic for implicit_plot(), which tries to
+        # do just that. Here we handle that special case: if there's
+        # only one level, and if all of the data lie on one side of
+        # it, we perturb the data a bit so that they don't. The resulting
+        # plots don't look great, but they're not empty, which is an
+        # improvement.
+        import numpy as np
+        dx = ranges[0][2]
+        dy = ranges[1][2]
+        z0 = options["contours"][0]
+
+        # This works OK for the examples in the doctests, but basing
+        # it off the plot scale rather than how fast the function
+        # changes can never be truly satisfactory.
+        tol = max(dx, dy) / 4.0
+        xy_data_array = np.ma.asarray(xy_data_array, dtype=float)
+
+        # Special case for constant functions. This is needed because
+        # otherwise the forthcoming perturbation trick will take values
+        # like 0,0,0... and perturb them to -tol, -tol, -tol... which
+        # doesn't work for the same reason 0,0,0... doesn't work.
+        if np.all(np.abs(xy_data_array - z0) <= tol):
+            # Up to our tolerance, this is the const_z0 function.
+            # ...make it actually the const_z0 function.
+            xy_data_array.fill(z0)
+
+            # We're going to set fill=True in a moment, so we need to
+            # prepend an entry to the cmap so that the user's original
+            # cmap winds up in the right place.
+            if "cmap" in options:
+                if isinstance(options["cmap"], (list, tuple)):
+                    oldcmap = options["cmap"][0]
+                else:
+                    oldcmap = options["cmap"]
+            else:
+                # The docs promise this as the default.
+                oldcmap = "gray"
+
+            # Trick matplotlib into plotting all of the points (minus
+            # those masked) by using a single, filled contour that
+            # covers the entire plotting surface.
+            options["cmap"] = ["white", oldcmap]
+            options["contours"] = (z0 - 1, z0)
+            options["fill"] = True
+        else:
+            # The "c" constant is set to plus/minus one to handle both
+            # of the "all values greater than z0" and "all values less
+            # than z0" cases at once.
+            c = 1
+            if np.all(xy_data_array <= z0):
+                xy_data_array *= -1
+                c = -1
+            # Now we check if (a) all of the data lie on one side of
+            # z0, and (b) if perturbing the data will actually help by
+            # moving anything across z0.
+            if (np.all(xy_data_array >= z0) and
+                np.any(xy_data_array - z0 < tol)):
+
+                from warnings import warn
+                warn("pathological contour plot of a function whose "
+                     "values all lie on one side of the sole contour; "
+                     "we are adding more plot points and perturbing "
+                     "your function values.")
+
+                # The choice of "4" here is not based on much of anything.
+                # It works well enough for the examples in the doctests.
+                if not isinstance(options["plot_points"], (list, tuple)):
+                    options["plot_points"] = (options["plot_points"],
+                                              options["plot_points"])
+                    options["plot_points"] = (options["plot_points"][0] * 4,
+                                              options["plot_points"][1] * 4)
+
+                # Re-plot with more points...
+                F, ranges = setup_for_eval_on_grid(ev, [xrange, yrange],
+                                                   options['plot_points'])
+                h = F[0]
+                xrange, yrange = (r[:2] for r in ranges)
+
+                # ...and a function whose values are shifted towards
+                # z0 by "tol".
+                xy_data_array = [[h(x, y) - c * tol
+                                  for x in xsrange(*ranges[0],
+                                                   include_endpoint=True)]
+                                 for y in xsrange(*ranges[1],
+                                                  include_endpoint=True)]
 
     if region is not None:
         import numpy
@@ -854,18 +1025,8 @@ def contour_plot(f, xrange, yrange, **options):
 
         xy_data_array[mask] = numpy.ma.masked
 
-    g = Graphics()
-
-    # Reset aspect_ratio to 'automatic' in case scale is 'semilog[xy]'.
-    # Otherwise matplotlib complains.
-    scale = options.get('scale', None)
-    if isinstance(scale, (list, tuple)):
-        scale = scale[0]
-    if scale == 'semilogy' or scale == 'semilogx':
-        options['aspect_ratio'] = 'automatic'
-
-    g._set_extra_kwds(Graphics._extract_kwds_for_show(options, ignore=['xmin', 'xmax']))
     g.add_primitive(ContourPlot(xy_data_array, xrange, yrange, options))
+
     return g
 
 
@@ -884,10 +1045,10 @@ def implicit_plot(f, xrange, yrange, **options):
 
     - ``f`` -- a function of two variables or equation in two variables
 
-    - ``(xmin,xmax)`` -- 2-tuple, the range of ``x``
+    - ``(xmin, xmax)`` -- 2-tuple, the range of ``x``
       values or ``(x,xmin,xmax)``
 
-    - ``(ymin,ymax)`` -- 2-tuple, the range of ``y``
+    - ``(ymin, ymax)`` -- 2-tuple, the range of ``y``
       values or ``(y,ymin,ymax)``
 
     The following inputs must all be passed in as named parameters:
@@ -896,21 +1057,21 @@ def implicit_plot(f, xrange, yrange, **options):
       in each direction of the grid
 
     - ``fill`` -- boolean (default: ``False``); if ``True``, fill the region
-      `f(x, y) < 0`.
+      `f(x, y) < 0`
 
-    - ``fillcolor`` -- string (default: ``'blue'``), the color of the region
+    - ``fillcolor`` -- string (default: ``'blue'``); the color of the region
       where `f(x,y) < 0` if ``fill = True``. Colors are defined in
       :mod:`sage.plot.colors`; try ``colors?`` to see them all.
 
-    - ``linewidth`` -- integer (default: None), if a single integer all levels
+    - ``linewidth`` -- integer (default: ``None``); if a single integer all levels
       will be of the width given, otherwise the levels will be plotted with the
       widths in the order given.
 
-    - ``linestyle`` -- string (default: None), the style of the line to be
-      plotted, one of: ``"solid"``, ``"dashed"``, ``"dashdot"`` or
-      ``"dotted"``, respectively ``"-"``, ``"--"``, ``"-."``, or ``":"``.
+    - ``linestyle`` -- string (default: ``None``); the style of the line to be
+      plotted, one of: ``'solid'``, ``'dashed'``, ``'dashdot'`` or
+      ``'dotted'``, respectively ``'-'``, ``'--'``, ``'-.'``, or ``':'``.
 
-    - ``color`` -- string (default: ``'blue'``), the color of the plot. Colors
+    - ``color`` -- string (default: ``'blue'``); the color of the plot. Colors
       are defined in :mod:`sage.plot.colors`; try ``colors?`` to see them all.
       If ``fill = True``, then this sets only the color of the border of the
       plot. See ``fillcolor`` for setting the color of the fill region.
@@ -923,18 +1084,26 @@ def implicit_plot(f, xrange, yrange, **options):
       ``basex`` sets the base of the logarithm along the horizontal
       axis and ``basey`` sets the base along the vertical axis.
 
-    - ``scale`` -- (default: ``"linear"``) string. The scale of the axes.
-      Possible values are ``"linear"``, ``"loglog"``, ``"semilogx"``,
-      ``"semilogy"``.
+    - ``scale`` -- (default: ``'linear'``) string. The scale of the axes.
+      Possible values are ``'linear'``, ``'loglog'``, ``'semilogx'``,
+      ``'semilogy'``.
 
       The scale can be also be given as single argument that is a list
       or tuple ``(scale, base)`` or ``(scale, basex, basey)``.
 
-      The ``"loglog"`` scale sets both the horizontal and vertical axes to
-      logarithmic scale. The ``"semilogx"`` scale sets the horizontal axis
-      to logarithmic scale. The ``"semilogy"`` scale sets the vertical axis
-      to logarithmic scale. The ``"linear"`` scale is the default value
+      The ``'loglog'`` scale sets both the horizontal and vertical axes to
+      logarithmic scale. The ``'semilogx'`` scale sets the horizontal axis
+      to logarithmic scale. The ``'semilogy'`` scale sets the vertical axis
+      to logarithmic scale. The ``'linear'`` scale is the default value
       when :class:`~sage.plot.graphics.Graphics` is initialized.
+
+    .. WARNING::
+
+        Due to an implementation detail in matplotlib, implicit plots
+        whose data are all nonpositive or nonnegative may not be
+        plotted correctly. We attempt to detect this situation and to
+        produce something better than an empty plot when it happens; a
+        ``UserWarning`` is emitted in that case.
 
     EXAMPLES:
 
@@ -953,7 +1122,7 @@ def implicit_plot(f, xrange, yrange, **options):
         g = implicit_plot(x**2 + y**2 - 2, (x,-3,3), (y,-3,3))
         sphinx_plot(g)
 
-    We can do the same thing, but using a callable function so we don't
+    We can do the same thing, but using a callable function so we do not
     need to explicitly define the variables in the ranges. We also fill
     the inside::
 
@@ -963,7 +1132,7 @@ def implicit_plot(f, xrange, yrange, **options):
 
     .. PLOT::
 
-        def f(x,y): return x**2 + y**2 - 2
+        def f(x, y): return x**2 + y**2 - 2
         g = implicit_plot(f, (-3,3), (-3,3), fill=True, plot_points=500)
         sphinx_plot(g)
 
@@ -974,7 +1143,7 @@ def implicit_plot(f, xrange, yrange, **options):
 
     .. PLOT::
 
-        def f(x,y): return x**2 + y**2 - 2
+        def f(x, y): return x**2 + y**2 - 2
         g = implicit_plot(f, (-3,3), (-3,3), linewidth=6)
         sphinx_plot(g)
 
@@ -986,19 +1155,20 @@ def implicit_plot(f, xrange, yrange, **options):
     .. PLOT::
 
         x, y =var("x y")
-        def f(x,y): return x**2 + y**2 - 2
+        def f(x, y): return x**2 + y**2 - 2
         g = implicit_plot(f, (-3,3), (-3,3), linestyle='dashdot')
         sphinx_plot(g)
 
     The same circle with different line and fill colors::
 
-        sage: implicit_plot(f, (-3,3), (-3,3), color='red', fill=True, fillcolor='green',
-        ....:                                  plot_points=500) # long time
+        sage: implicit_plot(f, (-3,3), (-3,3), color='red',  # long time
+        ....:               fill=True, fillcolor='green',
+        ....:               plot_points=500)
         Graphics object consisting of 2 graphics primitives
 
     .. PLOT::
 
-        def f(x,y): return x**2 + y**2 - 2
+        def f(x, y): return x**2 + y**2 - 2
         g = implicit_plot(f, (-3,3), (-3,3), color='red', fill=True, fillcolor='green',
                                              plot_points=500)
         sphinx_plot(g)
@@ -1018,13 +1188,13 @@ def implicit_plot(f, xrange, yrange, **options):
 
     You can even change the color of the plot::
 
-        sage: implicit_plot(x^2 + y^2 == 2, (x,-3,3), (y,-3,3), color="red")
+        sage: implicit_plot(x^2 + y^2 == 2, (x,-3,3), (y,-3,3), color='red')
         Graphics object consisting of 1 graphics primitive
 
     .. PLOT::
 
         x, y =var("x y")
-        g = implicit_plot(x**2 + y**2 == 2, (x,-3,3), (y,-3,3), color="red")
+        g = implicit_plot(x**2 + y**2 == 2, (x,-3,3), (y,-3,3), color='red')
         sphinx_plot(g)
 
     The color of the fill region can be changed::
@@ -1035,7 +1205,7 @@ def implicit_plot(f, xrange, yrange, **options):
     .. PLOT::
 
         x, y =var("x y")
-        g = implicit_plot(x**2 + y**2 == 2, (x,-3,3), (y,-3,3), fill=True, fillcolor="red")
+        g = implicit_plot(x**2 + y**2 == 2, (x,-3,3), (y,-3,3), fill=True, fillcolor='red')
         sphinx_plot(g)
 
     Here is a beautiful (and long) example which also tests that all
@@ -1067,7 +1237,7 @@ def implicit_plot(f, xrange, yrange, **options):
         ....:     z = 0
         ....:     for i in range(n):
         ....:         z = z*z + c
-        ....:     def f(x,y):
+        ....:     def f(x, y):
         ....:         val = z(CDF(x, y))
         ....:         return val.norm() - 4
         ....:     return f
@@ -1084,7 +1254,7 @@ def implicit_plot(f, xrange, yrange, **options):
              z = 0
              for i in range(n):
                  z = z*z + c
-             def f(x,y):
+             def f(x, y):
                  val = z(CDF(x, y))
                  return val.norm() - 4
              return f
@@ -1103,7 +1273,7 @@ def implicit_plot(f, xrange, yrange, **options):
              z = 0
              for i in range(n):
                  z = z*z + c
-             def f(x,y):
+             def f(x, y):
                  val = z(CDF(x, y))
                  return val.norm() - 4
              return f
@@ -1126,7 +1296,7 @@ def implicit_plot(f, xrange, yrange, **options):
              z = 0
              for i in range(n):
                  z = z*z + c
-             def f(x,y):
+             def f(x, y):
                  val = z(CDF(x, y))
                  return val.norm() - 4
              return f
@@ -1138,8 +1308,8 @@ def implicit_plot(f, xrange, yrange, **options):
     symbolic expression the user should increase the number of plot points to
     avoid artifacts::
 
-        sage: implicit_plot(lambda x, y: x^2 + y^2 - 2, (x,-3,3), (y,-3,3),
-        ....:               fill=True, plot_points=500) # long time
+        sage: implicit_plot(lambda x, y: x^2 + y^2 - 2, (x,-3,3),  # long time
+        ....:               (y,-3,3), fill=True, plot_points=500)
         Graphics object consisting of 2 graphics primitives
 
     .. PLOT::
@@ -1168,7 +1338,7 @@ def implicit_plot(f, xrange, yrange, **options):
         ...
         ValueError: fill=5 is not supported
 
-    To check that :trac:`9654` is fixed::
+    To check that :issue:`9654` is fixed::
 
         sage: f(x,y) = x^2 + y^2 - 2
         sage: implicit_plot(f, (-3,3), (-3,3), rgbcolor=(1,0,0))
@@ -1180,37 +1350,38 @@ def implicit_plot(f, xrange, yrange, **options):
         ...
         ValueError: only one of color or rgbcolor should be specified
     """
-    from sage.symbolic.expression import is_SymbolicEquation
-    if is_SymbolicEquation(f):
+    from sage.structure.element import Expression
+    if isinstance(f, Expression) and f.is_relational():
         if f.operator() != operator.eq:
-            raise ValueError("input to implicit plot must be function or equation")
+            raise ValueError("input to implicit plot must be function "
+                             "or equation")
         f = f.lhs() - f.rhs()
     linewidths = options.pop('linewidth', None)
     linestyles = options.pop('linestyle', None)
 
     if 'color' in options and 'rgbcolor' in options:
         raise ValueError('only one of color or rgbcolor should be specified')
-    elif 'color' in options:
-        options['cmap']=[options.pop('color', None)]
+
+    if 'color' in options:
+        options['cmap'] = [options.pop('color', None)]
     elif 'rgbcolor' in options:
-        options['cmap']=[rgbcolor(options.pop('rgbcolor', None))]
+        options['cmap'] = [rgbcolor(options.pop('rgbcolor', None))]
 
     if options['fill'] is True:
         options.pop('fill')
         options.pop('contours', None)
         incol = options.pop('fillcolor', 'blue')
         bordercol = options.pop('cmap', [None])[0]
-        from sage.symbolic.expression import is_Expression
-        if not is_Expression(f):
+        from sage.structure.element import Expression
+        if not isinstance(f, Expression):
             return region_plot(lambda x, y: f(x, y) < 0, xrange, yrange,
                                borderwidth=linewidths, borderstyle=linestyles,
                                incol=incol, bordercol=bordercol,
                                **options)
-        else:
-            return region_plot(f < 0, xrange, yrange, borderwidth=linewidths,
-                               borderstyle=linestyles,
-                               incol=incol, bordercol=bordercol,
-                               **options)
+        return region_plot(f < 0, xrange, yrange, borderwidth=linewidths,
+                           borderstyle=linestyles,
+                           incol=incol, bordercol=bordercol,
+                           **options)
     elif options['fill'] is False:
         options.pop('fillcolor', None)
         return contour_plot(f, xrange, yrange, linewidths=linewidths,
@@ -1222,27 +1393,26 @@ def implicit_plot(f, xrange, yrange, **options):
 @options(plot_points=100, incol='blue', outcol=None, bordercol=None,
          borderstyle=None, borderwidth=None, frame=False, axes=True,
          legend_label=None, aspect_ratio=1, alpha=1)
-def region_plot(f, xrange, yrange, plot_points, incol, outcol, bordercol,
-                borderstyle, borderwidth, alpha, **options):
+def region_plot(f, xrange, yrange, **options):
     r"""
     ``region_plot`` takes a boolean function of two variables, `f(x, y)`
-    and plots the region where f is True over the specified
+    and plots the region where f is ``True`` over the specified
     ``xrange`` and ``yrange`` as demonstrated below.
 
     ``region_plot(f, (xmin,xmax), (ymin,ymax), ...)``
 
     INPUT:
 
-    - ``f`` -- a boolean function or a list of boolean functions of
+    - ``f`` -- boolean function or a list of boolean functions of
       two variables
 
-    - ``(xmin,xmax)`` -- 2-tuple, the range of ``x`` values OR 3-tuple
+    - ``(xmin, xmax)`` -- 2-tuple, the range of ``x`` values OR 3-tuple
       ``(x,xmin,xmax)``
 
-    - ``(ymin,ymax)`` -- 2-tuple, the range of ``y`` values OR 3-tuple
+    - ``(ymin, ymax)`` -- 2-tuple, the range of ``y`` values OR 3-tuple
       ``(y,ymin,ymax)``
 
-    - ``plot_points``  -- integer (default: 100); number of points to plot
+    - ``plot_points`` -- integer (default: 100); number of points to plot
       in each direction of the grid
 
     - ``incol`` -- a color (default: ``'blue'``), the color inside the region
@@ -1258,11 +1428,11 @@ def region_plot(f, xrange, yrange, plot_points, incol, outcol, bordercol,
        (``'black'`` if ``borderwidth`` or ``borderstyle`` is specified but
        not ``bordercol``)
 
-    - ``borderstyle``  -- string (default: ``'solid'``), one of ``'solid'``,
+    - ``borderstyle`` -- string (default: ``'solid'``); one of ``'solid'``,
       ``'dashed'``, ``'dotted'``, ``'dashdot'``, respectively ``'-'``,
-      ``'--'``, ``':'``, ``'-.'``.
+      ``'--'``, ``':'``, ``'-.'``
 
-    - ``borderwidth``  -- integer (default: ``None``), the width of the
+    - ``borderwidth`` -- integer (default: ``None``); the width of the
       border in pixels
 
     - ``alpha`` -- (default: 1) how transparent the fill is; a number
@@ -1270,25 +1440,24 @@ def region_plot(f, xrange, yrange, plot_points, incol, outcol, bordercol,
 
     - ``legend_label`` -- the label for this item in the legend
 
-    - ``base`` - (default: 10) the base of the logarithm if
+    - ``base`` -- (default: 10) the base of the logarithm if
       a logarithmic scale is set. This must be greater than 1. The base
       can be also given as a list or tuple ``(basex, basey)``.
       ``basex`` sets the base of the logarithm along the horizontal
       axis and ``basey`` sets the base along the vertical axis.
 
-    - ``scale`` -- (default: ``"linear"``) string. The scale of the axes.
-      Possible values are ``"linear"``, ``"loglog"``, ``"semilogx"``,
-      ``"semilogy"``.
+    - ``scale`` -- string (default: ``'linear'``); the scale of the axes.
+      Possible values are ``'linear'``, ``'loglog'``, ``'semilogx'``,
+      ``'semilogy'``.
 
       The scale can be also be given as single argument that is a list
       or tuple ``(scale, base)`` or ``(scale, basex, basey)``.
 
-      The ``"loglog"`` scale sets both the horizontal and vertical axes to
-      logarithmic scale. The ``"semilogx"`` scale sets the horizontal axis
-      to logarithmic scale. The ``"semilogy"`` scale sets the vertical axis
-      to logarithmic scale. The ``"linear"`` scale is the default value
+      The ``'loglog'`` scale sets both the horizontal and vertical axes to
+      logarithmic scale. The ``'semilogx'`` scale sets the horizontal axis
+      to logarithmic scale. The ``'semilogy'`` scale sets the vertical axis
+      to logarithmic scale. The ``'linear'`` scale is the default value
       when :class:`~sage.plot.graphics.Graphics` is initialized.
-
 
     EXAMPLES:
 
@@ -1353,7 +1522,7 @@ def region_plot(f, xrange, yrange, plot_points, incol, outcol, bordercol,
         g = region_plot([x**2 + y**2 < 1, x < y], (x,-2,2), (y,-2,2))
         sphinx_plot(g)
 
-    Since it doesn't look very good, let's increase ``plot_points``::
+    Since it does not look very good, let us increase ``plot_points``::
 
         sage: region_plot([x^2 + y^2 < 1, x< y], (x,-2,2), (y,-2,2), plot_points=400)
         Graphics object consisting of 1 graphics primitive
@@ -1465,7 +1634,7 @@ def region_plot(f, xrange, yrange, plot_points, incol, outcol, bordercol,
 
     TESTS:
 
-    To check that :trac:`16907` is fixed::
+    To check that :issue:`16907` is fixed::
 
         sage: x, y = var('x, y')
         sage: disc1 = region_plot(x^2 + y^2 < 1, (x,-1,1), (y,-1,1), alpha=0.5)
@@ -1473,7 +1642,7 @@ def region_plot(f, xrange, yrange, plot_points, incol, outcol, bordercol,
         sage: disc1 + disc2
         Graphics object consisting of 2 graphics primitives
 
-    To check that :trac:`18286` is fixed::
+    To check that :issue:`18286` is fixed::
 
         sage: x, y = var('x, y')
         sage: region_plot([x == 0], (x,-1,1), (y,-1,1))
@@ -1481,37 +1650,51 @@ def region_plot(f, xrange, yrange, plot_points, incol, outcol, bordercol,
         sage: region_plot([x^2 + y^2 == 1, x < y], (x,-1,1), (y,-1,1))
         Graphics object consisting of 1 graphics primitive
     """
-    from sage.plot.all import Graphics
+    from sage.plot.graphics import Graphics
     from sage.plot.misc import setup_for_eval_on_grid
-    from sage.symbolic.expression import is_Expression
+    from sage.structure.element import Expression
     from warnings import warn
     import numpy
+
+    plot_points = options['plot_points']
+    incol = options.pop('incol')
+    outcol = options.pop('outcol')
+    bordercol = options.pop('bordercol')
+    borderstyle = options.pop('borderstyle')
+    borderwidth = options.pop('borderwidth')
+    alpha = options.pop('alpha')
 
     if not isinstance(f, (list, tuple)):
         f = [f]
 
-    feqs = [equify(g) for g in f if is_Expression(g) and g.operator() is operator.eq and not equify(g).is_zero()]
-    f = [equify(g) for g in f if not (is_Expression(g) and g.operator() is operator.eq)]
+    feqs = [equify(g) for g in f
+            if isinstance(g, Expression) and g.operator() is operator.eq
+            and not equify(g).is_zero()]
+    f = [equify(g) for g in f
+         if not (isinstance(g, Expression) and g.operator() is operator.eq)]
     neqs = len(feqs)
     if neqs > 1:
-        warn("There are at least 2 equations; " +
-             "If the region is degenerated to points, " +
+        warn("There are at least 2 equations; "
+             "If the region is degenerated to points, "
              "plotting might show nothing.")
         feqs = [sum([fn**2 for fn in feqs])]
         neqs = 1
     if neqs and not bordercol:
         bordercol = incol
     if not f:
-        return implicit_plot(feqs[0], xrange, yrange, plot_points=plot_points,
-                             fill=False, linewidth=borderwidth,
-                             linestyle=borderstyle, color=bordercol, **options)
+        return implicit_plot(feqs[0], xrange, yrange, fill=False,
+                             linewidth=borderwidth, linestyle=borderstyle,
+                             color=bordercol, **options)
     f_all, ranges = setup_for_eval_on_grid(feqs + f,
                                            [xrange, yrange],
                                            plot_points)
-    xrange, yrange = [r[:2] for r in ranges]
+    xrange, yrange = (r[:2] for r in ranges)
 
-    xy_data_arrays = numpy.asarray([[[func(x, y) for x in xsrange(*ranges[0], include_endpoint=True)]
-                                    for y in xsrange(*ranges[1], include_endpoint=True)]
+    xy_data_arrays = numpy.asarray([[[func(x, y)
+                                      for x in xsrange(*ranges[0],
+                                                       include_endpoint=True)]
+                                     for y in xsrange(*ranges[1],
+                                                      include_endpoint=True)]
                                     for func in f_all[neqs::]], dtype=float)
     xy_data_array = numpy.abs(xy_data_arrays.prod(axis=0))
     # Now we need to set entries to negative iff all
@@ -1538,10 +1721,11 @@ def region_plot(f, xrange, yrange, plot_points, incol, outcol, bordercol,
     scale = options.get('scale', None)
     if isinstance(scale, (list, tuple)):
         scale = scale[0]
-    if scale == 'semilogy' or scale == 'semilogx':
+    if scale in ('semilogy', 'semilogx'):
         options['aspect_ratio'] = 'automatic'
 
-    g._set_extra_kwds(Graphics._extract_kwds_for_show(options, ignore=['xmin', 'xmax']))
+    g._set_extra_kwds(Graphics._extract_kwds_for_show(options,
+                                                      ignore=['xmin', 'xmax']))
 
     if neqs == 0:
         g.add_primitive(ContourPlot(xy_data_array, xrange, yrange,
@@ -1549,11 +1733,14 @@ def region_plot(f, xrange, yrange, plot_points, incol, outcol, bordercol,
                                          cmap=cmap,
                                          fill=True, **options)))
     else:
-        mask = numpy.asarray([[elt > 0 for elt in rows] for rows in xy_data_array],
+        mask = numpy.asarray([[elt > 0 for elt in rows]
+                              for rows in xy_data_array],
                              dtype=bool)
         xy_data_array = numpy.asarray([[f_all[0](x, y)
-                                       for x in xsrange(*ranges[0], include_endpoint=True)]
-                                       for y in xsrange(*ranges[1], include_endpoint=True)],
+                                        for x in xsrange(*ranges[0],
+                                                         include_endpoint=True)]
+                                       for y in xsrange(*ranges[1],
+                                                        include_endpoint=True)],
                                       dtype=float)
         xy_data_array[mask] = None
     if bordercol or borderstyle or borderwidth:
@@ -1571,8 +1758,8 @@ def region_plot(f, xrange, yrange, plot_points, incol, outcol, bordercol,
 
 def equify(f):
     """
-    Returns the equation rewritten as a symbolic function to give
-    negative values when True, positive when False.
+    Return the equation rewritten as a symbolic function to give
+    negative values when ``True``, positive when ``False``.
 
     EXAMPLES::
 
@@ -1587,20 +1774,18 @@ def equify(f):
         -x*y + 1
         sage: equify(y > 0)
         -y
-        sage: f=equify(lambda x, y: x > y)
+        sage: f = equify(lambda x, y: x > y)
         sage: f(1, 2)
         1
         sage: f(2, 1)
         -1
     """
-    import operator
-    from sage.calculus.all import symbolic_expression
-    from sage.symbolic.expression import is_Expression
-    if not is_Expression(f):
+    from sage.calculus.expr import symbolic_expression
+    from sage.structure.element import Expression
+    if not isinstance(f, Expression):
         return lambda x, y: -1 if f(x, y) else 1
 
     op = f.operator()
     if op is operator.gt or op is operator.ge:
         return symbolic_expression(f.rhs() - f.lhs())
-    else:
-        return symbolic_expression(f.lhs() - f.rhs())
+    return symbolic_expression(f.lhs() - f.rhs())

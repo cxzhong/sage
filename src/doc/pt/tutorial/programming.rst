@@ -117,13 +117,10 @@ então faça o seguinte:
                     Recompiling factorial.spyx
     ***************************************************
     sage: factorial(50)
-    30414093201713378043612608166064768844377641568960512000000000000L
+    30414093201713378043612608166064768844377641568960512000000000000
     sage: time n = factorial(10000)
     CPU times: user 0.03 s, sys: 0.00 s, total: 0.03 s
     Wall time: 0.03
-
-Aqui o sufixo L indica um "long integer" do Python (veja
-:ref:`section-mathannoy`).
 
 Note que o Sage vai recompilar ``factorial.spyx`` se você encerrar e
 reiniciar o Sage. A biblioteca compilada e compartilhada é armazenada
@@ -195,7 +192,6 @@ O seguinte script em Sage fatora inteiros, polinômios, etc:
     #!/usr/bin/env sage
     
     import sys
-    from sage.all import *
     
     if len(sys.argv) != 2:
         print("Usage: %s <n>" % sys.argv[0])
@@ -279,15 +275,9 @@ exemplos.
     sqrt(2)
     sage: V = VectorSpace(QQ,2)
     sage: V.basis()
-        [
-        (1, 0),
-        (0, 1)
-        ]
+        [(1, 0), (0, 1)]
     sage: basis(V)
-        [
-        (1, 0),
-        (0, 1)
-        ]
+        [(1, 0), (0, 1)]
     sage: M = MatrixSpace(GF(7), 2); M
     Full MatrixSpace of 2 by 2 dense matrices over Finite Field of size 7
     sage: A = M([1,2,3,4]); A
@@ -330,7 +320,7 @@ possua um método ``__index__``) também ira funcionar.
     sage: v = [1,2,3]
     sage: v[2]
     3
-    sage: n = 2      # SAGE Integer
+    sage: n = 2      # Sage Integer
     sage: v[n]       # Perfectly OK!
     3
     sage: v[int(n)]  # Also OK.
@@ -341,7 +331,7 @@ Sage):
 
 ::
 
-    sage: range(1, 15)
+    sage: list(range(1, 15))
     [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
 
 Isso é útil quando se usa "list comprehensions" para construir listas:
@@ -407,7 +397,7 @@ sequência possuem um parente comum, chamado o universo da sequência.
     sage: type(v)
     <class 'sage.structure.sequence.Sequence_generic'>
     sage: type(v[1])
-    <type 'sage.rings.rational.Rational'>
+    <class 'sage.rings.rational.Rational'>
     sage: v.universe()
     Rational Field
     sage: v.is_immutable()
@@ -437,11 +427,7 @@ imutáveis, pois é importante que elas não sejam modificadas.
 ::
 
     sage: V = QQ^3; B = V.basis(); B
-    [
-    (1, 0, 0),
-    (0, 1, 0),
-    (0, 0, 1)
-    ]
+    [(1, 0, 0), (0, 1, 0), (0, 0, 1)]
     sage: type(B)
     <class 'sage.structure.sequence.Sequence_generic'>
     sage: B[0] = B[1]
@@ -465,8 +451,8 @@ para detalhes).
     sage: d = {1:5, 'sage':17, ZZ:GF(7)}
     sage: type(d)
     <... 'dict'>
-    sage: d.keys()
-     [1, 'sage', Integer Ring]
+    sage: list(d.keys())
+    [1, 'sage', Integer Ring]
     sage: d['sage']
     17
     sage: d[ZZ]
@@ -547,7 +533,7 @@ sobre o quadrados dos números inteiros até :math:`10000000`.
 
 ::
 
-    sage: v = (n^2 for n in xrange(10000000))
+    sage: v = (n^2 for n in range(10000000))
     sage: next(v)
     0
     sage: next(v)
@@ -693,8 +679,6 @@ o int ``1`` do Python é único, mas o Inteiro ``1`` do Sage não é.
 
     sage: 1 is 2/2
     False
-    sage: int(1) is int(2)/int(2)  # optional - python2
-    True
     sage: 1 is 1
     False
     sage: 1 == 2/2

@@ -1,7 +1,7 @@
 """
 Arcs of circles and ellipses
 """
-#*****************************************************************************
+# ****************************************************************************
 #       Copyright (C) 2010 Vincent Delecroix <20100.delecroix@gmail.com>,
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
@@ -13,14 +13,13 @@ Arcs of circles and ellipses
 #
 #  The full text of the GPL is available at:
 #
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
-from __future__ import print_function
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
 from sage.plot.primitive import GraphicPrimitive
 from sage.plot.colors import to_mpl_color
 
-from sage.plot.misc import options, rename_keyword
+from sage.misc.decorators import options, rename_keyword
 
 from math import fmod, sin, cos, pi, atan
 
@@ -32,30 +31,32 @@ class Arc(GraphicPrimitive):
 
     INPUT:
 
-    - ``x,y`` - coordinates of the center of the arc
+    - ``x``, ``y`` -- coordinates of the center of the arc
 
-    - ``r1``, ``r2`` - lengths of the two radii
+    - ``r1``, ``r2`` -- lengths of the two radii
 
-    - ``angle`` - angle of the horizontal with width
+    - ``angle`` -- angle of the horizontal with width
 
-    - ``sector`` - sector of angle
+    - ``sector`` -- sector of angle
 
-    - ``options`` - dict of valid plot options to pass to constructor
+    - ``options`` -- dictionary of valid plot options to pass to constructor
 
     EXAMPLES:
 
     Note that the construction should be done using ``arc``::
 
+        sage: from math import pi
         sage: from sage.plot.arc import Arc
         sage: print(Arc(0,0,1,1,pi/4,pi/4,pi/2,{}))
-        Arc with center (0.0,0.0) radii (1.0,1.0) angle 0.785398163397 inside the sector (0.785398163397,1.57079632679)
+        Arc with center (0.0,0.0) radii (1.0,1.0) angle 0.78539816339... inside the sector (0.78539816339...,1.5707963267...)
     """
     def __init__(self, x, y, r1, r2, angle, s1, s2, options):
         """
-        Initializes base class ``Arc``.
+        Initialize base class ``Arc``.
 
         EXAMPLES::
 
+            sage: # needs sage.symbolic
             sage: A = arc((2,3),1,1,pi/4,(0,pi))
             sage: A[0].x == 2
             True
@@ -65,12 +66,12 @@ class Arc(GraphicPrimitive):
             True
             sage: A[0].r2 == 1
             True
-            sage: bool(A[0].angle == pi/4)
-            True
+            sage: A[0].angle
+            0.7853981633974483
             sage: bool(A[0].s1 == 0)
             True
-            sage: bool(A[0].s2 == pi)
-            True
+            sage: A[0].s2
+            3.141592653589793
 
         TESTS::
 
@@ -84,7 +85,7 @@ class Arc(GraphicPrimitive):
         self.r1 = float(r1)
         self.r2 = float(r2)
         if self.r1 <= 0 or self.r2 <= 0:
-            raise ValueError("the radii must be positive real numbers.")
+            raise ValueError("the radii must be positive real numbers")
 
         self.angle = float(angle)
         self.s1 = float(s1)
@@ -94,8 +95,8 @@ class Arc(GraphicPrimitive):
         GraphicPrimitive.__init__(self, options)
 
     def get_minmax_data(self):
-        """
-        Returns a dictionary with the bounding box data.
+        r"""
+        Return a dictionary with the bounding box data.
 
         The bounding box is computed as minimal as possible.
 
@@ -116,6 +117,7 @@ class Arc(GraphicPrimitive):
 
         The same example with a rotation of angle `\pi/2`::
 
+            sage: from math import pi
             sage: p = arc((-2, 3), 1, 2, pi/2)
             sage: d = p.get_minmax_data()
             sage: d['xmin']
@@ -148,7 +150,7 @@ class Arc(GraphicPrimitive):
         if angle < 0:
             angle += twopi
 
-        epsilon = float(0.0000001)
+        epsilon = 0.0000001
 
         cos_angle = cos(angle)
         sin_angle = sin(angle)
@@ -219,9 +221,9 @@ class Arc(GraphicPrimitive):
 
         if s < twopi - epsilon:  # bb determined by the sector
             def is_cyclic_ordered(x1, x2, x3):
-                return ((x1 < x2 and x2 < x3) or
-                        (x2 < x3 and x3 < x1) or
-                        (x3 < x1 and x1 < x2))
+                return ((x1 < x2 < x3) or
+                        (x2 < x3 < x1) or
+                        (x3 < x1 < x2))
 
             x1 = cos_angle * r1 * cos(s1) - sin_angle * r2 * sin(s1)
             x2 = cos_angle * r1 * cos(s2) - sin_angle * r2 * sin(s2)
@@ -274,9 +276,9 @@ class Arc(GraphicPrimitive):
         p = patches.Arc((self.x, self.y),
                         2. * self.r1,
                         2. * self.r2,
-                        fmod(self.angle, 2 * pi) * (180. / pi),
-                        self.s1 * (180. / pi),
-                        self.s2 * (180. / pi))
+                        angle=fmod(self.angle, 2 * pi) * (180. / pi),
+                        theta1=self.s1 * (180. / pi),
+                        theta2=self.s2 * (180. / pi))
         return p
 
     def bezier_path(self):
@@ -294,19 +296,33 @@ class Arc(GraphicPrimitive):
             sage: Arc(2,3,2.2,2.2,0,2,3,op).bezier_path()
             Graphics object consisting of 1 graphics primitive
 
-            sage: a = arc((0,0),2,1,0,(pi/5,pi/2+pi/12), linestyle="--", color="red")
+            sage: from math import pi
+            sage: a = arc((0,0),2,1,0,(pi/5,pi/2+pi/12), linestyle='--', color='red')
             sage: b = a[0].bezier_path()
             sage: b[0]
-            Bezier path from (1.618..., 0.5877...) to (-0.5176..., 0.9659...)
+            Bezier path from (1.133..., 0.8237...) to (-0.2655..., 0.9911...)
         """
         from sage.plot.bezier_path import BezierPath
         from sage.plot.graphics import Graphics
+        from matplotlib.path import Path
+        import numpy as np
         ma = self._matplotlib_arc()
-        transform = ma.get_transform().get_matrix()
+
+        def theta_stretch(theta, scale):
+            theta = np.deg2rad(theta)
+            x = np.cos(theta)
+            y = np.sin(theta)
+            return np.rad2deg(np.arctan2(scale * y, x))
+        theta1 = theta_stretch(ma.theta1, ma.width / ma.height)
+        theta2 = theta_stretch(ma.theta2, ma.width / ma.height)
+
+        pa = ma
+        pa._path = Path.arc(theta1, theta2)
+        transform = pa.get_transform().get_matrix()
         cA, cC, cE = transform[0]
         cB, cD, cF = transform[1]
         points = []
-        for u in ma._path.vertices:
+        for u in pa._path.vertices:
             x, y = list(u)
             points += [(cA * x + cC * y + cE, cB * x + cD * y + cF)]
         cutlist = [points[0: 4]]
@@ -320,7 +336,7 @@ class Arc(GraphicPrimitive):
         g.add_primitive(BezierPath(cutlist, opt))
         return g
 
-    def _repr_(self):
+    def _repr_(self) -> str:
         """
         String representation of ``Arc`` primitive.
 
@@ -330,12 +346,13 @@ class Arc(GraphicPrimitive):
             sage: print(Arc(2,3,2.2,2.2,0,2,3,{}))
             Arc with center (2.0,3.0) radii (2.2,2.2) angle 0.0 inside the sector (2.0,3.0)
         """
-        return "Arc with center (%s,%s) radii (%s,%s) angle %s inside the sector (%s,%s)" % (self.x, self.y, self.r1, self.r2, self.angle, self.s1, self.s2)
+        return f"Arc with center ({self.x},{self.y}) radii ({self.r1},{self.r2}) angle {self.angle} inside the sector ({self.s1},{self.s2})"
 
     def _render_on_subplot(self, subplot):
         """
         TESTS::
 
+            sage: from math import pi
             sage: A = arc((1,1),3,4,pi/4,(pi,4*pi/3)); A
             Graphics object consisting of 1 graphics primitive
         """
@@ -373,61 +390,78 @@ class Arc(GraphicPrimitive):
          aspect_ratio=1.0)
 def arc(center, r1, r2=None, angle=0.0, sector=(0.0, 2 * pi), **options):
     r"""
-    An arc (that is a portion of a circle or an ellipse)
+    An arc (that is a portion of a circle or an ellipse).
 
     Type ``arc.options`` to see all options.
 
     INPUT:
 
-    - ``center`` - 2-tuple of real numbers - position of the center.
+    - ``center`` -- 2-tuple of real numbers; position of the center
 
-    - ``r1``, ``r2`` - positive real numbers - radii of the ellipse. If only ``r1``
+    - ``r1``, ``r2`` -- positive real numbers; radii of the ellipse. If only ``r1``
       is set, then the two radii are supposed to be equal and this function returns
       an arc of circle.
 
-    - ``angle`` - real number - angle between the horizontal and the axis that
-      corresponds to ``r1``.
+    - ``angle`` -- real number; angle between the horizontal and the axis that
+      corresponds to ``r1``
 
-    - ``sector`` - 2-tuple (default: (0,2*pi))- angles sector in which the arc will
-      be drawn.
+    - ``sector`` -- 2-tuple (default: (0,2*pi)); angles sector in which the arc will
+      be drawn
 
     OPTIONS:
 
-    - ``alpha`` - float (default: 1) - transparency
+    - ``alpha`` -- float (default: 1) -- transparency
 
-    - ``thickness`` - float (default: 1) - thickness of the arc
+    - ``thickness`` -- float (default: 1) -- thickness of the arc
 
-    - ``color``, ``rgbcolor`` - string or 2-tuple (default: 'blue') - the color
-      of the arc
+    - ``color``, ``rgbcolor`` -- string or 2-tuple (default: ``'blue'``); the
+      color of the arc
 
-    - ``linestyle`` - string (default: ``'solid'``) - The style of the line,
+    - ``linestyle`` -- string (default: ``'solid'``); the style of the line,
       which is one of ``'dashed'``, ``'dotted'``, ``'solid'``, ``'dashdot'``,
-      or ``'--'``, ``':'``, ``'-'``, ``'-.'``, respectively.
+      or ``'--'``, ``':'``, ``'-'``, ``'-.'``, respectively
 
     EXAMPLES:
 
     Plot an arc of circle centered at (0,0) with radius 1 in the sector
     `(\pi/4,3*\pi/4)`::
 
+        sage: from math import pi
         sage: arc((0,0), 1, sector=(pi/4,3*pi/4))
         Graphics object consisting of 1 graphics primitive
+
+    .. PLOT::
+
+        sphinx_plot(arc((0,0), 1, sector=(pi/4,3*pi/4)))
 
     Plot an arc of an ellipse between the angles 0 and `\pi/2`::
 
         sage: arc((2,3), 2, 1, sector=(0,pi/2))
         Graphics object consisting of 1 graphics primitive
 
+    .. PLOT::
+
+        sphinx_plot(arc((2,3), 2, 1, sector=(0,pi/2)))
+
     Plot an arc of a rotated ellipse between the angles 0 and `\pi/2`::
 
         sage: arc((2,3), 2, 1, angle=pi/5, sector=(0,pi/2))
         Graphics object consisting of 1 graphics primitive
 
+    .. PLOT::
+
+        sphinx_plot(arc((2,3), 2, 1, angle=pi/5, sector=(0,pi/2)))
+
     Plot an arc of an ellipse in red with a dashed linestyle::
 
-        sage: arc((0,0), 2, 1, 0, (0,pi/2), linestyle="dashed", color="red")
+        sage: arc((0,0), 2, 1, 0, (0,pi/2), linestyle='dashed', color='red')
         Graphics object consisting of 1 graphics primitive
-        sage: arc((0,0), 2, 1, 0, (0,pi/2), linestyle="--", color="red")
+        sage: arc((0,0), 2, 1, 0, (0,pi/2), linestyle='--', color='red')
         Graphics object consisting of 1 graphics primitive
+
+    .. PLOT::
+
+        sphinx_plot(arc((0,0), 2, 1, 0, (0,pi/2), linestyle='dashed', color='red'))
 
     The default aspect ratio for arcs is 1.0::
 
@@ -441,7 +475,7 @@ def arc(center, r1, r2=None, angle=0.0, sector=(0.0, 2 * pi), **options):
         ...
         NotImplementedError
     """
-    from sage.plot.all import Graphics
+    from sage.plot.graphics import Graphics
 
     # Reset aspect_ratio to 'automatic' in case scale is 'semilog[xy]'.
     # Otherwise matplotlib complains.

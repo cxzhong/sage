@@ -1,16 +1,12 @@
 """
 Root system data for type A infinity
 """
-
-#*****************************************************************************
+# ***************************************************************************
 # Copyright (C) 2016 Andrew Mathas <Andrew dot Mathas at Sydney dot edu dot au>
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
-
-from __future__ import print_function, absolute_import
-
+#                  https://www.gnu.org/licenses/
+# ***************************************************************************
 from .cartan_type import CartanType_standard, CartanType_simple
 from sage.rings.integer_ring import ZZ
 
@@ -26,6 +22,7 @@ class CartanType(CartanType_standard, CartanType_simple):
     """
     # We do not inherit from CartanType_crystallographic because it provides
     # methods that are not implemented for A_oo.
+
     def __init__(self, index_set):
         """
         EXAMPLES::
@@ -58,7 +55,7 @@ class CartanType(CartanType_standard, CartanType_simple):
 
             sage: TestSuite(ct).run()
         """
-        super(CartanType, self).__init__()
+        super().__init__()
         self.letter = 'A'
         self.n = index_set
 
@@ -77,7 +74,7 @@ class CartanType(CartanType_standard, CartanType_simple):
         return ret % (self.letter, 'ZZ' if self.n == ZZ else 'NN')
 
     def _latex_(self):
-        """
+        r"""
         Return a latex representation of ``self``.
 
         EXAMPLES::
@@ -89,7 +86,7 @@ class CartanType(CartanType_standard, CartanType_simple):
         """
         return 'A_{{{}}}'.format(self.n._latex_())
 
-    def ascii_art(self, label=lambda i: i, node=None):
+    def ascii_art(self, label=None, node=None):
         """
         Return an ascii art representation of the extended Dynkin diagram.
 
@@ -101,17 +98,18 @@ class CartanType(CartanType_standard, CartanType_simple):
             sage: print(CartanType(['A', NN]).ascii_art())
             O---O---O---O---O---O---O---..
             0   1   2   3   4   5   6
-
         """
+        if label is None:
+            label = lambda i: i
         if node is None:
             node = self._ascii_art_node
 
         if self.n == ZZ:
-            ret  = '..---'+'---'.join(node(label(i)) for i in range(7))+'---..\n'
-            ret += '  '+''.join("{:4}".format(label(i)) for i in range(-3,4))
+            ret = '..---' + '---'.join(node(label(i)) for i in range(7)) + '---..\n'
+            ret += '  ' + ''.join("{:4}".format(label(i)) for i in range(-3, 4))
         else:
-            ret  = '---'.join(node(label(i)) for i in range(7))+'---..\n'
-            ret += '0'+''.join("{:4}".format(label(i)) for i in range(1,7))
+            ret = '---'.join(node(label(i)) for i in range(7)) + '---..\n'
+            ret += '0' + ''.join("{:4}".format(label(i)) for i in range(1, 7))
 
         return ret
 
@@ -128,7 +126,7 @@ class CartanType(CartanType_standard, CartanType_simple):
         """
         return self
 
-    def is_simply_laced(self):
+    def is_simply_laced(self) -> bool:
         """
         Return ``True`` because ``self`` is simply laced.
 
@@ -141,7 +139,7 @@ class CartanType(CartanType_standard, CartanType_simple):
         """
         return True
 
-    def is_crystallographic(self):
+    def is_crystallographic(self) -> bool:
         """
         Return ``False`` because ``self`` is not crystallographic.
 
@@ -154,7 +152,7 @@ class CartanType(CartanType_standard, CartanType_simple):
         """
         return True
 
-    def is_finite(self):
+    def is_finite(self) -> bool:
         """
         Return ``True`` because ``self`` is not finite.
 
@@ -167,7 +165,7 @@ class CartanType(CartanType_standard, CartanType_simple):
         """
         return False
 
-    def is_affine(self):
+    def is_affine(self) -> bool:
         """
         Return ``False`` because ``self`` is not (untwisted) affine.
 
@@ -180,7 +178,7 @@ class CartanType(CartanType_standard, CartanType_simple):
         """
         return False
 
-    def is_untwisted_affine(self):
+    def is_untwisted_affine(self) -> bool:
         """
         Return ``False`` because ``self`` is not (untwisted) affine.
 
@@ -225,7 +223,7 @@ class CartanType(CartanType_standard, CartanType_simple):
         return self.letter
 
     def index_set(self):
-        """
+        r"""
         Return the index set for the Cartan type ``self``.
 
         The index set for all standard finite Cartan types is of the form
@@ -234,8 +232,9 @@ class CartanType(CartanType_standard, CartanType_simple):
 
         EXAMPLES::
 
-            sage: CartanType(['A', 5]).index_set()
-            (1, 2, 3, 4, 5)
+            sage: CartanType(['A', NN]).index_set()
+            Non negative integer semiring
+            sage: CartanType(['A', ZZ]).index_set()
+            Integer Ring
         """
         return self.n
-

@@ -4,8 +4,8 @@
 
 .. _thematic-tutorials:
 
-Welcome to the Sage Thematic Tutorials!
-=======================================
+Sage Thematic Tutorials
+=======================
 
 Here you will find Sage demonstrations, quick reference cards, primers, and
 thematic tutorials,
@@ -30,28 +30,27 @@ This documentation is licensed under a `Creative Commons Attribution-Share Alike
 Introduction to Sage
 --------------------
 
-* `Logging on to a Sage Server and Creating a Worksheet (PREP) <../prep/Logging-On.html>`_
-* `Introductory Sage Tutorial (PREP) <../prep/Intro-Tutorial.html>`_
-* :ref:`tutorial-notebook-and-help-long`
-* `Sage's main tutorial <../tutorial/>`_
+* `Introductory Sage Tutorial (PREP) <../prep/intro-tutorial.html>`_
+* `Sage's main tutorial <../tutorial/index.html>`_
 
 .. _programming_design:
 
 Introduction to Python
 ----------------------
 
-* `Tutorial: Sage Introductory Programming (PREP) <../prep/Programming.html>`_
+* `Tutorial: Sage Introductory Programming (PREP) <../prep/programming.html>`_
 * :ref:`tutorial-programming-python`
 * :ref:`tutorial-comprehensions`
 * :ref:`tutorial-objects-and-classes`
 * :ref:`functional_programming`
 
-Calculus and plotting
+Calculus and Plotting
 ---------------------
 
-* `Tutorial: Symbolics and Plotting (PREP) <../prep/Symbolics-and-Basic-Plotting.html>`_
-* `Tutorial: Calculus (PREP) <../prep/Calculus.html>`_
-* `Tutorial: Advanced-2D Plotting (PREP) <../prep/Advanced-2DPlotting.html>`_
+* `Tutorial: Symbolics and Plotting (PREP) <../prep/symbolics-and-basic-plotting.html>`_
+* `Tutorial: Calculus (PREP) <../prep/calculus.html>`_
+* `Tutorial: Advanced-2D Plotting (PREP) <../prep/advanced-2D-plotting.html>`_
+* :ref:`vector_calculus`
 
 Algebra
 -------
@@ -59,6 +58,7 @@ Algebra
 * :ref:`group_theory`
 * :ref:`lie`
 * :ref:`sage.modules.tutorial_free_modules`
+* :ref:`steenrod_algebra_modules`
 
 Number Theory
 -------------
@@ -73,8 +73,7 @@ Number Theory
 Geometry
 --------
 
-* :ref:`polytutorial`
-* :ref:`polytikz`
+* :ref:`geometry`
 
 Combinatorics
 -------------
@@ -92,7 +91,7 @@ Algebraic Combinatorics
 * :ref:`sage.combinat.root_system.plot`
 * :ref:`abelian_sandpile_model`
 
-Parents/Elements, Categories and algebraic structures
+Parents/Elements, Categories and Algebraic Structures
 -----------------------------------------------------
 
 * :ref:`coercion_and_categories`
@@ -100,13 +99,13 @@ Parents/Elements, Categories and algebraic structures
 * :ref:`sage.categories.tutorial`
 * :ref:`tutorial-implementing-algebraic-structures`
 
-Numerical computations
+Numerical Computations
 ----------------------
 
 * :ref:`numerical_computing`
 * :ref:`linear_programming`
 
-Advanced programming
+Advanced Programming
 --------------------
 
 * :ref:`cython_interface`
@@ -121,7 +120,7 @@ Advanced programming
 Documentation
 =============
 
-* :ref:`sws2srt`
+* :ref:`sws2rst`
 
 .. Sage development
 .. ----------------

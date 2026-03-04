@@ -1,8 +1,9 @@
+# sage.doctest: needs sage.combinat sage.modules
 """
 Benkart-Kang-Kashiwara crystals for the general-linear Lie superalgebra
 """
 
-#*****************************************************************************
+# ****************************************************************************
 #       Copyright (C) 2017 Franco Saliola <saliola@gmail.com>
 #                     2017 Travis Scrimshaw <tcscrims at gmail.com>
 #                     2017 Anne Schilling <anne@math.ucdavis.edu>
@@ -11,14 +12,10 @@ Benkart-Kang-Kashiwara crystals for the general-linear Lie superalgebra
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
-from sage.misc.cachefunc import cached_method
-from sage.misc.lazy_attribute import lazy_attribute
 from sage.structure.parent import Parent
-from sage.structure.unique_representation import UniqueRepresentation
-
 from sage.categories.regular_supercrystals import RegularSuperCrystals
 from sage.combinat.partition import _Partitions
 from sage.combinat.root_system.cartan_type import CartanType
@@ -63,9 +60,9 @@ class CrystalOfBKKTableaux(CrystalOfWords):
         """
         ct = CartanType(ct)
         shape = _Partitions(shape)
-        if len(shape) > ct.m + 1 and shape[ct.m+1] > ct.n + 1:
+        if len(shape) > ct.m + 1 and shape[ct.m + 1] > ct.n + 1:
             raise ValueError("invalid hook shape")
-        return super(CrystalOfBKKTableaux, cls).__classcall__(cls, ct, shape)
+        return super().__classcall__(cls, ct, shape)
 
     def __init__(self, ct, shape):
         r"""
@@ -80,20 +77,17 @@ class CrystalOfBKKTableaux(CrystalOfWords):
         self._shape = shape
         self._cartan_type = ct
         m = ct.m + 1
-        n = ct.n + 1
         C = CrystalOfBKKLetters(ct)
         tr = shape.conjugate()
         mg = []
-        for i,col_len in enumerate(tr):
-            for j in range(col_len - m):
-                mg.append(C(i+1))
-            for j in range(max(0, m - col_len), m):
-                mg.append(C(-j-1))
+        for i, col_len in enumerate(tr, start=1):
+            mg.extend(C(i) for j in range(col_len - m))
+            mg.extend(C(-j - 1) for j in range(max(0, m - col_len), m))
         mg = list(reversed(mg))
         Parent.__init__(self, category=RegularSuperCrystals())
         self.module_generators = (self.element_class(self, mg),)
 
-    def _repr_(self):
+    def _repr_(self) -> str:
         """
         Return a string representation of ``self``.
 
@@ -134,14 +128,13 @@ class CrystalOfBKKTableaux(CrystalOfWords):
             sage: B.genuine_highest_weight_vectors()
             ([[-2, -2, -2], [-1, -1], [1]],)
             sage: B.highest_weight_vectors()
-            ([[-2, -2, -2], [-1, 2], [1]],
-             [[-2, -2, -2], [-1, -1], [1]],
+            ([[-2, -2, -2], [-1, -1], [1]],
+             [[-2, -2, -2], [-1, 2], [1]],
              [[-2, -2, 2], [-1, -1], [1]])
         """
         if index_set is None or index_set == self.index_set():
             return self.module_generators
-        return super(CrystalOfBKKTableaux, self).genuine_highest_weight_vectors(index_set)
+        return super().genuine_highest_weight_vectors(index_set)
 
     class Element(CrystalOfBKKTableauxElement):
         pass
-

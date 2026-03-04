@@ -1,3 +1,4 @@
+# sage.doctest: needs sage.modules
 """
 Ideals of non-commutative rings
 
@@ -5,7 +6,7 @@ Generic implementation of one- and two-sided ideals of non-commutative rings.
 
 AUTHOR:
 
-- Simon King (2011-03-21), <simon.king@uni-jena.de>, :trac:`7797`.
+- Simon King (2011-03-21), <simon.king@uni-jena.de>, :issue:`7797`.
 
 EXAMPLES::
 
@@ -38,6 +39,7 @@ algebras.
 
 TESTS::
 
+    sage: # needs sage.combinat
     sage: A = SteenrodAlgebra(2)
     sage: IL = A*[A.1+A.2,A.1^2]; IL
     Left Ideal (Sq(2) + Sq(4), Sq(1,1)) of mod 2 Steenrod algebra, milnor basis
@@ -47,24 +49,23 @@ TESTS::
     running ._test_not_implemented_methods() . . . pass
     running ._test_pickling() . . . pass
 """
-
-#*****************************************************************************
+# ****************************************************************************
 #       Copyright (C) 2011 Simon King <simon.king@uni-jena.de>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
-from __future__ import absolute_import
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
 from sage.structure.element cimport MonoidElement
 from sage.structure.parent cimport Parent
 from sage.categories.monoids import Monoids
 from sage.rings.ideal_monoid import IdealMonoid_c
 from sage.rings.ideal import Ideal_generic
-import sage
+
+from sage.rings.integer_ring import ZZ
 
 
 class IdealMonoid_nc(IdealMonoid_c):
@@ -82,7 +83,6 @@ class IdealMonoid_nc(IdealMonoid_c):
         sage: MS = MatrixSpace(ZZ,2,2)
         sage: MS.ideal_monoid()
         Monoid of ideals of Full MatrixSpace of 2 by 2 dense matrices over Integer Ring
-
     """
     def __init__(self, R):
         """
@@ -90,7 +90,7 @@ class IdealMonoid_nc(IdealMonoid_c):
 
         INPUT:
 
-        - ``R`` -- A ring.
+        - ``R`` -- a ring
 
         TESTS::
 
@@ -98,10 +98,9 @@ class IdealMonoid_nc(IdealMonoid_c):
             sage: MS = MatrixSpace(ZZ,2,2)
             sage: IdealMonoid_nc(MS)
             Monoid of ideals of Full MatrixSpace of 2 by 2 dense matrices over Integer Ring
-
         """
         self._IdealMonoid_c__R = R
-        Parent.__init__(self, base=sage.rings.integer_ring.ZZ,
+        Parent.__init__(self, base=ZZ,
                         category=Monoids())
         self._populate_coercion_lists_()
 
@@ -111,10 +110,11 @@ class IdealMonoid_nc(IdealMonoid_c):
 
         INPUT:
 
-        - ``x`` -- An ideal, or a list of elements.
+        - ``x`` -- an ideal or a list of elements
 
         TESTS::
 
+            sage: # needs sage.combinat
             sage: A = SteenrodAlgebra(2) # indirect doctest
             sage: IL = A*[A.1+A.2,A.1^2]; IL
             Left Ideal (Sq(2) + Sq(4), Sq(1,1)) of mod 2 Steenrod algebra, milnor basis
@@ -128,13 +128,13 @@ class IdealMonoid_nc(IdealMonoid_c):
 
         ::
 
+            sage: # needs sage.combinat
             sage: IL == loads(dumps(IL))
             True
             sage: IR == loads(dumps(IR))
             True
             sage: IT == loads(dumps(IT))
             True
-
         """
         side = "twosided"
         if isinstance(x, Ideal_nc):
@@ -188,23 +188,22 @@ class Ideal_nc(Ideal_generic):
           [1 0]
         )
          of Full MatrixSpace of 2 by 2 dense matrices over Rational Field
-
     """
-    def __init__(self, ring, gens, coerce=True, side="twosided"):
+    def __init__(self, ring, gens, coerce=True, side='twosided'):
         """
         Initialize ``self``.
 
         INPUT:
 
-        - ``ring`` -- A ring.
+        - ``ring`` -- a ring
 
-        - ``gens`` -- A list or tuple of elements.
+        - ``gens`` -- list or tuple of elements
 
-        - ``coerce`` (optional bool, default ``True``): First coerce the given
-          list of elements into the given ring.
+        - ``coerce`` -- boolean (default: ``True``); first coerce the given
+          list of elements into the given ring
 
-        - ``side`` (option string, default ``"twosided"``): Must be ``"left"``,
-          ``"right"`` or ``"twosided"``. Determines whether the ideal is a
+        - ``side`` -- string (default ``'twosided'``); must be ``'left'``,
+          ``'right'`` or ``'twosided'``. Determines whether the ideal is a
           left, right or twosided ideal.
 
         TESTS::
@@ -231,7 +230,6 @@ class Ideal_nc(Ideal_generic):
               [1 0]
             )
              of Full MatrixSpace of 2 by 2 dense matrices over Integer Ring
-
         """
         if side not in ['left', 'right', 'twosided']:
             raise ValueError("Ideals are left, right or twosided, but not %s" % side)
@@ -244,6 +242,7 @@ class Ideal_nc(Ideal_generic):
 
         TESTS::
 
+            sage: # needs sage.combinat
             sage: A = SteenrodAlgebra(2)
             sage: A*[A.1+A.2,A.1^2]      # indirect doctest
             Left Ideal (Sq(2) + Sq(4), Sq(1,1)) of mod 2 Steenrod algebra, milnor basis
@@ -251,7 +250,6 @@ class Ideal_nc(Ideal_generic):
             Right Ideal (Sq(2) + Sq(4), Sq(1,1)) of mod 2 Steenrod algebra, milnor basis
             sage: A*[A.1+A.2,A.1^2]*A
             Twosided Ideal (Sq(2) + Sq(4), Sq(1,1)) of mod 2 Steenrod algebra, milnor basis
-
         """
         return "%s Ideal %s of %s" % (self.__side.capitalize(),
                                       self._repr_short(), self.ring())
@@ -263,15 +261,15 @@ class Ideal_nc(Ideal_generic):
 
         EXAMPLES::
 
-             sage: A = SteenrodAlgebra(2)
-             sage: IR = [A.1+A.2,A.1^2]*A
-             sage: IL = A*[A.1+A.2,A.1^2]
-             sage: IT = A*[A.1+A.2,A.1^2]*A
-             sage: IT == IL
-             False
-             sage: IR == [A.1+A.2,A.1^2]*A
-             True
-
+            sage: # needs sage.combinat
+            sage: A = SteenrodAlgebra(2)
+            sage: IR = [A.1+A.2,A.1^2]*A
+            sage: IL = A*[A.1+A.2,A.1^2]
+            sage: IT = A*[A.1+A.2,A.1^2]*A
+            sage: IT == IL
+            False
+            sage: IR == [A.1+A.2,A.1^2]*A
+            True
         """
         if not isinstance(right, Ideal_nc):
             return False
@@ -290,17 +288,35 @@ class Ideal_nc(Ideal_generic):
 
         EXAMPLES::
 
-             sage: A = SteenrodAlgebra(2)
-             sage: IR = [A.1+A.2,A.1^2]*A
-             sage: IL = A*[A.1+A.2,A.1^2]
-             sage: IT = A*[A.1+A.2,A.1^2]*A
-             sage: IT != IL
-             True
-             sage: IR != [A.1+A.2,A.1^2]*A
-             False
-
+            sage: # needs sage.combinat
+            sage: A = SteenrodAlgebra(2)
+            sage: IR = [A.1+A.2,A.1^2]*A
+            sage: IL = A*[A.1+A.2,A.1^2]
+            sage: IT = A*[A.1+A.2,A.1^2]*A
+            sage: IT != IL
+            True
+            sage: IR != [A.1+A.2,A.1^2]*A
+            False
         """
         return not self.__eq__(right)
+
+    def __hash__(self):
+        """
+        Return the hash of ``self``.
+
+        EXAMPLES::
+
+            sage: # needs sage.combinat
+            sage: A = SteenrodAlgebra(2)
+            sage: IR = [A.1+A.2,A.1^2]*A
+            sage: IL = A*[A.1+A.2,A.1^2]
+            sage: IT = A*[A.1+A.2,A.1^2]*A
+            sage: hash(IT) == hash(IL)
+            False
+            sage: hash(IR) == hash([A.1^2,A.1+A.2]*A)
+            True
+        """
+        return hash((self.parent(), self.__side, frozenset(self.gens())))
 
     def side(self):
         """
@@ -308,6 +324,7 @@ class Ideal_nc(Ideal_generic):
 
         EXAMPLES::
 
+            sage: # needs sage.combinat
             sage: A = SteenrodAlgebra(2)
             sage: IL = A*[A.1+A.2,A.1^2]
             sage: IR = [A.1+A.2,A.1^2]*A
@@ -318,19 +335,30 @@ class Ideal_nc(Ideal_generic):
             'right'
             sage: IT.side()
             'twosided'
-
         """
         return self.__side
 
     def __mul__(self, other):
-        """
+        r"""
+        Multiply ``self`` with ``other``.
+
         Multiplication of a one-sided ideal with its ring from the other side
         yields a two-sided ideal.
+
+        Let `L` (resp. `R`) be a left (resp. right) ideal, then the product
+        `LR` is a twosided ideal generated by `x y`, where `x` (resp. `y`)
+        is a generator of `L` (resp. `R`).
+
+        .. TODO::
+
+            The product of left (resp. right) ideals is a left
+            (resp. right) ideal. However, these do not necessarily have
+            simple generating sets.
 
         TESTS::
 
             sage: MS = MatrixSpace(QQ,2,2)
-            sage: IL = MS*[2*MS.0,3*MS.1]; IL
+            sage: IL = MS * [2*MS.0,3*MS.1]; IL
             Left Ideal
             (
               [2 0]
@@ -347,7 +375,7 @@ class Ideal_nc(Ideal_generic):
               [0 1]
             )
              of Full MatrixSpace of 2 by 2 dense matrices over Rational Field
-            sage: IL*MS     # indirect doctest
+            sage: IL * MS
             Twosided Ideal
             (
               [2 0]
@@ -357,12 +385,27 @@ class Ideal_nc(Ideal_generic):
               [0 0]
             )
              of Full MatrixSpace of 2 by 2 dense matrices over Rational Field
-            sage: IR*IR
+
+            sage: IL * IR
+            Twosided Ideal
+            (
+              [0 3]
+              [0 0]
+            )
+             of Full MatrixSpace of 2 by 2 dense matrices over Rational Field
+
+            sage: IR * IR
             Traceback (most recent call last):
             ...
-            NotImplementedError: Can not multiply non-commutative ideals.
-
+            NotImplementedError: cannot multiply non-commutative ideals
         """
+        if isinstance(other, Ideal_nc) and self.ring() == other.ring():
+            if self.side() == "left" and other.side() == "right":
+                it = (x * y for x in self.gens() for y in other.gens())
+                gens = [z for z in it if z]
+                return self.ring().ideal(gens, side='twosided')
+            raise NotImplementedError("cannot multiply non-commutative ideals")
+
         if not isinstance(other, Ideal_nc):
             # Perhaps other is a ring and thus has its own
             # multiplication.
@@ -376,4 +419,5 @@ class Ideal_nc(Ideal_generic):
                 if other.side() == 'left':
                     return other
                 return other.ring().ideal(other.gens(), side='twosided')
-        raise NotImplementedError("Can not multiply non-commutative ideals.")
+
+        raise NotImplementedError("cannot multiply non-commutative ideals")

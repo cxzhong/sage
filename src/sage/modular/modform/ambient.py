@@ -1,6 +1,6 @@
-# -*- coding: utf-8 -*-
+# sage.doctest: needs sage.libs.pari
 r"""
-Ambient Spaces of Modular Forms
+Ambient spaces of modular forms
 
 EXAMPLES:
 
@@ -20,27 +20,23 @@ quadratic.
 Compute a basis::
 
     sage: n.basis()
-    [
-    1 + O(q^6),
-    q + O(q^6),
-    q^2 + O(q^6),
-    q^3 + O(q^6),
-    q^4 + O(q^6),
-    q^5 + O(q^6)
-    ]
+    [1 + O(q^6),
+     q + O(q^6),
+     q^2 + O(q^6),
+     q^3 + O(q^6),
+     q^4 + O(q^6),
+     q^5 + O(q^6)]
 
 Compute the same basis but to higher precision::
 
     sage: n.set_precision(20)
     sage: n.basis()
-    [
-    1 + 10*q^10 + 20*q^15 + O(q^20),
-    q + 5*q^6 + q^9 + 12*q^11 - 3*q^14 + 17*q^16 + 8*q^19 + O(q^20),
-    q^2 + 4*q^7 - q^8 + 8*q^12 + 2*q^13 + 10*q^17 - 5*q^18 + O(q^20),
-    q^3 + q^7 + 3*q^8 - q^12 + 5*q^13 + 3*q^17 + 6*q^18 + O(q^20),
-    q^4 - q^6 + 2*q^9 + 3*q^14 - 2*q^16 + 4*q^19 + O(q^20),
-    q^5 + q^10 + 2*q^15 + O(q^20)
-    ]
+    [1 + 10*q^10 + 20*q^15 + O(q^20),
+     q + 5*q^6 + q^9 + 12*q^11 - 3*q^14 + 17*q^16 + 8*q^19 + O(q^20),
+     q^2 + 4*q^7 - q^8 + 8*q^12 + 2*q^13 + 10*q^17 - 5*q^18 + O(q^20),
+     q^3 + q^7 + 3*q^8 - q^12 + 5*q^13 + 3*q^17 + 6*q^18 + O(q^20),
+     q^4 - q^6 + 2*q^9 + 3*q^14 - 2*q^16 + 4*q^19 + O(q^20),
+     q^5 + q^10 + 2*q^15 + O(q^20)]
 
 TESTS::
 
@@ -57,29 +53,29 @@ TESTS::
     sage: m == loads(dumps(m))
     True
 """
-from __future__ import absolute_import
 
-#*****************************************************************************
+# ****************************************************************************
 #       Copyright (C) 2006 William Stein <wstein@gmail.com>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
-import sage.modular.arithgroup.all as arithgroup
-import sage.modular.dirichlet as dirichlet
-import sage.modular.hecke.all as hecke
-import sage.modular.modsym.all as modsym
-import sage.modules.free_module as free_module
-import sage.rings.all as rings
-from sage.arith.all import is_prime
-
+from sage.arith.misc import is_prime, sigma
+from sage.matrix.constructor import matrix
+from sage.misc.cachefunc import cached_method
+from sage.modular.arithgroup.congroup_gamma0 import Gamma0_class
+from sage.modular.arithgroup.congroup_gamma1 import Gamma1_class
+from sage.modular.arithgroup.congroup_generic import CongruenceSubgroupBase
+from sage.modular.dirichlet import TrivialCharacter
+from sage.modular.hecke.ambient_module import AmbientHeckeModule
+from sage.modular.modsym.modsym import ModularSymbols
+from sage.modules.free_module import VectorSpace
+from sage.rings.integer import Integer
 from sage.structure.sequence import Sequence
-
-
 
 from . import defaults
 from . import eisenstein_submodule
@@ -89,11 +85,11 @@ from . import submodule
 
 
 class ModularFormsAmbient(space.ModularFormsSpace,
-                          hecke.AmbientHeckeModule):
+                          AmbientHeckeModule):
     """
     An ambient space of modular forms.
     """
-    def __init__(self, group, weight, base_ring, character=None):
+    def __init__(self, group, weight, base_ring, character=None, eis_only=False):
         """
         Create an ambient space of modular forms.
 
@@ -104,23 +100,24 @@ class ModularFormsAmbient(space.ModularFormsSpace,
             sage: m.is_ambient()
             True
         """
-        if not arithgroup.is_CongruenceSubgroup(group):
-            raise TypeError('group (=%s) must be a congruence subgroup'%group)
-        weight = rings.Integer(weight)
+        if not isinstance(group, CongruenceSubgroupBase):
+            raise TypeError('group (=%s) must be a congruence subgroup' % group)
+        weight = Integer(weight)
 
-        if character is None and arithgroup.is_Gamma0(group):
-            character = dirichlet.TrivialCharacter(group.level(), base_ring)
+        if character is None and isinstance(group, Gamma0_class):
+            character = TrivialCharacter(group.level(), base_ring)
 
+        self._eis_only = eis_only
         space.ModularFormsSpace.__init__(self, group, weight, character, base_ring)
-        try:
+        if eis_only:
+            d = self._dim_eisenstein()
+        else:
             d = self.dimension()
-        except NotImplementedError:
-            d = None
-        hecke.AmbientHeckeModule.__init__(self, base_ring, d, group.level(), weight)
+        AmbientHeckeModule.__init__(self, base_ring, d, group.level(), weight)
 
     def _repr_(self):
         """
-        Return string representation of self.
+        Return string representation of ``self``.
 
         EXAMPLES::
 
@@ -135,12 +132,12 @@ class ModularFormsAmbient(space.ModularFormsSpace,
             sage: m._repr_()
             'Modular Forms space of dimension 1198 for Congruence Subgroup Gamma1(20) of weight 100 over Rational Field'
         """
-        try:
-            d = self.dimension()
-        except NotImplementedError:
-            d = "(unknown)"
-        return "Modular Forms space of dimension %s for %s of weight %s over %s"%(
-                d, self.group(), self.weight(), self.base_ring())
+        if self._eis_only:
+            return "Modular Forms space for %s of weight %s over %s" % (
+                self.group(), self.weight(), self.base_ring())
+        else:
+            return "Modular Forms space of dimension %s for %s of weight %s over %s" % (
+                self.dimension(), self.group(), self.weight(), self.base_ring())
 
     def _submodule_class(self):
         """
@@ -160,19 +157,15 @@ class ModularFormsAmbient(space.ModularFormsSpace,
 
         INPUT:
 
-
-        -  ``R`` - ring
-
+        - ``R`` -- ring
 
         EXAMPLES::
 
             sage: M = ModularForms(Gamma0(37),2)
             sage: M.basis()
-            [
-            q + q^3 - 2*q^4 + O(q^6),
-            q^2 + 2*q^3 - 2*q^4 + q^5 + O(q^6),
-            1 + 2/3*q + 2*q^2 + 8/3*q^3 + 14/3*q^4 + 4*q^5 + O(q^6)
-            ]
+            [q + q^3 - 2*q^4 + O(q^6),
+             q^2 + 2*q^3 - 2*q^4 + q^5 + O(q^6),
+             1 + 2/3*q + 2*q^2 + 8/3*q^3 + 14/3*q^4 + 4*q^5 + O(q^6)]
 
         The basis after changing the base ring is the reduction modulo
         `3` of an integral basis.
@@ -181,16 +174,16 @@ class ModularFormsAmbient(space.ModularFormsSpace,
 
             sage: M3 = M.change_ring(GF(3))
             sage: M3.basis()
-            [
-            q + q^3 + q^4 + O(q^6),
-            q^2 + 2*q^3 + q^4 + q^5 + O(q^6),
-            1 + q^3 + q^4 + 2*q^5 + O(q^6)
-            ]
+            [q + q^3 + q^4 + O(q^6),
+             q^2 + 2*q^3 + q^4 + q^5 + O(q^6),
+             1 + q^3 + q^4 + 2*q^5 + O(q^6)]
         """
         from . import constructor
-        M = constructor.ModularForms(self.group(), self.weight(), base_ring, prec=self.prec())
-        return M
+        return constructor.ModularForms(self.group(), self.weight(),
+                                        base_ring, prec=self.prec(),
+                                        eis_only=self._eis_only)
 
+    @cached_method
     def dimension(self):
         """
         Return the dimension of this ambient space of modular forms,
@@ -203,17 +196,13 @@ class ModularFormsAmbient(space.ModularFormsSpace,
             sage: m.dimension()
             238
         """
-        try:
-            return self.__dimension
-        except AttributeError:
-            self.__dimension = self._dim_eisenstein() + self._dim_cuspidal()
-            return self.__dimension
+        return self._dim_eisenstein() + self._dim_cuspidal()
 
     def hecke_module_of_level(self, N):
         r"""
         Return the Hecke module of level N corresponding to self, which is the
-        domain or codomain of a degeneracy map from self. Here N must be either
-        a divisor or a multiple of the level of self.
+        domain or codomain of a degeneracy map from ``self``. Here N must be either
+        a divisor or a multiple of the level of ``self``.
 
         EXAMPLES::
 
@@ -233,7 +222,7 @@ class ModularFormsAmbient(space.ModularFormsSpace,
 
     def _degeneracy_raising_matrix(self, M, t):
         r"""
-        Calculate the matrix of the degeneracy map from self to M corresponding
+        Calculate the matrix of the degeneracy map from ``self`` to M corresponding
         to `f(q) \mapsto f(q^t)`. Here the level of M should be a multiple of
         the level of self, and t should divide the quotient.
 
@@ -259,7 +248,7 @@ class ModularFormsAmbient(space.ModularFormsSpace,
         im_gens = []
         for x in self.basis():
             fq = x.qexp(d)
-            fqt = fq(q**t).add_bigoh(d) # silly workaround for #5367
+            fqt = fq(q**t).add_bigoh(d)  # silly workaround for trac #5367
             im_gens.append(M(fqt))
         return A([M.coordinate_vector(u) for u in im_gens])
 
@@ -290,11 +279,11 @@ class ModularFormsAmbient(space.ModularFormsSpace,
         """
         return self
 
-    def is_ambient(self):
+    def is_ambient(self) -> bool:
         """
-        Return True if this an ambient space of modular forms.
+        Return ``True`` if this an ambient space of modular forms.
 
-        This is an ambient space, so this function always returns True.
+        This is an ambient space, so this function always returns ``True``.
 
         EXAMPLES::
 
@@ -305,6 +294,7 @@ class ModularFormsAmbient(space.ModularFormsSpace,
         """
         return True
 
+    @cached_method(key=lambda self, sign: Integer(sign))  # convert sign to an Integer before looking this up in the cache
     def modular_symbols(self, sign=0):
         """
         Return the corresponding space of modular symbols with the given
@@ -325,32 +315,17 @@ class ModularFormsAmbient(space.ModularFormsSpace,
             sage: ModularForms(1,12).modular_symbols()
             Modular Symbols space of dimension 3 for Gamma_0(1) of weight 12 with sign 0 over Rational Field
         """
-        sign = rings.Integer(sign)
-        try:
-            return self.__modular_symbols[sign]
-        except AttributeError:
-            self.__modular_symbols = {}
-        except KeyError:
-            pass
-        M = modsym.ModularSymbols(group = self.group(),
-                                  weight = self.weight(),
-                                  sign = sign,
-                                  base_ring = self.base_ring())
-        self.__modular_symbols[sign] = M
-        return M
+        sign = Integer(sign)
+        return ModularSymbols(group=self.group(),
+                                     weight=self.weight(),
+                                     sign=sign,
+                                     base_ring=self.base_ring())
 
+    @cached_method
     def module(self):
         """
         Return the underlying free module corresponding to this space
         of modular forms.
-
-        If the dimension of self can be computed reasonably quickly,
-        then this function returns a free module (viewed as a tuple
-        space) of the same dimension as self over the same base ring.
-        Otherwise, the dimension of self.module() may be smaller.  For
-        example, in the case of weight 1 forms, in some cases the
-        dimension can't easily be computed so self.module() is of
-        smaller dimension.
 
         EXAMPLES::
 
@@ -359,34 +334,9 @@ class ModularFormsAmbient(space.ModularFormsSpace,
             Vector space of dimension 69 over Rational Field
             sage: ModularForms(Gamma1(13),4, GF(49,'b')).free_module()
             Vector space of dimension 27 over Finite Field in b of size 7^2
-
-        Note that in the following example the dimension can't be
-        (quickly) computed, so M.module() returns a space of different
-        dimension than M::
-
-            sage: M = ModularForms(Gamma1(57), 1); M
-            Modular Forms space of dimension (unknown) for Congruence ...
-            sage: M.module()
-            Vector space of dimension 36 over Rational Field
-            sage: M.basis()
-            <repr(<sage.structure.sequence.Sequence_generic at 0x...>) failed: NotImplementedError: Computation of dimensions of weight 1 cusp forms spaces not implemented in general>
         """
-        if hasattr(self, "__module"): return self.__module
-        try:
-            d = self.dimension()
-        except NotImplementedError:
-
-            # This only comes up for weight 1 forms, where we want to be able
-            # to embed Eisenstein forms (which we know how to calculate) into
-            # some suitable ambient space. Because we can't even calculate the
-            # dimension of the weight 1 cusp forms in general, we just map
-            # Eisenstein series onto basis vectors, and then make it clear by
-            # raising errors in appropriate places that some cusp forms might
-            # exist but we don't know how to compute them.
-
-            d = self._dim_eisenstein()
-        self.__module = free_module.VectorSpace(self.base_ring(), d)
-        return self.__module
+        d = self.dimension()
+        return VectorSpace(self.base_ring(), d)
 
     # free_module -- stupid thing: there are functions in classes
     # ModularFormsSpace and HeckeModule that both do much the same
@@ -408,11 +358,9 @@ class ModularFormsAmbient(space.ModularFormsSpace,
 
         INPUT:
 
+        - ``new_prec`` -- positive integer (default: ``None``)
 
-        -  ``new_prec`` - positive integer (default: None)
-
-
-        OUTPUT: if new_prec is None, returns the current precision.
+        OUTPUT: if ``new_prec`` is ``None``, returns the current precision
 
         EXAMPLES::
 
@@ -423,20 +371,15 @@ class ModularFormsAmbient(space.ModularFormsSpace,
         ::
 
             sage: M.basis()
-            [
-            q - 24*q^2 + O(q^3),
-            1 + 65520/691*q + 134250480/691*q^2 + O(q^3)
-            ]
+            [q - 24*q^2 + O(q^3), 1 + 65520/691*q + 134250480/691*q^2 + O(q^3)]
 
         ::
 
             sage: M.prec(5)
             5
             sage: M.basis()
-            [
-            q - 24*q^2 + 252*q^3 - 1472*q^4 + O(q^5),
-            1 + 65520/691*q + 134250480/691*q^2 + 11606736960/691*q^3 + 274945048560/691*q^4 + O(q^5)
-            ]
+            [q - 24*q^2 + 252*q^3 - 1472*q^4 + O(q^5),
+             1 + 65520/691*q + 134250480/691*q^2 + 11606736960/691*q^3 + 274945048560/691*q^4 + O(q^5)]
         """
         if new_prec:
             self.__prec = new_prec
@@ -455,26 +398,23 @@ class ModularFormsAmbient(space.ModularFormsSpace,
             sage: m = ModularForms(Gamma1(5),2)
             sage: m.set_precision(10)
             sage: m.basis()
-            [
-            1 + 60*q^3 - 120*q^4 + 240*q^5 - 300*q^6 + 300*q^7 - 180*q^9 + O(q^10),
-            q + 6*q^3 - 9*q^4 + 27*q^5 - 28*q^6 + 30*q^7 - 11*q^9 + O(q^10),
-            q^2 - 4*q^3 + 12*q^4 - 22*q^5 + 30*q^6 - 24*q^7 + 5*q^8 + 18*q^9 + O(q^10)
-            ]
+            [1 + 60*q^3 - 120*q^4 + 240*q^5 - 300*q^6 + 300*q^7 - 180*q^9 + O(q^10),
+             q + 6*q^3 - 9*q^4 + 27*q^5 - 28*q^6 + 30*q^7 - 11*q^9 + O(q^10),
+             q^2 - 4*q^3 + 12*q^4 - 22*q^5 + 30*q^6 - 24*q^7 + 5*q^8 + 18*q^9 + O(q^10)]
             sage: m.set_precision(5)
             sage: m.basis()
-            [
-            1 + 60*q^3 - 120*q^4 + O(q^5),
-            q + 6*q^3 - 9*q^4 + O(q^5),
-            q^2 - 4*q^3 + 12*q^4 + O(q^5)
-            ]
+            [1 + 60*q^3 - 120*q^4 + O(q^5),
+             q + 6*q^3 - 9*q^4 + O(q^5),
+             q^2 - 4*q^3 + 12*q^4 + O(q^5)]
         """
         if n < 0:
-            raise ValueError("n (=%s) must be >= 0"%n)
-        self.__prec = rings.Integer(n)
+            raise ValueError("n (=%s) must be >= 0" % n)
+        self.__prec = Integer(n)
 
     ####################################################################
     # Computation of Special Submodules
     ####################################################################
+    @cached_method
     def cuspidal_submodule(self):
         """
         Return the cuspidal submodule of this ambient module.
@@ -486,12 +426,9 @@ class ModularFormsAmbient(space.ModularFormsSpace,
             Congruence Subgroup Gamma1(13) of weight 2 over Rational Field
         """
         from .cuspidal_submodule import CuspidalSubmodule
-        try:
-            return self.__cuspidal_submodule
-        except AttributeError:
-            self.__cuspidal_submodule = CuspidalSubmodule(self)
-        return self.__cuspidal_submodule
+        return CuspidalSubmodule(self)
 
+    @cached_method
     def eisenstein_submodule(self):
         """
         Return the Eisenstein submodule of this ambient module.
@@ -503,12 +440,9 @@ class ModularFormsAmbient(space.ModularFormsSpace,
             sage: m.eisenstein_submodule()
             Eisenstein subspace of dimension 11 of Modular Forms space of dimension 13 for Congruence Subgroup Gamma1(13) of weight 2 over Rational Field
         """
-        try:
-            return self.__eisenstein_submodule
-        except AttributeError:
-            self.__eisenstein_submodule = eisenstein_submodule.EisensteinSubmodule(self)
-        return self.__eisenstein_submodule
+        return eisenstein_submodule.EisensteinSubmodule(self)
 
+    @cached_method(key=lambda self, p: (Integer(p) if p is not None else p))  # convert p to an Integer before looking this up in the cache
     def new_submodule(self, p=None):
         """
         Return the new or `p`-new submodule of this ambient
@@ -516,10 +450,8 @@ class ModularFormsAmbient(space.ModularFormsSpace,
 
         INPUT:
 
-
-        -  ``p`` - (default: None), if specified return only
-           the `p`-new submodule.
-
+        - ``p`` -- (default: ``None``), if specified return only
+          the `p`-new submodule
 
         EXAMPLES::
 
@@ -534,12 +466,10 @@ class ModularFormsAmbient(space.ModularFormsSpace,
             sage: N = M.new_subspace(); N
             Modular Forms subspace of dimension 4 of Modular Forms space of dimension 6 for Congruence Subgroup Gamma0(17) of weight 4 over Rational Field
             sage: N.basis()
-            [
-            q + 2*q^5 + O(q^6),
-            q^2 - 3/2*q^5 + O(q^6),
-            q^3 + O(q^6),
-            q^4 - 1/2*q^5 + O(q^6)
-            ]
+            [q + 2*q^5 + O(q^6),
+             q^2 - 3/2*q^5 + O(q^6),
+             q^3 + O(q^6),
+             q^4 - 1/2*q^5 + O(q^6)]
 
         ::
 
@@ -558,23 +488,15 @@ class ModularFormsAmbient(space.ModularFormsSpace,
             ...
             NotImplementedError
         """
-        try:
-            return self.__new_submodule[p]
-        except AttributeError:
-           self.__new_submodule = {}
-        except KeyError:
-           pass
-        if not p is None:
-            p = rings.Integer(p)
+        if p is not None:
+            p = Integer(p)
             if not p.is_prime():
-               raise ValueError("p (=%s) must be a prime or None."%p)
-        M = self.cuspidal_submodule().new_submodule(p) + self.eisenstein_submodule().new_submodule(p)
-        self.__new_submodule[p] = M
-        return M
+                raise ValueError("p (=%s) must be a prime or None." % p)
+        return self.cuspidal_submodule().new_submodule(p) + self.eisenstein_submodule().new_submodule(p)
 
     def _q_expansion(self, element, prec):
         r"""
-        Return the q-expansion of a particular element of this space of
+        Return the `q`-expansion of a particular element of this space of
         modular forms, where the element should be a vector, list, or tuple
         (not a ModularFormElement). Here element should have length =
         self.dimension(). If element = [ a_i ] and self.basis() = [ v_i
@@ -582,22 +504,18 @@ class ModularFormsAmbient(space.ModularFormsSpace,
 
         INPUT:
 
+        - ``element`` -- vector, list or tuple
 
-        -  ``element`` - vector, list or tuple
-
-        -  ``prec`` - desired precision of q-expansion
-
+        - ``prec`` -- desired precision of `q`-expansion
 
         EXAMPLES::
 
             sage: m = ModularForms(Gamma0(23),2); m
             Modular Forms space of dimension 3 for Congruence Subgroup Gamma0(23) of weight 2 over Rational Field
             sage: m.basis()
-            [
-            q - q^3 - q^4 + O(q^6),
-            q^2 - 2*q^3 - q^4 + 2*q^5 + O(q^6),
-            1 + 12/11*q + 36/11*q^2 + 48/11*q^3 + 84/11*q^4 + 72/11*q^5 + O(q^6)
-            ]
+            [q - q^3 - q^4 + O(q^6),
+             q^2 - 2*q^3 - q^4 + 2*q^5 + O(q^6),
+             1 + 12/11*q + 36/11*q^2 + 48/11*q^3 + 84/11*q^4 + 72/11*q^5 + O(q^6)]
             sage: m._q_expansion([1,2,0], 5)
             q + 2*q^2 - 5*q^3 - 3*q^4 + O(q^5)
         """
@@ -608,14 +526,19 @@ class ModularFormsAmbient(space.ModularFormsSpace,
                 f += element[i] * B[i]
         return f
 
-
     ####################################################################
     # Computations of Dimensions
     ####################################################################
+    @cached_method
     def _dim_cuspidal(self):
-        """
+        r"""
         Return the dimension of the cuspidal subspace of this ambient
-        modular forms space, computed using a dimension formula.
+        modular forms space.
+
+        For weights `k \ge 2` this is computed using a
+        dimension formula. For weight 1, it will trigger a computation of a
+        basis of `q`-expansions using Schaeffer's algorithm, unless this space
+        is a space of Eisenstein forms only, in which case we just return 0.
 
         EXAMPLES::
 
@@ -623,16 +546,24 @@ class ModularFormsAmbient(space.ModularFormsSpace,
             Modular Forms space of dimension 2 for Congruence Subgroup Gamma_H(11) with H generated by [3] of weight 2 over Rational Field
             sage: m._dim_cuspidal()
             1
+            sage: m = ModularForms(DirichletGroup(389,CyclotomicField(4)).0,3); m._dim_cuspidal()
+            64
+            sage: m = ModularForms(GammaH(31, [7]), 1)
+            sage: m._dim_cuspidal()
+            1
+            sage: m = ModularForms(GammaH(31, [7]), 1, eis_only=True)
+            sage: m._dim_cuspidal()
+            0
         """
-        try:
-            return self.__the_dim_cuspidal
-        except AttributeError:
-            if arithgroup.is_Gamma1(self.group()) and self.character() is not None:
-               self.__the_dim_cuspidal = self.group().dimension_cusp_forms(self.weight(), self.character())
-            else:
-               self.__the_dim_cuspidal = self.group().dimension_cusp_forms(self.weight())
-        return self.__the_dim_cuspidal
+        if self._eis_only:
+            return 0
+        if isinstance(self.group(), Gamma1_class) and self.character() is not None:
+            return self.group().dimension_cusp_forms(self.weight(),
+                                                     self.character())
+        else:
+            return self.group().dimension_cusp_forms(self.weight())
 
+    @cached_method
     def _dim_eisenstein(self):
         """
         Return the dimension of the Eisenstein subspace of this modular
@@ -644,19 +575,25 @@ class ModularFormsAmbient(space.ModularFormsSpace,
             Modular Forms space of dimension 3 for Congruence Subgroup Gamma_H(13) with H generated by [4] of weight 2 over Rational Field
             sage: m._dim_eisenstein()
             3
-        """
-        try:
-            return self.__the_dim_eisenstein
-        except AttributeError:
-            if self.weight() == 1:
-                self.__the_dim_eisenstein = len(self.eisenstein_params())
-            else:
-                if arithgroup.is_Gamma1(self.group()) and self.character() is not None:
-                    self.__the_dim_eisenstein = self.group().dimension_eis(self.weight(), self.character())
-                else:
-                    self.__the_dim_eisenstein = self.group().dimension_eis(self.weight())
-        return self.__the_dim_eisenstein
 
+            sage: m = ModularForms(DirichletGroup(13).0,7); m
+            Modular Forms space of dimension 8, character [zeta12] and weight 7 over Cyclotomic Field of order 12 and degree 4
+            sage: m._dim_eisenstein()
+            2
+            sage: m._dim_cuspidal()
+            6
+
+        Test that :issue:`24030` is fixed::
+
+            sage: ModularForms(GammaH(40, [21]), 1).dimension() # indirect doctest
+            16
+        """
+        if isinstance(self.group(), Gamma1_class) and self.character() is not None:
+            return self.group().dimension_eis(self.weight(), self.character())
+        else:
+            return self.group().dimension_eis(self.weight())
+
+    @cached_method
     def _dim_new_cuspidal(self):
         """
         Return the dimension of the new cuspidal subspace, computed using
@@ -666,19 +603,23 @@ class ModularFormsAmbient(space.ModularFormsSpace,
 
             sage: m = ModularForms(GammaH(11,[2]), 2); m._dim_new_cuspidal()
             1
+            sage: m = ModularForms(DirichletGroup(33).0,7); m
+            Modular Forms space of dimension 26, character [-1, 1] and weight 7 over Rational Field
+            sage: m._dim_new_cuspidal()
+            20
+            sage: m._dim_cuspidal()
+            22
         """
-        try:
-            return self.__the_dim_new_cuspidal
-        except AttributeError:
-            if arithgroup.is_Gamma1(self.group()) and self.character() is not None:
-                self.__the_dim_new_cuspidal = self.group().dimension_new_cusp_forms(self.weight(), self.character())
-            else:
-                self.__the_dim_new_cuspidal = self.group().dimension_new_cusp_forms(self.weight())
-        return self.__the_dim_new_cuspidal
+        if isinstance(self.group(), Gamma1_class) and self.character() is not None:
+            return self.group().dimension_new_cusp_forms(self.weight(), self.character())
+        else:
+            return self.group().dimension_new_cusp_forms(self.weight())
 
+    @cached_method
     def _dim_new_eisenstein(self):
         """
-        Compute the dimension of the Eisenstein submodule.
+        Return the dimension of the new Eisenstein subspace, computed
+        by enumerating all Eisenstein series of the appropriate level.
 
         EXAMPLES::
 
@@ -688,29 +629,31 @@ class ModularFormsAmbient(space.ModularFormsSpace,
             sage: m = ModularForms(Gamma0(11), 2)
             sage: m._dim_new_eisenstein()
             1
+            sage: m = ModularForms(DirichletGroup(36).0,5); m
+            Modular Forms space of dimension 28, character [-1, 1] and weight 5 over Rational Field
+            sage: m._dim_new_eisenstein()
+            2
+            sage: m._dim_eisenstein()
+            8
         """
-        try:
-            return self.__the_dim_new_eisenstein
-        except AttributeError:
-            if arithgroup.is_Gamma0(self.group()) and self.weight() == 2:
-                if is_prime(self.level()):
-                    d = 1
-                else:
-                    d = 0
+        if isinstance(self.group(), Gamma0_class) and self.weight() == 2:
+            if is_prime(self.level()):
+                d = 1
             else:
-                E = self.eisenstein_series()
-                d = len([g for g in E if g.new_level() == self.level()])
-            self.__the_dim_new_eisenstein = d
-        return self.__the_dim_new_eisenstein
-
+                d = 0
+        else:
+            E = self.eisenstein_series()
+            d = len([g for g in E if g.new_level() == self.level()])
+        return d
 
     ####################################################################
     # Computations of all Eisenstein series in self
     ####################################################################
 
+    @cached_method
     def eisenstein_params(self):
         """
-        Return parameters that define all Eisenstein series in self.
+        Return parameters that define all Eisenstein series in ``self``.
 
         OUTPUT: an immutable Sequence
 
@@ -722,18 +665,14 @@ class ModularFormsAmbient(space.ModularFormsSpace,
             sage: type(v)
             <class 'sage.structure.sequence.Sequence_generic'>
         """
-        try:
-            return self.__eisenstein_params
-        except AttributeError:
-            eps = self.character()
-            if eps is None:
-                if arithgroup.is_Gamma1(self.group()):
-                    eps = self.level()
-                else:
-                    raise NotImplementedError
-            params = eis_series.compute_eisenstein_params(eps, self.weight())
-            self.__eisenstein_params = Sequence(params, immutable=True)
-        return self.__eisenstein_params
+        eps = self.character()
+        if eps is None:
+            if isinstance(self.group(), Gamma1_class):
+                eps = self.level()
+            else:
+                raise NotImplementedError
+        params = eis_series.compute_eisenstein_params(eps, self.weight())
+        return Sequence(params, immutable=True)
 
     def eisenstein_series(self):
         """
@@ -742,32 +681,26 @@ class ModularFormsAmbient(space.ModularFormsSpace,
         ::
 
             sage: ModularForms(27,2).eisenstein_series()
-            [
-            q^3 + O(q^6),
-            q - 3*q^2 + 7*q^4 - 6*q^5 + O(q^6),
-            1/12 + q + 3*q^2 + q^3 + 7*q^4 + 6*q^5 + O(q^6),
-            1/3 + q + 3*q^2 + 4*q^3 + 7*q^4 + 6*q^5 + O(q^6),
-            13/12 + q + 3*q^2 + 4*q^3 + 7*q^4 + 6*q^5 + O(q^6)
-            ]
+            [q^3 + O(q^6),
+             q - 3*q^2 + 7*q^4 - 6*q^5 + O(q^6),
+             1/12 + q + 3*q^2 + q^3 + 7*q^4 + 6*q^5 + O(q^6),
+             1/3 + q + 3*q^2 + 4*q^3 + 7*q^4 + 6*q^5 + O(q^6),
+             13/12 + q + 3*q^2 + 4*q^3 + 7*q^4 + 6*q^5 + O(q^6)]
 
         ::
 
             sage: ModularForms(Gamma1(5),3).eisenstein_series()
-            [
-            -1/5*zeta4 - 2/5 + q + (4*zeta4 + 1)*q^2 + (-9*zeta4 + 1)*q^3 + (4*zeta4 - 15)*q^4 + q^5 + O(q^6),
-            q + (zeta4 + 4)*q^2 + (-zeta4 + 9)*q^3 + (4*zeta4 + 15)*q^4 + 25*q^5 + O(q^6),
-            1/5*zeta4 - 2/5 + q + (-4*zeta4 + 1)*q^2 + (9*zeta4 + 1)*q^3 + (-4*zeta4 - 15)*q^4 + q^5 + O(q^6),
-            q + (-zeta4 + 4)*q^2 + (zeta4 + 9)*q^3 + (-4*zeta4 + 15)*q^4 + 25*q^5 + O(q^6)
-            ]
+            [-1/5*zeta4 - 2/5 + q + (4*zeta4 + 1)*q^2 + (-9*zeta4 + 1)*q^3 + (4*zeta4 - 15)*q^4 + q^5 + O(q^6),
+             q + (zeta4 + 4)*q^2 + (-zeta4 + 9)*q^3 + (4*zeta4 + 15)*q^4 + 25*q^5 + O(q^6),
+             1/5*zeta4 - 2/5 + q + (-4*zeta4 + 1)*q^2 + (9*zeta4 + 1)*q^3 + (-4*zeta4 - 15)*q^4 + q^5 + O(q^6),
+             q + (-zeta4 + 4)*q^2 + (zeta4 + 9)*q^3 + (-4*zeta4 + 15)*q^4 + 25*q^5 + O(q^6)]
 
         ::
 
             sage: eps = DirichletGroup(13).0^2
             sage: ModularForms(eps,2).eisenstein_series()
-            [
-            -7/13*zeta6 - 11/13 + q + (2*zeta6 + 1)*q^2 + (-3*zeta6 + 1)*q^3 + (6*zeta6 - 3)*q^4 - 4*q^5 + O(q^6),
-            q + (zeta6 + 2)*q^2 + (-zeta6 + 3)*q^3 + (3*zeta6 + 3)*q^4 + 4*q^5 + O(q^6)
-            ]
+            [-7/13*zeta6 - 11/13 + q + (2*zeta6 + 1)*q^2 + (-3*zeta6 + 1)*q^3 + (6*zeta6 - 3)*q^4 - 4*q^5 + O(q^6),
+             q + (zeta6 + 2)*q^2 + (-zeta6 + 3)*q^3 + (3*zeta6 + 3)*q^4 + 4*q^5 + O(q^6)]
         """
         return self.eisenstein_submodule().eisenstein_series()
 
@@ -787,12 +720,12 @@ class ModularFormsAmbient(space.ModularFormsSpace,
 
     def _compute_hecke_matrix(self, n):
         """
-        Compute the matrix of the Hecke operator T_n acting on self.
+        Compute the matrix of the Hecke operator `T_n` acting on ``self``.
 
-        NOTE:
+        .. NOTE::
 
-        If self is a level 1 space, the much faster Victor Miller basis
-        is used for this computation.
+            If ``self`` is a level 1 space, the much faster Victor Miller basis
+            is used for this computation.
 
         EXAMPLES::
 
@@ -800,6 +733,15 @@ class ModularFormsAmbient(space.ModularFormsSpace,
             sage: M._compute_hecke_matrix(6)
             [ 2  0]
             [ 0 12]
+
+        Check that :issue:`22780` is fixed::
+
+            sage: M = ModularForms(1, 12)
+            sage: M._compute_hecke_matrix(2)
+            [ -24    0]
+            [   0 2049]
+            sage: ModularForms(1, 2).hecke_matrix(2)
+            []
 
         TESTS:
 
@@ -810,6 +752,8 @@ class ModularFormsAmbient(space.ModularFormsSpace,
 
             sage: M = ModularForms(1, 512)
             sage: t = M._compute_hecke_matrix(5)     # long time (2s)
+            sage: t[-1, -1] == 1 + 5^511             # long time (0s, depends on above)
+            True
             sage: f = t.charpoly()                   # long time (4s)
             sage: [f[0]%p for p in prime_range(100)] # long time (0s, depends on above)
             [0, 0, 0, 0, 1, 9, 2, 7, 0, 0, 0, 0, 1, 12, 9, 16, 37, 0, 21, 11, 70, 22, 0, 58, 76]
@@ -819,9 +763,13 @@ class ModularFormsAmbient(space.ModularFormsSpace,
         if self.level() == 1:
             k = self.weight()
             d = self.dimension()
+            if d == 0:
+                return matrix(self.base_ring(), 0, 0, [])
             from sage.modular.all import victor_miller_basis, hecke_operator_on_basis
-            vmb = victor_miller_basis(k, prec=d*n+1)
-            return hecke_operator_on_basis(vmb, n, k)
+            vmb = victor_miller_basis(k, prec=d * n + 1)[1:]
+            Tcusp = hecke_operator_on_basis(vmb, n, k)
+            return Tcusp.block_sum(matrix(self.base_ring(), 1, 1,
+                                          [sigma(n, k - 1)]))
         else:
             return space.ModularFormsSpace._compute_hecke_matrix(self, n)
 
@@ -836,8 +784,8 @@ class ModularFormsAmbient(space.ModularFormsSpace,
 
             sage: M = ModularForms(1, 12)
             sage: M._compute_hecke_matrix_prime_power(5, 3)
-            [  116415324211120654296876 11038396588040733750558720]
-            [                         0              -359001100500]
+            [           -359001100500                        0]
+            [                       0 116415324211120654296876]
             sage: delta_qexp(126)[125]
             -359001100500
             sage: eisenstein_series_qexp(12, 126)[125]
@@ -848,3 +796,21 @@ class ModularFormsAmbient(space.ModularFormsSpace,
         else:
             return space.ModularFormsSpace._compute_hecke_matrix_prime_power(self, p, r)
 
+    def hecke_polynomial(self, n, var='x'):
+        r"""
+        Compute the characteristic polynomial of the Hecke operator `T_n` acting
+        on this space. Except in level 1, this is computed via modular symbols,
+        and in particular is faster to compute than the matrix itself.
+
+        EXAMPLES::
+
+            sage: ModularForms(17,4).hecke_polynomial(2)
+            x^6 - 16*x^5 + 18*x^4 + 608*x^3 - 1371*x^2 - 4968*x + 7776
+
+        Check that this gives the same answer as computing the actual Hecke
+        matrix (which is generally slower)::
+
+            sage: ModularForms(17,4).hecke_matrix(2).charpoly()
+            x^6 - 16*x^5 + 18*x^4 + 608*x^3 - 1371*x^2 - 4968*x + 7776
+        """
+        return self.cuspidal_submodule().hecke_polynomial(n, var) * self.eisenstein_submodule().hecke_polynomial(n, var)

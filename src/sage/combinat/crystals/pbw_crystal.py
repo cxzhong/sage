@@ -1,26 +1,26 @@
-# -*- coding: utf-8 -*-
+# sage.doctest: needs sage.combinat sage.modules
 r"""
-`\mathcal{B}(\infty)` Crystal Of PBW Monomials.
-
-AUTHORS:
-
-- Dinakar Muthiah (2015-05-11): initial version
+`\mathcal{B}(\infty)` crystal of PBW monomials
 
 .. SEEALSO::
 
     For information on PBW datum, see
     :ref:`sage.combinat.crystals.pbw_datum`.
+
+AUTHORS:
+
+- Dinakar Muthiah (2015-05-11): initial version
 """
 
-#*****************************************************************************
+# ****************************************************************************
 #       Copyright (C) 2015 Dinakar Muthiah <muthiah at ualberta.ca>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
 from sage.misc.cachefunc import cached_method
 from sage.structure.element import Element
@@ -32,10 +32,12 @@ from sage.categories.infinite_enumerated_sets import InfiniteEnumeratedSets
 from sage.combinat.root_system.cartan_type import CartanType
 from sage.combinat.crystals.pbw_datum import PBWData, PBWDatum
 
+
 class PBWCrystalElement(Element):
     """
     A crystal element in the PBW model.
     """
+
     def __init__(self, parent, lusztig_datum, long_word=None):
         """
         Initialize ``self``.
@@ -79,7 +81,7 @@ class PBWCrystalElement(Element):
             sage: latex(b)
             f_{\alpha_{4}}^{2}
              f_{\alpha_{3}}
-             f_{\alpha_{1} + \alpha_{2} + 2\alpha_{3}}
+             f_{\alpha_{1} + \alpha_{2} + 2 \alpha_{3}}
              f_{\alpha_{1} + \alpha_{2}}
              f_{\alpha_{2}}^{2}
         """
@@ -87,7 +89,7 @@ class PBWCrystalElement(Element):
         lusztig_datum = list(pbw_datum.lusztig_datum)
         al = self.parent()._pbw_datum_parent._root_list_from(self.parent()._default_word)
         from sage.misc.latex import latex
-        ret_str = ' '.join("f_{%s}%s"%(latex(al[i]), "^{%s}"%latex(exp) if exp > 1 else "")
+        ret_str = ' '.join("f_{%s}%s" % (latex(al[i]), "^{%s}" % latex(exp) if exp > 1 else "")
                            for i, exp in enumerate(lusztig_datum) if exp)
         if ret_str == '':
             return '1'
@@ -401,7 +403,7 @@ class PBWCrystal(Parent, UniqueRepresentation):
         cartan_type = CartanType(cartan_type)
         if not cartan_type.is_finite():
             raise NotImplementedError("only implemented for finite types")
-        return super(PBWCrystal, cls).__classcall__(cls, cartan_type)
+        return super().__classcall__(cls, cartan_type)
 
     def __init__(self, cartan_type):
         """
@@ -506,4 +508,3 @@ class PBWCrystal(Parent, UniqueRepresentation):
         self._default_word = tuple(word)
 
     Element = PBWCrystalElement
-

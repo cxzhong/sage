@@ -31,41 +31,42 @@ REFERENCES:
 .. [NS] \T. Nakanishi, S. Stella, Wonder of sine-Gordon Y-systems,
    to appear in Trans. Amer. Math. Soc., :arxiv:`1212.6853`
 """
-#*****************************************************************************
+# ****************************************************************************
 #       Copyright (C) 2014 Salvatore Stella <sstella@ncsu.edu>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
 from sage.structure.sage_object import SageObject
 
 from sage.rings.integer_ring import ZZ
 from sage.rings.real_mpfr import RR
-from sage.rings.all import NN
+from sage.rings.semirings.non_negative_integer_semiring import NN
 from sage.functions.trig import cos, sin
-from sage.plot.plot import parametric_plot
-from sage.plot.graphics import Graphics
-from sage.plot.polygon import polygon2d
-from sage.plot.circle import circle
-from sage.plot.bezier_path import bezier_path
-from sage.plot.point import point
-from sage.plot.line import line
+from sage.misc.lazy_import import lazy_import
 from sage.symbolic.constants import pi, I
 from sage.functions.log import exp
 from sage.functions.other import ceil
 from sage.misc.flatten import flatten
-from sage.calculus.var import var
+from sage.symbolic.ring import SR
 from sage.functions.other import real_part, imag_part
 from sage.misc.cachefunc import cached_method
+lazy_import("sage.plot.plot", "parametric_plot")
+lazy_import("sage.plot.graphics", "Graphics")
+lazy_import("sage.plot.polygon", "polygon2d")
+lazy_import("sage.plot.circle", "circle")
+lazy_import("sage.plot.bezier_path", "bezier_path")
+lazy_import("sage.plot.point", "point")
+lazy_import("sage.plot.line", "line")
 
 
 class SineGordonYsystem(SageObject):
     r"""
-    A class to model a (reduced) sine-Gordon Y-system
+    A class to model a (reduced) sine-Gordon Y-system.
 
     Note that the generations, together with all integer tuples, in this
     implementation are numbered from 0 while in [NS]_ they are numbered from 1
@@ -98,6 +99,7 @@ class SineGordonYsystem(SageObject):
          (103, 105))
         sage: Y.plot()     #not tested
     """
+
     def __init__(self, X, na):
         """
         TESTS::
@@ -109,17 +111,17 @@ class SineGordonYsystem(SageObject):
             sage: SineGordonYsystem('E',(6,4,3))
             Traceback (most recent call last):
             ...
-            ValueError: the type must be either 'A' of 'D'.
+            ValueError: the type must be either 'A' or 'D'
             sage: SineGordonYsystem('A',(2,4,3))
             Traceback (most recent call last):
             ...
             ValueError: the first integer in the defining sequence must be
-            greater than 2.
+            greater than 2
             sage: SineGordonYsystem('A',(6,-4,3))
             Traceback (most recent call last):
             ...
             ValueError: the defining sequence must contain only positive
-            integers.
+            integers
             sage: SineGordonYsystem('A',(3,))
             Traceback (most recent call last):
             ...
@@ -127,14 +129,14 @@ class SineGordonYsystem(SageObject):
             as input
         """
         if X not in ['A', 'D']:
-            raise ValueError("the type must be either 'A' of 'D'.")
+            raise ValueError("the type must be either 'A' or 'D'")
         self._type = X
         if na[0] <= 2:
             raise ValueError("the first integer in the defining sequence "
-                             "must be greater than 2.")
+                             "must be greater than 2")
         if any(x not in NN for x in na):
             raise ValueError("the defining sequence must contain only "
-                             "positive integers.")
+                             "positive integers")
         self._na = tuple(na)
         if self._na == (3,) and self._type == 'A':
             raise ValueError("the integer sequence (3,) in type 'A'"
@@ -156,7 +158,7 @@ class SineGordonYsystem(SageObject):
         """
         msg = "A sine-Gordon Y-system of type {}"
         msg += " with defining integer tuple {}"
-        return  msg.format(self._type, self._na)
+        return msg.format(self._type, self._na)
 
     def type(self):
         r"""
@@ -164,7 +166,7 @@ class SineGordonYsystem(SageObject):
 
         EXAMPLES::
 
-            sage: Y = SineGordonYsystem('A',(6,4,3));
+            sage: Y = SineGordonYsystem('A',(6,4,3))
             sage: Y.type()
             'A'
         """
@@ -176,7 +178,7 @@ class SineGordonYsystem(SageObject):
 
         EXAMPLES::
 
-            sage: Y = SineGordonYsystem('A',(6,4,3));
+            sage: Y = SineGordonYsystem('A',(6,4,3))
             sage: Y.F()
             3
         """
@@ -188,7 +190,7 @@ class SineGordonYsystem(SageObject):
 
         EXAMPLES::
 
-            sage: Y = SineGordonYsystem('A',(6,4,3));
+            sage: Y = SineGordonYsystem('A',(6,4,3))
             sage: Y.na()
             (6, 4, 3)
         """
@@ -202,7 +204,7 @@ class SineGordonYsystem(SageObject):
 
         EXAMPLES::
 
-            sage: Y = SineGordonYsystem('A',(6,4,3));
+            sage: Y = SineGordonYsystem('A',(6,4,3))
             sage: Y.rk()
             (106, 17, 4)
         """
@@ -224,7 +226,7 @@ class SineGordonYsystem(SageObject):
 
         EXAMPLES::
 
-            sage: Y = SineGordonYsystem('A',(6,4,3));
+            sage: Y = SineGordonYsystem('A',(6,4,3))
             sage: Y.pa()
             (1, 6, 25)
         """
@@ -233,8 +235,8 @@ class SineGordonYsystem(SageObject):
         pa = [1]
         if F > 1:
             pa.append(na[0])
-            for k in range(2, F):
-                pa.append(na[k-1] * pa[k-1] + pa[k-2])
+            for k in range(1, F - 1):
+                pa.append(na[k] * pa[k] + pa[k - 1])
         return tuple(pa)
 
     @cached_method
@@ -245,7 +247,7 @@ class SineGordonYsystem(SageObject):
 
         EXAMPLES::
 
-            sage: Y = SineGordonYsystem('A',(6,4,3));
+            sage: Y = SineGordonYsystem('A',(6,4,3))
             sage: Y.qa()
             (6, 25, 81)
         """
@@ -265,7 +267,7 @@ class SineGordonYsystem(SageObject):
 
         EXAMPLES::
 
-            sage: Y = SineGordonYsystem('A',(6,4,3));
+            sage: Y = SineGordonYsystem('A',(6,4,3))
             sage: Y.r()
             106
         """
@@ -279,7 +281,7 @@ class SineGordonYsystem(SageObject):
 
         EXAMPLES::
 
-            sage: Y = SineGordonYsystem('A',(6,4,3));
+            sage: Y = SineGordonYsystem('A',(6,4,3))
             sage: Y.vertices()
             Ring of integers modulo 106
         """
@@ -302,7 +304,7 @@ class SineGordonYsystem(SageObject):
 
         EXAMPLES::
 
-            sage: Y = SineGordonYsystem('A',(6,4,3));
+            sage: Y = SineGordonYsystem('A',(6,4,3))
             sage: Y.triangulation()
             ((17, 89),
              (17, 72),
@@ -316,7 +318,7 @@ class SineGordonYsystem(SageObject):
         triangulation = []
         intervals = self.intervals()
         for a in range(self.F()):
-            for (first, last, typ) in intervals[a]:
+            for first, last, typ in intervals[a]:
                 if first - last in [vert(1), vert(-1)]:
                     continue
                 if typ == "L":
@@ -346,7 +348,7 @@ class SineGordonYsystem(SageObject):
                 done = False
                 while not done:
                     if left:
-                        edge = (edge[0] + vert(rk[a+1]), edge[1])
+                        edge = (edge[0] + vert(rk[a + 1]), edge[1])
                     else:
                         edge = (edge[0], edge[1] - vert(rk[a + 1]))
                     left = not left
@@ -376,7 +378,7 @@ class SineGordonYsystem(SageObject):
 
         EXAMPLES::
 
-            sage: Y = SineGordonYsystem('A',(6,4,3));
+            sage: Y = SineGordonYsystem('A',(6,4,3))
             sage: Y.intervals()
             (((0, 0, 'R'),),
              ((0, 17, 'L'),
@@ -392,7 +394,7 @@ class SineGordonYsystem(SageObject):
         for a in range(self.F()):
             new_intervals = []
             if na[a] % 2 == 0:
-                for (first, last, typ) in intervals[a]:
+                for first, last, typ in intervals[a]:
                     if typ == "NR":
                         new_intervals.append((first, last, "R"))
                     elif typ == "NL":
@@ -402,7 +404,7 @@ class SineGordonYsystem(SageObject):
                         last_ccw = vert(last_cw + rk[a + 2])
                         x = first
                         while x < last_cw:
-                            new_intervals.append((vert(x), vert(x + rk[a+1]), "L"))
+                            new_intervals.append((vert(x), vert(x + rk[a + 1]), "L"))
                             x = vert(x + rk[a + 1])
                         if typ == "L":
                             new_intervals.append((last_cw, last_ccw, "NL"))
@@ -410,10 +412,10 @@ class SineGordonYsystem(SageObject):
                             new_intervals.append((last_cw, last_ccw, "NR"))
                         x = last_ccw
                         while x != last:
-                            new_intervals.append((vert(x), vert(x+rk[a+1]), "R"))
+                            new_intervals.append((vert(x), vert(x + rk[a + 1]), "R"))
                             x = vert(x + rk[a + 1])
             else:
-                for (first, last, typ) in intervals[a]:
+                for first, last, typ in intervals[a]:
                     if typ == "NR":
                         new_intervals.append((first, last, "R"))
                     elif typ == "NL":
@@ -426,15 +428,15 @@ class SineGordonYsystem(SageObject):
                         last_ccw = vert(last_cw + rk[a + 2])
                         x = first
                         while x < last_cw:
-                            new_intervals.append((vert(x), vert(x + rk[a+1]), "L"))
-                            x = vert(x + rk[a+1])
+                            new_intervals.append((vert(x), vert(x + rk[a + 1]), "L"))
+                            x = vert(x + rk[a + 1])
                         if typ == "L":
                             new_intervals.append((last_cw, last_ccw, "NR"))
                         else:
                             new_intervals.append((last_cw, last_ccw, "NL"))
                         x = last_ccw
                         while x != last:
-                            new_intervals.append((vert(x), vert(x + rk[a+1]), "R"))
+                            new_intervals.append((vert(x), vert(x + rk[a + 1]), "R"))
                             x = vert(x + rk[a + 1])
             intervals.append(new_intervals)
         return tuple(map(tuple, intervals))
@@ -445,23 +447,24 @@ class SineGordonYsystem(SageObject):
 
         INPUT:
 
-        - ``radius`` - the radius of the disk; by default the length of
+        - ``radius`` -- the radius of the disk; by default the length of
           the circle is the number of vertices
-        - ``points_color`` - the color of the vertices; default 'black'
-        - ``points_size`` - the size of the vertices; default 7
-        - ``triangulation_color`` - the color of the arcs; default 'black'
-        - ``triangulation_thickness`` - the thickness of the arcs; default 0.5
-        - ``shading_color`` - the color of the shading used on neuter
+        - ``points_color`` -- the color of the vertices; default 'black'
+        - ``points_size`` -- the size of the vertices; default 7
+        - ``triangulation_color`` -- the color of the arcs; default 'black'
+        - ``triangulation_thickness`` -- the thickness of the arcs; default 0.5
+        - ``shading_color`` -- the color of the shading used on neuter
           intervals; default 'lightgray'
-        - ``reflections_color`` - the color of the reflection axes; default
+        - ``reflections_color`` -- the color of the reflection axes; default
           'blue'
-        - ``reflections_thickness`` - the thickness of the reflection axes;
+        - ``reflections_thickness`` -- the thickness of the reflection axes;
           default 1
 
         EXAMPLES::
 
-            sage: Y = SineGordonYsystem('A',(6,4,3));
-            sage: Y.plot()      # not tested
+            sage: Y = SineGordonYsystem('A',(6,4,3))
+            sage: Y.plot()                      # long time (2s)                        # needs sage.plot
+            Graphics object consisting of 219 graphics primitives
         """
         # Set up plotting options
         if 'radius' in kwds:
@@ -469,41 +472,21 @@ class SineGordonYsystem(SageObject):
         else:
             radius = ceil(self.r() / (2 * pi))
         points_opts = {}
-        if 'points_color' in kwds:
-            points_opts['color'] = kwds['points_color']
-        else:
-            points_opts['color'] = 'black'
-        if 'points_size' in kwds:
-            points_opts['size'] = kwds['points_size']
-        else:
-            points_opts['size'] = 7
+        points_opts['color'] = kwds.get('points_color', 'black')
+        points_opts['size'] = kwds.get('points_size', 7)
         triangulation_opts = {}
-        if 'triangulation_color' in kwds:
-            triangulation_opts['color'] = kwds['triangulation_color']
-        else:
-            triangulation_opts['color'] = 'black'
-        if 'triangulation_thickness' in kwds:
-            triangulation_opts['thickness'] = kwds['triangulation_thickness']
-        else:
-            triangulation_opts['thickness'] = 0.5
+        triangulation_opts['color'] = kwds.get('triangulation_color', 'black')
+        triangulation_opts['thickness'] = kwds.get('triangulation_thickness',
+                                                   0.5)
         shading_opts = {}
-        if 'shading_color' in kwds:
-            shading_opts['color'] = kwds['shading_color']
-        else:
-            shading_opts['color'] = 'lightgray'
+        shading_opts['color'] = kwds.get('shading_color', 'lightgray')
         reflections_opts = {}
-        if 'reflections_color' in kwds:
-            reflections_opts['color'] = kwds['reflections_color']
-        else:
-            reflections_opts['color'] = 'blue'
-        if 'reflections_thickness' in kwds:
-            reflections_opts['thickness'] = kwds['reflections_thickness']
-        else:
-            reflections_opts['thickness'] = 1
+        reflections_opts['color'] = kwds.get('reflections_color', 'blue')
+        reflections_opts['thickness'] = kwds.get('reflections_thickness', 1)
         # Helper functions
 
         def triangle(x):
-            (a, b) = sorted(x[:2])
+            a, b = sorted(x[:2])
             for p in self.vertices():
                 if (p, a) in self.triangulation() or (a, p) in self.triangulation():
                     if (p, b) in self.triangulation() or (b, p) in self.triangulation():
@@ -511,14 +494,15 @@ class SineGordonYsystem(SageObject):
                             return sorted((a, b, p))
 
         def plot_arc(radius, p, q, **opts):
+            # TODO: THIS SHOULD USE THE EXISTING PLOT OF ARCS!
             # plot the arc from p to q differently depending on the type of self
             p = ZZ(p)
             q = ZZ(q)
-            t = var('t')
+            t = SR.var('t')
             if p - q in [1, -1]:
                 def f(t):
                     return (radius * cos(t), radius * sin(t))
-                (p, q) = sorted([p, q])
+                p, q = sorted([p, q])
                 angle_p = vertex_to_angle(p)
                 angle_q = vertex_to_angle(q)
                 return parametric_plot(f(t), (t, angle_q, angle_p), **opts)
@@ -529,9 +513,9 @@ class SineGordonYsystem(SageObject):
                     angle_p += 2 * pi
                 internal_angle = angle_p - angle_q
                 if internal_angle > pi:
-                    (angle_p, angle_q) = (angle_q + 2 * pi, angle_p)
+                    angle_p, angle_q = (angle_q + 2 * pi, angle_p)
                     internal_angle = angle_p - angle_q
-                angle_center = (angle_p+angle_q) / 2
+                angle_center = (angle_p + angle_q) / 2
                 hypotenuse = radius / cos(internal_angle / 2)
                 radius_arc = hypotenuse * sin(internal_angle / 2)
                 center = (hypotenuse * cos(angle_center),
@@ -569,7 +553,7 @@ class SineGordonYsystem(SageObject):
                                                max_level=1)
                             if x[2] in ["NR", "NL"]]
         shaded_triangles = map(triangle, neuter_intervals)
-        for (p, q, r) in shaded_triangles:
+        for p, q, r in shaded_triangles:
             points = list(plot_arc(radius, p, q)[0])
             points += list(plot_arc(radius, q, r)[0])
             points += list(reversed(plot_arc(radius, p, r)[0]))
@@ -577,7 +561,7 @@ class SineGordonYsystem(SageObject):
         # Disk boundary
         P += circle((0, 0), radius, **triangulation_opts)
         # Triangulation
-        for (p, q) in self.triangulation():
+        for p, q in self.triangulation():
             P += plot_arc(radius, p, q, **triangulation_opts)
         if self.type() == 'D':
             s = radius / 50.0
@@ -594,17 +578,17 @@ class SineGordonYsystem(SageObject):
                              **triangulation_opts)
             P += point((0, 0), zorder=len(P), **points_opts)
         # Vertices
-        v_points = {x: (radius * cos(vertex_to_angle(x)),
-                        radius * sin(vertex_to_angle(x)))
-                    for x in self.vertices()}
-        for v in v_points:
-            P += point(v_points[v], zorder=len(P), **points_opts)
+        v_points = [(radius * cos(vertex_to_angle(x)),
+                     radius * sin(vertex_to_angle(x)))
+                    for x in self.vertices()]
+        for coords in v_points:
+            P += point(coords, zorder=len(P), **points_opts)
         # Reflection axes
         P += line([(0, 1.1 * radius), (0, -1.1 * radius)],
                   zorder=len(P), **reflections_opts)
         axis_angle = vertex_to_angle(-0.5 * (self.rk() + (1, 1))[1])
-        (a, b) = (1.1 * radius * cos(axis_angle),
-                  1.1 * radius * sin(axis_angle))
+        a, b = (1.1 * radius * cos(axis_angle),
+                1.1 * radius * sin(axis_angle))
         P += line([(a, b), (-a, -b)], zorder=len(P), **reflections_opts)
         # Wrap up
         P.set_aspect_ratio(1)

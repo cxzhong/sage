@@ -1,13 +1,14 @@
+# sage.doctest: optional - numpy
 r"""
-Dense complex double vectors using a NumPy backend.
+Dense complex double vectors using a NumPy backend
 
 EXAMPLES::
 
-    sage: v = vector(CDF,[(1,-1), (2,pi), (3,5)])
-    sage: v
+    sage: # needs sage.symbolic
+    sage: v = vector(CDF, [(1,-1), (2,pi), (3,5)]); v
     (1.0 - 1.0*I, 2.0 + 3.141592653589793*I, 3.0 + 5.0*I)
     sage: type(v)
-    <type 'sage.modules.vector_complex_double_dense.Vector_complex_double_dense'>
+    <class 'sage.modules.vector_complex_double_dense.Vector_complex_double_dense'>
     sage: parent(v)
     Vector space of dimension 3 over Complex Double Field
     sage: v[0] = 5
@@ -30,16 +31,15 @@ AUTHORS:
        Vector_double_dense class
 """
 
-#*****************************************************************************
+# ***************************************************************************
 #       Copyright (C) 2008 Jason Grout <jason-sage@creativetrax.com>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
-from __future__ import absolute_import
+#                  https://www.gnu.org/licenses/
+# ***************************************************************************
 
 from sage.rings.complex_double import CDF
 
@@ -53,11 +53,11 @@ cdef class Vector_complex_double_dense(Vector_double_dense):
     implemented using numpy which will call the underlying BLAS, if
     needed, on the system.
 
-    EXAMPLES:
-        sage: v = vector(CDF,[(1,-1), (2,pi), (3,5)])
-        sage: v
+    EXAMPLES::
+
+        sage: v = vector(CDF, [(1,-1), (2,pi), (3,5)]); v                               # needs sage.symbolic
         (1.0 - 1.0*I, 2.0 + 3.141592653589793*I, 3.0 + 5.0*I)
-        sage: v*v  # rel tol 1e-15
+        sage: v*v  # rel tol 1e-15                                                      # needs sage.symbolic
         -21.86960440108936 + 40.56637061435917*I
     """
     def __cinit__(self, parent, entries, coerce=True, copy=True):
@@ -71,14 +71,16 @@ cdef class Vector_complex_double_dense(Vector_double_dense):
 
     def __reduce__(self):
         """
-        Pickling
+        Pickling.
 
-        EXAMPLES:
+        EXAMPLES::
+
             sage: a = vector(CDF, range(9))
             sage: loads(dumps(a)) == a
             True
         """
-        return (unpickle_v1, (self._parent, self.list(), self._degree, self._is_mutable))
+        return (unpickle_v1, (self._parent, self.list(), self._degree,
+                              not self._is_immutable))
 
 
 # For backwards compatibility, we must keep the function unpickle_v0
@@ -86,7 +88,8 @@ def unpickle_v0(parent, entries, degree):
     """
     Create a complex double vector containing the entries.
 
-    EXAMPLES:
+    EXAMPLES::
+
         sage: v = vector(CDF, [1,2,3])
         sage: w = sage.modules.vector_complex_double_dense.unpickle_v0(v.parent(), list(v), v.degree())
         sage: v == w
@@ -94,20 +97,20 @@ def unpickle_v0(parent, entries, degree):
     """
     return unpickle_v1(parent, entries, degree)
 
+
 def unpickle_v1(parent, entries, degree, is_mutable=None):
     """
     Create a complex double vector with the given parent, entries,
     degree, and mutability.
 
-    EXAMPLES:
+    EXAMPLES::
+
         sage: v = vector(CDF, [1,2,3])
-        sage: w = sage.modules.vector_complex_double_dense.unpickle_v1(v.parent(), list(v), v.degree(), v.is_mutable())
+        sage: w = sage.modules.vector_complex_double_dense.unpickle_v1(v.parent(), list(v), v.degree(), v.is_immutable())
         sage: v == w
         True
     """
     cdef Vector_complex_double_dense v = Vector_complex_double_dense(parent, entries)
     if is_mutable is not None:
-        v._is_mutable = is_mutable
+        v._is_immutable = not is_mutable
     return v
-
-

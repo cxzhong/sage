@@ -1,225 +1,260 @@
-"""
+r"""
 Sage Runtime Environment
 
 AUTHORS:
 
-- \R. Andrew Ohana (2012): Initial version.
-
+- \R. Andrew Ohana (2012): initial version
 """
-########################################################################
-#       Copyright (C) 2013 R. Andrew Ohana <andrew.ohana@gmail.com>
-#
-#  Distributed under the terms of the GNU General Public License (GPL)
-#  as published by the Free Software Foundation; either version 2 of
-#  the License, or (at your option) any later version.
-#
-#                  http://www.gnu.org/licenses/
-########################################################################
-from __future__ import absolute_import
 
-import glob
+# ****************************************************************************
+#       Copyright (C) 2013 R. Andrew Ohana <andrew.ohana@gmail.com>
+#       Copyright (C) 2019 Jeroen Demeyer <J.Demeyer@UGent.be>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 2 of the License, or
+# (at your option) any later version.
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
+
 import os
 import socket
-import site
-from . import version
+import subprocess
+import sys
+import sysconfig
+from typing import Optional
 
-opj = os.path.join
+from platformdirs import site_data_dir, user_data_dir
 
-# set default values for sage environment variables
-# every variable can be overwritten by os.environ
+import sage.config
+from sage import version
+from sage.config import get_include_dirs
+
+# All variables set by var() appear in this SAGE_ENV dict
 SAGE_ENV = dict()
 
-# Helper to build the SAGE_ENV dictionary
-def _add_variable_or_fallback(key, fallback, force=False):
-    """
-    Set ``SAGE_ENV[key]``.
 
-    If ``key`` is an environment variable, this is the
-    value. Otherwise, the ``fallback`` is used.
+def join(*args) -> str | None:
+    """
+    Join paths like ``os.path.join`` except that the result is ``None``
+    if any of the components is ``None``.
+
+    EXAMPLES::
+
+        sage: from sage.env import join
+        sage: print(join("hello", "world"))
+        hello/world
+        sage: print(join("hello", None))
+        None
+    """
+    if any(a is None for a in args):
+        return None
+    return os.path.join(*args)
+
+
+def var(key: str, *fallbacks: Optional[str], force: bool = False) -> Optional[str]:
+    """
+    Set ``SAGE_ENV[key]`` and return the value.
+
+    If ``key`` is an environment variable, this is the value.
+    Otherwise, the ``fallbacks`` are tried until one is found which
+    is not ``None``. If the environment variable is not set and all
+    fallbacks are ``None``, then the final value is ``None``.
 
     INPUT:
 
-    - ``key`` -- string.
+    - ``key`` -- string
 
-    - ``fallback`` -- anything.
+    - ``fallbacks`` -- tuple containing ``str`` or ``None`` values
 
-    - ``force`` -- boolean (optional, default is ``False``). Whether
-      to always use the fallback, regardless of environment variables.
+    - ``force`` -- boolean (default: ``False``); if
+      ``True``, skip the environment variable and only use the
+      fallbacks
+
+    OUTPUT: the value of the environment variable or its fallbacks
 
     EXAMPLES::
 
         sage: import os, sage.env
         sage: sage.env.SAGE_ENV = dict()
         sage: os.environ['SAGE_FOO'] = 'foo'
-        sage: sage.env._add_variable_or_fallback('SAGE_FOO', '---$SAGE_URL---')
+        sage: sage.env.var('SAGE_FOO', 'unused')
+        'foo'
         sage: sage.env.SAGE_FOO
         'foo'
         sage: sage.env.SAGE_ENV['SAGE_FOO']
         'foo'
 
-    If the environment variable does not exist, the fallback is
-    used. Previously-declared variables are replaced if they are
-    prefixed with a dollar sign::
+    If the environment variable does not exist, the fallbacks (if any)
+    are used. In most typical uses, there is exactly one fallback::
 
         sage: _ = os.environ.pop('SAGE_BAR', None)  # ensure that SAGE_BAR does not exist
-        sage: sage.env._add_variable_or_fallback('SAGE_BAR', '---$SAGE_FOO---')
+        sage: sage.env.var('SAGE_BAR', 'bar')
+        'bar'
         sage: sage.env.SAGE_BAR
-        '---foo---'
+        'bar'
         sage: sage.env.SAGE_ENV['SAGE_BAR']
-        '---foo---'
+        'bar'
 
-    Test that :trac:`23758` has been resolved::
+    Test multiple fallbacks::
 
-        sage: sage.env._add_variable_or_fallback('SAGE_BA', '---hello---')
-        sage: sage.env._add_variable_or_fallback('TEMP', '$SAGE_BAR')
-        sage: sage.env.SAGE_ENV['TEMP']
-        '---foo---'
+        sage: sage.env.var('SAGE_BAR', None, 'yes', 'no')
+        'yes'
+        sage: sage.env.SAGE_BAR
+        'yes'
+
+    If all fallbacks are ``None``, the result is ``None``::
+
+        sage: sage.env.var('SAGE_BAR')
+        sage: print(sage.env.SAGE_BAR)
+        None
+        sage: sage.env.var('SAGE_BAR', None)
+        sage: print(sage.env.SAGE_BAR)
+        None
+
+    Test the ``force`` keyword::
+
+        sage: os.environ['SAGE_FOO'] = 'foo'
+        sage: sage.env.var('SAGE_FOO', 'forced', force=True)
+        'forced'
+        sage: sage.env.SAGE_FOO
+        'forced'
+        sage: sage.env.var('SAGE_FOO', 'forced', force=False)
+        'foo'
+        sage: sage.env.SAGE_FOO
+        'foo'
     """
-    global SAGE_ENV
-    import six
-    try:
-        import os
-        value = os.environ[key]
-    except KeyError:
-        value = fallback
     if force:
-        value = fallback
-    if isinstance(value, six.string_types):
-        # Now do the variable replacement. First treat 'value' as if
-        # it were a path and do the substitution on each of the
-        # components. This is to avoid the sloppiness in the second
-        # round of substitutions: if VAR and VAR_NEW are both in
-        # SAGE_ENV, then when doing substitution on the string
-        # "$VAR_NEW/a/b", we want to match VAR_NEW, not VAR, if
-        # possible.
-        for sep in set([os.path.sep, '/']):
-            components = []
-            for s in value.split(sep):
-                if s.startswith('$'):
-                    components.append(SAGE_ENV.get(s[1:], s))
-                else:
-                    components.append(s)
-            value = sep.join(components)
-        # Now deal with any remaining substitutions. The following is
-        # sloppy, as mentioned above: if $VAR and $VAR_NEW are both in
-        # SAGE_ENV, the substitution for "$VAR_NEw" depends on which
-        # of the two appears first when iterating over
-        # SAGE_ENV.items().
-        for k,v in SAGE_ENV.items():
-            if isinstance(v, six.string_types):
-                value = value.replace('$'+k, v)
+        value = None
+    else:
+        value = os.environ.get(key)
+    if value is None:
+        value = getattr(sage.config, key, None)
+
+    # Try all fallbacks in order as long as we don't have a non-empty value
+    for f in fallbacks:
+        if value not in (None, ""):
+            break
+        value = f
     SAGE_ENV[key] = value
     globals()[key] = value
+    return value
+
 
 # system info
-_add_variable_or_fallback('UNAME',           os.uname()[0])
-_add_variable_or_fallback('HOSTNAME',        socket.gethostname())
-_add_variable_or_fallback('LOCAL_IDENTIFIER','$HOSTNAME.%s'%os.getpid())
+HOSTNAME = var("HOSTNAME", socket.gethostname())
+LOCAL_IDENTIFIER = var("LOCAL_IDENTIFIER", "{}.{}".format(HOSTNAME, os.getpid()))
 
-# bunch of sage directories and files
-_add_variable_or_fallback('SAGE_ROOT',       None)
-_add_variable_or_fallback('SAGE_LOCAL',      None)
-_add_variable_or_fallback('SAGE_ETC',        opj('$SAGE_LOCAL', 'etc'))
-_add_variable_or_fallback('SAGE_INC',        opj('$SAGE_LOCAL', 'include'))
-_add_variable_or_fallback('SAGE_SHARE',      opj('$SAGE_LOCAL', 'share'))
+# version info
+SAGE_VERSION = var("SAGE_VERSION", version.version)
+SAGE_DATE = var("SAGE_DATE", version.date)
+SAGE_VERSION_BANNER = var("SAGE_VERSION_BANNER", version.banner)
 
-_add_variable_or_fallback('SAGE_SRC',        opj('$SAGE_ROOT', 'src'))
+# virtual environment where sagelib is installed
+SAGE_LIB = var("SAGE_LIB", os.path.dirname(os.path.dirname(__file__)))
+SAGE_EXTCODE = var("SAGE_EXTCODE", join(SAGE_LIB, "sage", "ext_data"))
 
-try:
-    sitepackages_dirs = site.getsitepackages()
-except AttributeError:  # in case of use inside virtualenv
-    sitepackages_dirs = [os.path.join(os.path.dirname(site.__file__),
-                                     'site-packages')]
-_add_variable_or_fallback('SITE_PACKAGES',   sitepackages_dirs)
+# prefix hierarchy where non-Python packages are installed
+SAGE_LOCAL = var("SAGE_LOCAL")
+SAGE_SHARE = var("SAGE_SHARE", join(SAGE_LOCAL, "share"))
+SAGE_DOC = var("SAGE_DOC", join(SAGE_SHARE, "doc", "sage"))
+SAGE_LOCAL_SPKG_INST = var("SAGE_LOCAL_SPKG_INST", join(SAGE_LOCAL, "var", "lib", "sage", "installed"))
+SAGE_SPKG_INST = var("SAGE_SPKG_INST", join(SAGE_LOCAL, "var", "lib", "sage", "installed"))  # deprecated
 
-_add_variable_or_fallback('SAGE_LIB',        SITE_PACKAGES[0])
+# source tree of the Sage distribution
+SAGE_ROOT = var("SAGE_ROOT") or None
+SAGE_SRC = var("SAGE_SRC", join(SAGE_ROOT, "src"), SAGE_LIB)
+SAGE_DOC_SRC = var("SAGE_DOC_SRC", join(SAGE_ROOT, "src", "doc"), SAGE_DOC)
+SAGE_PKGS = var("SAGE_PKGS", join(SAGE_ROOT, "build", "pkgs"))
+SAGE_ROOT_GIT = var("SAGE_ROOT_GIT", join(SAGE_ROOT, ".git"))
 
-# Used by sage/misc/package.py.  Should be SAGE_SRC_ROOT in VPATH.
-_add_variable_or_fallback('SAGE_PKGS', opj('$SAGE_ROOT', 'build', 'pkgs'))
+# Sage doc server (local server with PORT if URL is not given)
+SAGE_DOC_SERVER_URL = var("SAGE_DOC_SERVER_URL")
+# The default port is 0 so that the system will assign a random unused port > 1024
+SAGE_DOC_LOCAL_PORT = var("SAGE_DOC_LOCAL_PORT", "0")
 
+# ~/.sage
+if sys.platform == 'win32':
+    home_dir = os.environ.get("USERPROFILE")
+else:  # Unix-like systems (Linux, macOS, etc.)
+    home_dir = os.environ.get("HOME")
+DOT_SAGE = var("DOT_SAGE", join(home_dir, ".sage"))
+SAGE_STARTUP_FILE = var("SAGE_STARTUP_FILE", join(DOT_SAGE, "init.sage"))
 
-_add_variable_or_fallback('SAGE_EXTCODE',    opj('$SAGE_SHARE', 'sage', 'ext'))
-_add_variable_or_fallback('SAGE_LOGS',       opj('$SAGE_ROOT', 'logs', 'pkgs'))
-_add_variable_or_fallback('SAGE_SPKG_INST',  opj('$SAGE_LOCAL', 'var', 'lib', 'sage', 'installed'))
-_add_variable_or_fallback('SAGE_DOC_SRC',    opj('$SAGE_SRC', 'doc'))
-_add_variable_or_fallback('SAGE_DOC',        opj('$SAGE_SHARE', 'doc', 'sage'))
-_add_variable_or_fallback('DOT_SAGE',        opj(os.environ.get('HOME','$SAGE_ROOT'), '.sage'))
-_add_variable_or_fallback('SAGE_DOT_GIT',    opj('$SAGE_ROOT', '.git'))
-_add_variable_or_fallback('SAGE_DISTFILES',  opj('$SAGE_ROOT', 'upstream'))
+# for sage_setup.setenv
+SAGE_ARCHFLAGS = var("SAGE_ARCHFLAGS", "unset")
+SAGE_PKG_CONFIG_PATH = var("SAGE_PKG_CONFIG_PATH")
+
+# colon-separated search path for databases
+# should not be used directly; instead use sage_data_paths
+SAGE_DATA_PATH = var("SAGE_DATA_PATH")
+
+# database directories, the default is to search in SAGE_DATA_PATH
+CREMONA_LARGE_DATA_DIR = var("CREMONA_LARGE_DATA_DIR")
+CREMONA_MINI_DATA_DIR = var("CREMONA_MINI_DATA_DIR")
+ELLCURVE_DATA_DIR = var("ELLCURVE_DATA_DIR")
+GRAPHS_DATA_DIR = var("GRAPHS_DATA_DIR")
+POLYTOPE_DATA_DIR = var("POLYTOPE_DATA_DIR")
+
+# installation directories for various packages
+JMOL_DIR = var("JMOL_DIR")
+MATHJAX_DIR = var("MATHJAX_DIR", join(SAGE_SHARE, "mathjax"))
+MTXLIB = var("MTXLIB", join(SAGE_SHARE, "meataxe"))
+THREEJS_DIR = var("THREEJS_DIR")
+PPLPY_DOCS = var("PPLPY_DOCS", join(SAGE_SHARE, "doc", "pplpy"))
+MAXIMA = var("MAXIMA", "maxima")
+MAXIMA_FAS = var("MAXIMA_FAS")
+MAXIMA_PREFIX = var("MAXIMA_PREFIX")
+KENZO_FAS = var("KENZO_FAS")
+SAGE_NAUTY_BINS_PREFIX = var("SAGE_NAUTY_BINS_PREFIX", "")
+SAGE_ECMBIN = var("SAGE_ECMBIN", "ecm")
+RUBIKS_BINS_PREFIX = var("RUBIKS_BINS_PREFIX", "")
+FOURTITWO_HILBERT = var("FOURTITWO_HILBERT")
+FOURTITWO_MARKOV = var("FOURTITWO_MARKOV")
+FOURTITWO_GRAVER = var("FOURTITWO_GRAVER")
+FOURTITWO_ZSOLVE = var("FOURTITWO_ZSOLVE")
+FOURTITWO_QSOLVE = var("FOURTITWO_QSOLVE")
+FOURTITWO_RAYS = var("FOURTITWO_RAYS")
+FOURTITWO_PPI = var("FOURTITWO_PPI")
+FOURTITWO_CIRCUITS = var("FOURTITWO_CIRCUITS")
+FOURTITWO_GROEBNER = var("FOURTITWO_GROEBNER")
+ECL_CONFIG = var("ECL_CONFIG", "ecl-config")
+NTL_INCDIR = var("NTL_INCDIR")
+NTL_LIBDIR = var("NTL_LIBDIR")
+LIE_INFO_DIR = var("LIE_INFO_DIR", join(SAGE_LOCAL, "lib", "LiE"))
+SINGULAR_BIN = var("SINGULAR_BIN") or "Singular"
+
+# OpenMP
+OPENMP_CFLAGS = var("OPENMP_CFLAGS", "")
+OPENMP_CXXFLAGS = var("OPENMP_CXXFLAGS", "")
+
+# Make sure mpmath uses Sage types
+os.environ['MPMATH_SAGE'] = '1'
 
 # misc
-_add_variable_or_fallback('SAGE_URL',                'http://sage.math.washington.edu/sage/')
-_add_variable_or_fallback('REALM',                   'sage.math.washington.edu')
-_add_variable_or_fallback('TRAC_SERVER_URI',         'https://trac.sagemath.org')
-_add_variable_or_fallback('SAGE_REPO_AUTHENTICATED', 'ssh://git@trac.sagemath.org:2222/sage.git')
-_add_variable_or_fallback('SAGE_REPO_ANONYMOUS',     'git://trac.sagemath.org/sage.git')
-_add_variable_or_fallback('SAGE_VERSION',            version.version)
-_add_variable_or_fallback('SAGE_DATE',               version.date)
-_add_variable_or_fallback('SAGE_BANNER',             '')
-_add_variable_or_fallback('SAGE_IMPORTALL',          'yes')
+SAGE_BANNER = var("SAGE_BANNER", "")
+SAGE_IMPORTALL = var("SAGE_IMPORTALL", "yes")
 
-# additional packages locations
-_add_variable_or_fallback('CONWAY_POLYNOMIALS_DATA_DIR',  opj('$SAGE_SHARE','conway_polynomials'))
-_add_variable_or_fallback('GRAPHS_DATA_DIR',  opj('$SAGE_SHARE','graphs'))
-_add_variable_or_fallback('ELLCURVE_DATA_DIR',opj('$SAGE_SHARE','ellcurves'))
-_add_variable_or_fallback('POLYTOPE_DATA_DIR',opj('$SAGE_SHARE','reflexive_polytopes'))
-_add_variable_or_fallback('GAP_ROOT_DIR',     opj('$SAGE_LOCAL','gap','latest'))
-_add_variable_or_fallback('THEBE_DIR',        opj('$SAGE_SHARE','thebe'))
+# GAP memory and args
 
-# locate singular shared object
-if UNAME[:6] == "CYGWIN":
-    SINGULAR_SO = ([None] + glob.glob(os.path.join(
-        SAGE_LOCAL, "bin", "cygSingular-*.dll")))[-1]
-else:
-    if UNAME == "Darwin":
-        extension = "dylib"
-    else:
-        extension = "so"
-    # library name changed from libsingular to libSingular btw 3.x and 4.x
-    SINGULAR_SO = SAGE_LOCAL+"/lib/libSingular."+extension
+SAGE_GAP_MEMORY = var('SAGE_GAP_MEMORY', None)
+SAGE_GAP_COMMAND = var('SAGE_GAP_COMMAND', None)
 
-_add_variable_or_fallback('SINGULAR_SO', SINGULAR_SO)
-
-if not SINGULAR_SO or not os.path.exists(SINGULAR_SO):
-    raise RuntimeError(
-        "libSingular not found--a working Singular install in $SAGE_LOCAL "
-        "is required for Sage to work")
+# The semicolon-separated search path for GAP packages. It is passed
+# directly to GAP via the -l flag.
+GAP_ROOT_PATHS = var("GAP_ROOT_PATHS",
+                     ";".join([join(SAGE_LOCAL, "lib", "gap"),
+                               join(SAGE_LOCAL, "share", "gap")]))
 
 # post process
-if ' ' in DOT_SAGE:
-    if UNAME[:6] == 'CYGWIN':
-        # on windows/cygwin it is typical for the home directory
-        # to have a space in it.  Fortunately, users also have
-        # write privileges to c:\cygwin\home, so we just put
-        # .sage there.
-        _add_variable_or_fallback('DOT_SAGE', "/home/.sage", force=True)
-    else:
-        print("Your home directory has a space in it.  This")
-        print("will probably break some functionality of Sage.  E.g.,")
-        print("the GAP interface will not work. A workaround")
-        print("is to set the environment variable HOME to a")
-        print("directory with no spaces that you have write")
-        print("permissions to before you start sage.")
+if DOT_SAGE is not None and ' ' in DOT_SAGE:
+    print("Your home directory has a space in it.  This")
+    print("will probably break some functionality of Sage.  E.g.,")
+    print("the GAP interface will not work. A workaround")
+    print("is to set the environment variable HOME to a")
+    print("directory with no spaces that you have write")
+    print("permissions to before you start sage.")
 
-
-CYGWIN_VERSION = None
-if UNAME[:6] == 'CYGWIN':
-    import re
-    _uname = os.uname()
-    if len(_uname) >= 2:
-        m = re.match(r'(\d+\.\d+\.\d+)\(.+\)', _uname[2])
-        if m:
-            CYGWIN_VERSION = tuple(map(int, m.group(1).split('.')))
-
-        del m
-    del _uname, re
-
-# things that need DOT_SAGE
-_add_variable_or_fallback('PYTHON_EGG_CACHE',   opj('$DOT_SAGE', '.python-eggs'))
-_add_variable_or_fallback('SAGE_STARTUP_FILE',  opj('$DOT_SAGE', 'init.sage'))
-
-# delete temporary variables used for setting up sage.env
-del opj, os, socket, version, site
 
 def sage_include_directories(use_sources=False):
     """
@@ -227,7 +262,7 @@ def sage_include_directories(use_sources=False):
 
     INPUT:
 
-    -  ``use_sources`` -- (default: False) a boolean
+    - ``use_sources`` -- boolean (default: ``False``)
 
     OUTPUT:
 
@@ -237,32 +272,239 @@ def sage_include_directories(use_sources=False):
 
     EXAMPLES:
 
-    Expected output while using sage
-
-    ::
+    Expected output while using Sage::
 
         sage: import sage.env
         sage: sage.env.sage_include_directories()
-        ['.../include',
-        '.../include/python...',
-        '.../python.../numpy/core/include',
-        '.../python.../site-packages',
-        '.../python.../site-packages/sage/ext']
+        doctest:warning...
+        DeprecationWarning: use sage.config.get_include_dirs() instead
+        ...
+        ['...',
+         '.../numpy/...core/include',
+         '.../include/python...']
+
+    To check that C/C++ files are correctly found, we verify that we can
+    always find the include file ``sage/cpython/cython_metaclass.h``,
+    with both values for ``use_sources``::
+
+        sage: file = os.path.join("sage", "cpython", "cython_metaclass.h")
+        sage: dirs = sage.env.sage_include_directories(use_sources=True)
+        sage: any(os.path.isfile(os.path.join(d, file)) for d in dirs)
+        True
+
+    ::
+
+        sage: # optional - !meson_editable (no need, see :issue:`39275`)
+        sage: dirs = sage.env.sage_include_directories(use_sources=False)
+        sage: any(os.path.isfile(os.path.join(d, file)) for d in dirs)
+        True
     """
-    import os, numpy
-    import distutils.sysconfig
+    from sage.misc.superseded import deprecation
+    deprecation(40765, 'use sage.config.get_include_dirs() instead')
 
-    opj = os.path.join
-
-    include_directories = [SAGE_INC,
-                           distutils.sysconfig.get_python_inc(),
-                           numpy.get_include()]
-
-    if use_sources :
-        include_directories.extend([SAGE_SRC,
-                                    opj(SAGE_SRC, 'sage', 'ext')])
+    if use_sources:
+        dirs = [SAGE_SRC]
     else:
-        include_directories.extend([SAGE_LIB,
-                                    opj(SAGE_LIB, 'sage', 'ext')])
+        import sage
+        dirs = [os.path.dirname(directory)
+                for directory in sage.__path__]
+    try:
+        import numpy
+        dirs.append(numpy.get_include())
+    except ModuleNotFoundError:
+        pass
 
-    return include_directories
+    dirs.append(sysconfig.get_config_var('INCLUDEPY'))
+
+    dirs.extend([dir.as_posix() for dir in get_include_dirs()])
+
+    return dirs
+
+
+default_required_modules = ('fflas-ffpack', 'givaro', 'gsl', 'linbox', 'Singular',
+                            'libpng', 'gdlib', 'm4ri', 'zlib', 'ecl')
+
+
+default_optional_modules = ('lapack',)
+
+
+def cython_aliases(required_modules=None, optional_modules=None):
+    """
+    Return the aliases for compiling Cython code. These aliases are
+    macros which can occur in ``# distutils`` headers.
+
+    INPUT:
+
+    - ``required_modules`` -- (default: taken from ``default_required_modules``)
+      iterable of string values
+
+    - ``optional_modules`` -- (default: taken from ``default_optional_modules``)
+      iterable of string values
+
+    EXAMPLES::
+
+        sage: from sage.env import cython_aliases
+        sage: cython_aliases()
+        {...}
+        sage: sorted(cython_aliases().keys())
+        ['ECL_CFLAGS',
+         ...,
+         'ZLIB_LIBRARIES']
+        sage: cython_aliases(required_modules=('module-that-is-assumed-to-not-exist'))
+        Traceback (most recent call last):
+        ...
+        PackageNotFoundError: ...
+        sage: cython_aliases(required_modules=(), optional_modules=('module-that-is-assumed-to-not-exist'))
+        {...}
+
+    TESTS:
+
+    We can use ``cython.parallel`` regardless of whether OpenMP is supported.
+    This will run in parallel, if OpenMP is supported::
+
+        sage: cython(                                               # optional - sage.misc.cython
+        ....: '''
+        ....: #distutils: extra_compile_args = OPENMP_CFLAGS
+        ....: #distutils: extra_link_args = OPENMP_CFLAGS
+        ....: from cython.parallel import prange
+        ....:
+        ....: cdef int i
+        ....: cdef int n = 30
+        ....: cdef int sum = 0
+        ....:
+        ....: for i in prange(n, num_threads=4, nogil=True):
+        ....:     sum += i
+        ....:
+        ....: print(sum)
+        ....: ''')
+        435
+    """
+    import itertools
+
+    import pkgconfig
+
+    if required_modules is None:
+        required_modules = default_required_modules
+
+    if optional_modules is None:
+        optional_modules = default_optional_modules
+
+    aliases = {}
+
+    for lib, required in itertools.chain(((lib, True) for lib in required_modules),
+                                         ((lib, False) for lib in optional_modules)):
+        var = lib.upper().replace("-", "") + "_"
+        if lib == 'zlib':
+            aliases[var + "CFLAGS"] = ""
+            try:
+                pc = pkgconfig.parse('zlib')
+                libs = pkgconfig.libs(lib)
+            except pkgconfig.PackageNotFoundError:
+                from collections import defaultdict
+                pc = defaultdict(list, {'libraries': ['z']})
+                libs = "-lz"
+        elif lib == 'ecl':
+            try:
+                # Determine ecl-specific compiler arguments using the ecl-config script
+                ecl_cflags = subprocess.run([ECL_CONFIG, "--cflags"], check=True, capture_output=True, text=True).stdout.split()
+                ecl_libs = subprocess.run([ECL_CONFIG, "--libs"], check=True, capture_output=True, text=True).stdout.split()
+            except subprocess.CalledProcessError:
+                if required:
+                    raise
+                else:
+                    continue
+            aliases["ECL_CFLAGS"] = list(filter(lambda s: not s.startswith('-I'), ecl_cflags))
+            aliases["ECL_INCDIR"] = [s[2:] for s in filter(lambda s: s.startswith('-I'), ecl_cflags)]
+            aliases["ECL_LIBDIR"] = [s[2:] for s in filter(lambda s: s.startswith('-L'), ecl_libs)]
+            aliases["ECL_LIBRARIES"] = [s[2:] for s in filter(lambda s: s.startswith('-l'), ecl_libs)]
+            aliases["ECL_LIBEXTRA"] = list(filter(lambda s: not s.startswith(('-l', '-L')), ecl_libs))
+            continue
+        else:
+            try:
+                aliases[var + "CFLAGS"] = pkgconfig.cflags(lib).split()
+                pc = pkgconfig.parse(lib)
+                libs = pkgconfig.libs(lib)
+            except pkgconfig.PackageNotFoundError:
+                if required:
+                    raise
+                else:
+                    continue
+
+        # It may seem that INCDIR is redundant because the -I options are also
+        # passed in CFLAGS.  However, "extra_compile_args" are put at the end
+        # of the compiler command line.  "include_dirs" go to the front; the
+        # include search order matters.
+        aliases[var + "INCDIR"] = pc['include_dirs']
+        aliases[var + "LIBDIR"] = pc['library_dirs']
+        aliases[var + "LIBEXTRA"] = list(filter(lambda s: not s.startswith(('-l', '-L')), libs.split()))
+        aliases[var + "LIBRARIES"] = pc['libraries']
+
+    # uname-specific flags
+    UNAME = os.uname()
+
+    def uname_specific(name, value, alternative):
+        if name in UNAME[0]:
+            return value
+        else:
+            return alternative
+
+    aliases["LINUX_NOEXECSTACK"] = uname_specific("Linux", ["-Wl,-z,noexecstack"],
+                                                  [])
+
+    # LinBox needs special care because it actually requires C++11 with
+    # GNU extensions: -std=c++11 does not work, you need -std=gnu++11
+    # (this is true at least with GCC 7.2.0).
+    #
+    # Further, note that LinBox does not add any C++11 flag in its .pc
+    # file (possibly because of confusion between CFLAGS and CXXFLAGS?).
+    # This is not a problem in practice since LinBox depends on
+    # fflas-ffpack and fflas-ffpack does add such a C++11 flag.
+    if "LINBOX_CFLAGS" in aliases:
+        aliases["LINBOX_CFLAGS"].append("-std=gnu++11")
+
+    try:
+        aliases["M4RI_CFLAGS"].remove("-pedantic")
+    except (ValueError, KeyError):
+        pass
+
+    # NTL
+    aliases["NTL_CFLAGS"] = ['-std=c++11']
+    aliases["NTL_INCDIR"] = [NTL_INCDIR] if NTL_INCDIR else []
+    aliases["NTL_LIBDIR"] = [NTL_LIBDIR] if NTL_LIBDIR else []
+    aliases["NTL_LIBRARIES"] = ['ntl']
+    aliases["NTL_LIBEXTRA"] = []
+
+    # OpenMP
+    aliases["OPENMP_CFLAGS"] = OPENMP_CFLAGS.split()
+    aliases["OPENMP_CXXFLAGS"] = OPENMP_CXXFLAGS.split()
+
+    return aliases
+
+
+def sage_data_paths(name: str = '') -> set[str]:
+    r"""
+    Search paths for general data files.
+
+    If specified, the subdirectory ``name`` is appended to the
+    directories. Otherwise, the directories are returned as is.
+
+    EXAMPLES::
+
+        sage: from sage.env import sage_data_paths
+        sage: sage_data_paths("cremona")
+        {'.../cremona'}
+    """
+    if not SAGE_DATA_PATH:
+        paths = {
+            join(DOT_SAGE, "db"),
+            join(SAGE_SHARE, "sagemath"),
+            SAGE_SHARE,
+        }
+        paths.add(user_data_dir("sagemath"))
+        paths.add(user_data_dir())
+        for path in site_data_dir("sagemath", multipath=True).split(os.pathsep) + site_data_dir(multipath=True).split(os.pathsep):
+            paths.add(path)
+    else:
+        paths = set(SAGE_DATA_PATH.split(os.pathsep))
+
+    return {os.path.join(path, name) for path in paths if os.path.exists(path)}

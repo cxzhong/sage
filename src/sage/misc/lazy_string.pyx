@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Lazy strings
 
@@ -7,12 +6,7 @@ Based on speaklater: https://github.com/mitsuhiko/speaklater.
 A lazy string is an object that behaves almost exactly like a string
 but where the value is not computed until needed.  To define a lazy
 string you specify a function that produces a string together with the
-appropriate arguments for that function.  Sage uses lazy strings in
-:mod:`sage.misc.misc` so that the filenames for SAGE_TMP (which
-depends on the pid of the process running Sage) are not computed when
-importing the Sage library.  This means that when the doctesting code
-imports the Sage library and then forks, the variable SAGE_TMP depends
-on the new pid rather than the old one.
+appropriate arguments for that function.
 
 EXAMPLES::
 
@@ -30,13 +24,13 @@ Note that the function is recomputed each time::
     l'2'
 """
 
-#Copyright (c) 2009 by Armin Ronacher.
+# Copyright (c) 2009 by Armin Ronacher.
 #
-#Some rights reserved.
+# Some rights reserved.
 #
-#Redistribution and use in source and binary forms, with or without
-#modification, are permitted provided that the following conditions are
-#met:
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are
+# met:
 #
 #    * Redistributions of source code must retain the above copyright
 #      notice, this list of conditions and the following disclaimer.
@@ -50,26 +44,26 @@ Note that the function is recomputed each time::
 #      promote products derived from this software without specific
 #      prior written permission.
 #
-#THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-#A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-from __future__ import print_function, absolute_import
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from cpython.object cimport PyObject_Call, PyObject_RichCompare
 
 import types
 
+
 def is_lazy_string(obj):
     """
-    Checks if the given object is a lazy string.
+    Check if the given object is a lazy string.
 
     EXAMPLES::
 
@@ -81,17 +75,17 @@ def is_lazy_string(obj):
     """
     return isinstance(obj, _LazyString)
 
+
 def lazy_string(f, *args, **kwargs):
     """
-    Creates a lazy string.
+    Create a lazy string.
 
     INPUT:
 
-    - ``f``, either a callable or a (format) string
+    - ``f`` -- either a callable or a (format) string
     - positional arguments that are given to ``f``, either by calling or by
       applying it as a format string
-    - named arguments, that are forwarded to ``f`` if it is not a string
-
+    - named arguments that are forwarded to ``f`` if it is not a string
 
     EXAMPLES::
 
@@ -115,12 +109,9 @@ def lazy_string(f, *args, **kwargs):
         sage: s == 'this is a test'
         determining string representation
         True
-        sage: unicode(s)
-        determining string representation
-        u'this is a test'
-
     """
     return _LazyString(f, args, kwargs)
+
 
 def _make_lazy_string(ftype, fpickle, args, kwargs):
     """
@@ -140,17 +131,18 @@ def _make_lazy_string(ftype, fpickle, args, kwargs):
         f = fpickle
     return _LazyString(f, args, kwargs)
 
-cdef class _LazyString(object):
+
+cdef class _LazyString():
     """
     Lazy class for strings created by a function call or a format string.
 
     INPUT:
 
-    - ``f``, either a callable or a (format) string
-    - ``args``, a tuple of arguments that are given to ``f``, either by calling
+    - ``f`` -- either a callable or a (format) string
+    - ``args`` -- tuple of arguments that are given to ``f``, either by calling
       or by applying it as a format string
-    - ``kwargs``, a dictionary of optional arguments, that are forwarded to ``f``
-      if it is a callable.
+    - ``kwargs`` -- dictionary of optional arguments, that are forwarded to ``f``
+      if it is a callable
 
     .. NOTE::
 
@@ -188,21 +180,16 @@ cdef class _LazyString(object):
         sage: s == 'this is a test'
         determining string representation
         True
-        sage: unicode(s)
-        determining string representation
-        u'this is a test'
-
     """
-
     def __init__(self, f, args, kwargs):
         """
         INPUT:
 
-        - ``f``, either a callable or a (format) string
-        - ``args``, a tuple of arguments that are given to ``f``, either by calling
+        - ``f`` -- either a callable or a (format) string
+        - ``args`` -- tuple of arguments that are given to ``f``, either by calling
           or by applying it as a format string
-        - ``kwargs``, a dictionary of optional arguments, that are forwarded to ``f``
-          if it is a callable.
+        - ``kwargs`` -- dictionary of optional arguments, that are forwarded to ``f``
+          if it is a callable
 
         EXAMPLES::
 
@@ -212,8 +199,6 @@ cdef class _LazyString(object):
             l'laziness5'
             sage: lazy_string("This is %s", ZZ)
             l'This is Integer Ring'
-            sage: lazy_string(u"This is %s", ZZ)
-            lu'This is Integer Ring'
         """
         self.func = f
         self.args = <tuple?>args
@@ -221,7 +206,7 @@ cdef class _LazyString(object):
 
     cdef val(self):
         cdef f = self.func
-        if isinstance(f, basestring):
+        if isinstance(f, str):
             return f % self.args
         return PyObject_Call(f, self.args, self.kwargs)
 
@@ -259,7 +244,7 @@ cdef class _LazyString(object):
         """
         return key in self.val()
 
-    def __nonzero__(self):
+    def __bool__(self):
         """
         EXAMPLES::
 
@@ -324,17 +309,24 @@ cdef class _LazyString(object):
         """
         return str(self.val())
 
-    def __unicode__(self):
+    def __fspath__(self):
         """
+        Return the file system representation of ``self``, assuming that
+        ``self`` is a path.
+
+        This is for Python 3 compatibility: see :issue:`24046`, and also
+        :pep:`519` and
+        https://docs.python.org/3/library/os.html#os.fspath
+
         EXAMPLES::
 
             sage: from sage.misc.lazy_string import lazy_string
-            sage: f = lambda: "laziness"
+            sage: f = lambda: "/dev/null"
             sage: s = lazy_string(f)
-            sage: unicode(s) # indirect doctest
-            u'laziness'
+            sage: os.fspath(s)
+            '/dev/null'
         """
-        return unicode(self.val())
+        return str(self)
 
     def __add__(self, other):
         """
@@ -388,7 +380,7 @@ cdef class _LazyString(object):
         else:
             return self * (<_LazyString>other).val()
 
-    def __richcmp__(self, other, int op):
+    def __richcmp__(_LazyString self, other, int op):
         """
         EXAMPLES::
 
@@ -432,8 +424,7 @@ cdef class _LazyString(object):
             sage: s >= s
             True
         """
-        self = (<_LazyString?>self).val()
-        return PyObject_RichCompare(self, other, op)
+        return PyObject_RichCompare(self.val(), other, op)
 
     def __getattr__(self, name):
         """
@@ -518,8 +509,8 @@ cdef class _LazyString(object):
 
         INPUT:
 
-        - ``args``, a tuple
-        - ``kwds``, a dict
+        - ``args`` -- tuple
+        - ``kwds`` -- dictionary
 
         .. NOTE::
 
@@ -528,23 +519,24 @@ cdef class _LazyString(object):
 
         EXAMPLES::
 
+            sage: # needs sage.rings.finite_rings
             sage: from sage.misc.lazy_string import lazy_string
-            sage: f = lambda op,A,B:"unsupported operand parent(s) for %s: '%s' and '%s'"%(op,A,B)
+            sage: def f(op, A, B):
+            ....:     return "unsupported operand parent(s) for %s: '%s' and '%s'" % (op, A, B)
             sage: R = GF(5)
             sage: S = GF(3)
-            sage: D = lazy_string(f, '+', R, S)
-            sage: D
+            sage: D = lazy_string(f, '+', R, S); D
             l"unsupported operand parent(s) for +: 'Finite Field of size 5' and 'Finite Field of size 3'"
             sage: D.update_lazy_string(('+', S, R), {})
 
         Apparently, the lazy string got changed in-place::
 
-            sage: D
+            sage: D                                                                     # needs sage.rings.finite_rings
             l"unsupported operand parent(s) for +: 'Finite Field of size 3' and 'Finite Field of size 5'"
 
         TESTS::
 
-            sage: D.update_lazy_string(None, None)
+            sage: D.update_lazy_string(None, None)                                      # needs sage.rings.finite_rings
             Traceback (most recent call last):
             ...
             TypeError: Expected tuple, got NoneType

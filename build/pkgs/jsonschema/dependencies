@@ -1,5 +1,4 @@
-$(PYTHON) vcversioner functools32 | setuptools pip
+jsonschema_specifications pyrsistent attrs fqdn isoduration jsonpointer uri_template webcolors | $(PYTHON_TOOLCHAIN) $(PYTHON)
 
 ----------
 All lines of this file are ignored except the first.
-It is copied by SAGE_ROOT/build/make/install into SAGE_ROOT/build/make/Makefile.

@@ -1,8 +1,7 @@
 """
-Set Species
+Set species
 """
-from __future__ import absolute_import
-#*****************************************************************************
+# ****************************************************************************
 #       Copyright (C) 2008 Mike Hansen <mhansen@gmail.com>,
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
@@ -15,14 +14,14 @@ from __future__ import absolute_import
 #  The full text of the GPL is available at:
 #
 #                  http://www.gnu.org/licenses/
-#*****************************************************************************
-from six.moves import range
+# ****************************************************************************
 
 from .species import GenericCombinatorialSpecies
-from .generating_series import factorial_stream, _integers_from
 from sage.combinat.species.structure import GenericSpeciesStructure
 from sage.combinat.species.misc import accept_size
 from sage.structure.unique_representation import UniqueRepresentation
+from sage.arith.misc import factorial
+
 
 class SetSpeciesStructure(GenericSpeciesStructure):
     def __repr__(self):
@@ -30,6 +29,9 @@ class SetSpeciesStructure(GenericSpeciesStructure):
         EXAMPLES::
 
             sage: S = species.SetSpecies()
+            doctest:warning...
+            DeprecationWarning: combinat.species is superseded by LazyCombinatorialSpecies
+            See https://github.com/sagemath/sage/issues/38544 for details.
             sage: a = S.structures(["a","b","c"]).random_element(); a
             {'a', 'b', 'c'}
         """
@@ -51,22 +53,22 @@ class SetSpeciesStructure(GenericSpeciesStructure):
 
     def transport(self, perm):
         """
-        Returns the transport of this set along the permutation perm.
+        Return the transport of this set along the permutation perm.
 
         EXAMPLES::
 
             sage: F = species.SetSpecies()
             sage: a = F.structures(["a", "b", "c"]).random_element(); a
             {'a', 'b', 'c'}
-            sage: p = PermutationGroupElement((1,2))
-            sage: a.transport(p)
+            sage: p = PermutationGroupElement((1,2))                                    # needs sage.groups
+            sage: a.transport(p)                                                        # needs sage.groups
             {'a', 'b', 'c'}
         """
         return self
 
     def automorphism_group(self):
         """
-        Returns the group of permutations whose action on this set leave it
+        Return the group of permutations whose action on this set leave it
         fixed. For the species of sets, there is only one isomorphism
         class, so every permutation is in its automorphism group.
 
@@ -75,11 +77,12 @@ class SetSpeciesStructure(GenericSpeciesStructure):
             sage: F = species.SetSpecies()
             sage: a = F.structures(["a", "b", "c"]).random_element(); a
             {'a', 'b', 'c'}
-            sage: a.automorphism_group()
+            sage: a.automorphism_group()                                                # needs sage.groups
             Symmetric group of order 3! as a permutation group
         """
-        from sage.groups.all import SymmetricGroup
+        from sage.groups.perm_gps.permgroup_named import SymmetricGroup
         return SymmetricGroup(max(1,len(self._labels)))
+
 
 class SetSpecies(GenericCombinatorialSpecies, UniqueRepresentation):
     @staticmethod
@@ -91,22 +94,22 @@ class SetSpecies(GenericCombinatorialSpecies, UniqueRepresentation):
             sage: E = species.SetSpecies(); E
             Set species
         """
-        return super(SetSpecies, cls).__classcall__(cls, *args, **kwds)
+        return super().__classcall__(cls, *args, **kwds)
 
     def __init__(self, min=None, max=None, weight=None):
         """
-        Returns the species of sets.
+        Return the species of sets.
 
         EXAMPLES::
 
             sage: E = species.SetSpecies()
             sage: E.structures([1,2,3]).list()
             [{1, 2, 3}]
-            sage: E.isotype_generating_series().coefficients(4)
+            sage: E.isotype_generating_series()[0:4]
             [1, 1, 1, 1]
 
             sage: S = species.SetSpecies()
-            sage: c = S.generating_series().coefficients(3)
+            sage: c = S.generating_series()[0:3]
             sage: S._check()
             True
             sage: S == loads(dumps(S))
@@ -130,7 +133,7 @@ class SetSpecies(GenericCombinatorialSpecies, UniqueRepresentation):
 
     _isotypes = _structures
 
-    def _gs_iterator(self, base_ring):
+    def _gs_callable(self, base_ring, n):
         r"""
         The generating series for the species of sets is given by
         `e^x`.
@@ -139,15 +142,14 @@ class SetSpecies(GenericCombinatorialSpecies, UniqueRepresentation):
 
             sage: S = species.SetSpecies()
             sage: g = S.generating_series()
-            sage: g.coefficients(10)
+            sage: [g.coefficient(i) for i in range(10)]
             [1, 1, 1/2, 1/6, 1/24, 1/120, 1/720, 1/5040, 1/40320, 1/362880]
             sage: [g.count(i) for i in range(10)]
             [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
         """
-        for n in _integers_from(0):
-            yield base_ring(self._weight/factorial_stream[n])
+        return base_ring(self._weight / factorial(n))
 
-    def _itgs_list(self, base_ring):
+    def _itgs_list(self, base_ring, n):
         r"""
         The isomorphism type generating series for the species of sets is
         `\frac{1}{1-x}`.
@@ -156,12 +158,12 @@ class SetSpecies(GenericCombinatorialSpecies, UniqueRepresentation):
 
             sage: S = species.SetSpecies()
             sage: g = S.isotype_generating_series()
-            sage: g.coefficients(10)
+            sage: g[0:10]
             [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
             sage: [g.count(i) for i in range(10)]
             [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
         """
-        return [base_ring(self._weight)]
+        return base_ring(self._weight)
 
     def _cis(self, series_ring, base_ring):
         r"""
@@ -171,8 +173,8 @@ class SetSpecies(GenericCombinatorialSpecies, UniqueRepresentation):
         EXAMPLES::
 
             sage: S = species.SetSpecies()
-            sage: g = S.cycle_index_series()
-            sage: g.coefficients(5)
+            sage: g = S.cycle_index_series()                                            # needs sage.modules
+            sage: g[0:5]                                                                # needs sage.modules
             [p[],
              p[1],
              1/2*p[1, 1] + 1/2*p[2],

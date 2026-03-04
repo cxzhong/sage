@@ -21,18 +21,18 @@ of the given module `M`.
 
     Implement `\operatorname{gr}` as a functor.
 """
-#*****************************************************************************
+# ****************************************************************************
 #  Copyright (C) 2014 Travis Scrimshaw <tscrim at ucdavis.edu>
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
-#                  http://www.gnu.org/licenses/
-#******************************************************************************
+#                  https://www.gnu.org/licenses/
+# *****************************************************************************
 
 from sage.misc.cachefunc import cached_method
-from sage.misc.lazy_attribute import lazy_class_attribute
 from sage.categories.category_types import Category_over_base_ring
 from sage.categories.category_with_axiom import CategoryWithAxiom_over_base_ring
 from sage.categories.covariant_functorial_construction import RegressiveCovariantConstructionCategory
+
 
 class FilteredModulesCategory(RegressiveCovariantConstructionCategory, Category_over_base_ring):
     def __init__(self, base_category):
@@ -46,14 +46,14 @@ class FilteredModulesCategory(RegressiveCovariantConstructionCategory, Category_
             Category of algebras over Rational Field
             sage: sorted(C.super_categories(), key=str)
             [Category of algebras over Rational Field,
-             Category of filtered modules over Rational Field]
+             Category of filtered vector spaces over Rational Field]
 
             sage: AlgebrasWithBasis(QQ).Filtered().base_ring()
             Rational Field
             sage: HopfAlgebrasWithBasis(QQ).Filtered().base_ring()
             Rational Field
         """
-        super(FilteredModulesCategory, self).__init__(base_category, base_category.base_ring())
+        super().__init__(base_category, base_category.base_ring())
 
     _functor_category = "Filtered"
 
@@ -65,6 +65,55 @@ class FilteredModulesCategory(RegressiveCovariantConstructionCategory, Category_
             Category of filtered algebras with basis over Rational Field
         """
         return "filtered {}".format(self.base_category()._repr_object_names())
+
+    def _make_named_class_key(self, name):
+        r"""
+        Return what the element/parent/... classes depend on.
+
+        .. SEEALSO::
+
+            - :meth:`.CategoryWithParameters._make_named_class_key`
+
+        EXAMPLES::
+
+            sage: Modules(ZZ).Filtered()._make_named_class_key('element_class')
+            <class 'sage.categories.modules.Modules.element_class'>
+
+        Note that we cannot simply return the base as in
+        :meth:`.Category_over_base._make_named_class_key` because of the following
+        (see :issue:`39154`)::
+
+            sage: VectorSpacesQQ = VectorSpaces(QQ); VectorSpacesQQ
+            Category of vector spaces over Rational Field
+            sage: # ModulesQQ = Modules(QQ)  # doesn't work because...
+            sage: Modules(QQ) is VectorSpacesQQ
+            True
+            sage: ModulesQQ = VectorSpacesQQ.super_categories()[0]; ModulesQQ
+            Category of modules over Rational Field
+            sage: VectorSpacesQQ.Filtered()
+            Category of filtered vector spaces over Rational Field
+            sage: ModulesQQ.Filtered()
+            Category of filtered modules over Rational Field
+            sage: VectorSpacesQQ.Filtered()._make_named_class_key('parent_class')
+            <class 'sage.categories.vector_spaces.VectorSpaces.parent_class'>
+            sage: ModulesQQ.Filtered()._make_named_class_key('parent_class')
+            <class 'sage.categories.modules.Modules.parent_class'>
+            sage: assert (VectorSpacesQQ.Filtered()._make_named_class_key('parent_class') !=
+            ....:         ModulesQQ.Filtered()._make_named_class_key('parent_class'))
+            sage: VectorSpacesQQ.Filtered().parent_class
+            <class 'sage.categories.vector_spaces.VectorSpaces.Filtered.parent_class'>
+            sage: ModulesQQ.Filtered().parent_class
+            <class 'sage.categories.filtered_modules.FilteredModules.parent_class'>
+
+        Nevertheless, as explained in :meth:`.Category_over_base._make_named_class_key`,
+        ``Modules(QQ).Filtered()`` and ``Modules(QQ.category()).Filtered()`` must have
+        the same parent class::
+
+            sage: Modules(QQ).Filtered().parent_class == Modules(QQ.category()).Filtered().parent_class
+            True
+        """
+        return getattr(self._base_category, name)
+
 
 class FilteredModules(FilteredModulesCategory):
     r"""
@@ -99,8 +148,8 @@ class FilteredModules(FilteredModulesCategory):
 
         EXAMPLES::
 
-            sage: Modules(QQ).Filtered().extra_super_categories()
-            [Category of vector spaces over Rational Field]
+            sage: Modules(QQ).Filtered().is_subcategory(VectorSpaces(QQ))
+            True
             sage: Modules(ZZ).Filtered().extra_super_categories()
             []
 
@@ -109,7 +158,7 @@ class FilteredModules(FilteredModulesCategory):
         an instance of this class and of ``VectorSpaces(QQ)``::
 
             sage: type(Modules(QQ).Filtered())
-            <class 'sage.categories.filtered_modules.FilteredModules_with_category'>
+            <class 'sage.categories.vector_spaces.VectorSpaces.Filtered_with_category'>
 
         .. TODO::
 
@@ -120,8 +169,9 @@ class FilteredModules(FilteredModulesCategory):
         """
         from sage.categories.modules import Modules
         from sage.categories.fields import Fields
+        from sage.categories.category import Category
         base_ring = self.base_ring()
-        if base_ring in Fields:
+        if base_ring in Fields() or (isinstance(base_ring, Category) and base_ring.is_subcategory(Fields())):
             return [Modules(base_ring)]
         else:
             return []
@@ -143,8 +193,7 @@ class FilteredModules(FilteredModulesCategory):
                 sage: Modules(ZZ).Filtered().Connected()
                 Category of filtered connected modules over Integer Ring
                 sage: Coalgebras(QQ).Filtered().Connected()
-                Join of Category of filtered connected modules over Rational Field
-                    and Category of coalgebras over Rational Field
+                Category of filtered connected coalgebras over Rational Field
                 sage: AlgebrasWithBasis(QQ).Filtered().Connected()
                 Category of filtered connected algebras with basis over Rational Field
 
@@ -158,4 +207,3 @@ class FilteredModules(FilteredModulesCategory):
 
     class Connected(CategoryWithAxiom_over_base_ring):
         pass
-

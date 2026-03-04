@@ -1,16 +1,5 @@
-# -*- coding: utf-8 -*-
 r"""
-Compute invariants of quintics and sextics via 'Ueberschiebung'.
-
-REFERENCES:
-
-.. [M] Mestre, Jean-Francois. *Construction de courbes de genre 2 a
-   partir de leurs modules*. Effective methods in algebraic geometry
-   (Castiglioncello,
-   1990), 313--334, Progr. Math., 94, Birkhauser Boston, Boston, MA, 1991.
-
-.. [I] Igusa, Jun-ichi. *Arithmetic variety of moduli for genus two*.
-   Ann. of Math. (2) 72 1960 612--649.
+Compute invariants of quintics and sextics via 'Ueberschiebung'
 
 .. TODO::
 
@@ -20,27 +9,28 @@ REFERENCES:
 
 AUTHOR:
 
-* Nick Alexander
+- Nick Alexander
 """
-from sage.rings.all import ZZ
-from sage.rings.all import PolynomialRing
+from sage.rings.integer_ring import ZZ
+from sage.rings.polynomial.polynomial_ring_constructor import PolynomialRing
 
 
 def diffxy(f, x, xtimes, y, ytimes):
     r"""
     Differentiate a polynomial ``f``, ``xtimes`` with respect to ``x``, and
-    ```ytimes`` with respect to ``y``.
+    ``ytimes`` with respect to ``y``.
 
     EXAMPLES::
 
+        sage: from sage.schemes.hyperelliptic_curves.invariants import diffxy
         sage: R.<u, v> = QQ[]
-        sage: sage.schemes.hyperelliptic_curves.invariants.diffxy(u^2*v^3, u, 0, v, 0)
+        sage: diffxy(u^2*v^3, u, 0, v, 0)
         u^2*v^3
-        sage: sage.schemes.hyperelliptic_curves.invariants.diffxy(u^2*v^3, u, 2, v, 1)
+        sage: diffxy(u^2*v^3, u, 2, v, 1)
         6*v^2
-        sage: sage.schemes.hyperelliptic_curves.invariants.diffxy(u^2*v^3, u, 2, v, 2)
+        sage: diffxy(u^2*v^3, u, 2, v, 2)
         12*v
-        sage: sage.schemes.hyperelliptic_curves.invariants.diffxy(u^2*v^3 + u^4*v^4, u, 2, v, 2)
+        sage: diffxy(u^2*v^3 + u^4*v^4, u, 2, v, 2)
         144*u^2*v^2 + 12*v
     """
     h = f
@@ -55,7 +45,7 @@ def differential_operator(f, g, k):
     r"""
     Return the differential operator `(f g)_k` symbolically in the polynomial ring in ``dfdx, dfdy, dgdx, dgdy``.
 
-    This is defined by Mestre on p 315 [M]_:
+    This is defined by Mestre on p 315 [Mes1991]_:
 
     .. MATH::
 
@@ -76,7 +66,8 @@ def differential_operator(f, g, k):
         sage: differential_operator(x^2*y, x*y^2, 2)
         1/36*dfdy^2*dgdx^2 - 1/18*dfdx*dfdy*dgdx*dgdy + 1/36*dfdx^2*dgdy^2
         sage: differential_operator(x^2*y, x*y^2, 4)
-        1/576*dfdy^4*dgdx^4 - 1/144*dfdx*dfdy^3*dgdx^3*dgdy + 1/96*dfdx^2*dfdy^2*dgdx^2*dgdy^2 - 1/144*dfdx^3*dfdy*dgdx*dgdy^3 + 1/576*dfdx^4*dgdy^4
+        1/576*dfdy^4*dgdx^4 - 1/144*dfdx*dfdy^3*dgdx^3*dgdy + 1/96*dfdx^2*dfdy^2*dgdx^2*dgdy^2
+        - 1/144*dfdx^3*dfdy*dgdx*dgdy^3 + 1/576*dfdx^4*dgdy^4
     """
     (x, y) = f.parent().gens()
     n = max(ZZ(f.degree()), ZZ(k))
@@ -123,7 +114,7 @@ def Ueberschiebung(f, g, k):
     r"""
     Return the differential operator `(f g)_k`.
 
-    This is defined by Mestre on page 315 [M]_:
+    This is defined by Mestre on page 315 [Mes1991]_:
 
     .. MATH::
 
@@ -149,7 +140,7 @@ def Ueberschiebung(f, g, k):
 
 def ubs(f):
     r"""
-    Given a sextic form `f`, return a dictionary of the invariants of Mestre, p 317 [M]_.
+    Given a sextic form `f`, return a dictionary of the invariants of Mestre, p 317 [Mes1991]_.
 
     `f` may be homogeneous in two variables or inhomogeneous in one.
 
@@ -268,12 +259,14 @@ def igusa_to_clebsch(I2, I4, I6, I10):
 
 def clebsch_invariants(f):
     r"""
-    Given a sextic form `f`, return the Clebsch invariants `(A, B, C, D)` of Mestre, p 317, [M]_.
+    Given a sextic form `f`, return the Clebsch invariants `(A, B, C, D)` of
+    Mestre, p 317, [Mes1991]_.
 
     `f` may be homogeneous in two variables or inhomogeneous in one.
 
     EXAMPLES::
 
+        sage: from sage.schemes.hyperelliptic_curves.invariants import clebsch_invariants
         sage: R.<x, y> = QQ[]
         sage: clebsch_invariants(x^6 + y^6)
         (2, 2/3, -2/9, 0)
@@ -281,14 +274,15 @@ def clebsch_invariants(f):
         sage: clebsch_invariants(x^6 + x^5 + x^4 + x^2 + 2)
         (62/15, 15434/5625, -236951/140625, 229930748/791015625)
 
-        sage: magma(x^6 + 1).ClebschInvariants() # optional - magma
+        sage: magma(x^6 + 1).ClebschInvariants()                    # optional - magma
         [ 2, 2/3, -2/9, 0 ]
-        sage: magma(x^6 + x^5 + x^4 + x^2 + 2).ClebschInvariants() # optional - magma
+        sage: magma(x^6 + x^5 + x^4 + x^2 + 2).ClebschInvariants()  # optional - magma
         [ 62/15, 15434/5625, -236951/140625, 229930748/791015625 ]
     """
     R = f.parent().base_ring()
     if R.characteristic() in [2, 3, 5]:
-        raise NotImplementedError("Invariants of binary sextics/genus 2 hyperelliptic curves not implemented in characteristics 2, 3, and 5")
+        raise NotImplementedError("Invariants of binary sextics/genus 2 hyperelliptic "
+                                  "curves not implemented in characteristics 2, 3, and 5")
 
     U = ubs(f)
     L = U['A'], U['B'], U['C'], U['D']
@@ -298,12 +292,14 @@ def clebsch_invariants(f):
 
 def igusa_clebsch_invariants(f):
     r"""
-    Given a sextic form `f`, return the Igusa-Clebsch invariants `I_2, I_4, I_6, I_{10}` of Igusa and Clebsch [I]_.
+    Given a sextic form `f`, return the Igusa-Clebsch invariants `I_2, I_4,
+    I_6, I_{10}` of Igusa and Clebsch [IJ1960]_.
 
     `f` may be homogeneous in two variables or inhomogeneous in one.
 
     EXAMPLES::
 
+        sage: from sage.schemes.hyperelliptic_curves.invariants import igusa_clebsch_invariants
         sage: R.<x, y> = QQ[]
         sage: igusa_clebsch_invariants(x^6 + y^6)
         (-240, 1620, -119880, -46656)
@@ -311,9 +307,9 @@ def igusa_clebsch_invariants(f):
         sage: igusa_clebsch_invariants(x^6 + x^5 + x^4 + x^2 + 2)
         (-496, 6220, -955932, -1111784)
 
-        sage: magma(x^6 + 1).IgusaClebschInvariants() # optional - magma
+        sage: magma(x^6 + 1).IgusaClebschInvariants()                    # optional - magma
         [ -240, 1620, -119880, -46656 ]
-        sage: magma(x^6 + x^5 + x^4 + x^2 + 2).IgusaClebschInvariants() # optional - magma
+        sage: magma(x^6 + x^5 + x^4 + x^2 + 2).IgusaClebschInvariants()  # optional - magma
         [ -496, 6220, -955932, -1111784 ]
 
     TESTS:
@@ -325,34 +321,37 @@ def igusa_clebsch_invariants(f):
         sage: igusa_clebsch_invariants(x^5 + a*x^4 + b*x^3 + c*x^2 + d*x + e)[0]
         6*b^2 - 16*a*c + 40*d
 
+        sage: from sage.schemes.hyperelliptic_curves.invariants import absolute_igusa_invariants_wamelen
         sage: absolute_igusa_invariants_wamelen(GF(5)['x'](x^6 - 2*x))
         Traceback (most recent call last):
         ...
-        NotImplementedError: Invariants of binary sextics/genus 2 hyperelliptic curves not implemented in characteristics 2, 3, and 5
+        NotImplementedError: Invariants of binary sextics/genus 2 hyperelliptic curves
+        not implemented in characteristics 2, 3, and 5
     """
     return clebsch_to_igusa(*clebsch_invariants(f))
 
 
 def absolute_igusa_invariants_wamelen(f):
     r"""
-    Given a sextic form `f`, return the three absolute Igusa invariants used by van Wamelen [W]_.
+    Given a sextic form `f`, return the three absolute Igusa invariants used by van Wamelen [Wam1999]_.
 
     `f` may be homogeneous in two variables or inhomogeneous in one.
 
     REFERENCES:
 
-    .. [W] van Wamelen, Paul. *Examples of genus two CM curves defined
-       over the rationals*. Math. Comp. 68 (1999), no. 225, 307--320.
+    - [Wam1999]_
 
     EXAMPLES::
 
+        sage: from sage.schemes.hyperelliptic_curves.invariants import absolute_igusa_invariants_wamelen
         sage: R.<x> = QQ[]
         sage: absolute_igusa_invariants_wamelen(x^5 - 1)
         (0, 0, 0)
 
     The following example can be checked against van Wamelen's paper::
 
-        sage: i1, i2, i3 = absolute_igusa_invariants_wamelen(-x^5 + 3*x^4 + 2*x^3 - 6*x^2 - 3*x + 1)
+        sage: h = -x^5 + 3*x^4 + 2*x^3 - 6*x^2 - 3*x + 1
+        sage: i1, i2, i3 = absolute_igusa_invariants_wamelen(h)
         sage: list(map(factor, (i1, i2, i3)))
         [2^7 * 3^15, 2^5 * 3^11 * 5, 2^4 * 3^9 * 31]
 
@@ -361,7 +360,8 @@ def absolute_igusa_invariants_wamelen(f):
         sage: absolute_igusa_invariants_wamelen(GF(3)['x'](x^5 - 2*x))
         Traceback (most recent call last):
         ...
-        NotImplementedError: Invariants of binary sextics/genus 2 hyperelliptic curves not implemented in characteristics 2, 3, and 5
+        NotImplementedError: Invariants of binary sextics/genus 2 hyperelliptic curves
+        not implemented in characteristics 2, 3, and 5
     """
     I2, I4, I6, I10 = igusa_clebsch_invariants(f)
     i1 = I2**5/I10
@@ -372,27 +372,23 @@ def absolute_igusa_invariants_wamelen(f):
 
 def absolute_igusa_invariants_kohel(f):
     r"""
-    Given a sextic form `f`, return the three absolute Igusa invariants used by Kohel [K]_.
+    Given a sextic form `f`, return the three absolute Igusa invariants used by Kohel [KohECHIDNA]_.
 
     `f` may be homogeneous in two variables or inhomogeneous in one.
 
-    REFERENCES:
-
-    .. [K] Kohel, David.  ECHIDNA: Databases for Elliptic Curves
-       and Higher Dimensional Analogues.
-       Available at http://echidna.maths.usyd.edu.au/~kohel/dbs/
-
     EXAMPLES::
 
+        sage: from sage.schemes.hyperelliptic_curves.invariants import absolute_igusa_invariants_kohel
         sage: R.<x> = QQ[]
         sage: absolute_igusa_invariants_kohel(x^5 - 1)
         (0, 0, 0)
         sage: absolute_igusa_invariants_kohel(x^5 - x)
         (100, -20000, -2000)
 
-    The following example can be checked against Kohel's database [K]_ ::
+    The following example can be checked against Kohel's database [KohECHIDNA]_ ::
 
-        sage: i1, i2, i3 = absolute_igusa_invariants_kohel(-x^5 + 3*x^4 + 2*x^3 - 6*x^2 - 3*x + 1)
+        sage: h = -x^5 + 3*x^4 + 2*x^3 - 6*x^2 - 3*x + 1
+        sage: i1, i2, i3 = absolute_igusa_invariants_kohel(h)
         sage: list(map(factor, (i1, i2, i3)))
         [2^2 * 3^5 * 5 * 31, 2^5 * 3^11 * 5, 2^4 * 3^9 * 31]
         sage: list(map(factor, (150660, 28343520, 9762768)))
@@ -403,7 +399,8 @@ def absolute_igusa_invariants_kohel(f):
         sage: absolute_igusa_invariants_kohel(GF(2)['x'](x^5 - x))
         Traceback (most recent call last):
         ...
-        NotImplementedError: Invariants of binary sextics/genus 2 hyperelliptic curves not implemented in characteristics 2, 3, and 5
+        NotImplementedError: Invariants of binary sextics/genus 2 hyperelliptic curves
+        not implemented in characteristics 2, 3, and 5
     """
     I2, I4, I6, I10 = igusa_clebsch_invariants(f)
     i1 = I4*I6/I10

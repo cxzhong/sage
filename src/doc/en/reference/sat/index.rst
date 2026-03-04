@@ -23,7 +23,7 @@ By default, Sage solves SAT instances as an Integer Linear Program (see
 format is easily interfaced using the :class:`sage.sat.solvers.dimacs.DIMACS`
 blueprint. Sage ships with pre-written interfaces for *RSat* [RS]_ and *Glucose*
 [GL]_. Furthermore, Sage provides an interface to the *CryptoMiniSat* [CMS]_ SAT
-solver which can be used interchangably with DIMACS-based solvers. For this last
+solver which can be used interchangeably with DIMACS-based solvers. For this last
 solver, the optional CryptoMiniSat package must be installed, this can be
 accomplished by typing the following in the shell::
 
@@ -86,6 +86,7 @@ Details on Specific Solvers
 
    sage/sat/solvers/satsolver
    sage/sat/solvers/dimacs
+   sage/sat/solvers/picosat
    sage/sat/solvers/sat_lp
    sage/sat/solvers/cryptominisat
 
@@ -105,8 +106,8 @@ Conjunctive Normal Form::
     sage: _ = solver.write()
     sage: print(open(fn).read())
     p cnf 3 2
-    1 0
     -2 0
+    1 0
     <BLANKLINE>
 
 Details on Specific Converterts
@@ -123,10 +124,15 @@ Sage provides various highlevel functions which make working with Boolean polyno
 construct a very small-scale AES system of equations and pass it to a SAT solver::
 
     sage: sr = mq.SR(1,1,1,4,gf2=True,polybori=True)
-    sage: F,s = sr.polynomial_system()
-    sage: from sage.sat.boolean_polynomials import solve as solve_sat # optional - cryptominisat
-    sage: s = solve_sat(F)                                            # optional - cryptominisat
-    sage: F.subs(s[0])                                                # optional - cryptominisat
+    sage: while True:
+    ....:     try:
+    ....:         F,s = sr.polynomial_system()
+    ....:         break
+    ....:     except ZeroDivisionError:
+    ....:         pass
+    sage: from sage.sat.boolean_polynomials import solve as solve_sat # optional - pycryptosat
+    sage: s = solve_sat(F)                                            # optional - pycryptosat
+    sage: F.subs(s[0])                                                # optional - pycryptosat
     Polynomial Sequence with 36 Polynomials in 0 Variables
 
 Details on Specific Highlevel Interfaces
@@ -141,10 +147,10 @@ REFERENCES:
 
 .. [RS] http://reasoning.cs.ucla.edu/rsat/
 
-.. [GL] http://www.lri.fr/~simon/?page=glucose
+.. [GL] https://www.labri.fr/perso/lsimon/research/glucose/
 
 .. [CMS] http://www.msoos.org
 
-.. [SG09] http://www.satcompetition.org/2009/format-benchmarks2009.html
+.. [SG09] https://web.archive.org/web/20090305015900/http://www.satcompetition.org/2009/format-benchmarks2009.html
 
 .. include:: ../footer.txt

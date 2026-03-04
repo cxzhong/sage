@@ -1,8 +1,9 @@
-# -*- coding: utf-8 -*-
+# distutils: libraries = gmp
+# distutils: extra_compile_args = -D_XPG6
 """
 `p`-adic distributions spaces
 
-This module implements p-adic distributions, a `p`-adic Banach
+This module implements `p`-adic distributions, a `p`-adic Banach
 space dual to locally analytic functions on a disc.
 
 EXAMPLES::
@@ -13,56 +14,36 @@ EXAMPLES::
 
 REFERENCES:
 
-.. [PS] Overconvergent modular symbols and p-adic L-functions
-   Robert Pollack, Glenn Stevens
-   Annales Scientifiques de l'Ecole Normale Superieure, serie 4, 44 fascicule 1 (2011), 1--42.
-
+- [PS2011]_
 """
 
-#*****************************************************************************
+# ****************************************************************************
 #       Copyright (C) 2012 Robert Pollack <rpollack@math.bu.edu>
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
 #  as published by the Free Software Foundation; either version 2 of
 #  the License, or (at your option) any later version.
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
-from __future__ import print_function, absolute_import
-
-from sage.structure.sage_object cimport SageObject
-from sage.structure.richcmp cimport richcmp_not_equal, rich_to_bool
-from sage.rings.integer_ring import ZZ
-from sage.rings.rational_field import QQ
-from sage.rings.power_series_ring import PowerSeriesRing
-from sage.rings.finite_rings.integer_mod_ring import Zmod
-from sage.arith.all import binomial, bernoulli
-from sage.modules.free_module_element import vector, zero_vector
-from sage.matrix.matrix cimport Matrix
-from sage.matrix.matrix_space import MatrixSpace
-from sage.matrix.all import matrix
-from sage.misc.prandom import random
-from sage.functions.other import floor
-from sage.structure.element cimport RingElement, Element
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 import operator
-from sage.rings.padics.padic_generic import pAdicGeneric
-from sage.rings.padics.padic_capped_absolute_element cimport pAdicCappedAbsoluteElement
-from sage.rings.padics.padic_capped_relative_element cimport pAdicCappedRelativeElement
-from sage.rings.padics.padic_fixed_mod_element cimport pAdicFixedModElement
-from sage.rings.integer cimport Integer
-from sage.rings.rational cimport Rational
-from sage.misc.misc import verbose, cputime
+
+from sage.arith.misc import bernoulli
+from sage.categories.fields import Fields
+from sage.matrix.constructor import matrix
+from sage.matrix.matrix cimport Matrix
+from sage.misc.verbose import verbose
+from sage.modular.pollack_stevens.sigma0 import Sigma0
+from sage.rings.finite_rings.integer_mod_ring import Zmod
 from sage.rings.infinity import Infinity
+from sage.rings.integer cimport Integer
+from sage.rings.integer_ring import ZZ
+from sage.rings.padics.padic_generic import pAdicGeneric
+from sage.rings.power_series_ring import PowerSeriesRing
+from sage.rings.rational_field import QQ
+from sage.structure.element cimport Element
+from sage.structure.richcmp cimport richcmp_not_equal, rich_to_bool
 
-from sage.libs.flint.nmod_poly cimport (nmod_poly_init2_preinv,
-                                        nmod_poly_set_coeff_ui,
-                                        nmod_poly_inv_series,
-                                        nmod_poly_mullow,
-                                        nmod_poly_pow_trunc,
-                                        nmod_poly_get_coeff_ui, nmod_poly_t)
-
-#from sage.libs.flint.ulong_extras cimport *
-
-from .sigma0 import Sigma0
+# from sage.libs.flint.ulong_extras cimport *
 
 cdef long overflow = 1 << (4 * sizeof(long) - 1)
 cdef long underflow = -overflow
@@ -75,17 +56,17 @@ def get_dist_classes(p, prec_cap, base, symk, implementation):
 
     INPUT:
 
-    - ``p``        -- prime
+    - ``p`` -- prime
 
-    - ``prec_cap`` -- The `p`-adic precision cap
+    - ``prec_cap`` -- the `p`-adic precision cap
 
-    - ``base``     -- The base ring
+    - ``base`` -- the base ring
 
-    - ``symk``     -- An element of Symk
+    - ``symk`` -- an element of Symk
 
-    - ``implementation`` - string - If not None, override the
+    - ``implementation`` -- string; if not ``None``, override the
       automatic choice of implementation. May be 'long' or 'vector',
-      otherwise raise a ``NotImplementedError``
+      otherwise raise a :exc:`NotImplementedError`.
 
     OUTPUT:
 
@@ -100,34 +81,17 @@ def get_dist_classes(p, prec_cap, base, symk, implementation):
     if implementation is not None:
         if implementation == 'long':
             raise NotImplementedError('The optimized implementation -using longs- has been disabled and may return wrong results.')
-            #if base.is_field():
-            #    raise NotImplementedError('The implementation "long" does'
-            #                              ' not support fields as base rings')
-            #if (isinstance(base, pAdicGeneric) and base.degree() > 1):
-            #    raise NotImplementedError('The implementation "long" does not '
-            #                              'support extensions of p-adics')
-            #if p is None:
-            #    raise NotImplementedError('The implementation "long" supports'
-            #                              ' only p-adic rings')
-            #return Dist_long, WeightKAction_long
         elif implementation == 'vector':
             return Dist_vector, WeightKAction_vector
         else:
             raise NotImplementedError('The implementation "%s" does not exist yet' % (implementation))
 
     return Dist_vector, WeightKAction_vector
-    # We return always the "slow" (but safe) implementation.
-    # if symk or p is None or base.is_field() or (isinstance(base, pAdicGeneric) and base.degree() > 1):
-    #     return Dist_vector, WeightKAction_vector
-    # if 7 * p ** (prec_cap) < ZZ(2) ** (4 * sizeof(long) - 1):
-    #     return Dist_long, WeightKAction_long
-    # else:
-    #     return Dist_vector, WeightKAction_vector
 
 
 cdef class Dist(ModuleElement):
     r"""
-        The main `p`-adic distribution class, implemented as per the paper [PS]__.
+        The main `p`-adic distribution class, implemented as per the paper [PS2011]__.
     """
     def moment(self, n):
         r"""
@@ -135,7 +99,7 @@ cdef class Dist(ModuleElement):
 
         INPUT:
 
-        - ``n`` -- an integer or slice, to be passed on to moments.
+        - ``n`` -- integer or slice, to be passed on to moments
 
         OUTPUT:
 
@@ -145,7 +109,7 @@ cdef class Dist(ModuleElement):
         EXAMPLES::
 
             sage: D = OverconvergentDistributions(4, 7, 10)
-            sage: v = D([7,14,21,28,35]);
+            sage: v = D([7,14,21,28,35])
             sage: v.moment(3)
             4*7 + O(7^2)
             sage: v.moment(0)
@@ -157,13 +121,11 @@ cdef class Dist(ModuleElement):
         r"""
         Return the vector of moments.
 
-        OUTPUT:
-
-        - the vector of moments
+        OUTPUT: the vector of moments
 
         EXAMPLES::
 
-            sage: D = OverconvergentDistributions(4, 5, 10, base = Qp(5));
+            sage: D = OverconvergentDistributions(4, 5, 10, base = Qp(5))
             sage: v = D([1,7,4,2,-1])
             sage: v = 1/5^3 * v
             sage: v
@@ -178,9 +140,7 @@ cdef class Dist(ModuleElement):
         Normalize so that the precision of the `i`-th moment is `n-i`,
         where `n` is the number of moments.
 
-        OUTPUT:
-
-        - Normalized entries of the distribution
+        OUTPUT: normalized entries of the distribution
 
         EXAMPLES::
 
@@ -193,13 +153,13 @@ cdef class Dist(ModuleElement):
         """
         raise NotImplementedError
 
-    cdef long _relprec(self):
+    cdef long _relprec(self) noexcept:
         raise NotImplementedError
 
     cdef _unscaled_moment(self, long i):
         raise NotImplementedError
 
-    cpdef long _ord_p(self):
+    cpdef long _ord_p(self) noexcept:
         r"""
         Return power of `p` by which the moments are shifted.
 
@@ -220,15 +180,13 @@ cdef class Dist(ModuleElement):
 
     def scale(self, left):
         r"""
-        Scale the moments of the distribution by ``left``
+        Scale the moments of the distribution by ``left``.
 
         INPUT:
 
         - ``left`` -- scalar
 
-        OUTPUT:
-
-        - Scales the moments by ``left``
+        OUTPUT: scales the moments by ``left``
 
         EXAMPLES::
 
@@ -253,10 +211,11 @@ cdef class Dist(ModuleElement):
             scalar = new_base(left)
             return V([scalar * new_base(self.moment(i)) for i in range(self.precision_absolute())])
 
-    def is_zero(self, p=None, M=None):
+    def is_zero(self, p=None, M=None) -> bool:
         r"""
-        Return True if the `i`-th moment is zero for all `i` (case ``M`` is None)
-        or zero modulo `p^{M-i}` for all `i` (when ``M`` is not None).
+        Return ``True`` if the `i`-th moment is zero for all `i` (case ``M`` is
+        ``None``) or zero modulo `p^{M-i}` for all `i` (when ``M`` is not
+        ``None``).
 
         Note that some moments are not known to precision ``M``, in which
         case they are only checked to be equal to zero modulo the
@@ -268,9 +227,7 @@ cdef class Dist(ModuleElement):
 
         - ``M`` -- precision
 
-        OUTPUT:
-
-        - True/False
+        OUTPUT: boolean
 
         EXAMPLES::
 
@@ -312,7 +269,7 @@ cdef class Dist(ModuleElement):
                 use_arg = False
             if not z:
                 return False
-            for a in xrange(1, n):
+            for a in range(1, n):
                 if usearg:
                     try:
                         z = self._unscaled_moment(a).is_zero(M - a)
@@ -328,9 +285,9 @@ cdef class Dist(ModuleElement):
     def find_scalar(self, _other, p, M=None, check=True):
         r"""
         Return an ``alpha`` with ``other = self * alpha``, or raises
-        a ``ValueError``.
+        a :exc:`ValueError`.
 
-        It will also raise a ``ValueError`` if this distribution is zero.
+        It will also raise a :exc:`ValueError` if this distribution is zero.
 
         INPUT:
 
@@ -338,15 +295,13 @@ cdef class Dist(ModuleElement):
 
         - ``p`` -- an integral prime (only used if the parent is not a Symk)
 
-        - ``M`` -- (default: None) an integer, the relative precision
+        - ``M`` -- (default: ``None``) an integer, the relative precision
           to which the scalar must be determined
 
-        - ``check`` -- (default: True) boolean, whether to validate
-          that ``other`` is actually a multiple of this element.
+        - ``check`` -- boolean (default: ``True``); whether to validate
+          that ``other`` is actually a multiple of this element
 
-        OUTPUT:
-
-        - A scalar ``alpha`` with ``other = self * alpha``.
+        OUTPUT: a scalar ``alpha`` with ``other = self * alpha``
 
         EXAMPLES::
 
@@ -370,8 +325,8 @@ cdef class Dist(ModuleElement):
         other_pr = other.precision_relative()
         if n == 0:
             raise ValueError("self is zero")
-        verbose("n = %s" % n, level  = 2)
-        verbose("moment 0", level = 2)
+        verbose("n = %s" % n, level=2)
+        verbose("moment 0", level=2)
         a = self._unscaled_moment(i)
         verbose("a = %s" % a, level = 2)
         padic = isinstance(a.parent(), pAdicGeneric)
@@ -405,8 +360,8 @@ cdef class Dist(ModuleElement):
                     raise ValueError("self is zero")
                 v = a.valuation(p)
             relprec = n - i - v
-#            verbose("p=%s, n-i=%s\nself.moment=%s, other.moment=%s" % (p, n-i, a, other._unscaled_moment(i)),level=2)
-## RP: This code was crashing because other may have too few moments -- so I added this bound with other's relative precision
+            #            verbose("p=%s, n-i=%s\nself.moment=%s, other.moment=%s" % (p, n-i, a, other._unscaled_moment(i)),level=2)
+            # RP: This code was crashing because other may have too few moments -- so I added this bound with other's relative precision
             if padic:
                 if i < other_pr:
                     alpha = (other._unscaled_moment(i) / a).add_bigoh(n - i)
@@ -418,19 +373,19 @@ cdef class Dist(ModuleElement):
                 else:
                     alpha = 0
             verbose("alpha = %s" % alpha, level = 2)
-## RP: This code was crashing because other may have too few moments -- so I added this bound with other's relative precision
+            # RP: This code was crashing because other may have too few moments -- so I added this bound with other's relative precision
             while i < other_pr - 1:
                 i += 1
                 verbose("comparing p moment %s" % i, level = 2)
                 a = self._unscaled_moment(i)
                 if check:
-#                    verbose("self.moment=%s, other.moment=%s" % (a, other._unscaled_moment(i)))
+                    # verbose("self.moment=%s, other.moment=%s" % (a, other._unscaled_moment(i)))
                     if (padic and other._unscaled_moment(i) != alpha * a) or \
                        (not padic and other._unscaled_moment(i) % p ** (n - i) != alpha * a % p ** (n - i)):
                         raise ValueError("not a scalar multiple")
                 v = a.valuation(p)
                 if n - i - v > relprec:
-                    verbose("Reseting alpha: relprec=%s, n-i=%s, v=%s" % (relprec, n - i, v), level = 2)
+                    verbose("Resetting alpha: relprec=%s, n-i=%s, v=%s" % (relprec, n - i, v), level = 2)
                     relprec = n - i - v
                     if padic:
                         alpha = (other._unscaled_moment(i) / a).add_bigoh(n - i)
@@ -452,9 +407,9 @@ cdef class Dist(ModuleElement):
     def find_scalar_from_zeroth_moment(self, _other, p, M=None, check=True):
         r"""
         Return an ``alpha`` with ``other = self * alpha`` using only
-        the zeroth moment, or raises a ``ValueError``.
+        the zeroth moment, or raises a :exc:`ValueError`.
 
-        It will also raise a ``ValueError`` if the zeroth moment of the
+        It will also raise a :exc:`ValueError` if the zeroth moment of the
         distribution is zero.
 
         INPUT:
@@ -463,15 +418,13 @@ cdef class Dist(ModuleElement):
 
         - ``p`` -- an integral prime (only used if the parent is not a Symk)
 
-        - ``M`` -- (default: None) an integer, the relative precision
+        - ``M`` -- (default: ``None``) an integer, the relative precision
           to which the scalar must be determined
 
-        - ``check`` -- (default: True) boolean, whether to validate
-          that ``other`` is actually a multiple of this element.
+        - ``check`` -- boolean (default: ``True``); whether to validate
+          that ``other`` is actually a multiple of this element
 
-        OUTPUT:
-
-        - A scalar ``alpha`` with ``other = self * alpha``.
+        OUTPUT: a scalar ``alpha`` with ``other = self * alpha``
 
         EXAMPLES::
 
@@ -491,14 +444,12 @@ cdef class Dist(ModuleElement):
         """
         cdef Dist other = _other
         n = self.precision_relative()
-        other_pr = other.precision_relative()
         if n == 0:
             raise ValueError("zeroth moment is zero")
         verbose("n = %s" % n, level = 2)
         a = self.moment(0)
         if a.is_zero():
             raise ValueError("zeroth moment is zero")
-        padic = isinstance(a.parent(), pAdicGeneric)
         alpha = other.moment(0) / a
         if check:
             for i in range(1, n):
@@ -546,7 +497,7 @@ cdef class Dist(ModuleElement):
         left.normalize()
         right.normalize()
         cdef long rprec = min(left._relprec(), right._relprec())
-        cdef long i, c
+        cdef long i
         p = left.parent().prime()
         if left.ordp > right.ordp:
             shift = p ** (left.ordp - right.ordp)
@@ -576,12 +527,12 @@ cdef class Dist(ModuleElement):
 
         INPUT:
 
-        - ``p`` -- (default: None) a positive integral prime
+        - ``p`` -- (default: ``None``) a positive integral prime
 
         OUTPUT:
 
-        - the largest integer `m` so that `p^m` divides the `0`-th
-          moment, `p^{m-1}` divides the first moment, etc.
+        The largest integer `m` so that `p^m` divides the `0`-th
+        moment, `p^{m-1}` divides the first moment, etc.
 
         EXAMPLES::
 
@@ -603,11 +554,9 @@ cdef class Dist(ModuleElement):
 
         INPUT:
 
-        - ``p`` -- (default: None) a positive integral prime
+        - ``p`` -- (default: ``None``) a positive integral prime
 
-        OUTPUT:
-
-        - an integer
+        OUTPUT: integer
 
         .. WARNING::
 
@@ -641,12 +590,12 @@ cdef class Dist(ModuleElement):
 
         INPUT:
 
-        - ``new_base_ring`` -- (default: None) a ring giving the
-          desired base ring of the result.
+        - ``new_base_ring`` -- (default: ``None``) a ring giving the
+          desired base ring of the result
 
         OUTPUT:
 
-        - An element of `Sym^k(K)`, where `K` is the specified base ring.
+        An element of `Sym^k(K)`, where `K` is the specified base ring.
 
         EXAMPLES::
 
@@ -673,15 +622,15 @@ cdef class Dist(ModuleElement):
 
         INPUT:
 
-        - ``p`` -- (default: None) a positive integral prime.  If None
-          then ``p`` must be available in the parent.
+        - ``p`` -- (default: ``None``) a positive integral prime.  If ``None``
+          then ``p`` must be available in the parent
 
-        - ``M`` -- (default: None) a positive integer giving the
-          desired number of moments. If None, returns a distribution having one
+        - ``M`` -- (default: ``None``) a positive integer giving the
+          desired number of moments. If ``None``, returns a distribution having one
           more moment than this one.
 
-        - ``new_base_ring`` -- (default: None) a ring giving the desired base
-          ring of the result. If None, a base ring is chosen automatically.
+        - ``new_base_ring`` -- (default: ``None``) a ring giving the desired base
+          ring of the result. If ``None``, a base ring is chosen automatically.
 
         OUTPUT:
 
@@ -707,11 +656,11 @@ cdef class Dist(ModuleElement):
         zero = R(0)
         moments.extend([zero] * (M - k - 1))
         mu = V(moments)
-        #val = mu.valuation()
-        #if val < 0:
-        #    # This seems unnatural
-        #    print("scaling by ", p, "^", -val, " to keep things integral")
-        #    mu *= p**(-val)
+        # val = mu.valuation()
+        # if val < 0:
+        #     # This seems unnatural
+        #     print("scaling by ", p, "^", -val, " to keep things integral")
+        #     mu *= p**(-val)
         return mu
 
     def _is_malformed(self):
@@ -776,10 +725,10 @@ cdef class Dist_vector(Dist):
     - ``parent`` -- a :class:`distributions.OverconvergentDistributions_class` or
       :class:`distributions.Symk_class` instance
 
-    - ``ordp`` -- an integer.  This MUST be zero in the case of Symk
-      of an exact ring.
+    - ``ordp`` -- integer;  this *must* be zero in the case of Symk
+      of an exact ring
 
-    - ``check`` -- (default: True) boolean, whether to validate input
+    - ``check`` -- boolean (default: ``True``); whether to validate input
 
     EXAMPLES::
 
@@ -794,7 +743,6 @@ cdef class Dist_vector(Dist):
 
             sage: Symk(4)(0)
             (0, 0, 0, 0, 0)
-
         """
         # if not hasattr(parent,'Element'):
         #     parent, moments = moments, parent
@@ -817,7 +765,7 @@ cdef class Dist_vector(Dist):
                 moments = parent.approx_module(1)([moments])
             # TODO: This is not quite right if the input is an inexact zero.
             if ordp != 0 and parent.prime() == 0:
-                raise ValueError("can not specify a valuation shift for an exact ring")
+                raise ValueError("cannot specify a valuation shift for an exact ring")
 
         self._moments = moments
         self.ordp = ordp
@@ -833,13 +781,13 @@ cdef class Dist_vector(Dist):
             sage: D = sage.modular.pollack_stevens.distributions.Symk(2)
             sage: x = D([2,3,4])
             sage: x.__reduce__()
-            (<type 'sage.modular.pollack_stevens.dist.Dist_vector'>, ((2, 3, 4), Sym^2 Q^2, 0, False))
+            (<class 'sage.modular.pollack_stevens.dist.Dist_vector'>, ((2, 3, 4), Sym^2 Q^2, 0, False))
         """
         return (self.__class__, (self._moments, self.parent(), self.ordp, False))
 
     cdef Dist_vector _new_c(self):
         r"""
-        Creates an empty distribution.
+        Create an empty distribution.
 
         Note that you MUST fill in the ordp attribute on the resulting distribution.
 
@@ -890,7 +838,7 @@ cdef class Dist_vector(Dist):
             sage: QQ(d)
             4/3
 
-        We get a TypeError if there is more than 1 moment::
+        We get a :exc:`TypeError` if there is more than 1 moment::
 
             sage: D = Symk(1); d = D([1,2]); d
             (1, 2)
@@ -903,7 +851,7 @@ cdef class Dist_vector(Dist):
             return QQ(self.moment(0))
         raise TypeError("k must be 0")
 
-    cdef long _relprec(self):
+    cdef long _relprec(self) noexcept:
         """
         Return the number of moments.
 
@@ -913,7 +861,6 @@ cdef class Dist_vector(Dist):
             sage: d = D([1,2,3,4,5]); e = D([2,3,4,5,6])
             sage: d == e # indirect doctest
             False
-
         """
         return len(self._moments)
 
@@ -933,7 +880,7 @@ cdef class Dist_vector(Dist):
 
     cdef Dist_vector _addsub(self, Dist_vector right, bint negate):
         r"""
-        Common code for the sum and the difference of two distributions
+        Common code for the sum and the difference of two distributions.
 
         EXAMPLES::
 
@@ -943,7 +890,6 @@ cdef class Dist_vector(Dist):
             (5, 7, 9)
             sage: u - v # indirect doctest
             (-3, -3, -3)
-
         """
         cdef Dist_vector ans = self._new_c()
         cdef long aprec = min(self.ordp + len(self._moments), right.ordp + len(right._moments))
@@ -1040,9 +986,7 @@ cdef class Dist_vector(Dist):
         distributions, the precision is the integer `m` so that the
         sequence of moments is known modulo `Fil^m`.
 
-        OUTPUT:
-
-        - An integer giving the number of moments.
+        OUTPUT: integer giving the number of moments
 
         EXAMPLES::
 
@@ -1089,9 +1033,7 @@ cdef class Dist_vector(Dist):
         parent is a space of distributions, then normalize reduces the
         `i`-th moment modulo `p^{N-i}`.
 
-        OUTPUT:
-
-        - this distribution, after normalizing.
+        OUTPUT: this distribution, after normalizing
 
         .. WARNING::
 
@@ -1112,7 +1054,7 @@ cdef class Dist_vector(Dist):
             (1 + O(7^5), 2 + O(7^2), 3 + O(7))
         """
         if not self.parent().is_symk() and self._moments != 0:  # non-classical
-            if len(self._moments) == 0:
+            if not self._moments:
                 return self
             V = self._moments.parent()
             R = V.base_ring()
@@ -1137,8 +1079,8 @@ cdef class Dist_vector(Dist):
 
         INPUT:
 
-        - ``M`` -- a positive integer less than the precision of this
-          distribution.
+        - ``M`` -- positive integer less than the precision of this
+          distribution
 
         OUTPUT:
 
@@ -1165,7 +1107,7 @@ cdef class Dist_vector(Dist):
         r"""
         Solve the difference equation. `self = v | \Delta`, where `\Delta = [1, 1; 0, 1] - 1`.
 
-        See Theorem 4.5 and Lemma 4.4 of [PS]_.
+        See Theorem 4.5 and Lemma 4.4 of [PS2011]_.
 
         OUTPUT:
 
@@ -1187,7 +1129,7 @@ cdef class Dist_vector(Dist):
         """
         # assert self._moments[0][0]==0, "not total measure zero"
         # print("result accurate modulo p^",self.moment(0).valuation(self.p) )
-        #v=[0 for j in range(0,i)]+[binomial(j,i)*bernoulli(j-i) for j in range(i,M)]
+        # v=[0 for j in range(i)]+[binomial(j,i)*bernoulli(j-i) for j in range(i,M)]
         M = self.precision_relative()
         R = self.parent().base_ring()
         K = R.fraction_field()
@@ -1200,11 +1142,11 @@ cdef class Dist_vector(Dist):
             # bernoulli(1) = -1/2; the only nonzero odd Bernoulli number
             v[m] += m * minhalf * scalar
             for j in range(m - 1, M, 2):
-                v[j] += binomial(j, m - 1) * bern[(j - m + 1) // 2] * scalar
+                v[j] += ZZ(j).binomial(m - 1) * bern[(j - m + 1) // 2] * scalar
         p = self.parent().prime()
         cdef Dist_vector ans
         if p == 0:
-            if R.is_field():
+            if R in Fields():
                 ans = self._new_c()
                 ans.ordp = 0
                 ans._moments = V(v)
@@ -1247,10 +1189,10 @@ cdef class WeightKAction(Action):
       See the documentation of
       :class:`sage.modular.pollack_stevens.distributions.OverconvergentDistributions_factory`
       for more details.
-    - ``adjuster`` -- a callable object that turns matrices into 4-tuples.
-    - ``on_left`` -- whether this action should be on the left.
+    - ``adjuster`` -- a callable object that turns matrices into 4-tuples
+    - ``on_left`` -- whether this action should be on the left
     - ``dettwist`` -- a power of the determinant to twist by
-    - ``padic`` -- if True, define an action of `p`-adic matrices (not just integer ones)
+    - ``padic`` -- if ``True``, define an action of `p`-adic matrices (not just integer ones)
 
     EXAMPLES::
 
@@ -1316,8 +1258,8 @@ cdef class WeightKAction(Action):
         - ``g`` -- an instance of
           :class:`sage.matrix.matrix_generic_dense.Matrix_generic_dense`
 
-        - ``M`` -- a positive integer giving the precision at which
-          ``g`` should act.
+        - ``M`` -- positive integer giving the precision at which
+          ``g`` should act
 
         OUTPUT:
 
@@ -1339,7 +1281,7 @@ cdef class WeightKAction(Action):
             (5, 17, 64, 253)
         """
         g = g.matrix()
-        if not g in self._maxprecs:
+        if g not in self._maxprecs:
             A = self._compute_acting_matrix(g, M)
             self._actmat[g] = {M: A}
             self._maxprecs[g] = M
@@ -1374,8 +1316,8 @@ cdef class WeightKAction(Action):
         - ``g`` -- a `2 \times 2` instance of
           :class:`sage.matrices.matrix_integer_dense.Matrix_integer_dense`
 
-        - ``M`` -- a positive integer giving the precision at which
-          ``g`` should act.
+        - ``M`` -- positive integer giving the precision at which
+          ``g`` should act
 
         OUTPUT:
 
@@ -1403,8 +1345,8 @@ cdef class WeightKAction_vector(WeightKAction):
         - ``g`` -- a `2 \times 2` instance of
           :class:`sage.matrix.matrix_generic_dense.Matrix_generic_dense`
 
-        - ``M`` -- a positive integer giving the precision at which
-          ``g`` should act.
+        - ``M`` -- positive integer giving the precision at which
+          ``g`` should act
 
         OUTPUT:
 
@@ -1419,7 +1361,7 @@ cdef class WeightKAction_vector(WeightKAction):
             sage: v * D._act.actor()(g) # indirect doctest
             (-107, 35, -12, 5)
         """
-        #tim = verbose("Starting")
+        # tim = verbose("Starting")
         a, b, c, d = self._adjuster(g)
         # if g.parent().base_ring().is_exact():
         #     self._check_mat(a, b, c, d)
@@ -1436,17 +1378,17 @@ cdef class WeightKAction_vector(WeightKAction):
             return B.change_ring(self.codomain().base_ring())
         R = PowerSeriesRing(base_ring, 'y', default_prec=M)
         y = R.gen()
-        #tim = verbose("Checked, made R",tim)
+        # tim = verbose("Checked, made R",tim)
         # special case for small precision, large weight
         scale = (b + d * y) / (a + c * y)
         t = (a + c * y) ** k  # will already have precision M
         cdef long row, col
-        #tim = verbose("Made matrix",tim)
+        # tim = verbose("Made matrix",tim)
         for col in range(M):
             for row in range(M):
                 B.set_unsafe(row, col, t[row])
             t *= scale
-        #verbose("Finished loop",tim)
+        # verbose("Finished loop",tim)
         # the changering here is annoying, but otherwise we have to
         # change ring each time we multiply
         B = B.change_ring(self.codomain().base_ring())
@@ -1456,21 +1398,19 @@ cdef class WeightKAction_vector(WeightKAction):
             B *= (a * d - b * c) ** (self._dettwist)
         return B
 
-    cpdef _call_(self, _v, g):
+    cpdef _act_(self, g, _v):
         r"""
         The right action of ``g`` on a distribution.
 
         INPUT:
 
         - ``_v`` -- a :class:`Dist_vector` instance, the distribution
-          on which to act.
+          on which to act
 
         - ``g`` -- a `2 \times 2` instance of
-          :class:`sage.matrix.matrix_integer_dense.Matrix_integer_dense`.
+          :class:`sage.matrix.matrix_integer_dense.Matrix_integer_dense`
 
-        OUTPUT:
-
-        - the distribution ``_v * g``.
+        OUTPUT: the distribution ``_v * g``
 
         EXAMPLES::
 
@@ -1479,12 +1419,9 @@ cdef class WeightKAction_vector(WeightKAction):
             sage: g = Matrix(ZZ,2,2,[3,-1,1,0])
             sage: v * D._act.actor()(g) # indirect doctest
             (40, -9, 2)
-
         """
         # if g is a matrix it needs to be immutable
         # hashing on arithmetic_subgroup_elements is by str
-        if self.is_left():
-            _v, g = g, _v
         if g == 1:
             return _v
         cdef Dist_vector v = <Dist_vector?>_v
@@ -1494,210 +1431,7 @@ cdef class WeightKAction_vector(WeightKAction):
             g.set_immutable()
         except AttributeError:
             pass
-        coeffmodule = v._moments.parent()
         v_moments = v._moments
         ans._moments = v_moments * self.acting_matrix(g, len(v_moments))
         ans.ordp = v.ordp
         return ans
-
-# cdef inline long mymod(long a, unsigned long pM):
-#     """
-#     Returns the remainder ``a % pM``.
-
-#     INPUT:
-
-#     - ``a`` -- a long
-
-#     - ``pM`` -- an unsigned long
-
-#     OUTPUT:
-
-#     - ``a % pM`` as a positive integer.
-#     """
-#     a = a % pM
-#     if a < 0:
-#         a += pM
-#     return a
-
-
-# cdef class SimpleMat(SageObject):
-#     r"""
-#     A simple class emulating a square matrix that holds its values as
-#     a C array of longs.
-
-#     INPUT:
-
-#     - ``M`` -- a positive integer, the dimension of the matrix
-
-#     EXAMPLES::
-
-#         sage: from sage.modular.pollack_stevens.distributions import OverconvergentDistributions, Symk
-#     """
-#     def __cinit__(self, unsigned long M):
-#         r"""
-#         Memory initialization.
-
-#         TESTS::
-
-#             sage: from sage.modular.pollack_stevens.distributions import OverconvergentDistributions, Symk
-#         """
-#         self._inited = False
-#         self.M = M
-#         self._mat = <long*>sage_malloc(M * M * sizeof(long))
-#         if self._mat == NULL:
-#             raise MemoryError
-#         self._inited = True
-
-#     def __getitem__(self, i):
-#         r"""
-
-
-#         INPUT:
-
-#         - ``i`` -- a tuple containing two slices, each from `0` to `M'` for some `M' < M`
-
-#         OUTPUT:
-
-#         - A new SimpleMat of size `M'` with the top left `M' \times
-#           M'` block of values copied over.
-
-#         EXAMPLES::
-
-#             sage: from sage.modular.pollack_stevens.distributions import OverconvergentDistributions, Symk
-#         """
-#         cdef Py_ssize_t r, c, Mnew, Morig = self.M
-#         cdef SimpleMat ans
-#         if isinstance(i,tuple) and len(i) == 2:
-#             a, b = i
-#             if isinstance(a, slice) and isinstance(b, slice):
-#                 r0, r1, rs = a.indices(Morig)
-#                 c0, c1, cs = b.indices(Morig)
-#                 if r0 != 0 or c0 != 0 or rs != 1 or cs != 1:
-#                     raise NotImplementedError
-#                 Mr = r1
-#                 Mc = c1
-#                 if Mr != Mc:
-#                     raise ValueError("result not square")
-#                 Mnew = Mr
-#                 if Mnew > Morig:
-#                     raise IndexError("index out of range")
-#                 ans = SimpleMat(Mnew)
-#                 for r in range(Mnew):
-#                     for c in range(Mnew):
-#                         ans._mat[Mnew * c + r] = self._mat[Morig * c + r]
-#                 return ans
-#         raise NotImplementedError
-
-#     def __dealloc__(self):
-#         r"""
-#         Deallocation.
-
-#         TESTS::
-
-#             sage: from sage.modular.pollack_stevens.distributions import OverconvergentDistributions, Symk
-#         """
-#         sage_free(self._mat)
-
-# cdef class WeightKAction_long(WeightKAction):
-#     cpdef _compute_acting_matrix(self, g, _M):
-#         r"""
-
-
-#         INPUT:
-
-#         - ``g`` -- a `2 \times 2` instance of
-#           :class:`sage.matrices.matrix_integer_dense.Matrix_integer_dense`
-
-#         - ``_M`` -- a positive integer giving the precision at which
-#           ``g`` should act.
-
-#         OUTPUT:
-
-#         - A :class:`SimpleMat` that gives the action of ``g`` at
-#           precision ``_M`` in the sense that the moments of the result
-#           are obtained from the moments of the input by a
-#           vector-matrix multiplication.
-
-#         EXAMPLES::
-
-#             sage: from sage.modular.pollack_stevens.distributions import OverconvergentDistributions, Symk
-#         """
-#         _a, _b, _c, _d = self._adjuster(g)
-#         #if self._character is not None: raise NotImplementedError
-#         # self._check_mat(_a, _b, _c, _d)
-#         cdef long k = self._k
-#         cdef Py_ssize_t row, col, M = _M
-#         cdef nmod_poly_t t, scale, xM, bdy
-#         cdef mp_limb_t pM = self._p ** M  # unsigned long
-#         cdef long a, b, c, d
-#         a = mymod(ZZ(_a), pM)
-#         b = mymod(ZZ(_b), pM)
-#         c = mymod(ZZ(_c), pM)
-#         d = mymod(ZZ(_d), pM)
-#         cdef mp_limb_t pMinv = 1 / pM  # n_preinvert_limb(pM) # DEBUG!!! was pM
-#         nmod_poly_init2_preinv(t, pM, pMinv, M)
-#         nmod_poly_init2_preinv(scale, pM, pMinv, M)
-#         nmod_poly_init2_preinv(xM, pM, pMinv, M)
-#         nmod_poly_init2_preinv(bdy, pM, pMinv, 2)
-#         nmod_poly_set_coeff_ui(xM, M, 1)
-#         nmod_poly_set_coeff_ui(t, 0, a)
-#         nmod_poly_set_coeff_ui(t, 1, c)
-#         nmod_poly_inv_series(scale, t, M)
-#         nmod_poly_set_coeff_ui(bdy, 0, b)
-#         nmod_poly_set_coeff_ui(bdy, 1, d)
-#         nmod_poly_mullow(scale, scale, bdy, M)  # scale = (b+dy)/(a+cy)
-#         nmod_poly_pow_trunc(t, t, k, M)  # t = (a+cy)^k
-#         cdef SimpleMat B = SimpleMat(M)
-#         for col in range(M):
-#             for row in range(M):
-#                 B._mat[M * col + row] = nmod_poly_get_coeff_ui(t, row)
-#             if col < M - 1:
-#                 nmod_poly_mullow(t, t, scale, M)
-#         if self._character is not None:
-#             B = B * self._character(_a, _b, _c, _d)
-#         return B
-
-#     cpdef _call_(self, _v, g):
-#         r"""
-#         Application of the action.
-
-#         INPUT:
-
-#         - ``_v`` -- a :class:`Dist_long` instance, the distribution on
-#           which to act.
-
-#         - ``g`` -- a `2 \times 2` instance of
-#           :class:`sage.matrix.matrix_integer_dense.Matrix_integer_dense`.
-
-#         OUTPUT:
-
-#         - The image of ``_v`` under the action of ``g``.
-
-#         EXAMPLES::
-
-#             sage: from sage.modular.pollack_stevens.distributions import OverconvergentDistributions, Symk
-#         """
-#         if self.is_left():
-#             _v, g = g, _v
-
-#         cdef Dist_long v = <Dist_long?>_v
-#         cdef Dist_long ans = v._new_c()
-#         ans.relprec = v.relprec
-#         ans.ordp = v.ordp
-#         cdef long pM = self._p ** ans.relprec
-#         cdef SimpleMat B = <SimpleMat>self.acting_matrix(g, ans.relprec)
-#         cdef long row, col, entry = 0
-#         for col in range(ans.relprec):
-#             ans._moments[col] = 0
-#             for row in range(ans.relprec):
-#                 mom = v._moments[row]
-#                 # DEBUG BELOW
-#                 # if not mom.parent().base_ring().is_exact():
-#                 #     try:
-#                 #         mom = mom.apply_map(operator.methodcaller('lift'))
-#                 #     except AttributeError:
-#                 #         pass
-#                 ans._moments[col] += mymod(B._mat[entry] * mom, pM)
-#                 entry += 1
-#         ans.normalize()
-#         return ans

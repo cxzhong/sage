@@ -63,7 +63,7 @@ Infinite words in a specific combinatorial class::
     sage: W(f)
     word: babababababababababababababababababababa...
 """
-#*****************************************************************************
+# ****************************************************************************
 #       Copyright (C) 2008 Sebastien Labbe <slabqc@gmail.com>,
 #                          Franco Saliola <saliola@gmail.com>
 #
@@ -71,34 +71,35 @@ Infinite words in a specific combinatorial class::
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 from sage.combinat.words.abstract_word import Word_class
 from sage.combinat.words.word_options import word_options
-from sage.rings.all import Infinity
+from sage.rings.infinity import Infinity
+
 
 class InfiniteWord_class(Word_class):
-    def _repr_(self):
+    def _repr_(self) -> str:
         r"""
-        Returns a string representation of self.
+        Return a string representation of ``self``.
 
         TESTS::
 
-            sage: Word(iter([1,2,3]), length="unknown")._repr_()
+            sage: Word(iter([1,2,3]), length='unknown')._repr_()
             'word: 123'
-            sage: Word(range(100), length="unknown")._repr_()
+            sage: Word(range(100), length='unknown')._repr_()
             'word: 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,...'
             sage: Word(lambda x:x%3)._repr_()
             'word: 0120120120120120120120120120120120120120...'
         """
         global word_options
         if word_options['old_repr']:
-            return "Infinite word over %s"% str(self.parent().alphabet())[17:]
+            return "Infinite word over %s" % str(self.parent().alphabet())[17:]
         return word_options['identifier'] + self.string_rep()
 
     def length(self):
         r"""
-        Returns the length of self.
+        Return the length of ``self``.
 
         EXAMPLES::
 
@@ -109,4 +110,3 @@ class InfiniteWord_class(Word_class):
             +Infinity
         """
         return Infinity
-

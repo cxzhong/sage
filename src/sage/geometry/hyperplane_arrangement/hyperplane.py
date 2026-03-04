@@ -45,7 +45,7 @@ constant term::
     True
     sage: V([3, 2, -5], -7)
     Hyperplane 3*x + 2*y - 5*z - 7
-    
+
 Or constant term and coefficients together in one list/tuple/iterable::
 
     sage: V([-7, 3, 2, -5])
@@ -98,7 +98,7 @@ Which you can't do with hyperplane arrangements::
          over Rational Field with coordinates x, y, z'
 """
 
-#*****************************************************************************
+# *****************************************************************************
 #       Copyright (C) 2013 David Perkinson <davidp@reed.edu>
 #                          Volker Braun <vbraun.name@gmail.com>
 #
@@ -106,12 +106,12 @@ Which you can't do with hyperplane arrangements::
 #  as published by the Free Software Foundation; either version 2 of
 #  the License, or (at your option) any later version.
 #                  http://www.gnu.org/licenses/
-#*****************************************************************************
+# *****************************************************************************
 
+import sage.geometry.abc
 
-from sage.misc.cachefunc import cached_method
 from sage.geometry.linear_expression import LinearExpression, LinearExpressionModule
-
+from sage.misc.cachefunc import cached_method
 
 
 class Hyperplane(LinearExpression):
@@ -136,7 +136,7 @@ class Hyperplane(LinearExpression):
         Hyperplane x + y - 1
 
         sage: ambient = H.ambient_space()
-        sage: ambient._element_constructor_(x+y-1)   
+        sage: ambient._element_constructor_(x+y-1)
         Hyperplane x + y - 1
 
     For technical reasons, we must allow the degenerate cases of
@@ -160,15 +160,13 @@ class Hyperplane(LinearExpression):
             Hyperplane 1.00000000000000*x + 0.000000000000000*y + 0.000000000000000
             sage: TestSuite(x+y-1).run()
         """
-        super(Hyperplane, self).__init__(parent, coefficients, constant)
+        super().__init__(parent, coefficients, constant)
 
     def _repr_(self):
         """
         Return a string representation.
 
-        OUTPUT:
-
-        A string.
+        OUTPUT: string
 
         EXAMPLES::
 
@@ -182,9 +180,7 @@ class Hyperplane(LinearExpression):
         r"""
         Return a LaTeX representation.
 
-        OUTPUT:
-
-        A string.
+        OUTPUT: string
 
         EXAMPLES::
 
@@ -207,10 +203,8 @@ class Hyperplane(LinearExpression):
     def normal(self):
         """
         Return the normal vector.
-        
-        OUTPUT:
 
-        A vector over the base ring.
+        OUTPUT: a vector over the base ring
 
         EXAMPLES::
 
@@ -228,9 +222,7 @@ class Hyperplane(LinearExpression):
         """
         Return the index of the largest entry of the normal vector.
 
-        OUTPUT:
-
-        An integer. The index of the largest entry.
+        OUTPUT: integer; the index of the largest entry
 
         EXAMPLES::
 
@@ -247,7 +239,7 @@ class Hyperplane(LinearExpression):
         try:
             values = [abs(x) for x in self.A()]
         except ArithmeticError:
-            from sage.rings.all import RDF
+            from sage.rings.real_double import RDF
             values = [abs(RDF(x)) for x in self.A()]
         max_pos = 0
         max_value = values[max_pos]
@@ -257,7 +249,7 @@ class Hyperplane(LinearExpression):
                 max_value = values[i]
         return max_pos
 
-    def __contains__(self, q):
+    def __contains__(self, q) -> bool:
         r"""
         Test whether the point ``q`` is in the hyperplane.
 
@@ -265,9 +257,7 @@ class Hyperplane(LinearExpression):
 
         - ``q`` -- point (as a vector, list, or tuple)
 
-        OUTPUT:
-
-        A boolean.
+        OUTPUT: boolean
 
         EXAMPLES::
 
@@ -283,13 +273,11 @@ class Hyperplane(LinearExpression):
         return self.A() * q + self._const == 0
 
     @cached_method
-    def polyhedron(self):
+    def polyhedron(self, **kwds):
         """
         Return the hyperplane as a polyhedron.
 
-        OUTPUT:
-
-        A :func:`~sage.geometry.polyhedron.constructor.Polyhedron` instance.
+        OUTPUT: a :func:`~sage.geometry.polyhedron.constructor.Polyhedron` instance
 
         EXAMPLES::
 
@@ -300,13 +288,15 @@ class Hyperplane(LinearExpression):
             sage: P.Hrepresentation()
             (An equation (1, 2, 3) x - 4 == 0,)
             sage: P.Vrepresentation()
-            (A line in the direction (0, 3, -2), 
-             A line in the direction (3, 0, -1), 
+            (A line in the direction (0, 3, -2),
+             A line in the direction (3, 0, -1),
              A vertex at (0, 0, 4/3))
         """
         from sage.geometry.polyhedron.constructor import Polyhedron
-        R = self.parent().base_ring()
-        return Polyhedron(eqns=[self.coefficients()], base_ring=R)
+        R = kwds.pop('base_ring', None)
+        if R is None:
+            R = self.parent().base_ring()
+        return Polyhedron(eqns=[self.coefficients()], base_ring=R, **kwds)
 
     @cached_method
     def linear_part(self):
@@ -363,10 +353,7 @@ class Hyperplane(LinearExpression):
             sage: p2 = h.linear_part_projection([3,4,5]);  p2
             (8/7, 2/7)
             sage: h.linear_part().basis()
-            [
-            (1, 0, -1/3),
-            (0, 1, -2/3)
-            ]
+            [(1, 0, -1/3), (0, 1, -2/3)]
             sage: p3 = h.linear_part_projection([1,1,1]);  p3
             (4/7, 1/7)
         """
@@ -377,7 +364,7 @@ class Hyperplane(LinearExpression):
     def point(self):
         """
         Return the point closest to the origin.
-        
+
         OUTPUT:
 
         A vector of the ambient vector space. The closest point to the
@@ -385,7 +372,7 @@ class Hyperplane(LinearExpression):
 
         In finite characteristic a random point will be returned if
         the norm of the hyperplane normal vector is zero.
-        
+
         EXAMPLES::
 
 
@@ -395,7 +382,8 @@ class Hyperplane(LinearExpression):
             (2/7, 4/7, 6/7)
             sage: h.point() in h
             True
-        
+
+            sage: # needs sage.rings.finite_rings
             sage: H.<x,y,z> = HyperplaneArrangements(GF(3))
             sage: h = 2*x + y + z + 1
             sage: h.point()
@@ -423,9 +411,7 @@ class Hyperplane(LinearExpression):
         r"""
         The dimension of the hyperplane.
 
-        OUTPUT:
-
-        An integer.
+        OUTPUT: integer
 
         EXAMPLES::
 
@@ -445,9 +431,7 @@ class Hyperplane(LinearExpression):
         - ``other`` -- a hyperplane, a polyhedron, or something that
           defines a polyhedron
 
-        OUTPUT:
-
-        A polyhedron.
+        OUTPUT: a polyhedron
 
         EXAMPLES::
 
@@ -458,9 +442,8 @@ class Hyperplane(LinearExpression):
             sage: h.intersection(polytopes.cube())
             A 2-dimensional polyhedron in QQ^3 defined as the convex hull of 3 vertices
         """
-        from sage.geometry.polyhedron.base import is_Polyhedron
         from sage.geometry.polyhedron.constructor import Polyhedron
-        if not is_Polyhedron(other):
+        if not isinstance(other, sage.geometry.abc.Polyhedron):
             try:
                 other = other.polyhedron()
             except AttributeError:
@@ -482,7 +465,7 @@ class Hyperplane(LinearExpression):
         A vector in the ambient vector space that lies on the
         hyperplane.
 
-        In finite characteristic, a ``ValueError`` is raised if the
+        In finite characteristic, a :exc:`ValueError` is raised if the
         the norm of the hyperplane normal is zero.
 
         EXAMPLES::
@@ -516,7 +499,7 @@ class Hyperplane(LinearExpression):
 
         INPUT:
 
-        - ``signed`` -- boolean (optional, default: ``True``); whether
+        - ``signed`` -- boolean (default: ``True``); whether
           to preserve the overall sign
 
         OUTPUT:
@@ -546,28 +529,63 @@ class Hyperplane(LinearExpression):
             Hyperplane 4*x - y - 8
             sage: (4*x - y - 8).primitive(signed=False)
             Hyperplane -4*x + y + 8
+
+        TESTS:
+
+        Check that :issue:`30078` is fixed::
+
+            sage: # needs sage.rings.number_field
+            sage: R.<sqrt2> = QuadraticField(2)
+            sage: H.<x,y> = HyperplaneArrangements(base_ring=R)
+            sage: B = H([1,1,0], [2,2,0], [sqrt2,sqrt2,0])
+            sage: B
+            Arrangement <x + 1>
+
+        Check that :issue:`30749` is fixed::
+
+            sage: # needs sage.rings.number_field
+            sage: tau = (1+AA(5).sqrt()) / 2
+            sage: ncn = [[2*tau+1,2*tau,tau],[2*tau+2,2*tau+1,tau+1]]
+            sage: ncn += [[tau+1,tau+1,tau],[2*tau,2*tau,tau],[tau+1,tau+1,1]]
+            sage: ncn += [[1,1,1],[1,1,0],[0,1,0],[1,0,0],[tau+1,tau,tau]]
+            sage: H = HyperplaneArrangements(AA,names='xyz')
+            sage: A = H([[0]+v for v in ncn])
+            sage: A.n_regions()
+            60
         """
-        from sage.arith.all import lcm, gcd
+        from sage.rings.rational_field import QQ
+        base_ring = self.parent().base_ring()
         coeffs = self.coefficients()
-        try:
-            d = lcm([x.denom() for x in coeffs])
-            n = gcd([x.numer() for x in coeffs])
-        except AttributeError:
-            return self
+        # first check if the linear expression even defines a hyperplane
+        if self.is_zero():
+            raise ValueError('linear expression must be non-constant to define a hyperplane')
+        # for scalar adjustment over the base ring QQ,
+        # get rid of the denominators and use gcd
+        if base_ring is QQ:
+            from sage.arith.functions import lcm
+            from sage.arith.misc import gcd
+            d = lcm(x.denominator() for x in coeffs)
+            n = gcd(x.numerator() for x in coeffs)
+            adjustment = d/n
+        # over other base rings, rescale the coefficients so that
+        # the first nonzero of the normal vector is one or negative one
+        else:
+            for x in coeffs[1:]:
+                if not x.is_zero():
+                    adjustment = x.inverse_of_unit()
+                    if x < 0:  # avoid accidental sign reversal
+                        adjustment = -adjustment
+                    break
+        # if ``signed`` is not set, adjust the sign
         if not signed:
             for x in coeffs:
-                if x > 0:
+                if not x.is_zero():
+                    if x < 0:
+                        adjustment = -adjustment
                     break
-                if x < 0: 
-                    d = -d
-                    break
-        parent = self.parent()
-        d = parent.base_ring()(d)
-        n = parent.base_ring()(n)
-        if n == 0:
-            n = parent.base_ring().one()
-        return parent(self * d / n)
-        
+        # return the rescaled hyperplane
+        return self.parent(adjustment * self)
+
     @cached_method
     def _affine_subspace(self):
         """
@@ -592,19 +610,17 @@ class Hyperplane(LinearExpression):
         """
         from sage.geometry.hyperplane_arrangement.affine_subspace import AffineSubspace
         return AffineSubspace(self.point(), self.linear_part())
-         
+
     def plot(self, **kwds):
         """
         Plot the hyperplane.
 
-        OUTPUT:
-
-        A graphics object.
+        OUTPUT: a graphics object
 
         EXAMPLES::
 
             sage: L.<x, y> = HyperplaneArrangements(QQ)
-            sage: (x+y-2).plot()
+            sage: (x + y - 2).plot()                                                    # needs sage.plot
             Graphics object consisting of 2 graphics primitives
         """
         from sage.geometry.hyperplane_arrangement.plot import plot_hyperplane
@@ -621,7 +637,7 @@ class Hyperplane(LinearExpression):
             Arrangement <y + 1 | x>
             sage: x | [(0,1), 1]
             Arrangement <y + 1 | x>
-        
+
         TESTS::
 
             sage: (x | y).parent() is L
@@ -656,7 +672,8 @@ class Hyperplane(LinearExpression):
         S = self.parent().symmetric_space()
         G = S.gens()
         # We skip the first coefficient since it corresponds to the constant term
-        return S.sum(G[i]*c for i,c in enumerate(coeff[1:]))
+        return S.sum(G[i]*c for i, c in enumerate(coeff[1:]))
+
 
 class AmbientVectorSpace(LinearExpressionModule):
     """
@@ -678,9 +695,7 @@ class AmbientVectorSpace(LinearExpressionModule):
         """
         Return a string representation.
 
-        OUTPUT:
-
-        A string.
+        OUTPUT: string
 
         EXAMPLES::
 
@@ -691,16 +706,14 @@ class AmbientVectorSpace(LinearExpressionModule):
         return '{0}-dimensional linear space over {3} with coordinate{1} {2}'.format(
             self.dimension(),
             's' if self.ngens() > 1 else '',
-            ', '.join(self._names), 
+            ', '.join(self._names),
             self.base_ring())
 
     def dimension(self):
         """
         Return the ambient space dimension.
 
-        OUTPUT:
-
-        An integer.
+        OUTPUT: integer
 
         EXAMPLES::
 
@@ -713,7 +726,7 @@ class AmbientVectorSpace(LinearExpressionModule):
             1
         """
         return self.ngens()
-        
+
     def change_ring(self, base_ring):
         """
         Return a ambient vector space with a changed base ring.
@@ -722,9 +735,7 @@ class AmbientVectorSpace(LinearExpressionModule):
 
         - ``base_ring`` -- a ring; the new base ring
 
-        OUTPUT:
-        
-        A new :class:`AmbientVectorSpace`.
+        OUTPUT: a new :class:`AmbientVectorSpace`
 
         EXAMPLES::
 
@@ -741,7 +752,7 @@ class AmbientVectorSpace(LinearExpressionModule):
         return AmbientVectorSpace(base_ring, self._names)
 
     def symmetric_space(self):
-        """
+        r"""
         Construct the symmetric space of ``self``.
 
         Consider a hyperplane arrangement `A` in the vector space
@@ -759,4 +770,3 @@ class AmbientVectorSpace(LinearExpressionModule):
         """
         from sage.rings.polynomial.polynomial_ring_constructor import PolynomialRing
         return PolynomialRing(self.base_ring(), self.variable_names())
-

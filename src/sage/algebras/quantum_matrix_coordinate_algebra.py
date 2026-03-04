@@ -1,3 +1,4 @@
+# sage.doctest: needs sage.combinat sage.modules
 r"""
 Quantum Matrix Coordinate Algebras
 
@@ -13,9 +14,8 @@ AUTHORS:
 #
 #  The full text of the GPL is available at:
 #
-#                  http://www.gnu.org/licenses/
+#                  https://www.gnu.org/licenses/
 ##############################################################################
-from six.moves import range
 
 from sage.misc.cachefunc import cached_method
 from sage.misc.lazy_attribute import lazy_attribute
@@ -26,7 +26,7 @@ from sage.categories.hopf_algebras import HopfAlgebras
 from sage.combinat.free_module import CombinatorialFreeModule
 from sage.monoids.indexed_free_monoid import IndexedFreeAbelianMonoid
 from sage.rings.polynomial.laurent_polynomial_ring import LaurentPolynomialRing
-from sage.rings.all import ZZ
+from sage.rings.integer_ring import ZZ
 
 
 class QuantumMatrixCoordinateAlgebra_abstract(CombinatorialFreeModule):
@@ -59,9 +59,8 @@ class QuantumMatrixCoordinateAlgebra_abstract(CombinatorialFreeModule):
                 q = R(q)
         if q is None:
             q = LaurentPolynomialRing(R, 'q').gen()
-        return super(QuantumMatrixCoordinateAlgebra_abstract,
-                     cls).__classcall__(cls,
-                                        q=q, bar=bar, R=q.parent(), **kwds)
+        return super().__classcall__(cls,
+                                     q=q, bar=bar, R=q.parent(), **kwds)
 
     def __init__(self, gp_indices, n, q, bar, R, category, indices_key=None):
         """
@@ -84,7 +83,7 @@ class QuantumMatrixCoordinateAlgebra_abstract(CombinatorialFreeModule):
             indices = IndexedFreeAbelianMonoid(gp_indices, sorting_key=indices_key)
         CombinatorialFreeModule.__init__(self, R, indices, category=category)
 
-    def _repr_term(self, m):
+    def _repr_term(self, m) -> str:
         r"""
         Return a string representation of the term indexed by ``m``.
 
@@ -110,7 +109,7 @@ class QuantumMatrixCoordinateAlgebra_abstract(CombinatorialFreeModule):
         return '*'.join(('x[{},{}]'.format(*k) if k != 'c' else 'c') + exp(e)
                         for k, e in m._sorted_items())
 
-    def _latex_term(self, m):
+    def _latex_term(self, m) -> str:
         r"""
         Return a latex representation of the term indexed by ``m``.
 
@@ -189,7 +188,7 @@ class QuantumMatrixCoordinateAlgebra_abstract(CombinatorialFreeModule):
         return self._indices.one()
 
     @cached_method
-    def gens(self):
+    def gens(self) -> tuple:
         r"""
         Return the generators of ``self`` as a tuple.
 
@@ -239,9 +238,8 @@ class QuantumMatrixCoordinateAlgebra_abstract(CombinatorialFreeModule):
             raise ValueError("undefined for non-square quantum matrices")
         from sage.combinat.permutation import Permutations
         q = self._q
-        return self.sum(self.term(self._indices({(i, p(i)): 1 for i in range(1, self._n + 1)}),
-                                  (-q) ** p.length())
-                        for p in Permutations(self._n))
+        return self._from_dict({self._indices({(i, p(i)): 1 for i in range(1, self._n + 1)}):
+                               (-q) ** p.length() for p in Permutations(self._n)})
 
     def product_on_basis(self, a, b):
         """
@@ -274,7 +272,6 @@ class QuantumMatrixCoordinateAlgebra_abstract(CombinatorialFreeModule):
             return self.monomial(a * b)
         G = self._indices.monoid_generators()
         one = self.base_ring().one()
-        ret = self.zero()
         q = self._q
         qi = q ** -1
         monomial = b
@@ -285,7 +282,7 @@ class QuantumMatrixCoordinateAlgebra_abstract(CombinatorialFreeModule):
                 if ax[0] < bx[0]:
                     # In order, so nothing more to do
                     break
-                elif ax[0] == bx[0]:
+                if ax[0] == bx[0]:
                     if ax[1] > bx[1]:
                         # x_{it} x_{ij} = q^{-1} x_{ij} x_{it} if t < j
                         coeff *= qi ** (ae * be)
@@ -505,9 +502,9 @@ class QuantumMatrixCoordinateAlgebra(QuantumMatrixCoordinateAlgebra_abstract):
         """
         if n is None:
             n = m
-        return super(QuantumMatrixCoordinateAlgebra, cls).__classcall__(cls, m=m, n=n,
-                                                                        q=q, bar=bar,
-                                                                        R=R)
+        return super().__classcall__(cls, m=m, n=n,
+                                     q=q, bar=bar,
+                                     R=R)
 
     def __init__(self, m, n, q, bar, R):
         """
@@ -517,6 +514,16 @@ class QuantumMatrixCoordinateAlgebra(QuantumMatrixCoordinateAlgebra_abstract):
 
             sage: O = algebras.QuantumMatrixCoordinate(4)
             sage: TestSuite(O).run()
+
+            sage: O = algebras.QuantumMatrixCoordinate(10)
+            sage: O.variable_names()
+            ('x0101', ..., 'x1010')
+            sage: O = algebras.QuantumMatrixCoordinate(11,3)
+            sage: O.variable_names()
+            ('x011', ..., 'x113')
+            sage: O = algebras.QuantumMatrixCoordinate(3,11)
+            sage: O.variable_names()
+            ('x101', ..., 'x311')
         """
         gp_indices = [(i, j) for i in range(1, m + 1) for j in range(1, n + 1)]
 
@@ -528,10 +535,13 @@ class QuantumMatrixCoordinateAlgebra(QuantumMatrixCoordinateAlgebra_abstract):
         self._m = m
         QuantumMatrixCoordinateAlgebra_abstract.__init__(self, gp_indices, n, q, bar, R, cat)
         # Set the names
-        names = ['x{}{}'.format(*k) for k in gp_indices]
+        mb = len(str(m))
+        nb = len(str(n))
+        base = 'x{{:0>{}}}{{:0>{}}}'.format(mb,nb)
+        names = [base.format(*k) for k in gp_indices]
         self._assign_names(names)
 
-    def _repr_(self):
+    def _repr_(self) -> str:
         r"""
         Return a string representation of ``self``.
 
@@ -548,7 +558,7 @@ class QuantumMatrixCoordinateAlgebra(QuantumMatrixCoordinateAlgebra_abstract):
         txt = "Quantized coordinate algebra of M({}, {}) with q={} over {}"
         return txt.format(self._m, self._n, self._q, self.base_ring())
 
-    def _latex_(self):
+    def _latex_(self) -> str:
         r"""
         Return a latex representation of ``self``.
 
@@ -576,7 +586,7 @@ class QuantumMatrixCoordinateAlgebra(QuantumMatrixCoordinateAlgebra_abstract):
         return self._m
 
     @cached_method
-    def algebra_generators(self):
+    def algebra_generators(self) -> Family:
         """
         Return the algebra generators of ``self``.
 
@@ -584,8 +594,7 @@ class QuantumMatrixCoordinateAlgebra(QuantumMatrixCoordinateAlgebra_abstract):
 
             sage: O = algebras.QuantumMatrixCoordinate(2)
             sage: O.algebra_generators()
-            Finite family {(1, 2): x[1,2], (1, 1): x[1,1],
-                           (2, 1): x[2,1], (2, 2): x[2,2]}
+            Finite family {(1, 1): x[1,1], (1, 2): x[1,2], (2, 1): x[2,1], (2, 2): x[2,2]}
         """
         l = [(i, j) for i in range(1, self._m + 1)
              for j in range(1, self._n + 1)]
@@ -710,12 +719,8 @@ class QuantumGL(QuantumMatrixCoordinateAlgebra_abstract):
 
     REFERENCES:
 
-    .. [DD91] R. Dipper and S. Donkin. *Quantum* `GL_n`.
-       Proc. London Math. Soc. (3) **63** (1991), no. 1, pp. 165-211.
-
-    .. [Karimipour93] Vahid Karimipour.
-       *Representations of the coordinate ring of* `GL_q(n)`.
-       (1993). :arxiv:`hep-th/9306058`.
+    - [DD1991]_
+    - [Kar1993]_
     """
     @staticmethod
     def __classcall_private__(cls, n, q=None, bar=None, R=None):
@@ -734,7 +739,7 @@ class QuantumGL(QuantumMatrixCoordinateAlgebra_abstract):
             sage: O1 is O4
             False
         """
-        return super(QuantumGL, cls).__classcall__(cls, n=n, q=q, bar=bar, R=R)
+        return super().__classcall__(cls, n=n, q=q, bar=bar, R=R)
 
     def __init__(self, n, q, bar, R):
         """
@@ -758,7 +763,7 @@ class QuantumGL(QuantumMatrixCoordinateAlgebra_abstract):
         names.append('c')
         self._assign_names(names)
 
-    def _repr_(self):
+    def _repr_(self) -> str:
         r"""
         Return a string representation of ``self``.
 
@@ -771,7 +776,7 @@ class QuantumGL(QuantumMatrixCoordinateAlgebra_abstract):
         txt = "Quantized coordinate algebra of GL({}) with q={} over {}"
         return txt.format(self._n, self._q, self.base_ring())
 
-    def _latex_(self):
+    def _latex_(self) -> str:
         r"""
         Return a latex representation of ``self``.
 
@@ -792,8 +797,7 @@ class QuantumGL(QuantumMatrixCoordinateAlgebra_abstract):
 
             sage: O = algebras.QuantumGL(2)
             sage: O.algebra_generators()
-            Finite family {(1, 2): x[1,2], 'c': c, (1, 1): x[1,1],
-                           (2, 1): x[2,1], (2, 2): x[2,2]}
+            Finite family {(1, 1): x[1,1], (1, 2): x[1,2], (2, 1): x[2,1], (2, 2): x[2,2], 'c': c}
         """
         l = [(i, j) for i in range(1, self._n + 1)
              for j in range(1, self._n + 1)]
@@ -874,7 +878,7 @@ class QuantumGL(QuantumMatrixCoordinateAlgebra_abstract):
             c_exp += db.pop('c')
             b = I(db)
         # a and b contain no powers of c
-        p = super(QuantumGL, self).product_on_basis(a, b)
+        p = super().product_on_basis(a, b)
         if c_exp == 0:
             return p
         c = self._indices.monoid_generators()['c']
@@ -971,24 +975,31 @@ class QuantumGL(QuantumMatrixCoordinateAlgebra_abstract):
                       if t != 'c' else T.monomial((I['c'], I['c'])) ** e
                       for t, e in x._sorted_items())
 
+
 def _generator_key(t):
     """
     Helper function to make ``'c'`` less that all other indices for
     sorting the monomials in :class:`QuantumGL`.
 
+    INPUT:
+
+    - ``t`` -- tuple (index, exponent)
+
+    OUTPUT: a tuple made from the index only
+
     EXAMPLES::
 
         sage: from sage.algebras.quantum_matrix_coordinate_algebra import _generator_key as k
-        sage: k((1,2)) < k('c')
+        sage: k(((1,2),1)) < k(('c',1))
         False
-        sage: k((1,2)) < k((1,3))
+        sage: k(((1,2),1)) < k(((1,3),1))
         True
-        sage: k((1,2)) < k((3,1))
+        sage: k(((1,2),1)) < k(((3,1),1))
         True
-        sage: k('c') < k((1,1))
+        sage: k(('c',2)) < k(((1,1),1))
         True
     """
+    t = t[0]
     if isinstance(t, tuple):
         return t
     return ()
-

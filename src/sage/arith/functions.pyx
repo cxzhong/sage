@@ -2,21 +2,21 @@
 Fast Arithmetic Functions
 """
 
-#*****************************************************************************
+# ****************************************************************************
 #       Copyright (C) 2017 Travis Scrimshaw <tcscrims at gmail.com>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
 from cysignals.signals cimport sig_check
 
 from sage.libs.gmp.mpz cimport mpz_lcm, mpz_set_ui
 from sage.rings.integer cimport Integer
-from sage.structure.element cimport coercion_model
+from sage.structure.coerce cimport coercion_model
 
 
 def lcm(a, b=None):
@@ -28,9 +28,9 @@ def lcm(a, b=None):
 
     INPUT:
 
-    - ``a,b`` -- two elements of a ring with lcm or
+    - ``a``, ``b`` -- two elements of a ring with lcm or
 
-    - ``a`` -- a list or tuple of elements of a ring with lcm
+    - ``a`` -- list; tuple or iterable of elements of a ring with lcm
 
     OUTPUT:
 
@@ -39,23 +39,23 @@ def lcm(a, b=None):
 
     EXAMPLES::
 
-        sage: lcm(97,100)
+        sage: lcm(97, 100)
         9700
-        sage: LCM(97,100)
+        sage: LCM(97, 100)
         9700
-        sage: LCM(0,2)
+        sage: LCM(0, 2)
         0
-        sage: LCM(-3,-5)
+        sage: LCM(-3, -5)
         15
         sage: LCM([1,2,3,4,5])
         60
-        sage: v = LCM(range(1,10000))   # *very* fast!
+        sage: v = LCM(range(1, 10000))   # *very* fast!
         sage: len(str(v))
         4349
 
     TESTS:
 
-    The following tests against a bug that was fixed in :trac:`10771`::
+    The following tests against a bug that was fixed in :issue:`10771`::
 
         sage: lcm(4/1,2)
         4
@@ -63,46 +63,46 @@ def lcm(a, b=None):
     The following shows that indeed coercion takes place before
     computing the least common multiple::
 
-        sage: R.<x>=QQ[]
-        sage: S.<x>=ZZ[]
+        sage: R.<x> = QQ[]
+        sage: S.<x> = ZZ[]
         sage: p = S.random_element(degree=(0,5))
         sage: q = R.random_element(degree=(0,5))
         sage: parent(lcm([1/p,q]))
         Fraction Field of Univariate Polynomial Ring in x over Rational Field
 
-    Make sure we try `\QQ` and not merely `\ZZ` (:trac:`13014`)::
+    Make sure we try `\QQ` and not merely `\ZZ` (:issue:`13014`)::
 
-        sage: bool(lcm(2/5, 3/7) == lcm(SR(2/5), SR(3/7)))
+        sage: bool(lcm(2/5, 3/7) == lcm(SR(2/5), SR(3/7)))                              # needs sage.symbolic
         True
 
     Make sure that the lcm of Expressions stays symbolic::
 
         sage: parent(lcm(2, 4))
         Integer Ring
-        sage: parent(lcm(SR(2), 4))
+        sage: parent(lcm(SR(2), 4))                                                     # needs sage.symbolic
         Symbolic Ring
-        sage: parent(lcm(2, SR(4)))
+        sage: parent(lcm(2, SR(4)))                                                     # needs sage.symbolic
         Symbolic Ring
-        sage: parent(lcm(SR(2), SR(4)))
+        sage: parent(lcm(SR(2), SR(4)))                                                 # needs sage.symbolic
         Symbolic Ring
 
     Verify that objects without lcm methods but which can't be
     coerced to `\ZZ` or `\QQ` raise an error::
 
-        sage: F.<x,y> = FreeMonoid(2)
-        sage: lcm(x,y)
+        sage: F.<x,y> = FreeMonoid(2)                                                   # needs sage.groups
+        sage: lcm(x,y)                                                                  # needs sage.groups
         Traceback (most recent call last):
         ...
         TypeError: unable to find lcm of x and y
 
-    Check rational and integers (:trac:`17852`)::
+    Check rational and integers (:issue:`17852`)::
 
         sage: lcm(1/2, 4)
         4
         sage: lcm(4, 1/2)
         4
 
-    Check that we do not mutate the list (:trac:`22630`)::
+    Check that we do not mutate the list (:issue:`22630`)::
 
         sage: L = [int(1), int(2)]
         sage: lcm(L)
@@ -115,7 +115,7 @@ def lcm(a, b=None):
 
     try:
         return a.lcm(b)
-    except (AttributeError,TypeError):
+    except (AttributeError, TypeError):
         pass
     try:
         return Integer(a).lcm(Integer(b))
@@ -135,7 +135,7 @@ cpdef LCM_list(v):
 
     INPUT:
 
-    -  ``v`` -- an iterable
+    - ``v`` -- an iterable
 
     OUTPUT: integer
 
@@ -145,14 +145,14 @@ cpdef LCM_list(v):
         sage: w = LCM_list([3,9,30]); w
         90
         sage: type(w)
-        <type 'sage.rings.integer.Integer'>
+        <class 'sage.rings.integer.Integer'>
 
     The inputs are converted to Sage integers::
 
         sage: w = LCM_list([int(3), int(9), int(30)]); w
         90
         sage: type(w)
-        <type 'sage.rings.integer.Integer'>
+        <class 'sage.rings.integer.Integer'>
 
     TESTS::
 
@@ -168,7 +168,6 @@ cpdef LCM_list(v):
 
         sage: LCM_list(Sequence(srange(100)))
         0
-        sage: from six.moves import range
         sage: LCM_list(range(100))
         0
 
@@ -186,13 +185,6 @@ cpdef LCM_list(v):
         sage: R.<X> = QQ[]
         sage: LCM_list(Sequence((2*X+4,2*X^2,2)))
         X^3 + 2*X^2
-
-    Passing strings works, but this is deprecated::
-
-        sage: LCM_list([int(3), int(9), '30'])
-        doctest:...: DeprecationWarning: passing strings to lcm() is deprecated
-        See http://trac.sagemath.org/22630 for details.
-        90
     """
     cdef Integer x
     cdef Integer z = <Integer>(Integer.__new__(Integer))
@@ -203,11 +195,7 @@ cpdef LCM_list(v):
         sig_check()
         if isinstance(elt, Integer):
             x = <Integer>elt
-        elif isinstance(elt, (int, long)):
-            x = Integer(elt)
-        elif isinstance(elt, str):
-            from sage.misc.superseded import deprecation
-            deprecation(22630, "passing strings to lcm() is deprecated")
+        elif isinstance(elt, int):
             x = Integer(elt)
         else:
             # The result is no longer an Integer, pass to generic code

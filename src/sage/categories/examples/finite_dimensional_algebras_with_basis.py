@@ -1,3 +1,4 @@
+# sage.doctest: needs sage.modules
 r"""
 Example of a finite dimensional algebra with basis
 """
@@ -9,7 +10,7 @@ Example of a finite dimensional algebra with basis
 #*****************************************************************************
 
 from sage.misc.cachefunc import cached_method
-from sage.categories.all import FiniteDimensionalAlgebrasWithBasis
+from sage.categories.finite_dimensional_algebras_with_basis import FiniteDimensionalAlgebrasWithBasis
 from sage.combinat.free_module import CombinatorialFreeModule
 
 
@@ -55,7 +56,7 @@ class KroneckerQuiverPathAlgebra(CombinatorialFreeModule):
         """
         return "An example of a finite dimensional algebra with basis: " \
             "the path algebra of the Kronecker quiver " \
-            "(containing the arrows a:x->y and b:x->y) over %s "%(self.base_ring())
+            "(containing the arrows a:x->y and b:x->y) over %s " % (self.base_ring())
 
     def one(self):
         r"""
@@ -122,7 +123,7 @@ class KroneckerQuiverPathAlgebra(CombinatorialFreeModule):
             the path algebra of the Kronecker quiver
             (containing the arrows a:x->y and b:x->y) over Rational Field
             sage: A.algebra_generators()
-            Finite family {'y': y, 'x': x, 'b': b, 'a': a}
+            Finite family {'x': x, 'y': y, 'a': a, 'b': b}
         """
         return self.basis()
 
@@ -141,5 +142,6 @@ class KroneckerQuiverPathAlgebra(CombinatorialFreeModule):
             x + y
         """
         return str(p)
+
 
 Example = KroneckerQuiverPathAlgebra

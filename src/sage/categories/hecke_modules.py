@@ -1,19 +1,19 @@
 r"""
 Hecke modules
 """
-from __future__ import absolute_import
-#*****************************************************************************
+# ****************************************************************************
 #  Copyright (C) 2005      David Kohel <kohel@maths.usyd.edu>
 #                          William Stein <wstein@math.ucsd.edu>
 #                2008-2009 Nicolas M. Thiery <nthiery at users.sf.net>
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
-#                  http://www.gnu.org/licenses/
-#******************************************************************************
+#                  https://www.gnu.org/licenses/
+# *****************************************************************************
 
 from sage.categories.category_types import Category_module
 from sage.categories.homsets import HomsetsCategory
 from sage.categories.modules_with_basis import ModulesWithBasis
+
 
 class HeckeModules(Category_module):
     r"""
@@ -64,14 +64,14 @@ class HeckeModules(Category_module):
 
             sage: TestSuite(HeckeModules(ZZ)).run()
 
-            sage: HeckeModules(Partitions(3)).run()
+            sage: HeckeModules(Partitions(3)).run()                                     # needs sage.combinat
             Traceback (most recent call last):
             ...
             TypeError: R (=Partitions of the integer 3) must be a commutative ring
         """
         from .commutative_rings import CommutativeRings
         if R not in CommutativeRings():
-            raise TypeError("R (=%s) must be a commutative ring"%R)
+            raise TypeError("R (=%s) must be a commutative ring" % R)
         Category_module.__init__(self, R)
 
     def super_categories(self):
@@ -83,7 +83,6 @@ class HeckeModules(Category_module):
         """
         R = self.base_ring()
         return [ModulesWithBasis(R)]
-
 
     def _repr_object_names(self):
         """
@@ -104,26 +103,31 @@ class HeckeModules(Category_module):
 
         def _Hom_(self, Y, category):
             r"""
-            Returns the homset from ``self`` to ``Y`` in the category ``category``
+            Return the homset from ``self`` to ``Y`` in the category ``category``.
 
             INPUT:
 
             - ``Y`` -- an Hecke module
-            - ``category`` -- a subcategory of :class:`HeckeModules`() or None
+            - ``category`` -- a subcategory of :class:`HeckeModules()
+              <HeckeModules>` or ``None``
 
             The sole purpose of this method is to construct the homset
             as a :class:`~sage.modular.hecke.homspace.HeckeModuleHomspace`. If
             ``category`` is specified and is not a subcategory of
-            :class:`HeckeModules`, a ``TypeError`` is raised instead
+            :class:`HeckeModules`, a :exc:`TypeError` is raised instead
 
             This method is not meant to be called directly. Please use
             :func:`sage.categories.homset.Hom` instead.
 
             EXAMPLES::
 
+                sage: # needs sage.libs.pari sage.modular
                 sage: M = ModularForms(Gamma0(7), 4)
-                sage: H = M._Hom_(M, category = HeckeModules(QQ)); H
-                Set of Morphisms from Modular Forms space of dimension 3 for Congruence Subgroup Gamma0(7) of weight 4 over Rational Field to Modular Forms space of dimension 3 for Congruence Subgroup Gamma0(7) of weight 4 over Rational Field in Category of Hecke modules over Rational Field
+                sage: H = M._Hom_(M, category=HeckeModules(QQ)); H
+                Set of Morphisms
+                 from Modular Forms space of dimension 3 for Congruence Subgroup Gamma0(7) of weight 4 over Rational Field
+                   to Modular Forms space of dimension 3 for Congruence Subgroup Gamma0(7) of weight 4 over Rational Field
+                   in Category of Hecke modules over Rational Field
                 sage: H.__class__
                 <class 'sage.modular.hecke.homspace.HeckeModuleHomspace_with_category'>
                 sage: TestSuite(H).run(skip=["_test_elements", "_test_an_element", "_test_elements_eq",
@@ -135,44 +139,38 @@ class HeckeModules(Category_module):
             Fixing :meth:`_test_zero` (``__call__`` should accept a
             function as input) and :meth:`_test_elements*` (modular
             form morphisms elements should inherit from categories) is
-            :trac:`12879`.
+            :issue:`12879`.
 
             TESTS::
 
-                sage: H = M._Hom_(M, category = HeckeModules(GF(5))); H
+                sage: H = M._Hom_(M, category=HeckeModules(GF(5))); H                   # needs sage.libs.pari sage.modular
                 Traceback (most recent call last):
                 ...
-                TypeError: Category of Hecke modules over Finite Field of size 5 is not a subcategory of Category of Hecke modules over Rational Field
-
+                TypeError: Category of Hecke modules over Finite Field of size 5
+                is not a subcategory of Category of Hecke modules over Rational Field
             """
             # TODO: double check that it's the correct HeckeModules category below:
             if category is not None and not category.is_subcategory(HeckeModules(self.base_ring())):
-                raise TypeError("%s is not a subcategory of %s"%(category, HeckeModules(self.base_ring())))
+                raise TypeError("%s is not a subcategory of %s" % (category, HeckeModules(self.base_ring())))
             from sage.modular.hecke.homspace import HeckeModuleHomspace
-            return HeckeModuleHomspace(self, Y, category = category)
+            return HeckeModuleHomspace(self, Y, category=category)
 
     class Homsets(HomsetsCategory):
         """
         TESTS::
 
             sage: TestSuite(HeckeModules(ZZ).Homsets()).run()
+
+            sage: HeckeModules(QQ).Homsets().base_ring()
+            Rational Field
         """
-
-        def base_ring(self):
-            """
-            EXAMPLES::
-
-                sage: HeckeModules(QQ).Homsets().base_ring()
-                Rational Field
-            """
-            return self.base_category().base_ring()
 
         def extra_super_categories(self):
             """
             TESTS:
 
             Check that Hom sets of Hecke modules are in the correct
-            category (see :trac:`17359`)::
+            category (see :issue:`17359`)::
 
                 sage: HeckeModules(ZZ).Homsets().super_categories()
                 [Category of modules over Integer Ring, Category of homsets]
@@ -180,7 +178,7 @@ class HeckeModules(Category_module):
                 [Category of vector spaces over Rational Field, Category of homsets]
             """
             from sage.categories.modules import Modules
-            return [Modules(self.base_ring())]
+            return [Modules(self.base_category().base_ring())]
 
         class ParentMethods:
             pass

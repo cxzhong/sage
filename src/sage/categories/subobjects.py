@@ -15,6 +15,7 @@ AUTHORS:
 from sage.categories.category import Category
 from sage.categories.covariant_functorial_construction import RegressiveCovariantConstructionCategory
 
+
 class SubobjectsCategory(RegressiveCovariantConstructionCategory):
 
     _functor_category = "Subobjects"
@@ -22,7 +23,7 @@ class SubobjectsCategory(RegressiveCovariantConstructionCategory):
     @classmethod
     def default_super_categories(cls, category):
         """
-        Returns the default super categories of ``category.Subobjects()``
+        Return the default super categories of ``category.Subobjects()``.
 
         Mathematical meaning: if `A` is a subobject of `B` in the
         category `C`, then `A` is also a subquotient of `B` in the
@@ -30,8 +31,8 @@ class SubobjectsCategory(RegressiveCovariantConstructionCategory):
 
         INPUT:
 
-         - ``cls`` -- the class ``SubobjectsCategory``
-         - ``category`` -- a category `Cat`
+        - ``cls`` -- the class ``SubobjectsCategory``
+        - ``category`` -- a category `Cat`
 
         OUTPUT: a (join) category
 
@@ -59,4 +60,4 @@ class SubobjectsCategory(RegressiveCovariantConstructionCategory):
             sage: sage.categories.subobjects.SubobjectsCategory.default_super_categories(Groups())
             Join of Category of groups and Category of subquotients of monoids and Category of subobjects of sets
         """
-        return Category.join([category.Subquotients(), super(SubobjectsCategory, cls).default_super_categories(category)])
+        return Category.join([category.Subquotients(), super().default_super_categories(category)])

@@ -1,5 +1,4 @@
-$(PYTHON) jinja2 tornado pyzmq pickleshare simplegeneric traitlets | pip backports_shutil_get_terminal_size wcwidth prompt_toolkit pygments pexpect appnope
+tornado pyzmq pickleshare traitlets decorator wcwidth prompt_toolkit pygments pexpect jedi stack_data exceptiongroup matplotlib_inline | $(PYTHON_TOOLCHAIN) $(PYTHON)
 
 ----------
 All lines of this file are ignored except the first.
-It is copied by SAGE_ROOT/build/make/install into SAGE_ROOT/build/make/Makefile.

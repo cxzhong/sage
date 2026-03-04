@@ -1,8 +1,7 @@
 """
 Symbolic Integration
 """
-
-#*****************************************************************************
+# ****************************************************************************
 #       Copyright (C) 2009 Golam Mortuza Hossain <gmhossain@gmail.com>
 #       Copyright (C) 2010 Burcin Erocal <burcin@erocal.org>
 #
@@ -10,33 +9,34 @@ Symbolic Integration
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************`
-from __future__ import print_function
-
-from sage.symbolic.ring import SR, is_SymbolicVariable
-from sage.symbolic.function import BuiltinFunction, Function
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************`
+from sage.structure.element import Expression
+from sage.symbolic.ring import SR
+from sage.symbolic.function import BuiltinFunction
 
 ##################################################################
 #  Table of available integration routines
 ##################################################################
 
+import sage.symbolic.integration.external as external
+
 # Add new integration routines to the dictionary below. This will make them
 # accessible with the 'algorithm' keyword parameter of top level integrate().
 available_integrators = {}
-
-import sage.symbolic.integration.external as external
 available_integrators['maxima'] = external.maxima_integrator
 available_integrators['sympy'] = external.sympy_integrator
 available_integrators['mathematica_free'] = external.mma_free_integrator
 available_integrators['fricas'] = external.fricas_integrator
-available_integrators['giac'] = external.giac_integrator
+available_integrators['giac'] = external.libgiac_integrator
+available_integrators['libgiac'] = external.libgiac_integrator
 
 ######################################################
 #
 # Class implementing symbolic integration
 #
 ######################################################
+
 
 class IndefiniteIntegral(BuiltinFunction):
     def __init__(self):
@@ -55,12 +55,42 @@ class IndefiniteIntegral(BuiltinFunction):
             sage: indefinite_integral(exp(x), 2*x)
             2*e^x
 
+        TESTS:
+
+        Check for :issue:`28913`::
+
+            sage: # needs sage.libs.giac
+            sage: Ex = (1-2*x^(1/3))^(3/4)/x
+            sage: integrate(Ex, x, algorithm='giac')  # long time
+            4*(-2*x^(1/3) + 1)^(3/4) + 6*arctan((-2*x^(1/3) + 1)^(1/4)) - 3*log(abs((-2*x^(1/3) + 1)^(1/4) + 1)) + 3*log(abs((-2*x^(1/3) + 1)^(1/4) - 1))
+
+        Check for :issue:`29833`::
+
+            sage: (x,a,b)=var('x a b')
+            sage: assume(b > 0)
+            sage: f = (exp((x-a)/b) + 1)**(-1)
+            sage: (f*f).integrate(x, algorithm='mathematica_free') # optional -- internet
+            -b*log(e^(a/b) + e^(x/b)) + x + b/(e^(-(a - x)/b) + 1)
+
+        After :issue:`25119` we can integrate the following function,
+        although giac and sympy give different-looking answers::
+
+            sage: result = integrate(sqrt(x^2)/x,x)
+            ...
+            sage: result in [x*sgn(x), sqrt(x^2)]
+            True
         """
         # The automatic evaluation routine will try these integrators
         # in the given order. This is an attribute of the class instead of
         # a global variable in this module to enable customization by
         # creating a subclasses which define a different set of integrators
-        self.integrators = [external.maxima_integrator]
+        #
+        # The libgiac integrator may immediately return a symbolic
+        # (unevaluated) answer if libgiac is unavailable. This essentially
+        # causes it to be skipped.
+        self.integrators = [external.maxima_integrator,
+                            external.libgiac_integrator,
+                            external.sympy_integrator]
 
         BuiltinFunction.__init__(self, "integrate", nargs=2, conversions={'sympy': 'Integral',
                                                                           'giac': 'integrate'})
@@ -74,24 +104,51 @@ class IndefiniteIntegral(BuiltinFunction):
             e^x
             sage: indefinite_integral(exp(x), x^2)
             2*(x - 1)*e^x
+
+        TESTS:
+
+        Check that :issue:`28842` is fixed::
+
+            sage: integrate(1/(x^4 + x^3 + 1), x)
+            integrate(1/(x^4 + x^3 + 1), x)
+
+        Check that :issue:`32002` is fixed. This needs giac since only
+        giac can integrate it in any case::
+
+            sage: # needs sage.libs.giac
+            sage: result = integral(2*min_symbolic(x,2*x),x)
+            ...
+            sage: result
+            -1/2*x^2*sgn(x) + 3/2*x^2
         """
         # Check for x
-        if not is_SymbolicVariable(x):
+        if not (isinstance(x, Expression) and x.is_symbol()):
             if len(x.variables()) == 1:
                 nx = x.variables()[0]
-                f = f*x.diff(nx)
+                f = f * x.diff(nx)
                 x = nx
             else:
                 return None
 
         # we try all listed integration algorithms
+        A = None
         for integrator in self.integrators:
-            res = integrator(f, x)
             try:
-                return integrator(f, x)
-            except NotImplementedError:
+                A = integrator(f, x)
+            except (NotImplementedError, TypeError,
+                    AttributeError, RuntimeError):
                 pass
-        return None
+            except ValueError:
+                # maxima is telling us something
+                raise
+            else:
+                if not hasattr(A, 'operator'):
+                    return A
+                else:
+                    uneval = integral(SR.wild(0), x, hold=True)
+                    if not A.has(uneval):
+                        return A
+        return A
 
     def _tderivative_(self, f, x, diff_param=None):
         """
@@ -106,12 +163,12 @@ class IndefiniteIntegral(BuiltinFunction):
             0
         """
         if x.has(diff_param):
-            return f*x.derivative(diff_param)
+            return f * x.derivative(diff_param)
         else:
             return f.derivative(diff_param).integral(x)
 
     def _print_latex_(self, f, x):
-        """
+        r"""
         EXAMPLES::
 
             sage: from sage.symbolic.integration.integral import indefinite_integral
@@ -125,79 +182,118 @@ class IndefiniteIntegral(BuiltinFunction):
             \int \frac{\tan\left(x\right)}{x}\,{d x}
         """
         from sage.misc.latex import latex
-        if not is_SymbolicVariable(x):
-            dx_str = "{d \\left(%s\\right)}"%(latex(x))
+        if not (isinstance(x, Expression) and x.is_symbol()):
+            dx_str = "{d \\left(%s\\right)}" % latex(x)
         else:
-            dx_str = "{d %s}"%(latex(x))
+            dx_str = "{d %s}" % latex(x)
 
-        return "\\int %s\\,%s"%(latex(f), dx_str)
+        return "\\int %s\\,%s" % (latex(f), dx_str)
+
 
 indefinite_integral = IndefiniteIntegral()
+
 
 class DefiniteIntegral(BuiltinFunction):
     def __init__(self):
         """
-        Symbolic function representing a definite integral.
+        The symbolic function representing a definite integral.
 
         EXAMPLES::
 
             sage: from sage.symbolic.integration.integral import definite_integral
             sage: definite_integral(sin(x),x,0,pi)
             2
+
+        TESTS:
+
+        Check for :issue:`32354`::
+
+            sage: # needs sage.libs.giac
+            sage: ex = 1/max_symbolic(x, 1)**2
+            sage: result = integral(ex, x, 0, 2, algorithm='giac') # random
+            sage: result
+            3/2
+            sage: result = integral(1/max_symbolic(x, 1)**2, x, 0, oo, algorithm='giac') # random
+            sage: result
+            2
         """
         # The automatic evaluation routine will try these integrators
         # in the given order. This is an attribute of the class instead of
         # a global variable in this module to enable customization by
         # creating a subclasses which define a different set of integrators
-        self.integrators = [external.maxima_integrator]
+        self.integrators = [external.maxima_integrator,
+                            external.libgiac_integrator,
+                            external.sympy_integrator]
 
         BuiltinFunction.__init__(self, "integrate", nargs=4, conversions={'sympy': 'Integral',
                                                                           'giac': 'integrate'})
 
     def _eval_(self, f, x, a, b):
         """
-        Returns the results of symbolic evaluation of the integral
+        Return the results of symbolic evaluation of the integral.
 
         EXAMPLES::
 
             sage: from sage.symbolic.integration.integral import definite_integral
             sage: definite_integral(exp(x),x,0,1) # indirect doctest
             e - 1
+
+        TESTS:
+
+        Check that :issue:`32002` is fixed::
+
+            sage: result = integral(2*min_symbolic(x,2*x),x,-1,1)
+            ...
+            sage: result
+            -1
         """
         # Check for x
-        if not is_SymbolicVariable(x):
+        if not (isinstance(x, Expression) and x.is_symbol()):
             if len(x.variables()) == 1:
                 nx = x.variables()[0]
-                f = f*x.diff(nx)
+                f = f * x.diff(nx)
                 x = nx
             else:
                 return None
 
-        args = (f,x,a,b)
+        args = (f, x, a, b)
 
         # we try all listed integration algorithms
+        A = None
         for integrator in self.integrators:
             try:
-                return integrator(*args)
-            except NotImplementedError:
+                A = integrator(*args)
+            except (NotImplementedError, TypeError,
+                    AttributeError, RuntimeError):
                 pass
-        return None
+            except ValueError:
+                # maxima is telling us something
+                raise
+            else:
+                if not hasattr(A, 'operator'):
+                    return A
+                else:
+                    uneval = integral(SR.wild(0), x, a, b, hold=True)
+                    if not A.has(uneval):
+                        return A
+        return A
 
     def _evalf_(self, f, x, a, b, parent=None, algorithm=None):
         """
-        Returns numerical approximation of the integral
+        Return a numerical approximation of the integral.
 
         EXAMPLES::
 
             sage: from sage.symbolic.integration.integral import definite_integral
-            sage: h = definite_integral(sin(x)*log(x)/x^2, x, 1, 2); h
+            sage: f = sin(x)*log(x)/x^2
+            sage: h = definite_integral(f, x, 1, 2, hold=True); h
             integrate(log(x)*sin(x)/x^2, x, 1, 2)
             sage: h.n() # indirect doctest
             0.14839875208053...
 
         TESTS:
 
-        Check if :trac:`3863` is fixed::
+        Check if :issue:`3863` is fixed::
 
             sage: integrate(x^2.7 * e^(-2.4*x), x, 0, 3).n()
             0.154572952320790
@@ -209,31 +305,45 @@ class DefiniteIntegral(BuiltinFunction):
 
     def _tderivative_(self, f, x, a, b, diff_param=None):
         """
-        Returns derivative of symbolic integration
+        Return the derivative of symbolic integration.
 
         EXAMPLES::
 
             sage: from sage.symbolic.integration.integral import definite_integral
             sage: f = function('f'); a,b=var('a,b')
             sage: h = definite_integral(f(x), x,a,b)
+            ...
             sage: h.diff(x) # indirect doctest
             0
             sage: h.diff(a)
             -f(a)
             sage: h.diff(b)
             f(b)
+
+        TESTS:
+
+        Check for :issue:`28656`::
+
+            sage: t = var("t")
+            sage: f = function("f")
+            sage: F(x) = integrate(f(t),t,0,x)
+            sage: F(x).diff(x)
+            f(x)
         """
         if not x.has(diff_param):
             # integration variable != differentiation variable
             ans = definite_integral(f.diff(diff_param), x, a, b)
         else:
-            ans = SR(0)
-        return ans + f.subs(x==b)*b.diff(diff_param) \
-                    - f.subs(x==a)*a.diff(diff_param)
+            ans = SR.zero()
+        if hasattr(b, 'diff'):
+            ans += f.subs(x == b) * b.diff(diff_param)
+        if hasattr(a, 'diff'):
+            ans -= f.subs(x == a) * a.diff(diff_param)
+        return ans
 
     def _print_latex_(self, f, x, a, b):
         r"""
-        Returns LaTeX expression for integration of a symbolic function.
+        Convert this integral to LaTeX notation.
 
         EXAMPLES::
 
@@ -244,38 +354,57 @@ class DefiniteIntegral(BuiltinFunction):
             sage: f = function('f')
             sage: print_latex(f(x),x,0,1)
             '\\int_{0}^{1} f\\left(x\\right)\\,{d x}'
-            sage: latex(integrate(tan(x)/x, x, 0, 1))
+            sage: ans = latex(integrate(tan(x)/x, x, 0, 1)) # random - ignore giac stderr output
+            sage: ans
             \int_{0}^{1} \frac{\tan\left(x\right)}{x}\,{d x}
         """
         from sage.misc.latex import latex
-        if not is_SymbolicVariable(x):
-            dx_str = "{d \\left(%s\\right)}"%(latex(x))
+        if not (isinstance(x, Expression) and x.is_symbol()):
+            dx_str = "{d \\left(%s\\right)}" % latex(x)
         else:
-            dx_str = "{d %s}"%(latex(x))
-        return "\\int_{%s}^{%s} %s\\,%s"%(latex(a), latex(b), latex(f), dx_str)
+            dx_str = "{d %s}" % latex(x)
+        return "\\int_{%s}^{%s} %s\\,%s" % (latex(a), latex(b),
+                                            latex(f), dx_str)
+
+    def _sympy_(self, f, x, a, b):
+        """
+        Convert this integral to the equivalent SymPy object.
+
+        The resulting SymPy integral can be evaluated using ``doit()``.
+
+        EXAMPLES::
+
+            sage: integral(x, x, 0, 1, hold=True)._sympy_()                             # needs sympy
+            Integral(x, (x, 0, 1))
+            sage: _.doit()                                                              # needs sympy
+            1/2
+        """
+        from sympy.integrals import Integral
+        return Integral(f, (x, a, b))
+
 
 definite_integral = DefiniteIntegral()
 
 
-def _normalize_integral_input(f, v=None, a=None, b=None):
+def _normalize_integral_input(f, v, a=None, b=None):
     r"""
     Validate and return variable and endpoints for an integral.
 
     INPUT:
 
-    - ``f`` -- an expression to integrate;
+    - ``f`` -- an expression to integrate
 
-    - ``v`` -- a variable of integration or a triple;
+    - ``v`` -- a variable of integration or a triple
 
-    - ``a`` -- (optional) the left endpoint of integration;
+    - ``a`` -- (optional) the left endpoint of integration
 
-    - ``b`` -- (optional) the right endpoint of integration.
+    - ``b`` -- (optional) the right endpoint of integration
 
-    It is also possible to pass last three parameters in ``v`` as a triple.
+    It is also possible to pass the last three parameters in ``v`` as a triple.
 
-    OUTPUT:
+    If the input contains endpoints, both endpoints must be given.
 
-    - a tuple of ``f``, ``v``, ``a``, and ``b``.
+    OUTPUT: a tuple of ``f``, ``v``, ``a``, and ``b``
 
     EXAMPLES::
 
@@ -285,41 +414,39 @@ def _normalize_integral_input(f, v=None, a=None, b=None):
         (x^2, x, 0, 3)
         sage: _normalize_integral_input(x^2, [x, 0, 3], None, None)
         (x^2, x, 0, 3)
-        sage: _normalize_integral_input(x^2, [0, 3], None, None)
-        doctest:...: DeprecationWarning:
-        Variable of integration should be specified explicitly.
-        See http://trac.sagemath.org/12438 for details.
-        (x^2, x, 0, 3)
         sage: _normalize_integral_input(x^2, [x], None, None)
         (x^2, x, None, None)
+
+    TESTS::
+
+        sage: _normalize_integral_input(x^2, [0, 3], None, None)
+        Traceback (most recent call last):
+        ...
+        TypeError: invalid input [0, 3] - please use variable,
+        with or without two endpoints
+        sage: _normalize_integral_input(x^2, x, 0, None)
+        Traceback (most recent call last):
+        ...
+        TypeError: only one endpoint was given!
     """
     if isinstance(v, (list, tuple)) and a is None and b is None:
-        if len(v) == 1: # bare variable in a tuple
+        if len(v) == 1:  # bare variable in a tuple
             v = v[0]
-        elif len(v) == 2: # endpoints only
-            a, b = v
-            v = None
-        elif len(v) == 3: # variable and endpoints
+        elif len(v) == 3:  # variable and two endpoints
             v, a, b = v
         else:
-            raise ValueError("invalid input %s - please use variable, "
-                             "with or without two endpoints" % repr(v))
-    elif b is None and a is not None:
-        # two arguments, must be endpoints
-        v, a, b = None, v, a
-    if v is None:
-        from sage.misc.superseded import deprecation
-        deprecation(12438, "Variable of integration should be specified explicitly.")
-        v = f.default_variable()
-        if isinstance(f, Function):  # a bare function like sin
-            f = f(v)
+            raise TypeError("invalid input %s - please use variable, "
+                            "with or without two endpoints" % repr(v))
+
     if (a is None) ^ (b is None):
         raise TypeError('only one endpoint was given!')
+
     return f, v, a, b
+
 
 def integrate(expression, v=None, a=None, b=None, algorithm=None, hold=False):
     r"""
-    Returns the indefinite integral with respect to the variable
+    Return the indefinite integral with respect to the variable
     `v`, ignoring the constant of integration. Or, if endpoints
     `a` and `b` are specified, returns the definite
     integral over the interval `[a, b]`.
@@ -335,26 +462,28 @@ def integrate(expression, v=None, a=None, b=None, algorithm=None, hold=False):
 
     INPUT:
 
-    - ``v`` - a variable or variable name.  This can also be a tuple of
-      the variable (optional) and endpoints (i.e., ``(x,0,1)`` or ``(0,1)``).
+    - ``v`` -- a variable or variable name; this can also be a tuple of
+      the variable (optional) and endpoints (i.e., ``(x,0,1)`` or ``(0,1)``)
 
-    - ``a`` - (optional) lower endpoint of definite integral
+    - ``a`` -- (optional) lower endpoint of definite integral
 
-    - ``b`` - (optional) upper endpoint of definite integral
+    - ``b`` -- (optional) upper endpoint of definite integral
 
-    - ``algorithm`` - (default: 'maxima') one of
+    - ``algorithm`` -- (default: ``'maxima'``, ``'libgiac'`` and ``'sympy'``) one of
 
-       - 'maxima' - use maxima (the default)
+      - ``'maxima'`` -- use maxima
 
-       - 'sympy' - use sympy (also in Sage)
+      - ``'sympy'`` -- use sympy (also in Sage)
 
-       - 'mathematica_free' - use http://integrals.wolfram.com/
+      - ``'mathematica_free'`` -- use http://integrals.wolfram.com/
 
-       - 'fricas' - use FriCAS (the optional fricas spkg has to be installed)
+      - ``'fricas'`` -- use FriCAS (the optional fricas spkg has to be installed)
 
-       - 'giac' - use Giac
+      - ``'giac'`` -- use libgiac
 
-    To prevent automatic evaluation use the ``hold`` argument.
+      - ``'libgiac'`` -- use libgiac (alias for ``'giac'``)
+
+    To prevent automatic evaluation, use the ``hold`` argument.
 
     .. SEEALSO::
 
@@ -391,7 +520,7 @@ def integrate(expression, v=None, a=None, b=None, algorithm=None, hold=False):
 
     The variable is required, but the endpoints are optional::
 
-        sage: y=var('y')
+        sage: y = var('y')
         sage: integral(sin(x), x)
         -cos(x)
         sage: integral(sin(x), y)
@@ -477,7 +606,7 @@ def integrate(expression, v=None, a=None, b=None, algorithm=None, hold=False):
 
         sage: _ = var('x, y, z')
         sage: f = sin(x^2) + y^z
-        sage: g = mathematica(f)                           # optional - mathematica
+        sage: g = mathematica(f)                            # optional - mathematica
         sage: print(g)                                      # optional - mathematica
                   z        2
                  y  + Sin[x ]
@@ -486,29 +615,30 @@ def integrate(expression, v=None, a=None, b=None, algorithm=None, hold=False):
                  x y  + Sqrt[--] FresnelS[Sqrt[--] x]
                              2                 Pi
         sage: print(f.integral(x))
-        x*y^z + 1/16*sqrt(pi)*((I + 1)*sqrt(2)*erf((1/2*I + 1/2)*sqrt(2)*x) + (I - 1)*sqrt(2)*erf((1/2*I - 1/2)*sqrt(2)*x) - (I - 1)*sqrt(2)*erf(sqrt(-I)*x) + (I + 1)*sqrt(2)*erf((-1)^(1/4)*x))
+        x*y^z + 1/16*sqrt(pi)*((I + 1)*sqrt(2)*erf((1/2*I + 1/2)*sqrt(2)*x)
+                                + (I - 1)*sqrt(2)*erf((1/2*I - 1/2)*sqrt(2)*x)
+                                - (I - 1)*sqrt(2)*erf(sqrt(-I)*x)
+                                + (I + 1)*sqrt(2)*erf((-1)^(1/4)*x))
 
     Alternatively, just use algorithm='mathematica_free' to integrate via Mathematica
     over the internet (does NOT require a Mathematica license!)::
 
         sage: _ = var('x, y, z')  # optional - internet
         sage: f = sin(x^2) + y^z   # optional - internet
-        sage: f.integrate(x, algorithm="mathematica_free")   # optional - internet
-        x*y^z + sqrt(1/2)*sqrt(pi)*fresnels(sqrt(2)*x/sqrt(pi))
+        sage: f.integrate(x, algorithm='mathematica_free')   # optional - internet
+        x*y^z + sqrt(1/2)*sqrt(pi)*fresnel_sin(sqrt(2)*x/sqrt(pi))
 
     We can also use Sympy::
 
         sage: integrate(x*sin(log(x)), x)
         -1/5*x^2*(cos(log(x)) - 2*sin(log(x)))
-        sage: integrate(x*sin(log(x)), x, algorithm='sympy')
+        sage: integrate(x*sin(log(x)), x, algorithm='sympy')                            # needs sympy
         -1/5*x^2*cos(log(x)) + 2/5*x^2*sin(log(x))
         sage: _ = var('y, z')
         sage: (x^y - z).integrate(y)
         -y*z + x^y/log(x)
-        sage: (x^y - z).integrate(y, algorithm="sympy")  # see Trac #14694
-        Traceback (most recent call last):
-        ...
-        AttributeError: 'ExprCondPair' object has no attribute '_sage_'
+        sage: (x^y - z).integrate(y, algorithm='sympy')                                 # needs sympy
+        -y*z + cases(((log(x) != 0, x^y/log(x)), (1, y)))
 
     We integrate the above function in Maple now::
 
@@ -519,12 +649,16 @@ def integrate(expression, v=None, a=None, b=None, algorithm=None, hold=False):
 
     We next integrate a function with no closed form integral. Notice
     that the answer comes back as an expression that contains an
-    integral itself.
+    integral itself. ::
 
-    ::
+        sage: A = integral(1/ ((x-4) * (x^4+x+1)), x); A
+        integrate(1/((x^4 + x + 1)*(x - 4)), x)
 
-        sage: A = integral(1/ ((x-4) * (x^3+2*x+1)), x); A
-        -1/73*integrate((x^2 + 4*x + 18)/(x^3 + 2*x + 1), x) + 1/73*log(x - 4)
+    Sometimes, in this situation, using the algorithm "maxima"
+    gives instead a partially integrated answer::
+
+        sage: integral(1/(x**7-1),x,algorithm='maxima')
+        -1/7*integrate((x^5 + 2*x^4 + 3*x^3 + 4*x^2 + 5*x + 6)/(x^6 + x^5 + x^4 + x^3 + x^2 + x + 1), x) + 1/7*log(x - 1)
 
     We now show that floats are not converted to rationals
     automatically since we by default have keepfloat: true in maxima.
@@ -534,30 +668,53 @@ def integrate(expression, v=None, a=None, b=None, algorithm=None, hold=False):
         sage: integral(e^(-x^2),(x, 0, 0.1))
         0.05623145800914245*sqrt(pi)
 
-    An example of an integral that fricas can integrate, but the
-    default integrator cannot::
+    An example of an integral that fricas can integrate::
 
         sage: f(x) = sqrt(x+sqrt(1+x^2))/x
-        sage: integrate(f(x), x, algorithm="fricas")      # optional - fricas
-        2*sqrt(x + sqrt(x^2 + 1)) - 2*arctan(sqrt(x + sqrt(x^2 + 1))) - log(sqrt(x + sqrt(x^2 + 1)) + 1) + log(sqrt(x + sqrt(x^2 + 1)) - 1)
+        sage: integrate(f(x), x, algorithm='fricas')      # optional - fricas
+        2*sqrt(x + sqrt(x^2 + 1)) - 2*arctan(sqrt(x + sqrt(x^2 + 1)))
+         - log(sqrt(x + sqrt(x^2 + 1)) + 1) + log(sqrt(x + sqrt(x^2 + 1)) - 1)
 
-    The following definite integral is not found with the
-    default integrator::
+    where the default integrator obtains another answer::
+
+        sage: integrate(f(x), x)  # long time
+        1/8*sqrt(x)*gamma(1/4)*gamma(-1/4)^2*hypergeometric((-1/4, -1/4, 1/4),
+                                                            (1/2, 3/4),
+                                                            -1/x^2)/(pi*gamma(3/4))
+
+    The following definite integral is not found by maxima::
 
         sage: f(x) = (x^4 - 3*x^2 + 6) / (x^6 - 5*x^4 + 5*x^2 + 4)
-        sage: integrate(f(x), x, 1, 2)
+        sage: integrate(f(x), x, 1, 2, algorithm='maxima')  # long time
         integrate((x^4 - 3*x^2 + 6)/(x^6 - 5*x^4 + 5*x^2 + 4), x, 1, 2)
+
+    but is nevertheless computed::
+
+        sage: # long time
+        sage: ans = integrate(f(x), x, 1, 2)  # random - ignore giac stderr output
+        sage: ans
+        -1/2*pi + arctan(8) + arctan(5) + arctan(2) + arctan(1/2)
 
     Both fricas and sympy give the correct result::
 
-        sage: integrate(f(x), x, 1, 2, algorithm="fricas")  # optional - fricas
+        sage: integrate(f(x), x, 1, 2, algorithm='fricas')  # optional - fricas
         -1/2*pi + arctan(8) + arctan(5) + arctan(2) + arctan(1/2)
-        sage: integrate(f(x), x, 1, 2, algorithm="sympy")
+        sage: integrate(f(x), x, 1, 2, algorithm='sympy')                               # needs sympy
         -1/2*pi + arctan(8) + arctan(5) + arctan(2) + arctan(1/2)
 
-    Using Giac to integrate the absolute value of a trigonometric expression::
+    Using Giac to integrate the absolute value of a trigonometric
+    expression. If Giac is installed, this will be attempted
+    automatically in the event that Maxima is unable to integrate the
+    expression::
 
-        sage: integrate(abs(cos(x)), x, 0, 2*pi, algorithm='giac')
+        sage: # needs sage.libs.giac
+        sage: result = integrate(abs(cos(x)), x, 0, 2*pi, algorithm='giac')
+        ...
+        sage: result
+        4
+        sage: result = integrate(abs(cos(x)), x, 0, 2*pi)
+        ...
+        sage: result
         4
 
     ALIASES: integral() and integrate() are the same.
@@ -580,12 +737,15 @@ def integrate(expression, v=None, a=None, b=None, algorithm=None, hold=False):
 
         sage: assume(a>0)
         sage: integrate(1/(x^3 *(a+b*x)^(1/3)), x)
-        2/9*sqrt(3)*b^2*arctan(1/3*sqrt(3)*(2*(b*x + a)^(1/3) + a^(1/3))/a^(1/3))/a^(7/3) - 1/9*b^2*log((b*x + a)^(2/3) + (b*x + a)^(1/3)*a^(1/3) + a^(2/3))/a^(7/3) + 2/9*b^2*log((b*x + a)^(1/3) - a^(1/3))/a^(7/3) + 1/6*(4*(b*x + a)^(5/3)*b^2 - 7*(b*x + a)^(2/3)*a*b^2)/((b*x + a)^2*a^2 - 2*(b*x + a)*a^3 + a^4)
+        2/9*sqrt(3)*b^2*arctan(1/3*sqrt(3)*(2*(b*x + a)^(1/3) + a^(1/3))/a^(1/3))/a^(7/3)
+         - 1/9*b^2*log((b*x + a)^(2/3) + (b*x + a)^(1/3)*a^(1/3) + a^(2/3))/a^(7/3)
+         + 2/9*b^2*log((b*x + a)^(1/3) - a^(1/3))/a^(7/3) + 1/6*(4*(b*x + a)^(5/3)*b^2
+         - 7*(b*x + a)^(2/3)*a*b^2)/((b*x + a)^2*a^2 - 2*(b*x + a)*a^3 + a^4)
 
     TESTS:
 
     The following integral was broken prior to Maxima 5.15.0 -
-    see :trac:`3013`::
+    see :issue:`3013`::
 
         sage: integrate(sin(x)*cos(10*x)*log(x), x)
         -1/198*(9*cos(11*x) - 11*cos(9*x))*log(x) + 1/44*Ei(11*I*x) - 1/36*Ei(9*I*x) - 1/36*Ei(-9*I*x) + 1/44*Ei(-11*I*x)
@@ -604,18 +764,18 @@ def integrate(expression, v=None, a=None, b=None, algorithm=None, hold=False):
         sage: integrate(sin(x), x, 0, 1)
         -cos(1) + 1
 
-    Check if :trac:`780` is fixed::
+    Check if :issue:`780` is fixed::
 
         sage: _ = var('x,y')
         sage: f = log(x^2+y^2)
-        sage: res = integral(f,x,0.0001414, 1.); res
+        sage: res = integral(f,x,1414/10^7, 1); res
         Traceback (most recent call last):
         ...
-        ValueError: Computation failed since Maxima requested additional constraints; using the 'assume' command before evaluation *may* help (example of legal syntax is 'assume(50015104*y^2-50015103>0)', see `assume?` for more details)
-        Is 50015104*y^2-50015103 positive, negative or zero?
+        ValueError: Computation failed since Maxima requested additional constraints; using the 'assume' command before evaluation *may* help ...
+        Is ... positive, negative or zero?
         sage: assume(y>1)
-        sage: res = integral(f,x,0.0001414, 1.); res
-        2*y*arctan(1.0/y) - 2*y*arctan(0.0001414/y) + 1.0*log(1.0*y^2 + 1.0) - 0.0001414*log(1.0*y^2 + 1.9993959999999997e-08) - 1.9997172
+        sage: res = integral(f,x,1414/10^7, 1); res
+        -2*y*arctan(707/5000000/y) + 2*y*arctan(1/y) + log(y^2 + 1) - 707/5000000*log(y^2 + 499849/25000000000000) - 4999293/2500000
         sage: nres = numerical_integral(f.subs(y=2), 0.0001414, 1.); nres
         (1.4638323264144..., 1.6251803529759...e-14)
         sage: res.subs(y=2).n()
@@ -625,7 +785,7 @@ def integrate(expression, v=None, a=None, b=None, algorithm=None, hold=False):
         sage: res.subs(y=.5).n()
         -0.669511708872807
 
-    Check if :trac:`6816` is fixed::
+    Check if :issue:`6816` is fixed::
 
         sage: var('t,theta')
         (t, theta)
@@ -644,7 +804,7 @@ def integrate(expression, v=None, a=None, b=None, algorithm=None, hold=False):
         sage: integrate(x^2,(x,1,2,3))
         Traceback (most recent call last):
         ...
-        ValueError: invalid input (x, 1, 2, 3) - please use variable, with or without two endpoints
+        TypeError: invalid input (x, 1, 2, 3) - please use variable, with or without two endpoints
 
     Note that this used to be the test, but it is actually divergent
     (Maxima currently asks for assumptions on theta)::
@@ -654,7 +814,7 @@ def integrate(expression, v=None, a=None, b=None, algorithm=None, hold=False):
         ...
         ValueError: Computation failed since Maxima requested additional constraints;...
 
-    Check if :trac:`6189` is fixed::
+    Check if :issue:`6189` is fixed::
 
         sage: n = N; n
         <function numerical_approx at ...>
@@ -672,15 +832,7 @@ def integrate(expression, v=None, a=None, b=None, algorithm=None, hold=False):
         sage: exp(-x*i).integral(x,0,1)
         I*e^(-I) - I
 
-    Test deprecation warning when variable is not specified::
-
-        sage: x.integral()
-        doctest:...: DeprecationWarning:
-        Variable of integration should be specified explicitly.
-        See http://trac.sagemath.org/12438 for details.
-        1/2*x^2
-
-    Test that :trac:`8729` is fixed::
+    Test that :issue:`8729` is fixed::
 
         sage: t = var('t')
         sage: a = sqrt((sin(t))^2 + (cos(t))^2)
@@ -691,13 +843,13 @@ def integrate(expression, v=None, a=None, b=None, algorithm=None, hold=False):
 
     Maxima uses Cauchy Principal Value calculations to
     integrate certain convergent integrals.  Here we test
-    that this does not raise an error message (see :trac:`11987`)::
+    that this does not raise an error message (see :issue:`11987`)::
 
         sage: integrate(sin(x)*sin(x/3)/x^2, x, 0, oo)
         1/6*pi
 
     Maxima returned a negative value for this integral prior to
-    maxima-5.24 (:trac:`10923`). Ideally we would get an answer in terms
+    maxima-5.24 (:issue:`10923`). Ideally we would get an answer in terms
     of the gamma function; however, we get something equivalent::
 
         sage: actual_result = integral(e^(-1/x^2), x, 0, 1)
@@ -708,15 +860,17 @@ def integrate(expression, v=None, a=None, b=None, algorithm=None, hold=False):
         sage: error.numerical_approx() # abs tol 1e-10
         0
 
-    We will not get an evaluated answer here, which is better than
-    the previous (wrong) answer of zero. See :trac:`10914`::
+    We will get a correct answer here, which is better than
+    the previous (wrong) answer of zero. See :issue:`10914`::
 
         sage: f = abs(sin(x))
-        sage: integrate(f, x, 0, 2*pi)  # long time (4s on sage.math, 2012)
-        integrate(abs(sin(x)), x, 0, 2*pi)
+        sage: result = integrate(f, x, 0, 2*pi)
+        ...
+        sage: result
+        4
 
     Another incorrect integral fixed upstream in Maxima, from
-    :trac:`11233`::
+    :issue:`11233`::
 
         sage: a,t = var('a,t')
         sage: assume(a>0)
@@ -727,26 +881,26 @@ def integrate(expression, v=None, a=None, b=None, algorithm=None, hold=False):
         4.32025625668262
         sage: forget()
 
-    Verify that MinusInfinity works with sympy (:trac:`12345`)::
+    Verify that MinusInfinity works with sympy (:issue:`12345`)::
 
-        sage: integral(1/x^2, x, -infinity, -1, algorithm='sympy')
+        sage: integral(1/x^2, x, -infinity, -1, algorithm='sympy')                      # needs sympy
         1
 
-    Check that :trac:`11737` is fixed::
+    Check that :issue:`11737` is fixed::
 
         sage: N(integrate(sin(x^2)/(x^2), x, 1, infinity), prec=54)
         0.285736646322853
-        sage: N(integrate(sin(x^2)/(x^2), x, 1, infinity))  # known bug (non-zero imag part)
+        sage: N(integrate(sin(x^2)/(x^2), x, 1, infinity))  # known bug (nonzero imag part)
         0.285736646322853
 
-    Check that :trac:`14209` is fixed::
+    Check that :issue:`14209` is fixed::
 
         sage: integral(e^(-abs(x))/cosh(x),x,-infinity,infinity)
         2*log(2)
         sage: integral(e^(-abs(x))/cosh(x),x,-infinity,infinity)
         2*log(2)
 
-    Check that :trac:`12628` is fixed::
+    Check that :issue:`12628` is fixed::
 
         sage: var('z,n')
         (z, n)
@@ -765,12 +919,12 @@ def integrate(expression, v=None, a=None, b=None, algorithm=None, hold=False):
         193359161/6227020800*pi
         5799919/227026800*pi
 
-    Check that :trac:`12628` is fixed::
+    Check that :issue:`12628` is fixed::
 
         sage: integrate(1/(sqrt(x)*((1+sqrt(x))^2)),x,1,9)
         1/2
 
-    Check that :trac:`8728` is fixed::
+    Check that :issue:`8728` is fixed::
 
         sage: forget()
         sage: c,w,T = var('c,w,T')
@@ -780,20 +934,133 @@ def integrate(expression, v=None, a=None, b=None, algorithm=None, hold=False):
         sage: integrate(cos(w+T) / (1+c*cos(T))^2, T, 0, 2*pi)
         2*pi*sqrt(-c^2 + 1)*c*cos(w)/(c^4 - 2*c^2 + 1)
 
-    Check that :trac:`13733` is fixed::
+    Check that :issue:`13733` is fixed (but the bug reappeared, see :issue:`30063`)::
 
-        sage: a = integral(log(cot(x) - 1), x, 0, pi/4); a  # long time (about 6 s)
+        sage: a = integral(log(cot(x) - 1), x, 0, pi/4); a  # long time (about 6 s) # known bug
         -1/4*pi*log(2) - 1/2*I*dilog(I + 1) + 1/2*I*dilog(-I + 1) + 1/2*I*dilog(1/2*I + 1/2) - 1/2*I*dilog(-1/2*I + 1/2)
-        sage: abs(N(a - pi*log(2)/8)) < 1e-15  # long time
+        sage: abs(N(a - pi*log(2)/8)) < 1e-15  # long time # known bug
         True
 
-    Check that :trac:`17968` is fixed::
+    Check that :issue:`17968` is fixed::
 
         sage: a = N(integrate(exp(x^3), (x, 1, 2)), prec=54)
         sage: a.real_part()    # abs tol 1e-13
         275.510983763312
         sage: a.imag_part()    # abs tol 1e-13
         0.0
+
+    This used to be solved by the ``abs_integrate`` Maxima package
+    but can be solved now without it::
+
+        sage: integrate(abs(x), x)
+        1/2*x*abs(x)
+        sage: integral(abs(cos(x))*sin(x),(x,pi/2,pi))
+        1/2
+        sage: f = (x^2)*exp(x) / (1+exp(x))^2
+        sage: integrate(f, (x, -infinity, infinity))
+        1/3*pi^2
+
+    Some integrals are now working (:issue:`27958`, using giac or sympy)::
+
+        sage: result = integrate(abs(x^2 - 1), x, -2, 2)
+        ...
+        sage: result
+        4
+
+        sage: result = integrate(sgn(x) - sgn(1-x), x)
+        ...
+        sage: result
+        abs(x - 1) + abs(x)
+
+        sage: result = integrate(1 / (1 + abs(x-5)), x, -5, 6)
+        ...
+        sage: result
+        log(11) + log(2)
+
+        sage: result = integrate(abs(x^2 - 1), x, -2, 2)
+        ...
+        sage: result
+        4
+
+    Examples that only giac can correctly integrate (for now)::
+
+        sage: # needs sage.libs.giac
+        sage: g = abs(sin(x)*cos(x))
+        sage: result = g.integrate(x, 0, 2*pi)
+        ...
+        sage: result
+        2
+
+    ::
+
+        sage: # needs sage.libs.giac
+        sage: f = sqrt(x + 1/x^2)
+        sage: actual = integrate(f, x)
+        ...
+        sage: expected = (1/3*(2*sqrt(x^3 + 1) - log(sqrt(x^3 + 1) + 1)
+        ....:             + log(abs(sqrt(x^3 + 1) - 1)))*sgn(x))
+        sage: bool(actual == expected)
+        True
+
+    Some tests for :issue:`17468`::
+
+        sage: integral(log(abs(2*sin(x))), x, 0, pi/3)
+        1/36*I*pi^2 + I*dilog(1/2*I*sqrt(3) + 1/2) + I*dilog(-1/2*I*sqrt(3) - 1/2)
+        sage: integral(log(abs(sin(x))), x, 0, pi/2)
+        -1/2*pi*log(2)
+
+    Check that :issue:`25823` is fixed::
+
+        sage: f = log(sin(x))*sin(x)^2
+        sage: g = integrate(f, x) ; g
+        1/4*I*x^2
+        - 1/2*I*x*arctan2(sin(x), cos(x) + 1)
+        + 1/2*I*x*arctan2(sin(x), -cos(x) + 1)
+        - 1/4*x*log(cos(x)^2 + sin(x)^2 + 2*cos(x) + 1)
+        - 1/4*x*log(cos(x)^2 + sin(x)^2 - 2*cos(x) + 1)
+        + 1/4*(2*x - sin(2*x))*log(sin(x))
+        + 1/4*x
+        + 1/2*I*dilog(-e^(I*x))
+        + 1/2*I*dilog(e^(I*x)) + 1/8*sin(2*x)
+
+    Indeed::
+
+        sage: (g.derivative() - f).full_simplify().full_simplify()
+        0
+
+    Test for :issue:`24117`::
+
+        sage: integrate(sqrt(1-4*sin(x)^2),x, algorithm='maxima')
+        integrate(sqrt(-4*sin(x)^2 + 1), x)
+
+    Check that :issue:`30353` is fixed::
+
+        sage: a = SR.var('a')
+        sage: assume(a > 0)
+        sage: assume(a < 1)
+        sage: integrate(x*log(1/(a*x+(1-x)^2)), x, 0, 1, algorithm='maxima')
+        1/4*a^2*log(a) + 1/2*sqrt(-a^2 + 4*a)*a*arctan(sqrt(-a^2 + 4*a)*(a - 2)/(a^2 - 4*a)) - 1/2*sqrt(-a^2 + 4*a)*a*arctan(sqrt(-a^2 + 4*a)/(a - 4)) - a*log(a) - sqrt(-a^2 + 4*a)*arctan(sqrt(-a^2 + 4*a)*(a - 2)/(a^2 - 4*a)) + sqrt(-a^2 + 4*a)*arctan(sqrt(-a^2 + 4*a)/(a - 4)) - 1/2*a + 3/2
+
+    Check that :issue:`25905` is fixed::
+
+        sage: var('a d x c')
+        (a, d, x, c)
+        sage: f = (I*a*tan(d*x + c) + a)^3*tan(d*x + c)
+        sage: integrate(f, x, algorithm='fricas')  # optional - fricas
+        -2/3*(24*a^3*e^(4*I*d*x + 4*I*c) + 33*a^3*e^(2*I*d*x + 2*I*c) + 13*a^3 + 6*(a^3*e^(6*I*d*x + 6*I*c) + 3*a^3*e^(4*I*d*x + 4*I*c) + 3*a^3*e^(2*I*d*x + 2*I*c) + a^3)*log(e^(2*I*d*x + 2*I*c) + 1))/(d*e^(6*I*d*x + 6*I*c) + 3*d*e^(4*I*d*x + 4*I*c) + 3*d*e^(2*I*d*x + 2*I*c) + d)
+
+    The fundamental theorem of calculus holds for elliptic integrals
+    of the second kind, :issue:`26563`::
+
+        sage: x,m = SR.var('x,m', domain='real')    # long time
+        sage: integrate(elliptic_e(x,m).diff(x), x) # long time
+        elliptic_e(x, m)
+
+    Check that :issue:`20467` is fixed::
+
+        sage: k = var('k')
+        sage: integral(sin(k*x)/x*erf(x^2), x, 0, oo, algorithm='maxima')
+        integrate(erf(x^2)*sin(k*x)/x, x, 0, +Infinity)
     """
     expression, v, a, b = _normalize_integral_input(expression, v, a, b)
     if algorithm is not None:
@@ -805,5 +1072,6 @@ def integrate(expression, v=None, a=None, b=None, algorithm=None, hold=False):
         return indefinite_integral(expression, v, hold=hold)
     else:
         return definite_integral(expression, v, a, b, hold=hold)
+
 
 integral = integrate

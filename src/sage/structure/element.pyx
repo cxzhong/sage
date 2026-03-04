@@ -1,3 +1,9 @@
+# Compile this with -Os because it works around a bug with
+# GCC-4.7.3 + Cython 0.19 on Itanium, see Issue #14452. Moreover, it
+# actually results in faster code than -O3.
+#
+# distutils: extra_compile_args = -Os
+
 r"""
 Elements
 
@@ -20,7 +26,7 @@ AUTHORS:
 - Maarten Derickx (2010-07): added architecture for is_square and sqrt
 
 - Jeroen Demeyer (2016-08): moved all coercion to the base class
-  :class:`Element`, see :trac:`20767`
+  :class:`Element`, see :issue:`20767`
 
 The Abstract Element Class Hierarchy
 ====================================
@@ -41,7 +47,8 @@ abstract base classes.
                                     EuclideanDomainElement
                         FieldElement
                         CommutativeAlgebraElement
-                    AlgebraElement   (note -- can't derive from module, since no multiple inheritance)
+                        Expression
+                    AlgebraElement
                         Matrix
                     InfinityElement
                 AdditiveGroupElement
@@ -154,14 +161,23 @@ instance of the class in which the method is defined. In Cython, we know
 that at least one of ``left`` or ``right`` is an instance of the class
 but we do not know a priori which one.
 
-For addition and multiplication (not for other operators), there is a
-fast path for operations with a Python ``int`` (which corresponds
-to a C ``long``). Implement ``cdef _add_long(self, long n)`` or
-``cdef _mul_long(self, long n)`` with optimized code for ``self + n``
-or ``self * n``. These are assumed to be commutative, so they are also
-called for ``n + self`` or ``n * self``.
+Powering is a special case: first of all, the 3-argument version of
+``pow()`` is not supported. Second, the coercion model checks whether
+the exponent looks like an integer. If so, the function ``_pow_int``
+is called. If the exponent is not an integer, the arguments are coerced
+to a common parent and ``_pow_`` is called. So, if your type only
+supports powering to an integer exponent, you should implement only
+``_pow_int``. If you want to support arbitrary powering, implement both
+``_pow_`` and ``_pow_int``.
+
+For addition, multiplication and powering (not for other operators),
+there is a fast path for operations with a C ``long``. For example,
+implement ``cdef _add_long(self, long n)`` with optimized code for
+``self + n``. The addition and multiplication are assumed to be
+commutative, so they are also called for ``n + self`` or ``n * self``.
 From Cython code, you can also call ``_add_long`` or ``_mul_long``
-directly.
+directly. This is strictly an optimization: there is a default
+implementation falling back to the generic arithmetic function.
 
 Examples
 ^^^^^^^^
@@ -203,7 +219,7 @@ the parents::
     sage: x._add_(x)
     Traceback (most recent call last):
     ...
-    AttributeError: 'sage.structure.element.Element' object has no attribute '_add_'
+    AttributeError: 'sage.structure.element.Element' object has no attribute '_add_'...
     sage: x + x
     Traceback (most recent call last):
     ...
@@ -261,7 +277,7 @@ In case that Python code calls ``x._add_(y)`` directly,
 continue down the MRO and find the ``_add_`` method in the category.
 """
 
-#*****************************************************************************
+# ****************************************************************************
 #       Copyright (C) 2006-2016 ...
 #       Copyright (C) 2016 Jeroen Demeyer <jdemeyer@cage.ugent.be>
 #
@@ -269,43 +285,32 @@ continue down the MRO and find the ``_add_`` method in the category.
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
-from __future__ import absolute_import, division, print_function
-
-from libc.limits cimport LONG_MAX, LONG_MIN
-
+cimport cython
 from cpython cimport *
+
 from sage.ext.stdsage cimport *
 
-from cpython.ref cimport PyObject
-
-import types
-cdef add, sub, mul, div, truediv, floordiv, mod
-cdef iadd, isub, imul, idiv, itruediv, ifloordiv
-from operator import (add, sub, mul, truediv, floordiv, mod,
-                      iadd, isub, imul, itruediv, ifloordiv)
-try:
-    from operator import div, idiv
-except ImportError:
-    div = idiv = None
+cdef add, sub, mul, truediv, floordiv, mod, matmul, pow
+from operator import (add, sub, mul, truediv, floordiv, mod, matmul, pow)
 
 cdef dict _coerce_op_symbols = dict(
-        add='+', sub='-', mul='*', div='/', truediv='/', floordiv='//', mod='%',
-        iadd='+', isub='-', imul='*', idiv='/', itruediv='/', ifloordiv='//')
+        add='+', sub='-', mul='*', truediv='/', floordiv='//', mod='%', matmul='@', pow='^',
+        iadd='+', isub='-', imul='*', itruediv='/', ifloordiv='//', imod='%', imatmul='@', ipow='^')
 
 from sage.structure.richcmp cimport rich_to_bool
-from sage.structure.coerce cimport py_scalar_to_element
+from sage.structure.coerce cimport py_scalar_to_element, coercion_model
 from sage.structure.parent cimport Parent
 from sage.cpython.type cimport can_assign_class
 from sage.cpython.getattr cimport getattr_from_other_class
 from sage.misc.lazy_format import LazyFormat
-from sage.misc import sageinspect
-from sage.misc.classcall_metaclass cimport ClasscallMetaclass
-from sage.misc.superseded import deprecated_function_alias
+from sage.arith.long cimport integer_check_long_py
+from sage.arith.power cimport generic_power as arith_generic_power
 from sage.arith.numerical_approx cimport digits_to_bits
 from sage.misc.decorators import sage_wraps
+from sage.misc.superseded import deprecation
 
 
 def make_element(_class, _dict, parent):
@@ -348,10 +353,15 @@ def is_Element(x):
 
         sage: from sage.structure.element import is_Element
         sage: is_Element(2/3)
+        doctest:warning...
+        DeprecationWarning: The function is_Element is deprecated; use 'isinstance(..., Element)' instead.
+        See https://github.com/sagemath/sage/issues/38077 for details.
         True
-        sage: is_Element(QQ^3)
+        sage: is_Element(QQ^3)                                                          # needs sage.modules
         False
     """
+    from sage.misc.superseded import deprecation_cython
+    deprecation_cython(38077, "The function is_Element is deprecated; use 'isinstance(..., Element)' instead.")
     return isinstance(x, Element)
 
 
@@ -364,17 +374,17 @@ cdef class Element(SageObject):
     Subtypes must either call ``__init__()`` to set ``_parent``, or may
     set ``_parent`` themselves if that would be more efficient.
 
-    .. automethod:: _cmp_
     .. automethod:: _richcmp_
     .. automethod:: __add__
     .. automethod:: __sub__
     .. automethod:: __neg__
     .. automethod:: __mul__
-    .. automethod:: __div__
     .. automethod:: __truediv__
     .. automethod:: __floordiv__
     .. automethod:: __mod__
     """
+    @cython.binding(False)
+    @cython.always_allow_keywords(False)
     def __getmetaclass__(_):
         from sage.misc.inherit_comparison import InheritComparisonMetaclass
         return InheritComparisonMetaclass
@@ -383,7 +393,7 @@ cdef class Element(SageObject):
         r"""
         INPUT:
 
-        - ``parent`` - a SageObject
+        - ``parent`` -- a SageObject
         """
         self._parent = parent
 
@@ -408,10 +418,10 @@ cdef class Element(SageObject):
             sage: q = 3/5
             sage: parent(q)
             Rational Field
-            sage: q._set_parent(CC)
-            sage: parent(q)
+            sage: q._set_parent(CC)                                                     # needs sage.rings.real_mpfr
+            sage: parent(q)                                                             # needs sage.rings.real_mpfr
             Complex Field with 53 bits of precision
-            sage: q._set_parent(float)
+            sage: q._set_parent(float)                                                  # needs sage.rings.real_mpfr
             Traceback (most recent call last):
             ...
             TypeError: Cannot convert type to sage.structure.parent.Parent
@@ -464,7 +474,7 @@ cdef class Element(SageObject):
         category of ``CommutativeRings()``::
 
             sage: 1.is_idempotent
-            <bound method JoinCategory.element_class.is_idempotent of 1>
+            <bound method Magmas.ElementMethods.is_idempotent of 1>
             sage: 1.is_idempotent.__module__
             'sage.categories.magmas'
 
@@ -473,13 +483,13 @@ cdef class Element(SageObject):
             sage: 1.blah_blah
             Traceback (most recent call last):
             ...
-            AttributeError: 'sage.rings.integer.Integer' object has no attribute 'blah_blah'
+            AttributeError: 'sage.rings.integer.Integer' object has no attribute 'blah_blah'...
             sage: Semigroups().example().an_element().is_idempotent
-            <bound method LeftZeroSemigroup_with_category.element_class.is_idempotent of 42>
+            <bound method LeftZeroSemigroup.Element.is_idempotent of 42>
             sage: Semigroups().example().an_element().blah_blah
             Traceback (most recent call last):
             ...
-            AttributeError: 'LeftZeroSemigroup_with_category.element_class' object has no attribute 'blah_blah'
+            AttributeError: 'LeftZeroSemigroup_with_category.element_class' object has no attribute 'blah_blah'...
         """
         return self.getattr_from_category(name)
 
@@ -498,24 +508,44 @@ cdef class Element(SageObject):
 
     def __dir__(self):
         """
+        Emulate ``__dir__`` for elements with dynamically attached methods.
+
         Let cat be the category of the parent of ``self``. This method
         emulates ``self`` being an instance of both ``Element`` and
-        ``cat.element_class``, in that order, for attribute directory.
+        ``cat.element_class`` (and the corresponding ``morphism_class`` in the
+        case of a morphism), in that order, for attribute directory.
 
         EXAMPLES::
 
             sage: dir(1/2)
-            ['N', ..., 'is_idempotent', 'is_integer', 'is_integral', ...]
+            [..., 'is_idempotent', 'is_integer', 'is_integral', ...]
 
         Caveat: dir on Integer's and some other extension types seem to ignore __dir__::
 
             sage: 1.__dir__()
-            ['N', ..., 'is_idempotent', 'is_integer', 'is_integral', ...]
+            [..., 'is_idempotent', 'is_integer', 'is_integral', ...]
             sage: dir(1)         # todo: not implemented
-            ['N', ..., 'is_idempotent', 'is_integer', 'is_integral', ...]
+            [..., 'is_idempotent', 'is_integer', 'is_integral', ...]
+
+        TESTS:
+
+        Check that morphism classes are handled correctly (:issue:`29776`)::
+
+            sage: R.<x,y> = QQ[]
+            sage: f = R.hom([x, y+1], R)
+            sage: 'cartesian_product' in dir(f)
+            True
+            sage: 'extend_to_fraction_field' in dir(f)
+            True
         """
         from sage.cpython.getattr import dir_with_other_class
-        return dir_with_other_class(self, self.parent().category().element_class)
+        ec = self.parent().category().element_class
+        try:
+            mc = self.category_for().morphism_class
+        except AttributeError:
+            return dir_with_other_class(self, ec)
+        else:
+            return dir_with_other_class(self, ec, mc)
 
     def _repr_(self):
         return "Generic element of a structure"
@@ -542,10 +572,10 @@ cdef class Element(SageObject):
 
     def __setstate__(self, state):
         """
-        Initializes the state of the object from data saved in a pickle.
+        Initialize the state of the object from data saved in a pickle.
 
-        During unpickling __init__ methods of classes are not called, the saved
-        data is passed to the class via this function instead.
+        During unpickling ``__init__`` methods of classes are not called, the
+        saved data is passed to the class via this function instead.
 
         TESTS::
 
@@ -564,9 +594,7 @@ cdef class Element(SageObject):
         """
         Return a copy of ``self``.
 
-        OUTPUT:
-
-          - a new object which is a copy of ``self``.
+        OUTPUT: a new object which is a copy of ``self``
 
         This implementation ensures that ``self.__dict__`` is properly copied
         when it exists (typically for instances of classes deriving from
@@ -596,14 +624,14 @@ cdef class Element(SageObject):
             D = self.__dict__
         except AttributeError:
             return res
-        for k,v in D.iteritems():
+        for k, v in D.items():
             try:
                 setattr(res, k, v)
             except AttributeError:
                 pass
         return res
 
-    def _im_gens_(self, codomain, im_gens):
+    def _im_gens_(self, codomain, im_gens, base_map=None):
         """
         Return the image of ``self`` in codomain under the map that sends
         the images of the generators of the parent of ``self`` to the
@@ -624,13 +652,13 @@ cdef class Element(SageObject):
 
             sage: QQ.base_ring()
             Rational Field
-            sage: identity_matrix(3).base_ring()
+            sage: identity_matrix(3).base_ring()                                        # needs sage.modules
             Integer Ring
         """
         return self._parent.base_ring()
 
     def category(self):
-        from sage.categories.all import Elements
+        from sage.categories.category_types import Elements
         return Elements(self._parent)
 
     def _test_new(self, **options):
@@ -681,19 +709,17 @@ cdef class Element(SageObject):
             ...
             AssertionError: self.an_element() is not in self
         """
-        from sage.categories.objects    import Objects
         tester = self._tester(**options)
-        SageObject._test_category(self, tester = tester)
-        category = self.category()
+        SageObject._test_category(self, tester=tester)
         # Tests that self inherits methods from the categories
         if can_assign_class(self):
             # For usual Python classes, that should be done with
             # standard inheritance
-            tester.assert_(isinstance(self, self.parent().category().element_class))
+            tester.assertTrue(isinstance(self, self.parent().category().element_class))
         else:
             # For extension types we just check that inheritance
             # occurs on a dummy attribute of Sets().ElementMethods
-            tester.assert_(hasattr(self, "_dummy_attribute"))
+            tester.assertTrue(hasattr(self, "_dummy_attribute"))
 
     def _test_eq(self, **options):
         """
@@ -732,13 +758,13 @@ cdef class Element(SageObject):
         # 100% sure we indeed call the operators == and !=, whatever
         # the version of Python is (see #11236)
         tester.assertTrue(self == self,
-                   LazyFormat("broken equality: %s == itself is False")%self)
+                   LazyFormat("broken equality: %s == itself is False") % self)
         tester.assertFalse(self == None,
-                   LazyFormat("broken equality: %s == None")%self)
+                   LazyFormat("broken equality: %s == None") % self)
         tester.assertFalse(self != self,
-                           LazyFormat("broken non-equality: %s != itself")%self)
+                           LazyFormat("broken non-equality: %s != itself") % self)
         tester.assertTrue(self != None,
-                          LazyFormat("broken non-equality: %s is not != None")%self)
+                          LazyFormat("broken non-equality: %s is not != None") % self)
 
     def parent(self, x=None):
         """
@@ -750,23 +776,22 @@ cdef class Element(SageObject):
         else:
             return self._parent(x)
 
-
     def subs(self, in_dict=None, **kwds):
         """
         Substitutes given generators with given values while not touching
-        other generators. This is a generic wrapper around ``__call__``.
-        The syntax is meant to be compatible with the corresponding method
-        for symbolic expressions.
+        other generators.
+
+        This is a generic wrapper around ``__call__``.  The syntax is
+        meant to be compatible with the corresponding method for
+        symbolic expressions.
 
         INPUT:
 
-        - ``in_dict`` - (optional) dictionary of inputs
+        - ``in_dict`` -- (optional) dictionary of inputs
 
-        - ``**kwds`` - named parameters
+        - ``**kwds`` -- named parameters
 
-        OUTPUT:
-
-        - new object if substitution is possible, otherwise self.
+        OUTPUT: new object if substitution is possible, otherwise ``self``
 
         EXAMPLES::
 
@@ -783,18 +808,18 @@ cdef class Element(SageObject):
             sage: Integer(5).subs(x=4)
             5
         """
-        if not hasattr(self, '__call__'):
+        if not callable(self):
             return self
         parent = self._parent
         try:
             ngens = parent.ngens()
         except (AttributeError, NotImplementedError, TypeError):
             return self
-        variables=[]
-        # use "gen" instead of "gens" as a ParentWithGens is not
-        # required to have the latter
-        for i in xrange(0,ngens):
-            gen=parent.gen(i)
+        variables = []
+
+        # using gen instead of gens
+        for i in range(ngens):
+            gen = parent.gen(i)
             if str(gen) in kwds:
                 variables.append(kwds[str(gen)])
             elif in_dict and gen in in_dict:
@@ -802,6 +827,27 @@ cdef class Element(SageObject):
             else:
                 variables.append(gen)
         return self(*variables)
+
+    def substitute(self, *args, **kwds):
+        """
+        This calls :meth:`self.subs`.
+
+        EXAMPLES::
+
+            sage: x, y = PolynomialRing(ZZ, 2, 'xy').gens()
+            sage: f = x^2 + y + x^2*y^2 + 5
+            sage: f((5,y))
+            25*y^2 + y + 30
+            sage: f.substitute({x: 5})
+            25*y^2 + y + 30
+            sage: f.substitute(x=5)
+            25*y^2 + y + 30
+            sage: (1/f).substitute(x=5)
+            1/(25*y^2 + y + 30)
+            sage: Integer(5).substitute(x=4)
+            5
+        """
+        return self.subs(*args, **kwds)
 
     def numerical_approx(self, prec=None, digits=None, algorithm=None):
         """
@@ -825,25 +871,18 @@ cdef class Element(SageObject):
 
         EXAMPLES::
 
-            sage: (2/3).numerical_approx()
+            sage: (2/3).numerical_approx()                                              # needs sage.rings.real_mpfr
             0.666666666666667
-            sage: pi.n(digits=10)
+            sage: pi.n(digits=10)                                                       # needs sage.symbolic
             3.141592654
-            sage: pi.n(prec=20)
+            sage: pi.n(prec=20)                                                         # needs sage.symbolic
             3.1416
 
         TESTS:
 
-        Check that :trac:`14778` is fixed::
+        Check that :issue:`14778` is fixed::
 
-            sage: (0).n(algorithm='foo')
-            0.000000000000000
-
-        The ``.N`` method is a deprecated alias::
-
-            sage: 0.N()
-            doctest:...: DeprecationWarning: N is deprecated. Please use n instead.
-            See http://trac.sagemath.org/13055 for details.
+            sage: (0).n(algorithm='foo')                                                # needs sage.rings.real_mpfr
             0.000000000000000
         """
         from sage.arith.numerical_approx import numerical_approx_generic
@@ -857,12 +896,10 @@ cdef class Element(SageObject):
 
         EXAMPLES::
 
-            sage: (2/3).n()
+            sage: (2/3).n()                                                             # needs sage.rings.real_mpfr
             0.666666666666667
         """
         return self.numerical_approx(prec, digits, algorithm)
-
-    N = deprecated_function_alias(13055, n)
 
     def _mpmath_(self, prec=53, rounding=None):
         """
@@ -875,57 +912,33 @@ cdef class Element(SageObject):
 
         EXAMPLES::
 
+            sage: # needs mpmath
             sage: from sage.libs.mpmath.all import mp, mpmathify
             sage: mp.dps = 30
             sage: 25._mpmath_(53)
             mpf('25.0')
-            sage: mpmathify(3+4*I)
+            sage: mpmathify(3 + 4*I)
             mpc(real='3.0', imag='4.0')
-            sage: mpmathify(1+pi)
+            sage: mpmathify(1 + pi)                                                     # needs sage.symbolic
             mpf('4.14159265358979323846264338327933')
-            sage: (1+pi)._mpmath_(10)
+            sage: (1 + pi)._mpmath_(10)                                                 # needs sage.symbolic
             mpf('4.140625')
-            sage: (1+pi)._mpmath_(mp.prec)
+            sage: (1 + pi)._mpmath_(mp.prec)                                            # needs sage.symbolic
             mpf('4.14159265358979323846264338327933')
         """
-        return self.n(prec)._mpmath_(prec=prec)
-
-    def substitute(self,in_dict=None,**kwds):
-        """
-        This is an alias for self.subs().
-
-        INPUT:
-
-        - ``in_dict`` - (optional) dictionary of inputs
-
-        - ``**kwds``  - named parameters
-
-        OUTPUT:
-
-        - new object if substitution is possible, otherwise self.
-
-        EXAMPLES::
-
-            sage: x, y = PolynomialRing(ZZ,2,'xy').gens()
-            sage: f = x^2 + y + x^2*y^2 + 5
-            sage: f((5,y))
-            25*y^2 + y + 30
-            sage: f.substitute({x:5})
-            25*y^2 + y + 30
-            sage: f.substitute(x=5)
-            25*y^2 + y + 30
-            sage: (1/f).substitute(x=5)
-            1/(25*y^2 + y + 30)
-            sage: Integer(5).substitute(x=4)
-            5
-         """
-        return self.subs(in_dict,**kwds)
+        t = self.n(prec)
+        from sage.rings.real_mpfr import RealNumber
+        from sage.rings.complex_mpfr import ComplexNumber
+        if not isinstance(t, (RealNumber, ComplexNumber)):
+            # avoid infinite recursion
+            raise NotImplementedError("mpmath conversion not implemented for %s" % type(self))
+        return t._mpmath_(prec=prec)
 
     cpdef _act_on_(self, x, bint self_on_left):
         """
         Use this method to implement ``self`` acting on ``x``.
 
-        Return None or raise a CoercionException if no
+        Return ``None`` or raise a ``CoercionException`` if no
         such action is defined here.
         """
         return None
@@ -934,15 +947,14 @@ cdef class Element(SageObject):
         """
         Use this method to implement ``self`` acted on by x.
 
-        Return None or raise a CoercionException if no
+        Return ``None`` or raise a ``CoercionException`` if no
         such action is defined here.
         """
         return None
 
-
     def __xor__(self, right):
-        raise RuntimeError("Use ** for exponentiation, not '^', which means xor\n"+\
-              "in Python, and has the wrong precedence.")
+        raise RuntimeError("Use ** for exponentiation, not '^', which means xor\n"
+                           "in Python, and has the wrong precedence.")
 
     def __pos__(self):
         return self
@@ -951,9 +963,9 @@ cdef class Element(SageObject):
         if self._is_atomic():
             s = repr(self)
         else:
-            s = "(%s)"%repr(self)
+            s = "(%s)" % repr(self)
         if no_space:
-            return s.replace(' ','')
+            return s.replace(' ', '')
         return s
 
     def _latex_coeff_repr(self):
@@ -964,7 +976,7 @@ cdef class Element(SageObject):
         if self._is_atomic():
             return s
         else:
-            return "\\left(%s\\right)"%s
+            return "\\left(%s\\right)" % s
 
     def _is_atomic(self):
         """
@@ -975,7 +987,7 @@ cdef class Element(SageObject):
 
             sage: n = 5; n._is_atomic()
             True
-            sage: n = x+1; n._is_atomic()
+            sage: n = x + 1; n._is_atomic()                                             # needs sage.symbolic
             False
         """
         if self._parent._repr_option('element_is_atomic'):
@@ -983,7 +995,7 @@ cdef class Element(SageObject):
         s = str(self)
         return s.find("+") == -1 and s.find("-") == -1 and s.find(" ") == -1
 
-    def __nonzero__(self):
+    def __bool__(self):
         r"""
         Return whether this element is equal to ``self.parent()(0)``.
 
@@ -1009,24 +1021,22 @@ cdef class Element(SageObject):
 
         TESTS:
 
-        Verify that :trac:`5185` is fixed::
+        Verify that :issue:`5185` is fixed::
 
+            sage: # needs sage.modules
             sage: v = vector({1: 1, 3: -1})
             sage: w = vector({1: -1, 3: 1})
             sage: v + w
             (0, 0, 0, 0)
-            sage: (v+w).is_zero()
+            sage: (v + w).is_zero()
             True
-            sage: bool(v+w)
+            sage: bool(v + w)
             False
-            sage: (v+w).__nonzero__()
-            False
-
         """
         try:
             zero = self._parent.zero()
         except Exception:
-            return True # by convention
+            return True  # by convention
 
         return self != zero
 
@@ -1035,40 +1045,34 @@ cdef class Element(SageObject):
         Return ``True`` if ``self`` equals ``self.parent()(0)``.
 
         The default implementation is to fall back to ``not
-        self.__nonzero__``.
+        self.__bool__``.
 
         .. WARNING::
 
             Do not re-implement this method in your subclass but
-            implement ``__nonzero__`` instead.
+            implement ``__bool__`` instead.
         """
         return not self
 
     def _cache_key(self):
         """
-        Provide a hashable key for an element if it is not hashable
+        Provide a hashable key for an element if it is not hashable.
 
         EXAMPLES::
 
-            sage: a=sage.structure.element.Element(ZZ)
+            sage: a = sage.structure.element.Element(ZZ)
             sage: a._cache_key()
             (Integer Ring, 'Generic element of a structure')
         """
-        return(self.parent(),str(self))
+        return self.parent(), str(self)
 
     ####################################################################
-    # In a Cython or a Python class, you must define either _cmp_
-    # (if your subclass is totally ordered), _richcmp_ (if your subclass
-    # is partially ordered), or both (if your class has both a total order
-    # and a partial order, or if that gives better performance).
+    # In a Cython or a Python class, you must define _richcmp_
     #
-    # Rich comparisons (like a < b) will default to using _richcmp_,
-    # three-way comparisons (like cmp(a,b)) will default to using
-    # _cmp_. But if you define just one of _richcmp_ and _cmp_, it will
-    # be used for all kinds of comparisons.
+    # Rich comparisons (like a < b) will use _richcmp_
     #
-    # In the _cmp_ and _richcmp_ methods, you can assume that both
-    # arguments have identical parents.
+    # In the _richcmp_ method, you can assume that both arguments have
+    # identical parents.
     ####################################################################
     def __richcmp__(self, other, int op):
         """
@@ -1100,13 +1104,12 @@ cdef class Element(SageObject):
 
     cpdef _richcmp_(left, right, int op):
         r"""
-        Default implementation of rich comparisons for elements with
+        Basic default implementation of rich comparisons for elements with
         equal parents.
 
-        It tries to see if ``_cmp_`` is implemented. Otherwise it does a
-        comparison by id for ``==`` and ``!=``. Calling this default method
-        with ``<``, ``<=``, ``>`` or ``>=`` will raise a
-        ``NotImplementedError``.
+        It does a comparison by id for ``==`` and ``!=``. Calling this
+        default method with ``<``, ``<=``, ``>`` or ``>=`` will return
+        ``NotImplemented``.
 
         EXAMPLES::
 
@@ -1121,12 +1124,14 @@ cdef class Element(SageObject):
             sage: e1 < e2     # indirect doctest
             Traceback (most recent call last):
             ...
-            NotImplementedError: comparison not implemented for <type 'sage.structure.element.Element'>
+            TypeError: '<' not supported between instances of 'sage.structure.element.Element' and 'sage.structure.element.Element'
 
         We now create an ``Element`` class where we define ``_richcmp_``
         and check that comparison works::
 
-            sage: cython('''
+            sage: # needs sage.misc.cython
+            sage: cython(
+            ....: '''
             ....: from sage.structure.richcmp cimport rich_to_bool
             ....: from sage.structure.element cimport Element
             ....: cdef class FloatCmp(Element):
@@ -1142,44 +1147,16 @@ cdef class Element(SageObject):
             sage: b = FloatCmp(2)
             sage: a <= b, b <= a
             (True, False)
-
-        This works despite ``_cmp_`` not being implemented::
-
-            sage: a._cmp_(b)
-            Traceback (most recent call last):
-            ...
-            NotImplementedError: comparison not implemented for <type '...FloatCmp'>
         """
         # Obvious case
         if left is right:
             return rich_to_bool(op, 0)
-
-        cdef int c
-        try:
-            c = left._cmp_(right)
-        except NotImplementedError:
-            # Check equality by id(), knowing that left is not right
-            if op == Py_EQ:
-                return False
-            if op == Py_NE:
-                return True
-            raise
-        assert -1 <= c <= 1
-        return rich_to_bool(op, c)
-
-    cpdef int _cmp_(left, right) except -2:
-        """
-        Default three-way comparison method which only checks for a
-        Python class defining ``__cmp__``.
-        """
-        try:
-            left_cmp = left.__cmp__
-        except AttributeError:
-            pass
-        else:
-            return left_cmp(right)
-        msg = LazyFormat("comparison not implemented for %r") % type(left)
-        raise NotImplementedError(msg)
+        # Check equality by id(), knowing that left is not right
+        if op == Py_EQ:
+            return False
+        if op == Py_NE:
+            return True
+        return NotImplemented
 
     ##################################################
     # Arithmetic using the coercion model
@@ -1208,15 +1185,15 @@ cdef class Element(SageObject):
             sage: e + e
             Traceback (most recent call last):
             ...
-            TypeError: unsupported operand parent(s) for +: '<type 'sage.structure.parent.Parent'>' and '<type 'sage.structure.parent.Parent'>'
+            TypeError: unsupported operand parent(s) for +: '<sage.structure.parent.Parent object at ...>' and '<sage.structure.parent.Parent object at ...>'
             sage: 1 + e
             Traceback (most recent call last):
             ...
-            TypeError: unsupported operand parent(s) for +: 'Integer Ring' and '<type 'sage.structure.parent.Parent'>'
+            TypeError: unsupported operand parent(s) for +: 'Integer Ring' and '<sage.structure.parent.Parent object at ...>'
             sage: e + 1
             Traceback (most recent call last):
             ...
-            TypeError: unsupported operand parent(s) for +: '<type 'sage.structure.parent.Parent'>' and 'Integer Ring'
+            TypeError: unsupported operand parent(s) for +: '<sage.structure.parent.Parent object at ...>' and 'Integer Ring'
             sage: int(1) + e
             Traceback (most recent call last):
             ...
@@ -1241,12 +1218,16 @@ cdef class Element(SageObject):
         if BOTH_ARE_ELEMENT(cl):
             return coercion_model.bin_op(left, right, add)
 
+        cdef long value
+        cdef int err = -1
         try:
             # Special case addition with Python int
-            if isinstance(right, int):
-                return (<Element>left)._add_long(PyInt_AS_LONG(right))
-            if isinstance(left, int):
-                return (<Element>right)._add_long(PyInt_AS_LONG(left))
+            integer_check_long_py(right, &value, &err)
+            if not err:
+                return (<Element>left)._add_long(value)
+            integer_check_long_py(left, &value, &err)
+            if not err:
+                return (<Element>right)._add_long(value)
             return coercion_model.bin_op(left, right, add)
         except TypeError:
             # Either coercion failed or arithmetic is not defined.
@@ -1263,7 +1244,7 @@ cdef class Element(SageObject):
         This default Cython implementation of ``_add_`` calls the
         Python method ``self._add_`` if it exists. This method may be
         defined in the ``ElementMethods`` of the category of the parent.
-        If the method is not found, a ``TypeError`` is raised
+        If the method is not found, a :exc:`TypeError` is raised
         indicating that the operation is not supported.
 
         See :ref:`element_arithmetic`.
@@ -1277,7 +1258,7 @@ cdef class Element(SageObject):
             sage: e._add_(e)
             Traceback (most recent call last):
             ...
-            AttributeError: 'sage.structure.element.Element' object has no attribute '_add_'
+            AttributeError: 'sage.structure.element.Element' object has no attribute '_add_'...
         """
         try:
             python_op = (<object>self)._add_
@@ -1292,16 +1273,17 @@ cdef class Element(SageObject):
 
         EXAMPLES::
 
-            sage: cython(  # long time
+            sage: # needs sage.misc.cython
+            sage: cython(                       # long time
             ....: '''
             ....: from sage.structure.element cimport Element
             ....: cdef class MyElement(Element):
             ....:     cdef _add_long(self, long n):
             ....:         return n
             ....: ''')
-            sage: e = MyElement(Parent())  # long time
+            sage: e = MyElement(Parent())       # long time
             sage: i = int(42)
-            sage: i + e, e + i  # long time
+            sage: i + e, e + i                  # long time
             (42, 42)
         """
         return coercion_model.bin_op(self, n, add)
@@ -1329,15 +1311,15 @@ cdef class Element(SageObject):
             sage: e - e
             Traceback (most recent call last):
             ...
-            TypeError: unsupported operand parent(s) for -: '<type 'sage.structure.parent.Parent'>' and '<type 'sage.structure.parent.Parent'>'
+            TypeError: unsupported operand parent(s) for -: '<sage.structure.parent.Parent object at ...>' and '<sage.structure.parent.Parent object at ...>'
             sage: 1 - e
             Traceback (most recent call last):
             ...
-            TypeError: unsupported operand parent(s) for -: 'Integer Ring' and '<type 'sage.structure.parent.Parent'>'
+            TypeError: unsupported operand parent(s) for -: 'Integer Ring' and '<sage.structure.parent.Parent object at ...>'
             sage: e - 1
             Traceback (most recent call last):
             ...
-            TypeError: unsupported operand parent(s) for -: '<type 'sage.structure.parent.Parent'>' and 'Integer Ring'
+            TypeError: unsupported operand parent(s) for -: '<sage.structure.parent.Parent object at ...>' and 'Integer Ring'
             sage: int(1) - e
             Traceback (most recent call last):
             ...
@@ -1374,7 +1356,7 @@ cdef class Element(SageObject):
         This default Cython implementation of ``_sub_`` calls the
         Python method ``self._sub_`` if it exists. This method may be
         defined in the ``ElementMethods`` of the category of the parent.
-        If the method is not found, a ``TypeError`` is raised
+        If the method is not found, a :exc:`TypeError` is raised
         indicating that the operation is not supported.
 
         See :ref:`element_arithmetic`.
@@ -1388,7 +1370,7 @@ cdef class Element(SageObject):
             sage: e._sub_(e)
             Traceback (most recent call last):
             ...
-            AttributeError: 'sage.structure.element.Element' object has no attribute '_sub_'
+            AttributeError: 'sage.structure.element.Element' object has no attribute '_sub_'...
         """
         try:
             python_op = (<object>self)._sub_
@@ -1417,7 +1399,7 @@ cdef class Element(SageObject):
             sage: -e
             Traceback (most recent call last):
             ...
-            TypeError: unsupported operand parent for unary -: '<type 'sage.structure.parent.Parent'>'
+            TypeError: unsupported operand parent for unary -: '<sage.structure.parent.Parent object at ...>'
         """
         return self._neg_()
 
@@ -1428,7 +1410,7 @@ cdef class Element(SageObject):
         This default Cython implementation of ``_neg_`` calls the
         Python method ``self._neg_`` if it exists. This method may be
         defined in the ``ElementMethods`` of the category of the parent.
-        If the method is not found, a ``TypeError`` is raised
+        If the method is not found, a :exc:`TypeError` is raised
         indicating that the operation is not supported.
 
         See :ref:`element_arithmetic`.
@@ -1442,7 +1424,7 @@ cdef class Element(SageObject):
             sage: e._neg_()
             Traceback (most recent call last):
             ...
-            AttributeError: 'sage.structure.element.Element' object has no attribute '_neg_'
+            AttributeError: 'sage.structure.element.Element' object has no attribute '_neg_'...
         """
         try:
             python_op = (<object>self)._neg_
@@ -1474,15 +1456,15 @@ cdef class Element(SageObject):
             sage: e * e
             Traceback (most recent call last):
             ...
-            TypeError: unsupported operand parent(s) for *: '<type 'sage.structure.parent.Parent'>' and '<type 'sage.structure.parent.Parent'>'
+            TypeError: unsupported operand parent(s) for *: '<sage.structure.parent.Parent object at ...>' and '<sage.structure.parent.Parent object at ...>'
             sage: 1 * e
             Traceback (most recent call last):
             ...
-            TypeError: unsupported operand parent(s) for *: 'Integer Ring' and '<type 'sage.structure.parent.Parent'>'
+            TypeError: unsupported operand parent(s) for *: 'Integer Ring' and '<sage.structure.parent.Parent object at ...>'
             sage: e * 1
             Traceback (most recent call last):
             ...
-            TypeError: unsupported operand parent(s) for *: '<type 'sage.structure.parent.Parent'>' and 'Integer Ring'
+            TypeError: unsupported operand parent(s) for *: '<sage.structure.parent.Parent object at ...>' and 'Integer Ring'
             sage: int(1) * e
             Traceback (most recent call last):
             ...
@@ -1502,6 +1484,7 @@ cdef class Element(SageObject):
 
         ::
 
+            sage: # needs sage.combinat sage.modules
             sage: A = AlgebrasWithBasis(QQ).example(); A
             An example of an algebra with basis: the free algebra
             on the generators ('a', 'b', 'c') over Rational Field
@@ -1520,11 +1503,16 @@ cdef class Element(SageObject):
         if BOTH_ARE_ELEMENT(cl):
             return coercion_model.bin_op(left, right, mul)
 
+        cdef long value
+        cdef int err = -1
         try:
-            if isinstance(right, int):
-                return (<Element>left)._mul_long(PyInt_AS_LONG(right))
-            if isinstance(left, int):
-                return (<Element>right)._mul_long(PyInt_AS_LONG(left))
+            # Special case multiplication with Python int
+            integer_check_long_py(right, &value, &err)
+            if not err:
+                return (<Element>left)._mul_long(value)
+            integer_check_long_py(left, &value, &err)
+            if not err:
+                return (<Element>right)._mul_long(value)
             return coercion_model.bin_op(left, right, mul)
         except TypeError:
             return NotImplemented
@@ -1536,7 +1524,7 @@ cdef class Element(SageObject):
         This default Cython implementation of ``_mul_`` calls the
         Python method ``self._mul_`` if it exists. This method may be
         defined in the ``ElementMethods`` of the category of the parent.
-        If the method is not found, a ``TypeError`` is raised
+        If the method is not found, a :exc:`TypeError` is raised
         indicating that the operation is not supported.
 
         See :ref:`element_arithmetic`.
@@ -1550,7 +1538,7 @@ cdef class Element(SageObject):
             sage: e._mul_(e)
             Traceback (most recent call last):
             ...
-            AttributeError: 'sage.structure.element.Element' object has no attribute '_mul_'
+            AttributeError: 'sage.structure.element.Element' object has no attribute '_mul_'...
         """
         try:
             python_op = (<object>self)._mul_
@@ -1565,90 +1553,112 @@ cdef class Element(SageObject):
 
         EXAMPLES::
 
-            sage: cython(  # long time
+            sage: # needs sage.misc.cython
+            sage: cython(                       # long time
             ....: '''
             ....: from sage.structure.element cimport Element
             ....: cdef class MyElement(Element):
             ....:     cdef _mul_long(self, long n):
             ....:         return n
             ....: ''')
-            sage: e = MyElement(Parent())  # long time
+            sage: e = MyElement(Parent())       # long time
             sage: i = int(42)
-            sage: i * e, e * i  # long time
+            sage: i * e, e * i                  # long time
             (42, 42)
         """
         return coercion_model.bin_op(self, n, mul)
 
-    def __div__(left, right):
+    def __matmul__(left, right):
         """
-        Top-level division operator for :class:`Element` invoking
-        the coercion model.
+        Top-level matrix multiplication operator for :class:`Element`
+        invoking the coercion model.
 
         See :ref:`element_arithmetic`.
 
         EXAMPLES::
 
-            sage: 2 / 3
-            2/3
-            sage: pi / 3
-            1/3*pi
-            sage: K.<i> = NumberField(x^2+1)
-            sage: 2 / K.ideal(i+1)
-            Fractional ideal (-i + 1)
-
-        ::
-
             sage: from sage.structure.element import Element
             sage: class MyElement(Element):
-            ....:     def _div_(self, other):
+            ....:     def _matmul_(self, other):
             ....:         return 42
             sage: e = MyElement(Parent())
-            sage: e / e
+            sage: from operator import matmul
+            sage: matmul(e, e)
             42
 
         TESTS::
 
             sage: e = Element(Parent())
-            sage: e / e
+            sage: matmul(e, e)
             Traceback (most recent call last):
             ...
-            TypeError: unsupported operand parent(s) for /: '<type 'sage.structure.parent.Parent'>' and '<type 'sage.structure.parent.Parent'>'
-            sage: 1 / e
+            TypeError: unsupported operand parent(s) for @: '<sage.structure.parent.Parent object at ...>' and '<sage.structure.parent.Parent object at ...>'
+            sage: matmul(1, e)
             Traceback (most recent call last):
             ...
-            TypeError: unsupported operand parent(s) for /: 'Integer Ring' and '<type 'sage.structure.parent.Parent'>'
-            sage: e / 1
+            TypeError: unsupported operand parent(s) for @: 'Integer Ring' and '<sage.structure.parent.Parent object at ...>'
+            sage: matmul(e, 1)
             Traceback (most recent call last):
             ...
-            TypeError: unsupported operand parent(s) for /: '<type 'sage.structure.parent.Parent'>' and 'Integer Ring'
-            sage: int(1) / e
+            TypeError: unsupported operand parent(s) for @: '<sage.structure.parent.Parent object at ...>' and 'Integer Ring'
+            sage: matmul(int(1), e)
             Traceback (most recent call last):
             ...
-            TypeError: unsupported operand type(s) for /: 'int' and 'sage.structure.element.Element'
-            sage: e / int(1)
+            TypeError: unsupported operand type(s) for @: 'int' and 'sage.structure.element.Element'
+            sage: matmul(e, int(1))
             Traceback (most recent call last):
             ...
-            TypeError: unsupported operand type(s) for /: 'sage.structure.element.Element' and 'int'
-            sage: None / e
+            TypeError: unsupported operand type(s) for @: 'sage.structure.element.Element' and 'int'
+            sage: matmul(None, e)
             Traceback (most recent call last):
             ...
-            TypeError: unsupported operand type(s) for /: 'NoneType' and 'sage.structure.element.Element'
-            sage: e / None
+            TypeError: unsupported operand type(s) for @: 'NoneType' and 'sage.structure.element.Element'
+            sage: matmul(e, None)
             Traceback (most recent call last):
             ...
-            TypeError: unsupported operand type(s) for /: 'sage.structure.element.Element' and 'NoneType'
+            TypeError: unsupported operand type(s) for @: 'sage.structure.element.Element' and 'NoneType'
         """
-        # See __add__ for comments
         cdef int cl = classify_elements(left, right)
         if HAVE_SAME_PARENT(cl):
-            return (<Element>left)._div_(right)
+            return (<Element>left)._matmul_(right)
         if BOTH_ARE_ELEMENT(cl):
-            return coercion_model.bin_op(left, right, div)
+            return coercion_model.bin_op(left, right, matmul)
 
         try:
-            return coercion_model.bin_op(left, right, div)
+            return coercion_model.bin_op(left, right, matmul)
         except TypeError:
             return NotImplemented
+
+    cdef _matmul_(self, other):
+        """
+        Virtual matrix multiplication method for elements with
+        identical parents.
+
+        This default Cython implementation of ``_matmul_`` calls the
+        Python method ``self._matmul_`` if it exists. This method may
+        be defined in the ``ElementMethods`` of the category of the
+        parent. If the method is not found, a :exc:`TypeError` is raised
+        indicating that the operation is not supported.
+
+        See :ref:`element_arithmetic`.
+
+        EXAMPLES:
+
+        This method is not visible from Python::
+
+            sage: from sage.structure.element import Element
+            sage: e = Element(Parent())
+            sage: e._matmul_(e)
+            Traceback (most recent call last):
+            ...
+            AttributeError: 'sage.structure.element.Element' object has no attribute '_matmul_'...
+        """
+        try:
+            python_op = (<object>self)._matmul_
+        except AttributeError:
+            raise bin_op_exception('@', self, other)
+        else:
+            return python_op(other)
 
     def __truediv__(left, right):
         """
@@ -1661,10 +1671,11 @@ cdef class Element(SageObject):
 
             sage: operator.truediv(2, 3)
             2/3
-            sage: operator.truediv(pi, 3)
+            sage: operator.truediv(pi, 3)                                               # needs sage.symbolic
             1/3*pi
-            sage: K.<i> = NumberField(x^2+1)
-            sage: operator.truediv(2, K.ideal(i+1))
+            sage: x = polygen(QQ, 'x')
+            sage: K.<i> = NumberField(x^2 + 1)                                          # needs sage.rings.number_field
+            sage: operator.truediv(2, K.ideal(i + 1))                                   # needs sage.rings.number_field
             Fractional ideal (-i + 1)
 
         ::
@@ -1683,15 +1694,15 @@ cdef class Element(SageObject):
             sage: operator.truediv(e, e)
             Traceback (most recent call last):
             ...
-            TypeError: unsupported operand parent(s) for /: '<type 'sage.structure.parent.Parent'>' and '<type 'sage.structure.parent.Parent'>'
+            TypeError: unsupported operand parent(s) for /: '<sage.structure.parent.Parent object at ...>' and '<sage.structure.parent.Parent object at ...>'
             sage: operator.truediv(1, e)
             Traceback (most recent call last):
             ...
-            TypeError: unsupported operand parent(s) for /: 'Integer Ring' and '<type 'sage.structure.parent.Parent'>'
+            TypeError: unsupported operand parent(s) for /: 'Integer Ring' and '<sage.structure.parent.Parent object at ...>'
             sage: operator.truediv(e, 1)
             Traceback (most recent call last):
             ...
-            TypeError: unsupported operand parent(s) for /: '<type 'sage.structure.parent.Parent'>' and 'Integer Ring'
+            TypeError: unsupported operand parent(s) for /: '<sage.structure.parent.Parent object at ...>' and 'Integer Ring'
             sage: operator.truediv(int(1), e)
             Traceback (most recent call last):
             ...
@@ -1729,7 +1740,7 @@ cdef class Element(SageObject):
         This default Cython implementation of ``_div_`` calls the
         Python method ``self._div_`` if it exists. This method may be
         defined in the ``ElementMethods`` of the category of the parent.
-        If the method is not found, a ``TypeError`` is raised
+        If the method is not found, a :exc:`TypeError` is raised
         indicating that the operation is not supported.
 
         See :ref:`element_arithmetic`.
@@ -1743,7 +1754,7 @@ cdef class Element(SageObject):
             sage: e._div_(e)
             Traceback (most recent call last):
             ...
-            AttributeError: 'sage.structure.element.Element' object has no attribute '_div_'
+            AttributeError: 'sage.structure.element.Element' object has no attribute '_div_'...
         """
         try:
             python_op = (<object>self)._div_
@@ -1784,15 +1795,15 @@ cdef class Element(SageObject):
             sage: e // e
             Traceback (most recent call last):
             ...
-            TypeError: unsupported operand parent(s) for //: '<type 'sage.structure.parent.Parent'>' and '<type 'sage.structure.parent.Parent'>'
+            TypeError: unsupported operand parent(s) for //: '<sage.structure.parent.Parent object at ...>' and '<sage.structure.parent.Parent object at ...>'
             sage: 1 // e
             Traceback (most recent call last):
             ...
-            TypeError: unsupported operand parent(s) for //: 'Integer Ring' and '<type 'sage.structure.parent.Parent'>'
+            TypeError: unsupported operand parent(s) for //: 'Integer Ring' and '<sage.structure.parent.Parent object at ...>'
             sage: e // 1
             Traceback (most recent call last):
             ...
-            TypeError: unsupported operand parent(s) for //: '<type 'sage.structure.parent.Parent'>' and 'Integer Ring'
+            TypeError: unsupported operand parent(s) for //: '<sage.structure.parent.Parent object at ...>' and 'Integer Ring'
             sage: int(1) // e
             Traceback (most recent call last):
             ...
@@ -1829,7 +1840,7 @@ cdef class Element(SageObject):
         This default Cython implementation of ``_floordiv_`` calls the
         Python method ``self._floordiv_`` if it exists. This method may be
         defined in the ``ElementMethods`` of the category of the parent.
-        If the method is not found, a ``TypeError`` is raised
+        If the method is not found, a :exc:`TypeError` is raised
         indicating that the operation is not supported.
 
         See :ref:`element_arithmetic`.
@@ -1843,7 +1854,7 @@ cdef class Element(SageObject):
             sage: e._floordiv_(e)
             Traceback (most recent call last):
             ...
-            AttributeError: 'sage.structure.element.Element' object has no attribute '_floordiv_'
+            AttributeError: 'sage.structure.element.Element' object has no attribute '_floordiv_'...
         """
         try:
             python_op = (<object>self)._floordiv_
@@ -1884,15 +1895,15 @@ cdef class Element(SageObject):
             sage: e % e
             Traceback (most recent call last):
             ...
-            TypeError: unsupported operand parent(s) for %: '<type 'sage.structure.parent.Parent'>' and '<type 'sage.structure.parent.Parent'>'
+            TypeError: unsupported operand parent(s) for %: '<sage.structure.parent.Parent object at ...>' and '<sage.structure.parent.Parent object at ...>'
             sage: 1 % e
             Traceback (most recent call last):
             ...
-            TypeError: unsupported operand parent(s) for %: 'Integer Ring' and '<type 'sage.structure.parent.Parent'>'
+            TypeError: unsupported operand parent(s) for %: 'Integer Ring' and '<sage.structure.parent.Parent object at ...>'
             sage: e % 1
             Traceback (most recent call last):
             ...
-            TypeError: unsupported operand parent(s) for %: '<type 'sage.structure.parent.Parent'>' and 'Integer Ring'
+            TypeError: unsupported operand parent(s) for %: '<sage.structure.parent.Parent object at ...>' and 'Integer Ring'
             sage: int(1) % e
             Traceback (most recent call last):
             ...
@@ -1929,7 +1940,7 @@ cdef class Element(SageObject):
         This default Cython implementation of ``_mod_`` calls the
         Python method ``self._mod_`` if it exists. This method may be
         defined in the ``ElementMethods`` of the category of the parent.
-        If the method is not found, a ``TypeError`` is raised
+        If the method is not found, a :exc:`TypeError` is raised
         indicating that the operation is not supported.
 
         See :ref:`element_arithmetic`.
@@ -1943,7 +1954,7 @@ cdef class Element(SageObject):
             sage: e._mod_(e)
             Traceback (most recent call last):
             ...
-            AttributeError: 'sage.structure.element.Element' object has no attribute '_mod_'
+            AttributeError: 'sage.structure.element.Element' object has no attribute '_mod_'...
         """
         try:
             python_op = (<object>self)._mod_
@@ -1951,6 +1962,169 @@ cdef class Element(SageObject):
             raise bin_op_exception('%', self, other)
         else:
             return python_op(other)
+
+    def __pow__(left, right, modulus):
+        """
+        Top-level power operator for :class:`Element` invoking
+        the coercion model.
+
+        See :ref:`element_arithmetic`.
+
+        EXAMPLES::
+
+            sage: from sage.structure.element import Element
+            sage: class MyElement(Element):
+            ....:     def _add_(self, other):
+            ....:         return 42
+            sage: e = MyElement(Parent())
+            sage: e + e
+            42
+            sage: a = Integers(389)['x']['y'](37)
+            sage: p = sage.structure.element.RingElement.__pow__
+            sage: p(a, 2)
+            202
+            sage: p(a, 2, 1)
+            Traceback (most recent call last):
+            ...
+            TypeError: the 3-argument version of pow() is not supported
+
+        ::
+
+            sage: # needs sage.symbolic
+            sage: (2/3)^I
+            (2/3)^I
+            sage: (2/3)^sqrt(2)
+            (2/3)^sqrt(2)
+            sage: var('x,y,z,n')
+            (x, y, z, n)
+            sage: (2/3)^(x^n + y^n + z^n)
+            (2/3)^(x^n + y^n + z^n)
+            sage: (-7/11)^(tan(x)+exp(x))
+            (-7/11)^(e^x + tan(x))
+
+            sage: float(1.2)**(1/2)
+            1.0954451150103321
+            sage: complex(1,2)**(1/2)                                                   # needs sage.rings.complex_double
+            (1.272019649514069+0.786151377757423...j)
+
+        TESTS::
+
+            sage: e = Element(Parent())
+            sage: e ^ e
+            Traceback (most recent call last):
+            ...
+            TypeError: unsupported operand parent(s) for ^: '<sage.structure.parent.Parent object at ...>' and '<sage.structure.parent.Parent object at ...>'
+            sage: 1 ^ e
+            Traceback (most recent call last):
+            ...
+            TypeError: unsupported operand parent(s) for ^: 'Integer Ring' and '<sage.structure.parent.Parent object at ...>'
+            sage: e ^ 1
+            Traceback (most recent call last):
+            ...
+            TypeError: unsupported operand parent(s) for ^: '<sage.structure.parent.Parent object at ...>' and 'Integer Ring'
+            sage: int(1) ^ e
+            Traceback (most recent call last):
+            ...
+            TypeError: unsupported operand type(s) for ** or pow(): 'int' and 'sage.structure.element.Element'
+            sage: e ^ int(1)
+            Traceback (most recent call last):
+            ...
+            TypeError: unsupported operand type(s) for ** or pow(): 'sage.structure.element.Element' and 'int'
+            sage: None ^ e
+            Traceback (most recent call last):
+            ...
+            TypeError: unsupported operand type(s) for ** or pow(): 'NoneType' and 'sage.structure.element.Element'
+            sage: e ^ None
+            Traceback (most recent call last):
+            ...
+            TypeError: unsupported operand type(s) for ** or pow(): 'sage.structure.element.Element' and 'NoneType'
+        """
+        # The coercion model does not support a modulus
+        if modulus is not None:
+            raise TypeError("the 3-argument version of pow() is not supported")
+
+        cdef int cl = classify_elements(left, right)
+        if HAVE_SAME_PARENT(cl):
+            return (<Element>left)._pow_(right)
+        if BOTH_ARE_ELEMENT(cl):
+            return coercion_model.bin_op(left, right, pow)
+
+        cdef long value
+        cdef int err = -1
+        try:
+            # Special case powering with Python integers
+            integer_check_long_py(right, &value, &err)
+            if not err:
+                return (<Element>left)._pow_long(value)
+            return coercion_model.bin_op(left, right, pow)
+        except TypeError:
+            return NotImplemented
+
+    cdef _pow_(self, other):
+        """
+        Virtual powering method for elements with identical parents.
+
+        This default Cython implementation of ``_pow_`` calls the
+        Python method ``self._pow_`` if it exists. This method may be
+        defined in the ``ElementMethods`` of the category of the parent.
+        If the method is not found, a :exc:`TypeError` is raised
+        indicating that the operation is not supported.
+
+        See :ref:`element_arithmetic`.
+
+        EXAMPLES:
+
+        This method is not visible from Python::
+
+            sage: from sage.structure.element import Element
+            sage: e = Element(Parent())
+            sage: e._pow_(e)
+            Traceback (most recent call last):
+            ...
+            AttributeError: 'sage.structure.element.Element' object has no attribute '_pow_'...
+        """
+        try:
+            python_op = (<object>self)._pow_
+        except AttributeError:
+            raise bin_op_exception('^', self, other)
+        else:
+            return python_op(other)
+
+    cdef _pow_int(self, other):
+        """
+        Virtual powering method for powering to an integer exponent.
+
+        This default Cython implementation of ``_pow_int`` calls the
+        Python method ``self._pow_int`` if it exists. This method may be
+        defined in the ``ElementMethods`` of the category of the parent.
+        If the method is not found, a :exc:`TypeError` is raised
+        indicating that the operation is not supported.
+
+        See :ref:`element_arithmetic`.
+
+        EXAMPLES:
+
+        This method is not visible from Python::
+
+            sage: from sage.structure.element import Element
+            sage: e = Element(Parent())
+            sage: e._pow_int(e)
+            Traceback (most recent call last):
+            ...
+            AttributeError: 'sage.structure.element.Element' object has no attribute '_pow_int'...
+        """
+        try:
+            python_op = (<object>self)._pow_int
+        except AttributeError:
+            raise bin_op_exception('^', self, other)
+        else:
+            return python_op(other)
+
+    cdef _pow_long(self, long n):
+        """
+        Generic path for powering with a C long.
+        """
+        return self._pow_int(n)
 
 
 def is_ModuleElement(x):
@@ -1963,13 +2137,19 @@ def is_ModuleElement(x):
 
         sage: from sage.structure.element import is_ModuleElement
         sage: is_ModuleElement(2/3)
+        doctest:warning...
+        DeprecationWarning: The function is_ModuleElement is deprecated; use 'isinstance(..., ModuleElement)' instead.
+        See https://github.com/sagemath/sage/issues/38077 for details.
         True
-        sage: is_ModuleElement((QQ^3).0)
+        sage: is_ModuleElement((QQ^3).0)                                                # needs sage.modules
         True
         sage: is_ModuleElement('a')
         False
     """
+    from sage.misc.superseded import deprecation_cython
+    deprecation_cython(38077, "The function is_ModuleElement is deprecated; use 'isinstance(..., ModuleElement)' instead.")
     return isinstance(x, ModuleElement)
+
 
 cdef class ElementWithCachedMethod(Element):
     r"""
@@ -1979,7 +2159,7 @@ cdef class ElementWithCachedMethod(Element):
 
     The :class:`~sage.misc.cachefunc.cached_method` decorator provides
     a convenient way to automatically cache the result of a computation.
-    Since :trac:`11115`, the cached method decorator applied to a
+    Since :issue:`11115`, the cached method decorator applied to a
     method without optional arguments is faster than a hand-written cache
     in Python, and a cached method without any arguments (except ``self``)
     is actually faster than a Python method that does nothing more but
@@ -1992,7 +2172,7 @@ cdef class ElementWithCachedMethod(Element):
     slower (for :class:`~sage.structure.parent.Parent`) or the cache would
     even break (for :class:`Element`).
 
-    This class should be used if you write an element class, can not provide
+    This class should be used if you write an element class, cannot provide
     it with attribute assignment, but want that it inherits a cached method
     from the category. Under these conditions, your class should inherit
     from this class rather than :class:`Element`. Then, the cache will work,
@@ -2007,35 +2187,37 @@ cdef class ElementWithCachedMethod(Element):
     category whose element and parent classes define cached methods.
     ::
 
+        sage: # needs sage.misc.cython
         sage: cython_code = ["from sage.structure.element cimport Element, ElementWithCachedMethod",
+        ....:     "from sage.structure.richcmp cimport richcmp",
         ....:     "cdef class MyBrokenElement(Element):",
         ....:     "    cdef public object x",
-        ....:     "    def __init__(self,P,x):",
-        ....:     "        self.x=x",
-        ....:     "        Element.__init__(self,P)",
+        ....:     "    def __init__(self, P, x):",
+        ....:     "        self.x = x",
+        ....:     "        Element.__init__(self, P)",
         ....:     "    def __neg__(self):",
-        ....:     "        return MyBrokenElement(self.parent(),-self.x)",
+        ....:     "        return MyBrokenElement(self.parent(), -self.x)",
         ....:     "    def _repr_(self):",
-        ....:     "        return '<%s>'%self.x",
+        ....:     "        return '<%s>' % self.x",
         ....:     "    def __hash__(self):",
         ....:     "        return hash(self.x)",
-        ....:     "    cpdef int _cmp_(left, right) except -2:",
-        ....:     "        return cmp(left.x,right.x)",
+        ....:     "    cpdef _richcmp_(left, right, int op):",
+        ....:     "        return richcmp(left.x, right.x, op)",
         ....:     "    def raw_test(self):",
         ....:     "        return -self",
         ....:     "cdef class MyElement(ElementWithCachedMethod):",
         ....:     "    cdef public object x",
-        ....:     "    def __init__(self,P,x):",
-        ....:     "        self.x=x",
-        ....:     "        Element.__init__(self,P)",
+        ....:     "    def __init__(self, P, x):",
+        ....:     "        self.x = x",
+        ....:     "        Element.__init__(self, P)",
         ....:     "    def __neg__(self):",
-        ....:     "        return MyElement(self.parent(),-self.x)",
+        ....:     "        return MyElement(self.parent(), -self.x)",
         ....:     "    def _repr_(self):",
-        ....:     "        return '<%s>'%self.x",
+        ....:     "        return '<%s>' % self.x",
         ....:     "    def __hash__(self):",
         ....:     "        return hash(self.x)",
-        ....:     "    cpdef int _cmp_(left, right) except -2:",
-        ....:     "        return cmp(left.x,right.x)",
+        ....:     "    cpdef _richcmp_(left, right, int op):",
+        ....:     "        return richcmp(left.x, right.x, op)",
         ....:     "    def raw_test(self):",
         ....:     "        return -self",
         ....:     "class MyPythonElement(MyBrokenElement): pass",
@@ -2043,7 +2225,10 @@ cdef class ElementWithCachedMethod(Element):
         ....:     "cdef class MyParent(Parent):",
         ....:     "    Element = MyElement"]
         sage: cython('\n'.join(cython_code))
-        sage: cython_code = ["from sage.all import cached_method, cached_in_parent_method, Category, Objects",
+        sage: cython_code = ["from sage.misc.cachefunc import cached_method",
+        ....:     "from sage.misc.cachefunc import cached_in_parent_method",
+        ....:     "from sage.categories.category import Category",
+        ....:     "from sage.categories.objects import Objects",
         ....:     "class MyCategory(Category):",
         ....:     "    @cached_method",
         ....:     "    def super_categories(self):",
@@ -2065,11 +2250,12 @@ cdef class ElementWithCachedMethod(Element):
         sage: cython('\n'.join(cython_code))
         sage: C = MyCategory()
         sage: P = MyParent(category=C)
-        sage: ebroken = MyBrokenElement(P,5)
-        sage: e = MyElement(P,5)
+        sage: ebroken = MyBrokenElement(P, 5)
+        sage: e = MyElement(P, 5)
 
     The cached methods inherited by ``MyElement`` works::
 
+        sage: # needs sage.misc.cython
         sage: e.element_cache_test()
         <-5>
         sage: e.element_cache_test() is e.element_cache_test()
@@ -2084,38 +2270,37 @@ cdef class ElementWithCachedMethod(Element):
     parent. In fact, equal elements share the cache, even if they are
     of different types::
 
-        sage: e == ebroken
+        sage: e == ebroken                                                              # needs sage.misc.cython
         True
-        sage: type(e) == type(ebroken)
+        sage: type(e) == type(ebroken)                                                  # needs sage.misc.cython
         False
-        sage: ebroken.element_via_parent_test() is e.element_via_parent_test()
+        sage: ebroken.element_via_parent_test() is e.element_via_parent_test()          # needs sage.misc.cython
         True
 
     However, the cache of the other inherited method breaks, although the method
     as such works::
 
-        sage: ebroken.element_cache_test()
+        sage: ebroken.element_cache_test()                                              # needs sage.misc.cython
         <-5>
-        sage: ebroken.element_cache_test() is ebroken.element_cache_test()
+        sage: ebroken.element_cache_test() is ebroken.element_cache_test()              # needs sage.misc.cython
         False
 
     Since ``e`` and ``ebroken`` share the cache, when we empty it for one element
     it is empty for the other as well::
 
-        sage: b = ebroken.element_via_parent_test()
-        sage: e.element_via_parent_test.clear_cache()
-        sage: b is ebroken.element_via_parent_test()
+        sage: b = ebroken.element_via_parent_test()                                     # needs sage.misc.cython
+        sage: e.element_via_parent_test.clear_cache()                                   # needs sage.misc.cython
+        sage: b is ebroken.element_via_parent_test()                                    # needs sage.misc.cython
         False
 
     Note that the cache only breaks for elements that do no allow attribute assignment.
     A Python version of ``MyBrokenElement`` therefore allows for cached methods::
 
-        sage: epython = MyPythonElement(P,5)
-        sage: epython.element_cache_test()
+        sage: epython = MyPythonElement(P, 5)                                           # needs sage.misc.cython
+        sage: epython.element_cache_test()                                              # needs sage.misc.cython
         <-5>
-        sage: epython.element_cache_test() is epython.element_cache_test()
+        sage: epython.element_cache_test() is epython.element_cache_test()              # needs sage.misc.cython
         True
-
     """
     cdef getattr_from_category(self, name):
         """
@@ -2130,7 +2315,9 @@ cdef class ElementWithCachedMethod(Element):
 
         EXAMPLES::
 
-            sage: cython('''
+            sage: # needs sage.misc.cython
+            sage: cython(
+            ....: '''
             ....: from sage.structure.element cimport ElementWithCachedMethod
             ....: cdef class MyElement(ElementWithCachedMethod):
             ....:     cdef public object x
@@ -2142,7 +2329,10 @@ cdef class ElementWithCachedMethod(Element):
             ....: from sage.structure.parent cimport Parent
             ....: cdef class MyParent(Parent):
             ....:     Element = MyElement
-            ....: from sage.all import cached_method, lazy_attribute, Category, Objects
+            ....: from sage.misc.cachefunc import cached_method
+            ....: from sage.misc.lazy_attribute import lazy_attribute
+            ....: from sage.categories.category import Category
+            ....: from sage.categories.objects import Objects
             ....: class MyCategory(Category):
             ....:     @cached_method
             ....:     def super_categories(self):
@@ -2154,31 +2344,47 @@ cdef class ElementWithCachedMethod(Element):
             ....: ''')
             sage: C = MyCategory()
             sage: P = MyParent(category=C)
-            sage: e = MyElement(P,5)
+            sage: e = MyElement(P, 5)
             sage: e.my_lazy_attr
             'lazy attribute of <5>'
             sage: e.my_lazy_attr is e.my_lazy_attr
             True
         """
         try:
-            return self.__cached_methods[name]
+            return self._cached_methods[name]
         except KeyError:
             attr = getattr_from_other_class(self,
                                         self._parent.category().element_class,
                                         name)
-            self.__cached_methods[name] = attr
+            self._cached_methods[name] = attr
             return attr
         except TypeError:
             attr = getattr_from_other_class(self,
                                         self._parent.category().element_class,
                                         name)
-            self.__cached_methods = {name : attr}
+            self._cached_methods = {name: attr}
             return attr
+
 
 cdef class ModuleElement(Element):
     """
     Generic element of a module.
     """
+    cpdef _add_(self, other):
+        """
+        Abstract addition method.
+
+        TESTS::
+
+            sage: from sage.structure.element import ModuleElement
+            sage: e = ModuleElement(Parent())
+            sage: e + e
+            Traceback (most recent call last):
+            ...
+            NotImplementedError: addition not implemented for <sage.structure.parent.Parent object at ...>
+        """
+        raise NotImplementedError(f"addition not implemented for {self._parent}")
+
     cdef _add_long(self, long n):
         """
         Generic path for adding a C long, assumed to commute.
@@ -2225,24 +2431,90 @@ cdef class ModuleElement(Element):
         Scalar multiplication for module elements with the module
         element on the left and the scalar on the right.
 
-        Returning None indicates that this action is not implemented here.
+        Returning ``None`` indicates that this action is not implemented here.
         """
         return None
 
     ##################################################
     # Other properties
     ##################################################
-    def order(self):              ### DO NOT OVERRIDE THIS!!! Instead, override additive_order.
+    def order(self):
+        # DO NOT OVERRIDE THIS!!! Instead, override additive_order.
         """
-        Return the additive order of self.
+        Return the additive order of ``self``.
         """
         return self.additive_order()
 
     def additive_order(self):
         """
-        Return the additive order of self.
+        Return the additive order of ``self``.
         """
         raise NotImplementedError
+
+cdef class ModuleElementWithMutability(ModuleElement):
+    """
+    Generic element of a module with mutability.
+    """
+
+    def __init__(self, parent, is_immutable=False):
+        """
+        EXAMPLES::
+
+            sage: v = sage.modules.free_module_element.FreeModuleElement(QQ^3)          # needs sage.modules
+            sage: type(v)                                                               # needs sage.modules
+            <class 'sage.modules.free_module_element.FreeModuleElement'>
+        """
+        self._parent = parent
+        self._is_immutable = is_immutable
+
+    def set_immutable(self):
+        """
+        Make this vector immutable. This operation can't be undone.
+
+        EXAMPLES::
+
+            sage: # needs sage.modules
+            sage: v = vector([1..5]); v
+            (1, 2, 3, 4, 5)
+            sage: v[1] = 10
+            sage: v.set_immutable()
+            sage: v[1] = 10
+            Traceback (most recent call last):
+            ...
+            ValueError: vector is immutable; please change a copy instead (use copy())
+        """
+        self._is_immutable = 1
+
+    cpdef bint is_mutable(self) noexcept:
+        """
+        Return ``True`` if this vector is mutable, i.e., the entries can be
+        changed.
+
+        EXAMPLES::
+
+            sage: v = vector(QQ['x,y'], [1..5]); v.is_mutable()                         # needs sage.modules
+            True
+            sage: v.set_immutable()                                                     # needs sage.modules
+            sage: v.is_mutable()                                                        # needs sage.modules
+            False
+        """
+        return not self._is_immutable
+
+    cpdef bint is_immutable(self) noexcept:
+        """
+        Return ``True`` if this vector is immutable, i.e., the entries cannot
+        be changed.
+
+        EXAMPLES::
+
+            sage: v = vector(QQ['x,y'], [1..5]); v.is_immutable()                       # needs sage.modules
+            False
+            sage: v.set_immutable()                                                     # needs sage.modules
+            sage: v.is_immutable()                                                      # needs sage.modules
+            True
+        """
+        return self._is_immutable
+
 
 ########################################################################
 # Monoid
@@ -2252,7 +2524,10 @@ def is_MonoidElement(x):
     """
     Return ``True`` if x is of type MonoidElement.
     """
+    from sage.misc.superseded import deprecation_cython
+    deprecation_cython(38077, "The function is_MonoidElement is deprecated; use 'isinstance(..., MonoidElement)' instead.")
     return isinstance(x, MonoidElement)
+
 
 cdef class MonoidElement(Element):
     """
@@ -2265,23 +2540,21 @@ cdef class MonoidElement(Element):
     #############################################################
     def order(self):
         """
-        Return the multiplicative order of self.
+        Return the multiplicative order of ``self``.
         """
         return self.multiplicative_order()
 
     def multiplicative_order(self):
         """
-        Return the multiplicative order of self.
+        Return the multiplicative order of ``self``.
         """
         raise NotImplementedError
 
-    def __pow__(self, n, dummy):
+    cpdef _pow_int(self, n):
         """
-        Return the (integral) power of self.
+        Return the (integral) power of ``self``.
         """
-        if dummy is not None:
-            raise RuntimeError("__pow__ dummy argument not used")
-        return generic_power_c(self,n,None)
+        return arith_generic_power(self, n)
 
     def powers(self, n):
         r"""
@@ -2289,9 +2562,9 @@ cdef class MonoidElement(Element):
 
         EXAMPLES::
 
-            sage: G = SymmetricGroup(4)
-            sage: g = G([2, 3, 4, 1])
-            sage: g.powers(4)
+            sage: G = SymmetricGroup(4)                                                 # needs sage.groups
+            sage: g = G([2, 3, 4, 1])                                                   # needs sage.groups
+            sage: g.powers(4)                                                           # needs sage.groups
             [(), (1,2,3,4), (1,3)(2,4), (1,4,3,2)]
         """
         if n < 0:
@@ -2300,19 +2573,23 @@ cdef class MonoidElement(Element):
             return []
         x = self._parent.one()
         l = [x]
-        for i in xrange(n - 1):
+        for i in range(n - 1):
             x = x * self
             l.append(x)
         return l
 
-    def __nonzero__(self):
+    def __bool__(self):
         return True
+
 
 def is_AdditiveGroupElement(x):
     """
     Return ``True`` if x is of type AdditiveGroupElement.
     """
+    from sage.misc.superseded import deprecation_cython
+    deprecation_cython(38077, "The function is_AdditiveGroupElement is deprecated; use 'isinstance(..., AdditiveGroupElement)' instead.")
     return isinstance(x, AdditiveGroupElement)
+
 
 cdef class AdditiveGroupElement(ModuleElement):
     """
@@ -2332,7 +2609,10 @@ def is_MultiplicativeGroupElement(x):
     """
     Return ``True`` if x is of type MultiplicativeGroupElement.
     """
+    from sage.misc.superseded import deprecation_cython
+    deprecation_cython(38077, "The function is_MultiplicativeGroupElement is deprecated; use 'isinstance(..., MultiplicativeGroupElement)' instead.")
     return isinstance(x, MultiplicativeGroupElement)
+
 
 cdef class MultiplicativeGroupElement(MonoidElement):
     """
@@ -2340,7 +2620,7 @@ cdef class MultiplicativeGroupElement(MonoidElement):
     """
     def order(self):
         """
-        Return the multiplicative order of self.
+        Return the multiplicative order of ``self``.
         """
         return self.multiplicative_order()
 
@@ -2353,7 +2633,10 @@ cdef class MultiplicativeGroupElement(MonoidElement):
 
     def __invert__(self):
         r"""
-        Return the inverse of ``self``.
+        Return the multiplicative inverse of ``self``.
+
+        This may cause infinite recursion because of the default definition
+        of division using inversion in ``_div_``.
         """
         return self._parent.one() / self
 
@@ -2362,26 +2645,44 @@ def is_RingElement(x):
     """
     Return ``True`` if x is of type RingElement.
     """
+    from sage.misc.superseded import deprecation_cython
+    deprecation_cython(38077, "The function is_RingElement is deprecated; use 'isinstance(..., RingElement)' instead.")
     return isinstance(x, RingElement)
 
+
 cdef class RingElement(ModuleElement):
+    cpdef _mul_(self, other):
+        """
+        Abstract multiplication method.
+
+        TESTS::
+
+            sage: from sage.structure.element import RingElement
+            sage: e = RingElement(Parent())
+            sage: e * e
+            Traceback (most recent call last):
+            ...
+            NotImplementedError: multiplication not implemented for <sage.structure.parent.Parent object at ...>
+        """
+        raise NotImplementedError(f"multiplication not implemented for {self._parent}")
+
     def is_one(self):
         return self == self._parent.one()
 
-    def __pow__(self, n, dummy):
+    cpdef _pow_int(self, n):
         """
-        Return the (integral) power of self.
+        Return the (integral) power of ``self``.
 
         EXAMPLES::
 
-            sage: a = Integers(389)['x']['y'](37)
+            sage: a = GF(389)['x']['y'](37)
             sage: p = sage.structure.element.RingElement.__pow__
             sage: p(a,2)
             202
             sage: p(a,2,1)
             Traceback (most recent call last):
             ...
-            RuntimeError: __pow__ dummy argument not used
+            TypeError: the 3-argument version of pow() is not supported
             sage: p(a,388)
             1
             sage: p(a,2^120)
@@ -2400,41 +2701,36 @@ cdef class RingElement(ModuleElement):
             True
             sage: p(a,200) * p(a,-64) == p(a,136)
             True
-            sage: p(2, 1/2)
-            Traceback (most recent call last):
-            ...
-            NotImplementedError: non-integral exponents not supported
-
-        TESTS::
-
-        These aren't testing this code, but they are probably good to have around::
-
-            sage: 2r**(SR(2)-1-1r)
-            1
-            sage: 2r^(1/2)
+            sage: p(2, 1/2)                                                             # needs sage.symbolic
             sqrt(2)
 
-        Exponent overflow should throw an OverflowError (:trac:`2956`)::
+        TESTS:
 
-            sage: K.<x,y> = AA[]
-            sage: x^(2^64 + 12345)
+        These are not testing this code, but they are probably good to have around::
+
+            sage: 2r**(SR(2)-1-1r)                                                      # needs sage.symbolic
+            1
+            sage: 2r^(1/2)                                                              # needs sage.symbolic
+            sqrt(2)
+
+        Exponent overflow should throw an :exc:`OverflowError` (:issue:`2956`)::
+
+            sage: K.<x,y> = AA[]                                                        # needs sage.rings.number_field
+            sage: x^(2^64 + 12345)  # known bug: macos                                  # needs sage.rings.number_field
             Traceback (most recent call last):
             ...
             OverflowError: exponent overflow (2147483648)
 
-        Another example from :trac:`2956` which always overflows
+        Another example from :issue:`2956` which always overflows
         with Singular 4::
 
             sage: K.<x,y> = ZZ[]
-            sage: (x^12345)^54321
+            sage: (x^123456)^654321
             Traceback (most recent call last):
             ...
-            OverflowError: exponent overflow (670592745)
-
+            OverflowError: exponent overflow (...)
         """
-        if dummy is not None:
-            raise RuntimeError("__pow__ dummy argument not used")
-        return generic_power_c(self,n,None)
+        return arith_generic_power(self, n)
 
     def powers(self, n):
         r"""
@@ -2451,7 +2747,7 @@ cdef class RingElement(ModuleElement):
             return []
         x = self._parent.one()
         l = [x]
-        for i in xrange(n - 1):
+        for i in range(n - 1):
             x = x * self
             l.append(x)
         return l
@@ -2466,6 +2762,72 @@ cdef class RingElement(ModuleElement):
             raise bin_op_exception('/', self, other)
         return frac(self, other)
 
+    def __divmod__(self, other):
+        """
+        Return the quotient and remainder of ``self`` divided by ``other``.
+
+        This operation may not be defined in all rings.
+
+        EXAMPLES::
+
+            sage: divmod(5,3)
+            (1, 2)
+            sage: divmod(25r,12)
+            (2, 1)
+            sage: divmod(25,12r)
+            (2, 1)
+
+        ::
+
+            sage: R.<x> = QQ[]
+            sage: f = -19/13*x^5 - x^4 - 2/3*x^3 + 6*x^2 - 2
+            sage: g = 3*x^2 + 5
+            sage: q,r = divmod(f,g)
+            sage: q
+            -19/39*x^3 - 1/3*x^2 + 23/39*x + 23/9
+            sage: r
+            -115/39*x - 133/9
+            sage: f == q*g + r
+            True
+
+        ::
+
+            sage: R.<x> = ZZ[]
+            sage: f = -2*x^5 + x^4 - 9*x^3 - 5*x^2 + 7*x + 4
+            sage: g = x^2 + 5
+            sage: q,r = divmod(f,g)
+            sage: q
+            -2*x^3 + x^2 + x - 10
+            sage: r
+            2*x + 54
+            sage: f == q*g + r
+            True
+            sage: h = 3*x^2 + 5
+            sage: q,r = divmod(f,h)
+            sage: q
+            -3*x - 2
+            sage: r
+            -2*x^5 + x^4 + x^2 + 22*x + 14
+            sage: f == q*h + r
+            True
+
+        ::
+
+            sage: R.<x> = GF(7)[]
+            sage: divmod(x^2, x - 1)
+            (x + 1, 1)
+
+        ::
+
+            sage: divmod(22./7, RR(pi))                                                 # needs sage.symbolic
+            (1.00040249943477, 0.000000000000000)
+        """
+        try:
+            return self.quo_rem(other)
+        except (AttributeError, NotImplementedError):
+            pass
+        return (self // other, self % other)
+
     def __invert__(self):
         return self._parent.one() / self
 
@@ -2477,8 +2839,9 @@ cdef class RingElement(ModuleElement):
 
     def multiplicative_order(self):
         r"""
-        Return the multiplicative order of ``self``, if ``self`` is a unit,
-        or raise ``ArithmeticError`` otherwise.
+        Return the multiplicative order of ``self``, if ``self`` is a unit.
+
+        This raises an :class:`ArithmeticError` otherwise.
         """
         if not self.is_unit():
             raise ArithmeticError("self (=%s) must be a unit to have a multiplicative order.")
@@ -2497,11 +2860,9 @@ cdef class RingElement(ModuleElement):
             sage: a = QQ(0)
             sage: a.is_nilpotent()
             True
-            sage: m = matrix(QQ,3,[[3,2,3],[9,0,3],[-9,0,-3]])
-            sage: m.is_nilpotent()
-            Traceback (most recent call last):
-            ...
-            AttributeError: ... object has no attribute 'is_nilpotent'
+            sage: m = matrix(QQ, 3, [[3,2,3], [9,0,3], [-9,0,-3]])                      # needs sage.modules
+            sage: m.is_nilpotent()                                                      # needs sage.modules
+            True
         """
         if self.is_unit():
             return False
@@ -2516,24 +2877,24 @@ cdef class RingElement(ModuleElement):
 
         EXAMPLES::
 
-            sage: RR(-1).abs()
+            sage: RR(-1).abs()                                                          # needs sage.rings.real_mpfr
             1.00000000000000
             sage: ZZ(-1).abs()
             1
-            sage: CC(I).abs()
+            sage: CC(I).abs()                                                           # needs sage.rings.real_mpfr sage.symbolic
             1.00000000000000
             sage: Mod(-15, 37).abs()
             Traceback (most recent call last):
             ...
-            ArithmeticError: absolute valued not defined on integers modulo n.
+            ArithmeticError: absolute value not defined on integers modulo n.
         """
         return abs(self)
 
     def is_prime(self):
         """
-        Is ``self`` a prime element?
+        Check whether ``self`` is a prime element.
 
-        A *prime* element is a non-zero, non-unit element `p` such that,
+        A *prime* element is a nonzero, non-unit element `p` such that,
         whenever `p` divides `ab` for some `a` and `b`, then `p`
         divides `a` or `p` divides `b`.
 
@@ -2541,6 +2902,7 @@ cdef class RingElement(ModuleElement):
 
         For polynomial rings, prime is the same as irreducible::
 
+            sage: # needs sage.libs.singular
             sage: R.<x,y> = QQ[]
             sage: x.is_prime()
             True
@@ -2555,13 +2917,14 @@ cdef class RingElement(ModuleElement):
 
         For the Gaussian integers::
 
+            sage: # needs sage.rings.number_field
             sage: K.<i> = QuadraticField(-1)
             sage: ZI = K.ring_of_integers()
             sage: ZI(3).is_prime()
             True
             sage: ZI(5).is_prime()
             False
-            sage: ZI(2+i).is_prime()
+            sage: ZI(2 + i).is_prime()
             True
             sage: ZI(0).is_prime()
             False
@@ -2575,11 +2938,36 @@ cdef class RingElement(ModuleElement):
             sage: RR(2).is_prime()
             False
 
-        For integers, prime numbers are redefined to be positive::
+        For integers, :meth:`is_prime` redefines prime numbers to be
+        positive::
 
-            sage: RingElement.is_prime(-2)
+            sage: (-2).is_prime()
+            False
+            sage: RingElement.is_prime(-2)                                              # needs sage.libs.pari
             True
-            sage: Integer.is_prime(-2)
+
+        Similarly,
+        :class:`~sage.rings.number_field.number_field_base.NumberField`
+        redefines :meth:`is_prime` to determine primality in the ring
+        of integers::
+
+            sage: # needs sage.rings.number_field
+            sage: (1 + i).is_prime()
+            True
+            sage: K(5).is_prime()
+            False
+            sage: K(7).is_prime()
+            True
+            sage: K(7/13).is_prime()
+            False
+
+        However, for rationals, :meth:`is_prime` *does* follow the
+        general definition of prime elements in a ring (i.e., always
+        returns ``False``) since the rationals are not a
+        :class:`~sage.rings.number_field.number_field_base.NumberField`
+        in Sage::
+
+            sage: QQ(7).is_prime()
             False
         """
         if not self:  # We exclude the 0 element
@@ -2595,23 +2983,54 @@ def is_CommutativeRingElement(x):
 
         sage: from sage.structure.element import is_CommutativeRingElement
         sage: is_CommutativeRingElement(oo)
+        doctest:warning...
+        DeprecationWarning: The function is_CommutativeRingElement is deprecated; use 'isinstance(..., CommutativeRingElement)' instead.
+        See https://github.com/sagemath/sage/issues/38077 for details.
         False
 
         sage: is_CommutativeRingElement(1)
         True
     """
+    from sage.misc.superseded import deprecation_cython
+    deprecation_cython(38077, "The function is_CommutativeRingElement is deprecated; use 'isinstance(..., CommutativeRingElement)' instead.")
     return isinstance(x, CommutativeRingElement)
+
 
 cdef class CommutativeRingElement(RingElement):
     """
     Base class for elements of commutative rings.
     """
+
     def inverse_mod(self, I):
         r"""
         Return an inverse of ``self`` modulo the ideal `I`, if defined,
         i.e., if `I` and ``self`` together generate the unit ideal.
+
+        EXAMPLES::
+
+            sage: # needs sage.rings.finite_rings
+            sage: F = GF(25)
+            sage: x = F.gen()
+            sage: z = F.zero()
+            sage: x.inverse_mod(F.ideal(z))
+            2*z2 + 3
+            sage: x.inverse_mod(F.ideal(1))
+            1
+            sage: z.inverse_mod(F.ideal(1))
+            1
+            sage: z.inverse_mod(F.ideal(z))
+            Traceback (most recent call last):
+            ...
+            ValueError: an element of a proper ideal does not have an inverse modulo that ideal
         """
-        raise NotImplementedError
+        if I.is_one():
+            return self.parent().one()
+        elif self in I:
+            raise ValueError("an element of a proper ideal does not have an inverse modulo that ideal")
+        elif hasattr(self, "is_unit") and self.is_unit():
+            return self.inverse_of_unit()
+        else:
+            raise NotImplementedError
 
     def divides(self, x):
         """
@@ -2622,19 +3041,19 @@ cdef class CommutativeRingElement(RingElement):
             sage: P.<x> = PolynomialRing(QQ)
             sage: x.divides(x^2)
             True
-            sage: x.divides(x^2+2)
+            sage: x.divides(x^2 + 2)
             False
-            sage: (x^2+2).divides(x)
+            sage: (x^2 + 2).divides(x)
             False
             sage: P.<x> = PolynomialRing(ZZ)
             sage: x.divides(x^2)
             True
-            sage: x.divides(x^2+2)
+            sage: x.divides(x^2 + 2)
             False
-            sage: (x^2+2).divides(x)
+            sage: (x^2 + 2).divides(x)
             False
 
-        :trac:`5347` has been fixed::
+        :issue:`5347` has been fixed::
 
             sage: K = GF(7)
             sage: K(3).divides(1)
@@ -2656,13 +3075,11 @@ cdef class CommutativeRingElement(RingElement):
             sage: R(121).divides(R(120))
             True
             sage: R(120).divides(R(121))
-            Traceback (most recent call last):
-            ...
-            ArithmeticError: reduction modulo 120 not defined
+            False
 
         If ``x`` has different parent than ``self``, they are first coerced to a
         common parent if possible. If this coercion fails, it returns a
-        TypeError. This fixes :trac:`5759`. ::
+        :exc:`TypeError`. This fixes :issue:`5759`. ::
 
             sage: Zmod(2)(0).divides(Zmod(2)(0))
             True
@@ -2671,7 +3088,8 @@ cdef class CommutativeRingElement(RingElement):
             sage: Zmod(5)(1).divides(Zmod(2)(1))
             Traceback (most recent call last):
             ...
-            TypeError: no common canonical parent for objects with parents: 'Ring of integers modulo 5' and 'Ring of integers modulo 2'
+            TypeError: no common canonical parent for objects with parents:
+            'Ring of integers modulo 5' and 'Ring of integers modulo 2'
             sage: Zmod(35)(4).divides(Zmod(7)(1))
             True
             sage: Zmod(35)(7).divides(Zmod(7)(1))
@@ -2681,33 +3099,39 @@ cdef class CommutativeRingElement(RingElement):
             # First we test some generic conditions:
             try:
                 if x.is_zero():
-                    return True # everything divides 0
+                    return True  # everything divides 0
             except (AttributeError, NotImplementedError):
                 pass
 
             try:
                 if self.is_zero():
-                    return False # 0 divides nothing else
+                    return False  # 0 divides nothing else
             except (AttributeError, NotImplementedError):
                 pass
 
             try:
                 if self.is_unit():
-                    return True # units divide everything
+                    return True  # units divide everything
             except (AttributeError, NotImplementedError):
                 pass
 
             try:
                 if self.is_one():
-                    return True # 1 divides everything
-                                # (is_unit() may not be implemented)
+                    return True
+                # 1 divides everything
+                # (is_unit() may not be implemented)
             except (AttributeError, NotImplementedError):
                 pass
 
-            return (x % self) == 0
+            try:
+                return (x % self).is_zero()
+            except (TypeError, NotImplementedError):
+                pass
+
+            raise NotImplementedError
 
         else:
-            #Different parents, use coercion
+            # Different parents, use coercion
             a, b = coercion_model.canonical_coercion(self, x)
             return a.divides(b)
 
@@ -2735,7 +3159,6 @@ cdef class CommutativeRingElement(RingElement):
             sage: n.mod([15,6])
             2
 
-
         EXAMPLES: Univariate polynomials
 
         ::
@@ -2752,221 +3175,73 @@ cdef class CommutativeRingElement(RingElement):
             sage: f.mod(x + 1)
             -1
 
-        When little is implemented about a given ring, then mod may
-        return simply return `f`.
+        When little is implemented about a given ring, then ``mod`` may
+        simply return `f`.
 
         EXAMPLES: Multivariate polynomials
         We reduce a polynomial in two variables modulo a polynomial
         and an ideal::
 
             sage: R.<x,y,z> = PolynomialRing(QQ, 3)
-            sage: (x^2 + y^2 + z^2).mod(x+y+z)
+            sage: (x^2 + y^2 + z^2).mod(x + y + z)                                      # needs sage.libs.singular
             2*y^2 + 2*y*z + 2*z^2
 
         Notice above that `x` is eliminated.  In the next example,
         both `y` and `z` are eliminated::
 
-            sage: (x^2 + y^2 + z^2).mod( (x - y, y - z) )
+            sage: (x^2 + y^2 + z^2).mod( (x - y, y - z) )                               # needs sage.libs.singular
             3*z^2
             sage: f = (x^2 + y^2 + z^2)^2; f
             x^4 + 2*x^2*y^2 + y^4 + 2*x^2*z^2 + 2*y^2*z^2 + z^4
-            sage: f.mod( (x - y, y - z) )
+            sage: f.mod( (x - y, y - z) )                                               # needs sage.libs.singular
             9*z^4
 
         In this example `y` is eliminated::
 
-            sage: (x^2 + y^2 + z^2).mod( (x^3, y - z) )
+            sage: (x^2 + y^2 + z^2).mod( (x^3, y - z) )                                 # needs sage.libs.singular
             x^2 + 2*z^2
         """
-        from sage.rings.ideal import is_Ideal
-        if not is_Ideal(I) or not I.ring() is self._parent:
+        from sage.rings.ideal import Ideal_generic
+        if not isinstance(I, Ideal_generic) or not I.ring() is self._parent:
             I = self._parent.ideal(I)
-            #raise TypeError, "I = %s must be an ideal in %s"%(I, self.parent())
         return I.reduce(self)
 
-    ##################################################
-    # square roots
-    ##################################################
 
-    def is_square(self, root=False):
-        """
-        Return whether or not the ring element ``self`` is a square.
+##############################################
 
-        If the optional argument root is ``True``, then also return
-        the square root (or ``None``, if it is not a square).
+cdef class Expression(CommutativeRingElement):
 
-        INPUT:
+    r"""
+    Abstract base class for :class:`~sage.symbolic.expression.Expression`.
 
-        - ``root`` - whether or not to also return a square
-          root (default: ``False``)
+    This class is defined for the purpose of :func:`isinstance` tests.  It should not be
+    instantiated.
 
-        OUTPUT:
+    EXAMPLES::
 
-        - ``bool`` -- whether or not a square
+        sage: isinstance(SR.var('y'), sage.structure.element.Expression)                # needs sage.symbolic
+        True
 
-        - ``object`` -- (optional) an actual square root if
-          found, and ``None`` otherwise.
+    By design, there is a unique direct subclass::
 
-        EXAMPLES::
+        sage: len(sage.structure.element.Expression.__subclasses__()) <= 1
+        True
+    """
 
-            sage: R.<x> = PolynomialRing(QQ)
-            sage: f = 12*(x+1)^2 * (x+3)^2
-            sage: f.is_square()
-            False
-            sage: f.is_square(root=True)
-            (False, None)
-            sage: h = f/3
-            sage: h.is_square()
-            True
-            sage: h.is_square(root=True)
-            (True, 2*x^2 + 8*x + 6)
-
-        .. NOTE::
-
-            This is the is_square implementation for general
-            commutative ring elements. It's implementation is to raise
-            a NotImplementedError. The function definition is here to
-            show what functionality is expected and provide a general
-            framework.
-        """
-        raise NotImplementedError("is_square() not implemented for elements of %s" % self.parent())
-
-    def sqrt(self, extend=True, all=False, name=None):
-        """
-        It computes the square root.
-
-        INPUT:
-
-        -  ``extend`` - Whether to make a ring extension containing a square root if ``self`` is not a square (default: ``True``)
-
-        -  ``all`` - Whether to return a list of all square roots or just a square root (default: False)
-
-        -  ``name`` - Required when ``extend=True`` and ``self`` is not a square. This will be the name of the generator extension.
-
-        OUTPUT:
-
-        - if ``all=False`` it returns a square root. (throws an error if ``extend=False`` and ``self`` is not a square)
-
-        - if ``all=True`` it returns a list of all the square roots (could be empty if ``extend=False`` and ``self`` is not a square)
-
-        ALGORITHM:
-
-        It uses ``is_square(root=true)`` for the hard part of the work, the rest is just wrapper code.
-
-        EXAMPLES::
-
-            sage: R.<x> = ZZ[]
-            sage: (x^2).sqrt()
-            x
-            sage: f=x^2-4*x+4; f.sqrt(all=True)
-            [x - 2, -x + 2]
-            sage: sqrtx=x.sqrt(name="y"); sqrtx
-            y
-            sage: sqrtx^2
-            x
-            sage: x.sqrt(all=true,name="y")
-            [y, -y]
-            sage: x.sqrt(extend=False,all=True)
-            []
-            sage: x.sqrt()
-            Traceback (most recent call last):
-            ...
-            TypeError: Polynomial is not a square. You must specify the name of the square root when using the default extend = True
-            sage: x.sqrt(extend=False)
-            Traceback (most recent call last):
-            ...
-            ValueError: trying to take square root of non-square x with extend = False
-
-        TESTS::
-
-            sage: f = (x+3)^2; f.sqrt()
-            x + 3
-            sage: f = (x+3)^2; f.sqrt(all=True)
-            [x + 3, -x - 3]
-            sage: f = (x^2 - x + 3)^2; f.sqrt()
-            x^2 - x + 3
-            sage: f = (x^2 - x + 3)^6; f.sqrt()
-            x^6 - 3*x^5 + 12*x^4 - 19*x^3 + 36*x^2 - 27*x + 27
-            sage: g = (R.random_element(15))^2
-            sage: g.sqrt()^2 == g
-            True
-
-            sage: R.<x> = GF(250037)[]
-            sage: f = x^2/(x+1)^2; f.sqrt()
-            x/(x + 1)
-            sage: f = 9 * x^4 / (x+1)^2; f.sqrt()
-            3*x^2/(x + 1)
-            sage: f = 9 * x^4 / (x+1)^2; f.sqrt(all=True)
-            [3*x^2/(x + 1), 250034*x^2/(x + 1)]
-
-            sage: R.<x> = QQ[]
-            sage: a = 2*(x+1)^2 / (2*(x-1)^2); a.sqrt()
-            (2*x + 2)/(2*x - 2)
-            sage: sqrtx=(1/x).sqrt(name="y"); sqrtx
-            y
-            sage: sqrtx^2
-            1/x
-            sage: (1/x).sqrt(all=true,name="y")
-            [y, -y]
-            sage: (1/x).sqrt(extend=False,all=True)
-            []
-            sage: (1/(x^2-1)).sqrt()
-            Traceback (most recent call last):
-            ...
-            TypeError: Polynomial is not a square. You must specify the name of the square root when using the default extend = True
-            sage: (1/(x^2-3)).sqrt(extend=False)
-            Traceback (most recent call last):
-            ...
-            ValueError: trying to take square root of non-square 1/(x^2 - 3) with extend = False
-        """
-        #This code is very general, it works for all integral domains that have the
-        #is_square(root = True) option
-
-        from sage.rings.ring import IntegralDomain
-        P = self._parent
-        is_sqr, sq_rt = self.is_square(root=True)
-        if is_sqr:
-            if all:
-                if not isinstance(P, IntegralDomain):
-                    raise NotImplementedError('sqrt() with all=True is only implemented for integral domains, not for %s' % P)
-                if P.characteristic()==2 or sq_rt==0:
-                    #0 has only one square root, and in charasteristic 2 everything also has only 1 root
-                    return [ sq_rt ]
-                return [ sq_rt, -sq_rt ]
-            return sq_rt
-        #from now on we know that self is not a square
-        if not isinstance(P, IntegralDomain):
-            raise NotImplementedError('sqrt() of non squares is only implemented for integral domains, not for %s' % P)
-        if not extend:
-            #all square roots of a non-square should be an empty list
-            if all:
-                return []
-            raise ValueError('trying to take square root of non-square %s with extend = False' % self)
-
-        if name is None:
-            raise TypeError("Polynomial is not a square. You must specify the name of the square root when using the default extend = True")
-        from sage.rings.polynomial.polynomial_ring_constructor import PolynomialRing
-        PY = PolynomialRing(P, 'y')
-        y = PY.gen()
-        sq_rt = PY.quotient(y**2-self, names = name)(y)
-        if all:
-            if P.characteristic() == 2:
-                return [ sq_rt ]
-            return [ sq_rt, -sq_rt ]
-        return sq_rt
+    pass
 
     ##############################################
 
-cdef class Vector(ModuleElement):
-    cdef bint is_sparse_c(self):
+cdef class Vector(ModuleElementWithMutability):
+    cdef bint is_sparse_c(self) noexcept:
         raise NotImplementedError
 
-    cdef bint is_dense_c(self):
+    cdef bint is_dense_c(self) noexcept:
         raise NotImplementedError
 
     def __mul__(left, right):
         """
-        Multiplication of vector by vector, matrix, or scalar
+        Multiplication of vector by vector, matrix, or scalar.
 
         AUTHOR:
 
@@ -2981,195 +3256,259 @@ cdef class Vector(ModuleElement):
 
         Here we test (vector * vector) multiplication::
 
-            sage: parent(vector(ZZ,[1,2])*vector(ZZ,[1,2]))
+            sage: # needs sage.modules
+            sage: parent(vector(ZZ, [1,2]) * vector(ZZ, [1,2]))
             Integer Ring
-            sage: parent(vector(ZZ,[1,2])*vector(QQ,[1,2]))
+            sage: parent(vector(ZZ, [1,2]) * vector(QQ, [1,2]))
             Rational Field
-            sage: parent(vector(QQ,[1,2])*vector(ZZ,[1,2]))
+            sage: parent(vector(QQ, [1,2]) * vector(ZZ, [1,2]))
             Rational Field
-            sage: parent(vector(QQ,[1,2])*vector(QQ,[1,2]))
+            sage: parent(vector(QQ, [1,2]) * vector(QQ, [1,2]))
             Rational Field
 
-            sage: parent(vector(QQ,[1,2,3,4])*vector(ZZ['x'],[1,2,3,4]))
+            sage: parent(vector(QQ, [1,2,3,4]) * vector(ZZ['x'], [1,2,3,4]))                                            # needs sage.modules
             Univariate Polynomial Ring in x over Rational Field
-            sage: parent(vector(ZZ['x'],[1,2,3,4])*vector(QQ,[1,2,3,4]))
+            sage: parent(vector(ZZ['x'], [1,2,3,4]) * vector(QQ, [1,2,3,4]))                                            # needs sage.modules
             Univariate Polynomial Ring in x over Rational Field
 
-            sage: parent(vector(QQ,[1,2,3,4])*vector(ZZ['x']['y'],[1,2,3,4]))
+            sage: parent(vector(QQ, [1,2,3,4]) * vector(ZZ['x']['y'], [1,2,3,4]))                                       # needs sage.modules
             Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
-            sage: parent(vector(ZZ['x']['y'],[1,2,3,4])*vector(QQ,[1,2,3,4]))
-            Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
-
-            sage: parent(vector(QQ['x'],[1,2,3,4])*vector(ZZ['x']['y'],[1,2,3,4]))
-            Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
-            sage: parent(vector(ZZ['x']['y'],[1,2,3,4])*vector(QQ['x'],[1,2,3,4]))
+            sage: parent(vector(ZZ['x']['y'], [1,2,3,4]) * vector(QQ, [1,2,3,4]))                                       # needs sage.modules
             Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
 
-            sage: parent(vector(QQ['y'],[1,2,3,4])*vector(ZZ['x']['y'],[1,2,3,4]))
+            sage: parent(vector(QQ['x'], [1,2,3,4]) * vector(ZZ['x']['y'], [1,2,3,4]))                                  # needs sage.modules
             Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
-            sage: parent(vector(ZZ['x']['y'],[1,2,3,4])*vector(QQ['y'],[1,2,3,4]))
+            sage: parent(vector(ZZ['x']['y'], [1,2,3,4]) * vector(QQ['x'], [1,2,3,4]))                                  # needs sage.modules
             Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
 
-            sage: parent(vector(ZZ['x'],[1,2,3,4])*vector(ZZ['y'],[1,2,3,4]))
+            sage: parent(vector(QQ['y'], [1,2,3,4]) * vector(ZZ['x']['y'], [1,2,3,4]))                                  # needs sage.modules
+            Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
+            sage: parent(vector(ZZ['x']['y'], [1,2,3,4]) * vector(QQ['y'], [1,2,3,4]))                                  # needs sage.modules
+            Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
+
+            sage: # needs sage.modules
+            sage: parent(vector(ZZ['x'], [1,2,3,4]) * vector(ZZ['y'], [1,2,3,4]))
             Traceback (most recent call last):
             ...
-            TypeError: unsupported operand parent(s) for *: 'Ambient free module of rank 4 over the integral domain Univariate Polynomial Ring in x over Integer Ring' and 'Ambient free module of rank 4 over the integral domain Univariate Polynomial Ring in y over Integer Ring'
-            sage: parent(vector(ZZ['x'],[1,2,3,4])*vector(QQ['y'],[1,2,3,4]))
+            TypeError: unsupported operand parent(s) for *:
+             'Ambient free module of rank 4 over the integral domain Univariate Polynomial Ring in x over Integer Ring' and
+             'Ambient free module of rank 4 over the integral domain Univariate Polynomial Ring in y over Integer Ring'
+            sage: parent(vector(ZZ['x'], [1,2,3,4]) * vector(QQ['y'], [1,2,3,4]))
             Traceback (most recent call last):
             ...
-            TypeError: unsupported operand parent(s) for *: 'Ambient free module of rank 4 over the integral domain Univariate Polynomial Ring in x over Integer Ring' and 'Ambient free module of rank 4 over the principal ideal domain Univariate Polynomial Ring in y over Rational Field'
-            sage: parent(vector(QQ['x'],[1,2,3,4])*vector(ZZ['y'],[1,2,3,4]))
+            TypeError: unsupported operand parent(s) for *:
+             'Ambient free module of rank 4 over the integral domain Univariate Polynomial Ring in x over Integer Ring' and
+             'Ambient free module of rank 4 over the principal ideal domain Univariate Polynomial Ring in y over Rational Field'
+            sage: parent(vector(QQ['x'], [1,2,3,4]) * vector(ZZ['y'], [1,2,3,4]))
             Traceback (most recent call last):
             ...
-            TypeError: unsupported operand parent(s) for *: 'Ambient free module of rank 4 over the principal ideal domain Univariate Polynomial Ring in x over Rational Field' and 'Ambient free module of rank 4 over the integral domain Univariate Polynomial Ring in y over Integer Ring'
-            sage: parent(vector(QQ['x'],[1,2,3,4])*vector(QQ['y'],[1,2,3,4]))
+            TypeError: unsupported operand parent(s) for *:
+             'Ambient free module of rank 4 over the principal ideal domain Univariate Polynomial Ring in x over Rational Field' and
+             'Ambient free module of rank 4 over the integral domain Univariate Polynomial Ring in y over Integer Ring'
+            sage: parent(vector(QQ['x'], [1,2,3,4]) * vector(QQ['y'], [1,2,3,4]))
             Traceback (most recent call last):
             ...
-            TypeError: unsupported operand parent(s) for *: 'Ambient free module of rank 4 over the principal ideal domain Univariate Polynomial Ring in x over Rational Field' and 'Ambient free module of rank 4 over the principal ideal domain Univariate Polynomial Ring in y over Rational Field'
+            TypeError: unsupported operand parent(s) for *:
+             'Ambient free module of rank 4 over the principal ideal domain Univariate Polynomial Ring in x over Rational Field' and
+             'Ambient free module of rank 4 over the principal ideal domain Univariate Polynomial Ring in y over Rational Field'
 
         Here we test (vector * matrix) multiplication::
 
-            sage: parent(vector(ZZ,[1,2])*matrix(ZZ,2,2,[1,2,3,4]))
+            sage: # needs sage.modules
+            sage: parent(vector(ZZ, [1,2]) * matrix(ZZ, 2, 2, [1,2,3,4]))
             Ambient free module of rank 2 over the principal ideal domain Integer Ring
-            sage: parent(vector(QQ,[1,2])*matrix(ZZ,2,2,[1,2,3,4]))
+            sage: parent(vector(QQ, [1,2]) * matrix(ZZ, 2, 2, [1,2,3,4]))
             Vector space of dimension 2 over Rational Field
-            sage: parent(vector(ZZ,[1,2])*matrix(QQ,2,2,[1,2,3,4]))
+            sage: parent(vector(ZZ, [1,2]) * matrix(QQ, 2, 2, [1,2,3,4]))
             Vector space of dimension 2 over Rational Field
-            sage: parent(vector(QQ,[1,2])*matrix(QQ,2,2,[1,2,3,4]))
+            sage: parent(vector(QQ, [1,2]) * matrix(QQ, 2, 2, [1,2,3,4]))
             Vector space of dimension 2 over Rational Field
 
-            sage: parent(vector(QQ,[1,2])*matrix(ZZ['x'],2,2,[1,2,3,4]))
-            Ambient free module of rank 2 over the principal ideal domain Univariate Polynomial Ring in x over Rational Field
-            sage: parent(vector(ZZ['x'],[1,2])*matrix(QQ,2,2,[1,2,3,4]))
-            Ambient free module of rank 2 over the principal ideal domain Univariate Polynomial Ring in x over Rational Field
+            sage: parent(vector(QQ, [1,2]) * matrix(ZZ['x'], 2, 2, [1,2,3,4]))                                          # needs sage.modules
+            Ambient free module of rank 2
+             over the principal ideal domain Univariate Polynomial Ring in x over Rational Field
+            sage: parent(vector(ZZ['x'], [1,2]) * matrix(QQ, 2, 2, [1,2,3,4]))                                          # needs sage.modules
+            Ambient free module of rank 2
+             over the principal ideal domain Univariate Polynomial Ring in x over Rational Field
 
-            sage: parent(vector(QQ,[1,2])*matrix(ZZ['x']['y'],2,2,[1,2,3,4]))
-            Ambient free module of rank 2 over the integral domain Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
-            sage: parent(vector(ZZ['x']['y'],[1,2])*matrix(QQ,2,2,[1,2,3,4]))
-            Ambient free module of rank 2 over the integral domain Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
+            sage: parent(vector(QQ, [1,2]) * matrix(ZZ['x']['y'], 2, 2, [1,2,3,4]))                                     # needs sage.modules
+            Ambient free module of rank 2 over the integral domain
+             Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
+            sage: parent(vector(ZZ['x']['y'], [1,2]) * matrix(QQ, 2, 2, [1,2,3,4]))                                     # needs sage.modules
+            Ambient free module of rank 2 over the integral domain
+             Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
 
-            sage: parent(vector(QQ['x'],[1,2])*matrix(ZZ['x']['y'],2,2,[1,2,3,4]))
-            Ambient free module of rank 2 over the integral domain Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
-            sage: parent(vector(ZZ['x']['y'],[1,2])*matrix(QQ['x'],2,2,[1,2,3,4]))
-            Ambient free module of rank 2 over the integral domain Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
+            sage: parent(vector(QQ['x'], [1,2]) * matrix(ZZ['x']['y'], 2, 2, [1,2,3,4]))                                # needs sage.modules
+            Ambient free module of rank 2 over the integral domain
+             Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
+            sage: parent(vector(ZZ['x']['y'], [1,2]) * matrix(QQ['x'], 2, 2, [1,2,3,4]))                                # needs sage.modules
+            Ambient free module of rank 2 over the integral domain
+             Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
 
-            sage: parent(vector(QQ['y'],[1,2])*matrix(ZZ['x']['y'],2,2,[1,2,3,4]))
-            Ambient free module of rank 2 over the integral domain Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
-            sage: parent(vector(ZZ['x']['y'],[1,2])*matrix(QQ['y'],2,2,[1,2,3,4]))
-            Ambient free module of rank 2 over the integral domain Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
+            sage: parent(vector(QQ['y'], [1,2]) * matrix(ZZ['x']['y'], 2, 2, [1,2,3,4]))                                # needs sage.modules
+            Ambient free module of rank 2 over the integral domain
+             Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
+            sage: parent(vector(ZZ['x']['y'], [1,2]) * matrix(QQ['y'], 2, 2, [1,2,3,4]))                                # needs sage.modules
+            Ambient free module of rank 2 over the integral domain
+             Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
 
-            sage: parent(vector(ZZ['x'],[1,2])*matrix(ZZ['y'],2,2,[1,2,3,4]))
+            sage: # needs sage.modules
+            sage: parent(vector(ZZ['x'], [1,2]) * matrix(ZZ['y'], 2, 2, [1,2,3,4]))
             Traceback (most recent call last):
             ...
-            TypeError: unsupported operand parent(s) for *: 'Ambient free module of rank 2 over the integral domain Univariate Polynomial Ring in x over Integer Ring' and 'Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial Ring in y over Integer Ring'
-            sage: parent(vector(ZZ['x'],[1,2])*matrix(QQ['y'],2,2,[1,2,3,4]))
+            TypeError: unsupported operand parent(s) for *:
+             'Ambient free module of rank 2 over the integral domain Univariate Polynomial Ring in x over Integer Ring' and
+             'Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial Ring in y over Integer Ring'
+            sage: parent(vector(ZZ['x'], [1,2]) * matrix(QQ['y'], 2, 2, [1,2,3,4]))
             Traceback (most recent call last):
             ...
-            TypeError: unsupported operand parent(s) for *: 'Ambient free module of rank 2 over the integral domain Univariate Polynomial Ring in x over Integer Ring' and 'Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial Ring in y over Rational Field'
-            sage: parent(vector(QQ['x'],[1,2])*matrix(ZZ['y'],2,2,[1,2,3,4]))
+            TypeError: unsupported operand parent(s) for *:
+             'Ambient free module of rank 2 over the integral domain Univariate Polynomial Ring in x over Integer Ring' and
+             'Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial Ring in y over Rational Field'
+            sage: parent(vector(QQ['x'], [1,2]) * matrix(ZZ['y'], 2, 2, [1,2,3,4]))
             Traceback (most recent call last):
             ...
-            TypeError: unsupported operand parent(s) for *: 'Ambient free module of rank 2 over the principal ideal domain Univariate Polynomial Ring in x over Rational Field' and 'Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial Ring in y over Integer Ring'
-            sage: parent(vector(QQ['x'],[1,2])*matrix(QQ['y'],2,2,[1,2,3,4]))
+            TypeError: unsupported operand parent(s) for *:
+             'Ambient free module of rank 2 over the principal ideal domain Univariate Polynomial Ring in x over Rational Field' and
+             'Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial Ring in y over Integer Ring'
+            sage: parent(vector(QQ['x'], [1,2]) * matrix(QQ['y'], 2, 2, [1,2,3,4]))
             Traceback (most recent call last):
             ...
-            TypeError: unsupported operand parent(s) for *: 'Ambient free module of rank 2 over the principal ideal domain Univariate Polynomial Ring in x over Rational Field' and 'Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial Ring in y over Rational Field'
+            TypeError: unsupported operand parent(s) for *:
+             'Ambient free module of rank 2 over the principal ideal domain Univariate Polynomial Ring in x over Rational Field' and
+             'Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial Ring in y over Rational Field'
 
         Here we test (vector * scalar) multiplication::
 
-            sage: parent(vector(ZZ,[1,2])*ZZ(1))
+            sage: # needs sage.modules
+            sage: parent(vector(ZZ, [1,2]) * ZZ(1))
             Ambient free module of rank 2 over the principal ideal domain Integer Ring
-            sage: parent(vector(QQ,[1,2])*ZZ(1))
+            sage: parent(vector(QQ, [1,2]) * ZZ(1))
             Vector space of dimension 2 over Rational Field
-            sage: parent(vector(ZZ,[1,2])*QQ(1))
+            sage: parent(vector(ZZ, [1,2]) * QQ(1))
             Vector space of dimension 2 over Rational Field
-            sage: parent(vector(QQ,[1,2])*QQ(1))
+            sage: parent(vector(QQ, [1,2]) * QQ(1))
             Vector space of dimension 2 over Rational Field
 
-            sage: parent(vector(QQ,[1,2])*ZZ['x'](1))
-            Ambient free module of rank 2 over the principal ideal domain Univariate Polynomial Ring in x over Rational Field
-            sage: parent(vector(ZZ['x'],[1,2])*QQ(1))
-            Ambient free module of rank 2 over the principal ideal domain Univariate Polynomial Ring in x over Rational Field
+            sage: parent(vector(QQ, [1,2]) * ZZ['x'](1))                                                                # needs sage.modules
+            Ambient free module of rank 2
+             over the principal ideal domain Univariate Polynomial Ring in x over Rational Field
+            sage: parent(vector(ZZ['x'], [1,2]) * QQ(1))                                                                # needs sage.modules
+            Ambient free module of rank 2
+             over the principal ideal domain Univariate Polynomial Ring in x over Rational Field
 
-            sage: parent(vector(QQ,[1,2])*ZZ['x']['y'](1))
-            Ambient free module of rank 2 over the integral domain Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
-            sage: parent(vector(ZZ['x']['y'],[1,2])*QQ(1))
-            Ambient free module of rank 2 over the integral domain Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
+            sage: parent(vector(QQ, [1,2]) * ZZ['x']['y'](1))                                                           # needs sage.modules
+            Ambient free module of rank 2 over the integral domain
+             Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
+            sage: parent(vector(ZZ['x']['y'], [1,2]) * QQ(1))                                                           # needs sage.modules
+            Ambient free module of rank 2 over the integral domain
+             Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
 
-            sage: parent(vector(QQ['x'],[1,2])*ZZ['x']['y'](1))
-            Ambient free module of rank 2 over the integral domain Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
-            sage: parent(vector(ZZ['x']['y'],[1,2])*QQ['x'](1))
-            Ambient free module of rank 2 over the integral domain Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
+            sage: parent(vector(QQ['x'], [1,2]) * ZZ['x']['y'](1))                                                      # needs sage.modules
+            Ambient free module of rank 2 over the integral domain
+             Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
+            sage: parent(vector(ZZ['x']['y'], [1,2]) * QQ['x'](1))                                                      # needs sage.modules
+            Ambient free module of rank 2 over the integral domain
+             Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
 
-            sage: parent(vector(QQ['y'],[1,2])*ZZ['x']['y'](1))
-            Ambient free module of rank 2 over the integral domain Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
-            sage: parent(vector(ZZ['x']['y'],[1,2])*QQ['y'](1))
-            Ambient free module of rank 2 over the integral domain Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
+            sage: parent(vector(QQ['y'], [1,2]) * ZZ['x']['y'](1))                                                      # needs sage.modules
+            Ambient free module of rank 2 over the integral domain
+             Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
+            sage: parent(vector(ZZ['x']['y'], [1,2]) * QQ['y'](1))                                                      # needs sage.modules
+            Ambient free module of rank 2 over the integral domain
+             Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
 
-            sage: parent(vector(ZZ['x'],[1,2])*ZZ['y'](1))
+            sage: # needs sage.modules
+            sage: parent(vector(ZZ['x'], [1,2]) * ZZ['y'](1))
             Traceback (most recent call last):
             ...
-            TypeError: unsupported operand parent(s) for *: 'Ambient free module of rank 2 over the integral domain Univariate Polynomial Ring in x over Integer Ring' and 'Univariate Polynomial Ring in y over Integer Ring'
-            sage: parent(vector(ZZ['x'],[1,2])*QQ['y'](1))
+            TypeError: unsupported operand parent(s) for *:
+             'Ambient free module of rank 2 over the integral domain Univariate Polynomial Ring in x over Integer Ring' and
+             'Univariate Polynomial Ring in y over Integer Ring'
+            sage: parent(vector(ZZ['x'], [1,2]) * QQ['y'](1))
             Traceback (most recent call last):
             ...
-            TypeError: unsupported operand parent(s) for *: 'Ambient free module of rank 2 over the integral domain Univariate Polynomial Ring in x over Integer Ring' and 'Univariate Polynomial Ring in y over Rational Field'
-            sage: parent(vector(QQ['x'],[1,2])*ZZ['y'](1))
+            TypeError: unsupported operand parent(s) for *:
+             'Ambient free module of rank 2 over the integral domain Univariate Polynomial Ring in x over Integer Ring' and
+             'Univariate Polynomial Ring in y over Rational Field'
+            sage: parent(vector(QQ['x'], [1,2]) * ZZ['y'](1))
             Traceback (most recent call last):
             ...
-            TypeError: unsupported operand parent(s) for *: 'Ambient free module of rank 2 over the principal ideal domain Univariate Polynomial Ring in x over Rational Field' and 'Univariate Polynomial Ring in y over Integer Ring'
-            sage: parent(vector(QQ['x'],[1,2])*QQ['y'](1))
+            TypeError: unsupported operand parent(s) for *:
+             'Ambient free module of rank 2 over the principal ideal domain Univariate Polynomial Ring in x over Rational Field' and
+             'Univariate Polynomial Ring in y over Integer Ring'
+            sage: parent(vector(QQ['x'], [1,2]) * QQ['y'](1))
             Traceback (most recent call last):
             ...
-            TypeError: unsupported operand parent(s) for *: 'Ambient free module of rank 2 over the principal ideal domain Univariate Polynomial Ring in x over Rational Field' and 'Univariate Polynomial Ring in y over Rational Field'
+            TypeError: unsupported operand parent(s) for *:
+             'Ambient free module of rank 2 over the principal ideal domain Univariate Polynomial Ring in x over Rational Field' and
+             'Univariate Polynomial Ring in y over Rational Field'
 
         Here we test (scalar * vector) multiplication::
 
-            sage: parent(ZZ(1)*vector(ZZ,[1,2]))
+            sage: # needs sage.modules
+            sage: parent(ZZ(1) * vector(ZZ, [1,2]))
             Ambient free module of rank 2 over the principal ideal domain Integer Ring
-            sage: parent(QQ(1)*vector(ZZ,[1,2]))
+            sage: parent(QQ(1) * vector(ZZ, [1,2]))
             Vector space of dimension 2 over Rational Field
-            sage: parent(ZZ(1)*vector(QQ,[1,2]))
+            sage: parent(ZZ(1) * vector(QQ, [1,2]))
             Vector space of dimension 2 over Rational Field
-            sage: parent(QQ(1)*vector(QQ,[1,2]))
+            sage: parent(QQ(1) * vector(QQ, [1,2]))
             Vector space of dimension 2 over Rational Field
 
-            sage: parent(QQ(1)*vector(ZZ['x'],[1,2]))
-            Ambient free module of rank 2 over the principal ideal domain Univariate Polynomial Ring in x over Rational Field
-            sage: parent(ZZ['x'](1)*vector(QQ,[1,2]))
-            Ambient free module of rank 2 over the principal ideal domain Univariate Polynomial Ring in x over Rational Field
+            sage: parent(QQ(1) * vector(ZZ['x'], [1,2]))                                                                # needs sage.modules
+            Ambient free module of rank 2
+             over the principal ideal domain Univariate Polynomial Ring in x over Rational Field
+            sage: parent(ZZ['x'](1) * vector(QQ, [1,2]))                                                                # needs sage.modules
+            Ambient free module of rank 2
+             over the principal ideal domain Univariate Polynomial Ring in x over Rational Field
 
-            sage: parent(QQ(1)*vector(ZZ['x']['y'],[1,2]))
-            Ambient free module of rank 2 over the integral domain Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
-            sage: parent(ZZ['x']['y'](1)*vector(QQ,[1,2]))
-            Ambient free module of rank 2 over the integral domain Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
+            sage: parent(QQ(1) * vector(ZZ['x']['y'], [1,2]))                                                           # needs sage.modules
+            Ambient free module of rank 2 over the integral domain
+             Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
+            sage: parent(ZZ['x']['y'](1) * vector(QQ, [1,2]))                                                           # needs sage.modules
+            Ambient free module of rank 2 over the integral domain
+             Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
 
-            sage: parent(QQ['x'](1)*vector(ZZ['x']['y'],[1,2]))
-            Ambient free module of rank 2 over the integral domain Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
-            sage: parent(ZZ['x']['y'](1)*vector(QQ['x'],[1,2]))
-            Ambient free module of rank 2 over the integral domain Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
+            sage: parent(QQ['x'](1) * vector(ZZ['x']['y'], [1,2]))                                                      # needs sage.modules
+            Ambient free module of rank 2 over the integral domain
+             Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
+            sage: parent(ZZ['x']['y'](1) * vector(QQ['x'], [1,2]))                                                      # needs sage.modules
+            Ambient free module of rank 2 over the integral domain
+             Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
 
-            sage: parent(QQ['y'](1)*vector(ZZ['x']['y'],[1,2]))
-            Ambient free module of rank 2 over the integral domain Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
-            sage: parent(ZZ['x']['y'](1)*vector(QQ['y'],[1,2]))
-            Ambient free module of rank 2 over the integral domain Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
+            sage: parent(QQ['y'](1) * vector(ZZ['x']['y'], [1,2]))                                                      # needs sage.modules
+            Ambient free module of rank 2 over the integral domain
+             Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
+            sage: parent(ZZ['x']['y'](1) * vector(QQ['y'], [1,2]))                                                      # needs sage.modules
+            Ambient free module of rank 2 over the integral domain
+             Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
 
-            sage: parent(ZZ['x'](1)*vector(ZZ['y'],[1,2]))
+            sage: # needs sage.modules
+            sage: parent(ZZ['x'](1) * vector(ZZ['y'], [1,2]))
             Traceback (most recent call last):
             ...
-            TypeError: unsupported operand parent(s) for *: 'Univariate Polynomial Ring in x over Integer Ring' and 'Ambient free module of rank 2 over the integral domain Univariate Polynomial Ring in y over Integer Ring'
-            sage: parent(ZZ['x'](1)*vector(QQ['y'],[1,2]))
+            TypeError: unsupported operand parent(s) for *:
+             'Univariate Polynomial Ring in x over Integer Ring' and
+             'Ambient free module of rank 2 over the integral domain Univariate Polynomial Ring in y over Integer Ring'
+            sage: parent(ZZ['x'](1) * vector(QQ['y'], [1,2]))
             Traceback (most recent call last):
             ...
-            TypeError: unsupported operand parent(s) for *: 'Univariate Polynomial Ring in x over Integer Ring' and 'Ambient free module of rank 2 over the principal ideal domain Univariate Polynomial Ring in y over Rational Field'
-            sage: parent(QQ['x'](1)*vector(ZZ['y'],[1,2]))
+            TypeError: unsupported operand parent(s) for *:
+             'Univariate Polynomial Ring in x over Integer Ring' and
+             'Ambient free module of rank 2 over the principal ideal domain Univariate Polynomial Ring in y over Rational Field'
+            sage: parent(QQ['x'](1) * vector(ZZ['y'], [1,2]))
             Traceback (most recent call last):
             ...
-            TypeError: unsupported operand parent(s) for *: 'Univariate Polynomial Ring in x over Rational Field' and 'Ambient free module of rank 2 over the integral domain Univariate Polynomial Ring in y over Integer Ring'
-            sage: parent(QQ['x'](1)*vector(QQ['y'],[1,2]))
+            TypeError: unsupported operand parent(s) for *:
+             'Univariate Polynomial Ring in x over Rational Field' and
+             'Ambient free module of rank 2 over the integral domain Univariate Polynomial Ring in y over Integer Ring'
+            sage: parent(QQ['x'](1) * vector(QQ['y'], [1,2]))
             Traceback (most recent call last):
             ...
-            TypeError: unsupported operand parent(s) for *: 'Univariate Polynomial Ring in x over Rational Field' and 'Ambient free module of rank 2 over the principal ideal domain Univariate Polynomial Ring in y over Rational Field'
+            TypeError: unsupported operand parent(s) for *:
+             'Univariate Polynomial Ring in x over Rational Field' and
+             'Ambient free module of rank 2 over the principal ideal domain Univariate Polynomial Ring in y over Rational Field'
         """
         if have_same_parent(left, right):
             return (<Vector>left)._dot_product_(<Vector>right)
@@ -3182,12 +3521,25 @@ cdef class Vector(ModuleElement):
         raise bin_op_exception('*', left, right)
 
     cpdef _pairwise_product_(Vector left, Vector right):
-        raise TypeError("unsupported operation for '%s' and '%s'"%(parent(left), parent(right)))
-
-    def __div__(self, other):
-        return self / other
+        raise TypeError("unsupported operation for '%s' and '%s'" % (parent(left), parent(right)))
 
     def __truediv__(self, right):
+        """
+        Divide this vector by a scalar, vector or matrix.
+
+        TESTS::
+
+            sage: # needs sage.modules
+            sage: A = matrix([[1, 2], [0, 3]])
+            sage: b = vector([0, 1])
+            sage: x = b / A; x
+            (0, 1/3)
+            sage: x == b * ~A
+            True
+            sage: A = matrix([[1, 2], [0, 3], [1, 5]])
+            sage: (b / A) * A == b
+            True
+        """
         right = py_scalar_to_element(right)
         if isinstance(right, RingElement):
             # Let __mul__ do the job
@@ -3201,6 +3553,8 @@ cdef class Vector(ModuleElement):
                     raise ZeroDivisionError("division by zero vector")
                 else:
                     raise ArithmeticError("vector is not in free module")
+        if isinstance(right, Matrix):
+            return right.solve_left(self)
         raise bin_op_exception('/', self, right)
 
     def _magma_init_(self, magma):
@@ -3210,51 +3564,59 @@ cdef class Vector(ModuleElement):
 
         EXAMPLES::
 
+            sage: # optional - magma, needs sage.modules
             sage: v = vector([1,2,3])
-            sage: v._magma_init_(magma)                 # optional - magma
+            sage: v._magma_init_(magma)
             '_sage_[...]![1,2,3]'
-            sage: mv = magma(v); mv                     # optional - magma
+            sage: mv = magma(v); mv
             (1 2 3)
-            sage: mv.Type()                             # optional - magma
+            sage: mv.Type()
             ModTupRngElt
-            sage: mv.Parent()                           # optional - magma
+            sage: mv.Parent()
             Full RSpace of degree 3 over Integer Ring
 
+            sage: # optional - magma, needs sage.modules
             sage: v = vector(QQ, [1/2, 3/4, 5/6])
-            sage: mv = magma(v); mv                     # optional - magma
+            sage: mv = magma(v); mv
             (1/2 3/4 5/6)
-            sage: mv.Type()                             # optional - magma
+            sage: mv.Type()
             ModTupFldElt
-            sage: mv.Parent()                           # optional - magma
+            sage: mv.Parent()
             Full Vector space of degree 3 over Rational Field
 
         A more demanding example::
 
+            sage: # optional - magma, needs sage.modules
             sage: R.<x,y,z> = QQ[]
             sage: v = vector([x^3, y, 2/3*z + x/y])
-            sage: magma(v)                              # optional - magma
+            sage: magma(v)
             (            x^3               y (2/3*y*z + x)/y)
-            sage: magma(v).Parent()                     # optional - magma
-            Full Vector space of degree 3 over Multivariate rational function field of rank 3 over Rational Field
+            sage: magma(v).Parent()
+            Full Vector space of degree 3
+             over Multivariate rational function field of rank 3 over Rational Field
         """
         V = magma(self._parent)
         v = [x._magma_init_(magma) for x in self.list()]
-        return '%s![%s]'%(V.name(), ','.join(v))
+        return '%s![%s]' % (V.name(), ','.join(v))
+
 
 def is_Vector(x):
+    from sage.misc.superseded import deprecation_cython
+    deprecation_cython(38077, "The function is_Vector is deprecated; use 'isinstance(..., Vector)' instead.")
     return isinstance(x, Vector)
+
 
 cdef class Matrix(ModuleElement):
 
-    cdef bint is_sparse_c(self):
+    cdef bint is_sparse_c(self) noexcept:
         raise NotImplementedError
 
-    cdef bint is_dense_c(self):
+    cdef bint is_dense_c(self) noexcept:
         raise NotImplementedError
 
     def __mul__(left, right):
         """
-        Multiplication of matrix by matrix, vector, or scalar
+        Multiplication of matrix by matrix, vector, or scalar.
 
         AUTHOR:
 
@@ -3269,201 +3631,277 @@ cdef class Matrix(ModuleElement):
 
         Here we test (matrix * matrix) multiplication::
 
-            sage: parent(matrix(ZZ,2,2,[1,2,3,4])*matrix(ZZ,2,2,[1,2,3,4]))
+            sage: # needs sage.modules
+            sage: parent(matrix(ZZ, 2, 2, [1,2,3,4]) * matrix(ZZ, 2, 2, [1,2,3,4]))
             Full MatrixSpace of 2 by 2 dense matrices over Integer Ring
-            sage: parent(matrix(QQ,2,2,[1,2,3,4])*matrix(ZZ,2,2,[1,2,3,4]))
+            sage: parent(matrix(QQ, 2, 2, [1,2,3,4]) * matrix(ZZ, 2, 2, [1,2,3,4]))
             Full MatrixSpace of 2 by 2 dense matrices over Rational Field
-            sage: parent(matrix(ZZ,2,2,[1,2,3,4])*matrix(QQ,2,2,[1,2,3,4]))
+            sage: parent(matrix(ZZ, 2, 2, [1,2,3,4]) * matrix(QQ, 2, 2, [1,2,3,4]))
             Full MatrixSpace of 2 by 2 dense matrices over Rational Field
-            sage: parent(matrix(QQ,2,2,[1,2,3,4])*matrix(QQ,2,2,[1,2,3,4]))
+            sage: parent(matrix(QQ, 2, 2, [1,2,3,4]) * matrix(QQ, 2, 2, [1,2,3,4]))
             Full MatrixSpace of 2 by 2 dense matrices over Rational Field
 
-            sage: parent(matrix(QQ,2,2,[1,2,3,4])*matrix(ZZ['x'],2,2,[1,2,3,4]))
+            sage: parent(matrix(QQ, 2, 2, [1,2,3,4]) * matrix(ZZ['x'], 2, 2, [1,2,3,4]))                                # needs sage.modules
             Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial Ring in x over Rational Field
-            sage: parent(matrix(ZZ['x'],2,2,[1,2,3,4])*matrix(QQ,2,2,[1,2,3,4]))
+            sage: parent(matrix(ZZ['x'], 2, 2, [1,2,3,4]) * matrix(QQ, 2, 2, [1,2,3,4]))                                # needs sage.modules
             Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial Ring in x over Rational Field
 
-            sage: parent(matrix(QQ,2,2,[1,2,3,4])*matrix(ZZ['x']['y'],2,2,[1,2,3,4]))
-            Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
-            sage: parent(matrix(ZZ['x']['y'],2,2,[1,2,3,4])*matrix(QQ,2,2,[1,2,3,4]))
-            Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
+            sage: parent(matrix(QQ, 2, 2, [1,2,3,4]) * matrix(ZZ['x']['y'], 2, 2, [1,2,3,4]))                           # needs sage.modules
+            Full MatrixSpace of 2 by 2 dense matrices over
+             Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
+            sage: parent(matrix(ZZ['x']['y'], 2, 2, [1,2,3,4]) * matrix(QQ, 2, 2, [1,2,3,4]))                           # needs sage.modules
+            Full MatrixSpace of 2 by 2 dense matrices over
+             Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
 
-            sage: parent(matrix(QQ['x'],2,2,[1,2,3,4])*matrix(ZZ['x']['y'],2,2,[1,2,3,4]))
-            Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
-            sage: parent(matrix(ZZ['x']['y'],2,2,[1,2,3,4])*matrix(QQ['x'],2,2,[1,2,3,4]))
-            Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
+            sage: parent(matrix(QQ['x'], 2, 2, [1,2,3,4]) * matrix(ZZ['x']['y'], 2, 2, [1,2,3,4]))                      # needs sage.modules
+            Full MatrixSpace of 2 by 2 dense matrices over
+             Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
+            sage: parent(matrix(ZZ['x']['y'], 2, 2, [1,2,3,4]) * matrix(QQ['x'], 2, 2, [1,2,3,4]))                      # needs sage.modules
+            Full MatrixSpace of 2 by 2 dense matrices over
+             Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
 
-            sage: parent(matrix(QQ['y'],2,2,[1,2,3,4])*matrix(ZZ['x']['y'],2,2,[1,2,3,4]))
-            Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
-            sage: parent(matrix(ZZ['x']['y'],2,2,[1,2,3,4])*matrix(QQ['y'],2,2,[1,2,3,4]))
-            Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
+            sage: parent(matrix(QQ['y'], 2, 2, [1,2,3,4]) * matrix(ZZ['x']['y'], 2, 2, [1,2,3,4]))                      # needs sage.modules
+            Full MatrixSpace of 2 by 2 dense matrices over
+             Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
+            sage: parent(matrix(ZZ['x']['y'], 2, 2, [1,2,3,4]) * matrix(QQ['y'], 2, 2, [1,2,3,4]))                      # needs sage.modules
+            Full MatrixSpace of 2 by 2 dense matrices over
+             Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
 
-            sage: parent(matrix(ZZ['x'],2,2,[1,2,3,4])*matrix(ZZ['y'],2,2,[1,2,3,4]))
+            sage: # needs sage.modules
+            sage: parent(matrix(ZZ['x'], 2, 2, [1,2,3,4]) * matrix(ZZ['y'], 2, 2, [1,2,3,4]))
             Traceback (most recent call last):
             ...
-            TypeError: unsupported operand parent(s) for *: 'Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial Ring in x over Integer Ring' and 'Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial Ring in y over Integer Ring'
-            sage: parent(matrix(ZZ['x'],2,2,[1,2,3,4])*matrix(QQ['y'],2,2,[1,2,3,4]))
+            TypeError: unsupported operand parent(s) for *:
+             'Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial Ring in x over Integer Ring' and
+             'Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial Ring in y over Integer Ring'
+            sage: parent(matrix(ZZ['x'], 2, 2, [1,2,3,4]) * matrix(QQ['y'], 2, 2, [1,2,3,4]))
             Traceback (most recent call last):
             ...
-            TypeError: unsupported operand parent(s) for *: 'Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial Ring in x over Integer Ring' and 'Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial Ring in y over Rational Field'
-            sage: parent(matrix(QQ['x'],2,2,[1,2,3,4])*matrix(ZZ['y'],2,2,[1,2,3,4]))
+            TypeError: unsupported operand parent(s) for *:
+             'Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial Ring in x over Integer Ring' and
+             'Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial Ring in y over Rational Field'
+            sage: parent(matrix(QQ['x'], 2, 2, [1,2,3,4]) * matrix(ZZ['y'], 2, 2, [1,2,3,4]))
             Traceback (most recent call last):
             ...
-            TypeError: unsupported operand parent(s) for *: 'Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial Ring in x over Rational Field' and 'Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial Ring in y over Integer Ring'
-            sage: parent(matrix(QQ['x'],2,2,[1,2,3,4])*matrix(QQ['y'],2,2,[1,2,3,4]))
+            TypeError: unsupported operand parent(s) for *:
+             'Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial Ring in x over Rational Field' and
+             'Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial Ring in y over Integer Ring'
+            sage: parent(matrix(QQ['x'], 2, 2, [1,2,3,4]) * matrix(QQ['y'], 2, 2, [1,2,3,4]))
             Traceback (most recent call last):
             ...
-            TypeError: unsupported operand parent(s) for *: 'Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial Ring in x over Rational Field' and 'Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial Ring in y over Rational Field'
+            TypeError: unsupported operand parent(s) for *:
+             'Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial Ring in x over Rational Field' and
+             'Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial Ring in y over Rational Field'
+
+        We test that the bug reported in :issue:`27352` has been fixed::
+
+            sage: A = matrix(QQ, [[1, 2], [-1, 0], [1, 1]])                                                             # needs sage.modules
+            sage: B = matrix(QQ, [[0, 4], [1, -1], [1, 2]])                                                             # needs sage.modules
+            sage: A * B                                                                                                 # needs sage.modules
+            Traceback (most recent call last):
+            ...
+            TypeError: unsupported operand parent(s) for *:
+            'Full MatrixSpace of 3 by 2 dense matrices over Rational Field' and 'Full MatrixSpace of 3 by 2 dense matrices over Rational Field'
 
         Here we test (matrix * vector) multiplication::
 
-            sage: parent(matrix(ZZ,2,2,[1,2,3,4])*vector(ZZ,[1,2]))
+            sage: # needs sage.modules
+            sage: parent(matrix(ZZ, 2, 2, [1,2,3,4]) * vector(ZZ, [1,2]))
             Ambient free module of rank 2 over the principal ideal domain Integer Ring
-            sage: parent(matrix(QQ,2,2,[1,2,3,4])*vector(ZZ,[1,2]))
+            sage: parent(matrix(QQ, 2, 2, [1,2,3,4]) * vector(ZZ, [1,2]))
             Vector space of dimension 2 over Rational Field
-            sage: parent(matrix(ZZ,2,2,[1,2,3,4])*vector(QQ,[1,2]))
+            sage: parent(matrix(ZZ, 2, 2, [1,2,3,4]) * vector(QQ, [1,2]))
             Vector space of dimension 2 over Rational Field
-            sage: parent(matrix(QQ,2,2,[1,2,3,4])*vector(QQ,[1,2]))
+            sage: parent(matrix(QQ, 2, 2, [1,2,3,4]) * vector(QQ, [1,2]))
             Vector space of dimension 2 over Rational Field
 
-            sage: parent(matrix(QQ,2,2,[1,2,3,4])*vector(ZZ['x'],[1,2]))
-            Ambient free module of rank 2 over the principal ideal domain Univariate Polynomial Ring in x over Rational Field
-            sage: parent(matrix(ZZ['x'],2,2,[1,2,3,4])*vector(QQ,[1,2]))
-            Ambient free module of rank 2 over the principal ideal domain Univariate Polynomial Ring in x over Rational Field
+            sage: parent(matrix(QQ, 2, 2, [1,2,3,4]) * vector(ZZ['x'], [1,2]))                                          # needs sage.modules
+            Ambient free module of rank 2 over the principal ideal domain
+             Univariate Polynomial Ring in x over Rational Field
+            sage: parent(matrix(ZZ['x'], 2, 2, [1,2,3,4]) * vector(QQ, [1,2]))                                          # needs sage.modules
+            Ambient free module of rank 2 over the principal ideal domain
+             Univariate Polynomial Ring in x over Rational Field
 
-            sage: parent(matrix(QQ,2,2,[1,2,3,4])*vector(ZZ['x']['y'],[1,2]))
-            Ambient free module of rank 2 over the integral domain Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
-            sage: parent(matrix(ZZ['x']['y'],2,2,[1,2,3,4])*vector(QQ,[1,2]))
-            Ambient free module of rank 2 over the integral domain Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
+            sage: parent(matrix(QQ, 2, 2, [1,2,3,4]) * vector(ZZ['x']['y'], [1,2]))                                     # needs sage.modules
+            Ambient free module of rank 2 over the integral domain
+             Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
+            sage: parent(matrix(ZZ['x']['y'], 2, 2, [1,2,3,4]) * vector(QQ, [1,2]))                                     # needs sage.modules
+            Ambient free module of rank 2 over the integral domain
+             Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
 
-            sage: parent(matrix(QQ['x'],2,2,[1,2,3,4])*vector(ZZ['x']['y'],[1,2]))
-            Ambient free module of rank 2 over the integral domain Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
-            sage: parent(matrix(ZZ['x']['y'],2,2,[1,2,3,4])*vector(QQ['x'],[1,2]))
-            Ambient free module of rank 2 over the integral domain Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
+            sage: parent(matrix(QQ['x'], 2, 2, [1,2,3,4]) * vector(ZZ['x']['y'], [1,2]))                                # needs sage.modules
+            Ambient free module of rank 2 over the integral domain
+             Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
+            sage: parent(matrix(ZZ['x']['y'], 2, 2, [1,2,3,4]) * vector(QQ['x'], [1,2]))                                # needs sage.modules
+            Ambient free module of rank 2 over the integral domain
+             Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
 
-            sage: parent(matrix(QQ['y'],2,2,[1,2,3,4])*vector(ZZ['x']['y'],[1,2]))
-            Ambient free module of rank 2 over the integral domain Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
-            sage: parent(matrix(ZZ['x']['y'],2,2,[1,2,3,4])*vector(QQ['y'],[1,2]))
-            Ambient free module of rank 2 over the integral domain Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
+            sage: parent(matrix(QQ['y'], 2, 2, [1,2,3,4]) * vector(ZZ['x']['y'], [1,2]))                                # needs sage.modules
+            Ambient free module of rank 2 over the integral domain
+             Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
+            sage: parent(matrix(ZZ['x']['y'], 2, 2, [1,2,3,4]) * vector(QQ['y'], [1,2]))                                # needs sage.modules
+            Ambient free module of rank 2 over the integral domain
+             Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
 
-            sage: parent(matrix(ZZ['x'],2,2,[1,2,3,4])*vector(ZZ['y'],[1,2]))
+            sage: # needs sage.modules
+            sage: parent(matrix(ZZ['x'], 2, 2, [1,2,3,4]) * vector(ZZ['y'], [1,2]))
             Traceback (most recent call last):
             ...
-            TypeError: unsupported operand parent(s) for *: 'Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial Ring in x over Integer Ring' and 'Ambient free module of rank 2 over the integral domain Univariate Polynomial Ring in y over Integer Ring'
-            sage: parent(matrix(ZZ['x'],2,2,[1,2,3,4])*vector(QQ['y'],[1,2]))
+            TypeError: unsupported operand parent(s) for *:
+             'Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial Ring in x over Integer Ring' and
+             'Ambient free module of rank 2 over the integral domain Univariate Polynomial Ring in y over Integer Ring'
+            sage: parent(matrix(ZZ['x'], 2, 2, [1,2,3,4]) * vector(QQ['y'], [1,2]))
             Traceback (most recent call last):
             ...
-            TypeError: unsupported operand parent(s) for *: 'Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial Ring in x over Integer Ring' and 'Ambient free module of rank 2 over the principal ideal domain Univariate Polynomial Ring in y over Rational Field'
-            sage: parent(matrix(QQ['x'],2,2,[1,2,3,4])*vector(ZZ['y'],[1,2]))
+            TypeError: unsupported operand parent(s) for *:
+             'Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial Ring in x over Integer Ring' and
+             'Ambient free module of rank 2 over the principal ideal domain Univariate Polynomial Ring in y over Rational Field'
+            sage: parent(matrix(QQ['x'], 2, 2, [1,2,3,4]) * vector(ZZ['y'], [1,2]))
             Traceback (most recent call last):
             ...
-            TypeError: unsupported operand parent(s) for *: 'Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial Ring in x over Rational Field' and 'Ambient free module of rank 2 over the integral domain Univariate Polynomial Ring in y over Integer Ring'
-            sage: parent(matrix(QQ['x'],2,2,[1,2,3,4])*vector(QQ['y'],[1,2]))
+            TypeError: unsupported operand parent(s) for *:
+             'Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial Ring in x over Rational Field' and
+             'Ambient free module of rank 2 over the integral domain Univariate Polynomial Ring in y over Integer Ring'
+            sage: parent(matrix(QQ['x'], 2, 2, [1,2,3,4]) * vector(QQ['y'], [1,2]))
             Traceback (most recent call last):
             ...
-            TypeError: unsupported operand parent(s) for *: 'Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial Ring in x over Rational Field' and 'Ambient free module of rank 2 over the principal ideal domain Univariate Polynomial Ring in y over Rational Field'
+            TypeError: unsupported operand parent(s) for *:
+            'Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial Ring in x over Rational Field' and
+            'Ambient free module of rank 2 over the principal ideal domain Univariate Polynomial Ring in y over Rational Field'
 
         Here we test (matrix * scalar) multiplication::
 
-            sage: parent(matrix(ZZ,2,2,[1,2,3,4])*ZZ(1))
+            sage: # needs sage.modules
+            sage: parent(matrix(ZZ, 2, 2, [1,2,3,4]) * ZZ(1))
             Full MatrixSpace of 2 by 2 dense matrices over Integer Ring
-            sage: parent(matrix(QQ,2,2,[1,2,3,4])*ZZ(1))
+            sage: parent(matrix(QQ, 2, 2, [1,2,3,4]) * ZZ(1))
             Full MatrixSpace of 2 by 2 dense matrices over Rational Field
-            sage: parent(matrix(ZZ,2,2,[1,2,3,4])*QQ(1))
+            sage: parent(matrix(ZZ, 2, 2, [1,2,3,4]) * QQ(1))
             Full MatrixSpace of 2 by 2 dense matrices over Rational Field
-            sage: parent(matrix(QQ,2,2,[1,2,3,4])*QQ(1))
+            sage: parent(matrix(QQ, 2, 2, [1,2,3,4]) * QQ(1))
             Full MatrixSpace of 2 by 2 dense matrices over Rational Field
 
-            sage: parent(matrix(QQ,2,2,[1,2,3,4])*ZZ['x'](1))
+            sage: parent(matrix(QQ, 2, 2, [1,2,3,4]) * ZZ['x'](1))                                                      # needs sage.modules
             Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial Ring in x over Rational Field
-            sage: parent(matrix(ZZ['x'],2,2,[1,2,3,4])*QQ(1))
+            sage: parent(matrix(ZZ['x'], 2, 2, [1,2,3,4]) * QQ(1))                                                      # needs sage.modules
             Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial Ring in x over Rational Field
 
-            sage: parent(matrix(QQ,2,2,[1,2,3,4])*ZZ['x']['y'](1))
-            Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
-            sage: parent(matrix(ZZ['x']['y'],2,2,[1,2,3,4])*QQ(1))
-            Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
+            sage: parent(matrix(QQ, 2, 2, [1,2,3,4]) * ZZ['x']['y'](1))                                                 # needs sage.modules
+            Full MatrixSpace of 2 by 2 dense matrices over
+             Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
+            sage: parent(matrix(ZZ['x']['y'], 2, 2, [1,2,3,4]) * QQ(1))                                                 # needs sage.modules
+            Full MatrixSpace of 2 by 2 dense matrices over
+             Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
 
-            sage: parent(matrix(QQ['x'],2,2,[1,2,3,4])*ZZ['x']['y'](1))
-            Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
-            sage: parent(matrix(ZZ['x']['y'],2,2,[1,2,3,4])*QQ['x'](1))
-            Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
+            sage: parent(matrix(QQ['x'], 2, 2, [1,2,3,4]) * ZZ['x']['y'](1))                                            # needs sage.modules
+            Full MatrixSpace of 2 by 2 dense matrices over
+             Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
+            sage: parent(matrix(ZZ['x']['y'], 2, 2, [1,2,3,4]) * QQ['x'](1))                                            # needs sage.modules
+            Full MatrixSpace of 2 by 2 dense matrices over
+             Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
 
-            sage: parent(matrix(QQ['y'],2,2,[1,2,3,4])*ZZ['x']['y'](1))
-            Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
-            sage: parent(matrix(ZZ['x']['y'],2,2,[1,2,3,4])*QQ['y'](1))
-            Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
+            sage: parent(matrix(QQ['y'], 2, 2, [1,2,3,4]) * ZZ['x']['y'](1))                                            # needs sage.modules
+            Full MatrixSpace of 2 by 2 dense matrices over
+             Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
+            sage: parent(matrix(ZZ['x']['y'], 2, 2, [1,2,3,4]) * QQ['y'](1))                                            # needs sage.modules
+            Full MatrixSpace of 2 by 2 dense matrices over
+             Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
 
-            sage: parent(matrix(ZZ['x'],2,2,[1,2,3,4])*ZZ['y'](1))
+            sage: # needs sage.modules
+            sage: parent(matrix(ZZ['x'], 2, 2, [1,2,3,4]) * ZZ['y'](1))
             Traceback (most recent call last):
             ...
-            TypeError: unsupported operand parent(s) for *: 'Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial Ring in x over Integer Ring' and 'Univariate Polynomial Ring in y over Integer Ring'
-            sage: parent(matrix(ZZ['x'],2,2,[1,2,3,4])*QQ['y'](1))
+            TypeError: unsupported operand parent(s) for *:
+             'Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial Ring in x over Integer Ring' and
+             'Univariate Polynomial Ring in y over Integer Ring'
+            sage: parent(matrix(ZZ['x'], 2, 2, [1,2,3,4]) * QQ['y'](1))
             Traceback (most recent call last):
             ...
-            TypeError: unsupported operand parent(s) for *: 'Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial Ring in x over Integer Ring' and 'Univariate Polynomial Ring in y over Rational Field'
-            sage: parent(matrix(QQ['x'],2,2,[1,2,3,4])*ZZ['y'](1))
+            TypeError: unsupported operand parent(s) for *:
+             'Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial Ring in x over Integer Ring' and
+             'Univariate Polynomial Ring in y over Rational Field'
+            sage: parent(matrix(QQ['x'], 2, 2, [1,2,3,4]) * ZZ['y'](1))
             Traceback (most recent call last):
             ...
-            TypeError: unsupported operand parent(s) for *: 'Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial Ring in x over Rational Field' and 'Univariate Polynomial Ring in y over Integer Ring'
-            sage: parent(matrix(QQ['x'],2,2,[1,2,3,4])*QQ['y'](1))
+            TypeError: unsupported operand parent(s) for *:
+             'Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial Ring in x over Rational Field' and
+              'Univariate Polynomial Ring in y over Integer Ring'
+            sage: parent(matrix(QQ['x'], 2, 2, [1,2,3,4]) * QQ['y'](1))
             Traceback (most recent call last):
             ...
-            TypeError: unsupported operand parent(s) for *: 'Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial Ring in x over Rational Field' and 'Univariate Polynomial Ring in y over Rational Field'
+            TypeError: unsupported operand parent(s) for *:
+             'Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial Ring in x over Rational Field' and
+             'Univariate Polynomial Ring in y over Rational Field'
 
         Here we test (scalar * matrix) multiplication::
 
-            sage: parent(ZZ(1)*matrix(ZZ,2,2,[1,2,3,4]))
+            sage: # needs sage.modules
+            sage: parent(ZZ(1) * matrix(ZZ, 2, 2, [1,2,3,4]))
             Full MatrixSpace of 2 by 2 dense matrices over Integer Ring
-            sage: parent(QQ(1)*matrix(ZZ,2,2,[1,2,3,4]))
+            sage: parent(QQ(1) * matrix(ZZ, 2, 2, [1,2,3,4]))
             Full MatrixSpace of 2 by 2 dense matrices over Rational Field
-            sage: parent(ZZ(1)*matrix(QQ,2,2,[1,2,3,4]))
+            sage: parent(ZZ(1) * matrix(QQ, 2, 2, [1,2,3,4]))
             Full MatrixSpace of 2 by 2 dense matrices over Rational Field
-            sage: parent(QQ(1)*matrix(QQ,2,2,[1,2,3,4]))
+            sage: parent(QQ(1) * matrix(QQ, 2, 2, [1,2,3,4]))
             Full MatrixSpace of 2 by 2 dense matrices over Rational Field
 
-            sage: parent(QQ(1)*matrix(ZZ['x'],2,2,[1,2,3,4]))
+            sage: parent(QQ(1) * matrix(ZZ['x'], 2, 2, [1,2,3,4]))                                                      # needs sage.modules
             Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial Ring in x over Rational Field
-            sage: parent(ZZ['x'](1)*matrix(QQ,2,2,[1,2,3,4]))
+            sage: parent(ZZ['x'](1) * matrix(QQ, 2, 2, [1,2,3,4]))                                                      # needs sage.modules
             Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial Ring in x over Rational Field
 
-            sage: parent(QQ(1)*matrix(ZZ['x']['y'],2,2,[1,2,3,4]))
-            Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
-            sage: parent(ZZ['x']['y'](1)*matrix(QQ,2,2,[1,2,3,4]))
-            Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
+            sage: parent(QQ(1) * matrix(ZZ['x']['y'], 2, 2, [1,2,3,4]))                                                 # needs sage.modules
+            Full MatrixSpace of 2 by 2 dense matrices over
+             Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
+            sage: parent(ZZ['x']['y'](1) * matrix(QQ, 2, 2, [1,2,3,4]))                                                 # needs sage.modules
+            Full MatrixSpace of 2 by 2 dense matrices over
+             Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
 
-            sage: parent(QQ['x'](1)*matrix(ZZ['x']['y'],2,2,[1,2,3,4]))
-            Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
-            sage: parent(ZZ['x']['y'](1)*matrix(QQ['x'],2,2,[1,2,3,4]))
-            Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
+            sage: parent(QQ['x'](1) * matrix(ZZ['x']['y'], 2, 2, [1,2,3,4]))                                            # needs sage.modules
+            Full MatrixSpace of 2 by 2 dense matrices over
+             Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
+            sage: parent(ZZ['x']['y'](1) * matrix(QQ['x'], 2, 2, [1,2,3,4]))                                            # needs sage.modules
+            Full MatrixSpace of 2 by 2 dense matrices over
+             Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
 
-            sage: parent(QQ['y'](1)*matrix(ZZ['x']['y'],2,2,[1,2,3,4]))
-            Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
-            sage: parent(ZZ['x']['y'](1)*matrix(QQ['y'],2,2,[1,2,3,4]))
-            Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
+            sage: parent(QQ['y'](1) * matrix(ZZ['x']['y'], 2, 2, [1,2,3,4]))                                            # needs sage.modules
+            Full MatrixSpace of 2 by 2 dense matrices
+             over Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
+            sage: parent(ZZ['x']['y'](1) * matrix(QQ['y'], 2, 2, [1,2,3,4]))                                            # needs sage.modules
+            Full MatrixSpace of 2 by 2 dense matrices
+             over Univariate Polynomial Ring in y over Univariate Polynomial Ring in x over Rational Field
 
-            sage: parent(ZZ['x'](1)*matrix(ZZ['y'],2,2,[1,2,3,4]))
+            sage: # needs sage.modules
+            sage: parent(ZZ['x'](1) * matrix(ZZ['y'], 2, 2, [1,2,3,4]))
             Traceback (most recent call last):
             ...
-            TypeError: unsupported operand parent(s) for *: 'Univariate Polynomial Ring in x over Integer Ring' and 'Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial Ring in y over Integer Ring'
-            sage: parent(ZZ['x'](1)*matrix(QQ['y'],2,2,[1,2,3,4]))
+            TypeError: unsupported operand parent(s) for *:
+             'Univariate Polynomial Ring in x over Integer Ring' and
+             'Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial Ring in y over Integer Ring'
+            sage: parent(ZZ['x'](1) * matrix(QQ['y'], 2, 2, [1,2,3,4]))
             Traceback (most recent call last):
             ...
-            TypeError: unsupported operand parent(s) for *: 'Univariate Polynomial Ring in x over Integer Ring' and 'Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial Ring in y over Rational Field'
-            sage: parent(QQ['x'](1)*matrix(ZZ['y'],2,2,[1,2,3,4]))
+            TypeError: unsupported operand parent(s) for *:
+             'Univariate Polynomial Ring in x over Integer Ring' and
+             'Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial Ring in y over Rational Field'
+            sage: parent(QQ['x'](1) * matrix(ZZ['y'], 2, 2, [1,2,3,4]))
             Traceback (most recent call last):
             ...
-            TypeError: unsupported operand parent(s) for *: 'Univariate Polynomial Ring in x over Rational Field' and 'Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial Ring in y over Integer Ring'
-            sage: parent(QQ['x'](1)*matrix(QQ['y'],2,2,[1,2,3,4]))
+            TypeError: unsupported operand parent(s) for *:
+             'Univariate Polynomial Ring in x over Rational Field' and
+             'Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial Ring in y over Integer Ring'
+            sage: parent(QQ['x'](1) * matrix(QQ['y'], 2, 2, [1,2,3,4]))
             Traceback (most recent call last):
             ...
-            TypeError: unsupported operand parent(s) for *: 'Univariate Polynomial Ring in x over Rational Field' and 'Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial Ring in y over Rational Field'
+            TypeError: unsupported operand parent(s) for *:
+             'Univariate Polynomial Ring in x over Rational Field' and
+             'Full MatrixSpace of 2 by 2 dense matrices over Univariate Polynomial Ring in y over Rational Field'
 
         Examples with matrices having matrix coefficients::
 
-            sage: m = matrix
-            sage: a = m([[m([[1,2],[3,4]]),m([[5,6],[7,8]])],[m([[9,10],[11,12]]),m([[13,14],[15,16]])]])
-            sage: 3*a
+            sage: m = matrix                                                                                            # needs sage.modules
+            sage: a = m([[m([[1,2],[3,4]]),m([[5,6],[7,8]])],[m([[9,10],[11,12]]),m([[13,14],[15,16]])]])               # needs sage.modules
+            sage: 3 * a                                                                                                 # needs sage.modules
             [[ 3  6]
             [ 9 12] [15 18]
             [21 24]]
@@ -3471,9 +3909,9 @@ cdef class Matrix(ModuleElement):
             [33 36] [39 42]
             [45 48]]
 
-            sage: m = matrix
-            sage: a = m([[m([[1,2],[3,4]]),m([[5,6],[7,8]])],[m([[9,10],[11,12]]),m([[13,14],[15,16]])]])
-            sage: a*3
+            sage: m = matrix                                                                                            # needs sage.modules
+            sage: a = m([[m([[1,2],[3,4]]),m([[5,6],[7,8]])],[m([[9,10],[11,12]]),m([[13,14],[15,16]])]])               # needs sage.modules
+            sage: a * 3                                                                                                 # needs sage.modules
             [[ 3  6]
             [ 9 12] [15 18]
             [21 24]]
@@ -3481,9 +3919,32 @@ cdef class Matrix(ModuleElement):
             [33 36] [39 42]
             [45 48]]
         """
-        if have_same_parent(left, right):
-            return (<Matrix>left)._matrix_times_matrix_(<Matrix>right)
-        return coercion_model.bin_op(left, right, mul)
+        cdef int cl = classify_elements(left, right)
+        if HAVE_SAME_PARENT(cl):
+            # If they are matrices with the same parent, they had
+            # better be square for the product to be defined.
+            if (<Matrix>left)._nrows == (<Matrix>left)._ncols:
+                return (<Matrix>left)._matrix_times_matrix_(<Matrix>right)
+            else:
+                parent = (<Matrix>left)._parent
+                raise TypeError("unsupported operand parent(s) for *: '{}' and '{}'".format(parent, parent))
+
+        if BOTH_ARE_ELEMENT(cl):
+            return coercion_model.bin_op(left, right, mul)
+
+        cdef long value
+        cdef int err = -1
+        try:
+            # Special case multiplication with C long
+            integer_check_long_py(right, &value, &err)
+            if not err:
+                return (<Element>left)._mul_long(value)
+            integer_check_long_py(left, &value, &err)
+            if not err:
+                return (<Element>right)._mul_long(value)
+            return coercion_model.bin_op(left, right, mul)
+        except TypeError:
+            return NotImplemented
 
     def __truediv__(left, right):
         """
@@ -3492,6 +3953,7 @@ cdef class Matrix(ModuleElement):
 
         EXAMPLES::
 
+            sage: # needs sage.modules
             sage: a = matrix(ZZ, 2, range(4))
             sage: operator.truediv(a, 5)
             [ 0 1/5]
@@ -3505,63 +3967,25 @@ cdef class Matrix(ModuleElement):
             sage: operator.truediv(c, a)
             [-5/2  3/2]
             [-1/2  5/2]
+
+        TESTS::
+
+            sage: # needs sage.modules
+            sage: a = matrix(ZZ, [[1, 2], [0, 3]])
+            sage: b = matrix(ZZ, 3, 2, range(6))
+            sage: x = b / a; x
+            [   0  1/3]
+            [   2 -1/3]
+            [   4   -1]
+            sage: x == b * ~a
+            True
+            sage: a = matrix(ZZ, [[1, 2], [0, 3], [1, 5]])
+            sage: (b / a) * a == b
+            True
         """
-        if have_same_parent(left, right):
-            return left * ~right
+        if isinstance(right, Matrix):
+            return right.solve_left(left)
         return coercion_model.bin_op(left, right, truediv)
-
-    def __div__(left, right):
-        """
-        Division of the matrix ``left`` by the matrix or scalar ``right``.
-
-        EXAMPLES::
-
-            sage: a = matrix(ZZ, 2, range(4))
-            sage: a / 5
-            [ 0 1/5]
-            [2/5 3/5]
-            sage: a = matrix(ZZ, 2, range(4))
-            sage: b = matrix(ZZ, 2, [1,1,0,5])
-            sage: a / b
-            [  0 1/5]
-            [  2 1/5]
-            sage: c = matrix(QQ, 2, [3,2,5,7])
-            sage: c / a
-            [-5/2  3/2]
-            [-1/2  5/2]
-            sage: a / c
-            [-5/11  3/11]
-            [-1/11  5/11]
-            sage: a / 7
-            [  0 1/7]
-            [2/7 3/7]
-
-        Other rings work just as well::
-
-            sage: a = matrix(GF(3),2,2,[0,1,2,0])
-            sage: b = matrix(ZZ,2,2,[4,6,1,2])
-            sage: a / b
-            [1 2]
-            [2 0]
-            sage: c = matrix(GF(3),2,2,[1,2,1,1])
-            sage: a / c
-            [1 2]
-            [1 1]
-            sage: a = matrix(RDF,2,2,[.1,-.4,1.2,-.6])
-            sage: b = matrix(RDF,2,2,[.3,.1,-.5,1.3])
-            sage: a / b # rel tol 1e-10
-            [-0.15909090909090906 -0.29545454545454547]
-            [   2.863636363636364  -0.6818181818181817]
-            sage: R.<t> = ZZ['t']
-            sage: a = matrix(R,2,2,[t^2,t+1,-t,t+2])
-            sage: b = matrix(R,2,2,[t^3-1,t,-t+3,t^2])
-            sage: a / b
-            [      (t^4 + t^2 - 2*t - 3)/(t^5 - 3*t)               (t^4 - t - 1)/(t^5 - 3*t)]
-            [       (-t^3 + t^2 - t - 6)/(t^5 - 3*t) (t^4 + 2*t^3 + t^2 - t - 2)/(t^5 - 3*t)]
-        """
-        if have_same_parent(left, right):
-            return left * ~right
-        return coercion_model.bin_op(left, right, div)
 
     cdef _vector_times_matrix_(matrix_right, Vector vector_left):
         raise TypeError
@@ -3573,15 +3997,20 @@ cdef class Matrix(ModuleElement):
         raise TypeError
 
 
-
 def is_Matrix(x):
+    from sage.misc.superseded import deprecation_cython
+    deprecation_cython(38077, "The function is_Matrix is deprecated; use 'isinstance(..., Matrix)' instead.")
     return isinstance(x, Matrix)
+
 
 def is_IntegralDomainElement(x):
     """
     Return ``True`` if x is of type IntegralDomainElement.
     """
+    from sage.misc.superseded import deprecation_cython
+    deprecation_cython(38077, "The function is_IntegralDomainElement is deprecated; use 'isinstance(..., IntegralDomainElement)' instead.")
     return isinstance(x, IntegralDomainElement)
+
 
 cdef class IntegralDomainElement(CommutativeRingElement):
     def is_nilpotent(self):
@@ -3592,38 +4021,112 @@ def is_DedekindDomainElement(x):
     """
     Return ``True`` if x is of type DedekindDomainElement.
     """
+    from sage.misc.superseded import deprecation_cython
+    deprecation_cython(38077, "The function is_DedekindDomainElement is deprecated; use 'isinstance(..., DedekindDomainElement)' instead.")
     return isinstance(x, DedekindDomainElement)
+
 
 cdef class DedekindDomainElement(IntegralDomainElement):
     pass
+
 
 def is_PrincipalIdealDomainElement(x):
     """
     Return ``True`` if x is of type PrincipalIdealDomainElement.
     """
+    from sage.misc.superseded import deprecation_cython
+    deprecation_cython(38077, "The function is_PrincipalIdealDomainElement is deprecated; use 'isinstance(..., PrincipalIdealDomainElement)' instead.")
     return isinstance(x, PrincipalIdealDomainElement)
 
+
 cdef class PrincipalIdealDomainElement(DedekindDomainElement):
+    def gcd(self, right):
+        r"""
+        Return the greatest common divisor of ``self`` and ``other``.
+
+        TESTS:
+
+        :issue:`30849`::
+
+            sage: 2.gcd(pari(3))                                                        # needs sage.libs.pari
+            1
+            sage: type(2.gcd(pari(3)))                                                  # needs sage.libs.pari
+            <class 'sage.rings.integer.Integer'>
+
+            sage: 2.gcd(pari('1/3'))                                                    # needs sage.libs.pari
+            1/3
+            sage: type(2.gcd(pari('1/3')))                                              # needs sage.libs.pari
+            <class 'sage.rings.rational.Rational'>
+
+            sage: import gmpy2
+            sage: 2.gcd(gmpy2.mpz(3))
+            1
+            sage: type(2.gcd(gmpy2.mpz(3)))
+            <class 'sage.rings.integer.Integer'>
+
+            sage: 2.gcd(gmpy2.mpq(1,3))
+            1/3
+            sage: type(2.gcd(pari('1/3')))                                              # needs sage.libs.pari
+            <class 'sage.rings.rational.Rational'>
+        """
+        # NOTE: in order to handle nicely pari or gmpy2 integers we do not rely only on coercion
+        if not isinstance(right, Element):
+            right = py_scalar_to_element(right)
+            if not isinstance(right, Element):
+                right = right.sage()
+        if not ((<Element>right)._parent is self._parent):
+            from sage.arith.misc import GCD as gcd
+            return coercion_model.bin_op(self, right, gcd)
+        return self._gcd(right)
+
     def lcm(self, right):
         """
         Return the least common multiple of ``self`` and ``right``.
+
+        TESTS:
+
+        :issue:`30849`::
+
+            sage: 2.lcm(pari(3))                                                        # needs sage.libs.pari
+            6
+            sage: type(2.lcm(pari(3)))                                                  # needs sage.libs.pari
+            <class 'sage.rings.integer.Integer'>
+
+            sage: 2.lcm(pari('1/3'))                                                    # needs sage.libs.pari
+            2
+            sage: type(2.lcm(pari('1/3')))                                              # needs sage.libs.pari
+            <class 'sage.rings.rational.Rational'>
+
+            sage: import gmpy2
+            sage: 2.lcm(gmpy2.mpz(3))
+            6
+            sage: type(2.lcm(gmpy2.mpz(3)))
+            <class 'sage.rings.integer.Integer'>
         """
-        if not isinstance(right, Element) or not ((<Element>right)._parent is self._parent):
-            from sage.arith.all import lcm
+        # NOTE: in order to handle nicely pari or gmpy2 integers we do not rely only on coercion
+        if not isinstance(right, Element):
+            right = py_scalar_to_element(right)
+            if not isinstance(right, Element):
+                right = right.sage()
+        if not ((<Element>right)._parent is self._parent):
+            from sage.arith.functions import lcm
             return coercion_model.bin_op(self, right, lcm)
         return self._lcm(right)
-
 
 # This is pretty nasty low level stuff. The idea is to speed up construction
 # of EuclideanDomainElements (in particular Integers) by skipping some tp_new
 # calls up the inheritance tree.
 PY_SET_TP_NEW(EuclideanDomainElement, Element)
 
+
 def is_EuclideanDomainElement(x):
     """
     Return ``True`` if x is of type EuclideanDomainElement.
     """
+    from sage.misc.superseded import deprecation_cython
+    deprecation_cython(38077, "The function is_EuclideanDomainElement is deprecated; use 'isinstance(..., EuclideanDomainElement)' instead.")
     return isinstance(x, EuclideanDomainElement)
+
 
 cdef class EuclideanDomainElement(PrincipalIdealDomainElement):
 
@@ -3636,43 +4139,24 @@ cdef class EuclideanDomainElement(PrincipalIdealDomainElement):
     def quo_rem(self, other):
         raise NotImplementedError
 
-    def __divmod__(self, other):
-        """
-        Return the quotient and remainder of ``self`` divided by ``other``.
-
-        EXAMPLES::
-
-            sage: divmod(5,3)
-            (1, 2)
-            sage: divmod(25r,12)
-            (2, 1)
-            sage: divmod(25,12r)
-            (2, 1)
-
-        """
-        if isinstance(self, Element):
-            return self.quo_rem(other)
-        else:
-            x, y = canonical_coercion(self, other)
-            return x.quo_rem(y)
-
     cpdef _floordiv_(self, right):
         """
-        Quotient of division of ``self`` by other.  This is denoted //.
+        Quotient of division of ``self`` by ``other``.  This is denoted ``//``.
 
         This default implementation assumes that ``quo_rem`` has been
         implemented.
 
         EXAMPLES::
 
-            sage: cython('''
+            sage: cython(                                                               # needs sage.misc.cython
+            ....: '''
             ....: from sage.structure.element cimport EuclideanDomainElement
             ....: cdef class MyElt(EuclideanDomainElement):
             ....:     def quo_rem(self, other):
             ....:         return self._parent.var('quo,rem')
             ....: ''')
-            sage: e = MyElt(SR)
-            sage: e // e
+            sage: e = MyElt(SR)                                                         # needs sage.misc.cython sage.symbolic
+            sage: e // e                                                                # needs sage.misc.cython sage.symbolic
             quo
         """
         Q, _ = self.quo_rem(right)
@@ -3680,7 +4164,7 @@ cdef class EuclideanDomainElement(PrincipalIdealDomainElement):
 
     cpdef _mod_(self, other):
         """
-        Remainder of division of ``self`` by other.
+        Remainder of division of ``self`` by ``other``.
 
         This default implementation assumes that ``quo_rem`` has been
         implemented.
@@ -3695,14 +4179,15 @@ cdef class EuclideanDomainElement(PrincipalIdealDomainElement):
 
         ::
 
-            sage: cython('''
+            sage: cython(                                                               # needs sage.misc.cython
+            ....: '''
             ....: from sage.structure.element cimport EuclideanDomainElement
             ....: cdef class MyElt(EuclideanDomainElement):
             ....:     def quo_rem(self, other):
             ....:         return self._parent.var('quo,rem')
             ....: ''')
-            sage: e = MyElt(SR)
-            sage: e % e
+            sage: e = MyElt(SR)                                                         # needs sage.misc.cython sage.symbolic
+            sage: e % e                                                                 # needs sage.misc.cython sage.symbolic
             rem
         """
         _, R = self.quo_rem(other)
@@ -3713,16 +4198,21 @@ def is_FieldElement(x):
     """
     Return ``True`` if x is of type FieldElement.
     """
+    from sage.misc.superseded import deprecation_cython
+    deprecation_cython(38077, "The function is_FieldElement is deprecated; use 'isinstance(..., FieldElement)' instead.")
     return isinstance(x, FieldElement)
+
 
 cdef class FieldElement(CommutativeRingElement):
     cpdef _floordiv_(self, right):
         """
-        Return the quotient of self and other. Since these are field
+        Return the quotient of ``self`` and ``other``. Since these are field
         elements, the floor division is exactly the same as usual division.
 
         EXAMPLES::
 
+            sage: # needs sage.rings.number_field
+            sage: x = polygen(ZZ, 'x')
             sage: K.<b> = NumberField(x^4 + x^2 + 2/3)
             sage: c = (1+b) // (1-b); c
             3/4*b^3 + 3/4*b^2 + 3/2*b + 1/2
@@ -3760,7 +4250,7 @@ cdef class FieldElement(CommutativeRingElement):
 
     def _lcm(self, FieldElement other):
         """
-        Return the least common multiple of ``self`` and other.
+        Return the least common multiple of ``self`` and ``other``.
         """
         if self.is_zero() and other.is_zero():
             return self
@@ -3775,11 +4265,12 @@ cdef class FieldElement(CommutativeRingElement):
 
         TESTS:
 
-        Test if :trac:`8671` is fixed::
+        Test if :issue:`8671` is fixed::
 
+            sage: # needs sage.libs.pari sage.libs.singular
             sage: R.<x,y> = QQ[]
             sage: S.<a,b> = R.quo(y^2 + 1)
-            sage: S.is_field = lambda : False
+            sage: S.is_field = lambda: False
             sage: F = Frac(S); u = F.one()
             sage: u.quo_rem(u)
             (1, 0)
@@ -3790,13 +4281,14 @@ cdef class FieldElement(CommutativeRingElement):
 
     def divides(self, FieldElement other):
         r"""
-        Check whether ``self`` divides other, for field elements.
+        Check whether ``self`` divides ``other``, for field elements.
 
         Since this is a field, all values divide all other values,
-        except that zero does not divide any non-zero values.
+        except that zero does not divide any nonzero values.
 
         EXAMPLES::
 
+            sage: # needs sage.rings.number_field sage.symbolic
             sage: K.<rt3> = QQ[sqrt(3)]
             sage: K(0).divides(rt3)
             False
@@ -3811,6 +4303,24 @@ cdef class FieldElement(CommutativeRingElement):
             other = self.parent()(other)
         return bool(self) or other.is_zero()
 
+    def canonical_associate(self):
+        """
+        Return a canonical associate.
+
+        EXAMPLES::
+
+            sage: R.<x,y>=QQ[]; k=R.fraction_field()
+            sage: (x/y).canonical_associate()
+            (1, x/y)
+            sage: (0).canonical_associate()
+            (0, 1)
+        """
+        P = self.parent()
+        if self.is_zero():
+            return (P.zero(), P.one())
+        return (P.one(), self)
+
+
 def is_AlgebraElement(x):
     """
     Return ``True`` if x is of type AlgebraElement.
@@ -3818,26 +4328,39 @@ def is_AlgebraElement(x):
     TESTS::
 
         sage: from sage.structure.element import is_AlgebraElement
-        sage: R.<x,y> = FreeAlgebra(QQ,2)
-        sage: is_AlgebraElement(x*y)
+        sage: R.<x,y> = FreeAlgebra(QQ, 2)                                              # needs sage.combinat sage.modules
+        sage: is_AlgebraElement(x * y)                                                  # needs sage.combinat sage.modules
+        doctest:warning...
+        DeprecationWarning: The function is_AlgebraElement is deprecated; use 'isinstance(..., AlgebraElement)' instead.
+        See https://github.com/sagemath/sage/issues/38077 for details.
         True
 
         sage: is_AlgebraElement(1)
         False
     """
+    from sage.misc.superseded import deprecation_cython
+    deprecation_cython(38077, "The function is_AlgebraElement is deprecated; use 'isinstance(..., AlgebraElement)' instead.")
     return isinstance(x, AlgebraElement)
+
 
 cdef class AlgebraElement(RingElement):
     pass
+
 
 def is_CommutativeAlgebraElement(x):
     """
     Return ``True`` if x is of type CommutativeAlgebraElement.
     """
+    from sage.misc.superseded import deprecation_cython
+    deprecation_cython(38077, "The function is_CommutativeAlgebraElement is deprecated; use 'isinstance(..., CommutativeAlgebraElement)' instead.")
     return isinstance(x, CommutativeAlgebraElement)
+
 
 cdef class CommutativeAlgebraElement(CommutativeRingElement):
     pass
+
+
+##############################################
 
 def is_InfinityElement(x):
     """
@@ -3847,24 +4370,30 @@ def is_InfinityElement(x):
 
         sage: from sage.structure.element import is_InfinityElement
         sage: is_InfinityElement(1)
+        doctest:warning...
+        DeprecationWarning: The function is_InfinityElement is deprecated; use 'isinstance(..., InfinityElement)' instead.
+        See https://github.com/sagemath/sage/issues/38077 for details.
         False
 
         sage: is_InfinityElement(oo)
         True
     """
+    from sage.misc.superseded import deprecation_cython
+    deprecation_cython(38077, "The function is_InfinityElement is deprecated; use 'isinstance(..., InfinityElement)' instead.")
     return isinstance(x, InfinityElement)
+
 
 cdef class InfinityElement(RingElement):
     def __invert__(self):
-        from sage.rings.all import ZZ
+        from sage.rings.integer_ring import ZZ
         return ZZ(0)
 
 
-#################################################################################
+###############################################################################
 #
 #  Coercion of elements
 #
-#################################################################################
+###############################################################################
 
 cpdef canonical_coercion(x, y):
     """
@@ -3875,49 +4404,21 @@ cpdef canonical_coercion(x, y):
 
     EXAMPLES::
 
-        sage: A = Matrix([[0, 1], [1, 0]])
-        sage: canonical_coercion(A, 1)
+        sage: A = Matrix([[0, 1], [1, 0]])                                              # needs sage.modules
+        sage: canonical_coercion(A, 1)                                                  # needs sage.modules
         (
         [0 1]  [1 0]
         [1 0], [0 1]
         )
     """
-    return coercion_model.canonical_coercion(x,y)
+    return coercion_model.canonical_coercion(x, y)
+
 
 cpdef bin_op(x, y, op):
-    return coercion_model.bin_op(x,y,op)
+    return coercion_model.bin_op(x, y, op)
 
 
-def coerce(Parent p, x):
-    try:
-        return p._coerce_c(x)
-    except AttributeError:
-        return p(x)
-
-# We define this base class here to avoid circular cimports.
-cdef class CoercionModel:
-    """
-    Most basic coercion scheme. If it doesn't already match, throw an error.
-    """
-    cpdef canonical_coercion(self, x, y):
-        if parent(x) is parent(y):
-            return x,y
-        raise TypeError("no common canonical parent for objects with parents: '%s' and '%s'"%(parent(x), parent(y)))
-
-    cpdef bin_op(self, x, y, op):
-        if parent(x) is parent(y):
-            return op(x,y)
-        raise bin_op_exception(op, x, y)
-
-    cpdef richcmp(self, x, y, int op):
-        x, y = self.canonical_coercion(x, y)
-        return PyObject_RichCompare(x, y, op)
-
-
-from . import coerce
-cdef CoercionModel coercion_model = coerce.CoercionModel_cache_maps()
-
-# Make this accessible as Python object
+# Make coercion_model accessible as Python object
 globals()["coercion_model"] = coercion_model
 
 
@@ -3930,7 +4431,7 @@ def get_coercion_model():
        sage: import sage.structure.element as e
        sage: cm = e.get_coercion_model()
        sage: cm
-       <sage.structure.coerce.CoercionModel_cache_maps object at ...>
+       <sage.structure.coerce.CoercionModel object at ...>
        sage: cm is coercion_model
        True
     """
@@ -3957,11 +4458,13 @@ def coercion_traceback(dump=True):
         sage: 1/5 + GF(5).gen()
         Traceback (most recent call last):
         ...
-        TypeError: unsupported operand parent(s) for +: 'Rational Field' and 'Finite Field of size 5'
+        TypeError: unsupported operand parent(s) for +:
+        'Rational Field' and 'Finite Field of size 5'
         sage: coercion_traceback()
         Traceback (most recent call last):
         ...
-        TypeError: no common canonical parent for objects with parents: 'Rational Field' and 'Finite Field of size 5'
+        TypeError: no common canonical parent for objects with parents:
+        'Rational Field' and 'Finite Field of size 5'
     """
     if dump:
         for traceback in coercion_model.exception_stack():
@@ -3992,9 +4495,9 @@ def coerce_binop(method):
 
     EXAMPLES:
 
-    Sparse polynomial rings uses `@coerce_binop` on `gcd`::
+    Sparse polynomial rings uses ``@coerce_binop`` on ``gcd``::
 
-        sage: S.<x> = PolynomialRing(ZZ,sparse=True)
+        sage: S.<x> = PolynomialRing(ZZ, sparse=True)
         sage: f = x^2
         sage: g = x
         sage: f.gcd(g)  #indirect doctest
@@ -4008,29 +4511,29 @@ def coerce_binop(method):
 
     Another real example::
 
-        sage: R1=QQ['x,y']
-        sage: R2=QQ['x,y,z']
-        sage: f=R1(1)
-        sage: g=R1(2)
-        sage: h=R2(1)
+        sage: R1 = QQ['x,y']
+        sage: R2 = QQ['x,y,z']
+        sage: f = R1(1)
+        sage: g = R1(2)
+        sage: h = R2(1)
         sage: f.gcd(g)
         1
-        sage: f.gcd(g,algorithm='modular')
+        sage: f.gcd(g, algorithm='modular')
         1
         sage: f.gcd(h)
         1
-        sage: f.gcd(h,algorithm='modular')
+        sage: f.gcd(h, algorithm='modular')
         1
         sage: h.gcd(f)
         1
-        sage: h.gcd(f,'modular')
+        sage: h.gcd(f, 'modular')
         1
 
-    We demonstrate a small class using `@coerce_binop` on a method::
+    We demonstrate a small class using ``@coerce_binop`` on a method::
 
         sage: from sage.structure.element import coerce_binop
         sage: class MyRational(Rational):
-        ....:     def __init__(self,value):
+        ....:     def __init__(self, value):
         ....:         self.v = value
         ....:     @coerce_binop
         ....:     def test_add(self, other, keyword='z'):
@@ -4055,12 +4558,12 @@ def coerce_binop(method):
         sage: x.test_add(CC(2))
         Traceback (most recent call last):
         ...
-        AttributeError: 'sage.rings.complex_number.ComplexNumber' object has no attribute 'test_add'
+        AttributeError: 'sage.rings.complex_mpfr.ComplexNumber' object has no attribute 'test_add'...
 
     TESTS:
 
     Test that additional arguments given to the method do not override
-    the ``self`` argument, see :trac:`21322`::
+    the ``self`` argument, see :issue:`21322`::
 
         sage: f.gcd(g, 1)
         Traceback (most recent call last):
@@ -4078,122 +4581,3 @@ def coerce_binop(method):
             else:
                 return getattr(a, method.__name__)(b, *args, **kwargs)
     return new_method
-
-
-###############################################################################
-
-def generic_power(a, n, one=None):
-    """
-    Computes `a^n`, where `n` is an integer, and `a` is an object which
-    supports multiplication.  Optionally an additional argument,
-    which is used in the case that ``n == 0``:
-
-    - ``one`` - the "unit" element, returned directly (can be anything)
-
-    If this is not supplied, ``int(1)`` is returned.
-
-    EXAMPLES::
-
-        sage: from sage.structure.element import generic_power
-        sage: generic_power(int(12),int(0))
-        1
-        sage: generic_power(int(0),int(100))
-        0
-        sage: generic_power(Integer(10),Integer(0))
-        1
-        sage: generic_power(Integer(0),Integer(23))
-        0
-        sage: sum([generic_power(2,i) for i in range(17)]) #test all 4-bit combinations
-        131071
-        sage: F = Zmod(5)
-        sage: a = generic_power(F(2), 5); a
-        2
-        sage: a.parent() is F
-        True
-        sage: a = generic_power(F(1), 2)
-        sage: a.parent() is F
-        True
-
-        sage: generic_power(int(5), 0)
-        1
-    """
-
-    return generic_power_c(a,n,one)
-
-cdef generic_power_c(a, nn, one):
-    try:
-        n = PyNumber_Index(nn)
-    except TypeError:
-        try:
-            # Try harder, since many things coerce to Integer.
-            from sage.rings.integer import Integer
-            n = int(Integer(nn))
-        except TypeError:
-            raise NotImplementedError("non-integral exponents not supported")
-
-    if not n:
-        if one is None:
-            if isinstance(a, Element):
-                return (<Element>a)._parent.one()
-            try:
-                try:
-                    return a.parent().one()
-                except AttributeError:
-                    return type(a)(1)
-            except Exception:
-                return 1 #oops, the one sucks
-        else:
-            return one
-    elif n < 0:
-        # I don't think raising division by zero is really my job. It should
-        # be the one of ~a. Moreover, this does not handle the case of monoids
-        # with partially defined division (e.g. the multiplicative monoid of a
-        # ring such as ZZ/12ZZ)
-        #        if not a:
-        #            raise ZeroDivisionError
-        a = ~a
-        n = -n
-
-    if n < 4:
-        # These cases will probably be called often
-        # and don't benefit from the code below
-        if n == 1:
-            return a
-        elif n == 2:
-            return a*a
-        elif n == 3:
-            return a*a*a
-
-    # check for idempotence, and store the result otherwise
-    aa = a*a
-    if aa == a:
-        return a
-
-    # since we've computed a^2, let's start squaring there
-    # so, let's keep the least-significant bit around, just
-    # in case.
-    m = n & 1
-    n = n >> 1
-
-    # One multiplication can be saved by starting with
-    # the second-smallest power needed rather than with 1
-    # we've already squared a, so let's start there.
-    apow = aa
-    while n&1 == 0:
-        apow = apow*apow
-        n = n >> 1
-    power = apow
-    n = n >> 1
-
-    # now multiply that least-significant bit in...
-    if m:
-        power = power * a
-
-    # and this is straight from the book.
-    while n != 0:
-        apow = apow*apow
-        if n&1 != 0:
-            power = power*apow
-        n = n >> 1
-
-    return power

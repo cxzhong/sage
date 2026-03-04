@@ -1,12 +1,13 @@
+# sage.doctest: needs sage.combinat
 r"""
 Examples of graded modules with basis
 """
-#*****************************************************************************
-#  Copyright (C) 2013 Frederic Chapoton <fchapoton2@gmail.com>
+# ****************************************************************************
+#  Copyright (C) 2013 Frédéric Chapoton <fchapoton2@gmail.com>
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
 from sage.categories.graded_modules_with_basis import GradedModulesWithBasis
 from sage.categories.filtered_modules_with_basis import FilteredModulesWithBasis
@@ -34,9 +35,9 @@ class GradedPartitionModule(CombinatorialFreeModule):
 
       ::
 
-          sage: A = GradedModulesWithBasis(QQ).example()
+          sage: A = GradedModulesWithBasis(QQ).example()                                # needs sage.modules
 
-    - A basis function - this module is graded by the non-negative
+    - A basis function - this module is graded by the nonnegative
       integers, so there is a function defined in this module,
       creatively called :func:`basis`, which takes an integer
       `d` as input and returns a family of partitions representing a basis
@@ -44,9 +45,9 @@ class GradedPartitionModule(CombinatorialFreeModule):
 
       ::
 
-          sage: A.basis(2)
+          sage: A.basis(2)                                                              # needs sage.modules
           Lazy family (Term map from Partitions to An example of a graded module with basis: the free module on partitions over Rational Field(i))_{i in Partitions of the integer 2}
-          sage: A.basis(6)[Partition([3,2,1])]
+          sage: A.basis(6)[Partition([3,2,1])]                                          # needs sage.modules
           P[3, 2, 1]
 
     - If the algebra is called ``A``, then its basis function is
@@ -57,7 +58,7 @@ class GradedPartitionModule(CombinatorialFreeModule):
 
       ::
 
-          sage: [m for m in A.basis(4)]
+          sage: [m for m in A.basis(4)]                                                 # needs sage.modules
           [P[4], P[3, 1], P[2, 2], P[2, 1, 1], P[1, 1, 1, 1]]
 
     - For dealing with basis elements: :meth:`degree_on_basis`, and
@@ -71,9 +72,9 @@ class GradedPartitionModule(CombinatorialFreeModule):
 
       ::
 
-          sage: A.degree_on_basis(Partition([4,3]))
+          sage: A.degree_on_basis(Partition([4,3]))                                     # needs sage.modules
           7
-          sage: A._repr_term(Partition([4,3]))
+          sage: A._repr_term(Partition([4,3]))                                          # needs sage.modules
           'P[4, 3]'
 
     - There is a class for elements, which inherits from
@@ -87,20 +88,20 @@ class GradedPartitionModule(CombinatorialFreeModule):
 
       ::
 
-          sage: p = A.monomial(Partition([3,2,1])); p
+          sage: p = A.monomial(Partition([3,2,1])); p                                   # needs sage.modules
           P[3, 2, 1]
-          sage: p.is_homogeneous()
+          sage: p.is_homogeneous()                                                      # needs sage.modules
           True
-          sage: p.degree()
+          sage: p.degree()                                                              # needs sage.modules
           6
     """
     def __init__(self, base_ring):
         """
         EXAMPLES::
 
-            sage: A = GradedModulesWithBasis(QQ).example(); A
+            sage: A = GradedModulesWithBasis(QQ).example(); A                           # needs sage.modules
             An example of a graded module with basis: the free module on partitions over Rational Field
-            sage: TestSuite(A).run()
+            sage: TestSuite(A).run()                                                    # needs sage.modules
         """
         CombinatorialFreeModule.__init__(self, base_ring, Partitions(),
                                          category=GradedModulesWithBasis(base_ring))
@@ -120,27 +121,28 @@ class GradedPartitionModule(CombinatorialFreeModule):
         - ``t`` -- the index of an element of the basis of this module,
           i.e. a partition
 
-        OUTPUT: an integer, the degree of the corresponding basis element
+        OUTPUT: integer, the degree of the corresponding basis element
 
         EXAMPLES::
 
+            sage: # needs sage.modules
             sage: A = GradedModulesWithBasis(QQ).example()
             sage: A.degree_on_basis(Partition((2,1)))
             3
             sage: A.degree_on_basis(Partition((4,2,1,1,1,1)))
             10
             sage: type(A.degree_on_basis(Partition((1,1))))
-            <type 'sage.rings.integer.Integer'>
+            <class 'sage.rings.integer.Integer'>
         """
         return t.size()
 
     def _repr_(self):
         """
-        Print representation
+        Print representation.
 
         EXAMPLES::
 
-            sage: GradedModulesWithBasis(QQ).example()  # indirect doctest
+            sage: GradedModulesWithBasis(QQ).example()  # indirect doctest              # needs sage.modules
             An example of a graded module with basis: the free module on partitions over Rational Field
         """
         return "An example of a graded module with basis: the free module on partitions over %s" % self.base_ring()
@@ -155,10 +157,11 @@ class GradedPartitionModule(CombinatorialFreeModule):
 
         EXAMPLES::
 
-            sage: A = GradedModulesWithBasis(QQ).example()
-            sage: A._repr_term(Partition((4,2,1)))
+            sage: A = GradedModulesWithBasis(QQ).example()                              # needs sage.modules
+            sage: A._repr_term(Partition((4,2,1)))                                      # needs sage.modules
             'P[4, 2, 1]'
         """
         return 'P' + t._repr_()
+
 
 Example = GradedPartitionModule

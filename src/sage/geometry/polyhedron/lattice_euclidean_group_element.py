@@ -15,7 +15,7 @@ polytopes<sage.geometry.polyhedron.ppl_lattice_polytope.LatticePolytope_PPL_clas
 
 from sage.structure.sage_object import SageObject
 from sage.rings.integer_ring import ZZ
-from sage.modules.all import vector
+from sage.modules.free_module_element import vector
 from sage.matrix.constructor import matrix
 
 
@@ -85,11 +85,11 @@ class LatticeEuclideanGroupElement(SageObject):
 
     def __call__(self, x):
         """
-        Return the image of ``x``
+        Return the image of ``x``.
 
         INPUT:
 
-        - ``x`` -- a vector or lattice polytope.
+        - ``x`` -- a vector or lattice polytope
 
         EXAMPLES::
 
@@ -105,19 +105,17 @@ class LatticeEuclideanGroupElement(SageObject):
             LatticePolytope_PPL, LatticePolytope_PPL_class)
         if isinstance(x, LatticePolytope_PPL_class):
             if x.is_empty():
-                from sage.libs.ppl import C_Polyhedron
+                from ppl import C_Polyhedron
                 return LatticePolytope_PPL(C_Polyhedron(self._b.degree(),
                                                         'empty'))
             return LatticePolytope_PPL(*[self(v) for v in x.vertices()])
-            pass
-        v = self._A*x+self._b
+        v = self._A * x + self._b
         v.set_immutable()
-
         return v
 
     def _repr_(self):
         r"""
-        Return a string representation
+        Return a string representation.
 
         EXAMPLES::
 
@@ -132,7 +130,7 @@ class LatticeEuclideanGroupElement(SageObject):
 
     def domain_dim(self):
         """
-        Return the dimension of the domain lattice
+        Return the dimension of the domain lattice.
 
         EXAMPLES::
 
@@ -152,7 +150,7 @@ class LatticeEuclideanGroupElement(SageObject):
 
     def codomain_dim(self):
         """
-        Return the dimension of the codomain lattice
+        Return the dimension of the codomain lattice.
 
         EXAMPLES::
 

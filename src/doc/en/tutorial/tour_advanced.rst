@@ -20,12 +20,10 @@ of the union.
     Affine Plane Curve over Rational Field defined by
        x^5 + x^3*y^2 + x^2*y^3 + y^5 - x^3 - y^3 - x^2 - y^2 + 1
     sage: D.irreducible_components()
-    [
-    Closed subscheme of Affine Space of dimension 2 over Rational Field defined by:
-      x^2 + y^2 - 1,
-    Closed subscheme of Affine Space of dimension 2 over Rational Field defined by:
-      x^3 + y^3 - 1
-    ]
+    [Closed subscheme of Affine Space of dimension 2 over Rational Field defined by:
+       x^2 + y^2 - 1,
+     Closed subscheme of Affine Space of dimension 2 over Rational Field defined by:
+       x^3 + y^3 - 1]
 
 We can also find all points of intersection of the two curves by
 intersecting them and computing the irreducible components.
@@ -36,17 +34,15 @@ intersecting them and computing the irreducible components.
 
     sage: V = C2.intersection(C3)
     sage: V.irreducible_components()
-    [
-    Closed subscheme of Affine Space of dimension 2 over Rational Field defined by:
-      y - 1,
-      x,
-    Closed subscheme of Affine Space of dimension 2 over Rational Field defined by:
-      y,
-      x - 1,
-    Closed subscheme of Affine Space of dimension 2 over Rational Field defined by:
-      x + y + 2,
-      2*y^2 + 4*y + 3
-    ]
+    [Closed subscheme of Affine Space of dimension 2 over Rational Field defined by:
+       y - 1,
+       x,
+     Closed subscheme of Affine Space of dimension 2 over Rational Field defined by:
+       y,
+       x - 1,
+     Closed subscheme of Affine Space of dimension 2 over Rational Field defined by:
+       x + y + 2,
+       2*y^2 + 4*y + 3]
 
 Thus, e.g., :math:`(1,0)` and :math:`(0,1)` are on both curves
 (visibly clear), as are certain (quadratic) points whose
@@ -65,12 +61,12 @@ space:
     in a, b, c, d over Rational Field
     sage: F.reduced_groebner_bases ()
     [[-c^2 + b*d, -b*c + a*d, -b^2 + a*c],
-     [-c^2 + b*d, b^2 - a*c, -b*c + a*d],
-     [-c^2 + b*d, b*c - a*d, b^2 - a*c, -c^3 + a*d^2],
-     [c^3 - a*d^2, -c^2 + b*d, b*c - a*d, b^2 - a*c],
-     [c^2 - b*d, -b*c + a*d, -b^2 + a*c],
-     [c^2 - b*d, b*c - a*d, -b^2 + a*c, -b^3 + a^2*d],
-     [c^2 - b*d, b*c - a*d, b^3 - a^2*d, -b^2 + a*c],
+     [-b*c + a*d, -c^2 + b*d, b^2 - a*c],
+     [-c^3 + a*d^2, -c^2 + b*d, b*c - a*d, b^2 - a*c],
+     [-c^2 + b*d, b^2 - a*c, b*c - a*d, c^3 - a*d^2],
+     [-b*c + a*d, -b^2 + a*c, c^2 - b*d],
+     [-b^3 + a^2*d, -b^2 + a*c, c^2 - b*d, b*c - a*d],
+     [-b^2 + a*c, c^2 - b*d, b*c - a*d, b^3 - a^2*d],
      [c^2 - b*d, b*c - a*d, b^2 - a*c]]
     sage: F.polyhedralfan()
     Polyhedral fan in 4 dimensions of dimension 4
@@ -331,10 +327,8 @@ factorization of the modulus.
     [1, 2, 2, 1, 1, 2, 2, 1]
 
     sage: G.decomposition()
-    [
-    Group of Dirichlet characters modulo 3 with values in Cyclotomic Field of order 6 and degree 2,
-    Group of Dirichlet characters modulo 7 with values in Cyclotomic Field of order 6 and degree 2
-    ]
+    [Group of Dirichlet characters modulo 3 with values in Cyclotomic Field of order 6 and degree 2,
+     Group of Dirichlet characters modulo 7 with values in Cyclotomic Field of order 6 and degree 2]
 
 Next, we construct the group of Dirichlet characters mod 20, but
 with values in :math:`\QQ(i)`:
@@ -402,6 +396,7 @@ spaces of modular forms. For example,
 
 ::
 
+    sage: from sage.modular.dims import dimension_cusp_forms
     sage: dimension_cusp_forms(Gamma0(11),2)
     1
     sage: dimension_cusp_forms(Gamma0(1),12)
@@ -442,7 +437,7 @@ We can also create spaces for :math:`\Gamma_0(N)` and
      0 over Rational Field
     sage: ModularSymbols(Gamma1(11),2)
     Modular Symbols space of dimension 11 for Gamma_1(11) of weight 2 with
-    sign 0 and over Rational Field
+    sign 0 over Rational Field
 
 Let's compute some characteristic polynomials and
 :math:`q`-expansions.
@@ -461,9 +456,7 @@ Let's compute some characteristic polynomials and
     [-2  0]
     [ 0 -2]
     sage: S.q_expansion_basis(10)
-    [
-        q - 2*q^2 - q^3 + 2*q^4 + q^5 + 2*q^6 - 2*q^7 - 2*q^9 + O(q^10)
-    ]
+    [q - 2*q^2 - q^3 + 2*q^4 + q^5 + 2*q^6 - 2*q^7 - 2*q^9 + O(q^10)]
 
 We can even compute spaces of modular symbols with character.
 
@@ -483,10 +476,7 @@ We can even compute spaces of modular symbols with character.
     sage: S.T(2).charpoly('x').factor()
     (x + zeta6 + 1)^2
     sage: S.q_expansion_basis(10)
-    [
-    q + (-zeta6 - 1)*q^2 + (2*zeta6 - 2)*q^3 + zeta6*q^4 + (-2*zeta6 + 1)*q^5
-      + (-2*zeta6 + 4)*q^6 + (2*zeta6 - 1)*q^8 - zeta6*q^9 + O(q^10)
-    ]
+    [q + (-zeta6 - 1)*q^2 + (2*zeta6 - 2)*q^3 + zeta6*q^4 + (-2*zeta6 + 1)*q^5 + (-2*zeta6 + 4)*q^6 + (2*zeta6 - 1)*q^8 - zeta6*q^9 + O(q^10)]
 
 Here is another example of how Sage can compute the action of Hecke
 operators on a space of modular forms.

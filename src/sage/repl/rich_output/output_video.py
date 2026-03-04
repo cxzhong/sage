@@ -1,21 +1,17 @@
-# -*- encoding: utf-8 -*-
 r"""
 Video Output Types
 
 This module defines the rich output types for video formats.
 """
-
-#*****************************************************************************
+# ****************************************************************************
 #       Copyright (C) 2015 Martin von Gagern <Martin.vGagern@gmx.net>
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
 #  as published by the Free Software Foundation; either version 2 of
 #  the License, or (at your option) any later version.
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
-
-
-import os
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
+import importlib.resources
 
 from sage.repl.rich_output.output_basic import OutputBase
 from sage.repl.rich_output.buffer import OutputBuffer
@@ -25,14 +21,13 @@ class OutputVideoBase(OutputBase):
 
     def __init__(self, video, loop=True):
         """
-        Abstract base class for rich video output
+        Abstract base class for rich video output.
 
         INPUT:
 
-        - ``video`` --
-          :class:`~sage.repl.rich_output.buffer.OutputBuffer`.
-          The video data.
-        - ``loop`` -- boolean. Whether to repeat the video in an endless loop.
+        - ``video`` -- :class:`~sage.repl.rich_output.buffer.OutputBuffer`;
+          the video data
+        - ``loop`` -- boolean; whether to repeat the video in an endless loop
 
         EXAMPLES::
 
@@ -47,17 +42,15 @@ class OutputVideoBase(OutputBase):
     @classmethod
     def example(cls):
         r"""
-        Construct a sample video output container
+        Construct a sample video output container.
 
         This static method is meant for doctests, so they can easily
         construct an example.  The method is implemented in the abstract
         :class:`OutputVideoBase` class, but should get invoked on a
         concrete subclass for which an actual example can exist.
 
-        OUTPUT:
+        OUTPUT: an instance of the class on which this method is called
 
-        An instance of the class on which this method is called.
-        
         EXAMPLES::
 
             sage: from sage.repl.rich_output.output_catalog import OutputVideoOgg
@@ -70,24 +63,23 @@ class OutputVideoBase(OutputBase):
             sage: OutputVideoOgg.example().mimetype
             'video/ogg'
         """
-        from sage.env import SAGE_EXTCODE
-        filename = os.path.join(SAGE_EXTCODE, 'doctest', 'rich_output',
-                                'example' + cls.ext)
-        return cls(OutputBuffer.from_file(filename),
-                   {'controls': True, 'loop': False})
+        with importlib.resources.path(__package__, 'example' + cls.ext) as filename:
+            return cls(OutputBuffer.from_file(filename),
+                       {'controls': True, 'loop': False})
 
     def html_fragment(self, url, link_attrs=''):
         r"""
-        Construct a HTML fragment for embedding this video
+        Construct a HTML fragment for embedding this video.
 
         INPUT:
 
-        - ``url`` -- string. The URL where the data of this video can be found.
+        - ``url`` -- string; the URL where the data of this video can be found
 
-        - ``link_attrs`` -- string. Can be used to style the fallback link
-          which is presented to the user if the video is not supported.
+        - ``link_attrs`` -- string; can be used to style the fallback link
+          which is presented to the user if the video is not supported
 
         EXAMPLES::
+
             sage: from sage.repl.rich_output.output_catalog import OutputVideoOgg
             sage: print(OutputVideoOgg.example().html_fragment
             ....:       ('foo', 'class="bar"').replace('><','>\n<'))
@@ -102,22 +94,23 @@ class OutputVideoBase(OutputBase):
             'autoplay': 'autoplay',
             'controls': 'controls',
         }
-        if self.loop: attrs['loop'] = 'loop'
+        if self.loop:
+            attrs['loop'] = 'loop'
         attrs = ''.join(' {}="{}"'.format(k, v)
                         for k, v in sorted(attrs.items()))
-        return ('<video{attrs}>'
-                '<source src="{url}" type="{mimetype}" /><p>'
-                '<a target="_new" href="{url}" {link_attrs}>'
-                'Download {mimetype} video</a></p></video>'
-        ).format(url=url,
-                 mimetype=self.mimetype,
-                 attrs=attrs,
-                 link_attrs=link_attrs,
-        )
+        txt = ('<video{attrs}>'
+               '<source src="{url}" type="{mimetype}" /><p>'
+               '<a target="_new" href="{url}" {link_attrs}>'
+               'Download {mimetype} video</a></p></video>')
+        return txt.format(url=url,
+                          mimetype=self.mimetype,
+                          attrs=attrs,
+                          link_attrs=link_attrs)
+
 
 class OutputVideoOgg(OutputVideoBase):
     """
-    Ogg video, Ogg Theora in particular
+    Ogg video, Ogg Theora in particular.
 
     EXAMPLES::
 
@@ -129,9 +122,10 @@ class OutputVideoOgg(OutputVideoBase):
     ext = ".ogv"
     mimetype = "video/ogg"
 
+
 class OutputVideoWebM(OutputVideoBase):
     """
-    WebM video
+    WebM video.
 
     The video can be encoded using VP8, VP9 or an even more recent codec.
 
@@ -145,9 +139,10 @@ class OutputVideoWebM(OutputVideoBase):
     ext = ".webm"
     mimetype = "video/webm"
 
+
 class OutputVideoMp4(OutputVideoBase):
     """
-    MPEG 4 video
+    MPEG 4 video.
 
     EXAMPLES::
 
@@ -159,9 +154,10 @@ class OutputVideoMp4(OutputVideoBase):
     ext = ".mp4"
     mimetype = "video/mp4"
 
+
 class OutputVideoFlash(OutputVideoBase):
     """
-    Flash video
+    Flash video.
 
     EXAMPLES::
 
@@ -173,9 +169,10 @@ class OutputVideoFlash(OutputVideoBase):
     ext = ".flv"
     mimetype = "video/x-flv"
 
+
 class OutputVideoMatroska(OutputVideoBase):
     """
-    Matroska Video
+    Matroska Video.
 
     EXAMPLES::
 
@@ -187,9 +184,10 @@ class OutputVideoMatroska(OutputVideoBase):
     ext = ".mkv"
     mimetype = "video/x-matroska"
 
+
 class OutputVideoAvi(OutputVideoBase):
     """
-    AVI video
+    AVI video.
 
     EXAMPLES::
 
@@ -201,9 +199,10 @@ class OutputVideoAvi(OutputVideoBase):
     ext = ".avi"
     mimetype = "video/x-msvideo"
 
+
 class OutputVideoWmv(OutputVideoBase):
     """
-    Windows Media Video
+    Windows Media Video.
 
     EXAMPLES::
 
@@ -215,9 +214,10 @@ class OutputVideoWmv(OutputVideoBase):
     ext = ".wmv"
     mimetype = "video/x-ms-wmv"
 
+
 class OutputVideoQuicktime(OutputVideoBase):
     """
-    Quicktime video
+    Quicktime video.
 
     EXAMPLES::
 

@@ -1,20 +1,18 @@
 """
-Cartesian products of Posets
+Cartesian products of posets
 
 AUTHORS:
 
 - Daniel Krenn (2015)
-
 """
-#*****************************************************************************
+# ****************************************************************************
 #  Copyright (C) 2015 Daniel Krenn <dev@danielkrenn.at>
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
 #  as published by the Free Software Foundation; either version 2 of
 #  the License, or (at your option) any later version.
-#                http://www.gnu.org/licenses/
-#*****************************************************************************
-from __future__ import print_function
+#                https://www.gnu.org/licenses/
+# ****************************************************************************
 
 from sage.sets.cartesian_product import CartesianProduct
 
@@ -27,25 +25,24 @@ class CartesianProductPoset(CartesianProduct):
 
     INPUT:
 
-    - ``sets`` -- a tuple of parents.
+    - ``sets`` -- tuple of parents
 
-    - ``category`` -- a subcategory of
-      ``Sets().CartesianProducts() & Posets()``.
+    - ``category`` -- a subcategory of ``Sets().CartesianProducts() & Posets()``
 
-    - ``order`` -- a string or function specifying an order less or equal.
-      It can be one of the following:
+    - ``order`` -- string or function specifying an order less or equal;
+      it can be one of the following:
 
       - ``'native'`` -- elements are ordered by their native ordering,
-        i.e., the order the wrapped elements (tuples) provide.
+        i.e., the order the wrapped elements (tuples) provide
 
-      - ``'lex'`` -- elements are ordered lexicographically.
+      - ``'lex'`` -- elements are ordered lexicographically
 
       - ``'product'`` -- an element is less or equal to another
         element, if less or equal is true for all its components
-        (Cartesian projections).
+        (Cartesian projections)
 
-      - A function which performs the comparison `\leq`. It takes two
-        input arguments and outputs a boolean.
+      - a function which performs the comparison `\leq`; it takes two
+        input arguments and outputs a boolean
 
     Other keyword arguments (``kwargs``) are passed to the constructor
     of :class:`CartesianProduct`.
@@ -71,18 +68,18 @@ class CartesianProductPoset(CartesianProduct):
         sage: Cl.category()
         Join of Category of finite posets and
         Category of Cartesian products of finite enumerated sets
-        sage: TestSuite(Cl).run()
+        sage: TestSuite(Cl).run(skip=['_test_construction'])
         sage: Cp.category()
         Join of Category of finite posets and
         Category of Cartesian products of finite enumerated sets
-        sage: TestSuite(Cp).run()
+        sage: TestSuite(Cp).run(skip=['_test_construction'])
 
     .. SEEALSO::
 
         :class:`CartesianProduct`
     """
 
-    def __init__(self, sets, category, order=None, **kwargs):
+    def __init__(self, sets, category, order=None, **kwargs) -> None:
         r"""
         See :class:`CartesianProductPoset` for details.
 
@@ -92,7 +89,7 @@ class CartesianProductPoset(CartesianProduct):
             sage: C = cartesian_product((P, P), order='notexisting')
             Traceback (most recent call last):
             ...
-            ValueError: No order 'notexisting' known.
+            ValueError: no order 'notexisting' known
             sage: C = cartesian_product((P, P), category=(Groups(),))
             sage: C.category()
             Join of Category of groups and Category of posets
@@ -103,7 +100,7 @@ class CartesianProductPoset(CartesianProduct):
             try:
                 self._le_ = getattr(self, 'le_' + order)
             except AttributeError:
-                raise ValueError("No order '%s' known." % (order,))
+                raise ValueError(f"no order '{order}' known")
         else:
             self._le_ = order
 
@@ -112,9 +109,7 @@ class CartesianProductPoset(CartesianProduct):
         if not isinstance(category, tuple):
             category = (category,)
         category = Category.join(category + (Posets(),))
-        super(CartesianProductPoset, self).__init__(
-            sets, category, **kwargs)
-
+        super().__init__(sets, category, **kwargs)
 
     def le(self, left, right):
         r"""
@@ -122,13 +117,11 @@ class CartesianProductPoset(CartesianProduct):
 
         INPUT:
 
-        - ``left`` -- an element.
+        - ``left`` -- an element
 
-        - ``right`` -- an element.
+        - ``right`` -- an element
 
-        OUTPUT:
-
-        A boolean.
+        OUTPUT: boolean
 
         .. NOTE::
 
@@ -137,7 +130,7 @@ class CartesianProductPoset(CartesianProduct):
 
         EXAMPLES::
 
-            sage: P = Posets.ChainPoset(10)
+            sage: P = posets.ChainPoset(10)
             sage: def le_sum(left, right):
             ....:     return (sum(left) < sum(right) or
             ....:             sum(left) == sum(right) and left[0] <= right[0])
@@ -153,7 +146,6 @@ class CartesianProductPoset(CartesianProduct):
         """
         return self._le_(left, right)
 
-
     def le_lex(self, left, right):
         r"""
         Test whether ``left`` is lexicographically smaller or equal
@@ -161,13 +153,11 @@ class CartesianProductPoset(CartesianProduct):
 
         INPUT:
 
-        - ``left`` -- an element.
+        - ``left`` -- an element
 
-        - ``right`` -- an element.
+        - ``right`` -- an element
 
-        OUTPUT:
-
-        A boolean.
+        OUTPUT: boolean
 
         EXAMPLES::
 
@@ -176,7 +166,7 @@ class CartesianProductPoset(CartesianProduct):
             sage: T = [Q((0, 0)), Q((1, 1)), Q((0, 1)), Q((1, 0))]
             sage: for a in T:
             ....:     for b in T:
-            ....:         assert(Q.le(a, b) == (a <= b))
+            ....:         assert Q.le(a, b) == (a <= b)
             ....:         print('%s <= %s = %s' % (a, b, a <= b))
             (0, 0) <= (0, 0) = True
             (0, 0) <= (1, 1) = True
@@ -197,7 +187,7 @@ class CartesianProductPoset(CartesianProduct):
 
         TESTS:
 
-        Check that :trac:`19999` is resolved::
+        Check that :issue:`19999` is resolved::
 
             sage: P = Poset((srange(2), lambda left, right: left <= right))
             sage: Q = cartesian_product((P, P), order='product')
@@ -218,7 +208,6 @@ class CartesianProductPoset(CartesianProduct):
             return False  # incomparable components
         return True  # equal
 
-
     def le_product(self, left, right):
         r"""
         Test whether ``left`` is component-wise smaller or equal
@@ -226,13 +215,11 @@ class CartesianProductPoset(CartesianProduct):
 
         INPUT:
 
-        - ``left`` -- an element.
+        - ``left`` -- an element
 
-        - ``right`` -- an element.
+        - ``right`` -- an element
 
-        OUTPUT:
-
-        A boolean.
+        OUTPUT: boolean
 
         The comparison is ``True`` if the result of the
         comparison in each component is ``True``.
@@ -244,7 +231,7 @@ class CartesianProductPoset(CartesianProduct):
             sage: T = [Q((0, 0)), Q((1, 1)), Q((0, 1)), Q((1, 0))]
             sage: for a in T:
             ....:     for b in T:
-            ....:         assert(Q.le(a, b) == (a <= b))
+            ....:         assert Q.le(a, b) == (a <= b)
             ....:         print('%s <= %s = %s' % (a, b, a <= b))
             (0, 0) <= (0, 0) = True
             (0, 0) <= (1, 1) = True
@@ -268,7 +255,6 @@ class CartesianProductPoset(CartesianProduct):
             for l, r, S in
             zip(left.value, right.value, self.cartesian_factors()))
 
-
     def le_native(self, left, right):
         r"""
         Test whether ``left`` is smaller or equal to ``right`` in the order
@@ -276,13 +262,11 @@ class CartesianProductPoset(CartesianProduct):
 
         INPUT:
 
-        - ``left`` -- an element.
+        - ``left`` -- an element
 
-        - ``right`` -- an element.
+        - ``right`` -- an element
 
-        OUTPUT:
-
-        A boolean.
+        OUTPUT: boolean
 
         EXAMPLES::
 
@@ -291,7 +275,7 @@ class CartesianProductPoset(CartesianProduct):
             sage: T = [Q((0, 0)), Q((1, 1)), Q((0, 1)), Q((1, 0))]
             sage: for a in T:
             ....:     for b in T:
-            ....:         assert(Q.le(a, b) == (a <= b))
+            ....:         assert Q.le(a, b) == (a <= b)
             ....:         print('%s <= %s = %s' % (a, b, a <= b))
             (0, 0) <= (0, 0) = True
             (0, 0) <= (1, 1) = True
@@ -312,7 +296,6 @@ class CartesianProductPoset(CartesianProduct):
         """
         return left.value <= right.value
 
-
     class Element(CartesianProduct.Element):
 
         def _le_(self, other):
@@ -321,11 +304,9 @@ class CartesianProductPoset(CartesianProduct):
 
             INPUT:
 
-            - ``other`` -- an element.
+            - ``other`` -- an element
 
-            OUTPUT:
-
-            A boolean.
+            OUTPUT: boolean
 
             .. NOTE::
 
@@ -350,25 +331,22 @@ class CartesianProductPoset(CartesianProduct):
             """
             return self.parent().le(self, other)
 
-
         def __le__(self, other):
             r"""
             Return if this element is less than or equal to ``other``.
 
             INPUT:
 
-            - ``other`` -- an element.
+            - ``other`` -- an element
 
-            OUTPUT:
-
-            A boolean.
+            OUTPUT: boolean
 
             .. NOTE::
 
                 This method uses the coercion framework to find a
                 suitable common parent.
 
-                This method can be deleted once :trac:`10130` is fixed and
+                This method can be deleted once :issue:`10130` is fixed and
                 provides these methods automatically.
 
             TESTS::
@@ -385,7 +363,7 @@ class CartesianProductPoset(CartesianProduct):
                 True
 
             The following example tests that the coercion gets involved in
-            comparisons; it can be simplified once :trac:`18182` is merged.
+            comparisons; it can be simplified once :issue:`18182` is merged.
             ::
 
                 sage: class MyCP(CartesianProductPoset):
@@ -414,25 +392,22 @@ class CartesianProductPoset(CartesianProduct):
             except TypeError:
                 return False
 
-
         def __ge__(self, other):
             r"""
             Return if this element is greater than or equal to ``other``.
 
             INPUT:
 
-            - ``other`` -- an element.
+            - ``other`` -- an element
 
-            OUTPUT:
-
-            A boolean.
+            OUTPUT: boolean
 
             .. NOTE::
 
                 This method uses the coercion framework to find a
                 suitable common parent.
 
-                This method can be deleted once :trac:`10130` is fixed and
+                This method can be deleted once :issue:`10130` is fixed and
                 provides these methods automatically.
 
             TESTS::
@@ -456,18 +431,16 @@ class CartesianProductPoset(CartesianProduct):
 
             INPUT:
 
-            - ``other`` -- an element.
+            - ``other`` -- an element
 
-            OUTPUT:
-
-            A boolean.
+            OUTPUT: boolean
 
             .. NOTE::
 
                 This method uses the coercion framework to find a
                 suitable common parent.
 
-                This method can be deleted once :trac:`10130` is fixed and
+                This method can be deleted once :issue:`10130` is fixed and
                 provides these methods automatically.
 
             TESTS::
@@ -491,18 +464,16 @@ class CartesianProductPoset(CartesianProduct):
 
             INPUT:
 
-            - ``other`` -- an element.
+            - ``other`` -- an element
 
-            OUTPUT:
-
-            A boolean.
+            OUTPUT: boolean
 
             .. NOTE::
 
                 This method uses the coercion framework to find a
                 suitable common parent.
 
-                This method can be deleted once :trac:`10130` is fixed and
+                This method can be deleted once :issue:`10130` is fixed and
                 provides these methods automatically.
 
             TESTS::

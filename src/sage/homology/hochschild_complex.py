@@ -1,3 +1,4 @@
+# sage.doctest: needs sage.combinat        (because all doctests use FreeAlgebra, SymmetricGroupAlgebra, etc.)
 """
 Hochschild Complexes
 """
@@ -9,7 +10,7 @@ Hochschild Complexes
 #  as published by the Free Software Foundation; either version 2 of
 #  the License, or (at your option) any later version.
 #
-#                  http://www.gnu.org/licenses/
+#                  https://www.gnu.org/licenses/
 ########################################################################
 
 from sage.misc.cachefunc import cached_method
@@ -17,12 +18,11 @@ from sage.structure.unique_representation import UniqueRepresentation
 from sage.structure.parent import Parent
 from sage.structure.element import ModuleElement, parent
 from sage.structure.richcmp import richcmp
-from sage.categories.category_types import ChainComplexes
+from sage.categories.chain_complexes import ChainComplexes
 from sage.categories.tensor import tensor
 from sage.combinat.free_module import CombinatorialFreeModule
 from sage.homology.chain_complex import ChainComplex, Chain_class
 
-from sage.misc.superseded import deprecated_function_alias
 
 class HochschildComplex(UniqueRepresentation, Parent):
     r"""
@@ -83,7 +83,7 @@ class HochschildComplex(UniqueRepresentation, Parent):
     - https://ncatlab.org/nlab/show/Hochschild+cohomology
     - [Red2001]_
     """
-    def __init__(self, A, M):
+    def __init__(self, A, M) -> None:
         """
         Initialize ``self``.
 
@@ -105,7 +105,7 @@ class HochschildComplex(UniqueRepresentation, Parent):
         Parent.__init__(self, base=A.base_ring(),
                         category=ChainComplexes(A.base_ring()))
 
-    def _repr_(self):
+    def _repr_(self) -> str:
         """
         Return a string representation of ``self``.
 
@@ -113,7 +113,7 @@ class HochschildComplex(UniqueRepresentation, Parent):
 
             sage: SGA = SymmetricGroupAlgebra(QQ, 3)
             sage: T = SGA.trivial_representation()
-            sage: T.rename("Trivial representation of SGA")
+            sage: T.rename('Trivial representation of SGA')
             sage: SGA.hochschild_complex(T)
             Hochschild complex of Symmetric group algebra of order 3 over Rational Field
              with coefficients in Trivial representation of SGA
@@ -121,7 +121,7 @@ class HochschildComplex(UniqueRepresentation, Parent):
         """
         return "Hochschild complex of {} with coefficients in {}".format(self._A, self._M)
 
-    def _latex_(self):
+    def _latex_(self) -> str:
         r"""
         Return a latex representation of ``self``.
 
@@ -184,10 +184,8 @@ class HochschildComplex(UniqueRepresentation, Parent):
              # Symmetric group algebra of order 3 over Rational Field
         """
         if d < 0:
-            raise ValueError("only defined for non-negative degree")
-        return tensor([self._M] + [self._A]*d)
-
-    free_module = deprecated_function_alias(21386, module)
+            raise ValueError("only defined for nonnegative degree")
+        return tensor([self._M] + [self._A] * d)
 
     @cached_method
     def trivial_module(self):
@@ -272,18 +270,21 @@ class HochschildComplex(UniqueRepresentation, Parent):
         Fd = self.module(d-1)
         Fd1 = self.module(d)
         mone = -one
+
         def on_basis(k):
             p = self._M.monomial(k[0]) * self._A.monomial(k[1])
-            ret = Fd._from_dict({(m,) + k[2:]: c for m,c in p}, remove_zeros=False)
+            ret = Fd._from_dict({(m,) + k[2:]: c for m, c in p}, remove_zeros=False)
             for i in range(1, d):
                 p = self._A.monomial(k[i]) * self._A.monomial(k[i+1])
                 ret += mone**i * Fd._from_dict({k[:i] + (m,) + k[i+2:]: c
-                                                   for m,c in p}, remove_zeros=False)
+                                                for m, c in p}, remove_zeros=False)
             p = self._A.monomial(k[-1]) * self._M.monomial(k[0])
-            ret += mone**d * Fd._from_dict({(m,) + k[1:-1]: c for m,c in p},
+            ret += mone**d * Fd._from_dict({(m,) + k[1:-1]: c for m, c in p},
                                            remove_zeros=False)
             return ret
         return Fd1.module_morphism(on_basis, codomain=Fd)
+
+    differential = boundary
 
     def coboundary(self, d):
         """
@@ -349,7 +350,7 @@ class HochschildComplex(UniqueRepresentation, Parent):
         return cod.module_morphism(matrix=bdry.matrix().transpose(), codomain=dom)
 
     def homology(self, d):
-        """
+        r"""
         Return the ``d``-th homology group.
 
         EXAMPLES::
@@ -403,7 +404,7 @@ class HochschildComplex(UniqueRepresentation, Parent):
         return ker.quotient_module(im_retract)
 
     def cohomology(self, d):
-        """
+        r"""
         Return the ``d``-th cohomology group.
 
         EXAMPLES::
@@ -492,7 +493,7 @@ class HochschildComplex(UniqueRepresentation, Parent):
             return self.element_class(self, {0: vec})
         if isinstance(vectors, (Chain_class, self.element_class)):
             vectors = vectors._vec
-        data = dict()
+        data = {}
         if not isinstance(vectors, dict):
             raise ValueError("cannot construct an element from {}".format(vectors))
         # Special handling for the 0 free module
@@ -569,7 +570,7 @@ class HochschildComplex(UniqueRepresentation, Parent):
             sage: H({0: x-y, 2: H.module(2).basis().an_element()})
             Chain with 2 nonzero terms over Integer Ring
         """
-        def __init__(self, parent, vectors):
+        def __init__(self, parent, vectors) -> None:
             """
             Initialize ``self``.
 
@@ -600,7 +601,7 @@ class HochschildComplex(UniqueRepresentation, Parent):
             except KeyError:
                 return self.parent().module(degree).zero()
 
-        def _repr_(self):
+        def _repr_(self) -> str:
             """
             Print representation.
 
@@ -623,10 +624,9 @@ class HochschildComplex(UniqueRepresentation, Parent):
 
             if n == 1:
                 (deg, vec), = self._vec.items()
-                return 'Chain({0}: {1})'.format(deg, vec)
+                return f'Chain({deg}: {vec})'
 
-            return 'Chain with {0} nonzero terms over {1}'.format(n,
-                self.parent().base_ring())
+            return f'Chain with {n} nonzero terms over {self.parent().base_ring()}'
 
         def _ascii_art_(self):
             """
@@ -668,8 +668,8 @@ class HochschildComplex(UniqueRepresentation, Parent):
 
         def _add_(self, other):
             """
-            Module addition
-            
+            Module addition.
+
             EXAMPLES::
 
                 sage: F.<x,y> = FreeAlgebra(ZZ)
@@ -690,7 +690,7 @@ class HochschildComplex(UniqueRepresentation, Parent):
                  3*F[1] # F[1] + 2*F[1] # F[x] + 3*F[1] # F[y],
                  3*F[1] # F[1] # F[1] + 2*F[1] # F[1] # F[x] + 3*F[1] # F[1] # F[y]]
             """
-            vectors = dict(self._vec) # Make a (shallow) copy
+            vectors = dict(self._vec)  # Make a (shallow) copy
             for d in other._vec:
                 if d in vectors:
                     vectors[d] += other._vec[d]
@@ -703,7 +703,7 @@ class HochschildComplex(UniqueRepresentation, Parent):
 
         def _lmul_(self, scalar):
             """
-            Scalar multiplication
+            Scalar multiplication.
 
             EXAMPLES::
 
@@ -718,14 +718,14 @@ class HochschildComplex(UniqueRepresentation, Parent):
             """
             if scalar == 0:
                 return self.zero()
-            vectors = dict()
+            vectors = {}
             for d in self._vec:
                 vec = scalar * self._vec[d]
                 if vec:
                     vectors[d] = vec
             return self.__class__(self.parent(), vectors)
 
-        def _richcmp_(self, other, op):
+        def _richcmp_(self, other, op) -> bool:
             """
             Rich comparison of ``self`` to ``other``.
 
@@ -751,4 +751,3 @@ class HochschildComplex(UniqueRepresentation, Parent):
                 True
             """
             return richcmp(self._vec, other._vec, op)
-

@@ -129,8 +129,7 @@ It is an error to create a formula with bad syntax::
     ...
     NameError: invalid variable name 9b: identifiers must begin with a letter and contain only alphanumerics and underscores
 """
-from __future__ import absolute_import
-#*****************************************************************************
+# *****************************************************************************
 #       Copyright (C) 2006 William Stein <wstein@gmail.com>
 #       Copyright (C) 2006 Chris Gorecki <chris.k.gorecki@gmail.com>
 #       Copyright (C) 2013 Paul Scurek <scurek86@gmail.com>
@@ -138,11 +137,11 @@ from __future__ import absolute_import
 #  Distributed under the terms of the GNU General Public License (GPL)
 #  as published by the Free Software Foundation; either version 2 of
 #  the License, or (at your option) any later version.
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# *****************************************************************************
 
-### TODO:
-### converts (cnf) returns w/o change
+# TODO:
+# converts (cnf) returns w/o change
 
 from . import boolformula
 from . import logicparser
@@ -154,11 +153,9 @@ def formula(s):
 
     INPUT:
 
-    - ``s`` -- a string that contains a logical expression
+    - ``s`` -- string that contains a logical expression
 
-    OUTPUT:
-
-    An instance of :class:`BooleanFormula`.
+    OUTPUT: an instance of :class:`BooleanFormula`
 
     EXAMPLES:
 
@@ -189,6 +186,7 @@ def formula(s):
         raise SyntaxError(msg)
     return f
 
+
 def get_formulas(*statements):
     r"""
     Convert statements and parse trees into instances of
@@ -200,9 +198,7 @@ def get_formulas(*statements):
       full syntax parse tree of a formula, and a string must
       be a string representation of a formula
 
-    OUTPUT:
-
-    The converted formulas in a list.
+    OUTPUT: the converted formulas in a list
 
     EXAMPLES:
 
@@ -261,7 +257,8 @@ def get_formulas(*statements):
             raise TypeError
     return formulas
 
-def consistent(*formulas):
+
+def consistent(*formulas) -> bool:
     r"""
     Determine if the formulas are logically consistent.
 
@@ -269,13 +266,11 @@ def consistent(*formulas):
 
     - ``*formulas`` -- instances of :class:`BooleanFormula`
 
-    OUTPUT:
+    OUTPUT: a boolean value to be determined as follows:
 
-    A boolean value to be determined as follows:
+    - ``True`` -- if the formulas are logically consistent
 
-    - ``True`` - if the formulas are logically consistent
-
-    - ``False`` - if the formulas are not logically consistent
+    - ``False`` -- if the formulas are not logically consistent
 
     EXAMPLES:
 
@@ -309,73 +304,3 @@ def consistent(*formulas):
 
     # if conjunction is a contradiction, the formulas are inconsistent
     return not conjunction.is_contradiction()
-
-def valid_consequence(consequence, *formulas):
-    r"""
-    Determine if ``consequence`` is a valid consequence of the set
-    of formulas in ``*formulas``.
-
-    INPUT:
-
-    - ``*formulas`` -- instances of :class:`BooleanFormula`
-
-    - ``consequence`` -- instance of :class:`BooleanFormula`
-
-    OUTPUT:
-
-    A boolean value to be determined as follows:
-
-    - ``True`` - if ``consequence`` is a valid consequence of the set
-      of ``*formulas``
-
-    - ``False`` - if ``consequence is not a valid consequence of the set
-      of ``*formulas``
-
-    EXAMPLES:
-
-    This example illustrates determining if a formula is a valid
-    consequence of a set of other formulas::
-
-        sage: f, g, h, i = propcalc.get_formulas("a&~b", "c->b", "c|e", "e&a")
-        sage: propcalc.valid_consequence(i, f, g, h)
-        True
-
-    ::
-
-        sage: j = propcalc.formula("a&~e")
-        sage: propcalc.valid_consequence(j, f, g, h)
-        False
-
-    ::
-
-        sage: k = propcalc.formula("((p<->q)&r)->~c")
-        sage: propcalc.valid_consequence(k, f, g, h)
-        True
-
-    AUTHORS:
-
-    - Paul Scurek (2013-08-12)
-    """
-    valid_input = True
-
-    # make sure only instances of :class:`BooleanFormula` were passed as arguments
-    if not isinstance(consequence, boolformula.BooleanFormula):
-        valid_input = False
-    else:
-        for formula in formulas:
-            if not isinstance(formula, boolformula.BooleanFormula):
-                valid_input = False
-                break
-    if not valid_input:
-        raise TypeError("valid_input only takes instances of BooleanFormula() class as input")
-
-    # conjoin all of the formulas in the list ``formulas``
-    conjunction = formulas[0]
-    for formula in formulas[1:]:
-        conjunction = conjunction & formula
-
-    # create a conditional where conjunction is the antecedent and ``consequence`` is the consequent
-    corresponding_conditional = conjunction.ifthen(consequence)
-
-    return corresponding_conditional.is_tautology()
-

@@ -18,7 +18,6 @@ triangulations::triangulations(const flips& all_flips)
 void triangulations::find_hash_position(const compact_simplices& t,
                                         hash_value& pos, bool& is_new) const
 {
-  hash_value freespace;
   const hash_value initial_guess = t.hash_function() % hash_max;
 
   for (hash_value i=0; i<hash_max; ++i) {
@@ -69,9 +68,9 @@ void triangulations::add_neighbours(const simplices & s)
 {
   for (flips::const_iterator
          f=bistellar_flips.begin(); f!=bistellar_flips.end(); ++f) {
-    goodcircuit goody(s,*f);
+    goodcircuit goody(s, *f);
     if (goody.is_good()) {
-      goody.do_flip(s,*f);
+      goody.do_flip(s, *f);
       compact_simplices new_triang=goody.get_neighbor();
       add_triang_if_new(new_triang);
     }
@@ -118,7 +117,7 @@ triangulations_ptr init_triangulations
   compact_simplices seed;
   for (int i=0; i<PySequence_Size(py_seed); i++) {
     PyObject* simplex = PySequence_GetItem(py_seed,i);
-    seed.push_back(PyInt_AS_LONG(simplex));
+    seed.push_back(PyLong_AsLong(simplex));
     Py_DECREF(simplex);
   }
 
@@ -134,7 +133,7 @@ triangulations_ptr init_triangulations
       vertices simplex;
       for (int k=0; k<PySequence_Size(py_simplex); k++) {
         PyObject* py_vertex = PySequence_GetItem(py_simplex,k);
-        simplex.insert(simplex.begin(), PyInt_AS_LONG(py_vertex));
+        simplex.insert(simplex.begin(), PyLong_AsLong(py_vertex));
         Py_DECREF(py_vertex);
       }
       pos.push_back(simplex);
@@ -147,7 +146,7 @@ triangulations_ptr init_triangulations
       vertices simplex;
       for (int k=0; k<PySequence_Size(py_simplex); k++) {
         PyObject* py_vertex = PySequence_GetItem(py_simplex,k);
-        simplex.insert(simplex.begin(), PyInt_AS_LONG(py_vertex));
+        simplex.insert(simplex.begin(), PyLong_AsLong(py_vertex));
         Py_DECREF(py_vertex);
       }
       neg.push_back(simplex);
@@ -195,8 +194,8 @@ PyObject* next_triangulation(triangulations_ptr t)
 
   const compact_simplices& triang = t->next_triangulation();
   PyObject* py_triang = PyTuple_New(triang.size());
-  for (int i=0; i<triang.size(); i++)
-    PyTuple_SET_ITEM(py_triang, i, PyInt_FromLong(triang[i]));
+  for (size_t i=0; i<triang.size(); i++)
+    PyTuple_SET_ITEM(py_triang, i, PyLong_FromLong(triang[i]));
 
   return py_triang;
 }

@@ -1,3 +1,4 @@
+# sage.doctest: needs sage.graphs          (because all doctests use the catalog simplicial_complexes)
 r"""
 Induced morphisms on homology
 
@@ -11,16 +12,15 @@ AUTHORS:
 - John H. Palmieri (2015.09)
 """
 
-########################################################################
+# ######################################################################
 #       Copyright (C) 2015 John H. Palmieri <palmieri@math.washington.edu>
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
 #  as published by the Free Software Foundation; either version 2 of
 #  the License, or (at your option) any later version.
 #
-#                  http://www.gnu.org/licenses/
-########################################################################
-from __future__ import print_function
+#                  https://www.gnu.org/licenses/
+# ######################################################################
 
 # To do: implement morphisms of cubical complexes, with methods
 #   - domain
@@ -28,12 +28,19 @@ from __future__ import print_function
 #   - associated_chain_complex_morphism
 # Once this is done, the code here ought to work without modification.
 
+import itertools
+
 from sage.categories.graded_algebras_with_basis import GradedAlgebrasWithBasis
 from sage.categories.graded_modules_with_basis import GradedModulesWithBasis
 from sage.categories.morphism import Morphism
 from sage.categories.homset import Hom
 from sage.rings.rational_field import QQ
-from sage.homology.simplicial_complex import SimplicialComplex
+
+try:
+    from sage.topology.simplicial_complex import SimplicialComplex
+except ImportError:
+    SimplicialComplex = ()
+
 
 class InducedHomologyMorphism(Morphism):
     r"""
@@ -44,16 +51,16 @@ class InducedHomologyMorphism(Morphism):
     INPUT:
 
     - ``map`` -- the map of simplicial complexes
-    - ``base_ring`` -- a field (optional, default ``QQ``)
-    - ``cohomology`` -- boolean (optional, default ``False``). If
+    - ``base_ring`` -- a field (default: ``QQ``)
+    - ``cohomology`` -- boolean (default: ``False``); if
       ``True``, return the induced map in cohomology rather than
-      homology.
+      homology
 
-    .. note::
+    .. NOTE::
 
         This is not intended to be used directly by the user, but instead
         via the method
-        :meth:`~sage.homology.simplicial_complex_morphism.SimplicialComplexMorphism.induced_homology_morphism`.
+        :meth:`~sage.topology.simplicial_complex_morphism.SimplicialComplexMorphism.induced_homology_morphism`.
 
     EXAMPLES::
 
@@ -62,12 +69,13 @@ class InducedHomologyMorphism(Morphism):
         sage: f = H({0:0, 1:2, 2:1})  # f switches two vertices
         sage: f_star = f.induced_homology_morphism(QQ, cohomology=True)
         sage: f_star
-        Graded algebra endomorphism of Cohomology ring of Minimal triangulation of the 1-sphere over Rational Field
+        Graded algebra endomorphism of
+         Cohomology ring of Minimal triangulation of the 1-sphere over Rational Field
           Defn: induced by:
-            Simplicial complex endomorphism of Minimal triangulation of the 1-sphere
-              Defn: 0 |--> 0
-                    1 |--> 2
-                    2 |--> 1
+                Simplicial complex endomorphism of Minimal triangulation of the 1-sphere
+                  Defn: 0 |--> 0
+                        1 |--> 2
+                        2 |--> 1
         sage: f_star.to_matrix(1)
         [-1]
         sage: f_star.to_matrix()
@@ -78,7 +86,7 @@ class InducedHomologyMorphism(Morphism):
         sage: T = simplicial_complexes.Torus()
         sage: y = T.homology_with_basis(QQ).basis()[(1,1)]
         sage: y.to_cycle()
-        (0, 2) - (0, 5) + (2, 5)
+        (0, 5) - (0, 6) + (5, 6)
 
     Since `(0,2) - (0,5) + (2,5)` is a cycle representing a homology
     class in the torus, we can define a map `S^1 \to T` inducing an
@@ -87,7 +95,7 @@ class InducedHomologyMorphism(Morphism):
         sage: Hom(S1, T)({0:0, 1:2, 2:5})
         Simplicial complex morphism:
           From: Minimal triangulation of the 1-sphere
-          To: Minimal triangulation of the torus
+          To:   Minimal triangulation of the torus
           Defn: 0 |--> 0
                 1 |--> 2
                 2 |--> 5
@@ -96,22 +104,22 @@ class InducedHomologyMorphism(Morphism):
         sage: g_star.to_matrix(0)
         [1]
         sage: g_star.to_matrix(1)
-        [0]
-        [1]
+        [-1]
+        [ 0]
         sage: g_star.to_matrix()
-        [1|0]
-        [-+-]
-        [0|0]
-        [0|1]
-        [-+-]
-        [0|0]
+        [ 1| 0]
+        [--+--]
+        [ 0|-1]
+        [ 0| 0]
+        [--+--]
+        [ 0| 0]
 
     We can evaluate such a map on (co)homology classes::
 
         sage: H = S1.homology_with_basis(QQ)
         sage: a = H.basis()[(1,0)]
         sage: g_star(a)
-        h_{1,1}
+        -h_{1,0}
 
         sage: T = S1.product(S1, is_mutable=False)
         sage: diag = Hom(S1,T).diagonal_morphism()
@@ -120,17 +128,17 @@ class InducedHomologyMorphism(Morphism):
         sage: diag_c(b)
         h^{1,0}
         sage: diag_c(c)
-        0
+        h^{1,0}
     """
-    def __init__(self, map, base_ring=None, cohomology=False):
+    def __init__(self, map, base_ring=None, cohomology=False) -> None:
         """
         INPUT:
 
         - ``map`` -- the map of simplicial complexes
-        - ``base_ring`` -- a field (optional, default ``QQ``)
-        - ``cohomology`` -- boolean (optional, default ``False``). If
+        - ``base_ring`` -- a field (default: ``QQ``)
+        - ``cohomology`` -- boolean (default: ``False``); if
           ``True``, return the induced map in cohomology rather than
-          homology.
+          homology
 
         EXAMPLES::
 
@@ -158,8 +166,8 @@ class InducedHomologyMorphism(Morphism):
             sage: h = g.induced_homology_morphism(QQ)
         """
         if (isinstance(map.domain(), SimplicialComplex)
-            and (map.domain().is_mutable() or map.codomain().is_mutable())):
-                raise ValueError('the domain and codomain complexes must be immutable')
+                and (map.domain().is_mutable() or map.codomain().is_mutable())):
+            raise ValueError('the domain and codomain complexes must be immutable')
         if base_ring is None:
             base_ring = QQ
         if not base_ring.is_field():
@@ -169,8 +177,8 @@ class InducedHomologyMorphism(Morphism):
         self._map = map
         self._base_ring = base_ring
         if cohomology:
-            domain = map.domain().cohomology_ring(base_ring=base_ring)
-            codomain = map.codomain().cohomology_ring(base_ring=base_ring)
+            domain = map.codomain().cohomology_ring(base_ring=base_ring)
+            codomain = map.domain().cohomology_ring(base_ring=base_ring)
             Morphism.__init__(self, Hom(domain, codomain,
                                         category=GradedAlgebrasWithBasis(base_ring)))
         else:
@@ -181,7 +189,7 @@ class InducedHomologyMorphism(Morphism):
 
     def base_ring(self):
         """
-        The base ring for this map
+        The base ring for this map.
 
         EXAMPLES::
 
@@ -205,7 +213,7 @@ class InducedHomologyMorphism(Morphism):
 
         INPUT:
 
-        - ``deg`` -- (optional, default ``None``) the degree
+        - ``deg`` -- (default: ``None``) the degree
 
         EXAMPLES::
 
@@ -223,24 +231,25 @@ class InducedHomologyMorphism(Morphism):
             [0|2]
         """
         base_ring = self.base_ring()
-        if self._cohomology:
-            domain = self._map.codomain()
-            codomain = self._map.domain()
-        else:
-            domain = self._map.domain()
-            codomain = self._map.codomain()
+        # Compute homology case first.
+        domain = self._map.domain()
+        codomain = self._map.codomain()
         phi_codomain, H_codomain = codomain.algebraic_topological_model(base_ring)
         phi_domain, H_domain = domain.algebraic_topological_model(base_ring)
-        mat = phi_codomain.pi().to_matrix(deg) * self._map.associated_chain_complex_morphism(self.base_ring(), cochain=self._cohomology).to_matrix(deg) * phi_domain.iota().to_matrix(deg)
+        mat = (phi_codomain.pi().to_matrix(deg)
+               * self._map.associated_chain_complex_morphism(self.base_ring()).to_matrix(deg)
+               * phi_domain.iota().to_matrix(deg))
+        if self._cohomology:
+            mat = mat.transpose()
+            H_domain, H_codomain = H_codomain, H_domain
         if deg is None:
-            import numpy as np
             betti_domain = [H_domain.free_module_rank(n)
-                            for n in range(domain.dimension()+1)]
+                            for n in range(domain.dimension() + 1)]
             betti_codomain = [H_codomain.free_module_rank(n)
-                              for n in range(codomain.dimension()+1)]
+                              for n in range(codomain.dimension() + 1)]
             # Compute cumulative sums of Betti numbers to get subdivisions:
-            row_subdivs = list(np.cumsum(betti_codomain[:-1]))
-            col_subdivs = list(np.cumsum(betti_domain[:-1]))
+            row_subdivs = list(itertools.accumulate(betti_codomain[:-1]))
+            col_subdivs = list(itertools.accumulate(betti_domain[:-1]))
             mat.subdivide(row_subdivs, col_subdivs)
         return mat
 
@@ -279,7 +288,7 @@ class InducedHomologyMorphism(Morphism):
 
         return codomain.from_vector(self.to_matrix() * elt.to_vector())
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         """
         Return ``True`` if and only if this map agrees with ``other``.
 
@@ -310,16 +319,16 @@ class InducedHomologyMorphism(Morphism):
             False
         """
         if (self._map.domain() != other._map.domain()
-            or self._map.codomain() != other._map.codomain()
-            or self.base_ring() != other.base_ring()
-            or self._cohomology != other._cohomology):
+                or self._map.codomain() != other._map.codomain()
+                or self.base_ring() != other.base_ring()
+                or self._cohomology != other._cohomology):
             return False
         dim = min(self._map.domain().dimension(), self._map.codomain().dimension())
-        return all(self.to_matrix(d) == other.to_matrix(d) for d in range(dim+1))
+        return all(self.to_matrix(d) == other.to_matrix(d) for d in range(dim + 1))
 
-    def is_identity(self):
+    def is_identity(self) -> bool:
         """
-        True if this is the identity map on (co)homology.
+        Return ``True`` if this is the identity map on (co)homology.
 
         EXAMPLES::
 
@@ -336,9 +345,9 @@ class InducedHomologyMorphism(Morphism):
         """
         return self.to_matrix().is_one()
 
-    def is_surjective(self):
+    def is_surjective(self) -> bool:
         """
-        True if this map is surjective on (co)homology.
+        Return ``True`` if this map is surjective on (co)homology.
 
         EXAMPLES::
 
@@ -354,9 +363,9 @@ class InducedHomologyMorphism(Morphism):
         m = self.to_matrix()
         return m.rank() == m.nrows()
 
-    def is_injective(self):
+    def is_injective(self) -> bool:
         """
-        True if this map is injective on (co)homology.
+        Return ``True`` if this map is injective on (co)homology.
 
         EXAMPLES::
 
@@ -377,7 +386,7 @@ class InducedHomologyMorphism(Morphism):
         """
         return self.to_matrix().right_nullity() == 0
 
-    def _repr_type(self):
+    def _repr_type(self) -> str:
         """
         EXAMPLES::
 
@@ -391,7 +400,7 @@ class InducedHomologyMorphism(Morphism):
         """
         return "Graded vector space" if not self._cohomology else "Graded algebra"
 
-    def _repr_defn(self):
+    def _repr_defn(self) -> str:
         """
         EXAMPLES::
 

@@ -1,14 +1,13 @@
-# -*- coding: utf-8 -*-
+# sage.doctest: needs sage.libs.flint sage.libs.pari
 """
-Space of modular symbols (base class)
+Base class of the space of modular symbols
 
 All the spaces of modular symbols derive from this class. This class is an
 abstract base class.
 """
-from __future__ import absolute_import
 
-#*****************************************************************************
-#       Sage: System for Algebra and Geometry Experimentation
+# ****************************************************************************
+#       Sage: Open Source Mathematical Software
 #
 #       Copyright (C) 2005 William Stein <wstein@gmail.com>
 #
@@ -21,46 +20,38 @@ from __future__ import absolute_import
 #
 #  The full text of the GPL is available at:
 #
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
-from six.moves import range
-import sage.modules.free_module as free_module
-import sage.matrix.matrix_space as matrix_space
-from   sage.modules.free_module_element  import is_FreeModuleElement
-import sage.misc.all as misc
-import sage.modular.hecke.all as hecke
-import sage.arith.all as arith
-import sage.rings.fast_arith as fast_arith
-from   sage.rings.all import PowerSeriesRing, Integer, O, QQ, ZZ, infinity, Zmod
-from sage.rings.number_field.number_field_base import is_NumberField
-from   sage.structure.all import Sequence, SageObject
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
+
+from sage.arith.misc import divisors, next_prime
+from sage.categories.fields import Fields
+from sage.matrix.matrix_space import MatrixSpace
+from sage.misc.cachefunc import cached_method
+from sage.misc.lazy_import import lazy_import
+from sage.misc.misc_c import prod
+from sage.modules.free_module import EchelonMatrixKey, FreeModule, VectorSpace
+from sage.modules.free_module_element import FreeModuleElement
+from sage.rings.fast_arith import prime_range
+from sage.rings.finite_rings.integer_mod_ring import Zmod
+from sage.rings.integer_ring import ZZ
+from sage.rings.integer import Integer
+from sage.rings.infinity import infinity
+from sage.rings.number_field.number_field_base import NumberField
+from sage.rings.power_series_ring import PowerSeriesRing
+from sage.rings.rational_field import QQ
+from sage.structure.all import Sequence, SageObject
 from sage.structure.richcmp import (richcmp_method, richcmp,
                                     rich_to_bool, richcmp_not_equal)
 
-from sage.modular.arithgroup.all import Gamma0, is_Gamma0 # for Sturm bound given a character
+from sage.modular.arithgroup.congroup_gamma0 import Gamma0_constructor as Gamma0, Gamma0_class  # for Sturm bound given a character
+from sage.modular.hecke.module import HeckeModule_free_module
 from sage.modular.modsym.element import ModularSymbolsElement
 
-from . import hecke_operator
-
-from sage.misc.cachefunc import cached_method
-
-def is_ModularSymbolsSpace(x):
-    r"""
-    Return True if x is a space of modular symbols.
-
-    EXAMPLES::
-
-        sage: M = ModularForms(3, 2)
-        sage: sage.modular.modsym.space.is_ModularSymbolsSpace(M)
-        False
-        sage: sage.modular.modsym.space.is_ModularSymbolsSpace(M.modular_symbols(sign=1))
-        True
-    """
-    return isinstance(x, ModularSymbolsSpace)
+lazy_import('sage.modular.modsym', 'hecke_operator')
 
 
 @richcmp_method
-class ModularSymbolsSpace(hecke.HeckeModule_free_module):
+class ModularSymbolsSpace(HeckeModule_free_module):
     r"""
     Base class for spaces of modular symbols.
     """
@@ -81,11 +72,11 @@ class ModularSymbolsSpace(hecke.HeckeModule_free_module):
         self.__group = group
         self.__character = character
         self.__sign = sign
-        hecke.HeckeModule_free_module.__init__(self, base_ring, group.level(), weight, category=category)
+        HeckeModule_free_module.__init__(self, base_ring, group.level(), weight, category=category)
 
-    def __richcmp__(self, other, op):
+    def __richcmp__(self, other, op) -> bool:
         """
-        Compare self and other.
+        Compare ``self`` and ``other``.
 
         When spaces are in a common ambient space, we order
         lexicographically by the sequence of traces of Hecke operators
@@ -145,15 +136,15 @@ class ModularSymbolsSpace(hecke.HeckeModule_free_module):
         if lx != rx:
             return richcmp_not_equal(lx, rx, op)
 
-        lx = self.free_module()
-        rx = other.free_module()
+        lx = EchelonMatrixKey(self.free_module())
+        rx = EchelonMatrixKey(other.free_module())
 
         if lx == rx:
             return rich_to_bool(op, 0)
 
         # distinguish using Hecke operators, if possible.
         try:
-            for p in fast_arith.prime_range(self.hecke_bound()):
+            for p in prime_range(self.hecke_bound()):
                 ap = self.hecke_matrix(p).trace()
                 bp = other.hecke_matrix(p).trace()
                 if ap != bp:
@@ -166,7 +157,7 @@ class ModularSymbolsSpace(hecke.HeckeModule_free_module):
     def _hecke_operator_class(self):
         """
         Return the class to be used for instantiating Hecke operators
-        acting on self.
+        acting on ``self``.
 
         EXAMPLES::
 
@@ -178,21 +169,22 @@ class ModularSymbolsSpace(hecke.HeckeModule_free_module):
     def compact_system_of_eigenvalues(self, v, names='alpha', nz=None):
         r"""
         Return a compact system of eigenvalues `a_n` for
-        `n\in v`. This should only be called on simple factors of
-        modular symbols spaces.
+        `n\in v`.
+
+        This should only be called on simple factors of modular
+        symbols spaces.
 
         INPUT:
 
-        - ``v`` - a list of positive integers
-        - ``nz`` - (default: None); if given specifies a column index
-          such that the dual module has that column nonzero.
-
+        - ``v`` -- list of positive integers
+        - ``nz`` -- (default: ``None``) if given specifies a column index
+          such that the dual module has that column nonzero
 
         OUTPUT:
 
-        - ``E`` - matrix such that E\*v is a vector with components
-          the eigenvalues `a_n` for `n \in v`.
-        - ``v`` - a vector over a number field
+        - ``E`` -- matrix such that E\*v is a vector with components
+          the eigenvalues `a_n` for `n \in v`
+        - ``v`` -- a vector over a number field
 
         EXAMPLES::
 
@@ -200,18 +192,18 @@ class ModularSymbolsSpace(hecke.HeckeModule_free_module):
             Modular Symbols subspace of dimension 2 of Modular Symbols space of dimension 4 for Gamma_0(43) of weight 2 with sign 1 over Rational Field
             sage: E, v = M.compact_system_of_eigenvalues(prime_range(10))
             sage: E
-            [ 3 -2]
-            [-3  2]
-            [-1  2]
-            [ 1 -2]
+            [ 2/3 -4/3]
+            [-2/3  4/3]
+            [ 4/3  4/3]
+            [-4/3 -4/3]
             sage: v
-            (1, -1/2*alpha + 3/2)
+            (1, -3/4*alpha + 1/2)
             sage: E*v
             (alpha, -alpha, -alpha + 2, alpha - 2)
 
         TESTS:
 
-        Verify that :trac:`12772` is fixed::
+        Verify that :issue:`12772` is fixed::
 
             sage: M = ModularSymbols(1,12,sign=1).cuspidal_subspace().new_subspace()
             sage: A = M.decomposition()[0]
@@ -236,7 +228,7 @@ class ModularSymbolsSpace(hecke.HeckeModule_free_module):
 
     def character(self):
         """
-        Return the character associated to self.
+        Return the character associated to ``self``.
 
         EXAMPLES::
 
@@ -249,11 +241,11 @@ class ModularSymbolsSpace(hecke.HeckeModule_free_module):
 
     def cuspidal_submodule(self):
         """
-        Return the cuspidal submodule of self.
+        Return the cuspidal submodule of ``self``.
 
-        .. note::
+        .. NOTE::
 
-           This should be overridden by all derived classes.
+            This should be overridden by all derived classes.
 
         EXAMPLES::
 
@@ -353,9 +345,9 @@ class ModularSymbolsSpace(hecke.HeckeModule_free_module):
         Return the matrix of the dual star involution, which is induced by
         complex conjugation on the linear dual of modular symbols.
 
-        .. note::
+        .. NOTE::
 
-           This should be overridden in all derived classes.
+            This should be overridden in all derived classes.
 
         EXAMPLES::
 
@@ -372,20 +364,17 @@ class ModularSymbolsSpace(hecke.HeckeModule_free_module):
 
     def group(self):
         """
-        Returns the group of this modular symbols space.
+        Return the group of this modular symbols space.
 
         INPUT:
 
-
-        -  ``ModularSymbols self`` - an arbitrary space of
-           modular symbols
-
+        - ``ModularSymbols self`` -- an arbitrary space of
+          modular symbols
 
         OUTPUT:
 
-        -  ``CongruenceSubgroup`` - the congruence subgroup
-           that this is a space of modular symbols for.
-
+        - ``CongruenceSubgroup`` -- the congruence subgroup
+          that this is a space of modular symbols for
 
         ALGORITHM: The group is recorded when this space is created.
 
@@ -397,9 +386,9 @@ class ModularSymbolsSpace(hecke.HeckeModule_free_module):
         """
         return self.__group
 
-    def is_ambient(self):
+    def is_ambient(self) -> bool:
         """
-        Return True if self is an ambient space of modular symbols.
+        Return ``True`` if ``self`` is an ambient space of modular symbols.
 
         EXAMPLES::
 
@@ -411,13 +400,13 @@ class ModularSymbolsSpace(hecke.HeckeModule_free_module):
         from sage.modular.modsym.ambient import ModularSymbolsAmbient
         return isinstance(self, ModularSymbolsAmbient)
 
-    def is_cuspidal(self):
+    def is_cuspidal(self) -> bool:
         """
-        Return True if self is a cuspidal space of modular symbols.
+        Return ``True`` if ``self`` is a cuspidal space of modular symbols.
 
-        .. note::
+        .. NOTE::
 
-           This should be overridden in all derived classes.
+            This should be overridden in all derived classes.
 
         EXAMPLES::
 
@@ -430,9 +419,9 @@ class ModularSymbolsSpace(hecke.HeckeModule_free_module):
         """
         raise NotImplementedError("computation of cuspidal subspace not yet implemented for this class")
 
-    def is_simple(self):
-        """
-        Return whether not this modular symbols space is simple as a module
+    def is_simple(self) -> bool:
+        r"""
+        Return whether this modular symbols space is simple as a module
         over the anemic Hecke algebra adjoin \*.
 
         EXAMPLES::
@@ -442,12 +431,9 @@ class ModularSymbolsSpace(hecke.HeckeModule_free_module):
             False
             sage: o = m.old_subspace()
             sage: o.decomposition()
-            [
-            Modular Symbols subspace of dimension 2 of Modular Symbols space of dimension 6 for Gamma_0(33) of weight 2 with sign 1 over Rational Field,
-            Modular Symbols subspace of dimension 3 of Modular Symbols space of dimension 6 for Gamma_0(33) of weight 2 with sign 1 over Rational Field
-            ]
-            sage: C=ModularSymbols(1,14,0,GF(5)).cuspidal_submodule()
-            sage: C
+            [Modular Symbols subspace of dimension 2 of Modular Symbols space of dimension 6 for Gamma_0(33) of weight 2 with sign 1 over Rational Field,
+             Modular Symbols subspace of dimension 3 of Modular Symbols space of dimension 6 for Gamma_0(33) of weight 2 with sign 1 over Rational Field]
+            sage: C = ModularSymbols(1,14,0,GF(5)).cuspidal_submodule(); C
             Modular Symbols subspace of dimension 1 of Modular Symbols space of dimension 2 for Gamma_0(1) of weight 14 with sign 0 over Finite Field of size 5
             sage: C.is_simple()
             True
@@ -465,9 +451,9 @@ class ModularSymbolsSpace(hecke.HeckeModule_free_module):
     def multiplicity(self, S, check_simple=True):
         """
         Return the multiplicity of the simple modular symbols space S in
-        self. S must be a simple anemic Hecke module.
+        ``self``. S must be a simple anemic Hecke module.
 
-        ASSUMPTION: self is an anemic Hecke module with the same weight and
+        ASSUMPTION: ``self`` is an anemic Hecke module with the same weight and
         group as S, and S is simple.
 
         EXAMPLES::
@@ -491,21 +477,20 @@ class ModularSymbolsSpace(hecke.HeckeModule_free_module):
         d = C.rank()
         n = S.rank()
         assert d % n == 0, "the dimension of intersection must be a multiple of dimension of simple space.  bug!"
-        return d//n
+        return d // n
 
     def ngens(self):
         """
-        The number of generators of self.
+        Return the number of generators of ``self``.
 
         INPUT:
 
-        - ``ModularSymbols self`` - arbitrary space of modular symbols.
+        - ``ModularSymbols self`` -- arbitrary space of modular symbols
 
         OUTPUT:
 
-        - ``int`` - the number of generators, which is the same as the
-          dimension of self.
-
+        - ``int`` -- the number of generators, which is the same as the
+          dimension of ``self``
 
         ALGORITHM: Call the dimension function.
 
@@ -538,9 +523,7 @@ class ModularSymbolsSpace(hecke.HeckeModule_free_module):
 
             sage: M = ModularSymbols(15)
             sage: M.cuspidal_submodule().q_expansion_basis()
-            [
-            q - q^2 - q^3 - q^4 + q^5 + q^6 + O(q^8)
-            ]
+            [q - q^2 - q^3 - q^4 + q^5 + q^6 + O(q^8)]
             sage: M.set_default_prec(20)
 
         Notice that setting the default precision of the ambient space
@@ -549,9 +532,7 @@ class ModularSymbolsSpace(hecke.HeckeModule_free_module):
         ::
 
             sage: M.cuspidal_submodule().q_expansion_basis()
-            [
-            q - q^2 - q^3 - q^4 + q^5 + q^6 + 3*q^8 + q^9 - q^10 - 4*q^11 + q^12 - 2*q^13 - q^15 - q^16 + 2*q^17 - q^18 + 4*q^19 + O(q^20)
-            ]
+            [q - q^2 - q^3 - q^4 + q^5 + q^6 + 3*q^8 + q^9 - q^10 - 4*q^11 + q^12 - 2*q^13 - q^15 - q^16 + 2*q^17 - q^18 + 4*q^19 + O(q^20)]
             sage: M.cuspidal_submodule().default_prec()
             20
         """
@@ -574,10 +555,7 @@ class ModularSymbolsSpace(hecke.HeckeModule_free_module):
             sage: M = ModularSymbols(Gamma1(13),2)
             sage: M.set_default_prec(5)
             sage: M.cuspidal_submodule().q_expansion_basis()
-            [
-            q - 4*q^3 - q^4 + O(q^5),
-            q^2 - 2*q^3 - q^4 + O(q^5)
-            ]
+            [q - 4*q^3 - q^4 + O(q^5), q^2 - 2*q^3 - q^4 + O(q^5)]
         """
         if not self.is_ambient():
             return self.ambient_hecke_module().set_default_prec(prec)
@@ -592,44 +570,40 @@ class ModularSymbolsSpace(hecke.HeckeModule_free_module):
 
             sage: M = ModularSymbols(17,2)
             sage: M.cuspidal_submodule().q_expansion_basis()
-            [
-            q - q^2 - q^4 - 2*q^5 + 4*q^7 + O(q^8)
-            ]
+            [q - q^2 - q^4 - 2*q^5 + 4*q^7 + O(q^8)]
             sage: M.set_precision(10)
             sage: M.cuspidal_submodule().q_expansion_basis()
-            [
-            q - q^2 - q^4 - 2*q^5 + 4*q^7 + 3*q^8 - 3*q^9 + O(q^10)
-            ]
+            [q - q^2 - q^4 - 2*q^5 + 4*q^7 + 3*q^8 - 3*q^9 + O(q^10)]
         """
         self.set_default_prec(prec)
 
     def q_expansion_basis(self, prec=None, algorithm='default'):
         r"""
-        Returns a basis of q-expansions (as power series) to precision prec
-        of the space of modular forms associated to self. The q-expansions
-        are defined over the same base ring as self, and a put in echelon
-        form.
+        Return a basis of `q`-expansions (as power series) to precision ``prec``
+        of the space of modular forms associated to ``self``.
+
+        The `q`-expansions are defined over the same base ring as ``self``,
+        and a put in echelon form.
 
         INPUT:
 
+        - ``self`` -- a space of CUSPIDAL modular symbols
 
-        -  ``self`` - a space of CUSPIDAL modular symbols
+        - ``prec`` -- integer
 
-        -  ``prec`` - an integer
+        - ``algorithm`` -- string; one of
 
-        -  ``algorithm`` - string:
+          - ``'default'`` -- (default) decide which algorithm to
+            use based on heuristics
 
-        -  ``'default' (default)`` - decide which algorithm to
-           use based on heuristics
+          - ``'hecke'`` -- compute basis by computing
+            homomorphisms T - K, where T is the Hecke algebra
 
-        -  ``'hecke'`` - compute basis by computing
-           homomorphisms T - K, where T is the Hecke algebra
+          - ``'eigen'`` -- compute basis using eigenvectors for
+            the Hecke action and Atkin-Lehner-Li theory to patch them together
 
-        -  ``'eigen'`` - compute basis using eigenvectors for
-           the Hecke action and Atkin-Lehner-Li theory to patch them together
-
-        -  ``'all'`` - compute using hecke_dual and eigen
-           algorithms and verify that the results are the same.
+          - ``'all'`` -- compute using hecke_dual and eigen
+            algorithms and verify that the results are the same
 
 
         The computed basis is *not* cached, though of course Hecke
@@ -639,42 +613,32 @@ class ModularSymbolsSpace(hecke.HeckeModule_free_module):
 
             sage: M = ModularSymbols(1, 12).cuspidal_submodule()
             sage: M.q_expansion_basis(8)
-            [
-            q - 24*q^2 + 252*q^3 - 1472*q^4 + 4830*q^5 - 6048*q^6 - 16744*q^7 + O(q^8)
-            ]
+            [q - 24*q^2 + 252*q^3 - 1472*q^4 + 4830*q^5 - 6048*q^6 - 16744*q^7 + O(q^8)]
 
         ::
 
             sage: M.q_expansion_basis(8, algorithm='eigen')
-            [
-            q - 24*q^2 + 252*q^3 - 1472*q^4 + 4830*q^5 - 6048*q^6 - 16744*q^7 + O(q^8)
-            ]
+            [q - 24*q^2 + 252*q^3 - 1472*q^4 + 4830*q^5 - 6048*q^6 - 16744*q^7 + O(q^8)]
 
         ::
 
             sage: M = ModularSymbols(1, 24).cuspidal_submodule()
             sage: M.q_expansion_basis(8, algorithm='eigen')
-            [
-            q + 195660*q^3 + 12080128*q^4 + 44656110*q^5 - 982499328*q^6 - 147247240*q^7 + O(q^8),
-            q^2 - 48*q^3 + 1080*q^4 - 15040*q^5 + 143820*q^6 - 985824*q^7 + O(q^8)
-            ]
+            [q + 195660*q^3 + 12080128*q^4 + 44656110*q^5 - 982499328*q^6 - 147247240*q^7 + O(q^8),
+             q^2 - 48*q^3 + 1080*q^4 - 15040*q^5 + 143820*q^6 - 985824*q^7 + O(q^8)]
 
         ::
 
             sage: M = ModularSymbols(11, 2, sign=-1).cuspidal_submodule()
             sage: M.q_expansion_basis(8, algorithm='eigen')
-            [
-            q - 2*q^2 - q^3 + 2*q^4 + q^5 + 2*q^6 - 2*q^7 + O(q^8)
-            ]
+            [q - 2*q^2 - q^3 + 2*q^4 + q^5 + 2*q^6 - 2*q^7 + O(q^8)]
 
         ::
 
             sage: M = ModularSymbols(Gamma1(13), 2, sign=1).cuspidal_submodule()
             sage: M.q_expansion_basis(8, algorithm='eigen')
-            [
-            q - 4*q^3 - q^4 + 3*q^5 + 6*q^6 + O(q^8),
-            q^2 - 2*q^3 - q^4 + 2*q^5 + 2*q^6 + O(q^8)
-            ]
+            [q - 4*q^3 - q^4 + 3*q^5 + 6*q^6 + O(q^8),
+             q^2 - 2*q^3 - q^4 + 2*q^5 + 2*q^6 + O(q^8)]
 
         ::
 
@@ -686,9 +650,7 @@ class ModularSymbolsSpace(hecke.HeckeModule_free_module):
 
             sage: M = ModularSymbols(Gamma1(7), 3, sign=-1).cuspidal_submodule()
             sage: M.q_expansion_basis(8)
-            [
-            q - 3*q^2 + 5*q^4 - 7*q^7 + O(q^8)
-            ]
+            [q - 3*q^2 + 5*q^4 - 7*q^7 + O(q^8)]
 
         ::
 
@@ -696,16 +658,11 @@ class ModularSymbolsSpace(hecke.HeckeModule_free_module):
             sage: M[0]
             Modular Symbols subspace of dimension 2 of Modular Symbols space of dimension 7 for Gamma_0(43) of weight 2 with sign 0 over Rational Field
             sage: M[0].q_expansion_basis()
-            [
-            q - 2*q^2 - 2*q^3 + 2*q^4 - 4*q^5 + 4*q^6 + O(q^8)
-            ]
+            [q - 2*q^2 - 2*q^3 + 2*q^4 - 4*q^5 + 4*q^6 + O(q^8)]
             sage: M[1]
             Modular Symbols subspace of dimension 4 of Modular Symbols space of dimension 7 for Gamma_0(43) of weight 2 with sign 0 over Rational Field
             sage: M[1].q_expansion_basis()
-            [
-            q + 2*q^5 - 2*q^6 - 2*q^7 + O(q^8),
-            q^2 - q^3 - q^5 + q^7 + O(q^8)
-            ]
+            [q + 2*q^5 - 2*q^6 - 2*q^7 + O(q^8), q^2 - q^3 - q^5 + q^7 + O(q^8)]
         """
         if prec is None:
             prec = self.default_prec()
@@ -713,7 +670,7 @@ class ModularSymbolsSpace(hecke.HeckeModule_free_module):
             prec = Integer(prec)
 
         if prec < 1:
-            raise ValueError("prec (=%s) must be >= 1"%prec)
+            raise ValueError("prec (=%s) must be >= 1" % prec)
 
         if not self.is_cuspidal():
             raise ArithmeticError("space must be cuspidal")
@@ -735,34 +692,36 @@ class ModularSymbolsSpace(hecke.HeckeModule_free_module):
             B1 = self._q_expansion_basis_hecke_dual(prec)
             B2 = self._q_expansion_basis_eigen(prec, 'alpha')
             if B1 != B2:
-                raise RuntimeError("There is a bug in q_expansion_basis -- basis computed differently with two algorithms:\n%s\n%s\n"%(B1, B2,))
+                raise RuntimeError("There is a bug in q_expansion_basis -- basis computed differently with two algorithms:\n%s\n%s\n" % (B1, B2,))
             return Sequence(B1, cr=True)
         else:
-            raise ValueError("no algorithm '%s'"%algorithm)
+            raise ValueError("no algorithm '%s'" % algorithm)
 
-    def q_expansion_module(self, prec = None, R=None):
+    def q_expansion_module(self, prec=None, R=None):
         r"""
         Return a basis over R for the space spanned by the coefficient
-        vectors of the `q`-expansions corresponding to self. If R
-        is not the base ring of self, returns the restriction of scalars
-        down to R (for this, self must have base ring `\QQ`
-        or a number field).
+        vectors of the `q`-expansions corresponding to ``self``.
+
+        If R is not the base ring of ``self``, this returns the
+        restriction of scalars down to R (for this, ``self`` must have
+        base ring `\QQ` or a number field).
 
         INPUT:
 
-        -  ``self`` - must be cuspidal
+        - ``self`` -- must be cuspidal
 
-        -  ``prec`` - an integer (default:
-           self.default_prec())
+        - ``prec`` -- integer (default: ``self.default_prec()``)
 
-        -  ``R`` - either ZZ, QQ, or the base_ring of self
+        - ``R`` -- either `\ZZ`, `\QQ`, or the ``base_ring`` of ``self``
            (which is the default)
 
-        OUTPUT: A free module over R.
+        OUTPUT: a free module over `R`
 
-        TODO - extend to more general R (though that is fairly easy for the
-        user to get by just doing base_extend or change_ring on the
-        output of this function).
+        .. TODO::
+
+           extend to more general R (though that is fairly easy for the
+           user to get by just doing base_extend or change_ring on the
+           output of this function).
 
         Note that the prec needed to distinguish elements of the
         restricted-down-to-R basis may be bigger than ``self.hecke_bound()``,
@@ -842,10 +801,8 @@ class ModularSymbolsSpace(hecke.HeckeModule_free_module):
             sage: k.<a> = NumberField(x^2-5)
             sage: M = ModularSymbols(23, base_ring=k, sign=1).cuspidal_submodule()
             sage: D = M.decomposition(); D
-            [
-            Modular Symbols subspace of dimension 1 of Modular Symbols space of dimension 3 for Gamma_0(23) of weight 2 with sign 1 over Number Field in a with defining polynomial x^2 - 5,
-            Modular Symbols subspace of dimension 1 of Modular Symbols space of dimension 3 for Gamma_0(23) of weight 2 with sign 1 over Number Field in a with defining polynomial x^2 - 5
-            ]
+            [Modular Symbols subspace of dimension 1 of Modular Symbols space of dimension 3 for Gamma_0(23) of weight 2 with sign 1 over Number Field in a with defining polynomial x^2 - 5,
+             Modular Symbols subspace of dimension 1 of Modular Symbols space of dimension 3 for Gamma_0(23) of weight 2 with sign 1 over Number Field in a with defining polynomial x^2 - 5]
             sage: M.q_expansion_module(8, QQ)
             Vector space of degree 8 and dimension 2 over Rational Field
             Basis matrix:
@@ -861,9 +818,7 @@ class ModularSymbolsSpace(hecke.HeckeModule_free_module):
             sage: M = ModularSymbols(eps,2,sign=1).cuspidal_submodule(); M
             Modular Symbols subspace of dimension 2 of Modular Symbols space of dimension 4 and level 25, weight 2, character [zeta10], sign 1, over Cyclotomic Field of order 10 and degree 4
             sage: D = M.decomposition(); D
-            [
-            Modular Symbols subspace of dimension 2 of Modular Symbols space of dimension 4 and level 25, weight 2, character [zeta10], sign 1, over Cyclotomic Field of order 10 and degree 4
-            ]
+            [Modular Symbols subspace of dimension 2 of Modular Symbols space of dimension 4 and level 25, weight 2, character [zeta10], sign 1, over Cyclotomic Field of order 10 and degree 4]
             sage: D[0].q_eigenform(4, 'mu')
             q + mu*q^2 + ((zeta10^3 + zeta10 - 1)*mu + zeta10^2 - 1)*q^3 + O(q^4)
             sage: D[0].q_expansion_module(11, QQ)
@@ -885,7 +840,7 @@ class ModularSymbolsSpace(hecke.HeckeModule_free_module):
 
         EXAMPLES WITH SIGN 0 and R=QQ:
 
-        TODO - this doesn't work yet as it's not implemented!!
+        .. TODO::  This doesn't work yet as it's not implemented!!
 
         ::
 
@@ -916,26 +871,26 @@ class ModularSymbolsSpace(hecke.HeckeModule_free_module):
         elif R == QQ:
             return self._q_expansion_module_rational(prec)
         elif R is None or R == self.base_ring():
-            ## names is never used in this case
+            # names is never used in this case
             return self._q_expansion_module(prec)
         else:
             raise NotImplementedError("R must be ZZ, QQ, or the base ring of the modular symbols space.")
 
     def _q_eigenform_images(self, A, prec, names):
         """
-        Return list of images in space corresponding to self of eigenform
-        corresponding to A under the degeneracy maps. This is mainly a
-        helper function for other internal functions.
+        Return list of images in space corresponding to ``self`` of eigenform
+        corresponding to A under the degeneracy maps.
+
+        This is mainly a helper function for other internal functions.
 
         INPUT:
 
-        -  ``self`` - space of modular symbols
+        - ``self`` -- space of modular symbols
 
-        -  ``A`` - cuspidal simple space of level dividing the
-           level of self and the same weight
+        - ``A`` -- cuspidal simple space of level dividing the
+          level of ``self`` and the same weight
 
-        -  ``prec`` - a positive integer
-
+        - ``prec`` -- positive integer
 
         EXAMPLES::
 
@@ -948,58 +903,57 @@ class ModularSymbolsSpace(hecke.HeckeModule_free_module):
         f = A.q_eigenform(prec, names)
         if A.level() == self.level():
             return [f]
-        D = arith.divisors(self.level() // A.level())
+        D = divisors(self.level() // A.level())
         q = f.parent().gen()
         return [f] + [f(q**d) for d in D if d > 1]
 
     def _q_expansion_module(self, prec, algorithm='hecke'):
         """
-        Return module spanned by the `q`-expansions corresponding to self. See
-        the docstring for ``q_expansion_module`` (without underscore) for
-        further details. Note that this will not work if ``algorithm=eigen``
-        and the sign is 0.
+        Return module spanned by the `q`-expansions corresponding to ``self``.
+
+        See the docstring for ``q_expansion_module`` (without
+        underscore) for further details. Note that this will not work
+        if ``algorithm=eigen`` and the sign is 0.
 
         EXAMPLES::
 
-            sage: ModularSymbols(11, 2, base_ring=GF(4,'a')).cuspidal_submodule()._q_expansion_module(prec=4, algorithm="hecke")
+            sage: ModularSymbols(11, 2, base_ring=GF(4,'a')).cuspidal_submodule()._q_expansion_module(prec=4, algorithm='hecke')
             Vector space of degree 4 and dimension 1 over Finite Field in a of size 2^2
             Basis matrix:
             [0 1 0 1]
-            sage: ModularSymbols(11, 2, base_ring=QuadraticField(-7,'b'), sign=1).cuspidal_submodule()._q_expansion_module(prec=4, algorithm="eigen")
-            Vector space of degree 4 and dimension 1 over Number Field in b with defining polynomial x^2 + 7
+            sage: ModularSymbols(11, 2, base_ring=QuadraticField(-7,'b'), sign=1).cuspidal_submodule()._q_expansion_module(prec=4, algorithm='eigen')
+            Vector space of degree 4 and dimension 1 over Number Field in b with defining polynomial x^2 + 7 with b = 2.645751311064591?*I
             Basis matrix:
             [ 0  1 -2 -1]
-
         """
         if not self.is_cuspidal():
             raise ValueError("self must be cuspidal")
         R = self.base_ring()
-        if not R.is_field():
+        if R not in Fields():
             if R == ZZ:
                 return self._q_expansion_module_integral(prec)
             raise NotImplementedError("base ring must be a field (or ZZ).")
 
+        V = R ** prec
         if algorithm == 'hecke' or algorithm == 'default':
-            A = R ** prec
-            return A.span([f.padded_list(prec) for f in self.q_expansion_basis(prec, algorithm)])
+            return V.span([f.padded_list(prec) for f in self.q_expansion_basis(prec, algorithm)])
 
         if algorithm != 'eigen':
-            raise ValueError("unknown algorithm '%s'"%algorithm)
+            raise ValueError("unknown algorithm '%s'" % algorithm)
 
-        V = R ** prec
-        def q_eigen_gens(f):
-            r""" Temporary function for internal use.
+        def q_eigen_gens(d, f):
+            r"""
+            Temporary function for internal use.
 
             EXAMPLES::
 
-                sage: ModularSymbols(11, 4, base_ring=QuadraticField(-7,'b'),sign=1).cuspidal_submodule()._q_expansion_module(prec=5, algorithm="eigen") # indirect doctest
-                Vector space of degree 5 and dimension 2 over Number Field in b with defining polynomial x^2 + 7
+                sage: ModularSymbols(11, 4, base_ring=QuadraticField(-7,'b'),sign=1).cuspidal_submodule()._q_expansion_module(prec=5, algorithm='eigen') # indirect doctest
+                Vector space of degree 5 and dimension 2 over Number Field in b with defining polynomial x^2 + 7 with b = 2.645751311064591?*I
                 Basis matrix:
                 [ 0  1  0  3 -6]
                 [ 0  0  1 -4  2]
             """
             X = f.padded_list(prec)
-            d = A.dimension()
             if d == 1:
                 # X is just a list of elements of R
                 return [X]
@@ -1012,22 +966,25 @@ class ModularSymbolsSpace(hecke.HeckeModule_free_module):
         else:
             X = self
 
-        B = [sum([q_eigen_gens(f) for f in self._q_eigenform_images(A, prec, 'zeta')], []) for A, _ in X.factorization()]
+        B = [sum([q_eigen_gens(A.dimension(), f)
+                  for f in self._q_eigenform_images(A, prec, 'zeta')], [])
+             for A, _ in X.factorization()]
 
-        A = R ** prec
-        return A.span(sum(B, []))
+        return V.span(sum(B, []))
 
     def _q_expansion_module_rational(self, prec):
-        """
+        r"""
         Return a vector space over `\QQ` for the space spanned by the
-        `q`-expansions corresponding to self. The base ring of self must be
-        `\QQ` or a number field, and self must be cuspidal. The returned space
-        is a `\QQ`-vector space, where the coordinates are the coefficients of
-        `q`-expansions.
+        `q`-expansions corresponding to ``self``.
+
+        The base ring of ``self`` must be `\QQ` or a number field, and
+        ``self`` must be cuspidal. The returned space is a
+        `\QQ`-vector space, where the coordinates are the coefficients
+        of `q`-expansions.
 
         INPUT:
 
-        - ``prec`` (integer) - number of q-expansion terms to calculate.
+        - ``prec`` -- integer; number of `q`-expansion terms to calculate
 
         EXAMPLES::
 
@@ -1040,7 +997,7 @@ class ModularSymbolsSpace(hecke.HeckeModule_free_module):
         if not self.is_cuspidal():
             raise ValueError("self must be cuspidal")
         K = self.base_ring()
-        if not is_NumberField(K):
+        if not isinstance(K, NumberField):
             raise TypeError("self must be over QQ or a number field.")
         n = K.degree()
         if n == 1:
@@ -1049,8 +1006,7 @@ class ModularSymbolsSpace(hecke.HeckeModule_free_module):
         # Construct the vector space over QQ of dimension equal to
         # the degree of the base field times the dimension over C
         # of the space of cusp forms corresponding to self.
-        V = QQ**prec ## is this needed?
-        def q_eigen_gens(f):
+        def q_eigen_gens(d, f):
             r"""
             Temporary function for internal use.
 
@@ -1066,33 +1022,33 @@ class ModularSymbolsSpace(hecke.HeckeModule_free_module):
             # Return restricted down to QQ gens for cusp space corresponding
             # to the simple factor A.
             X = f.padded_list(prec)
-            d = A.dimension()
             if d == 1:
                 return [[X[i][j] for i in range(prec)] for j in range(n)]
             else:
                 # This looks like it might be really slow -- though
                 # perhaps it's nothing compared to the time taken by
                 # whatever computed this in the first place.
-                return [[(X[i].list())[j][k] for i in range(prec)] for j in range(d) for k in range(n)]
+                return [[(X[i].list())[j][k] for i in range(prec)]
+                        for j in range(d) for k in range(n)]
         if self.sign() == 0:
             X = self.plus_submodule(compute_dual=True)
         else:
             X = self
 
-        B = [sum([q_eigen_gens(f) for f in self._q_eigenform_images(A, prec, 'alpha')], []) for A, _ in X.factorization()]
+        B = [sum([q_eigen_gens(A.dimension(), f)
+                  for f in self._q_eigenform_images(A, prec, 'alpha')], [])
+             for A, _ in X.factorization()]
         A = QQ**prec
-        W = A.span(sum(B, []))
-        return W
-
+        return A.span(sum(B, []))
 
     def _q_expansion_module_integral(self, prec):
         r"""
         Return module over `\ZZ` for the space spanned by
-        the `q`-expansions corresponding to self. The base ring of
-        self must be `\QQ` or a number field, and self must
-        be cuspidal. The returned space is a `\ZZ`-module,
-        where the coordinates are the coefficients of
-        `q`-expansions.
+        the `q`-expansions corresponding to ``self``.
+
+        The base ring of ``self`` must be `\QQ` or a number field, and
+        ``self`` must be cuspidal. The returned space is a `\ZZ`-module,
+        where the coordinates are the coefficients of `q`-expansions.
 
         EXAMPLES::
 
@@ -1108,25 +1064,24 @@ class ModularSymbolsSpace(hecke.HeckeModule_free_module):
             []
         """
         V = self.q_expansion_module(prec, QQ)
-        return free_module.FreeModule(ZZ, V.degree()).span(V.basis()).saturation()
-
+        return FreeModule(ZZ, V.degree()).span(V.basis()).saturation()
 
     def congruence_number(self, other, prec=None):
         r"""
         Given two cuspidal spaces of modular symbols, compute the
-        congruence number, using prec terms of the `q`-expansions.
+        congruence number, using ``prec`` terms of the `q`-expansions.
 
         The congruence number is defined as follows. If `V` is the
-        submodule of integral cusp forms corresponding to self (saturated in
+        submodule of integral cusp forms corresponding to ``self`` (saturated in
         `\ZZ[[q]]`, by definition) and `W` is the
-        submodule corresponding to other, each computed to precision prec,
+        submodule corresponding to other, each computed to precision ``prec``,
         the congruence number is the index of `V+W` in its
         saturation in `\ZZ[[q]]`.
 
-        If prec is not given it is set equal to the max of the
+        If ``prec`` is not given it is set equal to the max of the
         ``hecke_bound`` function called on each space.
 
-        EXAMPLES:
+        EXAMPLES::
 
             sage: A, B = ModularSymbols(48, 2).cuspidal_submodule().decomposition()
             sage: A.congruence_number(B)
@@ -1140,9 +1095,9 @@ class ModularSymbolsSpace(hecke.HeckeModule_free_module):
             prec = max(self.hecke_bound(), other.hecke_bound())
         prec = int(prec)
 
-        V =  self.q_expansion_module(prec, ZZ)
+        V = self.q_expansion_module(prec, ZZ)
         W = other.q_expansion_module(prec, ZZ)
-        K = V+W
+        K = V + W
         return K.index_in_saturation()
 
     #########################################################################
@@ -1160,7 +1115,7 @@ class ModularSymbolsSpace(hecke.HeckeModule_free_module):
 
         INPUT:
 
-        - ``names`` -- string, name of the variable.
+        - ``names`` -- string; name of the variable
 
         OUTPUT:
 
@@ -1220,13 +1175,16 @@ class ModularSymbolsSpace(hecke.HeckeModule_free_module):
         G = DirichletGroup(self.level(), K)
         M = self.ambient_module()
         # act on right since v is a in the dual
-        b = [(M.diamond_bracket_matrix(u)*v)[i] / v[i] for u in G.unit_gens()]
+        b = [(M.diamond_bracket_matrix(u) * v)[i] / v[i]
+             for u in G.unit_gens()]
         return G(b)
 
     def q_eigenform(self, prec, names=None):
         """
-        Returns the q-expansion to precision prec of a new eigenform
-        associated to self, where self must be new, cuspidal, and simple.
+        Return the `q`-expansion to precision ``prec`` of a new eigenform
+        associated to ``self``.
+
+        Here ``self`` must be new, cuspidal, and simple.
 
         EXAMPLES::
 
@@ -1256,11 +1214,11 @@ class ModularSymbolsSpace(hecke.HeckeModule_free_module):
             a2 = self.eigenvalue(2, names)
             R = PowerSeriesRing(a2.parent(), "q")
             q = R.gen(0)
-            f = q + a2*q**2 + O(q**3)
+            f = (q + a2 * q**2).O(3)
 
         if f.prec() < prec:
             R = f.parent()
-            ext = [self.eigenvalue(n, names) for n in range(f.prec(),prec)]
+            ext = [self.eigenvalue(n, names) for n in range(f.prec(), prec)]
             f = R(f.padded_list(f.prec()) + ext)
             self._q_expansion_dict[names] = f.add_bigoh(prec)
             return self._q_expansion_dict[names]
@@ -1281,11 +1239,9 @@ class ModularSymbolsSpace(hecke.HeckeModule_free_module):
             # should we perhaps check at this point if self is new?
             f = self.q_eigenform(prec, names)
             R = PowerSeriesRing(self.base_ring(), 'q')
-            B = [R([f[i][j] for i in range(prec)],prec) for j in range(self.rank())]
-            return B
-        else:
-            raise NotImplementedError
-
+            return [R([f[i][j] for i in range(prec)], prec)
+                    for j in range(self.rank())]
+        raise NotImplementedError
 
     #########################################################################
     #
@@ -1294,13 +1250,13 @@ class ModularSymbolsSpace(hecke.HeckeModule_free_module):
     #########################################################################
 
     def q_expansion_cuspforms(self, prec=None):
-        """
-        Returns a function f(i,j) such that each value f(i,j) is the
-        q-expansion, to the given precision, of an element of the
-        corresponding space `S` of cusp forms. Together these
-        functions span `S`. Here `i,j` are integers with
-        `0\leq i,j < d`, where `d` is the dimension of
-        self.
+        r"""
+        Return a function f(i,j) such that each value f(i,j) is the
+        `q`-expansion, to the given precision, of an element of the
+        corresponding space `S` of cusp forms.
+
+        Together these functions span `S`. Here `i,j` are integers
+        with `0\leq i,j < d`, where `d` is the dimension of ``self``.
 
         For a reduced echelon basis, use the function
         ``q_expansion_basis`` instead.
@@ -1308,7 +1264,7 @@ class ModularSymbolsSpace(hecke.HeckeModule_free_module):
         More precisely, this function returns the `q`-expansions
         obtained by taking the `ij` entry of the matrices of the
         Hecke operators `T_n` acting on the subspace of the linear
-        dual of modular symbols corresponding to self.
+        dual of modular symbols corresponding to ``self``.
 
         EXAMPLES::
 
@@ -1335,7 +1291,7 @@ class ModularSymbolsSpace(hecke.HeckeModule_free_module):
             sage: f(0,0)
             q - 2*q^2 + q^4 - q^5 + 2*q^6 + O(q^8)
             sage: f(0,1)
-            q^2 - 2*q^3 - q^4 + 2*q^5 + 2*q^6 + O(q^8)
+            -q^2 + 2*q^3 + q^4 - 2*q^5 - 2*q^6 + O(q^8)
 
         ::
 
@@ -1348,15 +1304,13 @@ class ModularSymbolsSpace(hecke.HeckeModule_free_module):
             prec = self.default_prec()
         if not self.is_cuspidal():
             raise ArithmeticError("self must be cuspidal")
-        K = self.base_ring()
-        M = matrix_space.MatrixSpace(K, prec-1, self.dimension())
-        T = [self.dual_hecke_matrix(n) for n in range(1,prec)]
+        T = [self.dual_hecke_matrix(n) for n in range(1, prec)]
         R = PowerSeriesRing(self.base_ring(), 'q')
-        return lambda i, j: R([0] + [t[i,j] for t in T], prec)
+        return lambda i, j: R([0] + [t[i, j] for t in T], prec)
 
     def _q_expansion_basis_hecke_dual(self, prec):
         r"""
-        Compute a basis of q-expansions for the associated space of cusp forms
+        Compute a basis of `q`-expansions for the associated space of cusp forms
         to the given precision, by using linear functionals on the Hecke
         algebra as described in William Stein's book (Algorithm 3.26, page 56)
 
@@ -1368,37 +1322,36 @@ class ModularSymbolsSpace(hecke.HeckeModule_free_module):
             sage: ModularSymbols(37, 2).cuspidal_submodule()._q_expansion_basis_hecke_dual(2)
             [q + O(q^2)]
         """
+        from sage.misc.verbose import verbose
         d = self.dimension_of_associated_cuspform_space()
         prec = Integer(prec)
         if prec < 1:
-            raise ValueError("prec (=%s) must be >= 1"%prec)
-        if d >= prec-1:
-            d = prec-1
+            raise ValueError("prec (=%s) must be >= 1" % prec)
+        d = min(prec - 1, d)
         K = self.base_ring()
 
-        A = free_module.VectorSpace(K, prec-1)
-        M = matrix_space.MatrixSpace(K, prec-1, self.dimension())
+        A = VectorSpace(K, prec - 1)
+        M = MatrixSpace(K, prec - 1, self.dimension())
 
         V = A.zero_submodule()
-        i = self.dimension()-1
+        i = self.dimension() - 1
         j = 0
 
-        t = misc.verbose('computing basis to precision %s'%prec)
+        t = verbose('computing basis to precision %s' % prec)
         while V.dimension() < d and i >= 0:
-            v = [self.dual_hecke_matrix(n).column(i) for n in range(1,prec)]
-            t = misc.verbose('iteration: %s'%j,t)
+            v = [self.dual_hecke_matrix(n).column(i) for n in range(1, prec)]
+            t = verbose('iteration: %s' % j, t)
             X = M(v).transpose()
             V += X.row_space()
-            t = misc.verbose('addition of row space: %s'%j,t)
+            t = verbose('addition of row space: %s' % j, t)
             i -= 1
             j += 1
 
         R = PowerSeriesRing(K, 'q')
         B = V.basis()
         if len(B) < d:
-            B += [V(0)] * (d-len(B))
+            B += [V(0)] * (d - len(B))
         return [R([0] + b.list(), prec) for b in B]
-
 
     #########################################################################
     #
@@ -1408,7 +1361,7 @@ class ModularSymbolsSpace(hecke.HeckeModule_free_module):
 
 #    def factorization(self):
 #        """
-#        Returns a list of pairs `(S,e)` where `S` is simple
+#        Return a list of pairs `(S,e)` where `S` is simple
 #        spaces of modular symbols and self is isomorphic to the direct sum
 #        of the `S^e` as a module over the *anemic* Hecke algebra
 #        adjoin the star involution.
@@ -1432,8 +1385,8 @@ class ModularSymbolsSpace(hecke.HeckeModule_free_module):
         return self.modular_symbols_of_level(Integer(level))
 
     def sign(self):
-        """
-        Returns the sign of self.
+        r"""
+        Return the sign of ``self``.
 
         For efficiency reasons, it is often useful to compute in the
         (largest) quotient of modular symbols where the \* involution acts
@@ -1441,25 +1394,15 @@ class ModularSymbolsSpace(hecke.HeckeModule_free_module):
 
         INPUT:
 
-
-        -  ``ModularSymbols self`` - arbitrary space of modular
-           symbols.
-
+        - ``ModularSymbols self`` -- arbitrary space of modular symbols
 
         OUTPUT:
 
+        - ``-1`` -- if this is factor of quotient where \* acts as -1,
 
-        -  ``int`` - the sign of self, either -1, 0, or 1.
+        - ``+1`` -- if this is factor of quotient where \* acts as +1,
 
-        -  ``-1`` - if this is factor of quotient where \* acts
-           as -1,
-
-        -  ``+1`` - if this is factor of quotient where \* acts
-           as +1,
-
-        -  ``0`` - if this is full space of modular symbols (no
-           quotient).
-
+        - ``0`` -- if this is full space of modular symbols (no quotient)
 
         EXAMPLES::
 
@@ -1483,10 +1426,11 @@ class ModularSymbolsSpace(hecke.HeckeModule_free_module):
 
     def simple_factors(self):
         """
-        Returns a list modular symbols spaces `S` where `S`
+        Return a list modular symbols spaces `S` where `S`
         is simple spaces of modular symbols (for the anemic Hecke algebra)
-        and self is isomorphic to the direct sum of the `S` with
+        and ``self`` is isomorphic to the direct sum of the `S` with
         some multiplicities, as a module over the *anemic* Hecke algebra.
+
         For the multiplicities use factorization() instead.
 
         ASSUMPTION: self is a module over the anemic Hecke algebra.
@@ -1500,11 +1444,11 @@ class ModularSymbolsSpace(hecke.HeckeModule_free_module):
             Modular Symbols subspace of dimension 1 of Modular Symbols space of dimension 3 for Gamma_0(1) of weight 16 with sign 0 over Finite Field of size 5,
             Modular Symbols subspace of dimension 1 of Modular Symbols space of dimension 3 for Gamma_0(1) of weight 16 with sign 0 over Finite Field of size 5]
         """
-        return [S for S,_ in self.factorization()]
+        return [S for S, _ in self.factorization()]
 
     def star_eigenvalues(self):
         """
-        Returns the eigenvalues of the star involution acting on self.
+        Return the eigenvalues of the star involution acting on ``self``.
 
         EXAMPLES::
 
@@ -1539,16 +1483,14 @@ class ModularSymbolsSpace(hecke.HeckeModule_free_module):
 
     def star_decomposition(self):
         r"""
-        Decompose self into subspaces which are eigenspaces for the star
+        Decompose ``self`` into subspaces which are eigenspaces for the star
         involution.
 
         EXAMPLES::
 
             sage: ModularSymbols(Gamma1(19), 2).cuspidal_submodule().star_decomposition()
-            [
-            Modular Symbols subspace of dimension 7 of Modular Symbols space of dimension 31 for Gamma_1(19) of weight 2 with sign 0 and over Rational Field,
-            Modular Symbols subspace of dimension 7 of Modular Symbols space of dimension 31 for Gamma_1(19) of weight 2 with sign 0 and over Rational Field
-            ]
+            [Modular Symbols subspace of dimension 7 of Modular Symbols space of dimension 31 for Gamma_1(19) of weight 2 with sign 0 over Rational Field,
+             Modular Symbols subspace of dimension 7 of Modular Symbols space of dimension 31 for Gamma_1(19) of weight 2 with sign 0 over Rational Field]
         """
         S = self.star_involution()
         return S.decomposition()
@@ -1593,14 +1535,16 @@ class ModularSymbolsSpace(hecke.HeckeModule_free_module):
 
     def intersection_number(self, M):
         """
-        Given modular symbols spaces self and M in some common ambient
-        space, returns the intersection number of these two spaces. This is
-        the index in their saturation of the sum of their underlying
-        integral structures.
+        Given modular symbols spaces ``self`` and ``M`` in some common ambient
+        space, returns the intersection number of these two spaces.
 
-        If self and M are of weight two and defined over QQ, and correspond
-        to newforms f and g, then this number equals the order of the
-        intersection of the modular abelian varieties attached to f and g.
+        This is the index in their saturation of the sum of their
+        underlying integral structures.
+
+        If ``self`` and ``M`` are of weight two and defined over QQ,
+        and correspond to newforms f and g, then this number equals
+        the order of the intersection of the modular abelian varieties
+        attached to f and g.
 
         EXAMPLES::
 
@@ -1620,7 +1564,7 @@ class ModularSymbolsSpace(hecke.HeckeModule_free_module):
             raise ValueError("self and M must be in the same ambient space.")
         A = self.integral_structure()
         B = M.integral_structure()
-        return (A+B).index_in_saturation()
+        return (A + B).index_in_saturation()
 
     def integral_basis(self):
         r"""
@@ -1684,13 +1628,14 @@ class ModularSymbolsSpace(hecke.HeckeModule_free_module):
         self.__integral_basis = tuple([self(b) for b in B])
         return self.__integral_basis
 
-
     def integral_hecke_matrix(self, n):
         r"""
-        Return the matrix of the `n`th Hecke operator acting on the integral
-        structure on self (as returned by ``self.integral_structure()``). This
-        is often (but not always) different from the matrix returned by
-        ``self.hecke_matrix``, even if the latter has integral entries.
+        Return the matrix of the `n`-th Hecke operator acting on the integral
+        structure on ``self`` (as returned by ``self.integral_structure()``).
+
+        This is often (but not always) different from the matrix
+        returned by ``self.hecke_matrix``, even if the latter has
+        integral entries.
 
         EXAMPLES::
 
@@ -1717,7 +1662,6 @@ class ModularSymbolsSpace(hecke.HeckeModule_free_module):
             self.__integral_hecke_matrix = {}
         except KeyError:
             pass
-        #raise NotImplementedError, "code past this point is broken / not done"  # todo
         A = self.ambient_hecke_module()
         T = A.hecke_matrix(n)
         S = T.restrict(self.integral_structure()).change_ring(ZZ)
@@ -1726,7 +1670,7 @@ class ModularSymbolsSpace(hecke.HeckeModule_free_module):
 
     def sturm_bound(self):
         r"""
-        Returns the Sturm bound for this space of modular symbols.
+        Return the Sturm bound for this space of modular symbols.
 
         Type ``sturm_bound?`` for more details.
 
@@ -1755,18 +1699,14 @@ class ModularSymbolsSpace(hecke.HeckeModule_free_module):
                 self.__sturm_bound = self.group().sturm_bound(self.weight())
         return self.__sturm_bound
 
-
     def plus_submodule(self, compute_dual=True):
         """
-        Return the subspace of self on which the star involution acts as
-        +1.
+        Return the subspace of ``self`` on which the star involution acts as +1.
 
         INPUT:
 
-
-        -  ``compute_dual`` - bool (default: True) also
-           compute dual subspace. This are useful for many algorithms.
-
+        - ``compute_dual`` -- boolean (default: ``True``); also
+          compute dual subspace. This is useful for many algorithms.
 
         OUTPUT: subspace of modular symbols
 
@@ -1781,14 +1721,12 @@ class ModularSymbolsSpace(hecke.HeckeModule_free_module):
 
     def minus_submodule(self, compute_dual=True):
         """
-        Return the subspace of self on which the star involution acts as
-        -1.
+        Return the subspace of ``self`` on which the star involution acts as -1.
 
         INPUT:
 
-
-        -  ``compute_dual`` - bool (default: True) also
-           compute dual subspace. This are useful for many algorithms.
+        - ``compute_dual`` -- boolean (default: ``True``); also
+          compute dual subspace. This is useful for many algorithms.
 
         OUTPUT: subspace of modular symbols
 
@@ -1803,20 +1741,21 @@ class ModularSymbolsSpace(hecke.HeckeModule_free_module):
 
     def _compute_sign_submodule(self, sign, compute_dual=True):
         r"""
-        Compute the submodule of self which is an eigenspace for the star involution with the given sign.
+        Compute the submodule of ``self`` which is an eigenspace for the star involution with the given sign.
 
         INPUT:
 
-        - sign (integer): 1 or -1
+        - ``sign`` -- integer; 1 or -1
 
-        - compute_dual (True or False, default True): also compute the dual submodule (useful for some algorithms)
+        - ``compute_dual`` -- boolean (default: ``True``); also compute the
+          dual submodule (useful for some algorithms)
 
-        OUTPUT: a submodule of self
+        OUTPUT: a submodule of ``self``
 
         EXAMPLES::
 
             sage: ModularSymbols(Gamma1(11), 3)._compute_sign_submodule(-1)
-            Modular Symbols subspace of dimension 10 of Modular Symbols space of dimension 20 for Gamma_1(11) of weight 3 with sign 0 and over Rational Field
+            Modular Symbols subspace of dimension 10 of Modular Symbols space of dimension 20 for Gamma_1(11) of weight 3 with sign 0 over Rational Field
         """
         A = self.ambient()
         S = A.sign_submodule(sign, compute_dual=compute_dual)
@@ -1855,23 +1794,20 @@ class ModularSymbolsSpace(hecke.HeckeModule_free_module):
             sage: M._set_sign(0)
         """
         sign = int(sign)
-        if not (sign in [-1,0,1]):
-            raise ValueError("sign (=%s) must be -1, 0, or 1"%sign)
+        if sign not in [-1, 0, 1]:
+            raise ValueError("sign (=%s) must be -1, 0, or 1" % sign)
         self.__sign = sign
 
     def sign_submodule(self, sign, compute_dual=True):
         """
-        Return the subspace of self that is fixed under the star
-        involution.
+        Return the subspace of ``self`` that is fixed under the star involution.
 
         INPUT:
 
+        - ``sign`` -- integer (either -1, 0 or +1)
 
-        -  ``sign`` - int (either -1, 0 or +1)
-
-        -  ``compute_dual`` - bool (default: True) also
-           compute dual subspace. This are useful for many algorithms.
-
+        - ``compute_dual`` -- boolean (default: ``True``); also
+          compute dual subspace. This is useful for many algorithms.
 
         OUTPUT: subspace of modular symbols
 
@@ -1886,7 +1822,7 @@ class ModularSymbolsSpace(hecke.HeckeModule_free_module):
             -1
         """
         sign = int(sign)
-        if not sign in [-1, 0, 1]:
+        if sign not in [-1, 0, 1]:
             raise ValueError("sign must be -1, 0 or 1")
         if self.sign() == sign:  # an easy case
             return self
@@ -1904,14 +1840,15 @@ class ModularSymbolsSpace(hecke.HeckeModule_free_module):
             pass
         P = self._compute_sign_submodule(sign, compute_dual)
         P.__star_eigenvalue = sign
-        self.__plus_submodule[(sign,compute_dual)] = P
+        self.__plus_submodule[(sign, compute_dual)] = P
         return P
 
     def star_involution(self):
         """
-        Return the star involution on self, which is induced by complex
-        conjugation on modular symbols. Not implemented in this abstract base
-        class.
+        Return the star involution on ``self``, which is induced by complex
+        conjugation on modular symbols.
+
+        Not implemented in this abstract base class.
 
         EXAMPLES::
 
@@ -1928,10 +1865,8 @@ class ModularSymbolsSpace(hecke.HeckeModule_free_module):
 
         INPUT:
 
-
-        -  ``self`` - modular symbols space of weight 2 for a
-           congruence subgroup such as Gamma0, Gamma1 or GammaH.
-
+        - ``self`` -- modular symbols space of weight 2 for a
+          congruence subgroup such as Gamma0, Gamma1 or GammaH
 
         EXAMPLES::
 
@@ -1967,13 +1902,13 @@ class ModularSymbolsSpace(hecke.HeckeModule_free_module):
 
     def rational_period_mapping(self):
         r"""
-        Return the rational period mapping associated to self.
+        Return the rational period mapping associated to ``self``.
 
-        This is a homomorphism to a vector space whose kernel is the same as
-        the kernel of the period mapping associated to self. For this to exist,
-        self must be Hecke equivariant.
+        This is a homomorphism to a vector space whose kernel is the
+        same as the kernel of the period mapping associated to
+        ``self``. For this to exist, ``self`` must be Hecke equivariant.
 
-        Use ``integral_period_mapping`` to obtain a homomorphism to a
+        Use :meth:`integral_period_mapping` to obtain a homomorphism to a
         `\ZZ`-module, normalized so the image of integral modular symbols is
         exactly `\ZZ^n`.
 
@@ -2015,15 +1950,13 @@ class ModularSymbolsSpace(hecke.HeckeModule_free_module):
         self.__rational_period_mapping = R
         return R
 
-
     def integral_period_mapping(self):
         r"""
-        Return the integral period mapping associated to self.
+        Return the integral period mapping associated to ``self``.
 
         This is a homomorphism to a vector space whose kernel is the same
-        as the kernel of the period mapping associated to self, normalized
-        so the image of integral modular symbols is exactly
-        `\ZZ^n`.
+        as the kernel of the period mapping associated to ``self``, normalized
+        so the image of integral modular symbols is exactly `\ZZ^n`.
 
         EXAMPLES::
 
@@ -2087,20 +2020,18 @@ class ModularSymbolsSpace(hecke.HeckeModule_free_module):
     @cached_method
     def modular_symbols_of_sign(self, sign, bound=None):
         """
-        Returns a space of modular symbols with the same defining
+        Return a space of modular symbols with the same defining
         properties (weight, level, etc.) and Hecke eigenvalues as this
         space except with given sign.
 
         INPUT:
 
+        - ``self`` -- a cuspidal space of modular symbols
 
-        -  ``self`` - a cuspidal space of modular symbols
+        - ``sign`` -- integer, one of -1, 0, or 1
 
-        -  ``sign`` - an integer, one of -1, 0, or 1
-
-        -  ``bound`` - integer (default: None); if specified
-           only use Hecke operators up to the given bound.
-
+        - ``bound`` -- integer (default: ``None``); if specified
+          only use Hecke operators up to the given bound
 
         EXAMPLES::
 
@@ -2151,28 +2082,29 @@ class ModularSymbolsSpace(hecke.HeckeModule_free_module):
             return self
         if sign != 0:
             if self.sign() == 0:
-                d = d//2
+                d = d // 2
         elif sign == 0:      # self has nonzero sign
-            d = 2*d
+            d = 2 * d
         B = self.ambient_module().modular_symbols_of_sign(sign)
         p = 2
         if bound is None:
             bound = self.hecke_bound()
         while B.dimension() > d and p <= bound:
             while self.level() % p == 0:
-                p = arith.next_prime(p)
+                p = next_prime(p)
             f = self.hecke_polynomial(p)
-            g = misc.prod(g for g,_ in f.factor())   # square free part
+            g = prod(g for g, _ in f.factor())   # square free part
             t = B.hecke_operator(p)
             s = g(t)
             B = s.kernel()
-            p = arith.next_prime(p)
+            p = next_prime(p)
         return B
 
     #########################################################
     # Cuspidal torsion groups
     #########################################################
 
+    @cached_method
     def abvarquo_cuspidal_subgroup(self):
         """
         Compute the rational subgroup of the cuspidal subgroup (as an
@@ -2180,8 +2112,8 @@ class ModularSymbolsSpace(hecke.HeckeModule_free_module):
         the relevant modular Jacobian attached to this modular symbols
         space.
 
-        We assume that self is defined over QQ and has weight 2.  If
-        the sign of self is not 0, then the power of 2 may be wrong.
+        We assume that ``self`` is defined over QQ and has weight 2.  If
+        the sign of ``self`` is not 0, then the power of 2 may be wrong.
 
         EXAMPLES::
 
@@ -2197,8 +2129,6 @@ class ModularSymbolsSpace(hecke.HeckeModule_free_module):
             sage: [A.abvarquo_cuspidal_subgroup().invariants() for A in D]
             [(), (), ()]
         """
-        try: return self.__abvarquo_cuspidal_subgroup
-        except AttributeError: pass
         if self.base_ring() != QQ:
             raise ValueError("base ring must be QQ")
         if self.weight() != 2:
@@ -2207,33 +2137,33 @@ class ModularSymbolsSpace(hecke.HeckeModule_free_module):
         phi = self.integral_period_mapping()
 
         # Make a list of all the finite cusps.
-        P = [c for c in M.cusps() if not c.is_infinity()]
+        P = (c for c in M.cusps() if not c.is_infinity())
 
         # Compute the images of the cusp classes (c)-(oo) in the
         # rational homology of the quotient modular abelian variety.
-        ims = [phi(M([c,infinity])) for c in P]
+        ims = [phi(M([c, infinity])) for c in P]
 
         # Take the span of the ims over ZZ
         A = phi.codomain().span(ims, ZZ)
 
         # The cuspidal subgroup is then the quotient of that module +
         # H_1(A) by H_1(A)
-        C = (A.ambient_module() + A)/A.ambient_module()
+        return (A.ambient_module() + A) / A.ambient_module()
 
-        self.__abvarquo_cuspidal_subgroup = C
-        return C
-
+    @cached_method
     def abvarquo_rational_cuspidal_subgroup(self):
         r"""
         Compute the rational subgroup of the cuspidal subgroup (as an
         abstract abelian group) of the abelian variety quotient A of
         the relevant modular Jacobian attached to this modular symbols
-        space.  If C is the subgroup of A generated by differences of
+        space.
+
+        If C is the subgroup of A generated by differences of
         cusps, then C is equipped with an action of Gal(Qbar/Q), and
         this function computes the fixed subgroup, i.e., C(Q).
 
-        We assume that self is defined over QQ and has weight 2.  If
-        the sign of self is not 0, then the power of 2 may be wrong.
+        We assume that ``self`` is defined over QQ and has weight 2.  If
+        the sign of ``self`` is not 0, then the power of 2 may be wrong.
 
         EXAMPLES:
 
@@ -2262,7 +2192,7 @@ class ModularSymbolsSpace(hecke.HeckeModule_free_module):
         is rational. In fact, for each elliptic curve quotient, the
         `\QQ`-rational subgroup of the image of the cuspidal subgroup
         in the quotient is a nontrivial subgroup of `E(\QQ)_{tor}`.
-        Thus not all torsion in the quotient is cuspidal!
+        Thus not all torsion in the quotient is cuspidal!::
 
             sage: M = ModularSymbols(66).cuspidal_subspace().new_subspace()
             sage: D = M.decomposition()
@@ -2284,20 +2214,18 @@ class ModularSymbolsSpace(hecke.HeckeModule_free_module):
             sage: [A.abelian_variety().rational_torsion_subgroup().multiple_of_order() for A in D]
             [1, 5, 5]
         """
-        try: return self.__abvarquo_rational_cuspidal_subgroup
-        except AttributeError: pass
         if self.base_ring() != QQ:
             raise ValueError("base ring must be QQ")
         if self.weight() != 2:
             raise NotImplementedError("only implemented when weight is 2")
-        if not is_Gamma0(self.group()):
+        if not isinstance(self.group(), Gamma0_class):
             # todo -- do Gamma1 and GammaH, which are easy
             raise NotImplementedError("only implemented when group is Gamma0")
         N = self.level()
         if N.is_squarefree():
             return self.abvarquo_cuspidal_subgroup()
 
-        M   = self.ambient_module()
+        M = self.ambient_module()
         phi = self.integral_period_mapping()
 
         # Make a list of all the finite cusps.
@@ -2310,17 +2238,17 @@ class ModularSymbolsSpace(hecke.HeckeModule_free_module):
 
         # Compute the images of the cusp classes (c)-(oo) in the
         # rational homology of the quotient modular abelian variety.
-        ims = [phi(M([c,infinity])) for c in P]
+        ims = [phi(M([c, infinity])) for c in P]
 
         # Take the span of the ims over ZZ
         A = phi.codomain().span(ims, ZZ)
 
         # The cuspidal subgroup is then the quotient of that module +
         # H_1(A) by H_1(A)
-        C = (A.ambient_module() + A)/A.ambient_module()
+        C = (A.ambient_module() + A) / A.ambient_module()
 
         # Make fgp module version of V.
-        D = V/V.zero_submodule()
+        D = V / V.zero_submodule()
         psi = D.hom([C(x) for x in ims])
 
         # The rational cuspidal subgroup is got by intersecting kernels
@@ -2329,29 +2257,30 @@ class ModularSymbolsSpace(hecke.HeckeModule_free_module):
         CQ = C
         for t in G:
             T = self._matrix_of_galois_action(t, P) - 1
-            if not T: continue
+            if not T:
+                continue
             im_gens = [psi(psi.lift(g).lift() * T) for g in CQ.gens()]
             h = CQ.hom(im_gens)
             CQ = h.kernel()
             if CQ.cardinality() == 1:
                 break  # done -- no point in wasting more time shrinking CQ
 
-        self.__abvarquo_rational_cuspidal_subgroup = CQ
         return CQ
 
     def _matrix_of_galois_action(self, t, P):
         """
         Compute the matrix of the action of the element of the
         cyclotomic Galois group defined by t on the set of cusps in P
-        (which is the set of finite cusps).  This function is used
-        internally by the (rational) cuspidal subgroup and quotient
-        functions.
+        (which is the set of finite cusps).
+
+        This function is used internally by the (rational) cuspidal
+        subgroup and quotient functions.
 
         INPUT:
 
-        - `t` -- integer
+        - ``t`` -- integer
 
-        - `P` -- list of cusps
+        - ``P`` -- list of cusps
 
         EXAMPLES:
 
@@ -2388,15 +2317,18 @@ class ModularSymbolsSpace(hecke.HeckeModule_free_module):
             d = c.galois_action(t, N)
             for j, e in enumerate(P):
                 if d.is_gamma0_equiv(e, N, False):
-                    A[i,j] = 1
+                    A[i, j] = 1
         A.set_immutable()
         return A
+
 
 class PeriodMapping(SageObject):
     r"""
     Base class for representing a period mapping attached to a space of modular
-    symbols. To be used via the derived classes RationalPeriodMapping and
-    IntegralPeriodMapping.
+    symbols.
+
+    To be used via the derived classes :class:`RationalPeriodMapping` and
+    :class:`IntegralPeriodMapping`.
     """
     def __init__(self, modsym, A):
         r"""
@@ -2404,9 +2336,9 @@ class PeriodMapping(SageObject):
 
         INPUT:
 
-        - ``modsym`` - a space of modular symbols
+        - ``modsym`` -- a space of modular symbols
 
-        - ``A`` - matrix of the associated period map
+        - ``A`` -- matrix of the associated period map
 
         EXAMPLES::
 
@@ -2440,11 +2372,11 @@ class PeriodMapping(SageObject):
             sage: M(vector([1,0,2]))
             (0, 9/4)
         """
-        if is_FreeModuleElement(x):
+        if isinstance(x, FreeModuleElement):
             v = x
         else:
             v = self.__domain(x).element()
-        return v*self.__A
+        return v * self.__A
 
     def matrix(self):
         r"""
@@ -2488,27 +2420,28 @@ class PeriodMapping(SageObject):
         """
         return self.__A.row_module()
 
+
 class RationalPeriodMapping(PeriodMapping):
     def _repr_(self):
         """
-        Return the string representation of self.
+        Return the string representation of ``self``.
 
         EXAMPLES::
 
             sage: ModularSymbols(40,2).rational_period_mapping()._repr_()
             'Rational period mapping associated to Modular Symbols space of dimension 13 for Gamma_0(40) of weight 2 with sign 0 over Rational Field'
         """
-        return "Rational period mapping associated to %s"%self.modular_symbols_space()
+        return "Rational period mapping associated to %s" % self.modular_symbols_space()
 
 
 class IntegralPeriodMapping(PeriodMapping):
     def _repr_(self):
         """
-        Return the string representation of self.
+        Return the string representation of ``self``.
 
         EXAMPLES::
 
             sage: ModularSymbols(40,2).cuspidal_submodule().integral_period_mapping()._repr_()
             'Integral period mapping associated to Modular Symbols subspace of dimension 6 of Modular Symbols space of dimension 13 for Gamma_0(40) of weight 2 with sign 0 over Rational Field'
         """
-        return "Integral period mapping associated to %s"%self.modular_symbols_space()
+        return "Integral period mapping associated to %s" % self.modular_symbols_space()

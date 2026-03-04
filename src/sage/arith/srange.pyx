@@ -7,7 +7,7 @@ AUTHORS:
   up.
 """
 
-#*****************************************************************************
+# ****************************************************************************
 #       Copyright (C) 2006 William Stein <wstein@gmail.com>
 #       Copyright (C) 2016 Jeroen Demeyer <jdemeyer@cage.ugent.be>
 #
@@ -15,10 +15,9 @@ AUTHORS:
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
-from __future__ import division, print_function
 
 from libc.math cimport ceil
 from cysignals.signals cimport sig_check
@@ -40,11 +39,11 @@ def xsrange(start, end=None, step=1, universe=None, *, coerce=True, bint include
 
     INPUT:
 
-    - ``start`` - number (default: 0)
+    - ``start`` -- number (default: 0)
 
-    - ``end`` - number
+    - ``end`` -- number
 
-    - ``step`` - number (default: 1)
+    - ``step`` -- number (default: 1)
 
     - ``universe`` -- parent or type where all the elements should live
       (default: deduce from inputs)
@@ -54,7 +53,7 @@ def xsrange(start, end=None, step=1, universe=None, *, coerce=True, bint include
       automatically detected universe)
 
     - ``include_endpoint`` -- whether or not to include the endpoint
-      (default: False). This is only relevant if ``end`` is actually of
+      (default: ``False``). This is only relevant if ``end`` is actually of
       the form ``start + k*step`` for some integer `k`.
 
     ` ``endpoint_tolerance`` -- used to determine whether or not the
@@ -85,7 +84,7 @@ def xsrange(start, end=None, step=1, universe=None, *, coerce=True, bint include
     EXAMPLES::
 
         sage: xsrange(10)
-        <generator object at 0x...>
+        <...generator object at 0x...>
         sage: for i in xsrange(1,5):
         ....:     print(i)
         1
@@ -97,7 +96,7 @@ def xsrange(start, end=None, step=1, universe=None, *, coerce=True, bint include
 
     TESTS:
 
-    Ranges can be very large, see :trac:`20094`::
+    Ranges can be very large, see :issue:`20094`::
 
         sage: it = xsrange(10^30, 10^100)
         sage: for i in range(5):
@@ -157,7 +156,7 @@ def xsrange(start, end=None, step=1, universe=None, *, coerce=True, bint include
         return
 
     cur = start
-    # yield in chuncks of 1024
+    # yield in chunks of 1024
     cdef long k
     while icount > 1024:
         for k in range(1024):
@@ -185,11 +184,11 @@ def srange(*args, **kwds):
 
     INPUT:
 
-    - ``start`` - number (default: 0)
+    - ``start`` -- number (default: 0)
 
-    - ``end`` - number
+    - ``end`` -- number
 
-    - ``step`` - number (default: 1)
+    - ``step`` -- number (default: 1)
 
     - ``universe -- parent or type where all the elements should live
       (default: deduce from inputs). This is only used if ``coerce`` is
@@ -200,13 +199,13 @@ def srange(*args, **kwds):
       automatically detected universe)
 
     - ``include_endpoint`` -- whether or not to include the endpoint
-      (default: False). This is only relevant if ``end`` is actually of
+      (default: ``False``). This is only relevant if ``end`` is actually of
       the form ``start + k*step`` for some integer `k`.
 
     ` ``endpoint_tolerance`` -- used to determine whether or not the
-      endpoint is hit for inexact rings (default 1e-5)
+      endpoint is hit for inexact rings (default: ``1e-5``)
 
-    OUTPUT: a list
+    OUTPUT: list
 
     .. NOTE::
 
@@ -223,7 +222,7 @@ def srange(*args, **kwds):
         sage: v = srange(5); v
         [0, 1, 2, 3, 4]
         sage: type(v[2])
-        <type 'sage.rings.integer.Integer'>
+        <class 'sage.rings.integer.Integer'>
         sage: srange(1, 10)
         [1, 2, 3, 4, 5, 6, 7, 8, 9]
         sage: srange(10, 1, -1)
@@ -235,18 +234,23 @@ def srange(*args, **kwds):
 
         sage: srange(1, 10, 1/2)
         [1, 3/2, 2, 5/2, 3, 7/2, 4, 9/2, 5, 11/2, 6, 13/2, 7, 15/2, 8, 17/2, 9, 19/2]
+
+        sage: # needs sage.rings.real_mpfr
         sage: srange(1, 5, 0.5)
-        [1.00000000000000, 1.50000000000000, 2.00000000000000, 2.50000000000000, 3.00000000000000, 3.50000000000000, 4.00000000000000, 4.50000000000000]
+        [1.00000000000000, 1.50000000000000, 2.00000000000000, 2.50000000000000,
+         3.00000000000000, 3.50000000000000, 4.00000000000000, 4.50000000000000]
         sage: srange(0, 1, 0.4)
         [0.000000000000000, 0.400000000000000, 0.800000000000000]
         sage: srange(1.0, 5.0, include_endpoint=True)
-        [1.00000000000000, 2.00000000000000, 3.00000000000000, 4.00000000000000, 5.00000000000000]
+        [1.00000000000000, 2.00000000000000, 3.00000000000000, 4.00000000000000,
+         5.00000000000000]
         sage: srange(1.0, 1.1)
         [1.00000000000000]
         sage: srange(1.0, 1.0)
         []
-        sage: V = VectorSpace(QQ, 2)
-        sage: srange(V([0,0]), V([5,5]), step=V([2,2]))
+
+        sage: V = VectorSpace(QQ, 2)                                                    # needs sage.modules
+        sage: srange(V([0,0]), V([5,5]), step=V([2,2]))                                 # needs sage.modules
         [(0, 0), (2, 2), (4, 4)]
 
     Including the endpoint::
@@ -265,7 +269,8 @@ def srange(*args, **kwds):
         sage: srange(0.5, 0.9, 0.1, universe=RDF, include_endpoint=False)
         [0.5, 0.6, 0.7, 0.7999999999999999]
         sage: srange(0, 1.1, 0.1, universe=RDF, include_endpoint=True)
-        [0.0, 0.1, 0.2, 0.30000000000000004, 0.4, 0.5, 0.6, 0.7, 0.7999999999999999, 0.8999999999999999, 0.9999999999999999, 1.1]
+        [0.0, 0.1, 0.2, 0.30000000000000004, 0.4, 0.5, 0.6, 0.7,
+         0.7999999999999999, 0.8999999999999999, 0.9999999999999999, 1.1]
         sage: srange(0, 0.2, 0.1, universe=RDF, include_endpoint=True)
         [0.0, 0.1, 0.2]
         sage: srange(0, 0.3, 0.1, universe=RDF, include_endpoint=True)
@@ -276,9 +281,10 @@ def srange(*args, **kwds):
         sage: Q = RationalField()
         sage: srange(1, 10, Q('1/2'))
         [1, 3/2, 2, 5/2, 3, 7/2, 4, 9/2, 5, 11/2, 6, 13/2, 7, 15/2, 8, 17/2, 9, 19/2]
-        sage: srange(1, 5, 0.5)
-        [1.00000000000000, 1.50000000000000, 2.00000000000000, 2.50000000000000, 3.00000000000000, 3.50000000000000, 4.00000000000000, 4.50000000000000]
-        sage: srange(0, 1, 0.4)
+        sage: srange(1, 5, 0.5)                                                         # needs sage.rings.real_mpfr
+        [1.00000000000000, 1.50000000000000, 2.00000000000000, 2.50000000000000,
+         3.00000000000000, 3.50000000000000, 4.00000000000000, 4.50000000000000]
+        sage: srange(0, 1, 0.4)                                                         # needs sage.rings.real_mpfr
         [0.000000000000000, 0.400000000000000, 0.800000000000000]
 
     Negative steps are also allowed::
@@ -290,14 +296,14 @@ def srange(*args, **kwds):
 
     TESTS:
 
-    These are doctests from :trac:`6409`::
+    These are doctests from :issue:`6409`::
 
         sage: srange(1,QQ(0),include_endpoint=True)
         []
         sage: srange(1,QQ(0),-1,include_endpoint=True)
         [1, 0]
 
-    Test :trac:`11753`::
+    Test :issue:`11753`::
 
         sage: srange(1,1,0)
         Traceback (most recent call last):
@@ -386,7 +392,7 @@ def ellipsis_iter(*args, step=None):
     step = universe(step)
 
     # this is a bit more complicated because we can't pop what's already been yielded
-    next = None
+    next_ = None
     skip = False
     last_end = None
     # first we handle step_magic (which may require two pops if the range is empty)
@@ -396,12 +402,11 @@ def ellipsis_iter(*args, step=None):
         if len(args) > step_magic+1:
             i = step_magic
             more = xsrange(args[i-2], args[i+1], step, coerce=False, include_endpoint=True)
-            a = None
             for a in more:
+                last_end = a
                 yield a
-            last_end = a
             skip = True
-            next = None
+            next_ = None
             step_magic += 1
         else:
             yield args[step_magic-2]
@@ -421,23 +426,23 @@ def ellipsis_iter(*args, step=None):
                     yield cur
             start, end = args[i-1], args[i+1]
             if i < 2 or args[i-2] is not Ellipsis:
-                next = None
+                next_ = None
             more = xsrange(start, end, step, coerce=False, include_endpoint=True)
             try:
-                first = more.next()  # BUG: cannot currently use next(more)
+                first = next(more)
                 if last_end != first:
                     yield first
                 for a in more:
+                    last_end = a
                     yield a
-                last_end = a
             except StopIteration:
                 last_end = None
             skip = True
-            next = None
+            next_ = None
         else:
-            if next is not None:
-                yield next
-            next = args[i]
+            if next_ is not None:
+                yield next_
+            next_ = args[i]
             last_end = None
 
 
@@ -514,7 +519,7 @@ def ellipsis_range(*args, step=None):
 
     Examples in which the step determines the parent of the elements::
 
-        sage: [1..3, step=0.5]
+        sage: [1..3, step=0.5]                                                          # needs sage.rings.real_mpfr
         [1.00000000000000, 1.50000000000000, 2.00000000000000, 2.50000000000000, 3.00000000000000]
         sage: v = [1..5, step=1/1]; v
         [1, 2, 3, 4, 5]
@@ -543,7 +548,7 @@ def ellipsis_range(*args, step=None):
             skip = False
         elif args[i] is Ellipsis:
             if len(args) == i+1:
-                raise IndexError("Ellipsis range must have an endpoint, use (n..) for infinite sequence.")
+                raise IndexError("ellipsis range must have an endpoint, use (n..) for infinite sequence")
             start, end = args[i-1], args[i+1]
             if i < 2 or args[i-2] is not Ellipsis:
                 L.pop()
@@ -551,7 +556,7 @@ def ellipsis_range(*args, step=None):
                     L.pop()
                     start = args[i-2]
             more = srange(start, end, step, coerce=False, include_endpoint=True)
-            if len(more) > 0:
+            if more:
                 if last_end == more[0]:
                     L.pop()
                 last_end = more[-1]

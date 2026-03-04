@@ -1,3 +1,4 @@
+# sage.doctest: needs sage.combinat
 """
 Indexed Free Groups
 
@@ -16,23 +17,21 @@ AUTHORS:
 #
 #  The full text of the GPL is available at:
 #
-#                  http://www.gnu.org/licenses/
+#                  https://www.gnu.org/licenses/
 ##############################################################################
-from six import integer_types
 
-from copy import copy
 from sage.categories.groups import Groups
 from sage.categories.poor_man_map import PoorManMap
 from sage.groups.group import Group, AbelianGroup
 from sage.monoids.indexed_free_monoid import (IndexedMonoid,
-        IndexedMonoidElement, IndexedFreeMonoidElement,
-        IndexedFreeAbelianMonoidElement)
+                                              IndexedFreeMonoidElement,
+                                              IndexedFreeAbelianMonoidElement)
 from sage.misc.cachefunc import cached_method
 import sage.data_structures.blas_dict as blas
 from sage.rings.integer import Integer
 from sage.rings.infinity import infinity
 from sage.sets.family import Family
-from six import iteritems
+
 
 class IndexedGroup(IndexedMonoid):
     """
@@ -138,6 +137,7 @@ class IndexedGroup(IndexedMonoid):
 
     gens = group_generators
 
+
 class IndexedFreeGroup(IndexedGroup, Group):
     """
     An indexed free group.
@@ -167,7 +167,7 @@ class IndexedFreeGroup(IndexedGroup, Group):
 
     def _repr_(self):
         """
-        Return a string representation of ``self``
+        Return a string representation of ``self``.
 
         TESTS::
 
@@ -257,7 +257,7 @@ class IndexedFreeGroup(IndexedGroup, Group):
 
             ret = list(self._monomial)
             rhs = list(other._monomial)
-            while len(ret) > 0 and len(rhs) > 0 and ret[-1][0] == rhs[0][0]:
+            while ret and rhs and ret[-1][0] == rhs[0][0]:
                 rhs[0] = (rhs[0][0], rhs[0][1] + ret.pop()[1])
                 if rhs[0][1] == 0:
                     rhs.pop(0)
@@ -280,7 +280,7 @@ class IndexedFreeGroup(IndexedGroup, Group):
             return self.__class__(self.parent(),
                    tuple((x[0], -x[1]) for x in reversed(self._monomial)))
 
-        def to_word_list(self):
+        def to_word_list(self) -> list[tuple]:
             """
             Return ``self`` as a word represented as a list whose entries
             are the pairs ``(i, s)`` where ``i`` is the index and ``s`` is
@@ -294,9 +294,9 @@ class IndexedFreeGroup(IndexedGroup, Group):
                 sage: x.to_word_list()
                 [(0, 1), (1, 1), (1, 1), (4, 1), (0, -1)]
             """
-            sign = lambda x: 1 if x > 0 else -1 # It is never 0
-            return [ (k, sign(e)) for k,e in self._sorted_items()
-                     for dummy in range(abs(e))]
+            return [(k, 1 if e > 0 else -1) for k, e in self._sorted_items()
+                    for dummy in range(abs(e))]
+
 
 class IndexedFreeAbelianGroup(IndexedGroup, AbelianGroup):
     """
@@ -348,9 +348,7 @@ class IndexedFreeAbelianGroup(IndexedGroup, AbelianGroup):
             sage: G({1: 3, -2: 12})
             F[-2]^12*F[1]^3
             sage: G(-5)
-            Traceback (most recent call last):
-            ...
-            TypeError: unable to convert -5, use gen() instead
+            F[-5]
 
         TESTS::
 
@@ -365,7 +363,7 @@ class IndexedFreeAbelianGroup(IndexedGroup, AbelianGroup):
             1
         """
         if isinstance(x, (list, tuple)):
-            d = dict()
+            d = {}
             for k, v in x:
                 if k in d:
                     d[k] += v
@@ -373,7 +371,7 @@ class IndexedFreeAbelianGroup(IndexedGroup, AbelianGroup):
                     d[k] = v
             x = d
         if isinstance(x, dict):
-            x = {k: v for k, v in iteritems(x) if v != 0}
+            x = {k: v for k, v in x.items() if v != 0}
         return IndexedGroup._element_constructor_(self, x)
 
     @cached_method
@@ -480,11 +478,10 @@ class IndexedFreeAbelianGroup(IndexedGroup, AbelianGroup):
                 sage: x^-3
                 F[0]^-3*F[1]^-6*F[3]^-3*F[4]^3
             """
-            if not isinstance(n, integer_types + (Integer,)):
+            if not isinstance(n, (int, Integer)):
                 raise TypeError("Argument n (= {}) must be an integer".format(n))
             if n == 1:
                 return self
             if n == 0:
                 return self.parent().one()
-            return self.__class__(self.parent(), {k:v*n for k,v in iteritems(self._monomial)})
-
+            return self.__class__(self.parent(), {k:v*n for k,v in self._monomial.items()})

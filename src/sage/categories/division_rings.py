@@ -12,12 +12,13 @@ from sage.misc.lazy_import import LazyImport
 from sage.categories.category_with_axiom import CategoryWithAxiom
 from sage.categories.rings import Rings
 
+
 class DivisionRings(CategoryWithAxiom):
     """
-    The category of division rings
+    The category of division rings.
 
     A division ring (or skew field) is a not necessarily commutative
-    ring where all non-zero elements have multiplicative inverses
+    ring where all nonzero elements have multiplicative inverses
 
     EXAMPLES::
 
@@ -50,7 +51,7 @@ class DivisionRings(CategoryWithAxiom):
             The :ref:`axioms-deduction-rules` section in the
             documentation of axioms
 
-        EXAMPLES:
+        EXAMPLES::
 
             sage: DivisionRings().extra_super_categories()
             (Category of domains,)

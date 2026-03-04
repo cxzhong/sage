@@ -2,37 +2,43 @@
 Parallel iterator built using the ``fork()`` system call
 """
 
-#*****************************************************************************
+# ****************************************************************************
 #       Copyright (C) 2010 William Stein <wstein@gmail.com>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
-from __future__ import absolute_import, print_function
 
+import sys
+import traceback
 from shutil import rmtree
-from cysignals.alarm import AlarmInterrupt, alarm, cancel_alarm
+
+if sys.platform != 'win32':
+    from cysignals.alarm import AlarmInterrupt, alarm, cancel_alarm
 
 from sage.interfaces.process import ContainChildren
-from sage.misc.misc import walltime
+from sage.misc.timing import walltime
+
+from sage.misc.randstate import set_random_seed
+from sage.misc.prandom import getrandbits
 
 
-class WorkerData(object):
+class WorkerData:
     """
     Simple class which stores data about a running ``p_iter_fork``
     worker.
 
     This just stores three attributes:
 
-    - ``input``: the input value used by this worker
+    - ``input`` -- the input value used by this worker
 
-    - ``starttime``: the walltime when this worker started
+    - ``starttime`` -- the walltime when this worker started
 
-    - ``failure``: an optional message indicating the kind of failure
+    - ``failure`` -- an optional message indicating the kind of failure
 
     EXAMPLES::
 
@@ -42,7 +48,7 @@ class WorkerData(object):
         sage: W.starttime  # random
         1499330252.463206
     """
-    def __init__(self, input, starttime=None, failure=""):
+    def __init__(self, input_value, starttime=None, failure=""):
         r"""
         See the class documentation for description of the inputs.
 
@@ -51,26 +57,26 @@ class WorkerData(object):
             sage: from sage.parallel.use_fork import WorkerData
             sage: W = WorkerData(42)
         """
-        self.input = input
+        self.input = input_value
         self.starttime = starttime or walltime()
         self.failure = failure
 
 
-class p_iter_fork(object):
+class p_iter_fork:
     """
     A parallel iterator implemented using ``fork()``.
 
     INPUT:
 
-    - ``ncpus`` -- the maximal number of simultaneous
-        subprocesses to spawn
-    - ``timeout`` -- (float, default: 0) wall time in seconds until
-        a subprocess is automatically killed
-    - ``verbose`` -- (default: False) whether to print
-        anything about what the iterator does (e.g., killing
-        subprocesses)
-    - ``reset_interfaces`` -- (default: True) whether to reset
-        all pexpect interfaces
+    - ``ncpus`` -- the maximal number of simultaneous subprocesses to spawn
+    - ``timeout`` -- float (default: 0); wall time in seconds until a
+      subprocess is automatically killed
+    - ``verbose`` -- boolean (default: ``False``); whether to print anything
+      about what the iterator does (e.g., killing subprocesses)
+    - ``reset_interfaces`` -- boolean (default: ``True``); whether to reset all
+      pexpect interfaces
+    - ``reseed_rng`` -- boolean (default: ``False``); whether or not to reseed
+      the rng in the subprocesses
 
     EXAMPLES::
 
@@ -83,7 +89,7 @@ class p_iter_fork(object):
         sage: X.verbose
         False
     """
-    def __init__(self, ncpus, timeout=0, verbose=False, reset_interfaces=True):
+    def __init__(self, ncpus, timeout=0, verbose=False, reset_interfaces=True, reseed_rng=False):
         """
         Create a ``fork()``-based parallel iterator.
 
@@ -106,6 +112,8 @@ class p_iter_fork(object):
         self.timeout = float(timeout)  # require a float
         self.verbose = verbose
         self.reset_interfaces = reset_interfaces
+        self.reseed_rng = reseed_rng
+        self.worker_seed = None
 
     def __call__(self, f, inputs):
         """
@@ -115,11 +123,9 @@ class p_iter_fork(object):
 
         - ``f`` -- a function (or more general, any callable)
 
-        - ``inputs`` -- a list of pairs ``(args, kwds)`` to be used as
+        - ``inputs`` -- list of pairs ``(args, kwds)`` to be used as
           arguments to ``f``, where ``args`` is a tuple and ``kwds`` is
-          a dictionary.
-
-        OUTPUT:
+          a dictionary
 
         EXAMPLES::
 
@@ -140,33 +146,92 @@ class p_iter_fork(object):
             sage: Polygen = parallel(polygen)
             sage: list(Polygen([QQ]))
             [(((Rational Field,), {}), x)]
-            sage: from sage.structure.sage_object import unpickle_override, register_unpickle_override
+            sage: from sage.misc.persist import unpickle_override, register_unpickle_override
             sage: register_unpickle_override('sage.rings.polynomial.polynomial_rational_flint', 'Polynomial_rational_flint', Integer)
             sage: L = list(Polygen([QQ]))
             sage: L
             [(((Rational Field,), {}),
-              "INVALID DATA ('__init__() takes at most 2 positional arguments (4 given)', <type 'sage.rings.integer.Integer'>, (Univariate Polynomial Ring in x over Rational Field, [0, 1], False, True))")]
+              'INVALID DATA __init__() takes at most 2 positional arguments (4 given)')]
 
         Fix the unpickling::
 
             sage: del unpickle_override[('sage.rings.polynomial.polynomial_rational_flint', 'Polynomial_rational_flint')]
             sage: list(Polygen([QQ,QQ]))
             [(((Rational Field,), {}), x), (((Rational Field,), {}), x)]
+
+        When the function raises an exception, the exception is re-raised in the parent process with the same type.
+        The traceback is gone, but we print a textual version::
+
+            sage: def fff(x): return ggg(x)
+            sage: def ggg(x): return hhh(x)
+            sage: def hhh(x): return 1/x
+            sage: try: list(F(fff, [([0],{}), ([1],{})]))
+            ....: except: import traceback; traceback.print_exc()
+            RuntimeError: forked subprocess raised:
+            Traceback (most recent call last):
+            ...in ggg...
+            ZeroDivisionError: rational division by zero
+            The above exception was the direct cause of the following exception:
+            ...
+            ZeroDivisionError: rational division by zero
+
+        When the erroneous invocation is not the first one, because of parallelism,
+        the exception might be raised on the first or second ``next()`` function call.
+        Both of the following behaviors are possible::
+
+            sage: # not tested
+            sage: it = F(fff, [([1],{}), ([0],{})])
+            sage: next(it)
+            (([1], {}), 1)
+            sage: next(it)
+            Traceback (most recent call last):
+            ...
+            ZeroDivisionError: rational division by zero
+
+            sage: # not tested
+            sage: it = F(fff, [([1],{}), ([0],{})])
+            sage: next(it)
+            Traceback (most recent call last):
+            ...
+            ZeroDivisionError: rational division by zero
+
+        Other corner cases::
+
+            sage: class UnpicklableException(Exception): __reduce__ = None
+            sage: def fff(x): raise UnpicklableException()
+            sage: list(F(fff, [([0],{}), ([1],{})]))
+            Traceback (most recent call last):
+            ...
+            RuntimeError: cannot pickle exception object
+
+            sage: class UnpicklableValue: __reduce__ = None
+            sage: def fff(x): return UnpicklableValue()
+            sage: list(F(fff, [([0],{}), ([1],{})]))
+            Traceback (most recent call last):
+            ...
+            RuntimeError: cannot pickle return value
         """
-        n = self.ncpus
-        v = list(inputs)
-        import os, sys, signal
-        from sage.structure.sage_object import loads
+        import os
+        import sys
+        import signal
+        from sage.misc.persist import loads
         from sage.misc.temporary_file import tmp_dir
         dir = tmp_dir()
         timeout = self.timeout
 
+        n = self.ncpus
+        inputs = list(inputs)
+        if self.reseed_rng:
+            seeds = [getrandbits(512) for _ in range(len(inputs))]
+            vs = list(zip(inputs, seeds))
+        else:
+            vs = list(zip(inputs, [None]*len(inputs)))
         workers = {}
         try:
-            while len(v) > 0 or len(workers) > 0:
+            while vs or workers:
                 # Spawn up to n subprocesses
-                while len(v) > 0 and len(workers) < n:
-                    v0 = v.pop(0)  # Input value for the next subprocess
+                while vs and len(workers) < n:
+                    v0, seed0 = vs.pop(0)  # Input value and seed for the next subprocess
                     with ContainChildren():
                         pid = os.fork()
                         # The way fork works is that pid returns the
@@ -174,8 +239,9 @@ class p_iter_fork(object):
                         # process and returns 0 for the subprocess.
                         if not pid:
                             # This is the subprocess.
+                            if self.reseed_rng:
+                                self.worker_seed = seed0
                             self._subprocess(f, dir, *v0)
-
                     workers[pid] = WorkerData(v0)
 
                 if len(workers) > 0:
@@ -196,8 +262,7 @@ class p_iter_fork(object):
                             if T - W.starttime > timeout:
                                 if self.verbose:
                                     print(
-                                        "Killing subprocess %s with input %s which took too long"
-                                         % (pid, W.input) )
+                                        "Killing subprocess %s with input %s which took too long" % (pid, W.input))
                                 os.kill(pid, signal.SIGKILL)
                                 W.failure = " (timed out)"
                     except KeyError:
@@ -205,26 +270,30 @@ class p_iter_fork(object):
                         pass
                     else:
                         # collect data from process that successfully terminated
-                        sobj = os.path.join(dir, '%s.sobj'%pid)
+                        sobj = os.path.join(dir, '%s.sobj' % pid)
                         try:
-                            with open(sobj) as file:
+                            with open(sobj, "rb") as file:
                                 data = file.read()
-                        except IOError:
-                            answer = "NO DATA" + W.failure
+                        except OSError:
+                            should_raise, answer = False, "NO DATA" + W.failure
                         else:
                             os.unlink(sobj)
                             try:
-                                answer = loads(data, compress=False)
+                                should_raise, answer = loads(data, compress=False)
                             except Exception as E:
-                                answer = "INVALID DATA {}".format(E)
+                                should_raise, answer = False, "INVALID DATA {}".format(E)
 
-                        out = os.path.join(dir, '%s.out'%pid)
+                        out = os.path.join(dir, '%s.out' % pid)
                         try:
                             with open(out) as file:
                                 sys.stdout.write(file.read())
                             os.unlink(out)
-                        except IOError:
+                        except OSError:
                             pass
+
+                        if should_raise:
+                            exc, tb_str = answer
+                            raise exc from RuntimeError(f"forked subprocess raised:\n{tb_str}")
 
                         yield (W.input, answer)
         finally:
@@ -263,7 +332,7 @@ class p_iter_fork(object):
 
         - ``dir`` -- name of a directory
 
-        - ``args`` -- a tuple with positional arguments for ``f``
+        - ``args`` -- tuple with positional arguments for ``f``
 
         - ``kwds`` -- (optional) a dict with keyword arguments for ``f``
 
@@ -279,28 +348,51 @@ class p_iter_fork(object):
             sage: F._subprocess(operator.add, tmp_dir(), (1, 2))
             sage: sys.stdout = saved_stdout
         """
-        import imp, os, sys
-        from sage.structure.sage_object import save
+        import os
+        import sys
+        try:
+            from importlib import reload
+        except ImportError:
+            from imp import reload
+        from sage.misc.persist import save
 
         # Make it so all stdout is sent to a file so it can
         # be displayed.
-        out = os.path.join(dir, '%s.out'%os.getpid())
+        out = os.path.join(dir, '%s.out' % os.getpid())
         sys.stdout = open(out, 'w')
 
         # Run some commands to tell Sage that its
         # pid has changed (forcing a reload of
         # misc).
         import sage.misc.misc
-        imp.reload(sage.misc.misc)
+        reload(sage.misc.misc)
 
         # The pexpect interfaces (and objects defined in them) are
         # not valid.
         if self.reset_interfaces:
-            sage.interfaces.quit.invalidate_all()
+            try:
+                from sage.interfaces.quit import invalidate_all
+            except ImportError:
+                pass
+            else:
+                invalidate_all()
+
+        # Reseed rng, if requested.
+        if self.reseed_rng:
+            set_random_seed(self.worker_seed)
 
         # Now evaluate the function f.
-        value = f(*args, **kwds)
+        try:
+            value = False, f(*args, **kwds)
+        except BaseException as e:
+            value = True, (e, traceback.format_exc())
 
         # And save the result to disk.
-        sobj = os.path.join(dir, '%s.sobj'%os.getpid())
-        save(value, sobj, compress=False)
+        sobj = os.path.join(dir, '%s.sobj' % os.getpid())
+        try:
+            save(value, sobj, compress=False)
+        except BaseException as e:
+            if value[0]:
+                save((True, (RuntimeError('cannot pickle exception object'), traceback.format_exc())), sobj, compress=False)
+            else:
+                save((True, (RuntimeError('cannot pickle return value'), traceback.format_exc())), sobj, compress=False)

@@ -1,3 +1,4 @@
+# sage.doctest: needs sage.combinat sage.graphs sage.groups
 r"""
 This file contains doctests for the Chapter "k-Schur function primer"
 for the book "k-Schur functions and affine Schubert calculus"
@@ -10,7 +11,6 @@ NEEDS TO BE A ONE-YEAR DEPRECATION PERIOD. ALSO, PLEASE IN THIS CASE
 CONTACT Anne Schilling (anne@math.ucdavis.edu) AND Mike Zabrocki
 (zabrocki@mathstat.yorku.ca) REGARDING THE CHANGES!
 """
-
 """
 Sage example in ./kschurnotes/notes-mike-anne.tex, line 198::
 
@@ -83,16 +83,17 @@ Sage example in ./kschurnotes/notes-mike-anne.tex, line 398::
 
 Sage example in ./kschurnotes/notes-mike-anne.tex, line 406::
 
-    sage: w = W.an_element(); w         # long time
+    sage: # long time
+    sage: w = W.an_element(); w
     [ 2  0  0  1 -2]
     [ 2  0  0  0 -1]
     [ 1  1  0  0 -1]
     [ 1  0  1  0 -1]
     [ 1  0  0  1 -1]
-    sage: w.reduced_word()              # long time
+    sage: w.reduced_word()
     [0, 1, 2, 3, 4]
-    sage: w = W.from_reduced_word([2,1,0]) # long time
-    sage: w.is_affine_grassmannian()       # long time
+    sage: w = W.from_reduced_word([2,1,0])
+    sage: w.is_affine_grassmannian()
     True
 
 Sage example in ./kschurnotes/notes-mike-anne.tex, line 464::
@@ -363,7 +364,6 @@ Sage example in ./kschurnotes/notes-mike-anne.tex, line 2382::
     ....:     T = WeakTableaux(k, c, mu)
     ....:     print("weight {}".format(mu))
     ....:     print(T.list())
-    ....:
     weight [3, 3]
     []
     weight [3, 2, 1]
@@ -384,9 +384,9 @@ Sage example in ./kschurnotes/notes-mike-anne.tex, line 2382::
 Sage example in ./kschurnotes/notes-mike-anne.tex, line 2487::
 
     sage: Sym = SymmetricFunctions(QQ)
-    sage: ks = Sym.kschur(3,t=1)
+    sage: ks = Sym.kschur(3, t=1)
     sage: h = Sym.homogeneous()
-    sage: for mu in Partitions(7, max_part =3):
+    sage: for mu in Partitions(7, max_part=3):
     ....:     print(h(ks(mu)))
     h[3, 3, 1]
     h[3, 2, 2] - h[3, 3, 1]
@@ -447,9 +447,11 @@ Sage example in ./kschurnotes/notes-mike-anne.tex, line 2740::
     sage: w.stanley_symmetric_function()
     4*m[1, 1, 1, 1, 1, 1] + 3*m[2, 1, 1, 1, 1] + 2*m[2, 2, 1, 1]
         + m[2, 2, 2] + 2*m[3, 1, 1, 1] + m[3, 2, 1]
-    sage: w.reduced_words()
-    [[2, 0, 3, 2, 1, 0], [0, 2, 3, 2, 1, 0], [0, 3, 2, 3, 1, 0],
-     [0, 3, 2, 1, 3, 0]]
+    sage: sorted(w.reduced_words())
+    [[0, 2, 3, 2, 1, 0],
+     [0, 3, 2, 1, 3, 0],
+     [0, 3, 2, 3, 1, 0],
+     [2, 0, 3, 2, 1, 0]]
 
 Sage example in ./kschurnotes/notes-mike-anne.tex, line 2752::
 
@@ -475,7 +477,6 @@ Sage example in ./kschurnotes/notes-mike-anne.tex, line 2810::
     sage: c = Partition([3,2,1]).to_core(3)
     sage: for p in sorted(f.support()):   # Sorted for consistant doctest ordering
     ....:   print("{} {}".format(p, SkewPartition([p.to_core(3).to_partition(),c.to_partition()])))
-    ....:
     [3, 1, 1, 1, 1] [[5, 2, 1, 1, 1], [5, 2, 1]]
     [3, 2, 1, 1] [[6, 3, 1, 1], [5, 2, 1]]
     [3, 2, 2] [[5, 2, 2], [5, 2, 1]]
@@ -542,7 +543,7 @@ Sage example in ./kschurnotes/notes-mike-anne.tex, line 3536::
 
     sage: la = Partition([3,2,1,1])
     sage: la.k_atom(4)
-    [[[1, 1, 1], [2, 2], [3], [4]], [[1, 1, 1, 4], [2, 2], [3]]]
+    [[[1, 1, 1, 4], [2, 2], [3]], [[1, 1, 1], [2, 2], [3], [4]]]
 
 Sage example in ./kschurnotes/notes-mike-anne.tex, line 3639::
 
@@ -576,8 +577,8 @@ Sage example in ./kschurnotes/notes-mike-anne.tex, line 3962::
 
 Sage example in ./kschurnotes/notes-mike-anne.tex, line 4055::
 
-    sage: t = var('t')
-    sage: for mu in Partitions(5):
+    sage: t = var('t')                                                                  # needs sage.symbolic
+    sage: for mu in Partitions(5):                                                      # needs sage.symbolic
     ....:     print("{} {}".format(mu, sum(t^T.spin() for T in StrongTableaux(3,[4,1,1],mu))))
     [5] 0
     [4, 1] t
@@ -785,6 +786,7 @@ Kks3[] # Kks3[3, 1] - Kks3[1] # Kks3[2] + Kks3[1] # Kks3[2, 1]
 
 Sage example in ./kschurnotes/notes-mike-anne.tex, line 5588::
 
+sage: # long time
 sage: SymQ3 = Sym.kBoundedQuotient(3,t=1)
 sage: G1 = SymQ3.AffineGrothendieckPolynomial([1],6)
 sage: G2 = SymQ3.AffineGrothendieckPolynomial([2],6)

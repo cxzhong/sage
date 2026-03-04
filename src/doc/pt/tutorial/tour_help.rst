@@ -57,8 +57,7 @@ função ou constante (por exemplo), seguido pelo ponto de interrogação:
             sage: maxima(log2).float()
             .6931471805599453
             sage: gp(log2)
-            0.6931471805599453094172321215             # 32-bit
-            0.69314718055994530941723212145817656807   # 64-bit
+            0.693147180559945309417232121...
     sage: sudoku?
     File:        sage/local/lib/python2.5/site-packages/sage/games/sudoku.py
     Type:        <... 'function'>
@@ -260,9 +259,7 @@ exemplo, o comando ``range`` que usamos acima cria uma lista:
 
 ::
 
-    sage: range(2,10)   # optional - python2
-    [2, 3, 4, 5, 6, 7, 8, 9]
-    sage: list(range(2,10))   # optional - python3
+    sage: list(range(2,10))
     [2, 3, 4, 5, 6, 7, 8, 9]
 
 Abaixo segue uma lista mais complicada:

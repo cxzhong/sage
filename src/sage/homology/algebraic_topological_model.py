@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+# sage.doctest: needs sage.graphs
 r"""
 Algebraic topological model for a cell complex
 
@@ -6,14 +6,12 @@ This file contains two functions, :func:`algebraic_topological_model`
 and :func:`algebraic_topological_model_delta_complex`. The second
 works more generally: for all simplicial, cubical, and
 `\Delta`-complexes. The first only works for simplicial and cubical
-complexes, but it is faster in those case.
+complexes, but it is faster in those cases.
 
 AUTHORS:
 
 - John H. Palmieri (2015-09)
 """
-from __future__ import absolute_import
-
 ########################################################################
 #       Copyright (C) 2015 John H. Palmieri <palmieri@math.washington.edu>
 #
@@ -21,20 +19,20 @@ from __future__ import absolute_import
 #  as published by the Free Software Foundation; either version 2 of
 #  the License, or (at your option) any later version.
 #
-#                  http://www.gnu.org/licenses/
+#                  https://www.gnu.org/licenses/
 ########################################################################
-from six import iteritems
 
 # TODO: cythonize this.
 
-from sage.modules.free_module_element import vector
-from sage.modules.free_module import VectorSpace
+from sage.homology.chain_complex import ChainComplex
+from sage.homology.chain_complex_morphism import ChainComplexMorphism
+from sage.homology.chain_homotopy import ChainContraction
 from sage.matrix.constructor import matrix, zero_matrix
 from sage.matrix.matrix_space import MatrixSpace
-from .chain_complex import ChainComplex
-from .chain_complex_morphism import ChainComplexMorphism
-from .chain_homotopy import ChainContraction
+from sage.modules.free_module import VectorSpace
+from sage.modules.free_module_element import vector
 from sage.rings.rational_field import QQ
+
 
 def algebraic_topological_model(K, base_ring=None):
     r"""
@@ -78,14 +76,14 @@ def algebraic_topological_model(K, base_ring=None):
     of `K`, as described in [GDR2003]_ and [PR2015]_.
 
     Implementation details: the cell complex `K` must have an
-    :meth:`~sage.homology.cell_complex.GenericCellComplex.n_cells`
+    :meth:`~sage.topology.cell_complex.GenericCellComplex.n_cells`
     method from which we can extract a list of cells in each
     dimension. Combining the lists in increasing order of dimension
     then defines a filtration of the complex: a list of cells in which
     the boundary of each cell consists of cells earlier in the
     list. This is required by Pilarczyk and Réal's algorithm.  There
     must also be a
-    :meth:`~sage.homology.cell_complex.GenericCellComplex.chain_complex`
+    :meth:`~sage.topology.cell_complex.GenericCellComplex.chain_complex`
     method, to construct the chain complex `C` associated to this
     chain complex.
 
@@ -126,7 +124,8 @@ def algebraic_topological_model(K, base_ring=None):
         1
         sage: phi.dual()
         Chain homotopy between:
-          Chain complex endomorphism of Chain complex with at most 3 nonzero terms over Rational Field
+          Chain complex endomorphism of
+            Chain complex with at most 3 nonzero terms over Rational Field
           and Chain complex morphism:
             From: Chain complex with at most 3 nonzero terms over Rational Field
             To:   Chain complex with at most 3 nonzero terms over Rational Field
@@ -194,7 +193,7 @@ def algebraic_topological_model(K, base_ring=None):
     old_cells = []
 
     for dim in range(K.dimension()+1):
-        n_cells = K.n_cells(dim)
+        n_cells = K._n_cells_sorted(dim)
         diff = C.differential(dim)
         # diff is sparse and low density. Dense matrices are faster
         # over finite fields, but for low density matrices, sparse
@@ -221,7 +220,7 @@ def algebraic_topological_model(K, base_ring=None):
             c_bar = c_vec
             bdry_c = diff * c_vec
             # Apply phi to bdry_c and subtract from c_bar.
-            for (idx, coord) in iteritems(bdry_c):
+            for (idx, coord) in bdry_c.items():
                 try:
                     c_bar -= coord * phi_dict[dim-1][idx]
                 except KeyError:
@@ -232,7 +231,7 @@ def algebraic_topological_model(K, base_ring=None):
             # Evaluate pi(bdry(c_bar)).
             pi_bdry_c_bar = zero
 
-            for (idx, coeff) in iteritems(bdry_c_bar):
+            for (idx, coeff) in bdry_c_bar.items():
                 try:
                     pi_bdry_c_bar += coeff * pi_dict[dim-1][idx]
                 except KeyError:
@@ -251,7 +250,8 @@ def algebraic_topological_model(K, base_ring=None):
             else:
                 # Take any u in gens so that lambda_i = <u, pi(bdry(c_bar))> != 0.
                 # u_idx will be the index of the corresponding cell.
-                for (u_idx, lambda_i) in iteritems(pi_bdry_c_bar):
+                for u_idx in pi_bdry_c_bar.nonzero_positions():
+                    lambda_i = pi_bdry_c_bar[u_idx]
                     # Now find the actual cell.
                     u = old_cells[u_idx]
                     if u in gens[dim-1]:
@@ -294,7 +294,7 @@ def algebraic_topological_model(K, base_ring=None):
     iota_data = {}
     phi_data = {}
     for n in range(K.dimension()+1):
-        n_cells = K.n_cells(n)
+        n_cells = K._n_cells_sorted(n)
         # Remove zero entries from pi_dict and phi_dict.
         pi_dict[n] = {i: pi_dict[n][i] for i in pi_dict[n] if pi_dict[n][i]}
         phi_dict[n] = {i: phi_dict[n][i] for i in phi_dict[n] if phi_dict[n][i]}
@@ -311,7 +311,7 @@ def algebraic_topological_model(K, base_ring=None):
             # First pi:
             if idx in pi_dict[n]:
                 column = vector(base_ring, M_rows)
-                for (entry, coeff) in iteritems(pi_dict[n][idx]):
+                for (entry, coeff) in pi_dict[n][idx].items():
                     # Translate from cells in n_cells to cells in gens[n].
                     column[gens[n].index(n_cells[entry])] = coeff
             else:
@@ -336,6 +336,7 @@ def algebraic_topological_model(K, base_ring=None):
     iota = ChainComplexMorphism(iota_data, M, C)
     phi = ChainContraction(phi_data, pi, iota)
     return phi, M
+
 
 def algebraic_topological_model_delta_complex(K, base_ring=None):
     r"""
@@ -487,7 +488,7 @@ def algebraic_topological_model_delta_complex(K, base_ring=None):
         iota_cols = {}
         pi_cols_old = pi_cols
         pi_cols = []
-        phi_old = MatrixSpace(base_ring, rank, old_rank, sparse=(base_ring==QQ)).zero()
+        phi_old = MatrixSpace(base_ring, rank, old_rank, sparse=(base_ring == QQ)).zero()
         phi_old_cols = phi_old.columns()
         phi_old = conditionally_sparse(phi_old)
         to_be_deleted = []
@@ -501,13 +502,12 @@ def algebraic_topological_model_delta_complex(K, base_ring=None):
             if not diff:
                 c_bar = c
                 pi_bdry_c_bar = False
+            elif base_ring == QQ:
+                c_bar = c - phi_old * (diff * c)
+                pi_bdry_c_bar = conditionally_sparse(pi_old) * (diff * c_bar)
             else:
-                if base_ring == QQ:
-                    c_bar = c - phi_old * (diff * c)
-                    pi_bdry_c_bar = conditionally_sparse(pi_old) * (diff * c_bar)
-                else:
-                    c_bar = c - phi_old * diff * c
-                    pi_bdry_c_bar = conditionally_sparse(pi_old) * diff * c_bar
+                c_bar = c - phi_old * diff * c
+                pi_bdry_c_bar = conditionally_sparse(pi_old) * diff * c_bar
 
             # One small typo in the published algorithm: it says
             # "if bdry(c_bar) == 0", but should say
@@ -523,7 +523,7 @@ def algebraic_topological_model_delta_complex(K, base_ring=None):
                 # Take any u in gens so that lambda_i = <u, pi(bdry(c_bar))> != 0.
                 # u_idx will be the index of the corresponding cell.
                 (u_idx, lambda_i) = pi_bdry_c_bar.leading_item()
-                for (u_idx, lambda_i) in iteritems(pi_bdry_c_bar):
+                for (u_idx, lambda_i) in pi_bdry_c_bar.items():
                     if u_idx not in to_be_deleted:
                         break
                 # This element/column needs to be deleted from gens and
@@ -544,8 +544,8 @@ def algebraic_topological_model_delta_complex(K, base_ring=None):
                 # The matrices involved have many zero entries. For
                 # such matrices, using sparse matrices is faster over
                 # the rationals, slower over finite fields.
-                phi_old = matrix(base_ring, phi_old_cols, sparse=(base_ring==QQ)).transpose()
-                keep = vector(base_ring, pi_nrows, {i:1 for i in range(pi_nrows)
+                phi_old = matrix(base_ring, phi_old_cols, sparse=(base_ring == QQ)).transpose()
+                keep = vector(base_ring, pi_nrows, {i: 1 for i in range(pi_nrows)
                                                     if i not in to_be_deleted})
                 cols = [v.pairwise_product(keep) for v in pi_cols_old]
                 pi_old = MS_pi_t.matrix(cols).transpose()
@@ -591,4 +591,3 @@ def algebraic_topological_model_delta_complex(K, base_ring=None):
     iota = ChainComplexMorphism(iota_data, M, C)
     phi = ChainContraction(phi_data, pi, iota)
     return phi, M
-

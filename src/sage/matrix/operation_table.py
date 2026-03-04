@@ -3,15 +3,20 @@ Operation Tables
 
 This module implements general operation tables, which are very matrix-like.
 """
-#*****************************************************************************
-#  Copyright (C) 2010 Rob Beezer <beezer at ups.edu>
-#
-#  Distributed under the terms of the GNU General Public License (GPL)
-#                  http://www.gnu.org/licenses/
-#******************************************************************************
 
-import six
+# ****************************************************************************
+#       Copyright (C) 2010 Rob Beezer <beezer at ups.edu>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 2 of the License, or
+# (at your option) any later version.
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
+
 from sage.structure.sage_object import SageObject
+from sage.matrix.constructor import Matrix
+
 
 class OperationTable(SageObject):
     r"""
@@ -26,41 +31,48 @@ class OperationTable(SageObject):
 
     INPUT:
 
-    - ``S`` - a finite algebraic structure (or finite iterable)
+    - ``S`` -- a finite algebraic structure (or finite iterable)
 
-    - ``operation`` - a function of two variables that accepts pairs
+    - ``operation`` -- a function of two variables that accepts pairs
         of elements from ``S``. A natural source of such functions is
         the Python :mod:`operator` module, and in particular
         :func:`operator.add` and :func:`operator.mul`. This may also
         be a function defined with ``lambda`` or ``def.``
 
-    - ``names`` - (default: ``'letters'``)  The type of names
+    - ``names`` -- (default: ``'letters'``)  The type of names
       used, values are:
 
-      * ``'letters'`` - lowercase ASCII letters are used
+      * ``'letters'`` -- lowercase ASCII letters are used
         for a base 26 representation of the elements'
         positions in the list given by
         :meth:`~sage.matrix.operation_table.OperationTable.column_keys`,
         padded to a common width with leading 'a's.
-      * ``'digits'`` - base 10 representation of the
+      * ``'digits'`` -- base 10 representation of the
         elements' positions in the list given by
         :meth:`~sage.matrix.operation_table.OperationTable.column_keys`,
         padded to a common width with leading zeros.
-      * ``'elements'`` - the string representations
+      * ``'elements'`` -- the string representations
         of the elements themselves.
       * a list - a list of strings, where the length
         of the list equals the number of elements.
 
-    - ``elements`` - (default: ``None``)  A list of elements of ``S``,
+    - ``elements`` -- (default: ``None``)  A list of elements of ``S``,
       in forms that can be coerced into the structure, eg. their
       string representations. This may be used to impose an alternate
-      ordering on the elements of `S``, perhaps when this is used in
+      ordering on the elements of ``S``, perhaps when this is used in
       the context of a particular structure. The default is to use
-      whatever ordering the ``S.list()`` method returns. `elements``
+      whatever ordering the ``S.list()`` method returns. ``elements``
       can also be a subset which is closed under the operation, useful
       perhaps when the set is infinite.
 
+    - ``closed`` -- (default: ``True``) Only has an effect if the ``elements``
+      argument is passed and indicates whether the ``elements`` are closed under
+      ``operation``. When set to ``False`` the operation table is generated even if
+      the result of the operation is not in the list ``elements``, otherwise
+      ``ValueError`` is raised.
+
     OUTPUT:
+
     An object with methods that abstracts multiplication tables,
     addition tables, Cayley tables, etc. It should be general
     enough to be useful for any finite algebraic structure
@@ -71,25 +83,25 @@ class OperationTable(SageObject):
 
     EXAMPLES:
 
-    In it's most basic use, the table needs a structure and an operation::
+    In its most basic use, the table needs a structure and an operation::
 
         sage: from sage.matrix.operation_table import OperationTable
-        sage: G=SymmetricGroup(3)
-        sage: OperationTable(G, operation = operator.mul)
+        sage: G = SymmetricGroup(3)                                                     # needs sage.groups
+        sage: OperationTable(G, operation=operator.mul)                                 # needs sage.groups
         *  a b c d e f
          +------------
         a| a b c d e f
-        b| b a f e d c
-        c| c e d a f b
-        d| d f a c b e
-        e| e c b f a d
+        b| b a d c f e
+        c| c e a f b d
+        d| d f b e a c
+        e| e c f a d b
         f| f d e b c a
 
     With two operations present, we can specify which operation we
     want::
 
         sage: from sage.matrix.operation_table import OperationTable
-        sage: R=Integers(6)
+        sage: R = Integers(6)
         sage: OperationTable(R, operation=operator.add)
         +  a b c d e f
          +------------
@@ -105,67 +117,67 @@ class OperationTable(SageObject):
     26 elements. ::
 
         sage: from sage.matrix.operation_table import OperationTable
-        sage: G=DihedralGroup(14)
-        sage: OperationTable(G, operator.mul, names='letters')
+        sage: G = DihedralGroup(14)                                                     # needs sage.groups
+        sage: OperationTable(G, operator.mul, names='letters')                          # needs sage.groups
          *  aa ab ac ad ae af ag ah ai aj ak al am an ao ap aq ar as at au av aw ax ay az ba bb
           +------------------------------------------------------------------------------------
         aa| aa ab ac ad ae af ag ah ai aj ak al am an ao ap aq ar as at au av aw ax ay az ba bb
-        ab| ab aa ae ah ac aj ak ad am af ag ar ai ap at an av al aw ao az aq as ba bb au ax ay
-        ac| ac ad af ai ab ag al aa an ae aj aq ah ao au am as ak ax ap ay ar av bb ba at aw az
-        ad| ad ac ab aa af ae aj ai ah ag al ak an am ap ao ar aq av au at as ax aw az ay bb ba
-        ae| ae ah aj am aa ak ar ab ap ac af av ad at az ai aw ag ba an bb al aq ay ax ao as au
-        af| af ai ag an ad al aq ac ao ab ae as aa au ay ah ax aj bb am ba ak ar az aw ap av at
-        ag| ag an al ao ai aq as af au ad ab ax ac ay ba aa bb ae az ah aw aj ak at av am ar ap
-        ah| ah ae aa ab aj ac af am ad ak ar ag ap ai an at al av aq az ao aw ba as au bb ay ax
-        ai| ai af ad ac ag ab ae an aa al aq aj ao ah am au ak as ar ay ap ax bb av at ba az aw
-        aj| aj am ak ap ah ar av ae at aa ac aw ab az bb ad ba af ay ai ax ag al au as an aq ao
-        ak| ak ap ar at am av aw aj az ah aa ba ae bb ax ab ay ac au ad as af ag ao aq ai al an
-        al| al ao aq au an as ax ag ay ai ad bb af ba aw ac az ab at aa av ae aj ap ar ah ak am
-        am| am aj ah ae ak aa ac ap ab ar av af at ad ai az ag aw al bb an ba ay aq ao ax au as
-        an| an ag ai af al ad ab ao ac aq as ae au aa ah ay aj ax ak ba am bb az ar ap aw at av
-        ao| ao al an ag aq ai ad au af as ax ab ay ac aa ba ae bb aj aw ah az at ak am av ap ar
-        ap| ap ak am aj ar ah aa at ae av aw ac az ab ad bb af ba ag ax ai ay au al an as ao aq
-        aq| aq au as ay ao ax bb al ba an ai az ag aw av af at ad ap ac ar ab ae am ak aa aj ah
-        ar| ar at av az ap aw ba ak bb am ah ay aj ax as ae au aa ao ab aq ac af an al ad ag ai
-        as| as ay ax ba au bb az aq aw ao an at al av ar ag ap ai am af ak ad ab ah aj ac ae aa
-        at| at ar ap ak av am ah az aj aw ba aa bb ae ab ax ac ay af as ad au ao ag ai aq an al
-        au| au aq ao al as an ai ay ag ax bb ad ba af ac aw ab az ae av aa at ap aj ah ar am ak
-        av| av az aw bb at ba ay ar ax ap am au ak as aq aj ao ah an ae al aa ac ai ag ab af ad
-        aw| aw bb ba ax az ay au av as at ap ao ar aq al ak an am ai aj ag ah aa ad af ae ac ab
-        ax| ax ba bb aw ay az at as av au ao ap aq ar ak al am an ah ag aj ai ad aa ae af ab ac
-        ay| ay as au aq ax ao an ba al bb az ai aw ag af av ad at ab ar ac ap am ae aa ak ah aj
-        az| az av at ar aw ap am bb ak ba ay ah ax aj ae as aa au ac aq ab ao an af ad al ai ag
-        ba| ba ax ay as bb au ao aw aq az at an av al ag ar ai ap ad ak af am ah ab ac aj aa ae
-        bb| bb aw az av ba at ap ax ar ay au am as ak aj aq ah ao aa al ae an ai ac ab ag ad af
+        ab| ab aa ad ac af ae ah ag aj ai al ak an am ap ao ar aq at as av au ax aw az ay bb ba
+        ac| ac ba aa ae ad ag af ai ah ak aj am al ao an aq ap as ar au at aw av ay ax bb ab az
+        ad| ad bb ab af ac ah ae aj ag al ai an ak ap am ar ao at aq av as ax au az aw ba aa ay
+        ae| ae az ba ag aa ai ad ak af am ah ao aj aq al as an au ap aw ar ay at bb av ab ac ax
+        af| af ay bb ah ab aj ac al ae an ag ap ai ar ak at am av ao ax aq az as ba au aa ad aw
+        ag| ag ax az ai ba ak aa am ad ao af aq ah as aj au al aw an ay ap bb ar ab at ac ae av
+        ah| ah aw ay aj bb al ab an ac ap ae ar ag at ai av ak ax am az ao ba aq aa as ad af au
+        ai| ai av ax ak az am ba ao aa aq ad as af au ah aw aj ay al bb an ab ap ac ar ae ag at
+        aj| aj au aw al ay an bb ap ab ar ac at ae av ag ax ai az ak ba am aa ao ad aq af ah as
+        ak| ak at av am ax ao az aq ba as aa au ad aw af ay ah bb aj ab al ac an ae ap ag ai ar
+        al| al as au an aw ap ay ar bb at ab av ac ax ae az ag ba ai aa ak ad am af ao ah aj aq
+        am| am ar at ao av aq ax as az au ba aw aa ay ad bb af ab ah ac aj ae al ag an ai ak ap
+        an| an aq as ap au ar aw at ay av bb ax ab az ac ba ae aa ag ad ai af ak ah am aj al ao
+        ao| ao ap ar aq at as av au ax aw az ay ba bb aa ab ad ac af ae ah ag aj ai al ak am an
+        ap| ap ao aq ar as at au av aw ax ay az bb ba ab aa ac ad ae af ag ah ai aj ak al an am
+        aq| aq an ap as ar au at aw av ay ax bb az ab ba ac aa ae ad ag af ai ah ak aj am ao al
+        ar| ar am ao at aq av as ax au az aw ba ay aa bb ad ab af ac ah ae aj ag al ai an ap ak
+        as| as al an au ap aw ar ay at bb av ab ax ac az ae ba ag aa ai ad ak af am ah ao aq aj
+        at| at ak am av ao ax aq az as ba au aa aw ad ay af bb ah ab aj ac al ae an ag ap ar ai
+        au| au aj al aw an ay ap bb ar ab at ac av ae ax ag az ai ba ak aa am ad ao af aq as ah
+        av| av ai ak ax am az ao ba aq aa as ad au af aw ah ay aj bb al ab an ac ap ae ar at ag
+        aw| aw ah aj ay al bb an ab ap ac ar ae at ag av ai ax ak az am ba ao aa aq ad as au af
+        ax| ax ag ai az ak ba am aa ao ad aq af as ah au aj aw al ay an bb ap ab ar ac at av ae
+        ay| ay af ah bb aj ab al ac an ae ap ag ar ai at ak av am ax ao az aq ba as aa au aw ad
+        az| az ae ag ba ai aa ak ad am af ao ah aq aj as al au an aw ap ay ar bb at ab av ax ac
+        ba| ba ac ae aa ag ad ai af ak ah am aj ao al aq an as ap au ar aw at ay av bb ax az ab
+        bb| bb ad af ab ah ac aj ae al ag an ai ap ak ar am at ao av aq ax as az au ba aw ay aa
 
     Another symbol set is base 10 digits, padded with leading
     zeros to make a common width. ::
 
         sage: from sage.matrix.operation_table import OperationTable
-        sage: G=AlternatingGroup(4)
-        sage: OperationTable(G, operator.mul, names='digits')
+        sage: G = AlternatingGroup(4)                                                   # needs sage.groups
+        sage: OperationTable(G, operator.mul, names='digits')                           # needs sage.groups
          *  00 01 02 03 04 05 06 07 08 09 10 11
           +------------------------------------
         00| 00 01 02 03 04 05 06 07 08 09 10 11
-        01| 01 05 03 07 06 00 08 02 04 10 11 09
-        02| 02 04 06 05 10 09 00 11 07 03 01 08
-        03| 03 06 08 00 11 10 01 09 02 07 05 04
-        04| 04 09 05 11 00 02 07 06 10 01 08 03
-        05| 05 00 07 02 08 01 04 03 06 11 09 10
-        06| 06 10 00 09 01 03 02 08 11 05 04 07
-        07| 07 08 04 01 09 11 05 10 03 02 00 06
-        08| 08 11 01 10 05 07 03 04 09 00 06 02
-        09| 09 02 11 06 07 04 10 05 00 08 03 01
-        10| 10 03 09 08 02 06 11 00 01 04 07 05
-        11| 11 07 10 04 03 08 09 01 05 06 02 00
+        01| 01 02 00 05 03 04 07 08 06 11 09 10
+        02| 02 00 01 04 05 03 08 06 07 10 11 09
+        03| 03 06 09 00 07 10 01 04 11 02 05 08
+        04| 04 08 10 02 06 11 00 05 09 01 03 07
+        05| 05 07 11 01 08 09 02 03 10 00 04 06
+        06| 06 09 03 10 00 07 04 11 01 08 02 05
+        07| 07 11 05 09 01 08 03 10 02 06 00 04
+        08| 08 10 04 11 02 06 05 09 00 07 01 03
+        09| 09 03 06 07 10 00 11 01 04 05 08 02
+        10| 10 04 08 06 11 02 09 00 05 03 07 01
+        11| 11 05 07 08 09 01 10 02 03 04 06 00
 
     If the group's elements are not too cumbersome,
     or the group is small, then the string representation
     of the elements can be used. ::
 
         sage: from sage.matrix.operation_table import OperationTable
-        sage: G=AlternatingGroup(3)
-        sage: OperationTable(G, operator.mul, names='elements')
+        sage: G = AlternatingGroup(3)                                                   # needs sage.groups
+        sage: OperationTable(G, operator.mul, names='elements')                         # needs sage.groups
               *       () (1,2,3) (1,3,2)
                +------------------------
              ()|      () (1,2,3) (1,3,2)
@@ -177,34 +189,35 @@ class OperationTable(SageObject):
     :meth:`~sage.matrix.operation_table.OperationTable.column_keys`
     method.  ::
 
+        sage: # needs sage.groups
         sage: from sage.matrix.operation_table import OperationTable
-        sage: G=QuaternionGroup()
-        sage: T=OperationTable(G, operator.mul)
+        sage: G = QuaternionGroup()
+        sage: T = OperationTable(G, operator.mul)
         sage: T.column_keys()
-        ((), (1,2,3,4)(5,6,7,8), ..., (1,7,3,5)(2,6,4,8))
-        sage: names=['1', 'I', 'J', '-1', '-K', 'K', '-I', '-J']
+        ((), (1,2,3,4)(5,6,7,8), ..., (1,8,3,6)(2,7,4,5))
+        sage: names=['1', 'I', '-1', '-I', 'J', '-K', '-J', 'K']
         sage: T.change_names(names=names)
         sage: sorted(T.translation().items())
-        [('-1', (1,3)(2,4)(5,7)(6,8)),..., ('K', (1,8,3,6)(2,7,4,5))]
+        [('-1', (1,3)(2,4)(5,7)(6,8)), ..., ('K', (1,8,3,6)(2,7,4,5))]
         sage: T
-         *   1  I  J -1 -K  K -I -J
+         *   1  I -1 -I  J -K -J  K
           +------------------------
-         1|  1  I  J -1 -K  K -I -J
-         I|  I -1  K -I  J -J  1 -K
-         J|  J -K -1 -J -I  I  K  1
-        -1| -1 -I -J  1  K -K  I  J
-        -K| -K -J  I  K -1  1  J -I
-         K|  K  J -I -K  1 -1 -J  I
-        -I| -I  1 -K  I -J  J -1  K
-        -J| -J  K  1  J  I -I -K -1
+         1|  1  I -1 -I  J -K -J  K
+         I|  I -1 -I  1  K  J -K -J
+        -1| -1 -I  1  I -J  K  J -K
+        -I| -I  1  I -1 -K -J  K  J
+         J|  J -K -J  K -1 -I  1  I
+        -K| -K -J  K  J  I -1 -I  1
+        -J| -J  K  J -K  1  I -1 -I
+         K|  K  J -K -J -I  1  I -1
 
     With the right functions and a list comprehension, custom
     names can be easier.  A multiplication table for hex digits
     (without carries)::
 
         sage: from sage.matrix.operation_table import OperationTable
-        sage: R=Integers(16)
-        sage: names=[hex(Integer(a)) for a in R]
+        sage: R = Integers(16)
+        sage: names=['{:x}'.format(Integer(a)) for a in R]
         sage: OperationTable(R, operation=operator.mul, names=names)
         *  0 1 2 3 4 5 6 7 8 9 a b c d e f
          +--------------------------------
@@ -271,10 +284,10 @@ class OperationTable(SageObject):
     odd.  The LaTeX version works much better. ::
 
         sage: from sage.matrix.operation_table import OperationTable
-        sage: L=FiniteSemigroups().example(())
+        sage: L = FiniteSemigroups().example(())
         sage: L
         An example of a finite semigroup: the left regular band generated by ()
-        sage: T=OperationTable(L, operation=operator.mul)
+        sage: T = OperationTable(L, operation=operator.mul)
         sage: T
         *
          +
@@ -294,8 +307,9 @@ class OperationTable(SageObject):
     structure, in forms that can be coerced into the structure.
     Here we demonstrate the proper use first::
 
+        sage: # needs sage.groups
         sage: from sage.matrix.operation_table import OperationTable
-        sage: H=CyclicPermutationGroup(4)
+        sage: H = CyclicPermutationGroup(4)
         sage: H.list()
         [(), (1,2,3,4), (1,3)(2,4), (1,4,3,2)]
         sage: elts = ['()', '(1,3)(2,4)']
@@ -308,6 +322,7 @@ class OperationTable(SageObject):
     This can be rewritten so as to pass the actual elements of the
     group ``H``, using a simple ``for`` loop::
 
+        sage: # needs sage.groups
         sage: L = H.list()    #list of elements of the group H
         sage: elts = [L[i] for i in {0, 2}]
         sage: elts
@@ -318,64 +333,104 @@ class OperationTable(SageObject):
         a| a b
         b| b a
 
-    Here are a couple of improper uses ::
+    When the argument ``elements`` is given, by default they are assumed to be closed under ``operation``.
+    In case they are not closed, the argument ``closed=False`` can be used to tell that it is not a problem
+    if the result of the operation is not among ``elements`` as long as it can be coerced into ``S``. ::
 
-        sage: elts.append(5)
+        sage: # needs sage.groups
+        sage: elts.append(L[1])
+        sage: elts
+        [(), (1,3)(2,4), (1,2,3,4)]
+        sage: OperationTable(H, operator.mul, elements=elts)
+        Traceback (most recent call last):
+        ...
+        ValueError: (1,3)(2,4)*(1,2,3,4)=(1,4,3,2), and so the set is not closed. You may try "closed=False".
+        sage: OperationTable(H, operator.mul, names='elements', elements=elts, closed=False)
+                *          () (1,3)(2,4)  (1,2,3,4)
+                  +---------------------------------
+                ()|         () (1,3)(2,4)  (1,2,3,4)
+        (1,3)(2,4)| (1,3)(2,4)         ()  (1,4,3,2)
+         (1,2,3,4)|  (1,2,3,4)  (1,4,3,2) (1,3)(2,4)
+
+    When ``closed=False`` is passed together with ``elements`` that are not closed under ``operation``, new
+    names are introduced for the elements not contained in ``elements``, but they will only appear in the
+    table as results, i.e. they will not be appended to the list of operands.
+
+    Here are a couple of improper uses::
+
+        sage: # needs sage.groups
+        sage: elts[2] = 5
         sage: OperationTable(H, operator.mul, elements=elts)
         Traceback (most recent call last):
         ...
         TypeError: unable to coerce 5 into Cyclic group of order 4 as a permutation group
-        sage: elts[2]='(1,3,2,4)'
+        sage: elts[2] = '(1,3,2,4)'
         sage: OperationTable(H, operator.mul, elements=elts)
         Traceback (most recent call last):
         ...
         TypeError: unable to coerce (1,3,2,4) into Cyclic group of order 4 as a permutation group
-        sage: elts[2]='(1,2,3,4)'
-        sage: OperationTable(H, operator.mul, elements=elts)
-        Traceback (most recent call last):
-        ...
-        ValueError: (1,3)(2,4)*(1,2,3,4)=(1,4,3,2), and so the set is not closed
 
     Unusable functions should be recognized as such::
 
-        sage: H=CyclicPermutationGroup(4)
-        sage: OperationTable(H, operator.add)
+        sage: H = CyclicPermutationGroup(4)                                             # needs sage.groups
+        sage: OperationTable(H, operator.add)                                           # needs sage.groups
         Traceback (most recent call last):
         ...
         TypeError: elements () and () of Cyclic group of order 4 as a permutation group are incompatible with operation: <built-in function add>
         sage: from operator import xor
-        sage: OperationTable(H, xor)
+        sage: OperationTable(H, xor)                                                    # needs sage.groups
         Traceback (most recent call last):
         ...
         TypeError: elements () and () of Cyclic group of order 4 as a permutation group are incompatible with operation: <built-in function xor>
 
-    TODO:
+    We construct the multiplication table for a finite finitely presented
+    group, where there is no normalization done when computing the hash::
 
-    Provide color and grayscale graphical representations of tables.
-    See commented-out stubs in source code.
+        sage: GU.<s,t> = FreeGroup()                                                    # needs sage.groups
+        sage: gr0 = GU / (s^(-2)*t*s*t, t^(-2)*s*t*s, s*t*s*t)                          # needs sage.groups
+        sage: gr0.multiplication_table()                                                # needs sage.groups
+        *  a b c d e f g h i j k l
+         +------------------------
+        a| a b c d e f g h i j k l
+        b| b e f g a i j k c d l h
+        c| c g a h l k b d j i f e
+        d| d k h a i g f c e l b j
+        e| e a i j b c d l f g h k
+        f| f j b k h l e g d c i a
+        g| g l k b c j i f a h e d
+        h| h f d c j b k a l e g i
+        i| i d e l k h a j g f c b
+        j| j h l e f d c i b k a g
+        k| k i g f d e l b h a j c
+        l| l c j i g a h e k b d f
 
-    AUTHOR:
+    AUTHORS:
 
     - Rob Beezer (2010-03-15)
+    - Bruno Edwards (2022-10-31)
     """
-    def __init__(self, S, operation, names='letters', elements=None):
+
+    def __init__(self, S, operation, names='letters', elements=None, closed=True):
         r"""
         TESTS::
 
             sage: from sage.matrix.operation_table import OperationTable
-            sage: G=SymmetricGroup(3)
-            sage: T=OperationTable(G, operator.mul)
-            sage: TestSuite(T).run()
+            sage: G = SymmetricGroup(3)                                                 # needs sage.groups
+            sage: T = OperationTable(G, operator.mul)                                   # needs sage.groups
+            sage: TestSuite(T).run()                                                    # needs sage.groups
         """
         # Determine the elements of S, specified or not
         # If elements are given, we check if they are all in S
         # Note: there exist listable infinite objects (like ZZ)
         if (elements is None):
             if hasattr(S, 'is_finite'):
-                if not(S.is_finite()):
+                if not S.is_finite():
                     raise ValueError('%s is infinite' % S)
             try:
-                elems = tuple(S)
+                try:
+                    elems = sorted(S)
+                except TypeError:
+                    elems = list(S)
             except Exception:
                 raise ValueError('unable to determine elements of %s' % S)
         else:
@@ -383,16 +438,16 @@ class OperationTable(SageObject):
             try:
                 for e in elements:
                     coerced = S(e)
-                    if not(coerced in elems):
+                    if coerced not in elems:
                         elems.append(coerced)
             except Exception:
                 raise TypeError('unable to coerce %s into %s' % (e, S))
-        self._elts = elems
+        self._elts = tuple(elems)
         self._n = len(self._elts)
         self._name_dict = {}
-
-        # Map elements to strings
-        self._width, self._names, self._name_dict = self._name_maker(names)
+        self._closed = closed
+        self._elts_ext = [] # elements that are not in _elts
+        self._n_ext = 0
 
         # Determine the operation, if given by a string
         # Some simple symbols are supported,
@@ -404,7 +459,7 @@ class OperationTable(SageObject):
         supported = {
             add: (add, '+', '+'),
             mul: (mul, '*', '\\ast')
-            }
+        }
         # default symbols for upper-left-hand-corner of table
         self._ascii_symbol = '.'
         self._latex_symbol = '\\cdot'
@@ -423,7 +478,7 @@ class OperationTable(SageObject):
         # the elements might not be hashable. But if they are it is much
         # faster to lookup in a hash table rather than in a list!
         try:
-            get_row = {e: i for i,e in enumerate(self._elts)}.__getitem__
+            get_row = {e: i for i, e in enumerate(self._elts)}.__getitem__
         except TypeError:
             get_row = self._elts.index
 
@@ -433,44 +488,77 @@ class OperationTable(SageObject):
                 try:
                     result = self._operation(g, h)
                 except Exception:
-                    raise TypeError('elements %s and %s of %s are incompatible with operation: %s' % (g,h,S,self._operation))
+                    raise TypeError('elements %s and %s of %s are incompatible with operation: %s' % (
+                        g, h, S, self._operation))
 
                 try:
                     r = get_row(result)
-                except (KeyError,ValueError):
-                    raise ValueError('%s%s%s=%s, and so the set is not closed' % (g, self._ascii_symbol, h, result))
+                except (KeyError, ValueError):
+                    failed = True
+                    # There might be an issue with the hashing, fall back to
+                    #   getting the index (which simply uses ==).
+                    if get_row != self._elts.index:
+                        failed = False
+                        get_row = self._elts.index
+                        try:
+                            r = get_row(result)
+                        except (KeyError, ValueError):
+                            failed = True
+                    if failed:
+                        if elements is not None and not self._closed:
+                            # if the result is not necessarily among elements
+                            try:
+                                coerced = S(result)
+                                if coerced not in self._elts_ext:
+                                    self._elts_ext.append(coerced)
+                                r = self._elts_ext.index(coerced) + self._n
+                            except Exception:
+                                raise TypeError('unable to coerce %s into %s' % (result, S))
+                        else:
+                            raise ValueError('%s%s%s=%s, and so the set is not closed. You may try "closed=False".' % (
+                                g, self._ascii_symbol, h, result))
 
                 row.append(r)
             self._table.append(row)
+
+        self._n_ext = len(self._elts_ext)
+
+        # Map elements to strings
+        self._width, self._names, self._names_ext, self._name_dict = self._name_maker(names)
 
     def _name_maker(self, names):
         r"""
         Helper function to create names of elements of algebraic structures.
 
         INPUT:
+
         Identical to the input for :class:`OperationTable` and :meth:`change_names`,
         so look there for details.
 
         OUTPUT:
 
-        - ``width`` - an integer giving the maximum width of the strings
+        - ``width`` -- integer giving the maximum width of the strings
           describing the elements.  This is used for formatting the ASCII
           version of the table.
-        - ``name_list`` - a list of strings naming the elements, in the
-          same order as given by the :meth:`list` method.
-        - ``name_dict`` - a dictionary giving the correspondence between the
+        - ``name_list`` -- list of strings naming the elements, in the
+          same order as given by the :meth:`list` method
+        - ``name_list_ext`` -- list of strings naming the elements that are
+          not in the list of elements if passed
+        - ``name_dict`` -- dictionary giving the correspondence between the
           strings and the actual elements.  So the keys are the strings and
           the values are the elements of the structure.
 
         EXAMPLES:
+
         This routine is tested extensively in the :class:`OperationTable`
         and :meth:`change_names` methods.  So we just demonstrate
         the nature of the output here. ::
 
+            sage: # needs sage.groups
             sage: from sage.matrix.operation_table import OperationTable
-            sage: G=SymmetricGroup(3)
-            sage: T=OperationTable(G, operator.mul)
-            sage: w, l, d = T._name_maker('letters')
+            sage: G = SymmetricGroup(3)
+            sage: T = OperationTable(G, operator.mul)
+            sage: w, l, lx, d = T._name_maker('letters')
             sage: w
             1
             sage: l[0]
@@ -484,9 +572,10 @@ class OperationTable(SageObject):
         doctests for the :class:`OperationTable` and :meth:`change_names`
         methods that rely on this one. ::
 
+            sage: # needs sage.groups
             sage: from sage.matrix.operation_table import OperationTable
-            sage: G=AlternatingGroup(3)
-            sage: T=OperationTable(G, operator.mul)
+            sage: G = AlternatingGroup(3)
+            sage: T = OperationTable(G, operator.mul)
             sage: T._name_maker(['x'])
             Traceback (most recent call last):
             ...
@@ -500,59 +589,77 @@ class OperationTable(SageObject):
             ...
             ValueError: element names must be a list, or one of the keywords: 'letters', 'digits', 'elements'
         """
-        from sage.functions.log import log
-        name_list=[]
+        from math import log, log10
+        name_list = []
+        name_list_ext = []
         if names == 'digits':
-            if self._n == 0 or self._n == 1:
+            if self._n + self._n_ext <= 1:
                 width = 1
             else:
-                width = int(log(self._n-1,10))+1
+                width = int(log10(self._n + self._n_ext - 1)) + 1
             for i in range(self._n):
-                name_list.append('{0:0{1}d}'.format(i,width))
+                name_list.append('{0:0{1}d}'.format(i, width))
+            for i in range(self._n_ext):
+                name_list_ext.append('{0:0{1}d}'.format(self._n + i, width))
         elif names == 'letters':
             from string import ascii_lowercase as letters
             from sage.rings.integer import Integer
             base = len(letters)
-            if self._n == 0 or self._n == 1:
+            if self._n + self._n_ext <= 1:
                 width = 1
             else:
-                width = int(log(self._n-1,base))+1
+                width = int(log(self._n + self._n_ext - 1, base)) + 1
             for i in range(self._n):
-                places = Integer(i).digits(base=base, digits=letters, padto=width)
+                places = Integer(i).digits( base=base, digits=letters, padto=width)
                 places.reverse()
                 name_list.append(''.join(places))
+            for i in range(self._n_ext):
+                places = Integer(self._n + i).digits(base=base, digits=letters, padto=width)
+                places.reverse()
+                name_list_ext.append(''.join(places))
         elif names == 'elements':
             width = 0
             for e in self._elts:
                 estr = repr(e)
-                if len(estr) > width:
-                    width = len(estr)
+                width = max(len(estr), width)
                 name_list.append(estr)
+            for e in self._elts_ext:
+                estr = repr(e)
+                width = max(len(estr), width)
+                name_list_ext.append(estr)
         elif isinstance(names, list):
+            if names is not None and not self._closed:
+                raise ValueError('custom names cannot be used together with closed=False')
             if len(names) != self._n:
-                raise ValueError('list of element names must be the same size as the set, %s != %s'%(len(names), self._n))
+                raise ValueError('list of element names must be the same size as the set, %s != %s' % (
+                    len(names), self._n))
             width = 0
-            for str in names:
-                if not isinstance(str, six.string_types):
-                    raise ValueError('list of element names must only contain strings, not %s'%str)
-                if len(str) > width:
-                    width = len(str)
-                name_list.append(str)
+            for name in names:
+                if not isinstance(name, str):
+                    raise ValueError(
+                        'list of element names must only contain strings, not %s' % name)
+                width = max(len(name), width)
+                name_list.append(name)
         else:
-            raise ValueError("element names must be a list, or one of the keywords: 'letters', 'digits', 'elements'")
+            raise ValueError(
+                "element names must be a list, or one of the keywords: 'letters', 'digits', 'elements'")
         name_dict = {}
         for i in range(self._n):
-            name_dict[name_list[i]]=self._elts[i]
-        return width, name_list, name_dict
+            name_dict[name_list[i]] = self._elts[i]
+        for i in range(self._n_ext):
+            name_dict[name_list_ext[i]] = self._elts_ext[i]
+        return width, name_list, name_list_ext, name_dict
 
     def __getitem__(self, pair):
         r"""
-        Returns the element of the table, given the elements indexing its position.
+        Return the element of the table, given the elements indexing its position.
 
         INPUT:
-        - pair - two elements of the structure
+
+        - ``pair`` -- two elements of the structure
 
         OUTPUT:
+
         The element of the structure computed by the operation for
         the two input elements (in the order provided).
 
@@ -561,16 +668,18 @@ class OperationTable(SageObject):
 
         EXAMPLES::
 
+            sage: # needs sage.groups
             sage: from sage.matrix.operation_table import OperationTable
-            sage: G=DiCyclicGroup(3)
-            sage: T=OperationTable(G, operator.mul)
+            sage: G = DiCyclicGroup(3)
+            sage: T = OperationTable(G, operator.mul)
             sage: T.column_keys()
-            ((), (1,3,2,4)(5,7), ..., (1,2)(3,4)(5,7,6))
+            ((), (5,6,7), ..., (1,4,2,3)(5,7))
             sage: T[G('(1,2)(3,4)(5,6,7)'), G('(1,3,2,4)(5,7)')]
             (1,4,2,3)(5,6)
 
         TESTS::
 
+            sage: # needs sage.groups
             sage: from sage.matrix.operation_table import OperationTable
             sage: G = DiCyclicGroup(3)
             sage: T = OperationTable(G, operator.mul)
@@ -592,39 +701,45 @@ class OperationTable(SageObject):
             IndexError: invalid indices of operation table: ((1,512), (1,3,2,4)(5,7))
         """
         if not (isinstance(pair, tuple) and len(pair) == 2):
-            raise TypeError('indexing into an operation table requires exactly two elements')
+            raise TypeError(
+                'indexing into an operation table requires exactly two elements')
         g, h = pair
         try:
             row = self._elts.index(g)
             col = self._elts.index(h)
         except ValueError:
-            raise IndexError('invalid indices of operation table: (%s, %s)' % (g, h))
-        return self._elts[self._table[row][col]]
+            raise IndexError(
+                'invalid indices of operation table: (%s, %s)' % (g, h))
+        r = self._table[row][col]
+        return self._elts[r] if r < self._n else self._elts_ext[r - self._n]
 
     def __eq__(self, other):
         r"""
-        Returns the comparison between two tables.
+        Return the comparison between two tables.
 
         INPUT:
 
-        - ``other`` - a second table to compare to ``self``.
+        - ``other`` -- a second table to compare to ``self``
 
         OUTPUT:
+
         Tables are equal if they have the same operation and elements.
 
         EXAMPLES::
 
+            sage: # needs sage.groups
             sage: from sage.matrix.operation_table import OperationTable
-            sage: G=CyclicPermutationGroup(6)
-            sage: H=CyclicPermutationGroup(3)
-            sage: P=OperationTable(G, operator.mul)
-            sage: Q=OperationTable(G, operator.mul)
-            sage: R=OperationTable(H, operator.mul)
-            sage: S=OperationTable(G, operator.truediv)
+            sage: G = CyclicPermutationGroup(6)
+            sage: H = CyclicPermutationGroup(3)
+            sage: P = OperationTable(G, operator.mul)
+            sage: Q = OperationTable(G, operator.mul)
+            sage: R = OperationTable(H, operator.mul)
+            sage: S = OperationTable(G, operator.truediv)
             sage: P == P, P == Q, P == R, P == S
             (True, True, False, False)
         """
-        return (self._elts == other._elts) and (self._operation == other._operation)
+        return ((self._elts == other._elts) and (self._elts_ext == other._elts_ext) and
+                (self._operation == other._operation))
 
     def __ne__(self, other):
         """
@@ -632,13 +747,14 @@ class OperationTable(SageObject):
 
         EXAMPLES::
 
+            sage: # needs sage.groups
             sage: from sage.matrix.operation_table import OperationTable
-            sage: G=CyclicPermutationGroup(6)
-            sage: H=CyclicPermutationGroup(3)
-            sage: P=OperationTable(G, operator.mul)
-            sage: Q=OperationTable(G, operator.mul)
-            sage: R=OperationTable(H, operator.mul)
-            sage: S=OperationTable(G, operator.truediv)
+            sage: G = CyclicPermutationGroup(6)
+            sage: H = CyclicPermutationGroup(3)
+            sage: P = OperationTable(G, operator.mul)
+            sage: Q = OperationTable(G, operator.mul)
+            sage: R = OperationTable(H, operator.mul)
+            sage: S = OperationTable(G, operator.truediv)
             sage: P != P, P != Q, P != R, P != S
             (False, False, True, True)
         """
@@ -646,13 +762,13 @@ class OperationTable(SageObject):
 
     def _repr_(self):
         r"""
-        Returns a printable version of the operation table.
+        Return a printable version of the operation table.
 
         EXAMPLES::
 
             sage: from sage.matrix.operation_table import OperationTable
-            sage: R=Integers(5)
-            sage: T=OperationTable(R, operation=operator.add)
+            sage: R = Integers(5)
+            sage: T = OperationTable(R, operation=operator.add)
             sage: print(T._repr_())
             +  a b c d e
              +----------
@@ -670,15 +786,16 @@ class OperationTable(SageObject):
 
         INPUT:
 
-        - ``ascii`` - a single character for text table
-        - ``latex`` - a string to represent an operation in LaTeX math mode.
-          Note the need for double-backslashes to escape properly.
+        - ``ascii`` -- a single character for text table
+        - ``latex`` -- string to represent an operation in LaTeX math mode;
+          note the need for double-backslashes to escape properly
 
         EXAMPLES::
 
+            sage: # needs sage.groups
             sage: from sage.matrix.operation_table import OperationTable
-            sage: G=AlternatingGroup(3)
-            sage: T=OperationTable(G, operator.mul)
+            sage: G = AlternatingGroup(3)
+            sage: T = OperationTable(G, operator.mul)
             sage: T.set_print_symbols('@', '\\times')
             sage: T
             @  a b c
@@ -691,9 +808,10 @@ class OperationTable(SageObject):
 
         TESTS::
 
+            sage: # needs sage.groups
             sage: from sage.matrix.operation_table import OperationTable
-            sage: G=AlternatingGroup(3)
-            sage: T=OperationTable(G, operator.mul)
+            sage: G = AlternatingGroup(3)
+            sage: T = OperationTable(G, operator.mul)
             sage: T.set_print_symbols('@', 5)
             Traceback (most recent call last):
             ...
@@ -707,19 +825,19 @@ class OperationTable(SageObject):
             ...
             ValueError: ASCII symbol should be a single character, not 5
         """
-        if not isinstance(ascii, six.string_types) or not len(ascii)==1:
-            raise ValueError('ASCII symbol should be a single character, not %s' % ascii)
-        if not isinstance(latex, six.string_types):
+        if not isinstance(ascii, str) or not len(ascii) == 1:
+            raise ValueError(
+                'ASCII symbol should be a single character, not %s' % ascii)
+        if not isinstance(latex, str):
             raise ValueError('LaTeX symbol must be a string, not %s' % latex)
         self._ascii_symbol = ascii
         self._latex_symbol = latex
-        return None
 
     def column_keys(self):
         r"""
-        Returns a tuple of the elements used to build the table.
+        Return a tuple of the elements used to build the table.
 
-        .. note:: ``column_keys`` and ``row_keys`` are identical.
+        .. NOTE:: ``column_keys`` and ``row_keys`` are identical.
            Both list the elements in the order used to label the table.
 
         OUTPUT:
@@ -732,9 +850,9 @@ class OperationTable(SageObject):
         EXAMPLES::
 
             sage: from sage.matrix.operation_table import OperationTable
-            sage: G=AlternatingGroup(3)
-            sage: T=OperationTable(G, operator.mul)
-            sage: T.column_keys()
+            sage: G = AlternatingGroup(3)                                               # needs sage.groups
+            sage: T = OperationTable(G, operator.mul)                                   # needs sage.groups
+            sage: T.column_keys()                                                       # needs sage.groups
             ((), (1,2,3), (1,3,2))
         """
         return self._elts
@@ -748,9 +866,10 @@ class OperationTable(SageObject):
 
     def translation(self):
         r"""
-        Returns a dictionary associating names with elements.
+        Return a dictionary associating names with elements.
 
         OUTPUT:
+
         A dictionary whose keys are strings used as names
         for entries of the table and values that are the
         actual elements of the algebraic structure.
@@ -758,19 +877,20 @@ class OperationTable(SageObject):
         EXAMPLES::
 
             sage: from sage.matrix.operation_table import OperationTable
-            sage: G=AlternatingGroup(3)
-            sage: T=OperationTable(G, operator.mul, names=['p','q','r'])
-            sage: sorted(T.translation().items())
-            [('p', ()), ('q', (1,2,3)), ('r', (1,3,2))]
+            sage: G = AlternatingGroup(3)                                               # needs sage.groups
+            sage: T = OperationTable(G, operator.mul, names=['p','q','r'])              # needs sage.groups
+            sage: T.translation()                                                       # needs sage.groups
+            {'p': (), 'q': (1,2,3), 'r': (1,3,2)}
         """
         return self._name_dict
 
     def table(self):
         r"""
-        Returns the table as a list of lists,
+        Return the table as a list of lists,
         using integers to reference the elements.
 
         OUTPUT:
+
         The rows of the table, as a list of rows, each row
         being a list of integer entries.  The integers correspond
         to the order of the elements in the headings of the table
@@ -779,9 +899,9 @@ class OperationTable(SageObject):
         EXAMPLES::
 
             sage: from sage.matrix.operation_table import OperationTable
-            sage: C=CyclicPermutationGroup(3)
-            sage: T=OperationTable(C, operator.mul)
-            sage: T.table()
+            sage: C = CyclicPermutationGroup(3)                                         # needs sage.groups
+            sage: T=OperationTable(C, operator.mul)                                     # needs sage.groups
+            sage: T.table()                                                             # needs sage.groups
             [[0, 1, 2], [1, 2, 0], [2, 0, 1]]
         """
         return self._table
@@ -792,17 +912,17 @@ class OperationTable(SageObject):
 
         INPUT:
 
-        - ``names`` - the type of names used, values are:
+        - ``names`` -- the type of names used, values are:
 
-          * ``'letters'`` - lowercase ASCII letters are used
+          * ``'letters'`` -- lowercase ASCII letters are used
             for a base 26 representation of the elements'
             positions in the list given by :meth:`list`,
             padded to a common width with leading 'a's.
-          * ``'digits'`` - base 10 representation of the
+          * ``'digits'`` -- base 10 representation of the
             elements' positions in the list given by
             :meth:`list`, padded to a common width
             with leading zeros.
-          * ``'elements'`` - the string representations
+          * ``'elements'`` -- the string representations
             of the elements themselves.
           * a list - a list of strings, where the length
             of the list equals the number of elements.
@@ -820,9 +940,10 @@ class OperationTable(SageObject):
         :class:`OperationTable` since creating a new
         operation table uses the same routine. ::
 
+            sage: # needs sage.groups
             sage: from sage.matrix.operation_table import OperationTable
-            sage: D=DihedralGroup(2)
-            sage: T=OperationTable(D, operator.mul)
+            sage: D = DihedralGroup(2)
+            sage: T = OperationTable(D, operator.mul)
             sage: T
             *  a b c d
              +--------
@@ -863,8 +984,7 @@ class OperationTable(SageObject):
             sage: T.translation()['y']
             (1,2)
         """
-        self._width, self._names, self._name_dict = self._name_maker(names)
-        return None
+        self._width, self._names, self._names_ext, self._name_dict = self._name_maker(names)
 
     def matrix_of_variables(self):
         r"""
@@ -877,17 +997,18 @@ class OperationTable(SageObject):
         The output here is from the doctests for the old
         ``cayley_table()`` method for permutation groups. ::
 
+            sage: # needs sage.groups
             sage: from sage.matrix.operation_table import OperationTable
-            sage: G=PermutationGroup(['(1,2,3)', '(2,3)'])
-            sage: T=OperationTable(G, operator.mul)
+            sage: G = PermutationGroup(['(1,2,3)', '(2,3)'])
+            sage: T = OperationTable(G, operator.mul)
             sage: T.matrix_of_variables()
             [x0 x1 x2 x3 x4 x5]
             [x1 x0 x3 x2 x5 x4]
-            [x2 x5 x4 x1 x0 x3]
-            [x3 x4 x5 x0 x1 x2]
-            [x4 x3 x0 x5 x2 x1]
-            [x5 x2 x1 x4 x3 x0]
-            sage: T.column_keys()[3]*T.column_keys()[3] == T.column_keys()[0]
+            [x2 x4 x0 x5 x1 x3]
+            [x3 x5 x1 x4 x0 x2]
+            [x4 x2 x5 x0 x3 x1]
+            [x5 x3 x4 x1 x2 x0]
+            sage: T.column_keys()[2]*T.column_keys()[2] == T.column_keys()[0]
             True
         """
         from sage.rings.polynomial.polynomial_ring_constructor import PolynomialRing
@@ -895,32 +1016,108 @@ class OperationTable(SageObject):
         from sage.rings.rational_field import QQ
         R = PolynomialRing(QQ, 'x', self._n)
         MS = MatrixSpace(R, self._n, self._n)
-        entries = [R('x'+str(self._table[i][j])) for i in range(self._n) for j in range(self._n)]
-        return MS( entries )
+        entries = [R('x'+str(self._table[i][j]))
+                   for i in range(self._n) for j in range(self._n)]
+        return MS(entries)
 
-    #def color_table():
-        #r"""
-        #Returns a graphic image as a square grid where entries are color coded.
-        #"""
-        #pass
-        #return None
-
-    #def gray_table():
-        #r"""
-        #Returns a graphic image as a square grid where entries are coded as grayscale values.
-        #"""
-        #pass
-        #return None
-
-    def _ascii_table(self):
+    def color_table(self, element_names=True, cmap=None, **options):
         r"""
-        Returns a string that is an ASCII version of the table.
+        Return a graphic image as a square grid where entries are color coded.
+
+        INPUT:
+
+        - ``element_names`` -- (default: ``True``) whether to display text with
+          element names on the image
+
+        - ``cmap`` -- (default: :obj:`matplotlib.cm.gist_rainbow`) color map for plot, see :mod:`matplotlib.cm`
+
+        - ``**options`` -- passed on to :func:`~sage.plot.matrix_plot.matrix_plot`
 
         EXAMPLES::
 
             sage: from sage.matrix.operation_table import OperationTable
-            sage: R=Integers(5)
-            sage: T=OperationTable(R, operator.add)
+            sage: OTa = OperationTable(SymmetricGroup(3), operation=operator.mul)       # needs sage.groups
+            sage: OTa.color_table()                                                     # needs sage.groups sage.plot
+            Graphics object consisting of 37 graphics primitives
+
+        .. PLOT::
+
+            from sage.matrix.operation_table import OperationTable
+            OTa = OperationTable(SymmetricGroup(3), operation=operator.mul)
+            sphinx_plot(OTa.color_table(), figsize=(3.0, 3.0))
+        """
+        from sage.plot.matrix_plot import matrix_plot
+        from sage.plot.text import text
+
+        if cmap is None:
+            from matplotlib.cm import gist_rainbow as cmap
+
+        # Base matrix plot object, without text
+        plot = matrix_plot(Matrix(self._table), cmap=cmap,
+                           frame=False, **options)
+
+        if element_names:
+
+            # adapted from ._ascii_table()
+            # prepare widenames[] list for labelling on image
+            n = self._n
+            width = self._width
+
+            widenames = []
+            for name in self._names + self._names_ext:
+                widenames.append("{0: >{1}s}".format(name, width))
+
+            # iterate through each element
+            for g in range(n):
+                for h in range(n):
+                    # add text to the plot
+                    tPos = (h, g)
+                    tText = widenames[self._table[g][h]]
+                    t = text(tText, tPos, rgbcolor=(0, 0, 0), fontsize='x-small')
+                    plot = plot + t
+
+        # https://moyix.blogspot.com/2022/09/someones-been-messing-with-my-subnormals.html
+        import warnings
+        warnings.filterwarnings("ignore", message="The value of the smallest subnormal for")
+
+        return plot
+
+    def gray_table(self, **options):
+        r"""
+        Return a graphic image as a square grid where entries are displayed in grayscale.
+
+        INPUT:
+
+        - ``element_names`` -- boolean (default: ``True``); whether to display
+          text with element names on the image
+
+        - ``**options`` -- passed on to :func:`~sage.plot.matrix_plot.matrix_plot`
+
+        EXAMPLES::
+
+            sage: from sage.matrix.operation_table import OperationTable
+            sage: OTa = OperationTable(SymmetricGroup(3), operation=operator.mul)       # needs sage.groups
+            sage: OTa.gray_table()                                                      # needs sage.groups sage.plot
+            Graphics object consisting of 37 graphics primitives
+
+        .. PLOT::
+
+            from sage.matrix.operation_table import OperationTable
+            OTa = OperationTable(SymmetricGroup(3), operation=operator.mul)
+            sphinx_plot(OTa.gray_table(), figsize=(3.0, 3.0))
+        """
+        from matplotlib.cm import Greys
+        return self.color_table(cmap=Greys, **options)
+
+    def _ascii_table(self):
+        r"""
+        Return a string that is an ASCII version of the table.
+
+        EXAMPLES::
+
+            sage: from sage.matrix.operation_table import OperationTable
+            sage: R = Integers(5)
+            sage: T = OperationTable(R, operator.add)
             sage: print(T._ascii_table())
             +  a b c d e
              +----------
@@ -930,12 +1127,12 @@ class OperationTable(SageObject):
             d| d e a b c
             e| e a b c d
 
-        The table should adjust its column width to accomodate the width of the
+        The table should adjust its column width to accommodate the width of the
         strings used to represent elements.  ::
 
             sage: from sage.matrix.operation_table import OperationTable
-            sage: R=Integers(10)
-            sage: T=OperationTable(R, operator.mul, names='digits')
+            sage: R = Integers(10)
+            sage: T = OperationTable(R, operator.mul, names='digits')
             sage: print(T._ascii_table())
             *  0 1 2 3 4 5 6 7 8 9
              +--------------------
@@ -953,8 +1150,8 @@ class OperationTable(SageObject):
         ::
 
             sage: from sage.matrix.operation_table import OperationTable
-            sage: R=Integers(11)
-            sage: T=OperationTable(R, operator.mul, names='digits')
+            sage: R = Integers(11)
+            sage: T = OperationTable(R, operator.mul, names='digits')
             sage: print(T._ascii_table())
              *  00 01 02 03 04 05 06 07 08 09 10
               +---------------------------------
@@ -973,8 +1170,8 @@ class OperationTable(SageObject):
         ::
 
             sage: from sage.matrix.operation_table import OperationTable
-            sage: R=Integers(4)
-            sage: T=OperationTable(R, operator.mul, names=['x','y','wwww', 'z'])
+            sage: R = Integers(4)
+            sage: T = OperationTable(R, operator.mul, names=['x','y','wwww', 'z'])
             sage: print(T._ascii_table())
                *     x    y wwww    z
                 +--------------------
@@ -989,9 +1186,12 @@ class OperationTable(SageObject):
         widenames = []
         for name in self._names:
             widenames.append('{0: >{1}s}'.format(name, width))
+        widenames_ext = [widename for widename in widenames]
+        for name in self._names_ext:
+            widenames_ext.append('{0: >{1}s}'.format(name, width))
 
         # Headers
-        table = ['{0: >{1}s} '.format(self._ascii_symbol,width)]
+        table = ['{0: >{1}s} '.format(self._ascii_symbol, width)]
         table += [' '+widenames[i] for i in range(n)]+['\n']
         table += [' ']*width + ['+'] + ['-']*(n*(width+1))+['\n']
 
@@ -999,20 +1199,26 @@ class OperationTable(SageObject):
         for g in range(n):
             table.append(widenames[g]+'|')
             for h in range(n):
-                table.append(' '+widenames[self._table[g][h]])
+                r = self._table[g][h]
+                if r < len(widenames):
+                    table.append(' '+widenames[r])
+                elif r < len(widenames_ext):
+                    table.append(' '+widenames_ext[r])
+                else:
+                    raise ValueError('unknown error')
             table.append('\n')
         return ''.join(table)
 
     def _latex_(self):
         r"""
-        Returns a `LaTeX` version of the operation table as a string,
+        Return a `LaTeX` version of the operation table as a string,
         using a `LaTeX` ``array`` environment.
 
         EXAMPLES::
 
             sage: from sage.matrix.operation_table import OperationTable
-            sage: R=Integers(2)
-            sage: T=OperationTable(R, operation=operator.mul)
+            sage: R = Integers(2)
+            sage: T = OperationTable(R, operation=operator.mul)
             sage: T._latex_()
             '{\\setlength{\\arraycolsep}{2ex}\n\\begin{array}{r|*{2}{r}}\n\\multicolumn{1}{c|}{\\ast}&a&b\\\\\\hline\n{}a&a&a\\\\\n{}b&a&b\\\\\n\\end{array}}'
         """
@@ -1028,7 +1234,8 @@ class OperationTable(SageObject):
 
         # Row label and body of table
         for g in range(n):
-            table.append('{}')  # Interrupts newline and [], so not line spacing
+            # Interrupts newline and [], so not line spacing
+            table.append('{}')
             table.append(names[g])
             for h in range(n):
                 table.append('&'+names[self._table[g][h]])

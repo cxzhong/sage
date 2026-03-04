@@ -13,24 +13,15 @@ AUTHORS:
 #
 #  The full text of the GPL is available at:
 #
-#                  http://www.gnu.org/licenses/
+#                  https://www.gnu.org/licenses/
 ##############################################################################
 
-
-from sage.categories.groups import Groups
-from sage.groups.group import Group
-from sage.matrix.all import MatrixSpace
-from sage.modules.all import FreeModule
-from sage.structure.unique_representation import UniqueRepresentation
-from sage.misc.cachefunc import cached_method
-
-from sage.groups.affine_gps.group_element import AffineGroupElement
 from sage.groups.affine_gps.affine_group import AffineGroup
 
 
 class EuclideanGroup(AffineGroup):
     r"""
-    an Euclidean group.
+    A Euclidean group.
 
     The Euclidean group `E(A)` (or general affine group) of an affine
     space `A` is the group of all invertible affine transformations from
@@ -85,15 +76,15 @@ class EuclideanGroup(AffineGroup):
 
     - Degree and base ring:
 
-      * ``degree`` -- An integer. The degree of the affine group, that
-        is, the dimension of the affine space the group is acting on.
+      * ``degree`` -- integer; the degree of the affine group, that
+        is, the dimension of the affine space the group is acting on
 
-      * ``ring`` -- A ring or an integer. The base ring of the affine
+      * ``ring`` -- a ring or an integer; the base ring of the affine
         space. If an integer is given, it must be a prime power and
         the corresponding finite field is constructed.
 
-      * ``var`` -- (default: ``'a'``) Keyword argument to specify the finite
-        field generator name in the case where ``ring`` is a prime power.
+      * ``var`` -- (default: ``'a'``) keyword argument to specify the finite
+        field generator name in the case where ``ring`` is a prime power
 
     EXAMPLES::
 
@@ -130,11 +121,11 @@ class EuclideanGroup(AffineGroup):
 
     Some additional ways to create Euclidean groups::
 
-        sage: A = AffineSpace(2, GF(4,'a'));  A
+        sage: A = AffineSpace(2, GF(4,'a'));  A                                         # needs sage.rings.finite_rings
         Affine Space of dimension 2 over Finite Field in a of size 2^2
-        sage: G = EuclideanGroup(A); G
+        sage: G = EuclideanGroup(A); G                                                  # needs sage.rings.finite_rings
         Euclidean Group of degree 2 over Finite Field in a of size 2^2
-        sage: G is EuclideanGroup(2,4) # shorthand
+        sage: G is EuclideanGroup(2,4)  # shorthand                                     # needs sage.rings.finite_rings
         True
 
         sage: V = ZZ^3;  V
@@ -155,6 +146,8 @@ class EuclideanGroup(AffineGroup):
         True
         sage: G = EuclideanGroup(2, GF(5)); G
         Euclidean Group of degree 2 over Finite Field of size 5
+
+        sage: # needs sage.libs.gap (for gens)
         sage: TestSuite(G).run()
 
     REFERENCES:
@@ -171,13 +164,13 @@ class EuclideanGroup(AffineGroup):
 
         INPUT:
 
-        - ``A`` -- an element of :meth:`matrix_space`.
+        - ``A`` -- an element of :meth:`matrix_space`
 
-        - ``b`` -- an element of :meth:`vector_space`.
+        - ``b`` -- an element of :meth:`vector_space`
 
         OUTPUT:
 
-        The return value is ignored. You must raise a ``TypeError`` if
+        The return value is ignored. You must raise a :exc:`TypeError` if
         the input does not define a valid group element.
 
         TESTS::
@@ -208,7 +201,7 @@ class EuclideanGroup(AffineGroup):
             sage: latex(G)
             \mathrm{E}_{6}(\Bold{F}_{5})
         """
-        return "\\mathrm{E}_{%s}(%s)"%(self.degree(), self.base_ring()._latex_())
+        return "\\mathrm{E}_{%s}(%s)" % (self.degree(), self.base_ring()._latex_())
 
     def _repr_(self):
         """
@@ -219,7 +212,7 @@ class EuclideanGroup(AffineGroup):
             sage: EuclideanGroup(6, GF(5))
             Euclidean Group of degree 6 over Finite Field of size 5
         """
-        return "Euclidean Group of degree %s over %s"%(self.degree(), self.base_ring())
+        return "Euclidean Group of degree %s over %s" % (self.degree(), self.base_ring())
 
     def random_element(self):
         """
@@ -250,4 +243,3 @@ class EuclideanGroup(AffineGroup):
                 pass
         g2 = self.translation(self.vector_space().random_element())
         return g1 * g2
-

@@ -25,7 +25,7 @@ TODO -- much functionality of gfan-0.3 is still not exposed::
    * -- can compute individual GB's for lex and revlex (via buchberger)
 """
 
-#*****************************************************************************
+# *****************************************************************************
 #       Copyright (C) 2006 William Stein <wstein@gmail.com>
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
@@ -37,40 +37,71 @@ TODO -- much functionality of gfan-0.3 is still not exposed::
 #
 #  The full text of the GPL is available at:
 #
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
-from __future__ import print_function
+#                  https://www.gnu.org/licenses/
+# *****************************************************************************
 
 from subprocess import Popen, PIPE
+
+from sage.features.gfan import GfanExecutable
 
 
 class Gfan:
     """
     Interface to Anders Jensen's Groebner Fan program.
     """
-    def __call__(self, I, cmd='',verbose = False, format=True):
-        if cmd != '' and cmd.lstrip()[0] != '-':
-            cmd = 'gfan_%s'%cmd
-        else:
-            cmd = 'gfan'
+    def __call__(self, input, cmd='', verbose=False):
+        r"""
+        Call Groebner Fan program with given input.
 
-        if len(cmd.split(' ')) > 1:
+        INPUT:
+
+        - ``input`` -- string; input
+        - ``cmd`` -- string (default: ``''``); GFan command
+        - ``verbose`` -- boolean (default: ``False``)
+
+        EXAMPLES::
+
+            sage: print(gfan('Q[x,y]{x^2-y-1,y^2-xy-2/3}', cmd='bases'))                # needs gfan
+            Q[x,y]
+            {{
+            y^4+4/9-7/3*y^2-y^3,
+            x+5/2*y+3/2*y^2-3/2*y^3}
+            ,
+            {
+            x^2-1-y,
+            x*y+2/3-y^2,
+            y^3-5/3*y-y^2-2/3*x}
+            ,
+            {
+            x^2-1-y,
+            y^2-2/3-x*y}
+            ,
+            {
+            x^4+1/3+x-2*x^2-x^3,
+            y+1-x^2}
+            }
+        """
+        if cmd:
             cmd = cmd.split(' ')
+            cmd[0] = GfanExecutable(cmd[0]).absolute_filename()
+        else:
+            cmd = [GfanExecutable().absolute_filename()]
 
         if verbose:
             print("gfan command:\n%s" % cmd)
-            print("gfan input:\n%s" % I)
+            print("gfan input:\n%s" % input)
 
-        gfan_processes = Popen(cmd,stdin = PIPE, stdout=PIPE, stderr=PIPE)
-        ans, err = gfan_processes.communicate(input = I)
+        gfan_processes = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE,
+                               encoding='latin-1')
+        ans, err = gfan_processes.communicate(input=input)
 
-        # since version 0.4, gfan indicates which LP algorithm it is using.
-        # we avoid interpreting this as an error
-        if (len(err) > 0) and not (err.startswith('LP algorithm being used:')):
+        # sometimes, gfan outputs stuff to stderr even though
+        # everything is fine ; we avoid interpreting this as an error
+        if len(err) > 0 and not err.startswith('_application PolyhedralCone'):
             raise RuntimeError(err)
 
         return ans
 
+
 # The instance
 gfan = Gfan()
-

@@ -1,21 +1,20 @@
+# sage.doctest: needs sage.combinat sage.graphs
 r"""
 Elements of Hecke modular forms spaces
 
 AUTHORS:
 
 - Jonas Jermann (2013): initial version
-
 """
-from __future__ import absolute_import
 
-#*****************************************************************************
+# ****************************************************************************
 #       Copyright (C) 2013-2014 Jonas Jermann <jjermann2@gmail.com>
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
 #  as published by the Free Software Foundation; either version 2 of
 #  the License, or (at your option) any later version.
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
 from .graded_ring_element import FormsRingElement
 
@@ -25,16 +24,16 @@ class FormsElement(FormsRingElement):
     (Hecke) modular forms.
     """
 
-    def __init__(self, parent, rat):
+    def __init__(self, parent, rat) -> None:
         r"""
         An element of a space of (Hecke) modular forms.
 
         INPUT:
 
-        - ``parent``     -- a modular form space
+        - ``parent`` -- a modular form space
 
-        - ``rat``        -- a rational function which corresponds to a
-                            modular form in the modular form space
+        - ``rat`` -- a rational function which corresponds to a
+          modular form in the modular form space
 
         OUTPUT:
 
@@ -64,16 +63,14 @@ class FormsElement(FormsRingElement):
             sage: ss_el.parent()
             Subspace of dimension 1 of ModularForms(n=5, k=20/3, ep=1) over Integer Ring
         """
+        super().__init__(parent, rat)
 
-        super(FormsElement, self).__init__(parent, rat)
-
-        if self.AT(["quasi"])>=self._analytic_type:
+        if self.AT(["quasi"]) >= self._analytic_type:
             pass
-        elif not (\
-            self.is_homogeneous() and\
-            self._weight  == parent.weight() and\
-            self._ep      == parent.ep() ):
-                raise ValueError("{} does not correspond to an element of {}.".format(rat, parent))
+        elif not (self.is_homogeneous() and
+                  self._weight == parent.weight() and
+                  self._ep == parent.ep()):
+            raise ValueError("{} does not correspond to an element of {}.".format(rat, parent))
 
         from .subspace import SubSpaceForms
         if isinstance(parent, SubSpaceForms) and (parent._module is not None):
@@ -82,9 +79,9 @@ class FormsElement(FormsRingElement):
             except TypeError:
                 raise ValueError("{} does not correspond to an element of {}.".format(rat, parent))
 
-    def _repr_(self):
+    def _repr_(self) -> str:
         """
-        Return the string representation of self.
+        Return the string representation of ``self``.
 
         EXAMPLES::
 
@@ -111,10 +108,9 @@ class FormsElement(FormsRingElement):
             sage: latex(QuasiModularForms(n=5, k=10, ep=-1)(x^3*z^3-y^3))
             f_{\rho}^{3} E_{2}^{3} -  f_{i}^{3}
             sage: latex(QuasiModularForms(n=infinity, k=8, ep=1)(x*(x-y^2)))
-            - E_{4} f_{i}^{2} + E_{4}^{2}
+            -E_{4} f_{i}^{2} + E_{4}^{2}
         """
-
-        return super(FormsElement, self)._latex_()
+        return super()._latex_()
 
     def coordinate_vector(self):
         r"""
@@ -145,7 +141,6 @@ class FormsElement(FormsRingElement):
             sage: subspace.gen(0).coordinate_vector() == subspace.coordinate_vector(subspace.gen(0))
             True
         """
-
         return self.parent().coordinate_vector(self)
 
     def ambient_coordinate_vector(self):
@@ -156,11 +151,13 @@ class FormsElement(FormsRingElement):
         The returned coordinate vector is an element
         of ``self.parent().module()``.
 
-        Mote: This uses the corresponding function of the
-        parent. If the parent has not defined a coordinate
-        vector function or an ambient module for
-        coordinate vectors then an exception is raised
-        by the parent (default implementation).
+        .. NOTE::
+
+            This uses the corresponding function of the
+            parent. If the parent has not defined a coordinate
+            vector function or an ambient module for
+            coordinate vectors then an exception is raised
+            by the parent (default implementation).
 
         EXAMPLES::
 
@@ -181,28 +178,28 @@ class FormsElement(FormsRingElement):
             sage: subspace.gen(0).ambient_coordinate_vector() == subspace.ambient_coordinate_vector(subspace.gen(0))
             True
         """
-
         return self.parent().ambient_coordinate_vector(self)
 
     def lseries(self, num_prec=None, max_imaginary_part=0, max_asymp_coeffs=40):
         r"""
-        Return the L-series of ``self`` if ``self`` is modular and holomorphic.
-        Note: This relies on the (pari) based function ``Dokchitser``.
+        Return the `L`-series of ``self`` if ``self`` is modular and holomorphic.
+
+        This relies on the (pari) based function ``Dokchitser``.
 
         INPUT:
 
-        - ``num_prec``           -- An integer denoting the to-be-used numerical precision.
-                                    If integer ``num_prec=None`` (default) the default
-                                    numerical precision of the parent of ``self`` is used.
+        - ``num_prec`` -- integer denoting the to-be-used numerical precision.
+          If integer ``num_prec=None`` (default) the default
+          numerical precision of the parent of ``self`` is used.
 
-        - ``max_imaginary_part`` -- A real number (default: 0), indicating up to which
-                                    imaginary part the L-series is going to be studied.
+        - ``max_imaginary_part`` -- a real number (default: 0), indicating up
+          to which imaginary part the `L`-series is going to be studied
 
-        - ``max_asymp_coeffs``   -- An integer (default: 40).
+        - ``max_asymp_coeffs`` -- integer (default: 40)
 
         OUTPUT:
 
-        An interface to Tim Dokchitser's program for computing L-series, namely
+        An interface to Tim Dokchitser's program for computing `L`-series, namely
         the series given by the Fourier coefficients of ``self``.
 
         EXAMPLES::
@@ -230,7 +227,7 @@ class FormsElement(FormsRingElement):
             sage: L.taylor_series(1, 3)
             -0.0304484570583... - 0.0504570844798...*z - 0.0350657360354...*z^2 + O(z^3)
             sage: coeffs = f.q_expansion_vector(min_exp=0, max_exp=20, fix_d=True)
-            sage: sum([coeffs[k]*k^(-10) for k in range(1,len(coeffs))]).n(53)
+            sage: sum([coeffs[k] * ZZ(k)^(-10) for k in range(1,len(coeffs))]).n(53)
             1.00935215408...
             sage: L(10)
             1.00935215649...
@@ -246,7 +243,7 @@ class FormsElement(FormsRingElement):
             sage: L(1).prec()
             200
             sage: coeffs = f.q_expansion_vector(min_exp=0, max_exp=20, fix_d=True)
-            sage: sum([coeffs[k]*k^(-10) for k in range(1,len(coeffs))]).n(53)
+            sage: sum([coeffs[k] * ZZ(k)^(-10) for k in range(1,len(coeffs))]).n(53)
             24.2281438789...
             sage: L(10).n(53)
             24.2281439447...
@@ -263,16 +260,17 @@ class FormsElement(FormsRingElement):
             sage: L(10).n(53)
             -13.0290184579...
 
-            sage: f = (ModularForms(n=17, k=24).Delta()^2)    # long time
-            sage: L = f.lseries()    # long time
-            sage: L.check_functional_equation() < 2^(-50)    # long time
+            sage: # long time
+            sage: f = (ModularForms(n=17, k=24).Delta()^2)
+            sage: L = f.lseries()
+            sage: L.check_functional_equation() < 2^(-50)
             True
-            sage: L.taylor_series(12, 3)    # long time
+            sage: L.taylor_series(12, 3)
             0.000683924755280... - 0.000875942285963...*z + 0.000647618966023...*z^2 + O(z^3)
-            sage: coeffs = f.q_expansion_vector(min_exp=0, max_exp=20, fix_d=True)    # long time
-            sage: sum([coeffs[k]*k^(-30) for k in range(1,len(coeffs))]).n(53)    # long time
+            sage: coeffs = f.q_expansion_vector(min_exp=0, max_exp=20, fix_d=True)
+            sage: sum([coeffs[k]*k^(-30) for k in range(1,len(coeffs))]).n(53)
             9.31562890589...e-10
-            sage: L(30).n(53)    # long time
+            sage: L(30).n(53)
             9.31562890589...e-10
 
             sage: f = ModularForms(n=infinity, k=2, ep=-1).f_i()
@@ -282,25 +280,24 @@ class FormsElement(FormsRingElement):
             sage: L.taylor_series(1, 3)
             0.000000000000... + 5.76543616701...*z + 9.92776715593...*z^2 + O(z^3)
             sage: coeffs = f.q_expansion_vector(min_exp=0, max_exp=20, fix_d=True)
-            sage: sum([coeffs[k]*k^(-10) for k in range(1,len(coeffs))]).n(53)
+            sage: sum([coeffs[k] * ZZ(k)^(-10) for k in range(1,len(coeffs))]).n(53)
             -23.9781792831...
             sage: L(10).n(53)
             -23.9781792831...
         """
-
-        from sage.rings.all import ZZ
-        from sage.symbolic.all import pi
-        from sage.functions.other import sqrt
+        from sage.rings.integer_ring import ZZ
+        from sage.symbolic.constants import pi
+        from sage.misc.functional import sqrt
         from sage.lfunctions.dokchitser import Dokchitser
 
         if (not (self.is_modular() and self.is_holomorphic()) or self.weight() == 0):
             raise NotImplementedError("L-series are only implemented for non-trivial holomorphic modular forms.")
 
-        if (num_prec is None):
+        if num_prec is None:
             num_prec = self.parent().default_num_prec()
 
         conductor = self.group().lam()**2
-        if (self.group().is_arithmetic()):
+        if self.group().is_arithmetic():
             conductor = ZZ(conductor)
         else:
             conductor = conductor.n(num_prec)
@@ -310,13 +307,13 @@ class FormsElement(FormsRingElement):
         eps = self.ep()
 
         # L^*(s) = cor_factor * (2*pi)^(-s)gamma(s)*L(f,s),
-        cor_factor = (2*sqrt(pi)).n(num_prec)
+        cor_factor = (2 * sqrt(pi)).n(num_prec)
 
-        if (self.is_cuspidal()):
+        if self.is_cuspidal():
             poles = []
             residues = []
         else:
-            poles = [ weight ]
+            poles = [weight]
             val_inf = self.q_expansion_fixed_d(prec=1, d_num_prec=num_prec)[0]
             residue = eps * val_inf * cor_factor
 
@@ -325,24 +322,26 @@ class FormsElement(FormsRingElement):
             # the residue pari expects (?!?).
             residue *= -1
 
-            residues = [ residue ]
+            residues = [residue]
 
-        L = Dokchitser(conductor = conductor,
-                          gammaV = gammaV,
-                          weight = weight,
-                             eps = eps,
-                           poles = poles,
-                        residues = residues,
-                            prec = num_prec)
+        L = Dokchitser(conductor=conductor,
+                       gammaV=gammaV,
+                       weight=weight,
+                       eps=eps,
+                       poles=poles,
+                       residues=residues,
+                       prec=num_prec)
 
         # TODO for later: Figure out the correct coefficient growth and do L.set_coeff_growth(...)
 
-        # num_coeffs = L.num_coeffs()
-        num_coeffs = L.num_coeffs(1.2)
-        coeff_vector = [coeff for coeff in self.q_expansion_vector(min_exp=0, max_exp=num_coeffs + 1, fix_d=True)]
+        # n_coeffs = L.cost()
+        n_coeffs = L.cost(1.2)
+        coeff_vector = list(self.q_expansion_vector(min_exp=0, max_exp=n_coeffs + 1, fix_d=True))
         pari_precode = "coeff = {};".format(coeff_vector)
 
-        L.init_coeffs(v = "coeff[k+1]", pari_precode = pari_precode, max_imaginary_part = max_imaginary_part, max_asymp_coeffs = max_asymp_coeffs)
+        L.init_coeffs(v="coeff[k+1]", pari_precode=pari_precode,
+                      max_imaginary_part=max_imaginary_part,
+                      max_asymp_coeffs=max_asymp_coeffs)
         L.check_functional_equation()
         L.rename("L-series associated to the {} form {}".format("cusp" if self.is_cuspidal() else "modular", self))
 

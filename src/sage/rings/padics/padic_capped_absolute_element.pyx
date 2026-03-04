@@ -1,7 +1,7 @@
 """
-`p`-Adic Capped Absolute Elements
+`p`-adic Capped Absolute Elements
 
-Elements of `p`-Adic Rings with Absolute Precision Cap
+Elements of `p`-adic Rings with Absolute Precision Cap
 
 AUTHORS:
 
@@ -9,8 +9,7 @@ AUTHORS:
 - Genya Zaytman: documentation
 - David Harvey: doctests
 """
-
-#*****************************************************************************
+# ****************************************************************************
 #       Copyright (C) 2007-2013 David Roe <roed.math@gmail.com>
 #                               William Stein <wstein@gmail.com>
 #
@@ -18,23 +17,22 @@ AUTHORS:
 #  as published by the Free Software Foundation; either version 2 of
 #  the License, or (at your option) any later version.
 #
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
-
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 include "sage/libs/linkages/padics/mpz.pxi"
 include "CA_template.pxi"
 
 from sage.libs.pari.convert_gmp cimport new_gen_from_padic
 from sage.rings.finite_rings.integer_mod import Mod
 
-cdef extern from "sage/rings/padics/transcendantal.c":
+cdef extern from "transcendental.c":
     cdef void padiclog(mpz_t ans, const mpz_t a, unsigned long p, unsigned long prec, const mpz_t modulo)
     cdef void padicexp(mpz_t ans, const mpz_t a, unsigned long p, unsigned long prec, const mpz_t modulo)
     cdef void padicexp_Newton(mpz_t ans, const mpz_t a, unsigned long p, unsigned long prec, unsigned long precinit, const mpz_t modulo)
 
 cdef class PowComputer_(PowComputer_base):
     """
-    A PowComputer for a capped-absolute padic ring.
+    A PowComputer for a capped-absolute `p`-adic ring.
     """
     def __init__(self, Integer prime, long cache_limit, long prec_cap, long ram_prec_cap, bint in_field):
         """
@@ -44,7 +42,7 @@ cdef class PowComputer_(PowComputer_base):
 
             sage: R = ZpCA(5)
             sage: type(R.prime_pow)
-            <type 'sage.rings.padics.padic_capped_absolute_element.PowComputer_'>
+            <class 'sage.rings.padics.padic_capped_absolute_element.PowComputer_'>
             sage: R.prime_pow._prec_type
             'capped-abs'
         """
@@ -53,7 +51,7 @@ cdef class PowComputer_(PowComputer_base):
 
 cdef class pAdicCappedAbsoluteElement(CAElement):
     """
-    Constructs new element with given parent and value.
+    Construct new element with given parent and value.
 
     INPUT:
 
@@ -89,6 +87,8 @@ cdef class pAdicCappedAbsoluteElement(CAElement):
     """
     def lift(self):
         """
+        EXAMPLES::
+
             sage: R = ZpCA(3)
             sage: R(10).lift()
             10
@@ -103,7 +103,7 @@ cdef class pAdicCappedAbsoluteElement(CAElement):
 
         TESTS::
 
-            sage: ZpCA(3,3)(1/4).lift() # indirect doctest
+            sage: ZpCA(3,3)(1/4).lift()  # indirect doctest
             7
         """
         cdef Integer ans = Integer.__new__(Integer)
@@ -117,28 +117,28 @@ cdef class pAdicCappedAbsoluteElement(CAElement):
         EXAMPLES::
 
             sage: R = ZpCA(5)
-            sage: pari(R(1777)) #indirect doctest
+            sage: pari(R(1777))  # indirect doctest                                     # needs sage.libs.pari
             2 + 5^2 + 4*5^3 + 2*5^4 + O(5^20)
-            sage: pari(R(0,0))
+            sage: pari(R(0,0))                                                          # needs sage.libs.pari
             O(5^0)
         """
         return self._to_gen()
 
     cdef pari_gen _to_gen(self):
         """
-        Converts this element to an equivalent pari element.
+        Convert this element to an equivalent pari element.
 
         EXAMPLES::
 
-            sage: R = ZpCA(5, 10); a = R(17); pari(a) #indirect doctest
+            sage: R = ZpCA(5, 10); a = R(17); pari(a)  # indirect doctest
             2 + 3*5 + O(5^10)
-            sage: pari(R(0,5))
+            sage: pari(R(0,5))                                                          # needs sage.libs.pari
             O(5^5)
-            sage: pari(R(0,5)).debug()
+            sage: pari(R(0,5)).debug()                                                  # needs sage.libs.pari
             [&=...] PADIC(lg=5):... (precp=0,valp=5):... ... ... ...
-                p : [&=...] INT(lg=3):... (+,lgefint=3):... ... 
-              p^l : [&=...] INT(lg=3):... (+,lgefint=3):... ... 
-                I : [&=...] INT(lg=2):... (0,lgefint=2):... 
+                p : [&=...] INT(lg=3):... (+,lgefint=3):... ...
+              p^l : [&=...] INT(lg=3):... (+,lgefint=3):... ...
+                I : gen_0
         """
         cdef long val
         # Let val be the valuation of self, holder (defined in the
@@ -156,7 +156,7 @@ cdef class pAdicCappedAbsoluteElement(CAElement):
 
     def _integer_(self, Z=None):
         r"""
-        Converts this element to an integer.
+        Convert this element to an integer.
 
         TESTS::
 
@@ -167,13 +167,20 @@ cdef class pAdicCappedAbsoluteElement(CAElement):
         """
         return self.lift_c()
 
-    def residue(self, absprec=1):
+    def residue(self, absprec=1, field=None, check_prec=True):
         r"""
         Reduces ``self`` modulo `p^\mathrm{absprec}`.
 
         INPUT:
 
-        - ``absprec`` - a non-negative integer (default: 1)
+        - ``absprec`` -- nonnegative integer (default: 1)
+
+        - ``field`` -- boolean (default: ``None``); whether to return an
+          element of GF(p) or Zmod(p)
+
+        - ``check_prec`` -- boolean (default: ``True``); whether to raise an
+          error if this element has insufficient precision to determine the
+          reduction
 
         OUTPUT:
 
@@ -195,7 +202,7 @@ cdef class pAdicCappedAbsoluteElement(CAElement):
             sage: b.parent()
             Ring of integers modulo 49
             sage: c = a % 7^2; c
-            1 + 7 + O(7^8)
+            1 + 7 + O(7^10)
             sage: c.parent()
             7-adic Ring with capped absolute precision 10
 
@@ -212,36 +219,49 @@ cdef class pAdicCappedAbsoluteElement(CAElement):
             sage: a.residue(-1)
             Traceback (most recent call last):
             ...
-            ValueError: cannot reduce modulo a negative power of p.
+            ValueError: cannot reduce modulo a negative power of p
             sage: a.residue(11)
             Traceback (most recent call last):
             ...
-            PrecisionError: not enough precision known in order to compute residue.
+            PrecisionError: not enough precision known in order to compute residue
+            sage: a.residue(5, check_prec=False)
+            8
+
+            sage: a.residue(field=True).parent()
+            Finite Field of size 7
 
         .. SEEALSO::
 
             :meth:`_mod_`
-
         """
         if not isinstance(absprec, Integer):
             absprec = Integer(absprec)
-        if mpz_cmp_si((<Integer>absprec).value, self.absprec) > 0:
-            raise PrecisionError("not enough precision known in order to compute residue.")
+        if check_prec and mpz_cmp_si((<Integer>absprec).value, self.absprec) > 0:
+            raise PrecisionError("not enough precision known in order to compute residue")
         elif mpz_sgn((<Integer>absprec).value) < 0:
-            raise ValueError("cannot reduce modulo a negative power of p.")
+            raise ValueError("cannot reduce modulo a negative power of p")
+        if field is None:
+            field = (absprec == 1)
+        elif field and absprec != 1:
+            raise ValueError("field keyword may only be set at precision 1")
         cdef long aprec = mpz_get_ui((<Integer>absprec).value)
         cdef Integer modulus = Integer.__new__(Integer)
         mpz_set(modulus.value, self.prime_pow.pow_mpz_t_tmp(aprec))
         cdef Integer selfvalue = Integer.__new__(Integer)
         mpz_set(selfvalue.value, self.value)
-        return Mod(selfvalue, modulus)
+        if field:
+            from sage.rings.finite_rings.finite_field_constructor import GF
+            return GF(self.parent().prime())(selfvalue)
+        else:
+            return Mod(selfvalue, modulus)
 
     def multiplicative_order(self):
         r"""
-        Returns the minimum possible multiplicative order of this element.
+        Return the minimum possible multiplicative order of this element.
 
         OUTPUT:
-        the multiplicative order of self.  This is the minimum multiplicative
+
+        The multiplicative order of ``self``.  This is the minimum multiplicative
         order of all elements of `\ZZ_p` lifting ``self`` to infinite
         precision.
 
@@ -287,24 +307,24 @@ cdef class pAdicCappedAbsoluteElement(CAElement):
 
     def _log_binary_splitting(self, aprec, mina=0):
         r"""
-        Return ``\log(self)`` for ``self`` equal to 1 in the residue field
+        Return ``\log(self)`` for ``self`` equal to 1 in the residue field.
 
         This is a helper method for :meth:`log`.
         It uses a fast binary splitting algorithm.
 
         INPUT:
 
-        - ``aprec`` -- an integer, the precision to which the result is
+        - ``aprec`` -- integer; the precision to which the result is
           correct. ``aprec`` must not exceed the precision cap of the ring over
           which this element is defined.
-        - ``mina`` -- an integer (default: 0), the series will check `n` up to
+        - ``mina`` -- integer (default: 0); the series will check `n` up to
           this valuation (and beyond) to see if they can contribute to the
-          series.
+          series
 
-        NOTE::
+        .. NOTE::
 
             The function does not check that its argument ``self`` is
-            1 in the residue field. If this assumption is not fullfiled
+            1 in the residue field. If this assumption is not fulfilled
             the behaviour of the function is not specified.
 
         ALGORITHM:
@@ -344,16 +364,15 @@ cdef class pAdicCappedAbsoluteElement(CAElement):
 
             sage: r = Zp(5,prec=4,type='fixed-mod')(6)
             sage: r._log_binary_splitting(5)
-            5 + 2*5^2 + 4*5^3 + O(5^4)
-
+            5 + 2*5^2 + 4*5^3
         """
         cdef unsigned long p
         cdef unsigned long prec = min(aprec, self.absprec)
         cdef pAdicCappedAbsoluteElement ans, unit
 
         if mpz_fits_slong_p(self.prime_pow.prime.value) == 0:
-            raise NotImplementedError("The prime %s does not fit in a long" % self.prime_pow.prime)
-        p = self.prime_pow.prime      
+            raise NotImplementedError("the prime %s does not fit in a long" % self.prime_pow.prime)
+        p = self.prime_pow.prime
 
         ans = self._new_c()
         ans.absprec = prec
@@ -365,21 +384,21 @@ cdef class pAdicCappedAbsoluteElement(CAElement):
         return ans
 
     def _exp_binary_splitting(self, aprec):
-        """
-        Compute the exponential power series of this element
+        r"""
+        Compute the exponential power series of this element.
 
         This is a helper method for :meth:`exp`.
 
         INPUT:
 
-        - ``aprec`` -- an integer, the precision to which to compute the
+        - ``aprec`` -- integer; the precision to which to compute the
           exponential
 
-        NOTE::
+        .. NOTE::
 
             The function does not check that its argument ``self`` is
             the disk of convergence of ``exp``. If this assumption is not
-            fullfiled the behaviour of the function is not specified.
+            fulfilled the behaviour of the function is not specified.
 
         ALGORITHM:
 
@@ -404,16 +423,15 @@ cdef class pAdicCappedAbsoluteElement(CAElement):
 
             sage: R = Zp(7,5)
             sage: x = R(7)
-            sage: x.exp(algorithm="binary_splitting")   # indirect doctest
+            sage: x.exp(algorithm='binary_splitting')   # indirect doctest
             1 + 7 + 4*7^2 + 2*7^3 + O(7^5)
-
         """
         cdef unsigned long p
         cdef unsigned long prec = aprec
         cdef pAdicCappedAbsoluteElement ans
 
         if mpz_fits_slong_p(self.prime_pow.prime.value) == 0:
-            raise NotImplementedError("The prime %s does not fit in a long" % self.prime_pow.prime)
+            raise NotImplementedError("the prime %s does not fit in a long" % self.prime_pow.prime)
         p = self.prime_pow.prime
 
         ans = self._new_c()
@@ -425,26 +443,26 @@ cdef class pAdicCappedAbsoluteElement(CAElement):
         return ans
 
     def _exp_newton(self, aprec, log_algorithm=None):
-        """
-        Compute the exponential power series of this element
+        r"""
+        Compute the exponential power series of this element.
 
         This is a helper method for :meth:`exp`.
 
         INPUT:
 
-        - ``aprec`` -- an integer, the precision to which to compute the
+        - ``aprec`` -- integer; the precision to which to compute the
           exponential
 
-        - ``log_algorithm`` (default: None) -- the algorithm used for
+        - ``log_algorithm`` -- (default: ``None``) the algorithm used for
           computing the logarithm. This attribute is passed to the log
           method. See :meth:`log` for more details about the possible
           algorithms.
 
-        NOTE::
+        .. NOTE::
 
             The function does not check that its argument ``self`` is
             the disk of convergence of ``exp``. If this assumption is not
-            fullfiled the behaviour of the function is not specified.
+            fulfilled the behaviour of the function is not specified.
 
         ALGORITHM:
 
@@ -459,9 +477,10 @@ cdef class pAdicCappedAbsoluteElement(CAElement):
 
         EXAMPLES::
 
+            sage: # needs sage.libs.ntl
             sage: R.<w> = Zq(7^2,5)
             sage: x = R(7*w)
-            sage: x.exp(algorithm="newton")   # indirect doctest
+            sage: x.exp(algorithm='newton')   # indirect doctest
             1 + w*7 + (4*w + 2)*7^2 + (w + 6)*7^3 + 5*7^4 + O(7^5)
         """
         cdef unsigned long p
@@ -469,7 +488,7 @@ cdef class pAdicCappedAbsoluteElement(CAElement):
         cdef pAdicCappedAbsoluteElement ans
 
         if mpz_fits_slong_p(self.prime_pow.prime.value) == 0:
-            raise NotImplementedError("The prime %s does not fit in a long" % self.prime_pow.prime)
+            raise NotImplementedError("the prime %s does not fit in a long" % self.prime_pow.prime)
         p = self.prime_pow.prime
 
         ans = self._new_c()

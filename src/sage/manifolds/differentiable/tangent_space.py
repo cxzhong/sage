@@ -12,7 +12,6 @@ AUTHORS:
 REFERENCES:
 
 - Chap. 3 of [Lee2013]_
-
 """
 
 #******************************************************************************
@@ -24,10 +23,17 @@ REFERENCES:
 #  the License, or (at your option) any later version.
 #                  http://www.gnu.org/licenses/
 #******************************************************************************
+from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
+from sage.manifolds.differentiable.tangent_vector import TangentVector
 from sage.symbolic.ring import SR
 from sage.tensor.modules.finite_rank_free_module import FiniteRankFreeModule
-from sage.manifolds.differentiable.tangent_vector import TangentVector
+
+if TYPE_CHECKING:
+    from sage.manifolds.point import ManifoldPoint
+
 
 class TangentSpace(FiniteRankFreeModule):
     r"""
@@ -70,10 +76,10 @@ class TangentSpace(FiniteRankFreeModule):
     vector frames around the point::
 
         sage: Tp.bases()
-        [Basis (d/dx,d/dy) on the Tangent space at Point p on the 2-dimensional
+        [Basis (∂/∂x,∂/∂y) on the Tangent space at Point p on the 2-dimensional
          differentiable manifold M]
         sage: M.frames()
-        [Coordinate frame (M, (d/dx,d/dy))]
+        [Coordinate frame (M, (∂/∂x,∂/∂y))]
 
     At this stage, only one basis has been defined in the tangent space, but
     new bases can be added from vector frames on the manifold by means of the
@@ -82,12 +88,12 @@ class TangentSpace(FiniteRankFreeModule):
 
         sage: c_uv.<u,v> = M.chart()
         sage: c_uv.frame().at(p)
-        Basis (d/du,d/dv) on the Tangent space at Point p on the 2-dimensional
+        Basis (∂/∂u,∂/∂v) on the Tangent space at Point p on the 2-dimensional
          differentiable manifold M
         sage: Tp.bases()
-        [Basis (d/dx,d/dy) on the Tangent space at Point p on the 2-dimensional
+        [Basis (∂/∂x,∂/∂y) on the Tangent space at Point p on the 2-dimensional
          differentiable manifold M,
-         Basis (d/du,d/dv) on the Tangent space at Point p on the 2-dimensional
+         Basis (∂/∂u,∂/∂v) on the Tangent space at Point p on the 2-dimensional
          differentiable manifold M]
 
     All the bases defined on ``Tp`` are on the same footing. Accordingly the
@@ -114,7 +120,7 @@ class TangentSpace(FiniteRankFreeModule):
         Tangent vector at Point p on the
          2-dimensional differentiable manifold M
         sage: v.display()
-        d/dx + 2 d/dy
+        ∂/∂x + 2 ∂/∂y
         sage: v.parent()
         Tangent space at Point p on the
          2-dimensional differentiable manifold M
@@ -162,15 +168,71 @@ class TangentSpace(FiniteRankFreeModule):
         sage: p2 == p
         True
 
+    An isomorphism of the tangent space with an inner product space with distinguished basis::
+
+        sage: g = M.metric('g')
+        sage: g[:] = ((1, 0), (0, 1))
+        sage: Q_Tp_xy = g[c_xy.frame(),:](*p.coordinates(c_xy)); Q_Tp_xy
+        [1 0]
+        [0 1]
+        sage: W_Tp_xy = VectorSpace(SR, 2, inner_product_matrix=Q_Tp_xy)
+        sage: Tp.bases()[0]
+        Basis (∂/∂x,∂/∂y) on the Tangent space at Point p on the
+         2-dimensional differentiable manifold M
+        sage: phi_Tp_xy = Tp.isomorphism_with_fixed_basis(Tp.bases()[0], codomain=W_Tp_xy)
+        sage: phi_Tp_xy
+        Generic morphism:
+         From: Tangent space at Point p on the 2-dimensional differentiable manifold M
+         To:   Ambient quadratic space of dimension 2 over Symbolic Ring
+               Inner product matrix:
+               [1 0]
+               [0 1]
+
+        sage: Q_Tp_uv = g[c_uv.frame(),:](*p.coordinates(c_uv)); Q_Tp_uv
+        [1/2   0]
+        [  0 1/2]
+        sage: W_Tp_uv = VectorSpace(SR, 2, inner_product_matrix=Q_Tp_uv)
+        sage: Tp.bases()[1]
+        Basis (∂/∂u,∂/∂v) on the Tangent space at Point p on the
+         2-dimensional differentiable manifold M
+        sage: phi_Tp_uv = Tp.isomorphism_with_fixed_basis(Tp.bases()[1], codomain=W_Tp_uv)
+        sage: phi_Tp_uv
+        Generic morphism:
+         From: Tangent space at Point p on the 2-dimensional differentiable manifold M
+         To:   Ambient quadratic space of dimension 2 over Symbolic Ring
+               Inner product matrix:
+               [1/2   0]
+               [  0 1/2]
+
+        sage: t1, t2 = Tp.tensor((1,0)), Tp.tensor((1,0))
+        sage: t1[:] = (8, 15)
+        sage: t2[:] = (47, 11)
+        sage: t1[Tp.bases()[0],:]
+        [8, 15]
+        sage: phi_Tp_xy(t1), phi_Tp_xy(t2)
+        ((8, 15), (47, 11))
+        sage: phi_Tp_xy(t1).inner_product(phi_Tp_xy(t2))
+        541
+
+        sage: Tp_xy_to_uv = M.change_of_frame(c_xy.frame(), c_uv.frame()).at(p); Tp_xy_to_uv
+        Automorphism of the Tangent space at Point p on the
+         2-dimensional differentiable manifold M
+        sage: Tp.set_change_of_basis(Tp.bases()[0], Tp.bases()[1], Tp_xy_to_uv)
+        sage: t1[Tp.bases()[1],:]
+        [23, -7]
+        sage: phi_Tp_uv(t1), phi_Tp_uv(t2)
+        ((23, -7), (58, 36))
+        sage: phi_Tp_uv(t1).inner_product(phi_Tp_uv(t2))
+        541
+
     .. SEEALSO::
 
         :class:`~sage.tensor.modules.finite_rank_free_module.FiniteRankFreeModule`
         for more documentation.
-
     """
     Element = TangentVector
 
-    def __init__(self, point):
+    def __init__(self, point: ManifoldPoint, base_ring=None):
         r"""
         Construct the tangent space at a given point.
 
@@ -184,14 +246,15 @@ class TangentSpace(FiniteRankFreeModule):
             Tangent space at Point p on the 2-dimensional differentiable
              manifold M
             sage: TestSuite(Tp).run()
-
         """
         manif = point._manifold
         name = "T_{} {}".format(point._name, manif._name)
-        latex_name = r"T_{%s}\,%s"%(point._latex_name, manif._latex_name)
+        latex_name = r"T_{%s}\,%s" % (point._latex_name, manif._latex_name)
         self._point = point
         self._manif = manif
-        FiniteRankFreeModule.__init__(self, SR, manif._dim, name=name,
+        if base_ring is None:
+            base_ring = SR
+        FiniteRankFreeModule.__init__(self, base_ring, manif._dim, name=name,
                                       latex_name=latex_name,
                                       start_index=manif._sindex)
         # Initialization of bases of the tangent space from existing vector
@@ -205,30 +268,13 @@ class TangentSpace(FiniteRankFreeModule):
             # only if it is a frame on the current manifold:
             if frame.destination_map().is_identity():
                 if point in frame._domain:
-                    basis = self.basis(symbol=frame._symbol,
-                                       latex_symbol=frame._latex_symbol)
-                    # Names of basis vectors set to those of the frame vector
-                    # fields:
-                    for i,v in enumerate(frame._vec):
-                        basis._vec[i]._name = v._name
-                        basis._vec[i]._latex_name = v._latex_name
-                    basis._name = "({})".format(
-                                         ",".join(v._name for v in basis._vec))
-                    basis._latex_name = r"\left({}\right)".format(
-                                   ",".join(v._latex_name for v in basis._vec))
-                    basis._symbol = basis._name
-                    basis._latex_symbol = basis._latex_name
-                    # Names of cobasis linear forms set to those of the coframe
-                    # 1-forms:
                     coframe = frame.coframe()
-                    cobasis = basis.dual_basis()
-                    for i,f in enumerate(coframe._form):
-                        cobasis._form[i]._name = f._name
-                        cobasis._form[i]._latex_name = f._latex_name
-                    cobasis._name = "({})".format(
-                                      ",".join(f._name for f in cobasis._form))
-                    cobasis._latex_name = r"\left({}\right)".format(
-                                ",".join(f._latex_name for f in cobasis._form))
+                    basis = self.basis(frame._symbol,
+                                       latex_symbol=frame._latex_symbol,
+                                       indices=frame._indices,
+                                       latex_indices=frame._latex_indices,
+                                       symbol_dual=coframe._symbol,
+                                       latex_symbol_dual=coframe._latex_symbol)
                     self._frame_bases[frame] = basis
         # The basis induced by the default frame of the manifold subset
         # in which the point has been created is declared the default
@@ -262,12 +308,25 @@ class TangentSpace(FiniteRankFreeModule):
                             if frame is frame2:
                                 basis = basis2
                             if basis is not None:
-                                cauto = auto.add_comp(basis)
+                                cauto = auto.add_comp(basis=basis)
                                 for ind, val in comp._comp.items():
                                     cauto._comp[ind] = val(point)
                         except ValueError:
                             pass
                     self._basis_changes[(basis1, basis2)] = auto
+
+    def construction(self):
+        """
+        TESTS::
+
+            sage: M = Manifold(2, 'M')
+            sage: X.<x,y> = M.chart()
+            sage: p = M.point((3,-2), name='p')
+            sage: Tp = M.tangent_space(p)
+            sage: Tp.construction() is None
+            True
+        """
+        return None
 
     def _repr_(self):
         r"""
@@ -282,7 +341,6 @@ class TangentSpace(FiniteRankFreeModule):
             sage: Tp
             Tangent space at Point p on the
              2-dimensional differentiable manifold M
-
         """
         return "Tangent space at {}".format(self._point)
 
@@ -300,8 +358,7 @@ class TangentSpace(FiniteRankFreeModule):
             Tangent vector at Point p on the 2-dimensional differentiable
              manifold M
             sage: Tp._an_element_().display()
-            d/dx + 2 d/dy
-
+            ∂/∂x + 2 ∂/∂y
         """
         resu = self.element_class(self)
         if self._def_basis is not None:
@@ -330,7 +387,6 @@ class TangentSpace(FiniteRankFreeModule):
 
             sage: dim(Tp)
             2
-
         """
         # The dimension is the rank of self as a free module:
         return self._rank
@@ -351,7 +407,5 @@ class TangentSpace(FiniteRankFreeModule):
             Point p on the 2-dimensional differentiable manifold M
             sage: Tp.base_point() is p
             True
-
         """
         return self._point
-

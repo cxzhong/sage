@@ -58,8 +58,7 @@ point d'interrogation :
             sage: maxima(log2).float()
             .6931471805599453
             sage: gp(log2)
-            0.6931471805599453094172321215             # 32-bit
-            0.69314718055994530941723212145817656807   # 64-bit
+            0.693147180559945309417232121...
     sage: sudoku?
     File:        sage/local/lib/python2.5/site-packages/sage/games/sudoku.py
     Type:        <... 'function'>
@@ -258,20 +257,8 @@ et des cubes en trois colonnes, chacune d'une largeur de six caractères.
          4     16     64
 
 La structure de données de base de Sage est la liste, qui est — comme
-son nom l'indique — une liste d'objets arbitraires. Par exemple, la
-commande ``range`` que nous avons utilisée plus haut crée en fait une
-liste (en python 2):
-
-::
-
-    sage: range(2,10)   # optional - python2
-    [2, 3, 4, 5, 6, 7, 8, 9]
-    sage: list(range(2,10))   # optional - python3
-    [2, 3, 4, 5, 6, 7, 8, 9]
-
-Voici un exemple plus compliqué de liste :
-
-::
+son nom l'indique — une liste d'objets arbitraires. Voici un exemple
+de liste::
 
     sage: v = [1, "hello", 2/3, sin(x^3)]
     sage: v

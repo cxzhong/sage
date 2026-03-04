@@ -6,13 +6,12 @@ AUTHORS:
 - Travis Scrimshaw (2013-10-15)
 """
 
-#*****************************************************************************
+# ****************************************************************************
 #  Copyright (C) 2013 Travis Scrimshaw <tscrim at ucdavis.edu>
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
-from six import integer_types
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
 from copy import copy
 from sage.misc.abstract_method import abstract_method
@@ -29,10 +28,9 @@ from sage.categories.poor_man_map import PoorManMap
 from sage.categories.sets_cat import Sets
 from sage.rings.integer import Integer
 from sage.rings.infinity import infinity
-from sage.rings.all import ZZ
-from sage.sets.finite_enumerated_set import FiniteEnumeratedSet
+from sage.rings.integer_ring import ZZ
 from sage.sets.family import Family
-from six import iteritems
+
 
 class IndexedMonoidElement(MonoidElement):
     """
@@ -51,7 +49,7 @@ class IndexedMonoidElement(MonoidElement):
     the result of :meth:`_sorted_items` (which for abelian free monoids is
     influenced by the order on the indexing set).
     """
-    def __init__(self, F, x):
+    def __init__(self, F, x) -> None:
         """
         Create the element ``x`` of an indexed free abelian monoid ``F``.
 
@@ -94,7 +92,7 @@ class IndexedMonoidElement(MonoidElement):
             :meth:`_repr_`, :meth:`_latex_`, :meth:`print_options`
         """
 
-    def _repr_(self):
+    def _repr_(self) -> str:
         """
         Return a string representation of ``self``.
 
@@ -113,8 +111,9 @@ class IndexedMonoidElement(MonoidElement):
 
         scalar_mult = P._print_options['scalar_mult']
 
-        exp = lambda v: '^{}'.format(v) if v != 1 else ''
-        return scalar_mult.join(P._repr_generator(g) + exp(v) for g,v in monomial)
+        return scalar_mult.join(P._repr_generator(g)
+                                + (f'^{v}' if v != 1 else '')
+                                for g, v in monomial)
 
     def _ascii_art_(self):
         r"""
@@ -142,12 +141,14 @@ class IndexedMonoidElement(MonoidElement):
         scalar_mult = P._print_options['scalar_mult']
 
         if all(x[1] == 1 for x in monomial):
-            ascii_art_gen = lambda m: P._ascii_art_generator(m[0])
+            def ascii_art_gen(m):
+                return P._ascii_art_generator(m[0])
         else:
             pref = AsciiArt([P.prefix()])
+
             def ascii_art_gen(m):
                 if m[1] != 1:
-                    r = (AsciiArt([" "**Integer(len(pref))]) + ascii_art(m[1]))
+                    r = (AsciiArt([" " * len(pref)]) + ascii_art(m[1]))
                 else:
                     r = empty_ascii_art
                 r = r * P._ascii_art_generator(m[0])
@@ -158,7 +159,7 @@ class IndexedMonoidElement(MonoidElement):
             b = b + AsciiArt([scalar_mult]) + ascii_art_gen(x)
         return b
 
-    def _latex_(self):
+    def _latex_(self) -> str:
         r"""
         Return a `\LaTeX` representation of ``self``.
 
@@ -181,8 +182,9 @@ class IndexedMonoidElement(MonoidElement):
             if scalar_mult == "*":
                 scalar_mult = " "
 
-        exp = lambda v: '^{{{}}}'.format(v) if v != 1 else ''
-        return scalar_mult.join(P._latex_generator(g) + exp(v) for g,v in monomial)
+        return scalar_mult.join(P._latex_generator(g)
+                                + (f'^{{{v}}}' if v != 1 else '')
+                                for g, v in monomial)
 
     def __iter__(self):
         """
@@ -202,11 +204,12 @@ class IndexedMonoidElement(MonoidElement):
             sage: list(b*c^3*a)
             [(F[0], 1), (F[1], 1), (F[2], 3)]
         """
-        return ((self.parent().gen(index), exp) for (index,exp) in self._sorted_items())
+        return ((self.parent().gen(index), exp)
+                for (index, exp) in self._sorted_items())
 
-    def _richcmp_(self, other, op):
+    def _richcmp_(self, other, op) -> bool:
         r"""
-        Comparisons
+        Comparisons.
 
         TESTS::
 
@@ -269,10 +272,10 @@ class IndexedMonoidElement(MonoidElement):
             return rich_to_bool(op, 1)
         return richcmp(self.to_word_list(), other.to_word_list(), op)
 
-    def support(self):
+    def support(self) -> list:
         """
         Return a list of the objects indexing ``self`` with
-        non-zero exponents.
+        nonzero exponents.
 
         EXAMPLES::
 
@@ -288,8 +291,12 @@ class IndexedMonoidElement(MonoidElement):
             sage: (a*c^3).support()
             [0, 2]
         """
-        supp = set([key for key, exp in self._sorted_items() if exp != 0])
-        return sorted(supp)
+        supp = {key for key, exp in self._sorted_items() if exp}
+        try:
+            return sorted(supp, key=print_options['sorting_key'],
+                          reverse=print_options['sorting_reverse'])
+        except Exception:  # Sorting the output is a plus, but if we can't, no big deal
+            return list(supp)
 
     def leading_support(self):
         """
@@ -335,7 +342,7 @@ class IndexedMonoidElement(MonoidElement):
             return None
         return self._sorted_items()[-1][0]
 
-    def to_word_list(self):
+    def to_word_list(self) -> list:
         """
         Return ``self`` as a word represented as a list whose entries
         are indices of ``self``.
@@ -354,13 +361,38 @@ class IndexedMonoidElement(MonoidElement):
             sage: (b*c^3*a).to_word_list()
             [0, 1, 2, 2, 2]
         """
-        return [k for k,e in self._sorted_items() for dummy in range(e)]
+        return [k for k, e in self._sorted_items() for _ in range(e)]
+
+    def is_one(self) -> bool:
+        """
+        Return if ``self`` is the identity element.
+
+        EXAMPLES::
+
+            sage: F = FreeMonoid(index_set=ZZ)
+            sage: a,b,c,d,e = [F.gen(i) for i in range(5)]
+            sage: (b*a*c^3*a).is_one()
+            False
+            sage: F.one().is_one()
+            True
+
+        ::
+
+            sage: F = FreeAbelianMonoid(index_set=ZZ)
+            sage: a,b,c,d,e = [F.gen(i) for i in range(5)]
+            sage: (b*c^3*a).is_one()
+            False
+            sage: F.one().is_one()
+            True
+        """
+        return not self._monomial
+
 
 class IndexedFreeMonoidElement(IndexedMonoidElement):
     """
     An element of an indexed free abelian monoid.
     """
-    def __init__(self, F, x):
+    def __init__(self, F, x) -> None:
         """
         Create the element ``x`` of an indexed free abelian monoid ``F``.
 
@@ -376,17 +408,15 @@ class IndexedFreeMonoidElement(IndexedMonoidElement):
         """
         IndexedMonoidElement.__init__(self, F, tuple(map(tuple, x)))
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         r"""
         TESTS::
 
             sage: F = FreeMonoid(index_set=tuple('abcde'))
-            sage: hash(F ([(1,2),(0,1)]) )
-            2401565693828035651 # 64-bit
-            1164080195          # 32-bit
-            sage: hash(F ([(0,2),(1,1)]) )
-            -3359280905493236379 # 64-bit
-            -1890405019          # 32-bit
+            sage: hash(F ([(1,2),(0,1)]) ) == hash(((1, 2), (0, 1)))
+            True
+            sage: hash(F ([(0,2),(1,1)]) ) == hash(((0, 2), (1, 1)))
+            True
         """
         return hash(self._monomial)
 
@@ -451,7 +481,7 @@ class IndexedFreeMonoidElement(IndexedMonoidElement):
             sage: len(elt)
             7
         """
-        return sum(exp for gen,exp in self._monomial)
+        return sum(exp for gen, exp in self._monomial)
 
     length = __len__
 
@@ -460,7 +490,7 @@ class IndexedFreeAbelianMonoidElement(IndexedMonoidElement):
     """
     An element of an indexed free abelian monoid.
     """
-    def __init__(self, F, x):
+    def __init__(self, F, x) -> None:
         """
         Create the element ``x`` of an indexed free abelian monoid ``F``.
 
@@ -497,25 +527,23 @@ class IndexedFreeAbelianMonoidElement(IndexedMonoidElement):
             :meth:`_repr_`, :meth:`_latex_`, :meth:`print_options`
         """
         print_options = self.parent().print_options()
-        v = self._monomial.items()
+        v = list(self._monomial.items())
         try:
             v.sort(key=print_options['sorting_key'],
                    reverse=print_options['sorting_reverse'])
-        except Exception: # Sorting the output is a plus, but if we can't, no big deal
+        except Exception:  # Sorting the output is a plus, but if we can't, no big deal
             pass
         return v
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         r"""
         TESTS::
 
             sage: F = FreeAbelianMonoid(index_set=ZZ)
-            sage: hash( F([(0,1), (2,2)]) )
-            8087055352805725849 # 64-bit
-            250091161           # 32-bit
-            sage: hash( F([(2,1)]) )
-            5118585357534560720 # 64-bit
-            1683816912          # 32-bit
+            sage: H1 = hash( F([(0,1), (2,2)]) )
+            sage: H2 = hash( F([(2,1)]) )
+            sage: H1 == H2
+            False
         """
         return hash(frozenset(self._monomial.items()))
 
@@ -548,15 +576,16 @@ class IndexedFreeAbelianMonoidElement(IndexedMonoidElement):
             sage: x^0
             1
         """
-        if not isinstance(n, integer_types + (Integer,)):
-            raise TypeError("Argument n (= {}) must be an integer".format(n))
+        if not isinstance(n, (int, Integer)):
+            raise TypeError(f"Argument n (= {n}) must be an integer")
         if n < 0:
-            raise ValueError("Argument n (= {}) must be positive".format(n))
+            raise ValueError(f"Argument n (= {n}) must be positive")
         if n == 1:
             return self
         if n == 0:
             return self.parent().one()
-        return self.__class__(self.parent(), {k:v*n for k,v in iteritems(self._monomial)})
+        return self.__class__(self.parent(),
+                              {k: v * n for k, v in self._monomial.items()})
 
     def __floordiv__(self, elt):
         """
@@ -584,16 +613,40 @@ class IndexedFreeAbelianMonoidElement(IndexedMonoidElement):
             ValueError: invalid cancellation
         """
         d = copy(self._monomial)
-        for k, v in iteritems(elt._monomial):
+        for k, v in elt._monomial.items():
             if k not in d:
                 raise ValueError("invalid cancellation")
-            d[k] -= v
-        for k,v in d.items():
-            if v < 0:
+            diff = d[k] - v
+            if diff < 0:
                 raise ValueError("invalid cancellation")
-            if v == 0:
+            elif diff == 0:
                 del d[k]
+            else:
+                d[k] = diff
         return self.__class__(self.parent(), d)
+
+    def divides(self, m) -> bool:
+        r"""
+        Return whether ``self`` divides ``m``.
+
+        EXAMPLES::
+
+            sage: F = FreeAbelianMonoid(index_set=ZZ)
+            sage: a,b,c,d,e = [F.gen(i) for i in range(5)]
+            sage: elt = a*b*c^3*d^2
+            sage: a.divides(elt)
+            True
+            sage: c.divides(elt)
+            True
+            sage: (a*b*d^2).divides(elt)
+            True
+            sage: (a^4).divides(elt)
+            False
+            sage: e.divides(elt)
+            False
+        """
+        other = m._monomial
+        return all(k in other and v <= other[k] for k, v in self._monomial.items())
 
     def __len__(self):
         """
@@ -609,8 +662,7 @@ class IndexedFreeAbelianMonoidElement(IndexedMonoidElement):
             sage: len(elt)
             7
         """
-        m = self._monomial
-        return sum(m[gen] for gen in m)
+        return sum(self._monomial.values())
 
     length = __len__
 
@@ -626,6 +678,7 @@ class IndexedFreeAbelianMonoidElement(IndexedMonoidElement):
             {0: 1, 2: 3}
         """
         return copy(self._monomial)
+
 
 class IndexedMonoid(Parent, IndexedGenerators, UniqueRepresentation):
     """
@@ -672,10 +725,11 @@ class IndexedMonoid(Parent, IndexedGenerators, UniqueRepresentation):
         if isinstance(latex_bracket, list):
             kwds['latex_bracket'] = tuple(latex_bracket)
 
-        return super(IndexedMonoid, cls).__classcall__(cls, indices, prefix,
-                                                       names=names, **kwds)
+        return super().__classcall__(cls, indices, prefix,
+                                     names=names, **kwds)
 
-    def __init__(self, indices, prefix, category=None, names=None, **kwds):
+    def __init__(self, indices, prefix,
+                 category=None, names=None, **kwds) -> None:
         """
         Initialize ``self``.
 
@@ -705,7 +759,7 @@ class IndexedMonoid(Parent, IndexedGenerators, UniqueRepresentation):
         kwds.pop('key', None)
         IndexedGenerators.__init__(self, indices, prefix, **kwds)
 
-    def _first_ngens(self, n):
+    def _first_ngens(self, n) -> tuple:
         """
         Used by the preparser for ``F.<x> = ...``.
 
@@ -730,14 +784,12 @@ class IndexedMonoid(Parent, IndexedGenerators, UniqueRepresentation):
             sage: F([[1, 3], [-2, 12]])
             F[-2]^12*F[1]^3
             sage: F(-5)
-            Traceback (most recent call last):
-            ...
-            TypeError: unable to convert -5, use gen() instead
+            F[-5]
         """
         if x is None:
             return self.one()
         if x in self._indices:
-            raise TypeError("unable to convert {!r}, use gen() instead".format(x))
+            return self.gen(x)
         return self.element_class(self, x)
 
     def _an_element_(self):
@@ -761,7 +813,7 @@ class IndexedMonoid(Parent, IndexedGenerators, UniqueRepresentation):
             pass
         try:
             g = iter(self._indices)
-            for c in range(1,4):
+            for c in range(1, 4):
                 x *= self.gen(next(g)) ** c
         except Exception:
             pass
@@ -793,7 +845,7 @@ class IndexedMonoid(Parent, IndexedGenerators, UniqueRepresentation):
         return infinity
 
     @cached_method
-    def monoid_generators(self):
+    def monoid_generators(self) -> Family:
         """
         Return the monoid generators of ``self``.
 
@@ -813,6 +865,7 @@ class IndexedMonoid(Parent, IndexedGenerators, UniqueRepresentation):
         return Family(self._indices, self.gen)
 
     gens = monoid_generators
+
 
 class IndexedFreeMonoid(IndexedMonoid):
     """
@@ -839,7 +892,7 @@ class IndexedFreeMonoid(IndexedMonoid):
         sage: F.gen(2) * F.gen(12)
         X|2>*X|12>
     """
-    def _repr_(self):
+    def _repr_(self) -> str:
         """
         Return a string representation of ``self``.
 
@@ -848,7 +901,7 @@ class IndexedFreeMonoid(IndexedMonoid):
             sage: FreeMonoid(index_set=ZZ)
             Free monoid indexed by Integer Ring
         """
-        return "Free monoid indexed by {}".format(self._indices)
+        return f"Free monoid indexed by {self._indices}"
 
     Element = IndexedFreeMonoidElement
 
@@ -888,11 +941,12 @@ class IndexedFreeMonoid(IndexedMonoid):
             IndexError: 0 is not in the index set
         """
         if x not in self._indices:
-            raise IndexError("{} is not in the index set".format(x))
+            raise IndexError(f"{x} is not in the index set")
         try:
-            return self.element_class(self, ((self._indices(x),1),))
-        except (TypeError, NotImplementedError): # Backup (e.g., if it is a string)
-            return self.element_class(self, ((x,1),))
+            return self.element_class(self, ((self._indices(x), ZZ.one()),))
+        except (ValueError, TypeError, NotImplementedError):  # Backup (e.g., if it is a string)
+            return self.element_class(self, ((x, ZZ.one()),))
+
 
 class IndexedFreeAbelianMonoid(IndexedMonoid):
     """
@@ -918,8 +972,13 @@ class IndexedFreeAbelianMonoid(IndexedMonoid):
         sage: F = FreeAbelianMonoid(index_set=Partitions(), prefix='A', bracket=False, scalar_mult='%')
         sage: F.gen([3,1,1]) * F.gen([2,2])
         A[2, 2]%A[3, 1, 1]
+
+    .. TODO::
+
+        Implement a subclass when the index sets is finite that utilizes
+        vectors or the polydict monomials with the index order fixed.
     """
-    def _repr_(self):
+    def _repr_(self) -> str:
         """
         Return a string representation of ``self``.
 
@@ -928,7 +987,7 @@ class IndexedFreeAbelianMonoid(IndexedMonoid):
             sage: FreeAbelianMonoid(index_set=ZZ)
             Free abelian monoid indexed by Integer Ring
         """
-        return "Free abelian monoid indexed by {}".format(self._indices)
+        return f"Free abelian monoid indexed by {self._indices}"
 
     def _element_constructor_(self, x=None):
         """
@@ -955,7 +1014,7 @@ class IndexedFreeAbelianMonoid(IndexedMonoid):
             1
         """
         if isinstance(x, (list, tuple)):
-            d = dict()
+            d = {}
             for k, v in x:
                 if k in d:
                     d[k] += v
@@ -963,7 +1022,7 @@ class IndexedFreeAbelianMonoid(IndexedMonoid):
                     d[k] = v
             x = d
         if isinstance(x, dict):
-            x = {k: v for k, v in iteritems(x) if v != 0}
+            x = {k: v for k, v in x.items() if v != 0}
         return IndexedMonoid._element_constructor_(self, x)
 
     Element = IndexedFreeAbelianMonoidElement
@@ -1002,11 +1061,15 @@ class IndexedFreeAbelianMonoid(IndexedMonoid):
             Traceback (most recent call last):
             ...
             IndexError: 0 is not in the index set
+
+            sage: F = lie_algebras.VirasoroAlgebra(QQ).pbw_basis().indices(); F
+            Free abelian monoid indexed by Disjoint union of Family ({'c'}, Integer Ring)
+            sage: F.gen('c')
+            PBW['c']
         """
         if x not in self._indices:
-            raise IndexError("{} is not in the index set".format(x))
+            raise IndexError(f"{x} is not in the index set")
         try:
-            return self.element_class(self, {self._indices(x):1})
-        except (TypeError, NotImplementedError): # Backup (e.g., if it is a string)
-            return self.element_class(self, {x:1})
-
+            return self.element_class(self, {self._indices(x): ZZ.one()})
+        except (ValueError, TypeError, NotImplementedError):  # Backup (e.g., if it is a string)
+            return self.element_class(self, {x: ZZ.one()})

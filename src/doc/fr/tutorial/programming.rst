@@ -176,7 +176,6 @@ entiers, des polynômes, etc. :
     #!/usr/bin/env sage
 
     import sys
-    from sage.all import *
 
     if len(sys.argv) != 2:
         print("Usage: %s <n>" % sys.argv[0])
@@ -261,15 +260,9 @@ ne sont pas claires en notation orientée objet. Voici quelques exemples.
     sqrt(2)
     sage: V = VectorSpace(QQ,2)
     sage: V.basis()
-        [
-        (1, 0),
-        (0, 1)
-        ]
+        [(1, 0), (0, 1)]
     sage: basis(V)
-        [
-        (1, 0),
-        (0, 1)
-        ]
+        [(1, 0), (0, 1)]
     sage: M = MatrixSpace(GF(7), 2); M
     Full MatrixSpace of 2 by 2 dense matrices over Finite Field of size 7
     sage: A = M([1,2,3,4]); A
@@ -325,7 +318,7 @@ Sage) :
 
 ::
 
-    sage: range(1, 15)
+    sage: list(range(1, 15))
     [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
 
 Cela est utile pour construire des listes par compréhension :
@@ -391,7 +384,7 @@ l'univers de la séquence.
     sage: type(v)
     <class 'sage.structure.sequence.Sequence_generic'>
     sage: type(v[1])
-    <type 'sage.rings.rational.Rational'>
+    <class 'sage.rings.rational.Rational'>
     sage: v.universe()
     Rational Field
     sage: v.is_immutable()
@@ -421,11 +414,7 @@ mutables, car il ne faut pas les modifier.
 ::
 
     sage: V = QQ^3; B = V.basis(); B
-    [
-    (1, 0, 0),
-    (0, 1, 0),
-    (0, 0, 1)
-    ]
+    [(1, 0, 0), (0, 1, 0), (0, 0, 1)]
     sage: type(B)
     <class 'sage.structure.sequence.Sequence_generic'>
     sage: B[0] = B[1]
@@ -441,8 +430,8 @@ Dictionnaires
 Un dictionnaire (parfois appelé un tableau associatif) est une
 correspondance entre des objets « hachables » (par exemple des chaînes, des
 nombres, ou des n-uplets de tels objets, voir
-http://docs.python.org/tut/node7.html et
-http://docs.python.org/lib/typesmapping.html dans la documentation de
+http://docs.python.org/3/tutorial/datastructures.html et
+https://docs.python.org/3/library/stdtypes.html#typesmapping dans la documentation de
 Python pour plus de détails) vers des objets arbitraires.
 
 ::
@@ -450,8 +439,8 @@ Python pour plus de détails) vers des objets arbitraires.
     sage: d = {1:5, 'sage':17, ZZ:GF(7)}
     sage: type(d)
     <... 'dict'>
-    sage: d.keys()
-     [1, 'sage', Integer Ring]
+    sage: list(d.keys())
+    [1, 'sage', Integer Ring]
     sage: d['sage']
     17
     sage: d[ZZ]
@@ -540,7 +529,7 @@ d'entiers positifs jusqu'à :math:`10000000`.
 
 ::
 
-    sage: v = (n^2 for n in xrange(10000000))
+    sage: v = (n^2 for n in range(10000000))
     sage: next(v)
     0
     sage: next(v)

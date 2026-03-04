@@ -43,6 +43,15 @@ examples.
    * - :meth:`~AsymptoticExpansionGenerators.SingularityAnalysis`
      - an asymptotic expansion obtained by singularity analysis
 
+   * - :meth:`~AsymptoticExpansionGenerators.ImplicitExpansion`
+     - the singular expansion of a function `y(z)` satisfying `y(z) = z \Phi(y(z))`
+
+   * - :meth:`~AsymptoticExpansionGenerators.ImplicitExpansionPeriodicPart`
+     - the singular expansion of the periodic part of a function `y(z)` satisfying `y(z) = z\Phi(y(z))`
+
+   * - :meth:`~AsymptoticExpansionGenerators.InverseFunctionAnalysis`
+     - coefficient growth of a function `y(z)` defined implicitly by `y(z) = z \Phi(y(z))`
+
 
 AUTHORS:
 
@@ -50,18 +59,16 @@ AUTHORS:
 - Clemens Heuberger (2016)
 - Benjamin Hackl (2016)
 
-
 ACKNOWLEDGEMENT:
 
 - Benjamin Hackl, Clemens Heuberger and Daniel Krenn are supported by the
   Austrian Science Fund (FWF): P 24644-N26.
 
-
 Classes and Methods
 ===================
 """
 
-#*****************************************************************************
+# ****************************************************************************
 # Copyright (C) 2015 Daniel Krenn <dev@danielkrenn.at>
 # Copyright (C) 2016 Clemens Heuberger <clemens.heuberger@aau.at>
 #
@@ -69,12 +76,12 @@ Classes and Methods
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
-from __future__ import print_function
-from __future__ import absolute_import
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
+from sage.misc.superseded import experimental
 from sage.structure.sage_object import SageObject
+from sage.misc.defaults import series_precision
 
 
 class AsymptoticExpansionGenerators(SageObject):
@@ -92,6 +99,9 @@ class AsymptoticExpansionGenerators(SageObject):
     - :meth:`~log_Stirling`
     - :meth:`~Binomial_kn_over_n`
     - :meth:`~SingularityAnalysis`
+    - :meth:`~ImplicitExpansion`
+    - :meth:`~ImplicitExpansionPeriodicPart`
+    - :meth:`~InverseFunctionAnalysis`
     """
 
     @staticmethod
@@ -101,20 +111,18 @@ class AsymptoticExpansionGenerators(SageObject):
 
         INPUT:
 
-        - ``var`` -- a string for the variable name.
+        - ``var`` -- string for the variable name
 
-        - ``precision`` -- (default: ``None``) an integer `\ge 3`. If ``None``, then
+        - ``precision`` -- (default: ``None``) integer `\ge 3`. If ``None``, then
           the default precision of the asymptotic ring is used.
 
-        - ``skip_constant_factor`` -- (default: ``False``) a
-          boolean. If set, then the constant factor `\sqrt{2\pi}` is left out.
+        - ``skip_constant_factor`` -- boolean (default: ``False``); if set,
+          then the constant factor `\sqrt{2\pi}` is left out.
           As a consequence, the coefficient ring of the output changes
           from ``Symbolic Constants Subring`` (if ``False``) to
           ``Rational Field`` (if ``True``).
 
-        OUTPUT:
-
-        An asymptotic expansion.
+        OUTPUT: an asymptotic expansion
 
         EXAMPLES::
 
@@ -156,7 +164,18 @@ class AsymptoticExpansionGenerators(SageObject):
             Traceback (most recent call last):
             ...
             ValueError: precision must be at least 3
+
+        Check that :issue:`20066` is resolved::
+
+            sage: set_series_precision(5)
+            sage: asymptotic_expansions.Stirling('n')
+            sqrt(2)*sqrt(pi)*e^(n*log(n))*(e^n)^(-1)*n^(1/2) +
+            ... + O(e^(n*log(n))*(e^n)^(-1)*n^(-5/2))
+            sage: set_series_precision(20)  # restore series precision default
         """
+        if precision is None:
+            precision = series_precision()
+
         if precision < 3:
             raise ValueError("precision must be at least 3")
         log_Stirling = AsymptoticExpansionGenerators.log_Stirling(
@@ -174,7 +193,6 @@ class AsymptoticExpansionGenerators(SageObject):
 
         return result
 
-
     @staticmethod
     def log_Stirling(var, precision=None, skip_constant_summand=False):
         r"""
@@ -183,20 +201,18 @@ class AsymptoticExpansionGenerators(SageObject):
 
         INPUT:
 
-        - ``var`` -- a string for the variable name.
+        - ``var`` -- string for the variable name
 
-        - ``precision`` -- (default: ``None``) an integer. If ``None``, then
+        - ``precision`` -- (default: ``None``) integer. If ``None``, then
           the default precision of the asymptotic ring is used.
 
-        - ``skip_constant_summand`` -- (default: ``False``) a
-          boolean. If set, then the constant summand `\log(2\pi)/2` is left out.
+        - ``skip_constant_summand`` -- boolean (default: ``False``); if set,
+          then the constant summand `\log(2\pi)/2` is left out.
           As a consequence, the coefficient ring of the output changes
           from ``Symbolic Constants Subring`` (if ``False``) to
           ``Rational Field`` (if ``True``).
 
-        OUTPUT:
-
-        An asymptotic expansion.
+        OUTPUT: an asymptotic expansion
 
         EXAMPLES::
 
@@ -271,9 +287,9 @@ class AsymptoticExpansionGenerators(SageObject):
         n = A.gen()
 
         if precision is None:
-            precision = AsymptoticRing.__default_prec__
+            precision = series_precision()
 
-        from sage.functions.log import log
+        log = A.locals()['log']
         result = A.zero()
         if precision >= 1:
             result += n * log(n)
@@ -298,7 +314,6 @@ class AsymptoticExpansionGenerators(SageObject):
 
         return result
 
-
     @staticmethod
     def _log_StirlingNegativePowers_(var, precision):
         r"""
@@ -308,14 +323,12 @@ class AsymptoticExpansionGenerators(SageObject):
 
         INPUT:
 
-        - ``var`` -- a string for the variable name.
+        - ``var`` -- string for the variable name
 
-        - ``precision`` -- an integer specifying the number of exact summands.
-          If this is negative, then the result is `0`.
+        - ``precision`` -- integer specifying the number of exact summands;
+          if this is negative, then the result is `0`
 
-        OUTPUT:
-
-        An asymptotic expansion.
+        OUTPUT: an asymptotic expansion
 
         TESTS::
 
@@ -340,14 +353,13 @@ class AsymptoticExpansionGenerators(SageObject):
             return A.zero()
         n = A.gen()
 
-        from sage.arith.all import bernoulli
+        from sage.arith.misc import bernoulli
         from sage.arith.srange import srange
 
         result = sum((bernoulli(k) / k / (k-1) / n**(k-1)
                       for k in srange(2, 2*precision + 2, 2)),
                      A.zero())
         return result + (1 / n**(2*precision + 1)).O()
-
 
     @staticmethod
     def HarmonicNumber(var, precision=None, skip_constant_summand=False):
@@ -356,20 +368,18 @@ class AsymptoticExpansionGenerators(SageObject):
 
         INPUT:
 
-        - ``var`` -- a string for the variable name.
+        - ``var`` -- string for the variable name
 
-        - ``precision`` -- (default: ``None``) an integer. If ``None``, then
+        - ``precision`` -- (default: ``None``) integer. If ``None``, then
           the default precision of the asymptotic ring is used.
 
-        - ``skip_constant_summand`` -- (default: ``False``) a
-          boolean. If set, then the constant summand ``euler_gamma`` is left out.
+        - ``skip_constant_summand`` -- boolean (default: ``False``); if set,
+          then the constant summand ``euler_gamma`` is left out.
           As a consequence, the coefficient ring of the output changes
           from ``Symbolic Constants Subring`` (if ``False``) to
           ``Rational Field`` (if ``True``).
 
-        OUTPUT:
-
-        An asymptotic expansion.
+        OUTPUT: an asymptotic expansion
 
         EXAMPLES::
 
@@ -426,9 +436,9 @@ class AsymptoticExpansionGenerators(SageObject):
         n = A.gen()
 
         if precision is None:
-            precision = A.default_prec
+            precision = series_precision()
 
-        from sage.functions.log import log
+        log = A.locals()['log']
         result = A.zero()
         if precision >= 1:
             result += log(n)
@@ -439,7 +449,7 @@ class AsymptoticExpansionGenerators(SageObject):
             result += 1 / (2 * n)
 
         from sage.arith.srange import srange
-        from sage.arith.all import bernoulli
+        from sage.arith.misc import bernoulli
         for k in srange(2, 2*precision - 4, 2):
             result += -bernoulli(k) / k / n**k
 
@@ -454,7 +464,6 @@ class AsymptoticExpansionGenerators(SageObject):
 
         return result
 
-
     @staticmethod
     def Binomial_kn_over_n(var, k, precision=None, skip_constant_factor=False):
         r"""
@@ -463,23 +472,20 @@ class AsymptoticExpansionGenerators(SageObject):
 
         INPUT:
 
-        - ``var`` -- a string for the variable name.
+        - ``var`` -- string for the variable name
 
-        - ``k`` -- a number or symbolic constant.
+        - ``k`` -- a number or symbolic constant
 
-        - ``precision`` -- (default: ``None``) an integer. If ``None``, then
+        - ``precision`` -- (default: ``None``) integer. If ``None``, then
           the default precision of the asymptotic ring is used.
 
-        - ``skip_constant_factor`` -- (default: ``False``) a
-          boolean. If set, then the constant factor `\sqrt{k/(2\pi(k-1))}`
-          is left out.
+        - ``skip_constant_factor`` -- boolean (default: ``False``); if set,
+          then the constant factor `\sqrt{k/(2\pi(k-1))}` is left out.
           As a consequence, the coefficient ring of the output changes
           from ``Symbolic Constants Subring`` (if ``False``) to
           ``Rational Field`` (if ``True``).
 
-        OUTPUT:
-
-        An asymptotic expansion.
+        OUTPUT: an asymptotic expansion
 
         EXAMPLES::
 
@@ -538,6 +544,13 @@ class AsymptoticExpansionGenerators(SageObject):
             ....:     SR(S.subs(n=k*n) / (S.subs(n=(k-1)*n) * S)).canonicalize_radical()
             ....:     for k in [2, 3, 4])
             True
+
+        Check that :issue:`20066` is resolved::
+
+            sage: set_series_precision(3)
+            sage: asymptotic_expansions.Binomial_kn_over_n('n', k=2)
+            1/sqrt(pi)*4^n*n^(-1/2) - 1/8/sqrt(pi)*4^n*n^(-3/2) + ... + O(4^n*n^(-7/2))
+            sage: set_series_precision(20)  # restore series precision default
         """
         from sage.symbolic.ring import SR
         SCR = SR.subring(no_variables=True)
@@ -548,6 +561,9 @@ class AsymptoticExpansionGenerators(SageObject):
             raise combine_exceptions(
                 TypeError('Cannot use k={}.'.format(k)), e)
 
+        if precision is None:
+            precision = series_precision()
+
         S = AsymptoticExpansionGenerators._log_StirlingNegativePowers_(
                 var, precision=max(precision - 2,0))
         n = S.parent().gen()
@@ -556,7 +572,7 @@ class AsymptoticExpansionGenerators(SageObject):
         from sage.rings.rational_field import QQ
 
         P = S.parent().change_parameter(
-                growth_group='QQ^{n} * {n}^QQ'.format(n=var),
+                growth_group='(QQ_+)^{n} * {n}^QQ'.format(n=var),
                 coefficient_ring=QQ)
         n = P.gen()
 
@@ -564,19 +580,18 @@ class AsymptoticExpansionGenerators(SageObject):
         if b.parent() is SR:
             b = SCR(b).canonicalize_radical()
         result *= n.rpow(b)
-        result *= n**(-QQ(1)/QQ(2))
+        result *= n**(-QQ((1, 2)))
         if not skip_constant_factor:
             result *= (k/((k-1)*2*SCR('pi'))).sqrt()
 
         return result
-
 
     @staticmethod
     def SingularityAnalysis(var, zeta=1, alpha=0, beta=0, delta=0,
                             precision=None, normalized=True):
         r"""
         Return the asymptotic expansion of the coefficients of
-        an power series with specified pole and logarithmic singularity.
+        a power series with specified pole and logarithmic singularity.
 
         More precisely, this extracts the `n`-th coefficient
 
@@ -600,25 +615,23 @@ class AsymptoticExpansionGenerators(SageObject):
 
         INPUT:
 
-        - ``var`` -- a string for the variable name.
+        - ``var`` -- string for the variable name
 
-        - ``zeta`` -- (default: `1`) the location of the singularity.
+        - ``zeta`` -- (default: `1`) the location of the singularity
 
-        - ``alpha`` -- (default: `0`) the pole order of the singularty.
+        - ``alpha`` -- (default: `0`) the pole order of the singularity
 
-        - ``beta`` -- (default: `0`) the order of the logarithmic singularity.
+        - ``beta`` -- (default: `0`) the order of the logarithmic singularity
 
-        - ``delta`` -- (default: `0`) the order of the log-log singularity.
-          Not yet implemented for ``delta != 0``.
+        - ``delta`` -- (default: `0`) the order of the log-log singularity;
+          not yet implemented for ``delta != 0``
 
-        - ``precision`` -- (default: ``None``) an integer. If ``None``, then
+        - ``precision`` -- (default: ``None``) integer. If ``None``, then
           the default precision of the asymptotic ring is used.
 
-        - ``normalized`` -- (default: ``True``) a boolean, see above.
+        - ``normalized`` -- boolean (default: ``True``); see above
 
-        OUTPUT:
-
-        An asymptotic expansion.
+        OUTPUT: an asymptotic expansion
 
         EXAMPLES::
 
@@ -716,14 +729,8 @@ class AsymptoticExpansionGenerators(SageObject):
 
         ALGORITHM:
 
-        See [FS2009]_ together with the
-        `errata list <http://algo.inria.fr/flajolet/Publications/AnaCombi/errata.pdf>`_.
+        See [FS2009]_.
 
-        REFERENCES:
-
-        .. [FS2009] Philippe Flajolet and Robert Sedgewick,
-           `Analytic combinatorics <http://algo.inria.fr/flajolet/Publications/AnaCombi/book.pdf>`_.
-           Cambridge University Press, Cambridge, 2009.
 
         TESTS::
 
@@ -751,14 +758,14 @@ class AsymptoticExpansionGenerators(SageObject):
             ....:     'n', alpha=0)
             Traceback (most recent call last):
             ...
-            NotImplementedOZero: The error term in the result is O(0)
-            which means 0 for sufficiently large n.
+            NotImplementedOZero: got O(0)
+            The error term O(0) means 0 for sufficiently large n.
             sage: asymptotic_expansions.SingularityAnalysis(
             ....:     'n', alpha=-1)
             Traceback (most recent call last):
             ...
-            NotImplementedOZero: The error term in the result is O(0)
-            which means 0 for sufficiently large n.
+            NotImplementedOZero: got O(0)
+            The error term O(0) means 0 for sufficiently large n.
 
         ::
 
@@ -782,7 +789,7 @@ class AsymptoticExpansionGenerators(SageObject):
             sage: asymptotic_expansions.SingularityAnalysis(
             ....:     'n', alpha=1, zeta=CyclotomicField(3).gen(),
             ....:      precision=3)
-            (-zeta3 - 1)^n
+            (e^(I*arg(-zeta3 - 1)))^n
             sage: asymptotic_expansions.SingularityAnalysis(
             ....:     'n', alpha=4, zeta=2, precision=3)
             1/6*(1/2)^n*n^3 + (1/2)^n*n^2 + 11/6*(1/2)^n*n + O((1/2)^n)
@@ -790,8 +797,8 @@ class AsymptoticExpansionGenerators(SageObject):
             ....:     'n', alpha=-1, zeta=2, precision=3)
             Traceback (most recent call last):
             ...
-            NotImplementedOZero: The error term in the result is O(0)
-            which means 0 for sufficiently large n.
+            NotImplementedOZero: got O(0)
+            The error term O(0) means 0 for sufficiently large n.
             sage: asymptotic_expansions.SingularityAnalysis(
             ....:     'n', alpha=1/2, zeta=2, precision=3)
             1/sqrt(pi)*(1/2)^n*n^(-1/2) - 1/8/sqrt(pi)*(1/2)^n*n^(-3/2)
@@ -868,23 +875,35 @@ class AsymptoticExpansionGenerators(SageObject):
             Traceback (most recent call last):
             ...
             NotImplementedError: not implemented for delta!=0
+
+        ::
+
+            sage: from sage.groups.misc_gps.argument_groups import SignGroup
+            sage: Signs = SignGroup()
+            sage: asymptotic_expansions.SingularityAnalysis(
+            ....:     'n', Signs(-1), alpha=2, beta=1, precision=5,
+            ....:     normalized=False)
+            n*log(n)*(-1)^n + (euler_gamma - 1)*n*(-1)^n + log(n)*(-1)^n
+            + (euler_gamma + 1/2)*(-1)^n + O(n^(-1)*(-1)^n)
+            sage: _.parent()
+            Asymptotic Ring <n^ZZ * log(n)^ZZ * Signs^n> over Symbolic Constants Subring
         """
         from itertools import islice, count
         from .asymptotic_ring import AsymptoticRing
         from .growth_group import ExponentialGrowthGroup, \
-                MonomialGrowthGroup
-        from sage.arith.all import falling_factorial
+                MonomialGrowthGroup, GenericNonGrowthGroup
+        from sage.arith.misc import falling_factorial
         from sage.categories.cartesian_product import cartesian_product
-        from sage.functions.other import binomial, gamma
+        from sage.functions.other import binomial
+        from sage.functions.gamma import gamma
         from sage.calculus.calculus import limit
         from sage.misc.cachefunc import cached_function
         from sage.arith.srange import srange
-        from sage.rings.rational_field import QQ
         from sage.rings.integer_ring import ZZ
         from sage.symbolic.ring import SR
 
         SCR = SR.subring(no_variables=True)
-        s = SR('s')
+        s = SR.var('s')
         iga = 1/gamma(alpha)
         if iga.parent() is SR:
             try:
@@ -920,8 +939,7 @@ class AsymptoticExpansionGenerators(SageObject):
             delta = ZZ(delta)
 
         if precision is None:
-            precision = AsymptoticRing.__default_prec__
-
+            precision = series_precision()
 
         if not normalized and not (beta in ZZ and delta in ZZ):
             raise ValueError("beta and delta must be integers")
@@ -929,13 +947,19 @@ class AsymptoticExpansionGenerators(SageObject):
             raise NotImplementedError("not implemented for delta!=0")
 
         groups = []
+        non_growth_groups = []
         if zeta != 1:
-            groups.append(ExponentialGrowthGroup((1/zeta).parent(), var))
-
+            E = ExponentialGrowthGroup.factory((~zeta).parent(), var,
+                                               return_factors=True)
+            for factor in E:
+                if isinstance(factor, GenericNonGrowthGroup):
+                    non_growth_groups.append(factor)
+                else:
+                    groups.append(factor)
         groups.append(MonomialGrowthGroup(alpha.parent(), var))
         if beta != 0:
             groups.append(MonomialGrowthGroup(beta.parent(), 'log({})'.format(var)))
-
+        groups.extend(non_growth_groups)
         group = cartesian_product(groups)
         A = AsymptoticRing(growth_group=group, coefficient_ring=coefficient_ring,
                            default_prec=precision)
@@ -944,7 +968,18 @@ class AsymptoticExpansionGenerators(SageObject):
         if zeta == 1:
             exponential_factor = 1
         else:
-            exponential_factor = n.rpow(1/zeta)
+            exponential_factor = A(n.rpow(~zeta))
+
+        polynomial_factor = A(n**(alpha-1))
+
+        if beta != 0:
+            log_n = n.log()
+            logarithmic_factor = log_n**beta
+        else:
+            # avoid construction of log(n)
+            # because it does not exist in growth group.
+            log_n = 1
+            logarithmic_factor = 1
 
         if beta in ZZ and beta >= 0:
             it = ((k, r)
@@ -956,20 +991,13 @@ class AsymptoticExpansionGenerators(SageObject):
                   for r in count())
             k_max = 0
 
-        if beta != 0:
-            log_n = n.log()
-        else:
-            # avoid construction of log(n)
-            # because it does not exist in growth group.
-            log_n = 1
-
-        it = reversed(list(islice(it, precision+1)))
+        it = reversed(list(islice(it, int(precision) + 1)))
         if normalized:
             beta_denominator = beta
         else:
             beta_denominator = 0
         L = _sa_coefficients_lambda_(max(1, k_max), beta=beta_denominator)
-        (k, r) = next(it)
+        k, r = next(it)
         result = (n**(-k) * log_n**(-r)).O()
 
         if alpha in ZZ and beta == 0:
@@ -977,9 +1005,9 @@ class AsymptoticExpansionGenerators(SageObject):
                 result = A(0)
             elif alpha <= 0 and precision > 0:
                 from .misc import NotImplementedOZero
-                raise NotImplementedOZero(A)
+                raise NotImplementedOZero(A, exact_part=A.zero())
 
-        for (k, r) in it:
+        for k, r in it:
             result += binomial(beta, r) * \
                 sum(L[(k, ell)] * (-1)**ell *
                     inverse_gamma_derivative(ell, r)
@@ -987,9 +1015,407 @@ class AsymptoticExpansionGenerators(SageObject):
                     if (k, ell) in L) * \
                 n**(-k) * log_n**(-r)
 
-        result *= exponential_factor * n**(alpha-1) * log_n**beta
+        result *= exponential_factor * polynomial_factor * logarithmic_factor
 
         return result
+
+    @staticmethod
+    @experimental(20050)
+    def ImplicitExpansion(var, phi, tau=None, precision=None):
+        r"""
+        Return the singular expansion for a function `y(z)` defined
+        implicitly by `y(z) = z \Phi(y(z))`.
+
+        The function `\Phi` is assumed to be analytic around `0`. Furthermore,
+        `\Phi` is not allowed to be an affine-linear function and we require
+        `\Phi(0) \neq 0`.
+
+        Furthermore, it is assumed that there is a unique positive solution `\tau`
+        of `\Phi(\tau) - \tau\Phi'(\tau) = 0`.
+
+        All details are given in Chapter VI.7 of [FS2009]_.
+
+        INPUT:
+
+        - ``var`` -- string for the variable name
+
+        - ``phi`` -- the function `\Phi`; see the extended description for
+          assumptions on `\Phi`
+
+        - ``tau`` -- (default: ``None``) the fundamental constant described
+          in the extended description. If ``None``, then `\tau` is determined
+          automatically if possible.
+
+        - ``precision`` -- (default: ``None``) integer. If ``None``, then
+          the default precision of the asymptotic ring is used.
+
+        OUTPUT: an asymptotic expansion
+
+
+        .. NOTE::
+
+            In the given case, the radius of convergence of the function of
+            interest is known to be `\rho = \tau/\Phi(\tau)`.  Until :issue:`20050`
+            is implemented, the variable in the returned asymptotic expansion
+            represents a singular element of the form `(1 - z/\rho)^{-1}`,
+            for the variable `z\to\rho`.
+
+        EXAMPLES:
+
+        We can, for example, determine the singular expansion of the well-known
+        tree function `T` (which satisfies `T(z) = z \exp(T(z))`)::
+
+            sage: asymptotic_expansions.ImplicitExpansion('Z', phi=exp, precision=8)
+            doctest:warning
+            ...
+            FutureWarning: This class/method/function is marked as experimental. It, its functionality or its interface might change without a formal deprecation.
+            See https://github.com/sagemath/sage/issues/20050 for details.
+            1 - sqrt(2)*Z^(-1/2) + 2/3*Z^(-1) - 11/36*sqrt(2)*Z^(-3/2) +
+            43/135*Z^(-2) - 769/4320*sqrt(2)*Z^(-5/2) + 1768/8505*Z^(-3) + O(Z^(-7/2))
+
+        Another classical example in this context is the generating function `B(z)`
+        enumerating binary trees with respect to the number of inner nodes. The
+        function satisfies `B(z) = z (1 + 2B(z) + B(z)^2)`, which can also be
+        solved explicitly, yielding `B(z) = \frac{1 - \sqrt{1 - 4z}}{2z} - 1`. We
+        compare the expansions from both approaches::
+
+            sage: def B(z):
+            ....:     return (1 - sqrt(1 - 4*z))/(2*z) - 1
+            sage: A.<Z> = AsymptoticRing('Z^QQ', QQ, default_prec=3)
+            sage: B((1-1/Z)/4)
+            1 - 2*Z^(-1/2) + 2*Z^(-1) - 2*Z^(-3/2) + 2*Z^(-2)
+            - 2*Z^(-5/2) + O(Z^(-3))
+            sage: asymptotic_expansions.ImplicitExpansion(Z, phi=lambda u: 1 + 2*u + u^2, precision=7)
+            1 - 2*Z^(-1/2) + 2*Z^(-1) - 2*Z^(-3/2) + 2*Z^(-2)
+            - 2*Z^(-5/2) + O(Z^(-3))
+
+        Neither `\tau` nor `\Phi` have to be known explicitly, they can
+        also be passed symbolically::
+
+            sage: tau = var('tau')
+            sage: phi = function('phi')
+            sage: asymptotic_expansions.ImplicitExpansion('Z', phi=phi, tau=tau, precision=3)  # long time
+            tau + (-sqrt(2)*sqrt(-tau*phi(tau)^2/(2*tau*diff(phi(tau), tau)^2
+            - tau*phi(tau)*diff(phi(tau), tau, tau)
+            - 2*phi(tau)*diff(phi(tau), tau))))*Z^(-1/2) + O(Z^(-1))
+
+        Note that we do not check whether a passed `\tau` actually
+        satisfies the requirements. Only the first of the following
+        expansions is correct::
+
+            sage: asymptotic_expansions.ImplicitExpansion('Z',
+            ....:     phi=lambda u: 1 + 2*u + u^2, precision=5) # correct expansion
+            1 - 2*Z^(-1/2) + 2*Z^(-1) - 2*Z^(-3/2) + O(Z^(-2))
+            sage: asymptotic_expansions.ImplicitExpansion('Z', phi=lambda u: 1 + 2*u + u^2, tau=2, precision=5)
+            Traceback (most recent call last):
+            ...
+            ZeroDivisionError: symbolic division by zero
+            sage: asymptotic_expansions.ImplicitExpansion('Z', phi=lambda u: 1 + 2*u + u^2, tau=3, precision=5)
+            3 - 4*I*sqrt(3)*Z^(-1/2) + 6*I*sqrt(3)*Z^(-3/2) + O(Z^(-2))
+
+        .. SEEALSO::
+
+            :meth:`~AsymptoticExpansionGenerators.ImplicitExpansionPeriodicPart`,
+            :meth:`~AsymptoticExpansionGenerators.InverseFunctionAnalysis`.
+
+        TESTS::
+
+            sage: asymptotic_expansions.ImplicitExpansion('Z', phi=lambda u: 1 + 42*u, precision=5)
+            Traceback (most recent call last):
+            ...
+            ValueError: the function phi does not satisfy the requirements
+            sage: asymptotic_expansions.ImplicitExpansion('Z', phi=lambda u: 42*u + u^2, precision=5)
+            Traceback (most recent call last):
+            ...
+            ValueError: the function phi does not satisfy the requirements
+            sage: asymptotic_expansions.ImplicitExpansion('Z', phi=lambda u: 1 + u^2 + u^42, precision=5)
+            Traceback (most recent call last):
+            ...
+            ValueError: fundamental constant tau could not be determined
+        """
+        from sage.symbolic.ring import SR
+        from sage.rings.rational_field import QQ
+        from sage.rings.integer_ring import ZZ
+        from sage.rings.asymptotic.asymptotic_ring import AsymptoticRing
+        from sage.arith.srange import srange
+        y, u = SR.var('y'), SR.var('u')
+        one_half = QQ((1, 2))
+
+        if phi(QQ.zero()).is_zero() or phi(u) == phi(0) + u*phi(u).diff(u)(u=0):
+            raise ValueError('the function phi does not satisfy the requirements')
+
+        if tau is None:
+            tau = _fundamental_constant_implicit_function_(phi=phi)
+
+        def H(y):
+            return tau/phi(tau) - y/phi(y)
+
+        A = AsymptoticRing(growth_group='{Z}^QQ'.format(Z=var),
+                           coefficient_ring=SR,
+                           default_prec=precision)
+        if precision is None:
+            precision = ZZ(A.default_prec)
+        Z = A.gen()
+
+        def ansatz(prec=precision):
+            if prec < 1:
+                return A.one().O()
+            if prec == 1:
+                return ((1/Z)**one_half).O()
+            return (-(2*tau/phi(tau)/H(y).diff(y, 2)(y=tau)).sqrt() * (1/Z)**one_half
+                    + sum(SR("d{}".format(j)) * (1/Z)**(j * one_half) for j in srange(2, prec))
+                    + ((1/Z)**(prec * one_half)).O())
+
+        # we compare coefficients between a "single" Z and the
+        # following expansion, this allows us to compute the constants d_j
+        z = SR.var('z')
+        z_expansion = sum(H(z).diff(z, k)(z=tau)/k.factorial() *
+                          ansatz(prec=precision+2-k)**k
+                          for k in srange(2, precision)) + ((1/Z)**(precision * one_half)).O()
+
+        solution_dict = dict()
+        for k in srange(2, precision-1):
+            coef = z_expansion.monomial_coefficient((1/Z)**((k+1) * one_half))
+            current_var = SR.var('d{k}'.format(k=k))
+            solution_dict[current_var] = coef.subs(solution_dict).simplify_rational().solve(current_var)[0].rhs()
+
+        return A(tau) + ansatz(prec=precision-1).map_coefficients(lambda term: term.subs(solution_dict).simplify_rational())
+
+    @staticmethod
+    @experimental(20050)
+    def ImplicitExpansionPeriodicPart(var, phi, period, tau=None, precision=None):
+        r"""
+        Return the singular expansion for the periodic part of a function `y(z)`
+        defined implicitly by `y(z) = z \Phi(y(z))`.
+
+        The function `\Phi` is assumed to be analytic around `0`. Furthermore,
+        `\Phi` is not allowed to be an affine-linear function and we require
+        `\Phi(0) \neq 0`. For an integer `p`, `\Phi` is called `p`-periodic
+        if we have `\Psi(u^p) = \Phi(u)` for a power series `\Psi`
+        where `p` is maximal.
+
+        Furthermore, it is assumed that there is a unique positive solution `\tau`
+        of `\Phi(\tau) - \tau\Phi'(\tau) = 0`.
+
+        If `\Phi` is `p`-periodic, then we have `y(z) = z g(z^p)`. This method
+        returns the singular expansion of `g(z)`.
+
+        INPUT:
+
+        - ``var`` -- string for the variable name
+
+        - ``phi`` -- the function `\Phi`; see the extended description for
+          assumptions on `\Phi`
+
+        - ``period`` -- the period of the function `\Phi`; see the
+          extended description for details
+
+        - ``tau`` -- (default: ``None``) the fundamental constant described
+          in the extended description. If ``None``, then `\tau` is determined
+          automatically if possible.
+
+        - ``precision`` -- (default: ``None``) integer. If ``None``, then
+          the default precision of the asymptotic ring is used.
+
+        OUTPUT: an asymptotic expansion
+
+
+        .. NOTE::
+
+            In the given case, the radius of convergence of the function of
+            interest is known to be `\rho = \tau/\Phi(\tau)`. Until :issue:`20050`
+            is implemented, the variable in the returned asymptotic expansion
+            represents a singular element of the form `(1 - z/\rho)^{-1}`,
+            for the variable `z\to\rho`.
+
+        .. SEEALSO::
+
+            :meth:`~AsymptoticExpansionGenerators.ImplicitExpansion`,
+            :meth:`~AsymptoticExpansionGenerators.InverseFunctionAnalysis`.
+
+        EXAMPLES:
+
+        The generating function enumerating binary trees with respect to
+        tree size satisfies `B(z) = z (1 + B(z)^2)`. This function can be
+        written as `B(z) = z g(z^2)`, and as `B(z)` can be determined
+        explicitly we have `g(z) = \frac{1 - \sqrt{1 - 4z}}{2z}`. We
+        compare the corresponding expansions::
+
+            sage: asymptotic_expansions.ImplicitExpansionPeriodicPart('Z', phi=lambda u: 1 + u^2,
+            ....:                                                     period=2, precision=7)
+            doctest:warning
+            ...
+            FutureWarning: This class/method/function is marked as experimental. It, its functionality or its interface might change without a formal deprecation.
+            See https://github.com/sagemath/sage/issues/20050 for details.
+            2 - 2*Z^(-1/2) + 2*Z^(-1) - 2*Z^(-3/2) + 2*Z^(-2) - 2*Z^(-5/2) + O(Z^(-3))
+            sage: def g(z):
+            ....:     return (1 - sqrt(1 - 4*z))/(2*z)
+            sage: A.<Z> = AsymptoticRing('Z^QQ', QQ, default_prec=3)
+            sage: g((1 - 1/Z)/4)
+            2 - 2*Z^(-1/2) + 2*Z^(-1) - 2*Z^(-3/2) + 2*Z^(-2) - 2*Z^(-5/2) + O(Z^(-3))
+        """
+        if tau is None:
+            tau = _fundamental_constant_implicit_function_(phi=phi)
+
+        tau_p = tau**period
+        aperiodic_expansion = asymptotic_expansions.ImplicitExpansion(var,
+                                            phi=lambda u: phi(u**(1/period))**period,
+                                            tau=tau_p, precision=precision)
+
+        rho = tau / phi(tau)
+        Z = aperiodic_expansion.parent().gen()
+        return 1/rho * (aperiodic_expansion/(1 - 1/Z))**(1/period)
+
+    @staticmethod
+    def InverseFunctionAnalysis(var, phi, tau=None, period=1, precision=None):
+        r"""
+        Return the coefficient growth of a function `y(z)` defined implicitly
+        by `y(z) = z \Phi(y(z))`.
+
+        The function `\Phi` is assumed to be analytic around `0`. Furthermore,
+        `\Phi` is not allowed to be an affine-linear function and we require
+        `\Phi(0) \neq 0`. For an integer `p`, `\Phi` is called `p`-periodic
+        if we have `\Psi(u^p) = \Phi(u)` for a power series `\Psi`
+        where `p` is maximal.
+
+        Furthermore, it is assumed that there is a unique positive solution `\tau`
+        of `\Phi(\tau) - \tau\Phi'(\tau) = 0`.
+
+        INPUT:
+
+        - ``var`` -- string for the variable name
+
+        - ``phi`` -- the function `\Phi`; see the extended description for
+          assumptions on `\Phi`
+
+        - ``tau`` -- (default: ``None``) the fundamental constant described
+          in the extended description. If ``None``, then `\tau` is determined
+          automatically if possible.
+
+        - ``period`` -- (default: `1`) the period of the function `\Phi`. See
+          the extended description for details
+
+        - ``precision`` -- (default: ``None``) integer. If ``None``, then
+          the default precision of the asymptotic ring is used.
+
+        OUTPUT: an asymptotic expansion
+
+
+        .. NOTE::
+
+            It is not checked that the passed period actually fits to
+            the passed function `\Phi`.
+
+            The resulting asymptotic expansion is only valid
+            for `n \equiv 1 \mod p`, where `p` is the period. All other
+            coefficients are `0`.
+
+        EXAMPLES:
+
+        There are `C_n` (the `n`-th Catalan number) different binary trees
+        of size `2n+1`, and there are no binary trees with an even number of
+        nodes. The corresponding generating function satisfies
+        `B(z) = z (1 + B(z)^2)`, which allows us to compare the asymptotic
+        expansions for the number of binary trees of size `n` obtained via
+        `C_n` and obtained via the analysis of `B(z)`::
+
+            sage: assume(SR.an_element() > 0)
+            sage: A.<n> = AsymptoticRing('QQ^n * n^QQ', SR)
+            sage: binomial_expansion = asymptotic_expansions.Binomial_kn_over_n(n, k=2, precision=3)
+            sage: catalan_expansion = binomial_expansion / (n+1)
+            sage: catalan_expansion.subs(n=(n-1)/2)
+            2*sqrt(1/2)/sqrt(pi)*2^n*n^(-3/2) - 3/2*sqrt(1/2)/sqrt(pi)*2^n*n^(-5/2)
+            + 25/16*sqrt(1/2)/sqrt(pi)*2^n*n^(-7/2) + O(2^n*n^(-9/2))
+            sage: asymptotic_expansions.InverseFunctionAnalysis(n, phi=lambda u: 1 + u^2, period=2,
+            ....:                                               tau=1, precision=8)
+            2*sqrt(1/2)/sqrt(pi)*2^n*n^(-3/2) - 3/2*sqrt(1/2)/sqrt(pi)*2^n*n^(-5/2)
+            + 25/16*sqrt(1/2)/sqrt(pi)*2^n*n^(-7/2) + O(2^n*n^(-9/2))
+
+        The code in the aperiodic case is more efficient, however. Therefore,
+        it is recommended to use combinatorial identities to reduce to the
+        aperiodic case. In the example above, this is well-known: we now count
+        binary trees with `n` internal nodes. The corresponding generating function
+        satisfies `B(z) = z (1 + 2B(z) + B(z)^2)`::
+
+            sage: catalan_expansion
+            1/sqrt(pi)*4^n*n^(-3/2) - 9/8/sqrt(pi)*4^n*n^(-5/2)
+            + 145/128/sqrt(pi)*4^n*n^(-7/2) + O(4^n*n^(-9/2))
+            sage: asymptotic_expansions.InverseFunctionAnalysis(n, phi=lambda u: 1 + 2*u + u^2,
+            ....:                                               tau=1, precision=8)
+            1/sqrt(pi)*4^n*n^(-3/2) - 9/8/sqrt(pi)*4^n*n^(-5/2)
+            + 145/128/sqrt(pi)*4^n*n^(-7/2) + O(4^n*n^(-9/2))
+
+            sage: forget()
+
+        .. SEEALSO::
+
+            :meth:`~AsymptoticExpansionGenerators.ImplicitExpansion`,
+            :meth:`~AsymptoticExpansionGenerators.ImplicitExpansionPeriodicPart`.
+
+
+        TESTS:
+
+        Omitting the precision parameter does not lead to an error (per default,
+        the default series precision is a python integer, which led to an error
+        in an earlier version of the code)::
+
+            sage: set_series_precision(int(5))
+            sage: asymptotic_expansions.InverseFunctionAnalysis('n', phi=lambda u: 1 + 2*u + u^2,
+            ....:                                               tau=1)
+            1/sqrt(pi)*4^n*n^(-3/2) - 9/8/sqrt(pi)*4^n*n^(-5/2) + O(4^n*n^(-3))
+        """
+        if tau is None:
+            tau = _fundamental_constant_implicit_function_(phi=phi)
+
+        rho = tau / phi(tau)
+
+        if period == 1:
+            expansion = asymptotic_expansions.ImplicitExpansion(var=var, phi=phi,
+                                                                tau=tau, precision=precision)
+            return expansion._singularity_analysis_(var, zeta=rho, precision=precision)
+        expansion = asymptotic_expansions.ImplicitExpansionPeriodicPart(var=var, phi=phi,
+                                                     period=period, tau=tau, precision=precision)
+        growth = expansion._singularity_analysis_(var, zeta=rho**period, precision=precision)
+        n = growth.parent().gen()
+        return growth.subs({n: (n-1)/period})
+
+
+def _fundamental_constant_implicit_function_(phi):
+    r"""
+    Return the fundamental constant `\tau` occurring in the analysis of
+    implicitly defined functions.
+
+    For a function `y(z)` satisfying `y(z) = z \Phi(y(z))`, the fundamental
+    constant `\tau` is the unique positive solution of the equation
+    `\Phi(\tau) - \tau \Phi'(\tau) = 0`.
+
+    INPUT:
+
+    - ``phi`` -- the function `\Phi`
+
+    .. SEEALSO::
+
+        :meth:`~AsymptoticExpansionGenerators.ImplicitExpansion`,
+        :meth:`~AsymptoticExpansionGenerators.ImplicitExpansionPeriodicPart`.
+
+    TESTS::
+
+        sage: from sage.rings.asymptotic.asymptotic_expansion_generators \
+        ....:     import _fundamental_constant_implicit_function_
+        sage: _fundamental_constant_implicit_function_(phi=exp)
+        1
+        sage: _fundamental_constant_implicit_function_(phi=lambda u: 1 + u^2)
+        1
+        sage: _fundamental_constant_implicit_function_(phi=lambda u: 1 + 2*u + 2*u^2)
+        1/2*sqrt(2)
+    """
+    from sage.symbolic.ring import SR
+    u = SR.var('u')
+    positive_solution = [s for s in (phi(u) - u*phi(u).diff(u)).solve(u)
+                         if s.rhs() > 0]
+    if len(positive_solution) == 1:
+        return positive_solution[0].rhs()
+    raise ValueError('fundamental constant tau could not be determined')
 
 
 def _sa_coefficients_lambda_(K, beta=0):
@@ -998,14 +1424,11 @@ def _sa_coefficients_lambda_(K, beta=0):
 
     INPUT:
 
-    - ``K`` -- an integer.
+    - ``K`` -- integer
 
-    - ``beta`` -- (default: `0`) the order of the logarithmic
-      singularity.
+    - ``beta`` -- (default: `0`) the order of the logarithmic singularity
 
-    OUTPUT:
-
-    A dictionary mapping pairs of indices to rationals.
+    OUTPUT: a dictionary mapping pairs of indices to rationals
 
     .. SEEALSO::
 
@@ -1037,18 +1460,17 @@ def _sa_coefficients_lambda_(K, beta=0):
          (4, 4): 5}
     """
     from sage.rings.laurent_series_ring import LaurentSeriesRing
-    from sage.rings.power_series_ring import PowerSeriesRing
+    from sage.rings.lazy_series_ring import LazyPowerSeriesRing
     from sage.rings.rational_field import QQ
 
     V = LaurentSeriesRing(QQ, names='v', default_prec=K)
     v = V.gen()
-    T = PowerSeriesRing(V, names='t', default_prec=2*K-1)
-    t = T.gen()
+    t = LazyPowerSeriesRing(V, names='t').gen()
 
-    S = (t - (1+1/v+beta) * (1+v*t).log()).exp()
-    return dict(((k + L.valuation(), ell), c)
-                for ell, L in enumerate(S.list())
-                for k, c in enumerate(L.list()))
+    S = (t - (1 + 1/v + beta) * (1 + v*t).log()).exp()
+    return {(k + L.valuation(), ell): c
+            for ell, L in enumerate(S[:2 * K - 1])
+            for k, c in enumerate(L.list())}
 
 
 # Easy access to the asymptotic expansions generators from the command line:

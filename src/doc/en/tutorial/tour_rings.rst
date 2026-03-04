@@ -24,7 +24,7 @@ you are working with polynomials with rational coefficients, the
 polynomial won't factor.  With real coefficients, it will.  Therefore
 you may want to specify the ring to insure that you are getting the
 information you expect.  The following two commands defines the sets
-of polynomials with rational coefficents and real coefficients,
+of polynomials with rational coefficients and real coefficients,
 respectively.  The sets are named "ratpoly" and "realpoly", but these
 aren't important here; however, note that the strings ".<t>" and
 ".<z>" name the *variables* used in the two cases. ::
@@ -67,8 +67,8 @@ to get the original complex value of ``i``.
 
 There is one subtlety in defining complex numbers: as mentioned above,
 the symbol ``i`` represents a square root of `-1`, but it is a
-*formal* or *symbolic* square root of `-1`.  Calling ``CC(i)`` or
-``CC.0`` returns the *complex* square root of `-1`.
+*formal* square root of `-1` as an algebraic number.  Calling ``CC(i)``
+or ``CC.0`` or ``CC.gen(0)`` returns the *complex* square root of `-1`.
 Arithmetic involving different kinds of numbers is possible by
 so-called coercion, see :ref:`section-coercion`.
 
@@ -95,7 +95,7 @@ so-called coercion, see :ref:`section-coercion`.
     Rational Field
     sage: 2/3 + 0.1       # automatic coercion before addition
     0.766666666666667
-    sage: 0.1 + 2/3       # coercion rules are symmetric in SAGE
+    sage: 0.1 + 2/3       # coercion rules are symmetric in Sage
     0.766666666666667
 
 Here are more examples of basic rings in Sage. As noted above, the

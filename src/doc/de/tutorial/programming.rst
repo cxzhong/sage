@@ -177,7 +177,6 @@ Polynome, usw.:
     #!/usr/bin/env sage
 
     import sys
-    from sage.all import *
 
     if len(sys.argv) != 2:
         print("Usage: %s <n>" % sys.argv[0])
@@ -264,15 +263,9 @@ aussehen könnten. Hier sind einige Beispiele:
     sqrt(2)
     sage: V = VectorSpace(QQ,2)
     sage: V.basis()
-        [
-        (1, 0),
-        (0, 1)
-        ]
+        [(1, 0), (0, 1)]
     sage: basis(V)
-        [
-        (1, 0),
-        (0, 1)
-        ]
+        [(1, 0), (0, 1)]
     sage: M = MatrixSpace(GF(7), 2); M
     Full MatrixSpace of 2 by 2 dense matrices over Finite Field of size 7
     sage: A = M([1,2,3,4]); A
@@ -317,7 +310,7 @@ funktioniert es genauso.
     sage: v = [1,2,3]
     sage: v[2]
     3
-    sage: n = 2      # SAGE Integer
+    sage: n = 2      # Sage Integer
     sage: v[n]       # Perfectly OK!
     3
     sage: v[int(n)]  # Also OK.
@@ -328,7 +321,7 @@ Sage-Integers):
 
 ::
 
-    sage: range(1, 15)
+    sage: list(range(1, 15))
     [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
 
 Dies ist nützlich wenn man List-Comprehensions verwendet um Listen zu
@@ -396,7 +389,7 @@ Folge haben einen gemeinsamen Obertyp, der das Folgenuniversum genannt wird.
     sage: type(v)
     <class 'sage.structure.sequence.Sequence_generic'>
     sage: type(v[1])
-    <type 'sage.rings.rational.Rational'>
+    <class 'sage.rings.rational.Rational'>
     sage: v.universe()
     Rational Field
     sage: v.is_immutable()
@@ -426,11 +419,7 @@ Vektorräumen. Es ist wichtig, dass sie nicht verändert werden können.
 ::
 
     sage: V = QQ^3; B = V.basis(); B
-    [
-    (1, 0, 0),
-    (0, 1, 0),
-    (0, 0, 1)
-    ]
+    [(1, 0, 0), (0, 1, 0), (0, 0, 1)]
     sage: type(B)
     <class 'sage.structure.sequence.Sequence_generic'>
     sage: B[0] = B[1]
@@ -446,8 +435,8 @@ Dictionaries
 Ein Dictionary (manchmal auch assoziativer Array genannt) ist eine
 Abbildung von 'hashbaren' Objekten (z.B. Strings, Zahlen und Tupel;
 Lesen Sie die Python documentation
-http://docs.python.org/tut/node7.html und
-http://docs.python.org/lib/typesmapping.html für weitere Details) zu
+http://docs.python.org/3/tutorial/datastructures.html und
+https://docs.python.org/3/library/stdtypes.html#typesmapping für weitere Details) zu
 beliebigen Objekten.
 
 ::
@@ -455,8 +444,8 @@ beliebigen Objekten.
     sage: d = {1:5, 'sage':17, ZZ:GF(7)}
     sage: type(d)
     <... 'dict'>
-    sage: d.keys()
-     [1, 'sage', Integer Ring]
+    sage: list(d.keys())
+    [1, 'sage', Integer Ring]
     sage: d['sage']
     17
     sage: d[ZZ]
@@ -482,7 +471,7 @@ Dictionary zu iterieren:
 
 ::
 
-    sage: d = {2:4, 4:16, 3:9}
+    sage: d = {2:4, 3:9, 4:16}
     sage: [a*b for a, b in d.items()]
     [8, 27, 64]
 
@@ -544,7 +533,7 @@ nichtnegativen ganzen Zahlen bis :math:`10000000`.
 
 ::
 
-    sage: v = (n^2 for n in xrange(10000000))
+    sage: v = (n^2 for n in range(10000000))
     sage: next(v)
     0
     sage: next(v)

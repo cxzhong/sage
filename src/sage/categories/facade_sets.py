@@ -12,16 +12,17 @@ For background, see :ref:`What is a facade set? <facade-sets>`.
 
 from sage.categories.category_with_axiom import CategoryWithAxiom
 
+
 class FacadeSets(CategoryWithAxiom):
     def example(self, choice='subset'):
         r"""
-        Returns an example of facade set, as per
+        Return an example of facade set, as per
         :meth:`Category.example()
         <sage.categories.category.Category.example>`.
 
         INPUT:
 
-        - ``choice`` -- 'union' or 'subset' (default: 'subset').
+        - ``choice`` -- 'union' or 'subset' (default: ``'subset'``)
 
         EXAMPLES::
 
@@ -44,14 +45,14 @@ class FacadeSets(CategoryWithAxiom):
 
         def _element_constructor_(self, element):
             """
-            Coerce ``element`` into ``self``
+            Coerce ``element`` into ``self``.
 
             INPUT:
 
             - ``element`` -- any object
 
             This default implementation returns ``element`` if
-            ``self`` is a facade for ``parent(element)`. Otherwise it
+            ``self`` is a facade for ``parent(element)``. Otherwise it
             attempts in turn to coerce ``element`` into each parent
             ``self`` is a facade for.
 
@@ -94,22 +95,22 @@ class FacadeSets(CategoryWithAxiom):
             else:
                 parents = self.facade_for()
                 if parents is True:
-                    return NotImplementedError
+                    raise NotImplementedError
                 for parent in self.facade_for():
                     try:
                         return parent(element)
                     except Exception:
                         pass
-            raise ValueError("Can't coerce `%s` in any parent `%s` is a facade for"%(element, self))
+            raise ValueError("Can't coerce `%s` in any parent `%s` is a facade for" % (element, self))
 
         def facade_for(self):
             """
-            Returns the parents this set is a facade for
+            Return the parents this set is a facade for.
 
             This default implementation assumes that ``self`` has
             an attribute ``_facade_for``, typically initialized by
             :meth:`Parent.__init__`. If the attribute is not present, the method
-            raises a NotImplementedError.
+            raises a :exc:`NotImplementedError`.
 
             EXAMPLES::
 
@@ -118,7 +119,7 @@ class FacadeSets(CategoryWithAxiom):
                 sage: S.facade_for()
                 (Integer Ring,)
 
-            Check that :trac:`13801` is corrected::
+            Check that :issue:`13801` is corrected::
 
                 sage: class A(Parent):
                 ....:     def __init__(self):
@@ -136,7 +137,7 @@ class FacadeSets(CategoryWithAxiom):
 
         def is_parent_of(self, element):
             """
-            Returns whether ``self`` is the parent of ``element``
+            Return whether ``self`` is the parent of ``element``.
 
             INPUT:
 
@@ -179,15 +180,17 @@ class FacadeSets(CategoryWithAxiom):
             from sage.structure.element import parent
             return parent(element) in parents
 
-        def __contains__(self, element):
+        def __contains__(self, element) -> bool:
             """
-            Membership testing
+            Membership testing.
 
             Returns whether ``element`` is in one of the parents
             ``self`` is a facade for.
 
-            .. warning:: this default implementation is currently
-            overriden by :meth:`Parent.__contains__`.
+            .. warning::
+
+                this default implementation is currently
+                overridden by :meth:`Parent.__contains__`.
 
             EXAMPLES::
 
@@ -207,8 +210,8 @@ class FacadeSets(CategoryWithAxiom):
 
             For each parent ``self`` is a facade for, this default
             implementation tries the method ``an_element`` until it finds an
-            element in ``self``. If none is found raise a
-            ``NotImplementedError``.
+            element in ``self``. If none is found, this raises a
+            :exc:`NotImplementedError`.
 
             EXAMPLES::
 

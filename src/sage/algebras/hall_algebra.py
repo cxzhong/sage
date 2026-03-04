@@ -1,3 +1,4 @@
+# sage.doctest: needs sage.combinat sage.modules
 r"""
 Hall Algebras
 
@@ -5,14 +6,12 @@ AUTHORS:
 
 - Travis Scrimshaw (2013-10-17): Initial version
 """
-#*****************************************************************************
+# ****************************************************************************
 #  Copyright (C) 2013 Travis Scrimshaw <tscrim at ucdavis.edu>
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
-# python3
-from __future__ import division
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
 from sage.misc.misc_c import prod
 from sage.misc.cachefunc import cached_method
@@ -22,7 +21,7 @@ from sage.combinat.partition import Partition, Partitions
 from sage.combinat.free_module import CombinatorialFreeModule
 from sage.combinat.hall_polynomial import hall_polynomial
 from sage.combinat.sf.sf import SymmetricFunctions
-from sage.rings.all import ZZ
+from sage.rings.integer_ring import ZZ
 from functools import cmp_to_key, reduce
 
 
@@ -97,7 +96,7 @@ class HallAlgebra(CombinatorialFreeModule):
         I_\mu \cdot I_\lambda = \sum_\nu P^{\nu}_{\mu, \lambda}(q) I_\nu,
 
     where `P^{\nu}_{\mu, \lambda}` is a Hall polynomial (see
-    :meth:`~sage.combinat.hall_polynomial.hall_polynomial`). The
+    :func:`~sage.combinat.hall_polynomial.hall_polynomial`). The
     unity of this algebra is `I_{\emptyset}`.
 
     The (classical) Hall algebra is also known as the Hall-Steinitz
@@ -118,7 +117,7 @@ class HallAlgebra(CombinatorialFreeModule):
     `n(\lambda) = \sum_i (i - 1) \lambda_i`.
 
     See section 2.3 in [Sch2006]_, and sections II.2 and III.3
-    in [Macdonald1995]_ (where our `I_{\lambda}` is called `u_{\lambda}`).
+    in [Mac1995]_ (where our `I_{\lambda}` is called `u_{\lambda}`).
 
     EXAMPLES::
 
@@ -195,7 +194,7 @@ class HallAlgebra(CombinatorialFreeModule):
 
     The coefficients are actually Laurent polynomials in general, so we don't
     have to work over the fraction field of `\ZZ[q]`. This didn't work before
-    :trac:`15345`::
+    :issue:`15345`::
 
         sage: R.<q> = LaurentPolynomialRing(ZZ)
         sage: H = HallAlgebra(R, q)
@@ -232,7 +231,7 @@ class HallAlgebra(CombinatorialFreeModule):
         self._q = q
         try:
             q_inverse = q**-1
-            if not q_inverse in base_ring:
+            if q_inverse not in base_ring:
                 hopf_structure = False
             else:
                 hopf_structure = True
@@ -256,7 +255,7 @@ class HallAlgebra(CombinatorialFreeModule):
         M.register_as_coercion()
         (~M).register_as_coercion()
 
-    def _repr_(self):
+    def _repr_(self) -> str:
         """
         Return a string representation of ``self``.
 
@@ -350,7 +349,7 @@ class HallAlgebra(CombinatorialFreeModule):
         S = self.tensor_square()
         if all(x == 1 for x in la):
             n = len(la)
-            return S.sum_of_terms([( (Partition([1]*r), Partition([1]*(n-r))), self._q**(-r*(n-r)) )
+            return S.sum_of_terms([((Partition([1]*r), Partition([1]*(n-r))), self._q**(-r*(n-r)))
                                    for r in range(n+1)], distinct=True)
 
         I = HallAlgebraMonomials(self.base_ring(), self._q)
@@ -483,9 +482,9 @@ class HallAlgebra(CombinatorialFreeModule):
                 (4*q^2 + 9)/(q^2 - q)
             """
             q = self.parent()._q
-            f = lambda la: ~( q**(sum(la) + 2*la.weighted_size())
+            f = lambda la: ~(q**(sum(la) + 2*la.weighted_size())
                               * prod(prod((1 - q**-i) for i in range(1,k+1))
-                                     for k in la.to_exp()) )
+                                     for k in la.to_exp()))
             y = self.parent()(y)
             ret = q.parent().zero()
             for mx, cx in self:
@@ -493,6 +492,7 @@ class HallAlgebra(CombinatorialFreeModule):
                 if cy != 0:
                     ret += cx * cy * f(mx)
             return ret
+
 
 class HallAlgebraMonomials(CombinatorialFreeModule):
     r"""
@@ -582,7 +582,7 @@ class HallAlgebraMonomials(CombinatorialFreeModule):
         self._q = q
         try:
             q_inverse = q**-1
-            if not q_inverse in base_ring:
+            if q_inverse not in base_ring:
                 hopf_structure = False
             else:
                 hopf_structure = True
@@ -623,7 +623,7 @@ class HallAlgebraMonomials(CombinatorialFreeModule):
         H = HallAlgebra(self.base_ring(), self._q)
         return reduce(lambda cur,r: cur * H.monomial(Partition([1]*r)), a, H.one())
 
-    def _repr_(self):
+    def _repr_(self) -> str:
         """
         Return a string representation of ``self``.
 
@@ -687,7 +687,7 @@ class HallAlgebraMonomials(CombinatorialFreeModule):
              + (q^-1)*I[1, 1] # I[1] + I[2] # I[1] + I[2, 1] # I[]
         """
         S = self.tensor_square()
-        return S.prod(S.sum_of_terms([( (Partition([r]), Partition([n-r]) ), self._q**(-r*(n-r)) )
+        return S.prod(S.sum_of_terms([((Partition([r]), Partition([n-r])), self._q**(-r*(n-r)))
                                       for r in range(n+1)], distinct=True) for n in a)
 
     def antipode_on_basis(self, a):
@@ -780,4 +780,3 @@ class HallAlgebraMonomials(CombinatorialFreeModule):
             """
             H = HallAlgebra(self.parent().base_ring(), self.parent()._q)
             return H(self).scalar(H(y))
-

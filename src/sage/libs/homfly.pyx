@@ -1,3 +1,4 @@
+# distutils: libraries = homfly gc
 r"""
 Cython wrapper for libhomfly library
 
@@ -21,22 +22,24 @@ AUTHORS:
 - Miguel Marco (2015-03-24): initial version.
 """
 
-#*****************************************************************************
+# ****************************************************************************
 #       Copyright (C) 2015 Miguel Marco  <mmarco@unizar.es>
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
 #  as published by the Free Software Foundation; either version 2 of
 #  the License, or (at youroption) any later version.
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
 from cysignals.signals cimport sig_on, sig_off
 
+from sage.cpython.string cimport str_to_bytes, char_to_str
+
 cdef extern from "homfly.h":
-    ctypedef int  word; 
-    ctypedef signed long int sb4;
-    ctypedef unsigned short int ub2;
-    ctypedef signed short int sb2;
+    ctypedef int  word
+    ctypedef signed long int sb4
+    ctypedef unsigned short int ub2
+    ctypedef signed short int sb2
     struct Term:
         sb4 coef
         sb2 m
@@ -54,25 +57,23 @@ def homfly_polynomial_string(link):
 
     INPUT:
 
-    - ``link`` -- a string of space-separated integers representing the link
+    - ``link`` -- string of space-separated integers representing the link
 
-    OUTPUT:
-
-    A string with the HOMFLY polynomial in the variables `M` and `L`
+    OUTPUT: string with the HOMFLY polynomial in the variables `M` and `L`
 
     EXAMPLES::
 
-        sage: from sage.libs.homfly import homfly_polynomial_string # optional - libhomfly
+        sage: from sage.libs.homfly import homfly_polynomial_string
         sage: trefoil = '1 6 0 1  1 -1  2 1  0 -1  1 1  2 -1 0 1 1 1 2 1'
-        sage: homfly_polynomial_string(trefoil) # optional - libhomfly
+        sage: homfly_polynomial_string(trefoil)
         ' - L^-4 - 2L^-2 + M^2L^-2'
     """
-    cdef char* c_string = link
+    link = str_to_bytes(link)
     sig_on()
-    cdef char* c_output = homfly_str(c_string)
+    cdef char* c_output = homfly_str(link)
     sig_off()
-    output = <bytes> c_output
-    return output
+    return char_to_str(c_output)
+
 
 def homfly_polynomial_dict(link):
     """
@@ -80,28 +81,23 @@ def homfly_polynomial_dict(link):
 
     INPUT:
 
-    - ``link`` -- a string of space-separated integers representing the link
-
-    OUTPUT:
-
-    A dictionary representing the HOMFLY polynomial.
+    - ``link`` -- string of space-separated integers representing the link
 
     EXAMPLES::
 
-        sage: from sage.libs.homfly import homfly_polynomial_dict # optional - libhomfly
+        sage: from sage.libs.homfly import homfly_polynomial_dict
         sage: trefoil = '1 6 0 1  1 -1  2 1  0 -1  1 1  2 -1 0 1 1 1 2 1'
-        sage: homfly_polynomial_dict(trefoil) # optional - libhomfly
+        sage: homfly_polynomial_dict(trefoil)
         {(-4, 0): -1, (-2, 0): -2, (-2, 2): 1}
     """
-    cdef char* c_string = link
+    link = str_to_bytes(link)
     cdef Term ter
     sig_on()
-    cdef Poly* c_output = homfly(c_string)
+    cdef Poly* c_output = homfly(link)
     sig_off()
     cdef int l = c_output.len
-    d = dict()
+    d = {}
     for i in range(l):
         ter = c_output.term[i]
         d[(int(ter.l), int(ter.m))] = int(ter.coef)
     return d
-

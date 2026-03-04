@@ -1,7 +1,7 @@
 r"""
 Curves in Manifolds
 
-Given a differentiable manifold `M`, a *differentiable curve* curve in
+Given a differentiable manifold `M`, a *differentiable curve* in
 `M` is a differentiable mapping
 
 .. MATH::
@@ -21,7 +21,6 @@ REFERENCES:
 
 - Chap. 1 of [KN1963]_
 - Chap. 3 of [Lee2013]_
-
 """
 
 #*****************************************************************************
@@ -33,11 +32,11 @@ REFERENCES:
 #                  http://www.gnu.org/licenses/
 #*****************************************************************************
 
-from sage.misc.latex import latex
-from sage.misc.decorators import options
-from sage.manifolds.point import ManifoldPoint
 from sage.manifolds.differentiable.diff_map import DiffMap
-from sage.manifolds.utilities import simplify_chain_real
+from sage.manifolds.point import ManifoldPoint
+from sage.misc.decorators import options
+from sage.misc.latex import latex
+
 
 class DifferentiableCurve(DiffMap):
     r"""
@@ -65,10 +64,10 @@ class DifferentiableCurve(DiffMap):
     - ``name`` -- (default: ``None``) string; symbol given to the curve
     - ``latex_name`` -- (default: ``None``) string; LaTeX symbol to denote
       the curve; if none is provided, ``name`` will be used
-    - ``is_isomorphism`` -- (default: ``False``) determines whether the
+    - ``is_isomorphism`` -- boolean (default: ``False``); determines whether the
       constructed object is a diffeomorphism; if set to ``True``,
       then `M` must have dimension one
-    - ``is_identity`` -- (default: ``False``) determines whether the
+    - ``is_identity`` -- boolean (default: ``False``); determines whether the
       constructed object is the identity map; if set to ``True``,
       then `M` must be the interval `I`
 
@@ -87,22 +86,22 @@ class DifferentiableCurve(DiffMap):
     Instead of declaring the parameter `t`  as a symbolic variable by means
     of ``var('t')``, it is equivalent to get it as the canonical coordinate
     of the real number line (see
-    :class:`~sage.manifolds.differentiable.real_line.RealLine`)::
+    :class:`~sage.manifolds.differentiable.examples.real_line.RealLine`)::
 
-        sage: R.<t> = RealLine()
+        sage: R.<t> = manifolds.RealLine()
         sage: c = M.curve({X: [sin(t), sin(2*t)/2]}, (t, 0, 2*pi), name='c') ; c
         Curve c in the 2-dimensional differentiable manifold M
 
     A graphical view of the curve is provided by the method :meth:`plot`::
 
-        sage: c.plot(aspect_ratio=1)
+        sage: c.plot(aspect_ratio=1)                                                    # needs sage.plot
         Graphics object consisting of 1 graphics primitive
 
     .. PLOT::
 
         M = Manifold(2, 'M')
         X = M.chart('x y')
-        t = RealLine().canonical_coordinate()
+        t = manifolds.RealLine().canonical_coordinate()
         c = M.curve([sin(t), sin(2*t)/2], (t, 0, 2*pi), name='c')
         g = c.plot(aspect_ratio=1)
         sphinx_plot(g)
@@ -112,9 +111,8 @@ class DifferentiableCurve(DiffMap):
 
         sage: c.parent()
         Set of Morphisms from Real interval (0, 2*pi) to 2-dimensional
-         differentiable manifold M in Join of Category of subobjects of sets
-         and Category of smooth manifolds over Real Field with 53 bits of
-         precision
+         differentiable manifold M in Category of smooth manifolds over Real
+         Field with 53 bits of precision
         sage: I = R.open_interval(0, 2*pi)
         sage: c.parent() is Hom(I, M)
         True
@@ -132,15 +130,15 @@ class DifferentiableCurve(DiffMap):
     shows the coordinate representations in various charts of manifold ``M``::
 
         sage: c.display()
-        c: (0, 2*pi) --> M
-           t |--> (x, y) = (sin(t), 1/2*sin(2*t))
+        c: (0, 2*pi) → M
+           t ↦ (x, y) = (sin(t), 1/2*sin(2*t))
 
     Another map method is using the usual call syntax, which returns
     the image of a point in the curve's domain::
 
         sage: t0 = pi/2
         sage: I(t0)
-        Point on the Real number line R
+        Point on the Real number line ℝ
         sage: c(I(t0))
         Point on the 2-dimensional differentiable manifold M
         sage: c(I(t0)).coord(X)
@@ -162,16 +160,16 @@ class DifferentiableCurve(DiffMap):
         sage: c = M.curve([sin(t), sin(2*t)/2], (t, 0, 2*pi), chart=X, name='c') ; c
         Curve c in the 2-dimensional differentiable manifold M
         sage: c.display()
-        c: (0, 2*pi) --> M
-           t |--> (x, y) = (sin(t), 1/2*sin(2*t))
+        c: (0, 2*pi) → M
+           t ↦ (x, y) = (sin(t), 1/2*sin(2*t))
 
     Since ``X`` is the default chart on ``M``, it can be omitted::
 
         sage: c = M.curve([sin(t), sin(2*t)/2], (t, 0, 2*pi), name='c') ; c
         Curve c in the 2-dimensional differentiable manifold M
         sage: c.display()
-        c: (0, 2*pi) --> M
-           t |--> (x, y) = (sin(t), 1/2*sin(2*t))
+        c: (0, 2*pi) → M
+           t ↦ (x, y) = (sin(t), 1/2*sin(2*t))
 
     Note that a curve in `M` can also be created as a differentiable
     map `I \to M`::
@@ -188,7 +186,7 @@ class DifferentiableCurve(DiffMap):
 
         sage: c = M.curve([sin(t), sin(2*t)/2], (t, 0, 2*pi))
         sage: latex(c)
-        \mbox{Curve in the 2-dimensional differentiable manifold M}
+        \text{Curve in the 2-dimensional differentiable manifold M}
         sage: c = M.curve([sin(t), sin(2*t)/2], (t, 0, 2*pi), name='c')
         sage: latex(c)
         c
@@ -203,7 +201,7 @@ class DifferentiableCurve(DiffMap):
         Vector field c' along the Real interval (0, 2*pi) with values on the
          2-dimensional differentiable manifold M
         sage: v.display()
-        c' = cos(t) d/dx + (2*cos(t)^2 - 1) d/dy
+        c' = cos(t) ∂/∂x + (2*cos(t)^2 - 1) ∂/∂y
 
     Plot of the curve and its tangent vector field::
 
@@ -214,7 +212,7 @@ class DifferentiableCurve(DiffMap):
 
         M = Manifold(2, 'M')
         X = M.chart('x y')
-        t = RealLine().canonical_coordinate()
+        t = manifolds.RealLine().canonical_coordinate()
         c = M.curve([sin(t), sin(2*t)/2], (t, 0, 2*pi), name='c')
         v = c.tangent_vector_field()
         g = c.plot(thickness=2, aspect_ratio=1) + v.plot(chart=X, number_values=17, scale=0.5)
@@ -228,7 +226,7 @@ class DifferentiableCurve(DiffMap):
         sage: v.at(R(pi)) in M.tangent_space(c(R(pi)))
         True
         sage: v.at(R(pi)).display()
-        c' = -d/dx + d/dy
+        c' = -∂/∂x + ∂/∂y
 
     Curves `\RR \to \RR` can be composed: the operator `\circ` is
     given by ``*``::
@@ -236,16 +234,117 @@ class DifferentiableCurve(DiffMap):
         sage: f = R.curve(t^2, (t,-oo,+oo))
         sage: g = R.curve(cos(t), (t,-oo,+oo))
         sage: s = g*f ; s
-        Differentiable map from the Real number line R to itself
+        Differentiable map from the Real number line ℝ to itself
         sage: s.display()
-        R --> R
-           t |--> cos(t^2)
+        ℝ → ℝ
+           t ↦ cos(t^2)
         sage: s = f*g ; s
-        Differentiable map from the Real number line R to itself
+        Differentiable map from the Real number line ℝ to itself
         sage: s.display()
-        R --> R
-           t |--> cos(t)^2
+        ℝ → ℝ
+           t ↦ cos(t)^2
 
+    .. RUBRIC:: Curvature and torsion of a curve in a Riemannian manifold
+
+    Let us consider a helix `C` in the Euclidean space `\mathbb{E}^3`
+    parametrized by its arc length `s`::
+
+        sage: E.<x,y,z> = EuclideanSpace()
+        sage: R.<s> = manifolds.RealLine()
+        sage: C = E.curve((2*cos(s/3), 2*sin(s/3), sqrt(5)*s/3), (s, 0, 6*pi),
+        ....:             name='C')
+
+    Its tangent vector field is::
+
+        sage: T = C.tangent_vector_field()
+        sage: T.display()
+        C' = -2/3*sin(1/3*s) e_x + 2/3*cos(1/3*s) e_y + 1/3*sqrt(5) e_z
+
+    Since `C` is parametrized by its arc length `s`, `T` is a unit vector (with
+    respect to the Euclidean metric of `\mathbb{E}^3`)::
+
+        sage: norm(T)
+        Scalar field |C'| on the Real interval (0, 6*pi)
+        sage: norm(T).display()
+        |C'|: (0, 6*pi) → ℝ
+           s ↦ 1
+
+    Vector fields along `C` are defined by the method
+    :meth:`~sage.manifolds.differentiable.manifold.DifferentiableManifold.vector_field`
+    of the domain of `C` with the keyword argument ``dest_map`` set to `C`. For
+    instance the derivative vector `T'=\mathrm{d}T/\mathrm{d}s` is::
+
+        sage: I = C.domain(); I
+        Real interval (0, 6*pi)
+        sage: Tp = I.vector_field([diff(T[i], s) for i in E.irange()], dest_map=C,
+        ....:                     name="T'")
+        sage: Tp.display()
+        T' = -2/9*cos(1/3*s) e_x - 2/9*sin(1/3*s) e_y
+
+    The norm of `T'` is the curvature of the helix::
+
+        sage: kappa = norm(Tp)
+        sage: kappa
+        Scalar field |T'| on the Real interval (0, 6*pi)
+        sage: kappa.expr()
+        2/9
+
+    The unit normal vector along `C` is::
+
+        sage: N = Tp / kappa
+        sage: N.display()
+        -cos(1/3*s) e_x - sin(1/3*s) e_y
+
+    while the binormal vector along `C` is `B = T \times N`::
+
+        sage: B = T.cross_product(N)
+        sage: B
+        Vector field along the Real interval (0, 6*pi) with values on the
+         Euclidean space E^3
+        sage: B.display()
+        1/3*sqrt(5)*sin(1/3*s) e_x - 1/3*sqrt(5)*cos(1/3*s) e_y + 2/3 e_z
+
+    The three vector fields `(T, N, B)` form the **Frenet-Serret frame** along
+    `C`::
+
+        sage: FS = I.vector_frame(('T', 'N', 'B'), (T, N, B),
+        ....:                     symbol_dual=('t', 'n', 'b'))
+        sage: FS
+        Vector frame ((0, 6*pi), (T,N,B)) with values on the Euclidean space E^3
+
+    The Frenet-Serret frame is orthonormal::
+
+        sage: matrix([[u.dot(v).expr() for v in FS] for u in FS])
+        [1 0 0]
+        [0 1 0]
+        [0 0 1]
+
+    The derivative vectors `N'` and `B'`::
+
+        sage: Np = I.vector_field([diff(N[i], s) for i in E.irange()],
+        ....:                     dest_map=C, name="N'")
+        sage: Np.display()
+        N' = 1/3*sin(1/3*s) e_x - 1/3*cos(1/3*s) e_y
+        sage: Bp = I.vector_field([diff(B[i], s) for i in E.irange()],
+        ....:                     dest_map=C, name="B'")
+        sage: Bp.display()
+        B' = 1/9*sqrt(5)*cos(1/3*s) e_x + 1/9*sqrt(5)*sin(1/3*s) e_y
+
+    The Frenet-Serret formulas::
+
+        sage: for v in (Tp, Np, Bp):
+        ....:     v.display(FS)
+        ....:
+        T' = 2/9 N
+        N' = -2/9 T + 1/9*sqrt(5) B
+        B' = -1/9*sqrt(5) N
+
+    The torsion of `C` is obtained as the third component of `N'` in the
+    Frenet-Serret frame::
+
+        sage: tau = Np[FS, 3]
+        sage: tau
+        1/9*sqrt(5)
     """
     def __init__(self, parent, coord_expression=None, name=None,
                  latex_name=None, is_isomorphism=False, is_identity=False):
@@ -256,7 +355,7 @@ class DifferentiableCurve(DiffMap):
 
             sage: M = Manifold(2, 'M')
             sage: X.<x,y> = M.chart()
-            sage: R.<t> = RealLine()
+            sage: R.<t> = manifolds.RealLine()
             sage: I = R.open_interval(0, 2*pi)
             sage: c = Hom(I,M)({X: (cos(t), sin(2*t))},  name='c') ; c
             Curve c in the 2-dimensional differentiable manifold M
@@ -267,19 +366,14 @@ class DifferentiableCurve(DiffMap):
             sage: c = Hom(I,I)({}, is_identity=True) ; c
             Identity map Id_(0, 2*pi) of the Real interval (0, 2*pi)
             sage: TestSuite(c).run()
-
         """
-        domain = parent.domain()
-        codomain = parent.codomain()
         if coord_expression is None:
             coord_functions = None
         else:
             if not isinstance(coord_expression, dict):
                 raise TypeError("{} is not a dictionary".format(
                                                              coord_expression))
-            param_chart = domain.canonical_chart()
-            codom_atlas = codomain.atlas()
-            n = codomain.manifold().dim()
+            param_chart = parent.domain().canonical_chart()
             coord_functions = {}
             for chart, expr in coord_expression.items():
                 if isinstance(chart, tuple):
@@ -300,12 +394,11 @@ class DifferentiableCurve(DiffMap):
 
             sage: M = Manifold(2, 'M')
             sage: X.<x,y> = M.chart()
-            sage: R.<t> = RealLine()
+            sage: R.<t> = manifolds.RealLine()
             sage: M.curve([cos(t), sin(2*t)], (t, 0, 2*pi))
             Curve in the 2-dimensional differentiable manifold M
             sage: M.curve([cos(t), sin(2*t)], (t, 0, 2*pi), name='c')
             Curve c in the 2-dimensional differentiable manifold M
-
         """
         if self._codomain._dim == 1:
             return DiffMap._repr_(self)
@@ -323,14 +416,13 @@ class DifferentiableCurve(DiffMap):
 
             sage: M = Manifold(2, 'M')
             sage: X.<x,y> = M.chart()
-            sage: R.<t> = RealLine()
+            sage: R.<t> = manifolds.RealLine()
             sage: c = M.curve([cos(t), sin(2*t)], (t, 0, 2*pi))
             sage: c.__reduce__()
             (<class 'sage.manifolds.differentiable.manifold_homset.DifferentiableCurveSet_with_category.element_class'>,
              (Set of Morphisms from Real interval (0, 2*pi) to 2-dimensional
-              differentiable manifold M in Join of Category of subobjects of
-              sets and Category of smooth manifolds over Real Field with 53
-              bits of precision,
+              differentiable manifold M in Category of smooth manifolds over
+              Real Field with 53 bits of precision,
               None,
               None,
               None,
@@ -341,7 +433,6 @@ class DifferentiableCurve(DiffMap):
 
             sage: loads(dumps(c))
             Curve in the 2-dimensional differentiable manifold M
-
         """
         return (type(self), (self.parent(), None, self._name, self._latex_name,
                              self._is_isomorphism, self._is_identity))
@@ -355,9 +446,7 @@ class DifferentiableCurve(DiffMap):
         - ``chart`` -- (default: ``None``) chart on the curve's codomain; if
           ``None``, the codomain's default chart is assumed
 
-        OUTPUT:
-
-        - symbolic expression representing the curve in the above chart
+        OUTPUT: symbolic expression representing the curve in the above chart
 
         EXAMPLES:
 
@@ -368,10 +457,18 @@ class DifferentiableCurve(DiffMap):
             sage: U = M.open_subset('U', coord_def={c_xy: (y!=0, x<0)}) # the complement of the segment y=0 and x>0
             sage: c_cart = c_xy.restrict(U) # Cartesian coordinates on U
             sage: c_spher.<r,ph> = U.chart(r'r:(0,+oo) ph:(0,2*pi):\phi') # spherical coordinates on U
-            sage: # Links between spherical coordinates and Cartesian ones:
+
+        Links between spherical coordinates and Cartesian ones::
+
             sage: ch_cart_spher = c_cart.transition_map(c_spher, [sqrt(x*x+y*y), atan2(y,x)])
             sage: ch_cart_spher.set_inverse(r*cos(ph), r*sin(ph))
-            sage: R.<t> = RealLine()
+            Check of the inverse coordinate transformation:
+              x == x  *passed*
+              y == y  *passed*
+              r == r  *passed*
+              ph == arctan2(r*sin(ph), r*cos(ph))  **failed**
+            NB: a failed report can reflect a mere lack of simplification.
+            sage: R.<t> = manifolds.RealLine()
             sage: c = U.curve({c_spher: (1,t)}, (t, 0, 2*pi), name='c')
             sage: c.coord_expr(c_spher)
             (1, t)
@@ -383,12 +480,11 @@ class DifferentiableCurve(DiffMap):
             sage: c.coord_expr()
             (cos(t), sin(t))
 
-        Cartesian expression of a cardiod::
+        Cartesian expression of a cardioid::
 
             sage: c = U.curve({c_spher: (2*(1+cos(t)), t)}, (t, 0, 2*pi), name='c')
             sage: c.coord_expr(c_cart)
             (2*cos(t)^2 + 2*cos(t), 2*(cos(t) + 1)*sin(t))
-
         """
         return self.expr(chart1=self._domain.canonical_chart(), chart2=chart)
 
@@ -407,7 +503,7 @@ class DifferentiableCurve(DiffMap):
 
             sage: M = Manifold(2, 'M')
             sage: X.<x,y> = M.chart()
-            sage: R.<t> = RealLine()
+            sage: R.<t> = manifolds.RealLine()
             sage: c = M.curve([cos(t), sin(t)], (t, 0, 2*pi), name='c')
             sage: c(0)
             Point c(0) on the 2-dimensional differentiable manifold M
@@ -421,7 +517,6 @@ class DifferentiableCurve(DiffMap):
             Point c(t) on the 2-dimensional differentiable manifold M
             sage: c(t).coord(X)
             (cos(t), sin(t))
-
         """
         # Case of a point in the domain:
         if isinstance(t, ManifoldPoint):
@@ -442,7 +537,7 @@ class DifferentiableCurve(DiffMap):
         coords = [coord_functions[i].expr().substitute(dict_subs)
                   for i in range(n)]
         if simplify:
-            coords = [simplify_chain_real(coords[i]) for i in range(n)]
+            coords = [chart_pair[0].simplify(coords[i]) for i in range(n)]
         if self._name is not None:
             name = "{}({})".format(self._name, t)
         else:
@@ -480,13 +575,13 @@ class DifferentiableCurve(DiffMap):
 
             sage: M = Manifold(2, 'R^2')
             sage: X.<x,y> = M.chart()
-            sage: R.<t> = RealLine()
+            sage: R.<t> = manifolds.RealLine()
             sage: c = M.curve([cos(t), sin(t)], (t, 0, 2*pi), name='c')
             sage: v = c.tangent_vector_field() ; v
             Vector field c' along the Real interval (0, 2*pi) with values on
              the 2-dimensional differentiable manifold R^2
             sage: v.display()
-            c' = -sin(t) d/dx + cos(t) d/dy
+            c' = -sin(t) ∂/∂x + cos(t) ∂/∂y
             sage: latex(v)
             {c'}
             sage: v.parent()
@@ -504,7 +599,7 @@ class DifferentiableCurve(DiffMap):
             sage: vp.parent() is M.tangent_space(c(R(pi)))
             True
             sage: vp.display()
-            c' = -d/dy
+            c' = -∂/∂y
 
         Tangent vector field to a curve in a non-parallelizable manifold (the
         2-sphere `S^2`): first, we introduce the 2-sphere::
@@ -529,25 +624,24 @@ class DifferentiableCurve(DiffMap):
         Then we define a curve (a loxodrome) by its expression in terms of
         spherical coordinates and evaluate the tangent vector field::
 
-            sage: R.<t> = RealLine()
+            sage: R.<t> = manifolds.RealLine()
             sage: c = M.curve({c_spher: [2*atan(exp(-t/10)), t]}, (t, -oo, +oo),
             ....:              name='c') ; c
             Curve c in the 2-dimensional differentiable manifold M
             sage: vc = c.tangent_vector_field() ; vc
-            Vector field c' along the Real number line R with values on
+            Vector field c' along the Real number line ℝ with values on
              the 2-dimensional differentiable manifold M
             sage: vc.parent()
-            Module X(R,c) of vector fields along the Real number line R
+            Module X(ℝ,c) of vector fields along the Real number line ℝ
              mapped into the 2-dimensional differentiable manifold M
             sage: vc.display(c_spher.frame().along(c.restrict(R,A)))
-            c' = -1/5*e^(1/10*t)/(e^(1/5*t) + 1) d/dth + d/dph
-
+            c' = -1/5*e^(1/10*t)/(e^(1/5*t) + 1) ∂/∂th + ∂/∂ph
         """
         vmodule = self._domain.vector_field_module(dest_map=self)
         if latex_name is None:
             if name is None:
                 if self._latex_name is not None:
-                    latex_name = r"{%s'}"%(self._latex_name)
+                    latex_name = r"{%s'}" % (self._latex_name)
             else:
                 latex_name = name
         if name is None and self._name is not None:
@@ -628,16 +722,16 @@ class DifferentiableCurve(DiffMap):
           values of the parameters that may appear in the coordinate expression
           of the curve
 
-        - ``color`` -- (default: 'red') color of the drawn curve
+        - ``color`` -- (default: ``'red'``) color of the drawn curve
 
-        - ``style`` -- (default: '-') color of the drawn curve; NB: ``style``
+        - ``style`` -- (default: ``'-'``) color of the drawn curve; NB: ``style``
           is effective only for 2D plots
 
         - ``thickness`` -- (default: 1) thickness of the drawn curve
 
         - ``plot_points`` -- (default: 75) number of points to plot the curve
 
-        - ``label_axes`` -- (default: ``True``) boolean determining whether the
+        - ``label_axes`` -- boolean (default: ``True``); determining whether the
           labels of the coordinate axes of ``chart`` shall be added to the
           graph; can be set to ``False`` if the graph is 3D and must be
           superposed with another graph.
@@ -660,7 +754,7 @@ class DifferentiableCurve(DiffMap):
 
             sage: R2 = Manifold(2, 'R^2')
             sage: X.<x,y> = R2.chart()
-            sage: R.<t> = RealLine()
+            sage: R.<t> = manifolds.RealLine()
             sage: c = R2.curve([sin(t), sin(2*t)/2], (t, 0, 2*pi), name='c')
             sage: c.plot()  # 2D plot
             Graphics object consisting of 1 graphics primitive
@@ -669,7 +763,7 @@ class DifferentiableCurve(DiffMap):
 
             R2 = Manifold(2, 'R^2')
             X = R2.chart('x y')
-            t = RealLine().canonical_coordinate()
+            t = manifolds.RealLine().canonical_coordinate()
             c = R2.curve([sin(t), sin(2*t)/2], (t, 0, 2*pi), name='c')
             g = c.plot()
             sphinx_plot(g)
@@ -683,7 +777,7 @@ class DifferentiableCurve(DiffMap):
 
             R2 = Manifold(2, 'R^2')
             X = R2.chart('x y')
-            t = RealLine().canonical_coordinate()
+            t = manifolds.RealLine().canonical_coordinate()
             c = R2.curve([sin(t), sin(2*t)/2], (t, 0, 2*pi), name='c')
             g = c.plot(prange=(0,pi))
             sphinx_plot(g)
@@ -697,9 +791,26 @@ class DifferentiableCurve(DiffMap):
 
             R2 = Manifold(2, 'R^2')
             X = R2.chart('x y')
-            t = RealLine().canonical_coordinate()
+            t = manifolds.RealLine().canonical_coordinate()
             c = R2.curve([sin(t), sin(2*t)/2], (t, 0, 2*pi), name='c')
             g = c.plot(color='green', style=':', thickness=3, aspect_ratio=1)
+            sphinx_plot(g)
+
+        Cardioid defined in terms of polar coordinates and plotted with respect
+        to Cartesian coordinates, as an example of use of the optional argument
+        ``chart``::
+
+            sage: E.<r,ph> = EuclideanSpace(coordinates='polar')
+            sage: c = E.curve((1 + cos(ph), ph), (ph, 0, 2*pi))
+            sage: c.plot(chart=E.cartesian_coordinates(), aspect_ratio=1)
+            Graphics object consisting of 1 graphics primitive
+
+        .. PLOT::
+
+            E = EuclideanSpace(2, coordinates='polar')
+            r, ph = E.polar_coordinates()[:]
+            c = E.curve((1 + cos(ph), ph), (ph, 0, 2*pi))
+            g = c.plot(chart=E.cartesian_coordinates(), aspect_ratio=1)
             sphinx_plot(g)
 
         Plot via a mapping to another manifold: loxodrome of a sphere viewed
@@ -713,8 +824,8 @@ class DifferentiableCurve(DiffMap):
             sage: F = S2.diff_map(R3, {(XS, X3): [sin(th)*cos(ph),
             ....:                      sin(th)*sin(ph), cos(th)]}, name='F')
             sage: F.display()
-            F: S^2 --> R^3
-            on U: (th, ph) |--> (x, y, z) = (cos(ph)*sin(th), sin(ph)*sin(th), cos(th))
+            F: S^2 → R^3
+            on U: (th, ph) ↦ (x, y, z) = (cos(ph)*sin(th), sin(ph)*sin(th), cos(th))
             sage: c = S2.curve([2*atan(exp(-t/10)), t], (t, -oo, +oo), name='c')
             sage: graph_c = c.plot(mapping=F, max_range=40,
             ....:                  plot_points=200, thickness=2, label_axes=False)  # 3D plot
@@ -731,7 +842,7 @@ class DifferentiableCurve(DiffMap):
             X3 = R3.chart('x y z')
             F = S2.diff_map(R3, {(XS, X3): [sin(th)*cos(ph), sin(th)*sin(ph),
                                             cos(th)]}, name='F')
-            t = RealLine().canonical_coordinate()
+            t = manifolds.RealLine().canonical_coordinate()
             c = S2.curve([2*atan(exp(-t/10)), t], (t, -oo, +oo), name='c')
             graph_c = c.plot(mapping=F, max_range=40, plot_points=200,
                              thickness=2, label_axes=False)
@@ -744,7 +855,7 @@ class DifferentiableCurve(DiffMap):
             sage: a, b = var('a b')
             sage: c = R2.curve([a*cos(t) + b, a*sin(t)], (t, 0, 2*pi), name='c')
 
-        To make a plot, we set spectific values for ``a`` and ``b`` by means
+        To make a plot, we set specific values for ``a`` and ``b`` by means
         of the Python dictionary ``parameters``::
 
             sage: c.plot(parameters={a: 2, b: -3}, aspect_ratio=1)
@@ -754,16 +865,15 @@ class DifferentiableCurve(DiffMap):
 
             R2 = Manifold(2, 'R^2')
             X = R2.chart('x y')
-            t = RealLine().canonical_coordinate()
+            t = manifolds.RealLine().canonical_coordinate()
             a, b = var('a b')
             c = R2.curve([a*cos(t) + b, a*sin(t)], (t, 0, 2*pi), name='c')
             g = c.plot(parameters={a: 2, b: -3}, aspect_ratio=1)
             sphinx_plot(g)
-
         """
-        from sage.rings.infinity import Infinity
-        from sage.misc.functional import numerical_approx
         from sage.manifolds.chart import RealChart
+        from sage.misc.functional import numerical_approx
+        from sage.rings.infinity import Infinity
 
         #
         # Get the @options from kwds
@@ -792,7 +902,7 @@ class DifferentiableCurve(DiffMap):
         if ambient_coords is None:
             ambient_coords = chart[:]  # all chart coordinates are used
         n_pc = len(ambient_coords)
-        if n_pc != 2 and n_pc !=3:
+        if n_pc != 2 and n_pc != 3:
             raise ValueError("the number of coordinates involved in the " +
                              "plot must be either 2 or 3, not {}".format(n_pc))
         # indices of plot coordinates
@@ -822,21 +932,8 @@ class DifferentiableCurve(DiffMap):
         #
         # The coordinate expression of the effective curve
         #
-        canon_chart = self._domain.canonical_chart()
-        transf = None
-        for chart_pair in eff_curve._coord_expression:
-            if chart_pair == (canon_chart, chart):
-                transf = eff_curve._coord_expression[chart_pair]
-                break
-        else:
-            # Search for a subchart
-            for chart_pair in eff_curve._coord_expression:
-                for schart in chart._subcharts:
-                    if chart_pair == (canon_chart, schart):
-                        transf = eff_curve._coord_expression[chart_pair]
-        if transf is None:
-            raise ValueError("No expression has been found for " +
-                              "{} in terms of {}".format(self, chart))
+        transf = eff_curve.coord_functions(chart1=self._domain.canonical_chart(),
+                                           chart2=chart)
         #
         # List of points for the plot curve
         #
@@ -849,7 +946,7 @@ class DifferentiableCurve(DiffMap):
                 plot_curve.append( [numerical_approx(x[j]) for j in ind_pc] )
                 t += dt
         else:
-             for i in range(plot_points):
+            for i in range(plot_points):
                 x = transf(t, simplify=False)
                 plot_curve.append(
                                [numerical_approx( x[j].substitute(parameters) )
@@ -858,10 +955,8 @@ class DifferentiableCurve(DiffMap):
 
         return self._graphics(plot_curve, ambient_coords,
                               thickness=thickness,
-                              aspect_ratio=aspect_ratio, color= color,
+                              aspect_ratio=aspect_ratio, color=color,
                               style=style, label_axes=label_axes)
-
-
 
     def _graphics(self, plot_curve, ambient_coords, thickness=1,
                   aspect_ratio='automatic', color='red', style='-',
@@ -881,7 +976,7 @@ class DifferentiableCurve(DiffMap):
 
             sage: M = Manifold(2, 'R^2')
             sage: X.<x,y> = M.chart()
-            sage: R.<t> = RealLine()
+            sage: R.<t> = manifolds.RealLine()
             sage: c = M.curve([cos(t), sin(t)], (t, 0, 2*pi), name='c')
             sage: graph = c._graphics([[1,2], [3,4]], [x,y])
             sage: graph._objects[0].xdata == [1,3]
@@ -899,13 +994,10 @@ class DifferentiableCurve(DiffMap):
             sage: l = [r'$'+latex(x)+r'$', r'$'+latex(y)+r'$']
             sage: graph._extra_kwds['axes_labels'] == l
             True
-
         """
-
+        from sage.manifolds.utilities import set_axes_labels
         from sage.plot.graphics import Graphics
         from sage.plot.line import line
-        from sage.manifolds.utilities import set_axes_labels
-
 
         #
         # The plot
@@ -931,4 +1023,3 @@ class DifferentiableCurve(DiffMap):
                 labels = [str(pc) for pc in ambient_coords]
                 resu = set_axes_labels(resu, *labels)
         return resu
-

@@ -1,3 +1,4 @@
+# sage.doctest: needs sage.libs.pari
 r"""
 Canonical forms and automorphisms for linear codes over finite fields
 
@@ -50,7 +51,7 @@ EXAMPLES::
     sage: LinearCode(P.get_transporter()*C.generator_matrix()) == P.get_canonical_form()
     True
     sage: A = P.get_autom_gens()
-    sage: all( [ LinearCode(a*C.generator_matrix()) == C for a in A])
+    sage: all(LinearCode(a*C.generator_matrix()) == C for a in A)
     True
     sage: P.get_autom_order() == GL(3, GF(3)).order()
     True
@@ -73,35 +74,36 @@ columns do share the same coloring::
     sage: A = [a.get_perm() for a in P.get_autom_gens()]
     sage: H = SymmetricGroup(21).subgroup(A)
     sage: H.orbits()
-    [[1],
-     [2],
-     [3, 5, 4],
-     [6, 16, 8, 21, 12, 9, 13, 18, 11, 19, 15, 7, 20, 14, 17, 10]]
+    ((1,),
+     (2,),
+     (3, 5, 4),
+     (6, 19, 16, 21, 9, 10, 15, 8, 20, 11, 14, 13, 7, 12, 18, 17))
 
 We can also restrict the group action to linear isometries::
 
-    sage: P = LinearCodeAutGroupCanLabel(C, algorithm_type="linear")
+    sage: P = LinearCodeAutGroupCanLabel(C, algorithm_type='linear')
     sage: P.get_autom_order() == GL(3, GF(4, 'a')).order()
     True
 
 and to the action of the symmetric group only::
 
-    sage: P = LinearCodeAutGroupCanLabel(C, algorithm_type="permutational")
+    sage: P = LinearCodeAutGroupCanLabel(C, algorithm_type='permutational')
     sage: P.get_autom_order() == C.permutation_automorphism_group().order()
     True
 """
-#*****************************************************************************
+# ****************************************************************************
 #       Copyright (C) 2012 Thomas Feulner <thomas.feulner@uni-bayreuth.de>
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
 #  as published by the Free Software Foundation; either version 2 of
 #  the License, or (at your option) any later version.
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
 from sage.coding.codecan.codecan import PartitionRefinementLinearCode
 from sage.combinat.permutation import Permutation
-from sage.functions.other import factorial
+from sage.arith.misc import factorial
+
 
 def _cyclic_shift(n, p):
     r"""
@@ -123,11 +125,12 @@ def _cyclic_shift(n, p):
         sage: p.action(t)
         [0, 2, 7, 3, 1, 5, 6, 4, 8, 9]
     """
-    x = list(xrange(1, n + 1))
-    for i in xrange(1, len(p)):
+    x = list(range(1, n + 1))
+    for i in range(1, len(p)):
         x[p[i - 1]] = p[i] + 1
     x[p[len(p) - 1]] = p[0] + 1
     return Permutation(x)
+
 
 class LinearCodeAutGroupCanLabel:
     r"""
@@ -136,21 +139,21 @@ class LinearCodeAutGroupCanLabel:
 
     There are several notions of equivalence for linear codes:
     Let `C`, `D` be linear codes of length `n` and dimension `k`.
-    `C` and `D` are said to be
+    The codes `C` and `D` are said to be
 
-        - permutational equivalent, if there is some permutation `\pi \in S_n`
-          such that `(c_{\pi(0)}, \ldots, c_{\pi(n-1)}) \in D` for all `c \in C`.
+    - permutational equivalent, if there is some permutation `\pi \in S_n`
+      such that `(c_{\pi(0)}, \ldots, c_{\pi(n-1)}) \in D` for all `c \in C`.
 
-        - linear equivalent, if there is some permutation `\pi \in S_n` and a
-          vector `\phi \in {\GF{q}^*}^n` of units of length `n` such that
-          `(c_{\pi(0)} \phi_0^{-1}, \ldots, c_{\pi(n-1)} \phi_{n-1}^{-1}) \in D`
-          for all `c \in C`.
+    - linear equivalent, if there is some permutation `\pi \in S_n` and a
+      vector `\phi \in {\GF{q}^*}^n` of units of length `n` such that
+      `(c_{\pi(0)} \phi_0^{-1}, \ldots, c_{\pi(n-1)} \phi_{n-1}^{-1}) \in D`
+      for all `c \in C`.
 
-        - semilinear equivalent, if there is some permutation `\pi \in S_n`, a
-          vector `\phi` of units of length `n` and a field automorphism `\alpha`
-          such that
-          `(\alpha(c_{\pi(0)}) \phi_0^{-1}, \ldots, \alpha( c_{\pi(n-1)}) \phi_{n-1}^{-1} ) \in D`
-          for all `c \in C`.
+    - semilinear equivalent, if there is some permutation `\pi \in S_n`, a
+      vector `\phi` of units of length `n` and a field automorphism `\alpha`
+      such that
+      `(\alpha(c_{\pi(0)}) \phi_0^{-1}, \ldots, \alpha( c_{\pi(n-1)}) \phi_{n-1}^{-1} ) \in D`
+      for all `c \in C`.
 
     These are group actions. This class provides an algorithm that will compute
     a unique representative `D` in the orbit of the given linear code `C`.
@@ -181,18 +184,18 @@ class LinearCodeAutGroupCanLabel:
         True
     """
 
-    def __init__(self, C, P=None, algorithm_type="semilinear"):
+    def __init__(self, C, P=None, algorithm_type='semilinear'):
         """
-        see :class:`LinearCodeAutGroupCanLabel`
+        See :class:`LinearCodeAutGroupCanLabel`.
 
         INPUT:
 
         - ``C`` -- a linear code
 
-        - ``P`` (optional) -- a coloring of the coordinates i.e. a partition
+        - ``P`` -- (optional) a coloring of the coordinates i.e. a partition
           (list of disjoint lists) of [0 , ..., C.length()-1 ]
 
-        - ``algorithm_type`` (optional) -- which defines the acting group, either
+        - ``algorithm_type`` -- (optional) defines the acting group, either
 
             * ``permutational``
 
@@ -210,9 +213,9 @@ class LinearCodeAutGroupCanLabel:
             [0 1 0 1 0 1 1]
             [0 0 1 1 1 1 0]
             sage: P2 = LinearCodeAutGroupCanLabel(C, P=[[0,3,5],[1,2,4,6]],
-            ....:      algorithm_type="permutational")
+            ....:      algorithm_type='permutational')
             sage: P2.get_canonical_form().generator_matrix()
-            [1 1 1 0 0 0 1]
+            [1 0 0 1 0 1 1]
             [0 1 0 1 1 0 1]
             [0 0 1 0 1 1 1]
         """
@@ -220,7 +223,7 @@ class LinearCodeAutGroupCanLabel:
         from sage.coding.linear_code import LinearCode, AbstractLinearCode
 
         if not isinstance(C, AbstractLinearCode):
-            raise TypeError("%s is not a linear code"%C)
+            raise TypeError("%s is not a linear code" % C)
 
         self.C = C
         mat = C.generator_matrix()
@@ -228,21 +231,21 @@ class LinearCodeAutGroupCanLabel:
         S = SemimonomialTransformationGroup(F, mat.ncols())
 
         if P is None:
-            P = [list(xrange(mat.ncols()))]
+            P = [list(range(mat.ncols()))]
 
         pos2P = [-1] * mat.ncols()
-        for i in xrange(len(P)):
+        for i in range(len(P)):
             P[i].sort(reverse=True)
             for x in P[i]:
                 pos2P[x] = i
 
         col_list = mat.columns()
-        nz = [i for i in xrange(mat.ncols()) if not col_list[i].is_zero()]
-        z = [(pos2P[i], i) for i in xrange(mat.ncols()) if col_list[i].is_zero()]
+        nz = [i for i in range(mat.ncols()) if not col_list[i].is_zero()]
+        z = [(pos2P[i], i) for i in range(mat.ncols()) if col_list[i].is_zero()]
         z.sort()
         z = [i for (p, i) in z]
 
-        normalization_factors = [ F.one() ] * mat.ncols()
+        normalization_factors = [F.one()] * mat.ncols()
         if algorithm_type == "permutational":
             for c in col_list:
                 c.set_immutable()
@@ -254,24 +257,24 @@ class LinearCodeAutGroupCanLabel:
 
         normalization = S(v=normalization_factors)
         normalization_inverse = normalization ** (-1)
-        col_set = list({col_list[y] for y in nz })
+        col_set = list({col_list[y] for y in nz})
         col2pos = []
         col2P = []
         for c in col_set:
-            X = [(pos2P[y], y) for y in xrange(mat.ncols()) if col_list[y] == c ]
+            X = [(pos2P[y], y) for y in range(mat.ncols()) if col_list[y] == c]
             X.sort()
-            col2pos.append([b for (a, b) in X ])
-            col2P.append([a for (a, b) in X ])
+            col2pos.append([b for _, b in X])
+            col2P.append([a for a, _ in X])
 
         zipped = sorted(zip(col2P, col_set, col2pos))
 
-        col2P = [qty for (qty, c, pos) in zipped]
-        col_set = [c for (qty, c, pos) in zipped]
-        col2pos = [pos for (qty, c, pos) in zipped]
+        col2P = [qty for qty, c, pos in zipped]
+        col_set = [c for qty, c, pos in zipped]
+        col2pos = [pos for qty, c, pos in zipped]
         P_refined = []
         p = [0]
         act_qty = col2P[0]
-        for i in xrange(1, len(col_set)):
+        for i in range(1, len(col_set)):
             if act_qty == col2P[i]:
                 p.append(i)
             else:
@@ -287,16 +290,21 @@ class LinearCodeAutGroupCanLabel:
             # the dimension of the dual code
             # in this case we work with the code itself.
             pr = PartitionRefinementLinearCode(len(col_set),
-                matrix(col_set).transpose(), P=P_refined, algorithm_type=algorithm_type)
+                                               matrix(col_set).transpose(),
+                                               P=P_refined,
+                                               algorithm_type=algorithm_type)
 
-            # this command allows you some advanced debuging
+            # this command allows you some advanced debugging
             # it prints the backtrack tree -> must be activated when installing
-            # pr._latex_view(title="MyTitle") #this will provide you some visual representation of what is going on
+            # pr._latex_view(title='MyTitle') #this will provide you some visual representation of what is going on
 
             can_transp = pr.get_transporter()
             can_col_set = pr.get_canonical_form().columns()
-            self._PGammaL_autom_gens = self._compute_PGammaL_automs(pr.get_autom_gens(),
-                normalization, normalization_inverse, col2pos)
+            self._PGammaL_autom_gens = self._compute_PGammaL_automs(
+                pr.get_autom_gens(),
+                normalization,
+                normalization_inverse, col2pos
+            )
             self._PGammaL_autom_size = pr.get_autom_order_permutation()
             self._PGammaL_autom_size *= pr.get_autom_order_inner_stabilizer()
             self._full_autom_order = self._PGammaL_autom_size
@@ -329,58 +337,59 @@ class LinearCodeAutGroupCanLabel:
                         A.append(S_short(perm=_cyclic_shift(n, p)))
                     self._full_autom_order *= factorial(len(p))
             self._PGammaL_autom_size = self._full_autom_order / (len(F) - 1)
-            self._PGammaL_autom_gens = self._compute_PGammaL_automs(A,
-                normalization, normalization_inverse, col2pos)
+            self._PGammaL_autom_gens = self._compute_PGammaL_automs(
+                A, normalization, normalization_inverse, col2pos)
         else:
             # use the dual code for the computations
             # this might have zero columns or multiple columns, hence
             # we call this algorithm again.
             short_dual_code = LinearCode(matrix(col_set).transpose()).dual_code()
             agcl = LinearCodeAutGroupCanLabel(short_dual_code,
-                P=P_refined, algorithm_type=algorithm_type)
+                                              P=P_refined,
+                                              algorithm_type=algorithm_type)
             can_transp = agcl.get_transporter()
             can_transp.invert_v()
             can_col_set = agcl.get_canonical_form().parity_check_matrix().columns()
             A = agcl.get_autom_gens()
             for a in A:
                 a.invert_v()
-            self._PGammaL_autom_gens = self._compute_PGammaL_automs(A,
-                normalization, normalization_inverse, col2pos)
+            self._PGammaL_autom_gens = self._compute_PGammaL_automs(
+                A, normalization, normalization_inverse, col2pos)
             self._PGammaL_autom_size = agcl.get_PGammaL_order()
             self._full_autom_order = agcl.get_autom_order()
 
-        count = 0
-        block_ptr = []
         canonical_form = matrix(F, mat.ncols(), mat.nrows())
 
         perm = [-1] * mat.ncols()
         mult = [F.one()] * mat.ncols()
 
-        for i in xrange(len(can_col_set)):
+        for i in range(len(can_col_set)):
             img = can_transp.get_perm()(i + 1)
             for j in col2pos[img - 1]:
-                pos = P[ pos2P[j] ].pop()
-                canonical_form[ pos ] = can_col_set[i]
+                pos = P[pos2P[j]].pop()
+                canonical_form[pos] = can_col_set[i]
                 mult[pos] = can_transp.get_v()[i]
                 perm[pos] = j + 1
 
         it = iter(z)
         for p in P:
-            while len(p) > 0:
+            while p:
                 pos = p.pop()
                 perm[pos] = next(it) + 1
 
         self._canonical_form = LinearCode(canonical_form.transpose())
         self._transporter = S(perm=Permutation(perm), v=mult, autom=can_transp.get_autom()) * normalization
-        self._trivial_autom_gens, a = self._compute_trivial_automs(normalization,
-            normalization_inverse, z, [pos2P[x] for x in z], zero_column_case=True)
+        self._trivial_autom_gens, a = self._compute_trivial_automs(
+            normalization,
+            normalization_inverse, z, [pos2P[x] for x in z],
+            zero_column_case=True)
         self._full_autom_order *= a
 
-
-        for i in xrange(len(col2P)):
+        for i in range(len(col2P)):
             if len(col2P[i]) > 1:
                 A, a = self._compute_trivial_automs(normalization,
-                    normalization_inverse, col2pos[i], col2P[i])
+                                                    normalization_inverse,
+                                                    col2pos[i], col2P[i])
                 self._full_autom_order *= a
                 self._trivial_autom_gens += A
 
@@ -403,19 +412,19 @@ class LinearCodeAutGroupCanLabel:
 
         - ``normalization_inverse`` -- the inverse of ``normalization``
 
-        - ``col2pos`` -- a list of disjoint indices in ``range(n)``
+        - ``col2pos`` -- list of disjoint indices in ``range(n)``
 
         - ``col2P`` -- an increasing list of integers, with
           ``len(col2P) == len(col2pos)`` with ``col2P[i] == col2P[j]`` if and
           only if the indices ``col2pos[i]`` and ``col2pos[j]`` are in the
           same partition
 
-        - ``zero_column_case`` (boolean) -- set to ``True`` iff we are dealing
+        - ``zero_column_case`` -- boolean; set to ``True`` iff we are dealing
           with the zero column
 
         OUTPUT:
 
-        - a list of generators in `S`
+        - list of generators in `S`
 
         - the order of this group
 
@@ -458,11 +467,13 @@ class LinearCodeAutGroupCanLabel:
                 aut_order *= factorial(j - beg)
                 # we append a transposition of the first two elements
                 A.append(normalization_inverse *
-                    S(perm=_cyclic_shift(n, col2pos[beg:beg + 2])) * normalization)
+                         S(perm=_cyclic_shift(n, col2pos[beg:beg + 2])) *
+                         normalization)
                 if j - beg > 2:
                     # we append a cycle on all elements
                     A.append(normalization_inverse *
-                        S(perm=_cyclic_shift(n, col2pos[beg:j])) * normalization)
+                             S(perm=_cyclic_shift(n, col2pos[beg:j])) *
+                             normalization)
             beg = j
         return A, aut_order
 
@@ -476,7 +487,7 @@ class LinearCodeAutGroupCanLabel:
 
         INPUT:
 
-        - ``gens`` -- a list of semimonomial transformation group elements of length `m`
+        - ``gens`` -- list of semimonomial transformation group elements of length `m`
 
         - ``normalization`` -- a semimonomial transformation of length `n`
 
@@ -507,11 +518,11 @@ class LinearCodeAutGroupCanLabel:
         n = S.degree()
         A = []
         for g in gens:
-            perm = list(xrange(1, n + 1))
+            perm = list(range(1, n + 1))
             mult = [S.base_ring().one()] * n
             short_perm = g.get_perm()
             short_mult = g.get_v()
-            for i in xrange(len(col2pos)):
+            for i in range(len(col2pos)):
                 c = col2pos[i]
                 img_iter = iter(col2pos[short_perm(i + 1) - 1])
                 for x in c:
@@ -563,7 +574,7 @@ class LinearCodeAutGroupCanLabel:
             sage: C = codes.HammingCode(GF(2), 3).dual_code()
             sage: A = LinearCodeAutGroupCanLabel(C).get_autom_gens()
             sage: Gamma = C.generator_matrix().echelon_form()
-            sage: all([(g*Gamma).echelon_form() == Gamma for g in A])
+            sage: all((g*Gamma).echelon_form() == Gamma for g in A)
             True
         """
         return self._PGammaL_autom_gens + self._trivial_autom_gens
@@ -580,7 +591,6 @@ class LinearCodeAutGroupCanLabel:
             168
         """
         return self._full_autom_order
-
 
     def get_PGammaL_gens(self):
         r"""
@@ -599,7 +609,7 @@ class LinearCodeAutGroupCanLabel:
             sage: A = LinearCodeAutGroupCanLabel(C).get_PGammaL_gens()
             sage: Gamma = C.generator_matrix()
             sage: N = [ x.monic() for x in Gamma.columns() ]
-            sage: all([ (g[0]*n.apply_map(g[1])).monic() in N for n in N for g in A])
+            sage: all((g[0]*n.apply_map(g[1])).monic() in N for n in N for g in A)
             True
         """
         Gamma = self.C.generator_matrix()

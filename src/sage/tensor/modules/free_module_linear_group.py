@@ -1,7 +1,7 @@
 r"""
 General linear group of a free module
 
-The set `\mathrm{GL}(M)` of automorphisms (i.e. invertible endomorphims) of a
+The set `\mathrm{GL}(M)` of automorphisms (i.e. invertible endomorphisms) of a
 free module of finite rank `M` is a group under composition of automorphisms,
 named the *general linear group* of `M`. In other words, `\mathrm{GL}(M)` is
 the group of units (i.e. invertible elements) of `\mathrm{End}(M)`, the
@@ -13,26 +13,28 @@ The group `\mathrm{GL}(M)` is implemented via the class
 AUTHORS:
 
 - Eric Gourgoulhon (2015): initial version
+- Michael Jung (2019): improve treatment of the identity element
 
 REFERENCES:
 
 - Chap. 15 of R. Godement : *Algebra* [God1968]_
-
 """
-#******************************************************************************
+# ****************************************************************************
 #       Copyright (C) 2015 Eric Gourgoulhon <eric.gourgoulhon@obspm.fr>
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
 #  as published by the Free Software Foundation; either version 2 of
 #  the License, or (at your option) any later version.
-#                  http://www.gnu.org/licenses/
-#******************************************************************************
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
+from sage.misc.cachefunc import cached_method
 from sage.structure.unique_representation import UniqueRepresentation
 from sage.structure.parent import Parent
 from sage.categories.groups import Groups
 from sage.tensor.modules.finite_rank_free_module import FiniteRankFreeModule
 from sage.tensor.modules.free_module_automorphism import FreeModuleAutomorphism
+
 
 class FreeModuleLinearGroup(UniqueRepresentation, Parent):
     r"""
@@ -41,7 +43,7 @@ class FreeModuleLinearGroup(UniqueRepresentation, Parent):
 
     Given a free module of finite rank `M` over a commutative ring `R`, the
     *general linear group* of `M` is the group `\mathrm{GL}(M)` of
-    automorphisms (i.e. invertible endomorphims) of `M`. It is the group of
+    automorphisms (i.e. invertible endomorphisms) of `M`. It is the group of
     units (i.e. invertible elements) of `\mathrm{End}(M)`, the endomorphism
     ring of `M`.
 
@@ -118,7 +120,7 @@ class FreeModuleLinearGroup(UniqueRepresentation, Parent):
         sage: a.tensor_type()
         (1, 1)
         sage: a.display(e)
-        e_0*e^0 - e_1*e^1 + e_2*e^2
+        e_0⊗e^0 - e_1⊗e^1 + e_2⊗e^2
         sage: type(a)
         <class 'sage.tensor.modules.free_module_linear_group.FreeModuleLinearGroup_with_category.element_class'>
 
@@ -257,7 +259,6 @@ class FreeModuleLinearGroup(UniqueRepresentation, Parent):
         ...
         TypeError: the Type-(1,1) tensor t_0 on the Rank-3 free module M over
          the Integer Ring is not invertible
-
     """
 
     Element = FreeModuleAutomorphism
@@ -276,14 +277,12 @@ class FreeModuleLinearGroup(UniqueRepresentation, Parent):
             sage: GL.category()
             Category of groups
             sage: TestSuite(GL).run()
-
         """
         if not isinstance(fmodule, FiniteRankFreeModule):
             raise TypeError("{} is not a free module of finite rank".format(
                             fmodule))
         Parent.__init__(self, category=Groups())
         self._fmodule = fmodule
-        self._one = None # to be set by self.one()
 
     #### Parent methods ####
 
@@ -357,7 +356,6 @@ class FreeModuleLinearGroup(UniqueRepresentation, Parent):
             Automorphism t of the Rank-2 free module M over the Integer Ring
             sage: a.matrix(e) == t[e,:]
             True
-
         """
         from sage.tensor.modules.free_module_tensor import FreeModuleTensor
         from sage.tensor.modules.free_module_morphism import \
@@ -376,11 +374,11 @@ class FreeModuleLinearGroup(UniqueRepresentation, Parent):
                 try:
                     resu.inverse()
                 except (ZeroDivisionError, TypeError):
-                    raise TypeError("the {} is not invertible ".format(tens))
+                    raise TypeError(f"the {tens} is not invertible ")
                 return resu
             else:
-                    raise TypeError("the {} cannot be converted ".format(tens)
-                                    + "to an automorphism.")
+                raise TypeError(f"the {tens} cannot be converted "
+                                + "to an automorphism.")
         if isinstance(comp, FiniteRankFreeModuleMorphism):
             # Conversion of an endomorphism to an automorphism
             endo = comp  # for readability
@@ -406,7 +404,6 @@ class FreeModuleLinearGroup(UniqueRepresentation, Parent):
             resu.set_comp(basis)[:] = comp
         return resu
 
-
     def _an_element_(self):
         r"""
         Construct some specific free module automorphism.
@@ -426,22 +423,23 @@ class FreeModuleLinearGroup(UniqueRepresentation, Parent):
             sage: a.matrix(e)
             [ 1  0]
             [ 0 -1]
-
         """
         resu = self.element_class(self._fmodule)
-        if self._fmodule._def_basis is not None:
-            comp = resu.set_comp()
-            for i in self._fmodule.irange():
-                if i%2 == 0:
-                    comp[[i,i]] = self._fmodule._ring.one()
-                else:
-                    comp[[i,i]] = -(self._fmodule._ring.one())
+        # Make sure that the base module has a default basis
+        self._fmodule.an_element()
+        comp = resu.set_comp()
+        for i in self._fmodule.irange():
+            if i % 2 == 0:
+                comp[[i,i]] = self._fmodule._ring.one()
+            else:
+                comp[[i,i]] = -(self._fmodule._ring.one())
         return resu
 
     #### End of parent methods ####
 
     #### Monoid methods ####
 
+    @cached_method
     def one(self):
         r"""
         Return the group identity element of ``self``.
@@ -502,14 +500,18 @@ class FreeModuleLinearGroup(UniqueRepresentation, Parent):
             sage: GL.one().matrix(f)
             [1 0]
             [0 1]
-
         """
-        if self._one is None:
-            self._one = self.element_class(self._fmodule, is_identity=True)
-            # Initialization of the components (Kronecker delta) in some basis:
-            if self._fmodule.bases():
-                self._one.components(self._fmodule.bases()[0])
-        return self._one
+        resu = self._element_constructor_(name='Id', latex_name=r'\mathrm{Id}')
+        # Initialization of the components (Kronecker delta) in some basis:
+        from .comp import KroneckerDelta
+        fmodule = self._fmodule
+        for basis in fmodule.bases():
+            resu._components[basis] = KroneckerDelta(fmodule._ring, basis,
+                                    start_index=fmodule._sindex,
+                                    output_formatter=fmodule._output_formatter)
+        resu._is_identity = True
+        resu.set_immutable()
+        return resu
 
     #### End of monoid methods ####
 
@@ -523,7 +525,6 @@ class FreeModuleLinearGroup(UniqueRepresentation, Parent):
             sage: GL = M.general_linear_group()
             sage: GL._repr_()
             'General linear group of the Rank-2 free module M over the Integer Ring'
-
         """
         return "General linear group of the {}".format(self._fmodule)
 
@@ -537,11 +538,9 @@ class FreeModuleLinearGroup(UniqueRepresentation, Parent):
             sage: GL = M.general_linear_group()
             sage: GL._latex_()
             \mathrm{GL}\left( M \right)
-
         """
         from sage.misc.latex import latex
-        return r"\mathrm{GL}\left("+ latex(self._fmodule)+ r"\right)"
-
+        return r"\mathrm{GL}\left(" + latex(self._fmodule) + r"\right)"
 
     def base_module(self):
         r"""
@@ -560,6 +559,5 @@ class FreeModuleLinearGroup(UniqueRepresentation, Parent):
             Rank-2 free module M over the Integer Ring
             sage: GL.base_module() is M
             True
-
         """
         return self._fmodule

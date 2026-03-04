@@ -1,7 +1,6 @@
 r"""
 Algebra modules
 """
-from __future__ import absolute_import
 #*****************************************************************************
 #  Copyright (C) 2005      David Kohel <kohel@maths.usyd.edu>
 #                          William Stein <wstein@math.ucsd.edu>
@@ -11,12 +10,15 @@ from __future__ import absolute_import
 #                  http://www.gnu.org/licenses/
 #******************************************************************************
 
-from .category_types import Category_module
-from .modules import Modules
+from sage.categories.category_types import Category_module
+from sage.categories.commutative_algebras import CommutativeAlgebras
+from sage.categories.commutative_rings import CommutativeRings
+from sage.categories.modules import Modules
+
 
 class AlgebraModules(Category_module):
     """
-    The category of modules over a fixed algebra $A$.
+    The category of modules over a fixed algebra `A`.
 
     EXAMPLES::
 
@@ -29,7 +31,6 @@ class AlgebraModules(Category_module):
     the categories of left and right modules are isomorphic. Feedback
     and use cases for potential generalizations to the non commutative
     case are welcome.
-
     """
     def __init__(self, A):
         """
@@ -38,7 +39,7 @@ class AlgebraModules(Category_module):
             sage: AlgebraModules(QQ['a'])
             Category of algebra modules over Univariate Polynomial Ring in a over Rational Field
             sage: AlgebraModules(QQ['a,b']) # todo: not implemented (QQ['a,b'] should be in Algebras(QQ))
-            sage: AlgebraModules(FreeAlgebra(QQ,2,'a,b'))
+            sage: AlgebraModules(FreeAlgebra(QQ, 2, 'a,b'))                             # needs sage.combinat sage.modules
             Traceback (most recent call last):
             ...
             TypeError: A (=Free Algebra on 2 generators (a, b) over Rational Field) must be a commutative algebra
@@ -51,15 +52,20 @@ class AlgebraModules(Category_module):
 
             sage: TestSuite(AlgebraModules(QQ['a'])).run()
         """
-        from sage.categories.commutative_algebras import CommutativeAlgebras
-        if not hasattr(A, "base_ring") or not A in CommutativeAlgebras(A.base_ring()):
-            raise TypeError("A (=%s) must be a commutative algebra"%A)
+        try:
+            base_ring = A.base_ring()
+        except AttributeError:
+            raise TypeError(f"A (={A}) must be a commutative algebra")
+        else:
+            if base_ring not in CommutativeRings() or A not in CommutativeAlgebras(base_ring.category()):
+                raise TypeError(f"A (={A}) must be a commutative algebra")
+
         Category_module.__init__(self, A)
 
     @classmethod
     def an_instance(cls):
         """
-        Returns an instance of this class
+        Return an instance of this class.
 
         EXAMPLES::
 

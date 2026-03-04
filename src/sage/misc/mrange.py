@@ -10,7 +10,7 @@ AUTHORS:
 - Jon Hanke
 """
 
-#*****************************************************************************
+# *****************************************************************************
 #       Copyright (C) 2006 William Stein <wstein@gmail.com>
 #
 # This program is free software: you can redistribute it and/or modify
@@ -18,9 +18,8 @@ AUTHORS:
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
 #                  http://www.gnu.org/licenses/
-#*****************************************************************************
-from __future__ import print_function, absolute_import
-from sage.misc.all import prod
+# *****************************************************************************
+from sage.misc.misc_c import prod
 
 
 def _len(L):
@@ -46,6 +45,7 @@ def _len(L):
     except AttributeError:
         return len(L)
 
+
 def _is_finite(L, fallback=True):
     """
     Determines whether ``L`` is finite.
@@ -64,13 +64,11 @@ def _is_finite(L, fallback=True):
         True
         sage: _is_finite([])
         True
-        sage: from six.moves import range
         sage: _is_finite(range(10^8))
         True
         sage: from itertools import product
         sage: _is_finite(product([1],[1])) # does not provide is_finite() or __len__()
         True
-
     """
     try:
         return L.is_finite()
@@ -82,18 +80,17 @@ def _is_finite(L, fallback=True):
 
     try:
         n = _len(L)
-    except (TypeError, AttributeError):
+    except (TypeError, AttributeError, NotImplementedError):
         # We usually assume L is finite for speed reasons
         return fallback
 
     from sage.rings.infinity import infinity
-    if n is infinity:
-        return False
-    return True
+    return n is not infinity
 
-def _xmrange_iter( iter_list, typ=list ):
+
+def _xmrange_iter(iter_list, typ=list):
     """
-    This implements the logic for mrange_iter and xmrange_iter.
+    This implements the logic for :func:`mrange_iter` and :class:`xmrange_iter`.
 
     Note that with typ==list, we will be returning a new copy each
     iteration. This makes it OK to modified the returned list. This
@@ -106,7 +103,7 @@ def _xmrange_iter( iter_list, typ=list ):
         sage: l1 is l2
         False
 
-    However, if you would like to re-use the list object::
+    However, if you would like to reuse the list object::
 
         sage: iter = sage.misc.mrange._xmrange_iter( [[1,2],[1,3]], lambda x: x )
         sage: l1 = next(iter)
@@ -114,7 +111,7 @@ def _xmrange_iter( iter_list, typ=list ):
         sage: l1 is l2  # eeek, this is freaky!
         True
 
-    We check that :trac:`14285` has been resolved::
+    We check that :issue:`14285` has been resolved::
 
         sage: iter = sage.misc.mrange._xmrange_iter([ZZ,[]])
         sage: next(iter)
@@ -122,6 +119,20 @@ def _xmrange_iter( iter_list, typ=list ):
         ...
         StopIteration
 
+    We check that :issue:`28521` is fixed::
+
+        sage: next(sage.misc.mrange._xmrange_iter([[], [1]]))
+        Traceback (most recent call last):
+        ...
+        StopIteration
+        sage: next(sage.misc.mrange._xmrange_iter([[1], []]))
+        Traceback (most recent call last):
+        ...
+        StopIteration
+        sage: next(sage.misc.mrange._xmrange_iter([[1], [], [2]]))
+        Traceback (most recent call last):
+        ...
+        StopIteration
     """
     if len(iter_list) == 0:
         yield typ()
@@ -136,7 +147,11 @@ def _xmrange_iter( iter_list, typ=list ):
         if n == 0:
             return
     curr_iters = [iter(i) for i in iter_list]
-    curr_elt = [next(i) for i in curr_iters[:-1]] + [None]
+    try:
+        curr_elt = [next(i) for i in curr_iters[:-1]]
+    except StopIteration:
+        return
+    curr_elt.append(None)
     place = len(iter_list) - 1
     while True:
         try:
@@ -153,29 +168,27 @@ def _xmrange_iter( iter_list, typ=list ):
             if place == -1:
                 return
 
+
 def mrange_iter(iter_list, typ=list):
     """
-    Return the multirange list derived from the given list of
-    iterators.
+    Return the multirange list derived from the given list of iterators.
 
-    This is the list version of xmrange_iter. Use xmrange_iter for
-    the iterator.
+    This is the list version of :func:`xmrange_iter`. Use :class:`xmrange_iter`
+    for the iterator.
 
-    More precisely, return the iterator over all objects of type typ of
+    More precisely, return the iterator over all objects of type ``typ`` of
     n-tuples of Python ints with entries between 0 and the integers in
     the sizes list. The iterator is empty if sizes is empty or contains
-    any non-positive integer.
+    any nonpositive integer.
 
     INPUT:
 
+    - ``iter_list`` -- a finite iterable of finite iterables
 
-    -  ``iter_list`` - a finite iterable of finite iterables
+    - ``typ`` -- (default: list) a type or class; more
+      generally, something that can be called with a list as input
 
-    -  ``typ`` - (default: list) a type or class; more
-       generally, something that can be called with a list as input.
-
-
-    OUTPUT: a list
+    OUTPUT: list
 
     EXAMPLES::
 
@@ -190,11 +203,10 @@ def mrange_iter(iter_list, typ=list):
 
         sage: mrange_iter([range(5),range(3),range(0)])
         []
-        sage: from six.moves import range
-        sage: mrange_iter([range(5),range(3),range(-2)])
+        sage: mrange_iter([range(5), range(3), range(-2)])
         []
 
-    This example is not empty, and should not be. See :trac:`6561`.
+    This example is not empty, and should not be. See :issue:`6561`.
 
     ::
 
@@ -207,31 +219,30 @@ def mrange_iter(iter_list, typ=list):
     """
     return list(_xmrange_iter(iter_list, typ))
 
+
 class xmrange_iter:
     """
     Return the multirange iterate derived from the given iterators and
     type.
 
-    .. note::
+    .. NOTE::
 
        This basically gives you the Cartesian product of sets.
 
     More precisely, return the iterator over all objects of type typ of
     n-tuples of Python ints with entries between 0 and the integers in
     the sizes list. The iterator is empty if sizes is empty or contains
-    any non-positive integer.
+    any nonpositive integer.
 
-    Use mrange_iter for the non-iterator form.
+    Use :func:`mrange_iter` for the non-iterator form.
 
     INPUT:
 
+    - ``iter_list`` -- list of objects usable as iterators (possibly
+      lists)
 
-    - ``iter_list`` - a list of objects usable as iterators (possibly
-       lists)
-
-    - ``typ`` - (default: list) a type or class; more generally,
-       something that can be called with a list as input.
-
+    - ``typ`` -- (default: list) a type or class; more generally,
+      something that can be called with a list as input
 
     OUTPUT: a generator
 
@@ -278,7 +289,7 @@ class xmrange_iter:
         sage: list(xmrange_iter([range(5),range(3),range(0)]))
         []
 
-    This example is not empty, and should not be. See :trac:`6561`.
+    This example is not empty, and should not be. See :issue:`6561`.
 
     ::
 
@@ -311,9 +322,9 @@ class xmrange_iter:
 
     def __repr__(self):
         if self.typ == list:
-            return 'xmrange_iter(%s)'%self.iter_list
+            return 'xmrange_iter(%s)' % self.iter_list
         else:
-            return 'xmrange_iter(%s, %s)'%(self.iter_list, self.typ)
+            return 'xmrange_iter(%s, %s)' % (self.iter_list, self.typ)
 
     def __iter__(self):
         return _xmrange_iter(self.iter_list, self.typ)
@@ -322,8 +333,8 @@ class xmrange_iter:
         """
         Return the cardinality of this iterator as an int.
 
-        Raises a ``TypeError`` if the cardinality does not fit into a Python
-        int.
+        This raises a :exc:`TypeError` if the cardinality does not fit
+        into a Python int.
 
         EXAMPLES::
 
@@ -337,16 +348,13 @@ class xmrange_iter:
             sage: len(cartesian_product_iterator([ZZ,ZZ]))
             Traceback (most recent call last):
             ...
-            TypeError: cardinality does not fit into a Python int.
-
+            TypeError: cardinality does not fit into a Python int
         """
         n = self.cardinality()
         try:
             n = int(n)
-            if not isinstance(n, int): # could be a long
-                raise TypeError
         except TypeError:
-            raise TypeError("cardinality does not fit into a Python int.")
+            raise TypeError("cardinality does not fit into a Python int")
         return n
 
     def cardinality(self):
@@ -385,6 +393,7 @@ class xmrange_iter:
         else:
             return ans
 
+
 def _xmrange(sizes, typ=list):
     n = len(sizes)
     if n == 0:
@@ -415,23 +424,22 @@ def mrange(sizes, typ=list):
     """
     Return the multirange list with given sizes and type.
 
-    This is the list version of xmrange. Use xmrange for the iterator.
+    This is the list version of :class:`xmrange`.
+    Use :class:`xmrange` for the iterator.
 
     More precisely, return the iterator over all objects of type typ of
     n-tuples of Python ints with entries between 0 and the integers in
     the sizes list. The iterator is empty if sizes is empty or contains
-    any non-positive integer.
+    any nonpositive integer.
 
     INPUT:
 
+    - ``sizes`` -- list of nonnegative integers
 
-    -  ``sizes`` - a list of nonnegative integers
+    - ``typ`` -- (default: list) a type or class; more
+      generally, something that can be called with a list as input
 
-    -  ``typ`` - (default: list) a type or class; more
-       generally, something that can be called with a list as input.
-
-
-    OUTPUT: a list
+    OUTPUT: list
 
     EXAMPLES::
 
@@ -449,13 +457,12 @@ def mrange(sizes, typ=list):
         sage: mrange([5,3,0])
         []
 
-    This example is not empty, and should not be. See :trac:`6561`.
+    This example is not empty, and should not be. See :issue:`6561`.
 
     ::
 
         sage: mrange([])
         [[]]
-
 
     AUTHORS:
 
@@ -473,18 +480,16 @@ class xmrange:
     More precisely, return the iterator over all objects of type typ of
     n-tuples of Python ints with entries between 0 and the integers in
     the sizes list. The iterator is empty if sizes is empty or contains
-    any non-positive integer.
+    any nonpositive integer.
 
     Use mrange for the non-iterator form.
 
     INPUT:
 
+    - ``sizes`` -- list of nonnegative integers
 
-    -  ``sizes`` - a list of nonnegative integers
-
-    -  ``typ`` - (default: list) a type or class; more
-       generally, something that can be called with a list as input.
-
+    - ``typ`` -- (default: list) a type or class; more
+      generally, something that can be called with a list as input
 
     OUTPUT: a generator
 
@@ -535,7 +540,7 @@ class xmrange:
         sage: list(xmrange([5,3,0]))
         []
 
-    This example is not empty, and should not be. See :trac:`6561`.
+    This example is not empty, and should not be. See :issue:`6561`.
 
     ::
 
@@ -570,9 +575,9 @@ class xmrange:
 
     def __repr__(self):
         if self.typ == list:
-            return 'xmrange(%s)'%self.sizes
+            return 'xmrange(%s)' % self.sizes
         else:
-            return 'xmrange(%s, %s)'%(self.sizes, self.typ)
+            return 'xmrange(%s, %s)' % (self.sizes, self.typ)
 
     def __len__(self):
         sizes = self.sizes
@@ -587,15 +592,14 @@ class xmrange:
     def __iter__(self):
         return _xmrange(self.sizes, self.typ)
 
+
 def cartesian_product_iterator(X):
     """
     Iterate over the Cartesian product.
 
     INPUT:
 
-
-    -  ``X`` - list or tuple of lists
-
+    - ``X`` -- list or tuple of lists
 
     OUTPUT: iterator over the Cartesian product of the elements of X
 
@@ -605,8 +609,20 @@ def cartesian_product_iterator(X):
         [(1, 'a'), (1, 'b'), (2, 'a'), (2, 'b')]
         sage: list(cartesian_product_iterator([]))
         [()]
+
+    TESTS:
+
+    Check that :issue:`28521` is fixed::
+
+        sage: list(cartesian_product_iterator([[], [1]]))
+        []
+        sage: list(cartesian_product_iterator([[1], []]))
+        []
+        sage: list(cartesian_product_iterator([[1], [], [2]]))
+        []
     """
     return xmrange_iter(X, tuple)
+
 
 def cantor_product(*args, **kwds):
     r"""
@@ -618,7 +634,7 @@ def cantor_product(*args, **kwds):
     - a certain number of iterables
 
     - ``repeat`` -- an optional integer. If it is provided, the input is
-      repeated ``repeat`` times.
+      repeated ``repeat`` times
 
     Other keyword arguments are passed to
     :class:`sage.combinat.integer_lists.invlex.IntegerListsLex`.
@@ -639,9 +655,9 @@ def cantor_product(*args, **kwds):
         [(0, 0), (1, 0), (0, 1), (1, 1), (0, 2), (1, 2), (0, 3), (1, 3)]
 
     Infinite iterators are valid input as well::
-    
+
        sage: from itertools import islice
-       sage: list(islice(cantor_product(ZZ, QQ), 14))
+       sage: list(islice(cantor_product(ZZ, QQ), 14r))
         [(0, 0),
          (1, 0),
          (0, 1),
@@ -679,13 +695,25 @@ def cantor_product(*args, **kwds):
         sage: next(cantor_product(count(), toto='hey'))
         Traceback (most recent call last):
         ...
-        TypeError: __init__() got an unexpected keyword argument 'toto'
+        TypeError: ...__init__() got an unexpected keyword argument 'toto'
 
     ::
 
         sage: list(cantor_product(srange(5), repeat=2, min_slope=1))
         [(0, 1), (0, 2), (1, 2), (0, 3), (1, 3),
          (0, 4), (2, 3), (1, 4), (2, 4), (3, 4)]
+
+    Check that :issue:`24897` is fixed::
+
+        sage: from sage.misc.mrange import cantor_product
+        sage: list(cantor_product([1]))
+        [(1,)]
+        sage: list(cantor_product([1], repeat=2))
+        [(1, 1)]
+        sage: list(cantor_product([1], [1,2]))
+        [(1, 1), (1, 2)]
+        sage: list(cantor_product([1,2], [1]))
+        [(1, 1), (2, 1)]
     """
     from itertools import count
     from sage.combinat.integer_lists import IntegerListsLex
@@ -715,9 +743,10 @@ def cantor_product(*args, **kwds):
                     lengths[i] = n
 
         # iterate through what we have
-        ceiling = [n if lengths[i] is None else lengths[i]-1 for i in range(m)] * repeat
+        ceiling = [n if lengths[i] is None else lengths[i] - 1
+                   for i in range(m)] * repeat
         for v in IntegerListsLex(n, length=mm, ceiling=ceiling, **kwds):
-            yield tuple(data[i%m][v[i]] for i in range(mm))
+            yield tuple(data[i % m][v[i]] for i in range(mm))
 
-        if all(l is not None for l in lengths) and repeat*sum(l-1 for l in lengths) == n:
+        if all(l is not None for l in lengths) and repeat * sum(l - 1 for l in lengths) <= n:
             return

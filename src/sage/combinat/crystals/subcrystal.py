@@ -1,3 +1,4 @@
+# sage.doctest: needs sage.combinat sage.modules
 r"""
 Subcrystals
 
@@ -23,13 +24,15 @@ AUTHORS:
 #                  http://www.gnu.org/licenses/
 #****************************************************************************
 
+import collections.abc
+
 from sage.misc.lazy_attribute import lazy_attribute
 from sage.structure.unique_representation import UniqueRepresentation
-from sage.structure.element import parent
 from sage.structure.parent import Parent
 from sage.structure.element_wrapper import ElementWrapper
 from sage.categories.crystals import Crystals
 from sage.categories.finite_crystals import FiniteCrystals
+from sage.categories.supercrystals import SuperCrystals
 from sage.combinat.root_system.cartan_type import CartanType
 from sage.rings.integer import Integer
 from sage.rings.infinity import infinity
@@ -37,7 +40,7 @@ from sage.structure.richcmp import richcmp
 
 
 class Subcrystal(UniqueRepresentation, Parent):
-    """
+    r"""
     A subcrystal `X` of an ambient crystal `Y` is a crystal formed by taking a
     subset of `Y` and whose crystal structure is induced by `Y`.
 
@@ -82,8 +85,8 @@ class Subcrystal(UniqueRepresentation, Parent):
         8
         sage: list(T)
         [[[1, 1], [3]],
-         [[1, 1], [2]],
          [[1, 2], [3]],
+         [[1, 1], [2]],
          [[2, 2], [3]],
          [[1, 2], [2]],
          [[2, 3], [3]],
@@ -100,6 +103,16 @@ class Subcrystal(UniqueRepresentation, Parent):
     .. TODO::
 
         Include support for subcrystals which only contains certain arrows.
+
+    TESTS:
+
+    Check that the subcrystal respects being in the category
+    of supercrystals (:issue:`27368`)::
+
+        sage: T = crystals.Tableaux(['A',[1,1]], [2,1])
+        sage: S = T.subcrystal(max_depth=3)
+        sage: S.category()
+        Category of finite super crystals
     """
     @staticmethod
     def __classcall_private__(cls, ambient, contained=None, generators=None,
@@ -116,7 +129,7 @@ class Subcrystal(UniqueRepresentation, Parent):
             sage: S1 is S2
             True
         """
-        if isinstance(contained, (list, tuple, set, frozenset)):
+        if isinstance(contained, (collections.abc.Sequence, collections.abc.Set)):
             contained = frozenset(contained)
         #elif contained in Sets():
 
@@ -130,6 +143,8 @@ class Subcrystal(UniqueRepresentation, Parent):
             generators = ambient.module_generators
 
         category = Crystals().or_subcategory(category)
+        if ambient in SuperCrystals():
+            category = category & SuperCrystals()
         if ambient in FiniteCrystals() or isinstance(contained, frozenset):
             category = category.Finite()
 
@@ -147,11 +162,11 @@ class Subcrystal(UniqueRepresentation, Parent):
                                   generators, cartan_type, index_set, category)
 
         # We need to give these as optional arguments so it unpickles correctly
-        return super(Subcrystal, cls).__classcall__(cls, ambient, contained,
-                                                    tuple(generators),
-                                                    cartan_type=cartan_type,
-                                                    index_set=tuple(index_set),
-                                                    category=category)
+        return super().__classcall__(cls, ambient, contained,
+                                     tuple(generators),
+                                     cartan_type=cartan_type,
+                                     index_set=tuple(index_set),
+                                     category=category)
 
     def __init__(self, ambient, contained, generators, cartan_type, index_set, category):
         """
@@ -258,7 +273,7 @@ class Subcrystal(UniqueRepresentation, Parent):
 
         TESTS:
 
-        Check that :trac:`19481` is fixed::
+        Check that :issue:`19481` is fixed::
 
             sage: from sage.combinat.crystals.virtual_crystal import VirtualCrystal
             sage: A = crystals.infinity.Tableaux(['A',3])
@@ -279,7 +294,7 @@ class Subcrystal(UniqueRepresentation, Parent):
             if self in FiniteCrystals():
                 return Integer(len(self.list()))
             try:
-                card = super(Subcrystal, self).cardinality()
+                card = super().cardinality()
             except AttributeError:
                 raise NotImplementedError("unknown cardinality")
             if card == infinity:
@@ -305,6 +320,7 @@ class Subcrystal(UniqueRepresentation, Parent):
         """
         An element of a subcrystal. Wraps an element in the ambient crystal.
         """
+
         def _richcmp_(self, other, op):
             """
             EXAMPLES:
@@ -330,35 +346,35 @@ class Subcrystal(UniqueRepresentation, Parent):
             For != operator::
 
                 sage: ([(i,j) for i in range(len(S)) for j in range(len(S)) if S[i]!=S[j]]
-                ....: == [(i,j) for i in range(len(S)) for j in range(len(S)) if 
+                ....: == [(i,j) for i in range(len(S)) for j in range(len(S)) if
                 ....: S[i].value!=S[j].value])
                 True
 
             For < operator::
 
                 sage: ([(i,j) for i in range(len(S)) for j in range(len(S)) if S[i]<S[j]]
-                ....: == [(i,j) for i in range(len(S)) for j in range(len(S)) if 
+                ....: == [(i,j) for i in range(len(S)) for j in range(len(S)) if
                 ....: S[i].value<S[j].value])
                 True
 
             For <= operator::
 
                 sage: ([(i,j) for i in range(len(S)) for j in range(len(S)) if S[i]<=S[j]]
-                ....: == [(i,j) for i in range(len(S)) for j in range(len(S)) if 
+                ....: == [(i,j) for i in range(len(S)) for j in range(len(S)) if
                 ....: S[i].value<=S[j].value])
                 True
 
             For > operator::
 
                 sage: ([(i,j) for i in range(len(S)) for j in range(len(S)) if S[i]>S[j]]
-                ....: == [(i,j) for i in range(len(S)) for j in range(len(S)) if 
+                ....: == [(i,j) for i in range(len(S)) for j in range(len(S)) if
                 ....: S[i].value>S[j].value])
                 True
 
             For >= operator::
 
                 sage: ([(i,j) for i in range(len(S)) for j in range(len(S)) if S[i]>=S[j]]
-                ....: == [(i,j) for i in range(len(S)) for j in range(len(S)) if 
+                ....: == [(i,j) for i in range(len(S)) for j in range(len(S)) if
                 ....: S[i].value>=S[j].value])
                 True
             """
@@ -445,4 +461,3 @@ class Subcrystal(UniqueRepresentation, Parent):
                 (0, 1, 0, 1, 1)
             """
             return self.value.weight()
-

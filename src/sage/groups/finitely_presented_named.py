@@ -12,6 +12,9 @@ Groups available as finite presentations:
 - Alternating group, `A_n` of order `n!/2` --
   :func:`groups.presentation.Alternating <sage.groups.finitely_presented_named.AlternatingPresentation>`
 
+- the `n`-fruit Cactus group, a standard notation for which is `J_n` --
+  :func:`groups.presentation.Cactus <sage.groups.finitely_presented_named.CactusPresentation>`
+
 - Cyclic group, `C_n` of order `n` --
   :func:`groups.presentation.Cyclic <sage.groups.finitely_presented_named.CyclicPresentation>`
 
@@ -52,33 +55,31 @@ You can also import the desired functions::
     sage: CyclicPresentation(4)
     Finitely presented group < a | a^4 >
 """
-#*****************************************************************************
+# ****************************************************************************
 #       Copyright (C) 2013 Davis Shurbert <davis.sprout@gmail.com>
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
-from sage.rings.all      import Integer
+from sage.rings.integer import Integer
 from sage.groups.free_group import FreeGroup
 from sage.groups.finitely_presented import FinitelyPresentedGroup
 from sage.libs.gap.libgap import libgap
 from sage.matrix.constructor import diagonal_matrix
 from sage.modules.fg_pid.fgp_module import FGP_Module
 from sage.rings.integer_ring import ZZ
-from sage.sets.set import Set
 
-def CyclicPresentation(n):
+
+def CyclicPresentation(n) -> FinitelyPresentedGroup:
     r"""
     Build cyclic group of order `n` as a finitely presented group.
 
     INPUT:
 
-    - ``n`` -- The order of the cyclic presentation to be returned.
+    - ``n`` -- the order of the cyclic presentation to be returned
 
-    OUTPUT:
-
-    The cyclic group of order `n` as finite presentation.
+    OUTPUT: the cyclic group of order `n` as finite presentation
 
     EXAMPLES::
 
@@ -98,9 +99,10 @@ def CyclicPresentation(n):
     n = Integer(n)
     if n < 1:
         raise ValueError('finitely presented group order must be positive')
-    F = FreeGroup( 'a' )
+    F = FreeGroup('a')
     rls = F([1])**n,
-    return FinitelyPresentedGroup( F, rls )
+    return FinitelyPresentedGroup(F, rls)
+
 
 def FinitelyGeneratedAbelianPresentation(int_list):
     r"""
@@ -108,9 +110,9 @@ def FinitelyGeneratedAbelianPresentation(int_list):
 
     INPUT:
 
-    - ``int_list`` -- List of integers defining the group to be returned, the defining list
+    - ``int_list`` -- list of integers defining the group to be returned, the defining list
       is reduced to the invariants of the input list before generating the corresponding
-      group.
+      group
 
     OUTPUT:
 
@@ -181,7 +183,7 @@ def FinitelyGeneratedAbelianPresentation(int_list):
         sage: gg = (C2.direct_product(C4)[0]).direct_product(C8)[0]
         sage: gg.is_isomorphic(G.as_permutation_group())
         True
-        sage: all([groups.presentation.FGAbelian([i]).as_permutation_group().is_isomorphic(groups.presentation.Cyclic(i).as_permutation_group()) for i in [2..35]])
+        sage: all(groups.presentation.FGAbelian([i]).as_permutation_group().is_isomorphic(groups.presentation.Cyclic(i).as_permutation_group()) for i in [2..35])
         True
     """
     from sage.groups.free_group import _lexi_gen
@@ -193,14 +195,18 @@ def FinitelyGeneratedAbelianPresentation(int_list):
     invariants = FGP_Module(ZZ**(len(int_list)), col_sp).invariants()
     name_gen = _lexi_gen()
     F = FreeGroup([next(name_gen) for i in invariants])
-    ret_rls = [F([i+1])**invariants[i] for i in range(len(invariants)) if invariants[i]!=0]
+    ret_rls = [F([i + 1])**invariants[i] for i in range(len(invariants))
+               if invariants[i] != 0]
 
     # Build commutator relations
-    gen_pairs = [[F.gen(i),F.gen(j)] for i in range(F.ngens()-1) for j in range(i+1,F.ngens())]
-    ret_rls = ret_rls + [x[0]**(-1)*x[1]**(-1)*x[0]*x[1] for x in gen_pairs]
+    gen_pairs = [[F.gen(i), F.gen(j)] for i in range(F.ngens() - 1)
+                 for j in range(i + 1, F.ngens())]
+    ret_rls = ret_rls + [x[0]**(-1) * x[1]**(-1) * x[0] * x[1]
+                         for x in gen_pairs]
     return FinitelyPresentedGroup(F, tuple(ret_rls))
 
-def FinitelyGeneratedHeisenbergPresentation(n=1, p=0):
+
+def FinitelyGeneratedHeisenbergPresentation(n=1, p=0) -> FinitelyPresentedGroup:
     r"""
     Return a finite presentation of the Heisenberg group.
 
@@ -214,11 +220,9 @@ def FinitelyGeneratedHeisenbergPresentation(n=1, p=0):
 
     - ``p`` -- (optional) a prime number, where we construct the
       Heisenberg group over the finite field `\ZZ/p\ZZ`
- 
-    OUTPUT:
 
-    Finitely generated Heisenberg group over the finite field
-    of order ``p`` or over the integers.
+    OUTPUT: finitely generated Heisenberg group over the finite field
+    of order ``p`` or over the integers
 
     .. SEEALSO::
 
@@ -249,7 +253,7 @@ def FinitelyGeneratedHeisenbergPresentation(n=1, p=0):
         [0 0 1]
         sage: p = 3
         sage: Hp = groups.presentation.Heisenberg(p=3)
-        sage: Hp.order() == p**3 
+        sage: Hp.order() == p**3
         True
         sage: Hnp = groups.presentation.Heisenberg(n=2, p=3)
         sage: len(Hnp.relations())
@@ -264,16 +268,17 @@ def FinitelyGeneratedHeisenbergPresentation(n=1, p=0):
         raise ValueError('n must be a positive integer')
 
     # generators' names are x1, .., xn, y1, .., yn, z
-    vx = ['x' + str(i) for i in range(1,n+1)]
-    vy = ['y' + str(i) for i in range(1,n+1)]
+    vx = ['x' + str(i) for i in range(1, n + 1)]
+    vy = ['y' + str(i) for i in range(1, n + 1)]
     str_generators = ', '.join(vx + vy + ['z'])
 
     F = FreeGroup(str_generators)
-    x = F.gens()[0:n] # list of generators x1, x2, ..., xn
-    y = F.gens()[n:2*n] # list of generators x1, x2, ..., xn
-    z = F.gen(n*2)
+    x = F.gens()[0:n]  # list of generators x1, x2, ..., xn
+    y = F.gens()[n:2 * n]  # list of generators x1, x2, ..., xn
+    z = F.gen(n * 2)
 
-    def commutator(a, b): return a * b * a**-1 * b**-1
+    def commutator(a, b):
+        return a * b * a**-1 * b**-1
     # First set of relations: [xi, yi] = z
     r1 = [commutator(x[i], y[i]) * z**-1 for i in range(n)]
     # Second set of relations: [z, xi] = 1
@@ -281,7 +286,7 @@ def FinitelyGeneratedHeisenbergPresentation(n=1, p=0):
     # Third set of relations: [z, yi] = 1
     r3 = [commutator(z, y[i]) for i in range(n)]
     # Fourth set of relations: [xi, yi] = 1 for i != j
-    r4 = [commutator(x[i], y[j]) for i in range(n) for j in range(n) if i!=j]
+    r4 = [commutator(x[i], y[j]) for i in range(n) for j in range(n) if i != j]
     rls = r1 + r2 + r3 + r4
 
     from sage.sets.primes import Primes
@@ -291,17 +296,16 @@ def FinitelyGeneratedHeisenbergPresentation(n=1, p=0):
         rls += [w**p for w in F.gens()]
     return FinitelyPresentedGroup(F, tuple(rls))
 
-def DihedralPresentation(n):
+
+def DihedralPresentation(n) -> FinitelyPresentedGroup:
     r"""
     Build the Dihedral group of order `2n` as a finitely presented group.
 
     INPUT:
 
-    - ``n`` -- The size of the set that `D_n` is acting on.
+    - ``n`` -- the size of the set that `D_n` is acting on
 
-    OUTPUT:
-
-    Dihedral group of order `2n`.
+    OUTPUT: Dihedral group of order `2n`
 
     EXAMPLES::
 
@@ -321,14 +325,15 @@ def DihedralPresentation(n):
         ...
         ValueError: finitely presented group order must be positive
     """
-    n = Integer( n )
+    n = Integer(n)
     if n < 1:
         raise ValueError('finitely presented group order must be positive')
-    F = FreeGroup([ 'a', 'b' ])
-    rls = F([1])**n, F([2])**2, (F([1])*F([2]))**2
-    return FinitelyPresentedGroup( F, rls )
+    F = FreeGroup(['a', 'b'])
+    rls = F([1])**n, F([2])**2, (F([1]) * F([2]))**2
+    return FinitelyPresentedGroup(F, rls)
 
-def DiCyclicPresentation(n):
+
+def DiCyclicPresentation(n) -> FinitelyPresentedGroup:
     r"""
     Build the dicyclic group of order `4n`, for `n \geq 2`, as a finitely
     presented group.
@@ -336,11 +341,9 @@ def DiCyclicPresentation(n):
     INPUT:
 
     - ``n`` -- positive integer, 2 or greater, determining the order of
-      the group (`4n`).
+      the group (`4n`)
 
-    OUTPUT:
-
-    The dicyclic group of order `4n` is defined by the presentation
+    OUTPUT: the dicyclic group of order `4n` is defined by the presentation
 
     .. MATH::
 
@@ -363,9 +366,10 @@ def DiCyclicPresentation(n):
         sage: Q = groups.presentation.DiCyclic(2)
         sage: Q.as_permutation_group().is_isomorphic(QuaternionGroup())
         True
-        sage: all([groups.presentation.DiCyclic(i).as_permutation_group(
-        ....: ).is_isomorphic(groups.permutation.DiCyclic(i)) for i in [5,8,12,2^5]])
-        True
+        sage: for i in [5, 8, 12, 32]:
+        ....:     A = groups.presentation.DiCyclic(i).as_permutation_group()
+        ....:     B = groups.permutation.DiCyclic(i)
+        ....:     assert A.is_isomorphic(B)
         sage: groups.presentation.DiCyclic(1)
         Traceback (most recent call last):
         ...
@@ -375,18 +379,19 @@ def DiCyclicPresentation(n):
     if n < 2:
         raise ValueError('input integer must be greater than 1')
 
-    F = FreeGroup(['a','b'])
-    rls =  F([1])**(2*n), F([2,2])*F([-1])**n, F([-2,1,2,1])
+    F = FreeGroup(['a', 'b'])
+    rls = F([1])**(2 * n), F([2, 2]) * F([-1])**n, F([-2, 1, 2, 1])
     return FinitelyPresentedGroup(F, rls)
 
-def SymmetricPresentation(n):
+
+def SymmetricPresentation(n) -> FinitelyPresentedGroup:
     r"""
     Build the Symmetric group of order `n!` as a finitely presented group.
 
     INPUT:
 
-    - ``n`` -- The size of the underlying set of arbitrary symbols being acted
-      on by the Symmetric group of order `n!`.
+    - ``n`` -- the size of the underlying set of arbitrary symbols being acted
+      on by the Symmetric group of order `n!`
 
     OUTPUT:
 
@@ -417,22 +422,24 @@ def SymmetricPresentation(n):
     from sage.groups.free_group import _lexi_gen
 
     n = Integer(n)
+    if n <= 1:
+        return FinitelyPresentedGroup(FreeGroup(()), ())
+
     perm_rep = SymmetricGroup(n)
     GAP_fp_rep = libgap.Image(libgap.IsomorphismFpGroupByGenerators(perm_rep, perm_rep.gens()))
     image_gens = GAP_fp_rep.FreeGeneratorsOfFpGroup()
-    name_itr = _lexi_gen() # Python generator object for variable names
+    name_itr = _lexi_gen()  # Python generator object for variable names
     F = FreeGroup([next(name_itr) for x in perm_rep.gens()])
     ret_rls = tuple([F(rel_word.TietzeWordAbstractWord(image_gens).sage())
-                for rel_word in GAP_fp_rep.RelatorsOfFpGroup()])
-    return FinitelyPresentedGroup(F,ret_rls)
+                     for rel_word in GAP_fp_rep.RelatorsOfFpGroup()])
+    return FinitelyPresentedGroup(F, ret_rls)
 
-def QuaternionPresentation():
+
+def QuaternionPresentation() -> FinitelyPresentedGroup:
     r"""
     Build the Quaternion group of order 8 as a finitely presented group.
 
-    OUTPUT:
-
-    Quaternion group as a finite presentation.
+    OUTPUT: Quaternion group as a finite presentation
 
     EXAMPLES::
 
@@ -449,18 +456,19 @@ def QuaternionPresentation():
         sage: Q.is_isomorphic(groups.presentation.DiCyclic(2))
         True
     """
-    F = FreeGroup(['a','b'])
-    rls = F([1])**4, F([2,2,-1,-1]), F([1,2,1,-2])
+    F = FreeGroup(['a', 'b'])
+    rls = F([1])**4, F([2, 2, -1, -1]), F([1, 2, 1, -2])
     return FinitelyPresentedGroup(F, rls)
 
-def AlternatingPresentation(n):
+
+def AlternatingPresentation(n) -> FinitelyPresentedGroup:
     r"""
     Build the Alternating group of order `n!/2` as a finitely presented group.
 
     INPUT:
 
-    - ``n`` -- The size of the underlying set of arbitrary symbols being acted
-      on by the Alternating group of order `n!/2`.
+    - ``n`` -- the size of the underlying set of arbitrary symbols being acted
+      on by the Alternating group of order `n!/2`
 
     OUTPUT:
 
@@ -475,9 +483,10 @@ def AlternatingPresentation(n):
         sage: A6.as_permutation_group().is_isomorphic(AlternatingGroup(6)), A6.order()
         (True, 360)
 
-    TESTS::
+    TESTS:
 
-        sage: #even permutation test..
+    Even permutation tests::
+
         sage: A1 = groups.presentation.Alternating(1); A2 = groups.presentation.Alternating(2)
         sage: A1.is_isomorphic(A2), A1.order()
         (True, 1)
@@ -490,38 +499,41 @@ def AlternatingPresentation(n):
     from sage.groups.free_group import _lexi_gen
 
     n = Integer(n)
+    if n <= 2:
+        return FinitelyPresentedGroup(FreeGroup(()), ())
+
     perm_rep = AlternatingGroup(n)
     GAP_fp_rep = libgap.Image(libgap.IsomorphismFpGroupByGenerators(perm_rep, perm_rep.gens()))
     image_gens = GAP_fp_rep.FreeGeneratorsOfFpGroup()
-    name_itr = _lexi_gen() # Python generator object for variable names
+    name_itr = _lexi_gen()  # Python generator object for variable names
     F = FreeGroup([next(name_itr) for x in perm_rep.gens()])
     ret_rls = tuple([F(rel_word.TietzeWordAbstractWord(image_gens).sage())
-                for rel_word in GAP_fp_rep.RelatorsOfFpGroup()])
-    return FinitelyPresentedGroup(F,ret_rls)
+                     for rel_word in GAP_fp_rep.RelatorsOfFpGroup()])
+    return FinitelyPresentedGroup(F, ret_rls)
 
-def KleinFourPresentation():
+
+def KleinFourPresentation() -> FinitelyPresentedGroup:
     r"""
     Build the Klein group of order `4` as a finitely presented group.
 
-    OUTPUT:
-
-    Klein four group (`C_2 \times C_2`) as a finitely presented group.
+    OUTPUT: Klein four group (`C_2 \times C_2`) as a finitely presented group
 
     EXAMPLES::
 
         sage: K = groups.presentation.KleinFour(); K
         Finitely presented group < a, b | a^2, b^2, a^-1*b^-1*a*b >
     """
-    F = FreeGroup(['a','b'])
-    rls = F([1])**2, F([2])**2, F([-1])*F([-2])*F([1])*F([2])
+    F = FreeGroup(['a', 'b'])
+    rls = F([1])**2, F([2])**2, F([-1]) * F([-2]) * F([1]) * F([2])
     return FinitelyPresentedGroup(F, rls)
 
-def BinaryDihedralPresentation(n):
+
+def BinaryDihedralPresentation(n) -> FinitelyPresentedGroup:
     r"""
     Build a binary dihedral group of order `4n` as a finitely presented group.
 
     The binary dihedral group `BD_n` has the following presentation
-    (note that there is a typo in [Sun]_):
+    (note that there is a typo in [Sun2010]_):
 
     .. MATH::
 
@@ -531,9 +543,7 @@ def BinaryDihedralPresentation(n):
 
     - ``n`` -- the value `n`
 
-    OUTPUT:
-
-    The binary dihedral group of order `4n` as finite presentation.
+    OUTPUT: the binary dihedral group of order `4n` as finite presentation
 
     EXAMPLES::
 
@@ -542,13 +552,43 @@ def BinaryDihedralPresentation(n):
 
     TESTS::
 
-        sage: for n in range(3, 9):
+        sage: for n in range(3, 9):                                                     # needs sage.modules
         ....:     P = groups.presentation.BinaryDihedral(n)
         ....:     M = groups.matrix.BinaryDihedral(n)
         ....:     assert P.is_isomorphic(M)
     """
     F = FreeGroup('x,y,z')
-    x,y,z = F.gens()
-    rls = (x**-2 * y**2, x**-2 * z**n, x**-2 * x*y*z)
+    x, y, z = F.gens()
+    rls = (x**-2 * y**2, x**-2 * z**n, x**-2 * x * y * z)
     return FinitelyPresentedGroup(F, rls)
 
+
+def CactusPresentation(n) -> FinitelyPresentedGroup:
+    r"""
+    Build the `n`-fruit cactus group as a finitely presented group.
+
+    OUTPUT: Cactus group `J_n` as a finitely presented group
+
+    EXAMPLES::
+
+        sage: J3 = groups.presentation.Cactus(3); J3                                    # needs sage.graphs
+        Finitely presented group < s12, s13, s23 |
+         s12^2, s13^2, s23^2, s13*s12*s13^-1*s23^-1, s13*s23*s13^-1*s12^-1 >
+    """
+    from sage.groups.cactus_group import CactusGroup
+    G = CactusGroup(n)
+    F = FreeGroup(G.variable_names())
+    gens = F.gens()
+    rls = [g**2 for g in gens]
+    Gg = G.group_generators()
+    K = Gg.keys()
+    for i, key in enumerate(K):
+        for j, key2 in enumerate(K):
+            if i == j:
+                continue
+            x, y = (Gg[key] * Gg[key2])._data
+            if key == x and key2 == y:
+                continue
+            elt = gens[i] * gens[j] * ~gens[K.index(y)] * ~gens[K.index(x)]
+            rls.append(elt)
+    return FinitelyPresentedGroup(F, tuple(rls))

@@ -1,4 +1,4 @@
-"""
+"""nodoctest
 List of assigned names in GAP
 
 EXAMPLES::
@@ -21,15 +21,14 @@ EXAMPLES::
 #                   http://www.gnu.org/licenses/
 ###############################################################################
 
+import pickle
 
-from six.moves import cPickle
-import string
 from sage.libs.gap.libgap import libgap
 from sage.libs.gap.saved_workspace import workspace
 
 
 NamesGVars = libgap.function_factory('NamesGVars')
-Filtered =libgap.function_factory('Filtered')
+Filtered = libgap.function_factory('Filtered')
 ValueGlobal = libgap.function_factory('ValueGlobal')
 IsBoundGlobal = libgap.function_factory('IsBoundGlobal')
 IsFunction = libgap.function_factory('IsFunction')
@@ -38,17 +37,15 @@ IsDocumentedWord = libgap.function_factory('IsDocumentedWord')
 
 def load_or_compute(name, function):
     """
-    Helper to load a cached value or compute it
+    Helper to load a cached value or compute it.
 
     INPUT:
 
-    - ``name`` -- string. Part of the cache filename
+    - ``name`` -- string; part of the cache filename
 
-    - ``function`` -- function. To compute the value if not cached.
+    - ``function`` -- function; to compute the value if not cached
 
-    OUTPUT:
-
-    The value of ``function``, possibly cached.
+    OUTPUT: the value of ``function``, possibly cached
 
     EXAMPLES::
 
@@ -62,22 +59,20 @@ def load_or_compute(name, function):
     filename, up_to_date = workspace(name=name)
     if up_to_date:
         with open(filename, 'rb') as f:
-            return cPickle.load(f)
+            return pickle.load(f)
     else:
         value = function()
         from sage.misc.temporary_file import atomic_write
-        with atomic_write(filename) as f:
-            cPickle.dump(value, f)
+        with atomic_write(filename, binary=True) as f:
+            pickle.dump(value, f)
         return value
 
 
 def list_keywords():
     """
-    Return the GAP reserved keywords
+    Return the GAP reserved keywords.
 
-    OUTPUT:
-
-    Tuple of strings.
+    OUTPUT: tuple of strings
 
     EXAMPLES::
 
@@ -94,11 +89,9 @@ KEYWORDS = list_keywords()
 
 def list_globals():
     """
-    Return the GAP reserved keywords
+    Return the GAP reserved keywords.
 
-    OUTPUT:
-
-    Tuple of strings.
+    OUTPUT: tuple of strings
 
     EXAMPLES::
 
@@ -119,11 +112,9 @@ GLOBALS = load_or_compute('globals', list_globals)
 
 def list_functions():
     """
-    Return the GAP documented global functions
+    Return the GAP documented global functions.
 
-    OUTPUT:
-
-    Tuple of strings.
+    OUTPUT: tuple of strings
 
     EXAMPLES::
 
@@ -139,9 +130,3 @@ def list_functions():
 
 
 FUNCTIONS = load_or_compute('functions', list_functions)
-
-    
-
-
-
-

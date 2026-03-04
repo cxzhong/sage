@@ -1,6 +1,56 @@
 from libc.stdint cimport uint32_t
-from cpython.object cimport Py_LT, Py_LE, Py_EQ, Py_NE, Py_GT, Py_GE
-from cpython.object cimport PyObject_RichCompare as richcmp
+from cpython.object cimport (Py_LT, Py_LE, Py_EQ, Py_NE, Py_GT, Py_GE,
+                             PyObject_RichCompare)
+
+
+cpdef inline richcmp(x, y, int op):
+    """
+    Return the result of the rich comparison of ``x`` and ``y`` with
+    operator ``op``.
+
+    INPUT:
+
+    - ``x``, ``y`` -- arbitrary Python objects
+
+    - ``op`` -- comparison operator (one of ``op_LT``, ``op_LE``,
+      ``op_EQ``, ``op_NE``, ``op_GT``, ``op_GE``)
+
+    EXAMPLES::
+
+        sage: from sage.structure.richcmp import *
+        sage: richcmp(3, 4, op_LT)
+        True
+        sage: richcmp(x, x^2, op_EQ)                                                    # needs sage.symbolic
+        x == x^2
+
+    The two examples above are completely equivalent to ``3 < 4``
+    and ``x == x^2``. For this reason, it only makes sense in practice
+    to call ``richcmp`` with a non-constant value for ``op``.
+
+    We can write a custom ``Element`` class which shows a more
+    realistic example of how to use this::
+
+        sage: from sage.structure.element import Element
+        sage: class MyElement(Element):
+        ....:     def __init__(self, parent, value):
+        ....:         Element.__init__(self, parent)
+        ....:         self.v = value
+        ....:     def _richcmp_(self, other, op):
+        ....:         return richcmp(self.v, other.v, op)
+        sage: P = Parent()
+        sage: x = MyElement(P, 3)
+        sage: y = MyElement(P, 3)
+        sage: x < y
+        False
+        sage: x == y
+        True
+        sage: x > y
+        False
+    """
+    return PyObject_RichCompare(x, y, op)
+
+
+cpdef richcmp_item(x, y, int op)
 
 
 cpdef inline richcmp_not_equal(x, y, int op):
@@ -67,7 +117,7 @@ cpdef inline richcmp_not_equal(x, y, int op):
     return richcmp(x, y, op)
 
 
-cpdef inline bint rich_to_bool(int op, int c):
+cpdef inline bint rich_to_bool(int op, int c) noexcept:
     """
     Return the corresponding ``True`` or ``False`` value for a rich
     comparison, given the result of an old-style comparison.
@@ -76,7 +126,7 @@ cpdef inline bint rich_to_bool(int op, int c):
 
     - ``op`` -- a rich comparison operation (e.g. ``Py_EQ``)
 
-    - ``c`` -- the result of an old-style comparison: -1, 0 or 1.
+    - ``c`` -- the result of an old-style comparison: -1, 0 or 1
 
     OUTPUT: 1 or 0 (corresponding to ``True`` and ``False``)
 
@@ -115,7 +165,7 @@ cpdef inline bint rich_to_bool(int op, int c):
         (True, False, True)
     """
     # op is a value in [0,5], c a value in [-1,1]. We implement this
-    # function very efficienly using a bitfield. Note that the masking
+    # function very efficiently using a bitfield. Note that the masking
     # below implies we consider c mod 4, so c = -1 implicitly becomes
     # c = 3.
 
@@ -134,7 +184,7 @@ cpdef inline bint rich_to_bool(int op, int c):
     return (bits >> (shift & 31)) & 1
 
 
-cpdef inline bint rich_to_bool_sgn(int op, Py_ssize_t c):
+cpdef inline bint rich_to_bool_sgn(int op, Py_ssize_t c) noexcept:
     """
     Same as ``rich_to_bool``, but allow any `c < 0` and `c > 0`
     instead of only `-1` and `1`.
@@ -146,7 +196,7 @@ cpdef inline bint rich_to_bool_sgn(int op, Py_ssize_t c):
     return rich_to_bool(op, (c > 0) - (c < 0))
 
 
-cpdef inline int revop(int op):
+cpdef inline int revop(int op) noexcept:
     """
     Return the reverse operation of ``op``.
 

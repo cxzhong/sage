@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 r"""
 Basic Linear Algebra Subroutines on dictionaries
 
@@ -19,12 +18,12 @@ even just an additive semigroup. Of course not all operations are
 meaningful in those cases. We are also assuming that ``-1 * x = -x``
 and ``bool(x) == bool(-x)`` for all ``x`` in `K`.
 
-Unless stated overwise, all values `v` in the dictionaries should be
-non zero (as tested with `bool(v)`).
+Unless stated otherwise, all values `v` in the dictionaries should be
+nonzero (as tested with `bool(v)`).
 
 This is mostly used by :class:`CombinatorialFreeModule`.
 """
-#*****************************************************************************
+# ***************************************************************************
 #       Copyright (C) 2010 Christian Stump <christian.stump@univie.ac.at>
 #                     2016 Travis Scrimshaw <tscrimsh@umn.edu>
 #                     2016 Nicolas M. Thiéry <nthiery at users.sf.net>
@@ -33,8 +32,8 @@ This is mostly used by :class:`CombinatorialFreeModule`.
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ***************************************************************************
 
 cpdef int iaxpy(a, dict X, dict Y, bint remove_zeros=True, bint factor_on_left=True) except -1:
     r"""
@@ -43,7 +42,7 @@ cpdef int iaxpy(a, dict X, dict Y, bint remove_zeros=True, bint factor_on_left=T
     INPUT:
 
     - ``a`` -- element of a parent `K` or `±1`
-    - ``X,Y`` -- dictionaries representing a vector `X` over `K`
+    - ``X``, ``Y`` -- dictionaries representing a vector `X` over `K`
     - ``remove_zeros`` -- boolean (default: ``True``); whether to
       remove the keys whose values are zero after the addition has
       been performed
@@ -113,13 +112,13 @@ cpdef int iaxpy(a, dict X, dict Y, bint remove_zeros=True, bint factor_on_left=T
         flag = -1
     elif not a:
         return 0
-    for (key, value) in X.iteritems():
+    for key, value in X.items():
         if flag == -1:
             if key in Y:
-                Y[key]  -= value
+                Y[key] -= value
             else:
-                Y[key]  = -value
-                continue # no need to check for zero
+                Y[key] = -value
+                continue  # no need to check for zero
         else:
             if flag != 1:
                 # If we had the guarantee that `a` is in the base
@@ -132,13 +131,13 @@ cpdef int iaxpy(a, dict X, dict Y, bint remove_zeros=True, bint factor_on_left=T
                 else:
                     value = value*a
                 if not value:
-                    continue # a is a zero divizor
+                    continue  # a is a zero divisor
             # assert value
             if key in Y:
                 Y[key] += value
             else:
-                Y[key]  = value
-                continue # no need to check for zero
+                Y[key] = value
+                continue  # no need to check for zero
         if remove_zeros and not Y[key]:
             del Y[key]
     return 0
@@ -209,7 +208,7 @@ cpdef dict negate(dict D):
 
     INPUT:
 
-    - ``X`` -- a dictionary representing a vector `X`
+    - ``X`` -- dictionary representing a vector `X`
 
     EXAMPLES::
 
@@ -218,7 +217,7 @@ cpdef dict negate(dict D):
         sage: blas.negate(D1)
         {0: -1, 1: -1}
     """
-    return { key: -value for key, value in D.iteritems() }
+    return {key: -value for key, value in D.items()}
 
 cpdef dict scal(a, dict D, bint factor_on_left=True):
     r"""
@@ -227,7 +226,7 @@ cpdef dict scal(a, dict D, bint factor_on_left=True):
     INPUT:
 
     - ``a`` -- an element of the base ring `K`
-    - ``X`` -- a dictionary representing a vector `X`
+    - ``X`` -- dictionary representing a vector `X`
 
     EXAMPLES::
 
@@ -249,7 +248,7 @@ cpdef dict add(dict D, dict D2):
     INPUT:
 
     - ``D``, ``D2`` -- dictionaries whose values are in a common ring
-      and all values are non-zero
+      and all values are nonzero
 
     EXAMPLES::
 
@@ -276,7 +275,7 @@ cpdef dict sum(dict_iter):
     INPUT:
 
     - ``dict_iter`` -- iterator of dictionaries whose values are in
-      a common ring and all values are non-zero
+      a common ring and all values are nonzero
 
     OUTPUT:
 
@@ -301,7 +300,6 @@ cpdef dict sum(dict_iter):
     """
     cdef dict result = {}
     cdef D
-    cdef list for_removal
 
     for D in dict_iter:
         if result:
@@ -309,10 +307,7 @@ cpdef dict sum(dict_iter):
         elif D:
             result = D.copy()
 
-    for_removal = [key for key in result if not result[key]]
-    for key in for_removal:
-        del result[key]
-    return result
+    return remove_zeros(result)
 
 cpdef dict linear_combination(dict_factor_iter, bint factor_on_left=True):
     r"""
@@ -345,22 +340,127 @@ cpdef dict linear_combination(dict_factor_iter, bint factor_on_left=True):
         {0: 10, 1: 10}
         sage: blas.linear_combination( [(D,1), (D,-1)] )
         {}
+
+    Check right multiplication with coefficients in a noncommutative ring::
+
+        sage: SGA = SymmetricGroupAlgebra(QQ, 3)
+        sage: s1 = SGA([2, 1, 3]) # (1 2)
+        sage: s2 = SGA([3, 1, 2]) # (1 3)
+        sage: D1 = {0: s1}
+        sage: blas.linear_combination([(D1, s2)], factor_on_left=False) # s1 * s2
+        {0: [1, 3, 2]}
+
+    Check left multiplication with coefficients in a noncommutative ring::
+
+        sage: blas.linear_combination([(D1, s2)], factor_on_left=True) # s2 * s1
+        {0: [3, 2, 1]}
     """
     cdef dict result = {}
     cdef dict D
-    cdef list for_removal
 
     for D, a in dict_factor_iter:
-        if not a: # We multiply by 0, so nothing to do
+        if not a:  # We multiply by 0, so nothing to do
             continue
         if not result and a == 1:
             result = D.copy()
         else:
-            iaxpy(a, D, result, remove_zeros=False)
+            iaxpy(a, D, result, remove_zeros=False,
+                  factor_on_left=factor_on_left)
 
-    for_removal = [key for key in result if not result[key]]
-    for key in for_removal:
-        del result[key]
+    return remove_zeros(result)
 
-    return result
 
+cpdef dict sum_of_monomials(monomials, scalar):
+    r"""
+    Return the pointwise addition of ``monomials``.
+
+    INPUT:
+
+    - ``monomials`` -- list (or iterable) of indices representing the monomials
+    - ``scalar`` -- the scalar for each monomial
+
+    EXAMPLES::
+
+        sage: import sage.data_structures.blas_dict as blas
+        sage: blas.sum_of_monomials(['a', 'a', 'b', 'b', 'b'], 1)
+        {'a': 2, 'b': 3}
+        sage: blas.sum_of_monomials(['a', 'a', 'b', 'b', 'b'], 2)
+        {'a': 4, 'b': 6}
+        sage: blas.sum_of_monomials(['a', 'a', 'b', 'b', 'b'], GF(3).one())
+        {'a': 2}
+    """
+    cdef dict result = {}
+    cdef object m
+    for m in monomials:
+        if m in result:
+            result[m] += scalar
+        else:
+            result[m] = scalar
+    return remove_zeros(result)
+
+cpdef dict sum_of_terms(index_coeff_pairs):
+    r"""
+    Return the linear combination of a monomial scaled by a coefficient.
+
+    INPUT:
+
+    - ``index_coeff_pairs`` -- list (or iterable) of pairs ``(index, coeff)``
+
+    EXAMPLES::
+
+        sage: import sage.data_structures.blas_dict as blas
+        sage: blas.sum_of_terms([('a', 5), ('b', 3), ('a', -4)])
+        {'a': 1, 'b': 3}
+        sage: blas.sum_of_terms([('a', 5), ('b', 3), ('a', -5)])
+        {'b': 3}
+        sage: blas.sum_of_terms([('a', 5), ('b', GF(2).one()),
+        ....:                    ('a', -5), ('b', GF(2).one())])
+        {}
+    """
+    cdef dict result = {}
+    cdef object index, coeff
+    for index, coeff in index_coeff_pairs:
+        if index in result:
+            result[index] += coeff
+        else:
+            result[index] = coeff
+    return remove_zeros(result)
+
+cdef dict remove_zeros(dict D):
+    """
+    Remove all keys whose value is zero from ``D``.
+    """
+    cdef list for_removal
+    cdef object index
+    for_removal = [index for index in D if not D[index]]
+    for index in for_removal:
+        del D[index]
+    return D
+
+cpdef dict convert_remove_zeroes(dict D, R):
+    """
+    Remove all keys whose value is zero from ``D``
+    after coercing into the ring ``R``.
+
+    .. WARNING::
+
+        This modifies the input ``D``.
+
+    EXAMPLES::
+
+        sage: from sage.data_structures.blas_dict import convert_remove_zeroes
+        sage: d = {1: -2, 2: -4, 3: -3}
+        sage: convert_remove_zeroes(d, GF(2))
+        {3: 1}
+    """
+    cdef list for_removal = []
+    cdef object index, val
+    for index in D:
+        val = R(D[index])
+        if val:
+            D[index] = val
+        else:
+            for_removal.append(index)
+    for index in for_removal:
+        del D[index]
+    return D

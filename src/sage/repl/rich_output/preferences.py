@@ -1,4 +1,3 @@
-# -*- encoding: utf-8 -*-
 r"""
 Display Preferences
 
@@ -13,7 +12,7 @@ EXAMPLES::
     sage: from sage.repl.rich_output.preferences import DisplayPreferences
     sage: prefs = DisplayPreferences()
     sage: prefs.available_options()
-    (graphics, supplemental_plot, text)
+    (align_latex, graphics, supplemental_plot, text)
     sage: prefs.text is None
     True
     sage: prefs.text = 'ascii_art'
@@ -21,6 +20,7 @@ EXAMPLES::
     'ascii_art'
     sage: prefs
     Display preferences:
+    * align_latex is not specified
     * graphics is not specified
     * supplemental_plot is not specified
     * text = ascii_art
@@ -50,6 +50,7 @@ Values can also be specified as keyword arguments to the constructor::
 
     sage: DisplayPreferences(text='latex')
     Display preferences:
+    * align_latex is not specified
     * graphics is not specified
     * supplemental_plot is not specified
     * text = latex
@@ -62,14 +63,14 @@ Values can also be specified as keyword arguments to the constructor::
     preference items.
 """
 
-#*****************************************************************************
+# ****************************************************************************
 #       Copyright (C) 2015 Volker Braun <vbraun.name@gmail.com>
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
 #  as published by the Free Software Foundation; either version 2 of
 #  the License, or (at your option) any later version.
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
 
 from textwrap import dedent
@@ -78,19 +79,19 @@ from sage.structure.sage_object import SageObject
 
 
 class Property(property):
-    
+
     def __init__(self, name, allowed_values, doc=None):
         r"""
-        Preference item
+        Preference item.
 
         INPUT:
 
-        - ``name`` -- string. The name of the property.
+        - ``name`` -- string; the name of the property
 
-        - ``allowed_values`` -- list/tuple/iterable of allowed values.
+        - ``allowed_values`` -- list/tuple/iterable of allowed values
 
-        - ``doc`` -- string (optional). The docstring of the property.
-        
+        - ``doc`` -- string (optional); the docstring of the property
+
         EXAMPLES::
 
             sage: from sage.repl.rich_output.preferences import Property
@@ -104,8 +105,8 @@ class Property(property):
         self.underscore_name = '_{0}'.format(name)
         self.allowed_values = tuple(allowed_values)
         self.__doc__ = doc = self._make_doc(doc)
-        super(Property, self).__init__(
-            fget=self.getter, fset=self.setter, fdel=self.deleter, doc=doc)
+        super().__init__(fget=self.getter, fset=self.setter,
+                         fdel=self.deleter, doc=doc)
 
     def _make_doc(self, doc):
         """
@@ -113,12 +114,12 @@ class Property(property):
 
         INPUT:
 
-        - ``doc`` -- the title line of the documentation.
+        - ``doc`` -- the title line of the documentation
 
         OUTPUT:
 
-        String. The docstring with auto-generated documentation about
-        the allowed values added.
+        string; the docstring with auto-generated documentation about
+        the allowed values added
 
         EXAMPLES::
 
@@ -140,19 +141,16 @@ class Property(property):
         doc = dedent(doc)
         doc += '\n\n'
         doc += 'Allowed values:\n\n'
-        values_doc = []
-        values_doc.append('* ``None`` (default): no preference')
-        for value in self.allowed_values:
-            values_doc.append('* {0}'.format(repr(value)))
+        values_doc = ['* ``None`` (default): no preference']
+        values_doc.extend('* {0}'.format(repr(value))
+                          for value in self.allowed_values)
         return doc + '\n\n'.join(values_doc)
 
     def __repr__(self):
         """
-        Return a string representation
+        Return a string representation.
 
-        OUTPUT:
-
-        String.
+        OUTPUT: string
 
         EXAMPLES::
 
@@ -162,19 +160,17 @@ class Property(property):
             'foo'
         """
         return self.name
-            
+
     def getter(self, prefs):
         """
-        Get the current value of the property
-        
+        Get the current value of the property.
+
         INPUT:
 
         - ``prefs`` -- the :class:`PreferencesABC` instance that the
-          property is bound to.
+          property is bound to
 
-        OUTPUT:
-
-        One of the allowed values or ``None`` if not set.
+        OUTPUT: one of the allowed values or ``None`` if not set
 
         EXAMPLES::
 
@@ -191,15 +187,15 @@ class Property(property):
             return getattr(prefs, self.underscore_name)
         except AttributeError:
             return None
-        
+
     def setter(self, prefs, value):
         """
-        Get the current value of the property
-        
+        Get the current value of the property.
+
         INPUT:
 
         - ``prefs`` -- the :class:`PreferencesABC` instance that the
-          property is bound to.
+          property is bound to
 
         - ``value`` -- anything. The new value of the
           property. Setting a property to ``None`` is equivalent to
@@ -207,7 +203,7 @@ class Property(property):
 
         OUTPUT:
 
-        This method does not return anything. A ``ValueError`` is
+        This method does not return anything. A :exc:`ValueError` is
         raised if the given ``value`` is not one of the allowed
         values.
 
@@ -236,12 +232,12 @@ class Property(property):
 
     def deleter(self, prefs):
         """
-        Delete the current value of the property
-        
+        Delete the current value of the property.
+
         INPUT:
 
         - ``prefs`` -- the :class:`PreferencesABC` instance that the
-          property is bound to.
+          property is bound to
 
         EXAMPLES::
 
@@ -263,10 +259,10 @@ class Property(property):
 
 
 class PreferencesABC(SageObject):
-    
+
     def __init__(self, *args, **kwds):
         """
-        Preferences for displaying graphics
+        Preferences for displaying graphics.
 
         These can be preferences expressed by the user or by the
         display backend. They are specified as keyword arguments.
@@ -277,9 +273,9 @@ class PreferencesABC(SageObject):
           instances. The property values will be inherited from left
           to right, that is, later parents override values from
           earlier parents.
-        
-        - ``**kwds`` -- keyword arguments. Will be used to initialize
-          properties, and override inherited values if necessary.
+
+        - ``**kwds`` -- keyword arguments; will be used to initialize
+          properties, and override inherited values if necessary
 
         EXAMPLES::
 
@@ -288,6 +284,7 @@ class PreferencesABC(SageObject):
             sage: p2 = DisplayPreferences(graphics='raster')
             sage: DisplayPreferences(p1, p2)
             Display preferences:
+            * align_latex is not specified
             * graphics = raster
             * supplemental_plot is not specified
             * text is not specified
@@ -297,6 +294,7 @@ class PreferencesABC(SageObject):
 
             sage: DisplayPreferences(p2, p1)
             Display preferences:
+            * align_latex is not specified
             * graphics = vector
             * supplemental_plot is not specified
             * text is not specified
@@ -305,6 +303,7 @@ class PreferencesABC(SageObject):
 
             sage: DisplayPreferences(p2, p1, graphics='disable')
             Display preferences:
+            * align_latex is not specified
             * graphics = disable
             * supplemental_plot is not specified
             * text is not specified
@@ -327,11 +326,11 @@ class PreferencesABC(SageObject):
 
         INPUT:
 
-        - ``name`` -- the name of the option.
+        - ``name`` -- the name of the option
 
-        - ``values`` -- the allowed values.
+        - ``values`` -- the allowed values
 
-        - ``doc`` -- docstring.
+        - ``doc`` -- docstring
 
         EXAMPLES::
 
@@ -347,41 +346,38 @@ class PreferencesABC(SageObject):
         """
         prop = Property(name, values, doc)
         setattr(cls, name, prop)
-    
+
     def available_options(self):
         """
-        Return the available options
+        Return the available options.
 
         OUTPUT:
 
-        Tuple of the preference items as instances of
-        :class:`Property`.
+        tuple of the preference items as instances of :class:`Property`
 
         EXAMPLES::
 
             sage: from sage.repl.rich_output.preferences import DisplayPreferences
             sage: DisplayPreferences().available_options()
-            (graphics, supplemental_plot, text)
+            (align_latex, graphics, supplemental_plot, text)
         """
         options = []
-        for key, value in self.__class__.__dict__.items():
+        for value in self.__class__.__dict__.values():
             if isinstance(value, Property):
                 options.append(value)
         return tuple(sorted(options, key=str))
-    
+
     def _repr_(self):
         r"""
-        Return a string representation
+        Return a string representation.
 
-        OUTPUT:
-
-        String.
+        OUTPUT: string
 
         EXAMPLES::
 
             sage: from sage.repl.rich_output.preferences import DisplayPreferences
             sage: DisplayPreferences()._repr_()
-            'Display preferences:\n* graphics is not specified\n* supplemental_plot is not specified\n* text is not specified'
+            'Display preferences:\n* align_latex is not specified\n* graphics is not specified\n* supplemental_plot is not specified\n* text is not specified'
         """
         s = ['Display preferences:']
         for opt in self.available_options():
@@ -407,6 +403,15 @@ DisplayPreferences._add_option(
 
 
 DisplayPreferences._add_option(
+    'align_latex',
+    ('center', 'left'),
+    """
+    Preferred mode of latex displays
+    """
+)
+
+
+DisplayPreferences._add_option(
     'graphics',
     ('disable', 'vector', 'raster'),
     """
@@ -424,6 +429,3 @@ DisplayPreferences._add_option(
     show graphically and large objects as textual overview.
     """
 )
-
-
-

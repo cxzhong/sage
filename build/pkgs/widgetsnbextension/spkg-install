@@ -1,7 +1,0 @@
-set -e
-
-cd src
-
-$PIP_INSTALL .
-
-jupyter nbextension enable --sys-prefix --py widgetsnbextension

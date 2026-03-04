@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 r"""
 Levi-Civita Connections
 
@@ -10,13 +9,14 @@ AUTHORS:
 
 - Eric Gourgoulhon, Michal Bejger (2013-2015) : initial version
 - Marco Mancini (2015) : parallelization of some computations
+- Marius Gerbershagen (2022) : use the first Bianchi identity in the
+  computation of the Riemann tensor
 
 REFERENCES:
 
 - [KN1963]_
 - [Lee1997]_
 - [ONe1983]_
-
 """
 #******************************************************************************
 #       Copyright (C) 2015 Eric Gourgoulhon <eric.gourgoulhon@obspm.fr>
@@ -29,9 +29,11 @@ REFERENCES:
 #                  http://www.gnu.org/licenses/
 #******************************************************************************
 
+from sage.manifolds.differentiable.affine_connection import AffineConnection
+from sage.manifolds.differentiable.vectorframe import CoordFrame
 from sage.parallel.decorate import parallel
 from sage.parallel.parallelism import Parallelism
-from sage.manifolds.differentiable.affine_connection import AffineConnection
+
 
 class LeviCivitaConnection(AffineConnection):
     r"""
@@ -42,7 +44,7 @@ class LeviCivitaConnection(AffineConnection):
     Let `C^\infty(M)` be the algebra of smooth functions
     `M\rightarrow \RR` (cf.
     :class:`~sage.manifolds.differentiable.scalarfield_algebra.DiffScalarFieldAlgebra`)
-    and let `\mathcal{X}(M)` be the `C^\infty(M)`-module of vector fields on
+    and let `\mathfrak{X}(M)` be the `C^\infty(M)`-module of vector fields on
     `M` (cf.
     :class:`~sage.manifolds.differentiable.vectorfield_module.VectorFieldModule`).
     The *Levi-Civita connection associated with* `g` is the unique operator
@@ -50,14 +52,14 @@ class LeviCivitaConnection(AffineConnection):
     .. MATH::
 
         \begin{array}{cccc}
-        \nabla: & \mathcal{X}(M)\times \mathcal{X}(M) & \longrightarrow &
-                 \mathcal{X}(M) \\
+        \nabla: & \mathfrak{X}(M)\times \mathfrak{X}(M) & \longrightarrow &
+                 \mathfrak{X}(M) \\
                 & (u,v) & \longmapsto & \nabla_u v
         \end{array}
 
     that
 
-    - is `\RR`-bilinear, i.e. is bilinear when considering `\mathcal{X}(M)` as
+    - is `\RR`-bilinear, i.e. is bilinear when considering `\mathfrak{X}(M)` as
       a vector space over `\RR`
     - is `C^\infty(M)`-linear w.r.t. the first argument:
       `\forall f\in C^\infty(M),\ \nabla_{fu} v = f\nabla_u v`
@@ -65,7 +67,7 @@ class LeviCivitaConnection(AffineConnection):
       `\forall f\in C^\infty(M),\ \nabla_u (f v) = \mathrm{d}f(u)\, v + f  \nabla_u v`
     - is torsion-free
     - is compatible with `g`:
-      `\forall (u,v,w)\in \mathcal{X}(M)^3,\ u(g(v,w)) = g(\nabla_u v, w) + g(v, \nabla_u w)`
+      `\forall (u,v,w)\in \mathfrak{X}(M)^3,\ u(g(v,w)) = g(\nabla_u v, w) + g(v, \nabla_u w)`
 
     The Levi-Civita connection `\nabla` gives birth to the *covariant derivative
     operator* acting on tensor fields, denoted by the same symbol:
@@ -86,13 +88,13 @@ class LeviCivitaConnection(AffineConnection):
 
     .. MATH::
 
-        \forall u \in\mathcal{X}(M), \   \nabla_u v = \nabla v(., u)
+        \forall u \in\mathfrak{X}(M), \   \nabla_u v = \nabla v(., u)
 
     More generally for any tensor field `t\in T^{(k,l)}(M)`, we have
 
     .. MATH::
 
-        \forall u \in\mathcal{X}(M), \   \nabla_u t = \nabla t(\ldots, u)
+        \forall u \in\mathfrak{X}(M), \   \nabla_u t = \nabla t(\ldots, u)
 
 
     .. NOTE::
@@ -114,7 +116,7 @@ class LeviCivitaConnection(AffineConnection):
     - ``name`` -- name given to the connection
     - ``latex_name`` -- (default: ``None``) LaTeX symbol to denote the
       connection
-    - ``init_coef`` -- (default: ``True``) determines whether the Christoffel
+    - ``init_coef`` -- boolean (default: ``True``); determines whether the Christoffel
       symbols are initialized (in the top charts on the domain, i.e.
       disregarding the subcharts)
 
@@ -129,7 +131,7 @@ class LeviCivitaConnection(AffineConnection):
         sage: g = M.metric('g')
         sage: g[1,1], g[2,2], g[3,3] = 1, r^2 , (r*sin(th))^2
         sage: g.display()
-        g = dr*dr + r^2 dth*dth + r^2*sin(th)^2 dph*dph
+        g = dr⊗dr + r^2 dth⊗dth + r^2*sin(th)^2 dph⊗dph
         sage: nab = g.connection(name='nabla', latex_name=r'\nabla') ; nab
         Levi-Civita connection nabla associated with the Riemannian metric g on
          the 3-dimensional differentiable manifold R^3
@@ -156,9 +158,9 @@ class LeviCivitaConnection(AffineConnection):
     symbols, since the default frame is a coordinate frame::
 
         sage: M.default_frame()
-        Coordinate frame (R^3, (d/dr,d/dth,d/dph))
+        Coordinate frame (R^3, (∂/∂r,∂/∂th,∂/∂ph))
         sage: nab.coef()
-        3-indices components w.r.t. Coordinate frame (R^3, (d/dr,d/dth,d/dph)),
+        3-indices components w.r.t. Coordinate frame (R^3, (∂/∂r,∂/∂th,∂/∂ph)),
          with symmetry on the index positions (1, 2)
 
     We note that the Christoffel symbols are symmetric with respect to their
@@ -197,7 +199,6 @@ class LeviCivitaConnection(AffineConnection):
         Gam^th_ph,ph = -cos(th)*sin(th)
         Gam^ph_r,ph = 1/r
         Gam^ph_th,ph = cos(th)/sin(th)
-
     """
     def __init__(self, metric, name, latex_name=None, init_coef=True):
         r"""
@@ -218,7 +219,6 @@ class LeviCivitaConnection(AffineConnection):
             Levi-Civita connection nabla associated with the Riemannian metric
              g on the 2-dimensional differentiable manifold M
             sage: TestSuite(nab).run()
-
         """
         AffineConnection.__init__(self, metric.domain(), name, latex_name)
         self._metric = metric
@@ -243,7 +243,6 @@ class LeviCivitaConnection(AffineConnection):
             'Levi-Civita connection nabla_g associated with the Riemannian metric g on the 5-dimensional differentiable manifold M'
             sage: repr(nab)  # indirect doctest
             'Levi-Civita connection nabla_g associated with the Riemannian metric g on the 5-dimensional differentiable manifold M'
-
         """
         description = "Levi-Civita connection"
         if self._name is not None:
@@ -261,7 +260,6 @@ class LeviCivitaConnection(AffineConnection):
             sage: g = M.metric('g')
             sage: nab = g.connection()
             sage: nab._init_derived()
-
         """
         AffineConnection._init_derived(self)
 
@@ -275,7 +273,6 @@ class LeviCivitaConnection(AffineConnection):
             sage: g = M.metric('g')
             sage: nab = g.connection()
             sage: nab._del_derived()
-
         """
         AffineConnection._del_derived(self)
 
@@ -320,7 +317,6 @@ class LeviCivitaConnection(AffineConnection):
 
             sage: nabU(g.restrict(U)).display()
             nabla_g(g) = 0
-
         """
         if subdomain == self._domain:
             return self
@@ -362,16 +358,15 @@ class LeviCivitaConnection(AffineConnection):
             sage: g[0,0], g[1,1] = 1, 1
             sage: nab = g.connection()
             sage: nab._new_coef(X.frame())
-            3-indices components w.r.t. Coordinate frame (M, (d/dx,d/dy)), with
+            3-indices components w.r.t. Coordinate frame (M, (∂/∂x,∂/∂y)), with
              symmetry on the index positions (1, 2)
             sage: e = M.vector_frame('e')
             sage: nab._new_coef(e)
             3-indices components w.r.t. Vector frame (M, (e_0,e_1))
-
         """
-        from sage.tensor.modules.comp import Components, CompWithSym
         from sage.manifolds.differentiable.scalarfield import DiffScalarField
         from sage.manifolds.differentiable.vectorframe import CoordFrame
+        from sage.tensor.modules.comp import Components, CompWithSym
         if isinstance(frame, CoordFrame):
             # the Christoffel symbols are symmetric:
             return CompWithSym(frame._domain.scalar_field_algebra(), frame, 3,
@@ -383,7 +378,6 @@ class LeviCivitaConnection(AffineConnection):
             return Components(frame._domain.scalar_field_algebra(), frame, 3,
                               start_index=self._domain._sindex,
                               output_formatter=DiffScalarField.coord_function)
-
 
     def coef(self, frame=None):
         r"""
@@ -426,16 +420,18 @@ class LeviCivitaConnection(AffineConnection):
             sage: g = M.metric('g')
             sage: g[1,1], g[2,2], g[3,3] = 1, r^2 , (r*sin(th))^2
             sage: g.display()
-            g = dr*dr + r^2 dth*dth + r^2*sin(th)^2 dph*dph
+            g = dr⊗dr + r^2 dth⊗dth + r^2*sin(th)^2 dph⊗dph
             sage: nab = g.connection()
             sage: gam = nab.coef() ; gam
-            3-indices components w.r.t. Coordinate frame (R^3, (d/dr,d/dth,d/dph)),
+            3-indices components w.r.t. Coordinate frame (R^3, (∂/∂r,∂/∂th,∂/∂ph)),
              with symmetry on the index positions (1, 2)
             sage: gam[:]
             [[[0, 0, 0], [0, -r, 0], [0, 0, -r*sin(th)^2]],
             [[0, 1/r, 0], [1/r, 0, 0], [0, 0, -cos(th)*sin(th)]],
             [[0, 0, 1/r], [0, 0, cos(th)/sin(th)], [1/r, cos(th)/sin(th), 0]]]
-            sage: # The only non-zero Christoffel symbols:
+
+        The only nonzero Christoffel symbols::
+
             sage: gam[1,2,2], gam[1,3,3]
             (-r, -r*sin(th)^2)
             sage: gam[2,1,2], gam[2,3,3]
@@ -455,14 +451,15 @@ class LeviCivitaConnection(AffineConnection):
             [[[0, 0, 0], [0, -1/r, 0], [0, 0, -1/r]],
             [[0, 1/r, 0], [0, 0, 0], [0, 0, -cos(th)/(r*sin(th))]],
             [[0, 0, 1/r], [0, 0, cos(th)/(r*sin(th))], [0, 0, 0]]]
-            sage: # The only non-zero connection coefficients:
+
+        The only nonzero connection coefficients::
+
             sage: gam_e[1,2,2], gam_e[2,1,2]
             (-1/r, 1/r)
             sage: gam_e[1,3,3], gam_e[3,1,3]
             (-1/r, 1/r)
             sage: gam_e[2,3,3], gam_e[3,2,3]
             (-cos(th)/(r*sin(th)), cos(th)/(r*sin(th)))
-
         """
         from sage.manifolds.differentiable.vectorframe import CoordFrame
         if frame is None:
@@ -510,12 +507,12 @@ class LeviCivitaConnection(AffineConnection):
 
                         # definition of the parallel function
                         @parallel(p_iter='multiprocessing',ncpus=nproc)
-                        def make_Connect(local_list_ijk,chart,ginv,gg,manif):
+                        def make_Connect(local_list_ijk, chart, ginv, gg, manif):
                             partial = []
                             for i,j,k in local_list_ijk:
                                 rsum = 0
                                 for s in manif.irange():
-                                    if ginv[i,s, chart]!=0:
+                                    if ginv[i,s, chart] != 0:
                                         rsum += ginv[i,s, chart] * (
                                                         gg[s,k, chart].diff(j)
                                                       + gg[j,s, chart].diff(k)
@@ -532,7 +529,7 @@ class LeviCivitaConnection(AffineConnection):
                         # sequential
                         for ind in gam.non_redundant_index_generator():
                             i, j, k = ind
-                            # The computation is performed at the CoordFunction level:
+                            # The computation is performed at the ChartFunction level:
                             rsum = 0
                             for s in manif.irange():
                                 rsum += ginv[i,s, chart] * (
@@ -578,7 +575,6 @@ class LeviCivitaConnection(AffineConnection):
 
             sage: t.display()
             0
-
         """
         if self._torsion is None:
             resu = self._domain.tensor_field(1, 2, antisym=(1,2))
@@ -594,7 +590,8 @@ class LeviCivitaConnection(AffineConnection):
 
         This method redefines
         :meth:`sage.manifolds.differentiable.affine_connection.AffineConnection.riemann`
-        to set some name and the latex_name to the output.
+        to take into account the symmetry of the Riemann tensor for a
+        Levi-Civita connection.
 
         The Riemann curvature tensor is the tensor field `R` of type (1,3)
         defined by
@@ -625,8 +622,8 @@ class LeviCivitaConnection(AffineConnection):
         metric of the hyperbolic plane (Poincaré disk model)::
 
             sage: M = Manifold(2, 'M', start_index=1)
-            sage: X.<x,y> = M.chart('x:(-1,1) y:(-1,1)')  # Cartesian coord. on the Poincaré disk
-            sage: X.add_restrictions(x^2+y^2<1)
+            sage: X.<x,y> = M.chart('x:(-1,1) y:(-1,1)', coord_restrictions=lambda x,y: x^2+y^2<1)
+            ....:   # Cartesian coord. on the Poincaré disk
             sage: g = M.metric('g')
             sage: g[1,1], g[2,2] = 4/(1-x^2-y^2)^2, 4/(1-x^2-y^2)^2
             sage: nab = g.connection()
@@ -639,23 +636,111 @@ class LeviCivitaConnection(AffineConnection):
             Riem(g)^y_xxy = 4/(x^4 + y^4 + 2*(x^2 - 1)*y^2 - 2*x^2 + 1)
             Riem(g)^y_xyx = -4/(x^4 + y^4 + 2*(x^2 - 1)*y^2 - 2*x^2 + 1)
 
+        The same computation parallelized on 2 cores::
+
+            sage: Parallelism().set(nproc=2)
+            sage: riem_backup = riem
+            sage: g = M.metric('g')
+            sage: g[1,1], g[2,2] = 4/(1-x^2-y^2)^2, 4/(1-x^2-y^2)^2
+            sage: nab = g.connection()
+            sage: riem = nab.riemann(); riem
+            Tensor field Riem(g) of type (1,3) on the 2-dimensional
+             differentiable manifold M
+            sage: riem == riem_backup
+            True
+            sage: Parallelism().set(nproc=1)  # switch off parallelization
         """
         if self._riemann is None:
-            AffineConnection.riemann(self)
             if name is None:
-                self._riemann._name = "Riem(" + self._metric._name + ")"
-            else:
-                self._riemann._name = name
+                name = "Riem(" + self._metric._name + ")"
             if latex_name is None:
-                self._riemann._latex_name = r"\mathrm{Riem}\left(" + \
-                                           self._metric._latex_name + r"\right)"
-            else:
-                self._riemann._latex_name = latex_name
-            for rst in self._riemann._restrictions.values():
-                rst._name = self._riemann._name
-                rst._latex_name = self._riemann._latex_name
-        return self._riemann
+                latex_name = (r"\mathrm{Riem}\left(" + self._metric._latex_name
+                              + r"\right)")
+            manif = self._domain
+            resu = manif.tensor_field(1, 3, antisym=(2,3), name=name,
+                                      latex_name=latex_name)
+            for frame, gam in self._coefficients.items():
+                # The computation is performed only on the top frames:
+                for oframe in self._coefficients:
+                    if frame in oframe._subframes and frame is not oframe:
+                        break
+                else:
+                    # frame in not a subframe and the computation is performed:
+                    sc = frame.structure_coeff()
+                    gam_gam = gam.contract(1, gam, 0)
+                    gam_sc = gam.contract(2, sc, 0)
+                    res = resu.add_comp(frame)
+                    use_Bianchi = isinstance(frame,CoordFrame)
+                    if Parallelism().get('tensor') != 1:
+                        # parallel computation
+                        nproc = Parallelism().get('tensor')
+                        lol = lambda lst, sz: [lst[i:i+sz] for i in range(0,
+                                                                 len(lst), sz)]
+                        ind_list = []
+                        for i in manif.irange():
+                            for j in manif.irange():
+                                for k in manif.irange(start=j):
+                                    for l in manif.irange(start=k+1):
+                                        ind_list.append((i,j,k,l))
+                        ind_step = max(1, int(len(ind_list)/nproc/2))
+                        local_list = lol(ind_list, ind_step)
+                        # definition of the list of input parameters
+                        listParalInput = []
+                        for ind_part in local_list:
+                            listParalInput.append((frame, gam, gam_gam, gam_sc,
+                                                    use_Bianchi, ind_part))
 
+                        # definition of the parallel function
+                        @parallel(p_iter='multiprocessing', ncpus=nproc)
+                        def make_Riem(frame, gam, gam_gam, gam_sc, use_Bianchi,
+                                      local_list_ijkl):
+                            def compute_component(i,j,k,l, frame, gam, gam_gam, gam_sc):
+                                return frame[k](gam[[i,j,l]]) - frame[l](gam[[i,j,k]]) + \
+                                       gam_gam[[i,k,j,l]] - gam_gam[[i,l,j,k]] - gam_sc[[i,j,k,l]]
+                            partial = []
+                            for i,j,k,l in local_list_ijkl:
+                                R_ijkl = compute_component(i,j,k,l, frame, gam, gam_gam, gam_sc)
+                                partial.append([i,j,k,l, R_ijkl])
+                                if j == k:
+                                    partial.append([i,l,k,l, compute_component(i,l,k,l, frame,
+                                                                               gam, gam_gam, gam_sc)])
+                                else:
+                                    R_ikjl = compute_component(i,k,j,l, frame, gam, gam_gam, gam_sc)
+                                    partial.append([i,k,j,l, R_ikjl])
+                                    if use_Bianchi:
+                                        partial.append([i,l,j,k, R_ikjl - R_ijkl])
+                                    else:
+                                        partial.append([i,l,j,k, compute_component(i,l,j,k, frame,
+                                                                                   gam, gam_gam, gam_sc)])
+                            return partial
+                        # Computation and assignation of values
+                        for ii,val in make_Riem(listParalInput):
+                            for jj in val:
+                                res[jj[0], jj[1], jj[2], jj[3]] = jj[4]
+
+                    else:
+                        # sequential
+                        for i in manif.irange():
+                            for j in manif.irange():
+                                for k in manif.irange():
+                                    # antisymmetry of the Riemann tensor taken
+                                    # into account by l>k:
+                                    for l in manif.irange(start=k+1):
+                                        if not use_Bianchi or (j <= k or j <= l):
+                                            res[i,j,k,l] = frame[k](gam[[i,j,l]]) - \
+                                                           frame[l](gam[[i,j,k]]) + \
+                                                           gam_gam[[i,k,j,l]] - \
+                                                           gam_gam[[i,l,j,k]] - \
+                                                           gam_sc[[i,j,k,l]]
+                            if use_Bianchi:
+                                # first Bianchi identity
+                                for j in manif.irange():
+                                    for k in manif.irange(end=j-1):
+                                        for l in manif.irange(start=k+1,end=j-1):
+                                            # j > k and j > l:
+                                            res[i,j,k,l] = res[i,l,k,j] - res[i,k,l,j]
+            self._riemann = resu
+        return self._riemann
 
     def ricci(self, name=None, latex_name=None):
         r"""
@@ -699,7 +784,7 @@ class LeviCivitaConnection(AffineConnection):
             sage: g = M.metric('g')
             sage: g[1,1], g[2,2] = 1, sin(th)^2
             sage: g.display() # standard metric on S^2:
-            g = dth*dth + sin(th)^2 dph*dph
+            g = dth⊗dth + sin(th)^2 dph⊗dph
             sage: nab = g.connection() ; nab
             Levi-Civita connection nabla_g associated with the Riemannian
              metric g on the 2-dimensional differentiable manifold S^2
@@ -707,7 +792,7 @@ class LeviCivitaConnection(AffineConnection):
             Field of symmetric bilinear forms Ric(g) on the 2-dimensional
              differentiable manifold S^2
             sage: ric.display()
-            Ric(g) = dth*dth + sin(th)^2 dph*dph
+            Ric(g) = dth⊗dth + sin(th)^2 dph⊗dph
 
         Checking that the Ricci tensor of the Levi-Civita connection associated
         to Schwarzschild metric is identically zero (as a solution of the
@@ -720,8 +805,8 @@ class LeviCivitaConnection(AffineConnection):
             sage: g[0,0], g[1,1] = -(1-2*m/r), 1/(1-2*m/r)
             sage: g[2,2], g[3,3] = r^2, (r*sin(th))^2
             sage: g.display()
-            g = (2*m/r - 1) dt*dt - 1/(2*m/r - 1) dr*dr + r^2 dth*dth
-             + r^2*sin(th)^2 dph*dph
+            g = (2*m/r - 1) dt⊗dt - 1/(2*m/r - 1) dr⊗dr + r^2 dth⊗dth
+             + r^2*sin(th)^2 dph⊗dph
             sage: nab = g.connection() ; nab
             Levi-Civita connection nabla_g associated with the Lorentzian
              metric g on the 4-dimensional differentiable manifold M
@@ -730,12 +815,17 @@ class LeviCivitaConnection(AffineConnection):
              differentiable manifold M
             sage: ric == 0
             True
-
         """
         if self._ricci is None:
+            if name is None:
+                name = "Ric(" + self._metric._name + ")"
+            if latex_name is None:
+                latex_name = r"\mathrm{Ric}\left(" + \
+                    self._metric._latex_name + r"\right)"
             manif = self._domain
             riem = self.riemann()
-            resu = self._domain.tensor_field(0,2, sym=(0,1))
+            resu = manif.tensor_field(0, 2, sym=(0,1), name=name,
+                                      latex_name=latex_name)
             for frame in self._coefficients:
                 cric = resu.add_comp(frame)
                 criem = riem.comp(frame)
@@ -746,17 +836,5 @@ class LeviCivitaConnection(AffineConnection):
                         for k in manif.irange():
                             rsum += criem[[k,i,k,j]]
                         cric[i,j] = rsum
-            if name is None:
-                resu._name = "Ric(" + self._metric._name + ")"
-            else:
-                resu._name = name
-            if latex_name is None:
-                resu._latex_name = r"\mathrm{Ric}\left(" + \
-                                         self._metric._latex_name + r"\right)"
-            else:
-                resu._latex_name = latex_name
-            for rst in resu._restrictions.values():
-                rst._name = resu._name
-                rst._latex_name = resu._latex_name
             self._ricci = resu
         return self._ricci

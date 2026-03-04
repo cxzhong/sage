@@ -1,7 +1,7 @@
 r"""
 Datatypes for finite words
 """
-#*****************************************************************************
+# ****************************************************************************
 #       Copyright (C) 2009 Franco Saliola <saliola@gmail.com>
 #                          Vincent Delecroix <20100.delecroix@gmail.com>
 #
@@ -9,22 +9,21 @@ Datatypes for finite words
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
-from __future__ import print_function, absolute_import
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
 from cpython.object cimport Py_EQ, Py_NE
 from itertools import islice
 
 
-cdef class WordDatatype(object):
+cdef class WordDatatype():
     r"""
     The generic WordDatatype class.
 
-    Any word datatype must contain two attributes (at least)::
+    Any word datatype must contain two attributes (at least):
 
-      - _parent
-      - _hash
+    - ``_parent``
+    - ``_hash``
 
     They are automatically defined here and it's not necessary (and forbidden)
     to define them anywhere else.
@@ -34,23 +33,22 @@ cdef class WordDatatype(object):
         sage: w = Word([0,1,1,0,0,1])
         sage: isinstance(w, sage.combinat.words.word_datatypes.WordDatatype)
         True
-
     """
     def __reduce__(self):
         r"""
-        Default pickle support
+        Default pickle support.
 
         TESTS::
 
             sage: w = Word([0,1,1,0,0,1])
             sage: w.__reduce__()
-            (Finite words over Set of Python objects of type 'object', ([0, 1, 1, 0, 0, 1],))
+            (Finite words over Set of Python objects of class 'object', ([0, 1, 1, 0, 0, 1],))
         """
         return self._parent, (list(self),)
 
     def __hash__(self):
         r"""
-        Returns the hash for this word.
+        Return the hash for this word.
 
         TESTS::
 
@@ -65,7 +63,7 @@ cdef class WordDatatype(object):
         cdef int res
         if self._hash is None:
             res = 5381
-            for s in islice(self,1024):
+            for s in islice(self, 1024):
                 res = ((res << 5) + res) + hash(s)
             self._hash = res
         return self._hash
@@ -87,22 +85,23 @@ cdef class WordDatatype_list(WordDatatype):
 
         INPUT:
 
-        - ``parent`` - an instance of :class:`Words_all`
-        - ``data`` - an iterable
+        - ``parent`` -- an instance of :class:`Words_all`
+        - ``data`` -- an iterable
 
         EXAMPLES::
 
             sage: w = Word([0,1,1,0])
             sage: isinstance(w, sage.combinat.words.word_datatypes.WordDatatype_list)
             True
-
         """
         self._parent = parent
-        if isinstance(data,list):
+        if isinstance(data, list):
             self._data = data
         else:
             self._data = list(data)
         self._hash = None
+
+    __hash__ = WordDatatype.__hash__
 
     def __contains__(self, a):
         r"""
@@ -110,11 +109,9 @@ cdef class WordDatatype_list(WordDatatype):
 
         INPUT:
 
-        - ``a`` - anything
+        - ``a`` -- anything
 
-        OUTPUT:
-
-        - boolean
+        OUTPUT: boolean
 
         EXAMPLES::
 
@@ -123,36 +120,32 @@ cdef class WordDatatype_list(WordDatatype):
             True
             sage: 3 in w
             False
-
         """
         return a in self._data
 
     def __iter__(self):
         r"""
-        Return an iterator that iterates through the letters of self.
+        Return an iterator that iterates through the letters of ``self``.
 
         EXAMPLES::
 
             sage: w = Word([0,1,1,0])
             sage: list(iter(w))
             [0, 1, 1, 0]
-
         """
         return iter(self._data)
 
     def __richcmp__(self, other, int op):
         r"""
-        Equality test for self and other if other is an instance of
-        WordDatype_list.
+        Equality test for ``self`` and ``other`` if other is an instance of
+        ``WordDatype_list``.
 
         INPUT:
 
-        - ``other`` - a word
-        - ``op`` - integer: 0, 1, 2, 3, 4 or 5
+        - ``other`` -- a word
+        - ``op`` -- integer; 0, 1, 2, 3, 4 or 5
 
-        OUTPUT:
-
-            boolean or NotImplemented
+        OUTPUT: boolean or NotImplemented
 
         EXAMPLES::
 
@@ -174,24 +167,15 @@ cdef class WordDatatype_list(WordDatatype):
 
         http://docs.cython.org/docs/special_methods.html
         """
-        if op == Py_EQ:
-            if isinstance(other, WordDatatype_list):
+        if isinstance(other, WordDatatype_list):
+            if op == Py_EQ:
                 return self._data == other._data
-            else:
-                # Otherwise, force FiniteWord_class.__eq__ to do it
-                # (if we don't force it, then __cmp__ is called before)
-                from sage.combinat.words.word import FiniteWord_class
-                return FiniteWord_class.__eq__(self, other)
-        elif op == Py_NE:
-            if isinstance(other, WordDatatype_list):
+            elif op == Py_NE:
                 return self._data != other._data
-            else:
-                # Otherwise, force FiniteWord_class.__eq__ to do it
-                # (if we don't force it, then __cmp__ is called before)
-                from sage.combinat.words.word import FiniteWord_class
-                return not FiniteWord_class.__eq__(self,other)
-        else:
-            return NotImplemented
+
+        # Otherwise, force FiniteWord_class.__richcmp__ to do it
+        from sage.combinat.words.word import FiniteWord_class
+        return FiniteWord_class.__richcmp__(self, other, op)
 
     def __len__(self):
         r"""
@@ -207,7 +191,6 @@ cdef class WordDatatype_list(WordDatatype):
             sage: w = Word([0,1,1,0])
             sage: len(w)
             4
-
         """
         return len(self._data)
 
@@ -220,28 +203,27 @@ cdef class WordDatatype_list(WordDatatype):
             sage: w = Word([0,1,1,0])
             sage: w.length()
             4
-
         """
         return len(self._data)
 
     def __getitem__(self, key):
         r"""
-        Implements :meth:`__getitem__` for words stored as lists.
+        Implement :meth:`__getitem__` for words stored as lists.
 
         INPUT:
 
-        - ``key`` - integer
+        - ``key`` -- integer
 
         EXAMPLES::
 
-            sage: w = Word(range(100))
+            sage: L = list(range(100))
+            sage: w = Word(L)
             sage: w[4]
             4
             sage: w[-1]
             99
             sage: w[3:10:2]
             word: 3579
-
         """
         if isinstance(key, slice):
             return self._parent(self._data[key])
@@ -250,15 +232,13 @@ cdef class WordDatatype_list(WordDatatype):
 
     def __mul__(self, other):
         r"""
-        Return the concatenation of self and other.
+        Return the concatenation of ``self`` and ``other``.
 
         INPUT:
 
-        - ``other`` - word represented by a list
+        - ``other`` -- word represented by a list
 
-        OUTPUT:
-
-        word
+        OUTPUT: word
 
         EXAMPLES::
 
@@ -276,33 +256,34 @@ cdef class WordDatatype_list(WordDatatype):
         if isinstance(other, WordDatatype_list):
             return self._parent(self._data + other._data)
         else:
-            return super(WordDatatype_list, self).__mul__(other)
+            return super().__mul__(other)
 
     __add__ = __mul__
 
-    def count(self, a):
+    def number_of_letter_occurrences(self, a):
         r"""
-        Returns the number of occurrences of the letter ``a`` in the word
+        Return the number of occurrences of the letter ``a`` in the word
         ``self``.
 
         INPUT:
 
-        -  ``a`` - a letter
+        - ``a`` -- a letter
 
-        OUTPUT:
-
-        - integer
+        OUTPUT: integer
 
         EXAMPLES::
 
             sage: w = Word([0,1,1,0,1])
-            sage: w.count(0)
+            sage: w.number_of_letter_occurrences(0)
             2
-            sage: w.count(1)
+            sage: w.number_of_letter_occurrences(1)
             3
-            sage: w.count(2)
+            sage: w.number_of_letter_occurrences(2)
             0
 
+        .. SEEALSO::
+
+            :meth:`sage.combinat.words.finite_word.FiniteWord_class.number_of_factor_occurrences`
         """
         return self._data.count(a)
 
@@ -319,22 +300,23 @@ cdef class WordDatatype_str(WordDatatype):
 
         INPUT:
 
-        - ``parent`` - instance of :class:`Words_all`
-        - ``data`` - string
+        - ``parent`` -- instance of :class:`Words_all`
+        - ``data`` -- string
 
         EXAMPLES::
 
             sage: w = Word("abba")
             sage: isinstance(w, sage.combinat.words.word_datatypes.WordDatatype_str)
             True
-
         """
         self._parent = parent
         if isinstance(data, str):
             self._data = data
         else:
-            self._data = "".join(map(str,data))
+            self._data = "".join(str(u) for u in data)
         self._hash = None
+
+    __hash__ = WordDatatype.__hash__
 
     def __iter__(self):
         r"""
@@ -345,23 +327,20 @@ cdef class WordDatatype_str(WordDatatype):
             sage: w = Word('abba')
             sage: list(iter(w))
             ['a', 'b', 'b', 'a']
-
         """
         return iter(self._data)
 
     def __richcmp__(self, other, int op):
         r"""
-        Equality test for self and other if other is an instance of
-        WordDatype_str.
+        Equality test for ``self`` and ``other`` if other is an instance of
+        ``WordDatype_str``.
 
         INPUT:
 
-        - ``other`` - a word
-        - ``op`` - integer: 0, 1, 2, 3, 4 or 5
+        - ``other`` -- a word
+        - ``op`` -- integer; 0, 1, 2, 3, 4 or 5
 
-        OUTPUT:
-
-            boolean or NotImplemented
+        OUTPUT: boolean or NotImplemented
 
         EXAMPLES::
 
@@ -385,24 +364,15 @@ cdef class WordDatatype_str(WordDatatype):
 
         http://docs.cython.org/docs/special_methods.html
         """
-        if op == Py_EQ:
-            if isinstance(other, WordDatatype_str):
+        if isinstance(other, WordDatatype_str):
+            if op == Py_EQ:
                 return self._data == other._data
-            else:
-                # Otherwise, force FiniteWord_class.__eq__ to do it
-                # (if we don't force it, then __cmp__ is called before)
-                from sage.combinat.words.word import FiniteWord_class
-                return FiniteWord_class.__eq__(self,other)
-        elif op == Py_NE:
-            if isinstance(other, WordDatatype_str):
+            elif op == Py_NE:
                 return self._data != other._data
-            else:
-                # Otherwise, force FiniteWord_class.__eq__ to do it
-                # (if we don't force it, then __cmp__ is called before)
-                from sage.combinat.words.word import FiniteWord_class
-                return not FiniteWord_class.__eq__(self,other)
-        else:
-            return NotImplemented
+
+        # Otherwise, force FiniteWord_class.__richcmp__ to do it
+        from sage.combinat.words.word import FiniteWord_class
+        return FiniteWord_class.__richcmp__(self, other, op)
 
     def __contains__(self, a):
         r"""
@@ -410,7 +380,7 @@ cdef class WordDatatype_str(WordDatatype):
 
         INPUT:
 
-        - ``a`` - anything
+        - ``a`` -- anything
 
         EXAMPLES::
 
@@ -419,10 +389,9 @@ cdef class WordDatatype_str(WordDatatype):
             True
             sage: 'c' in w
             False
-
         """
-        # we need to override the non standard comportement of
-        # the comportment of the __contains__ of python str
+        # we need to override the non standard behaviour of
+        # the __contains__ of python str
         if not isinstance(a, str):
             return False
         if len(a) != 1:
@@ -440,11 +409,10 @@ cdef class WordDatatype_str(WordDatatype):
 
         INPUT:
 
-        - ``w`` - a word, or something that behaves like one (list, tuple, str, ...)
+        - ``w`` -- a word, or something that behaves like one (``list``,
+          ``tuple``, ``str``, ...)
 
-        OUTPUT:
-
-        - boolean
+        OUTPUT: boolean
 
         EXAMPLES::
 
@@ -453,7 +421,6 @@ cdef class WordDatatype_str(WordDatatype):
             True
             sage: w._has_factor_naive('bab')
             False
-
         """
         if isinstance(w, WordDatatype_str):
             return w._data in self._data
@@ -463,22 +430,20 @@ cdef class WordDatatype_str(WordDatatype):
 
     cpdef find(self, sub, start=0, end=None):
         r"""
-        Returns the index of the first occurrence of sub in self,
+        Return the index of the first occurrence of sub in self,
         such that sub is contained within self[start:end].
         Returns -1 on failure.
 
         INPUT:
 
-        -  ``sub`` - string or word to search for.
-        -  ``start`` - non negative integer (default: 0) specifying
-           the position from which to start the search.
-        -  ``end`` - non negative integer (default: None) specifying
-           the position at which the search must stop. If None, then
-           the search is performed up to the end of the string.
+        - ``sub`` -- string or word to search for
+        - ``start`` -- nonnegative integer (default: 0) specifying
+          the position from which to start the search.
+        - ``end`` -- nonnegative integer (default: ``None``); specifying
+          the position at which the search must stop. If ``None``, then
+          the search is performed up to the end of the string.
 
-        OUTPUT:
-
-           non negative integer or -1
+        OUTPUT: nonnegative integer or `-1`
 
         EXAMPLES::
 
@@ -497,26 +462,24 @@ cdef class WordDatatype_str(WordDatatype):
         elif isinstance(sub, str):
             return self._data.find(sub, start, end)
         else:
-            return super(WordDatatype_str, self).find(sub, start, end)
+            return super().find(sub, start, end)
 
     def rfind(self, sub, start=0, end=None):
         r"""
-        Returns the index of the last occurrence of sub in self,
+        Return the index of the last occurrence of sub in self,
         such that sub is contained within self[start:end].
         Returns -1 on failure.
 
         INPUT:
 
-        -  ``sub`` - string or word to search for.
-        -  ``start`` - non negative integer (default: 0) specifying
-           the position at which the search must stop.
-        -  ``end`` - non negative integer (default: None) specifying
-           the position from which to start the search. If None, then
-           the search is performed up to the end of the string.
+        - ``sub`` -- string or word to search for
+        - ``start`` -- nonnegative integer (default: 0) specifying
+          the position at which the search must stop.
+        - ``end`` -- nonnegative integer (default: ``None``); specifying
+          the position from which to start the search. If ``None``, then
+          the search is performed up to the end of the string.
 
-        OUTPUT:
-
-            non negative integer or -1
+        OUTPUT: nonnegative integer or `-1`
 
         EXAMPLES::
 
@@ -535,7 +498,7 @@ cdef class WordDatatype_str(WordDatatype):
         elif isinstance(sub, str):
             return self._data.rfind(sub, start, end)
         else:
-            return super(WordDatatype_str, self).rfind(sub, start, end)
+            return super().rfind(sub, start, end)
 
     def __len__(self):
         r"""
@@ -551,7 +514,6 @@ cdef class WordDatatype_str(WordDatatype):
             sage: w = Word("abbabaabababa")
             sage: len(w)
             13
-
         """
         return len(self._data)
 
@@ -564,17 +526,16 @@ cdef class WordDatatype_str(WordDatatype):
             sage: w = Word("abbabaabababa")
             sage: w.length()
             13
-
         """
         return len(self._data)
 
     def __getitem__(self, key):
         r"""
-        Implements the :meth:`__getitem__`.
+        Implement the :meth:`__getitem__`.
 
         TESTS::
 
-            sage: alphabet = map(chr, range(97,123))
+            sage: alphabet = [chr(i) for i in range(97, 123)]
             sage: w = Word(alphabet)
             sage: w[4]
             'e'
@@ -584,7 +545,6 @@ cdef class WordDatatype_str(WordDatatype):
             word: dfhj
             sage: all(chr(i+97) == w[i] for i in range(w.length()))
             True
-
         """
         if isinstance(key, slice):
             return self._parent(self._data[key])
@@ -592,15 +552,13 @@ cdef class WordDatatype_str(WordDatatype):
 
     def __mul__(self, other):
         r"""
-        Return the concatenation of self and other.
+        Return the concatenation of ``self`` and ``other``.
 
         INPUT:
 
-        - ``other`` - word represented by an str
+        - ``other`` -- word represented by a string
 
-        OUTPUT:
-
-        word
+        OUTPUT: word
 
         EXAMPLES::
 
@@ -618,38 +576,47 @@ cdef class WordDatatype_str(WordDatatype):
         if isinstance(other, WordDatatype_str):
             return self._parent(self._data + other._data)
         else:
-            return super(WordDatatype_str, self).__mul__(other)
+            return super().__mul__(other)
 
     __add__ = __mul__
 
-    def count(self, letter):
+    def number_of_letter_occurrences(self, letter):
         r"""
         Count the number of occurrences of ``letter``.
 
         INPUT:
 
-        - ``letter`` - a letter
+        - ``letter`` -- a letter
 
-        OUTPUT:
-
-        - integer
+        OUTPUT: integer
 
         EXAMPLES::
 
             sage: w = Word("abbabaabababa")
-            sage: w.count('a')
+            sage: w.number_of_letter_occurrences('a')
             7
-            sage: w.count('b')
+            sage: w.number_of_letter_occurrences('b')
             6
-            sage: w.count('c')
+            sage: w.number_of_letter_occurrences('c')
             0
 
+        ::
+
+            sage: w.number_of_letter_occurrences('abb')
+            0
+
+        .. SEEALSO::
+
+            :meth:`sage.combinat.words.finite_word.FiniteWord_class.number_of_factor_occurrences`
         """
-        return self._data.count(letter)
+        if len(letter) == 1:
+            return self._data.count(letter)
+        else:
+            return 0
 
     def split(self, sep=None, maxsplit=None):
         r"""
-        Returns a list of words, using sep as a delimiter string.
+        Return a list of words, using sep as a delimiter string.
         If maxsplit is given, at most maxsplit splits are done.
 
         See also the partition method.
@@ -661,13 +628,11 @@ cdef class WordDatatype_str(WordDatatype):
 
         INPUT:
 
-        - ``sep`` - string or word (optional, default: None)
+        - ``sep`` -- string or word (default: ``None``)
 
-        - ``maxsplit`` - positive integer (optional, default: None)
+        - ``maxsplit`` -- positive integer (default: ``None``)
 
-        OUTPUT:
-
-        - a list of words
+        OUTPUT: list of words
 
         EXAMPLES:
 
@@ -697,25 +662,24 @@ cdef class WordDatatype_str(WordDatatype):
             sage: w.split("32")
             [word: , word: 30301030, word: , word: 12, word: 30, word: , word: 1]
 
-        If the separator is not a string a ValueError is raised::
+        If the separator is not a string a :exc:`ValueError` is raised::
 
             sage: w = Word("le papa du papa du papa etait un petit pioupiou")
             sage: w.split(Word(['p','a','p','a']))
             Traceback (most recent call last):
             ...
-            ValueError: the separator must be a string.
+            ValueError: the separator must be a string
         """
         if sep is None or isinstance(sep, str):
             pass
         elif isinstance(sep, WordDatatype_str):
             sep = sep._data
         else:
-            raise ValueError("the separator must be a string.")
-
+            raise ValueError("the separator must be a string")
         if maxsplit is None:
-            return map(self._parent, self._data.split(sep))
-        else:
-            return map(self._parent, self._data.split(sep,maxsplit))
+            maxsplit = -1
+        return [self._parent(z) for z in self._data.split(sep=sep,
+                                                          maxsplit=maxsplit)]
 
     def partition(self, sep):
         r"""
@@ -732,7 +696,7 @@ cdef class WordDatatype_str(WordDatatype):
 
         INPUT:
 
-        - ``sep`` - string or word
+        - ``sep`` -- string or word
 
         EXAMPLES::
 
@@ -755,26 +719,24 @@ cdef class WordDatatype_str(WordDatatype):
             sage: w.partition(Word(['p','a','p','a']))
             Traceback (most recent call last):
             ...
-            ValueError: the separator must be a string.
+            ValueError: the separator must be a string
         """
         if isinstance(sep, str):
-            return map(self._parent, self._data.partition(sep))
+            return [self._parent(z) for z in self._data.partition(sep)]
         elif isinstance(sep, WordDatatype_str):
-            return map(self._parent, self._data.partition(sep._data))
-        raise ValueError("the separator must be a string.")
+            return [self._parent(z) for z in self._data.partition(sep._data)]
+        raise ValueError("the separator must be a string")
 
-    def is_suffix(self, other):
+    def is_suffix(self, other) -> bool:
         r"""
         Test whether ``self`` is a suffix of ``other``.
 
         INPUT:
 
-        - ``other`` - a word (an instance of :class:`Word_class`) or a
-          :class:`str`.
+        - ``other`` -- a word (an instance of :class:`Word_class`) or a
+          :class:`str`
 
-        OUTPUT:
-
-        - boolean
+        OUTPUT: boolean
 
         EXAMPLES::
 
@@ -795,27 +757,24 @@ cdef class WordDatatype_str(WordDatatype):
             False
             sage: u.is_suffix(w)
             True
-
         """
         if isinstance(other, WordDatatype_str):
             return other._data.endswith(self._data)
         elif isinstance(other, str):
             return other.endswith(self._data)
         else:
-            return super(WordDatatype_str, self).is_suffix(other)
+            return super().is_suffix(other)
 
-    def has_suffix(self, other):
+    def has_suffix(self, other) -> bool:
         """
         Test whether ``self`` has ``other`` as a suffix.
 
         INPUT:
 
-        - ``other`` - a word (an instance of :class:`Word_class`) or a
-          :class:`str`.
+        - ``other`` -- a word (an instance of :class:`Word_class`) or a
+          :class:`str`
 
-        OUTPUT:
-
-        - boolean
+        OUTPUT: boolean
 
         EXAMPLES::
 
@@ -827,27 +786,24 @@ cdef class WordDatatype_str(WordDatatype):
             False
             sage: u.has_suffix("ababa")
             True
-
         """
         if isinstance(other, WordDatatype_str):
             return self._data.endswith(other._data)
         elif isinstance(other, str):
             return self._data.endswith(other)
         else:
-            return super(WordDatatype_str, self).has_suffix(other)
+            return super().has_suffix(other)
 
-    def is_prefix(self, other):
+    def is_prefix(self, other) -> bool:
         r"""
         Test whether ``self`` is a prefix of ``other``.
 
         INPUT:
 
-        - ``other`` - a word (an instance of :class:`Word_class`) or a
-          :class:`str`.
+        - ``other`` -- a word (an instance of :class:`Word_class`) or a
+          :class:`str`
 
-        OUTPUT:
-
-        - boolean
+        OUTPUT: boolean
 
         EXAMPLES::
 
@@ -868,27 +824,23 @@ cdef class WordDatatype_str(WordDatatype):
             True
             sage: abba.is_prefix(ab)
             False
-
         """
         if isinstance(other, WordDatatype_str):
             return other._data.startswith(self._data)
-        if isinstance(other ,str):
+        if isinstance(other, str):
             return other.startswith(self._data)
-        else:
-            return super(WordDatatype_str, self).is_prefix(other)
+        return super().is_prefix(other)
 
-    def has_prefix(self, other):
+    def has_prefix(self, other) -> bool:
         r"""
         Test whether ``self`` has ``other`` as a prefix.
 
         INPUT:
 
-        - ``other`` - a word (an instance of :class:`Word_class`) or a
-          :class:`str`.
+        - ``other`` -- a word (an instance of :class:`Word_class`) or a
+          :class:`str`
 
-        OUTPUT:
-
-        - boolean
+        OUTPUT: boolean
 
         EXAMPLES::
 
@@ -909,14 +861,13 @@ cdef class WordDatatype_str(WordDatatype):
             False
             sage: abba.has_prefix(ab)
             True
-
         """
         if isinstance(other, WordDatatype_str):
             return self._data.startswith(other._data)
         if isinstance(other, str):
             return self._data.startswith(other)
         else:
-            return super(WordDatatype_str, self).has_prefix(other)
+            return super().has_prefix(other)
 
 cdef class WordDatatype_tuple(WordDatatype):
     r"""
@@ -930,8 +881,8 @@ cdef class WordDatatype_tuple(WordDatatype):
 
         INPUT:
 
-        - ``parent`` - instance of :class:`Words_all`
-        - ``data`` - iterable
+        - ``parent`` -- instance of :class:`Words_all`
+        - ``data`` -- iterable
 
         EXAMPLES::
 
@@ -941,41 +892,39 @@ cdef class WordDatatype_tuple(WordDatatype):
             sage: u = Word([0,1,1,0], datatype='tuple')
             sage: isinstance(u, sage.combinat.words.word_datatypes.WordDatatype_tuple)
             True
-
         """
         self._parent = parent
-        if isinstance(data,tuple):
+        if isinstance(data, tuple):
             self._data = data
         else:
             self._data = tuple(data)
         self._hash = None
 
+    __hash__ = WordDatatype.__hash__
+
     def __iter__(self):
         r"""
-        Return an iterator that iterates through the letters of self.
+        Return an iterator that iterates through the letters of ``self``.
 
         EXAMPLES::
 
             sage: w = Word((0,1,1,0))
             sage: list(iter(w))
             [0, 1, 1, 0]
-
         """
         return iter(self._data)
 
     def __richcmp__(self, other, int op):
         r"""
-        Equality test for self and other if other is an instance of
-        WordDatype_tuple.
+        Equality test for ``self`` and ``other`` if other is an instance of
+        ``WordDatype_tuple``.
 
         INPUT:
 
-        - ``other`` - a word
-        - ``op`` - integer: 0, 1, 2, 3, 4 or 5
+        - ``other`` -- a word
+        - ``op`` -- integer; 0, 1, 2, 3, 4 or 5
 
-        OUTPUT:
-
-            boolean or NotImplemented
+        OUTPUT: boolean or NotImplemented
 
         EXAMPLES::
 
@@ -999,24 +948,15 @@ cdef class WordDatatype_tuple(WordDatatype):
 
         http://docs.cython.org/docs/special_methods.html
         """
-        if op == Py_EQ:
-            if isinstance(other, WordDatatype_tuple):
+        if isinstance(other, WordDatatype_tuple):
+            if op == Py_EQ:
                 return self._data == other._data
-            else:
-                # Otherwise, force FiniteWord_class.__eq__ to do it
-                # (if we don't force it, then __cmp__ is called before)
-                from sage.combinat.words.word import FiniteWord_class
-                return FiniteWord_class.__eq__(self,other)
-        elif op == Py_NE:
-            if isinstance(other, WordDatatype_tuple):
+            elif op == Py_NE:
                 return self._data != other._data
-            else:
-                # Otherwise, force FiniteWord_class.__eq__ to do it
-                # (if we don't force it, then __cmp__ is called before)
-                from sage.combinat.words.word import FiniteWord_class
-                return not FiniteWord_class.__eq__(self,other)
-        else:
-            return NotImplemented
+
+        # Otherwise, force FiniteWord_class.__richcmp__ to do it
+        from sage.combinat.words.word import FiniteWord_class
+        return FiniteWord_class.__richcmp__(self, other, op)
 
     def __len__(self):
         r"""
@@ -1032,7 +972,6 @@ cdef class WordDatatype_tuple(WordDatatype):
             sage: w = Word((0,1,1,0))
             sage: len(w)
             4
-
         """
         return len(self._data)
 
@@ -1045,7 +984,6 @@ cdef class WordDatatype_tuple(WordDatatype):
             sage: w = Word((0,1,1,0))
             sage: w.length()
             4
-
         """
         return len(self._data)
 
@@ -1055,7 +993,7 @@ cdef class WordDatatype_tuple(WordDatatype):
 
         INPUT:
 
-        - ``a`` - anything
+        - ``a`` -- anything
 
         EXAMPLES::
 
@@ -1064,17 +1002,16 @@ cdef class WordDatatype_tuple(WordDatatype):
             True
             sage: 3 in w
             False
-
         """
         return a in self._data
 
     def __getitem__(self, key):
         r"""
-        Implements ``__getitem__`` for words stored as tuples.
+        Implement ``__getitem__`` for words stored as tuples.
 
         INPUT:
 
-        - ``key`` - an integer
+        - ``key`` -- integer
 
         OUTPUT:
 
@@ -1091,7 +1028,6 @@ cdef class WordDatatype_tuple(WordDatatype):
             word: 3579
             sage: all(w[i] == i for i in range(100))
             True
-
         """
         if isinstance(key, slice):
             return self._parent(self._data[key])
@@ -1099,15 +1035,13 @@ cdef class WordDatatype_tuple(WordDatatype):
 
     def __mul__(self, other):
         r"""
-        Return the concatenation of self and other.
+        Return the concatenation of ``self`` and ``other``.
 
         INPUT:
 
-        - ``other`` - word represented by a tuple
+        - ``other`` -- word represented by a tuple
 
-        OUTPUT:
-
-        word
+        OUTPUT: word
 
         EXAMPLES::
 
@@ -1127,7 +1061,6 @@ cdef class WordDatatype_tuple(WordDatatype):
         if isinstance(other, WordDatatype_tuple):
             return self._parent(self._data + other._data)
         else:
-            return super(WordDatatype_tuple, self).__mul__(other)
+            return super().__mul__(other)
 
     __add__ = __mul__
-

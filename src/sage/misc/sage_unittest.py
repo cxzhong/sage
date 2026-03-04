@@ -2,22 +2,22 @@ r"""
 Unit testing for Sage objects
 """
 
-#*****************************************************************************
+# ****************************************************************************
 #       Copyright (C) 2009 Nicolas M. Thiery <nthiery at users.sf.net>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
 import unittest
 import sys
 import traceback
-import random
 
-class TestSuite(object):
+
+class TestSuite:
     """
     Test suites for Sage objects.
 
@@ -50,6 +50,7 @@ class TestSuite(object):
         running ._test_associativity() . . . pass
         running ._test_cardinality() . . . pass
         running ._test_category() . . . pass
+        running ._test_construction() . . . pass
         running ._test_elements() . . .
           Running the test suite of self.an_element()
           running ._test_category() . . . pass
@@ -69,6 +70,8 @@ class TestSuite(object):
         running ._test_new() . . . pass
         running ._test_not_implemented_methods() . . . pass
         running ._test_pickling() . . . pass
+        running ._test_random() . . . pass
+        running ._test_rank() . . . pass
         running ._test_some_elements() . . . pass
 
     The different test methods can be called independently::
@@ -108,40 +111,40 @@ class TestSuite(object):
         running ._test_new() . . . pass
         running ._test_pickling() . . . pass
 
-    TODO:
+    .. TODO::
 
-     - Allow for customized behavior in case of failing assertion
-       (warning, error, statistic accounting).
-       This involves reimplementing the methods fail / failIf / ...
-       of unittest.TestCase in InstanceTester
+        - Allow for customized behavior in case of failing assertion
+          (warning, error, statistic accounting).
+          This involves reimplementing the methods fail / failIf / ...
+          of unittest.TestCase in InstanceTester
 
-     - Don't catch the exceptions if ``TestSuite(..).run()`` is called
-       under the debugger, or with ``%pdb`` on (how to detect this? see
-       ``get_ipython()``, ``IPython.Magic.shell.call_pdb``, ...)
-       In the mean time, see the ``catch=False`` option.
+        - Don't catch the exceptions if ``TestSuite(..).run()`` is called
+          under the debugger, or with ``%pdb`` on (how to detect this? see
+          ``get_ipython()``, ``IPython.Magic.shell.call_pdb``, ...)
+          In the mean time, see the ``catch=False`` option.
 
-     - Run the tests according to the inheritance order, from most
-       generic to most specific, rather than alphabetically. Then, the
-       first failure will be the most relevant, the others being
-       usually consequences.
+        - Run the tests according to the inheritance order, from most
+          generic to most specific, rather than alphabetically. Then, the
+          first failure will be the most relevant, the others being
+          usually consequences.
 
-     - Improve integration with doctests (statistics on failing/passing tests)
+        - Improve integration with doctests (statistics on failing/passing tests)
 
-     - Add proper support for nested testsuites.
+        - Add proper support for nested testsuites.
 
-     - Integration with unittest:
-       Make TestSuite inherit from unittest.TestSuite?
-       Make ``.run(...)`` accept a result object
+        - Integration with unittest:
+          Make TestSuite inherit from unittest.TestSuite?
+          Make ``.run(...)`` accept a result object
 
-     - Add some standard option ``proof = True``, asking for the
-       test method to choose appropriately the elements so as to
-       prove the desired property. The test method may assume that
-       a parent implements properly all the super categories. For
-       example, the ``_test_commutative`` method of the category
-       ``CommutativeSemigroups()`` may just check that the
-       provided generators commute, implicitly assuming that
-       generators indeed generate the semigroup (as required by
-       ``Semigroups()``).
+        - Add some standard option ``proof = True``, asking for the
+          test method to choose appropriately the elements so as to
+          prove the desired property. The test method may assume that
+          a parent implements properly all the super categories. For
+          example, the ``_test_commutative`` method of the category
+          ``CommutativeSemigroups()`` may just check that the
+          provided generators commute, implicitly assuming that
+          generators indeed generate the semigroup (as required by
+          ``Semigroups()``).
     """
 
     def __init__(self, instance):
@@ -152,7 +155,7 @@ class TestSuite(object):
             Test suite for Integer Ring
         """
         from sage.structure.sage_object import SageObject
-        if not isinstance(instance, (SageObject,PythonObjectWithTests)):
+        if not isinstance(instance, (SageObject, PythonObjectWithTests)):
             instance = PythonObjectWithTests(instance)
         self._instance = instance
 
@@ -163,19 +166,19 @@ class TestSuite(object):
             sage: TestSuite(ZZ)
             Test suite for Integer Ring
         """
-        return "Test suite for %s"%self._instance
+        return "Test suite for %s" % self._instance
 
-
-    def run(self, category = None, skip = [], catch = True, raise_on_failure = False, **options):
+    def run(self, category=None, skip=[], catch=True, raise_on_failure=False,
+            **options):
         """
         Run all the tests from this test suite:
 
         INPUT:
 
-         - ``category``         - a category; reserved for future use
-         - ``skip``             - a string or list (or iterable) of strings
-         - ``raise_on_failure`` - a boolean (default: False)
-         - ``catch``            - a boolean (default: True)
+        - ``category`` -- a category; reserved for future use
+        - ``skip`` -- string or list (or iterable) of strings
+        - ``raise_on_failure`` -- boolean (default: ``False``)
+        - ``catch`` -- boolean (default: ``True``)
 
         All other options are passed down to the individual tests.
 
@@ -195,7 +198,7 @@ class TestSuite(object):
 
         Some tests may be skipped using the ``skip`` option::
 
-            sage: TestSuite(1).run(verbose = True, skip ="_test_pickling")
+            sage: TestSuite(1).run(verbose = True, skip ='_test_pickling')
             running ._test_category() . . . pass
             running ._test_eq() . . . pass
             running ._test_new() . . . pass
@@ -227,9 +230,9 @@ class TestSuite(object):
             AssertionError: None
             ------------------------------------------------------------
             Failure in _test_pickling:
-            Traceback (most recent call last):
-              ...
-            PicklingError: Can't pickle <class '__main__.Blah'>: attribute lookup __main__.Blah failed
+            ...
+            ...PicklingError: Can't pickle <class '__main__.Blah'>: ...
+            ...
             ------------------------------------------------------------
             The following tests failed: _test_b, _test_d, _test_pickling
 
@@ -250,14 +253,13 @@ class TestSuite(object):
             running ._test_new() . . . pass
             running ._test_not_implemented_methods() . . . pass
             running ._test_pickling() . . . fail
-            Traceback (most recent call last):
-              ...
-            PicklingError: Can't pickle <class '__main__.Blah'>: attribute lookup __main__.Blah failed
+            ...
+            ...PicklingError: Can't pickle <class '__main__.Blah'>: ...
+            ...
             ------------------------------------------------------------
             The following tests failed: _test_b, _test_d, _test_pickling
 
-            File "/opt/sage/local/lib/python/site-packages/sage/misc/sage_unittest.py", line 183, in run
-            test_method(tester = tester)
+            ...
 
         The ``catch=False`` option prevents ``TestSuite`` from
         catching exceptions::
@@ -279,8 +281,8 @@ class TestSuite(object):
             skip = tuple(skip)
 
         # The class of exceptions that will be caught and reported;
-        # other exceptions will get through. None catches nothing.
-        catch_exception = Exception if catch else None
+        # other exceptions will get through. () catches nothing.
+        catch_exception = Exception if catch else ()
 
         tester = instance_tester(self._instance, **options)
         failed = []
@@ -288,56 +290,58 @@ class TestSuite(object):
             if method_name[0:6] == "_test_" and method_name not in skip:
                 # TODO: improve pretty printing
                 # could use the doc string of the test method?
-                tester.info(tester._prefix+"running .%s() . . ."%method_name, newline = False)
+                tester.info(tester._prefix + "running .%s() . . ." % method_name, newline=False)
                 test_method = getattr(self._instance, method_name)
                 try:
-                    test_method(tester = tester)
+                    test_method(tester=tester)
                     tester.info(" pass")
                 except catch_exception as e:
                     failed.append(method_name)
                     if isinstance(e, TestSuiteFailure):
-                        # The failure occured in a nested testsuite
+                        # The failure occurred in a nested testsuite
                         # which has already reported the details of
                         # that failure
                         if not tester._verbose:
-                            print(tester._prefix+"Failure in {}".format(method_name))
+                            print(tester._prefix + "Failure in {}".format(method_name))
                     else:
                         if tester._verbose:
                             tester.info(" fail")
                         else:
-                            print(tester._prefix+"Failure in {}:".format(method_name))
+                            print(tester._prefix + "Failure in {}:".format(method_name))
                         s = traceback.format_exc()
-                        print(tester._prefix + s.strip().replace("\n", "\n"+tester._prefix))
+                        print(tester._prefix + s.strip().replace("\n", "\n" + tester._prefix))
                         print(tester._prefix + "-" * 60)
-        if len(failed) > 0:
-            print(tester._prefix+"The following tests failed: {}".format(", ".join(failed)))
+        if failed:
+            print(tester._prefix + "The following tests failed: {}".format(", ".join(failed)))
             if raise_on_failure:
                 raise TestSuiteFailure
+
 
 class TestSuiteFailure(AssertionError):
     pass
 
-def instance_tester(instance, tester = None, **options):
+
+def instance_tester(instance, tester=None, **options):
     """
-    Returns a gadget attached to ``instance`` providing testing utilities.
+    Return a gadget attached to ``instance`` providing testing utilities.
 
     EXAMPLES::
 
         sage: from sage.misc.sage_unittest import instance_tester
         sage: tester = instance_tester(ZZ)
 
-        sage: tester.assert_(1 == 1)
-        sage: tester.assert_(1 == 0)
+        sage: tester.assertTrue(1 == 1)
+        sage: tester.assertTrue(1 == 0)
         Traceback (most recent call last):
         ...
         AssertionError: False is not true
-        sage: tester.assert_(1 == 0, "this is expected to fail")
+        sage: tester.assertTrue(1 == 0, "this is expected to fail")
         Traceback (most recent call last):
         ...
         AssertionError: this is expected to fail
 
-        sage: tester.assertEquals(1, 1)
-        sage: tester.assertEquals(1, 0)
+        sage: tester.assertEqual(1, 1)
+        sage: tester.assertEqual(1, 0)
         Traceback (most recent call last):
         ...
         AssertionError: 1 != 0
@@ -354,9 +358,10 @@ def instance_tester(instance, tester = None, **options):
     if tester is None:
         return InstanceTester(instance, **options)
     else:
-        assert len(options) == 0
+        assert not options
         assert tester._instance is instance
         return tester
+
 
 class InstanceTester(unittest.TestCase):
     """
@@ -374,7 +379,15 @@ class InstanceTester(unittest.TestCase):
         Testing utilities for Rational Field
     """
 
-    def __init__(self, instance, elements = None, verbose = False, prefix = "", max_runs = 4096, max_samples = None, **options):
+    # On Python 3 this attribute defaults to True, causing the AssertionErrors
+    # output by failed test cases to produce longer error messages than the
+    # default error messages on Python 2.  So for backwards compatibility of
+    # existing test cases we disable these "long messages" (which don't gain us
+    # all that much anyways)
+    longMessage = False
+
+    def __init__(self, instance, elements=None, verbose=False, prefix='',
+                 max_runs=4096, max_samples=None, **options):
         """
         A gadget attached to an instance providing it with testing utilities.
 
@@ -411,9 +424,9 @@ class InstanceTester(unittest.TestCase):
         """
         pass
 
-    def info(self, message, newline = True):
+    def info(self, message, newline=True):
         """
-        Displays user information
+        Display user information.
 
         EXAMPLES::
 
@@ -433,7 +446,7 @@ class InstanceTester(unittest.TestCase):
         """
         if self._verbose:
             if newline:
-                sys.stdout.write(message+"\n")
+                sys.stdout.write(message + "\n")
             else:
                 sys.stdout.write(message)
             sys.stdout.flush()
@@ -445,26 +458,25 @@ class InstanceTester(unittest.TestCase):
             sage: from sage.misc.sage_unittest import InstanceTester
             sage: InstanceTester(ZZ, verbose = True)
             Testing utilities for Integer Ring
-
         """
-        return "Testing utilities for %s"%self._instance
-
+        return "Testing utilities for %s" % self._instance
 
     def some_elements(self, S=None, repeat=None):
         """
-        Returns a list (or iterable) of elements of the instance on which
-        the tests should be run. This is only meaningful for container
-        objects like parents.
+        Return a list (or iterable) of elements of the instance on which
+        the tests should be run.
+
+        This is only meaningful for container objects like parents.
 
         INPUT:
 
-        - ``S`` -- a set of elements to select from.  By default this
+        - ``S`` -- set of elements to select from; by default this
           will use the elements passed to this tester at creation
           time, or the result of :meth:`.some_elements` if no elements
-          were specified.
+          were specified
 
-        - ``repeat`` -- integer (default: None).  If given, instead returns
-          a list of tuples of length ``repeat`` from ``S``.
+        - ``repeat`` -- integer (default: ``None``);  if given, instead returns
+          a list of tuples of length ``repeat`` from ``S``
 
         OUTPUT:
 
@@ -510,7 +522,7 @@ class InstanceTester(unittest.TestCase):
 
             sage: tester = InstanceTester(ZZ)
             sage: ZZ.some_elements()             # yikes, shamelessly trivial ...
-            <generator object _some_elements_from_iterator at 0x...>
+            <generator object ..._some_elements_from_iterator at 0x...>
             sage: list(tester.some_elements())
             [0, 1, -1, 2, -2, ..., 49, -49, 50]
 
@@ -534,12 +546,12 @@ class InstanceTester(unittest.TestCase):
         You can use ``max_samples`` to sample at random, instead of in order::
 
             sage: tester = InstanceTester(ZZ, elements = srange(8), max_samples = 4)
-            sage: list(tester.some_elements())
-            [0, 3, 7, 1]
-            sage: list(tester.some_elements(repeat=2))
-            [(1, 4), (3, 1), (4, 5), (5, 0)]
+            sage: all(t in srange(8) for t in tester.some_elements())
+            True
+            sage: all(s in srange(8) and t in srange(8) for s,t in tester.some_elements(repeat=2))
+            True
 
-        Test for :trac:`15919`, :trac:`16244`::
+        Test for :issue:`15919`, :issue:`16244`::
 
             sage: Z = IntegerModRing(25) # random.sample, which was used pre #16244, has a threshold at 21!
             sage: Z[1]                   # since #8389, indexed access is used for ring extensions
@@ -561,7 +573,8 @@ class InstanceTester(unittest.TestCase):
         from sage.misc.misc import some_tuples
         return list(some_tuples(S, repeat, self._max_runs, self._max_samples))
 
-class PythonObjectWithTests(object):
+
+class PythonObjectWithTests:
     """
     Utility class for running basis tests on a plain Python object
     (that is not in SageObject). More test methods can be added here.
@@ -583,7 +596,7 @@ class PythonObjectWithTests(object):
 
     def _test_pickling(self, **options):
         """
-        Checks that the instance in self can be pickled and unpickled properly.
+        Check that the instance in ``self`` can be pickled and unpickled properly.
 
         EXAMPLES::
 
@@ -595,7 +608,7 @@ class PythonObjectWithTests(object):
             :func:`dumps`, :func:`loads`
         """
         tester = instance_tester(self, **options)
-        from sage.misc.all import loads, dumps
+        from sage.misc.persist import loads, dumps
         tester.assertEqual(loads(dumps(self._instance)), self._instance)
 
     def _test_new(self, **options):

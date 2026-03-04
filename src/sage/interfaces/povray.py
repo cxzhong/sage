@@ -1,7 +1,6 @@
 r"""
 POV-Ray, The Persistence of Vision Ray Tracer
 """
-from six import iteritems
 
 from sage.misc.pager import pager
 import os
@@ -17,9 +16,7 @@ class POVRay:
     - ``outfile`` -- the filename you want to save your result to
     - ``**kwargs`` -- additionally keyword arguments you want to pass to POVRay
 
-    OUTPUT:
-
-    Image is written to the file you specified in outfile
+    OUTPUT: image is written to the file you specified in outfile
 
     EXAMPLES:
 
@@ -38,11 +35,11 @@ class POVRay:
 
         outfile = os.path.abspath(os.path.expanduser(outfile))
 
-        if not('W' in kwargs and 'H' in kwargs):
+        if not ('W' in kwargs and 'H' in kwargs):
             return "You must specify a width and height."
 
         cmd = "povray -D +FP +I%s +O%s " % (pov_file, outfile)
-        for k, v in iteritems(kwargs):
+        for k, v in kwargs.items():
             cmd += "+%s%s " % (k, v)
 
         if not block:
@@ -50,7 +47,9 @@ class POVRay:
         os.system(cmd)
 
     def usage(self):
-        r = os.popen('povray').read()
+        with os.popen('povray') as f:
+            r = f.read()
         pager()(r)
+
 
 povray = POVRay()

@@ -1,3 +1,4 @@
+# sage.doctest: needs sage.modules
 r"""
 User-interface globals
 
@@ -17,7 +18,7 @@ EXAMPLES:
 This is how a typical user interface initializes the globals::
 
     sage: ui_globals = globals()  # or wherever the user interface stores its globals
-    sage: from sage import all_cmdline  # or all_notebook
+    sage: from sage import all_cmdline
     sage: from sage.repl.user_globals import initialize_globals
     sage: _ = initialize_globals(all_cmdline, ui_globals)
 
@@ -26,12 +27,12 @@ global::
 
     sage: from sage.repl.user_globals import get_global, set_global
     sage: get_global("Matrix")
-    <sage.matrix.constructor.MatrixFactory object at ...>
+    <cyfunction matrix at ...>
 
 This is exactly the same::
 
     sage: ui_globals["Matrix"]
-    <sage.matrix.constructor.MatrixFactory object at ...>
+    <cyfunction matrix at ...>
 
 We inject a global::
 
@@ -47,18 +48,18 @@ available as global::
 
 AUTHORS:
 
-- Jeroen Demeyer (2015-03-30): initial version (:trac:`12446`)
+- Jeroen Demeyer (2015-03-30): initial version (:issue:`12446`)
 """
 
-#*****************************************************************************
+# ****************************************************************************
 #       Copyright (C) 2015 Jeroen Demeyer <jdemeyer@cage.ugent.be>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
 
 user_globals = None
@@ -66,7 +67,7 @@ user_globals = None
 
 def _check():
     """
-    Raise ``RuntimeError`` if ``user_globals`` has not been initialized.
+    Raise :exc:`RuntimeError` if ``user_globals`` has not been initialized.
 
     EXAMPLES::
 
@@ -94,20 +95,20 @@ def get_globals():
         sage: from sage.repl.user_globals import get_globals, initialize_globals
         sage: initialize_globals(sage.all)
         sage: get_globals()["Matrix"]
-        <sage.matrix.constructor.MatrixFactory object at ...>
+        <cyfunction matrix at ...>
     """
     _check()
     return user_globals
 
 
-def set_globals(g):
+def set_globals(g: dict) -> None:
     """
     Set the dictionary of all user globals to ``g``.
 
     INPUT:
 
-    - ``g`` -- a dictionary. Typically, this will be some dictionary
-      given by the user interface or just ``globals()``.
+    - ``g`` -- dictionary; typically, this will be some dictionary
+      given by the user interface or just ``globals()``
 
     EXAMPLES::
 
@@ -130,7 +131,7 @@ def initialize_globals(all, g=None):
 
     - ``all`` -- a module whose globals will be injected
 
-    - ``g`` -- a dictionary, see :func:`set_globals`. If this is
+    - ``g`` -- dictionary; see :func:`set_globals`. If this is
       ``None``, keep the current globals dictionary.
 
     EXAMPLES::
@@ -141,7 +142,7 @@ def initialize_globals(all, g=None):
         sage: my_globs["foo"]
         'bar'
         sage: my_globs["Matrix"]
-        <sage.matrix.constructor.MatrixFactory object at ...>
+        <cyfunction matrix at ...>
 
     Remove ``Matrix`` from the globals and initialize again without
     changing the dictionary::
@@ -149,23 +150,26 @@ def initialize_globals(all, g=None):
         sage: del my_globs["Matrix"]
         sage: initialize_globals(sage.all)
         sage: my_globs["Matrix"]
-        <sage.matrix.constructor.MatrixFactory object at ...>
+        <cyfunction matrix at ...>
     """
     if g is not None:
         set_globals(g)
     for key in dir(all):
         if key[0] != '_':
             user_globals[key] = getattr(all, key)
+    from sage.misc.lazy_import import clean_namespace
+    clean_namespace(user_globals)
 
 
 def get_global(name):
     """
-    Return the value of global variable ``name``. Raise ``NameError``
-    if there is no such global variable.
+    Return the value of global variable ``name``.
+
+    Raise :exc:`NameError` if there is no such global variable.
 
     INPUT:
 
-    - ``name`` -- a string representing a variable name
+    - ``name`` -- string representing a variable name
 
     OUTPUT: the value of variable ``name``
 
@@ -194,7 +198,7 @@ def set_global(name, value):
 
     INPUT:
 
-    - ``name`` -- a string representing a variable name
+    - ``name`` -- string representing a variable name
 
     - ``value`` -- a value to assign to the variable
 

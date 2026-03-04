@@ -1,20 +1,33 @@
 """
-Fast computation of combinatorial functions (Cython + mpz).
+Fast computation of combinatorial functions (Cython + mpz)
 
 Currently implemented:
+
 - Stirling numbers of the second kind
+- iterators for set partitions
+- iterator for Lyndon words
+- iterator for perfect matchings
+- conjugate of partitions
 
 AUTHORS:
-- Fredrik Johansson (2010-10): Stirling numbers of second kind
 
+- Fredrik Johansson (2010-10): Stirling numbers of second kind
+- Martin Rubey and Travis Scrimshaw (2018): iterators for set partitions,
+  Lyndon words, and perfect matchings
 """
 
 from cysignals.memory cimport check_allocarray, sig_free
 
 from sage.libs.gmp.all cimport *
 from sage.rings.integer cimport Integer
+from sage.misc.lazy_import import LazyImport
 
-cdef void mpz_addmul_alt(mpz_t s, mpz_t t, mpz_t u, unsigned long parity):
+set_partition_iterator = LazyImport('sage.combinat.set_partition_iterator', 'set_partition_iterator', deprecation=35741)
+set_partition_iterator_blocks = LazyImport('sage.combinat.set_partition_iterator', 'set_partition_iterator_blocks', deprecation=35741)
+linear_extension_iterator = LazyImport('sage.combinat.posets.linear_extension_iterator', 'linear_extension_iterator', deprecation=35741)
+
+
+cdef void mpz_addmul_alt(mpz_t s, mpz_t t, mpz_t u, unsigned long parity) noexcept:
     """
     Set s = s + t*u * (-1)^parity
     """
@@ -120,6 +133,7 @@ cdef mpz_stirling_s2(mpz_t s, unsigned long n, unsigned long k):
         mpz_clear(t)
         mpz_clear(u)
 
+
 def _stirling_number2(n, k):
     """
     Python wrapper of mpz_stirling_s2.
@@ -133,3 +147,242 @@ def _stirling_number2(n, k):
     cdef Integer s = Integer.__new__(Integer)
     mpz_stirling_s2(s.value, n, k)
     return s
+
+
+#####################################################################
+#  Lyndon word iterator
+
+def lyndon_word_iterator(Py_ssize_t n, Py_ssize_t k):
+    r"""
+    Generate the Lyndon words of fixed length ``k`` with ``n`` letters.
+
+    The resulting Lyndon words will be words represented as lists
+    whose alphabet is ``range(n)`` (`= \{0, 1, \ldots, n-1\}`).
+
+    ALGORITHM:
+
+    The iterative FKM Algorithm 7.2 from [Rus2003]_.
+
+    EXAMPLES::
+
+        sage: from sage.combinat.combinat_cython import lyndon_word_iterator
+        sage: list(lyndon_word_iterator(4, 2))
+        [[0, 1], [0, 2], [0, 3], [1, 2], [1, 3], [2, 3]]
+        sage: list(lyndon_word_iterator(2, 4))
+        [[0, 0, 0, 1], [0, 0, 1, 1], [0, 1, 1, 1]]
+
+    TESTS::
+
+        sage: from sage.combinat.combinat_cython import lyndon_word_iterator
+        sage: list(lyndon_word_iterator(6, 1))
+        [[0], [1], [2], [3], [4], [5]]
+        sage: list(lyndon_word_iterator(5, 0))
+        []
+        sage: list(lyndon_word_iterator(1, 1000))
+        []
+        sage: list(lyndon_word_iterator(1, 1))
+        [[0]]
+    """
+    cdef Py_ssize_t i, j
+    if k == 0:
+        return
+    if k == 1:
+        for i in range(n):
+            yield [i]
+        return
+    if n == 1:
+        return
+
+    cdef list a = [0] * (k+1)
+    i = k
+    while i != 0:
+        a[i] += 1
+        for j in range(1, k-i+1):
+            a[j + i] = a[j]
+        if k == i:
+            yield a[1:]
+        i = k
+        while a[i] == n - 1:
+            i -= 1
+
+
+#  Perfect matchings iterator
+
+def perfect_matchings_iterator(Py_ssize_t n):
+    r"""
+    Iterate over all perfect matchings with ``n`` parts.
+
+    This iterates over all perfect matchings of `\{0, 1, \ldots, 2n-1\}`
+    using a Gray code for fixed-point-free involutions due to Walsh [Wal2001]_.
+
+    EXAMPLES::
+
+        sage: from sage.combinat.combinat_cython import perfect_matchings_iterator
+        sage: list(perfect_matchings_iterator(1))
+        [[(0, 1)]]
+        sage: list(perfect_matchings_iterator(2))
+        [[(0, 1), (2, 3)], [(0, 2), (1, 3)], [(0, 3), (1, 2)]]
+
+        sage: list(perfect_matchings_iterator(0))
+        [[]]
+
+    REFERENCES:
+
+    - [Wal2001]_
+    """
+    if n == 0:
+        yield []
+        return
+
+    cdef Py_ssize_t i, x, y, g, j, J
+    cdef Py_ssize_t* e = <Py_ssize_t*> check_allocarray(2*n, sizeof(Py_ssize_t))
+    for i in range(2*n):
+        e[i] = i
+    cdef Py_ssize_t* f = <Py_ssize_t*> check_allocarray(2*n, sizeof(Py_ssize_t))
+    for i in range(2*n):
+        if i % 2 == 0:
+            f[i] = i + 1
+        else:
+            f[i] = i - 1
+    cdef bint odd = False
+
+    yield convert(f, n)
+    while e[0] != n - 1:
+        i = e[0]
+        if odd:
+            x = 2 * i
+        else:
+            x = i
+
+        y = f[x]
+        g = y - x - 1
+        if g % 2 == odd:
+            g += 1
+            j = y + 1
+        else:
+            g -= 1
+            j = y-1
+        J = f[j]
+        f[y] = J
+        f[J] = y
+        f[x] = j
+        f[j] = x
+        odd = not odd
+        e[0] = 0
+        if g == 0 or g == 2 * (n-i-1):
+            e[i] = e[i+1]
+            e[i+1] = i + 1
+
+        yield convert(f, n)
+
+    sig_free(e)
+    sig_free(f)
+
+
+cdef list convert(Py_ssize_t* f, Py_ssize_t n):
+    """
+    Convert a list ``f`` representing a fixed-point free involution
+    to a set partition.
+    """
+    cdef list ret = []
+    cdef Py_ssize_t i
+    for i in range(2*n):
+        if i < f[i]:
+            ret.append((i, f[i]))
+    return ret
+
+
+#####################################################################
+#  Set partition composition
+
+def set_partition_composition(tuple sp1, tuple sp2):
+    r"""
+    Return a tuple consisting of the composition of the set partitions
+    ``sp1`` and ``sp2`` and the number of components removed from the middle
+    rows of the graph.
+
+    EXAMPLES::
+
+        sage: from sage.combinat.combinat_cython import set_partition_composition
+        sage: sp1 = ((1,-2),(2,-1))
+        sage: sp2 = ((1,-2),(2,-1))
+        sage: p, c = set_partition_composition(sp1, sp2)
+        sage: (SetPartition(p), c) == (SetPartition([[1,-1],[2,-2]]), 0)                # needs sage.combinat
+        True
+    """
+    cdef int num_loops = 0  # The number of loops removed
+    cdef list diagram = []  # The resulting composite diagram
+    # sp1 is on top of sp2
+    # positive values on top and negative on bottom
+    cdef set remaining_top = set(sp1)
+    cdef list remaining_bot = list(sp2)
+    cdef list cur = []
+    cdef tuple temp, top, to_remove
+    cdef list block = []
+    cdef Py_ssize_t i
+    while remaining_bot or cur:
+        if not cur:
+            cur = list(remaining_bot.pop())
+            block = []
+        while cur:
+            val = cur.pop()
+            if val > 0:
+                # Find what it is connected to in sp1
+                to_remove = ()
+                for top in remaining_top:
+                    if -val in top:
+                        to_remove = top
+                        for entry in top:
+                            if entry < 0:
+                                # Check to see if that makes a new connection with
+                                #   something in sp2.
+                                # We go through this in reverse order so that when we
+                                #   pop an element off, we do not need to update i.
+                                for i in reversed(range(len(remaining_bot))):
+                                    temp = <tuple> remaining_bot[i]
+                                    if -entry in temp:
+                                        remaining_bot.pop(i)
+                                        cur.extend(temp)
+                                        continue
+                            else:
+                                block.append(entry)
+                        break
+                if to_remove:
+                    remaining_top.remove(to_remove)
+            else:
+                block.append(val)
+        if not cur:
+            if not block:
+                num_loops += 1
+            else:
+                diagram.append(tuple(block))
+
+    # Everything else should be completely contained in the top block
+    assert all(val > 0 for top in remaining_top for val in top)
+    diagram.extend(remaining_top)
+
+    return (tuple(diagram), num_loops)
+
+
+def conjugate(p):
+    """
+    Return the conjugate partition associated to the partition ``p``
+    as a list.
+
+    EXAMPLES::
+
+        sage: from sage.combinat.combinat_cython import conjugate
+        sage: conjugate([2,2])
+        [2, 2]
+        sage: conjugate([6,3,1])
+        [3, 2, 2, 1, 1, 1]
+    """
+    cdef Py_ssize_t j, l
+    cdef list conj
+    l = len(p)
+    if l == 0:
+        return []
+    conj = [l] * p[-1]
+    for j in range(l - 1, 0, -1):
+        conj.extend([j] * (p[j - 1] - p[j]))
+    return conj

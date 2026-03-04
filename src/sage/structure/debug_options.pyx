@@ -4,8 +4,6 @@ Debug options for the :mod:`sage.structure` modules
 EXAMPLES::
 
     sage: from sage.structure.debug_options import debug
-    sage: debug.bad_parent_warnings
-    False
     sage: debug.unique_parent_warnings
     False
     sage: debug.refine_category_hash_check
@@ -27,15 +25,14 @@ EXAMPLES::
 cdef class DebugOptions_class:
     def __cinit__(self):
         """
-        Initializer for the debug options
+        Initializer for the debug options.
 
         TESTS::
 
             sage: from sage.structure.debug_options import debug
             sage: type(debug)
-            <type 'sage.structure.debug_options.DebugOptions_class'>
+            <... 'sage.structure.debug_options.DebugOptions_class'>
         """
-        self.bad_parent_warnings = False
         self.unique_parent_warnings = False
         # This one will be enabled during doctests
         self.refine_category_hash_check = False
@@ -43,12 +40,14 @@ cdef class DebugOptions_class:
 
 cdef DebugOptions_class debug = DebugOptions_class()
 
-# Since "debug" is declared with a type, it can only be cimported at
+# Since "debug" is declared with cdef, it can only be cimported at
 # the Cython level, not imported in plain Python. So we add it to the
-# globals manually. We need to hack into Cython internals for this
-# since Sage is compiled with the old_style_globals option.
-from cpython.object cimport PyObject
-cdef extern from *:
-    PyObject* __pyx_d
-
-(<object>__pyx_d)["debug"] = debug
+# globals manually. However this will make the variable out of sync
+# if some user modifies the object, which is inevitable.
+# See https://github.com/cython/cython/issues/3959#issuecomment-753455240
+# and https://github.com/cython/cython/issues/656
+# Note that ``_this_module`` could not be ``globals()``
+# because Sage is compiled with the old_style_globals option.
+import sage.structure.debug_options as _this_module
+_this_module.debug = debug
+del _this_module

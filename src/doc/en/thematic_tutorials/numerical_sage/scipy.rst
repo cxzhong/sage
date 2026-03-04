@@ -1,7 +1,7 @@
 SciPy
 =====
 Again I recommend this
-http://www.scipy.org/Wiki/Documentation?action=AttachFile&do=get&target=scipy_tutorial.pdf.
+https://docs.scipy.org/doc/scipy-1.8.1/scipy-ref-1.8.1.pdf.
 There are many useful SciPy modules, in particular scipy.optimize,
 scipy.stats, scipy.linalg, scipy.linsolve, scipy.sparse,
 scipy.integrate, scipy.fftpack, scipy.signal, scipy.special. Most
@@ -89,14 +89,14 @@ code.
 
 ::
 
-    sage: import scipy
+    sage: import numpy
     sage: from scipy import integrate
     sage: def f_1(y,t):
     ....:    return[y[1],-y[0]-10*y[1]*(y[0]**2-1)]
     sage: def j_1(y,t):
     ....:    return [ [0, 1.0],[-2.0*10*y[0]*y[1]-1.0,-10*(y[0]*y[0]-1.0)] ]
-    sage: x= scipy.arange(0,100,.1)
-    sage: y=integrate.odeint(f_1,[1,0],x,Dfun=j_1)
+    sage: x = numpy.arange(0,100,.1)
+    sage: y = integrate.odeint(f_1,[1,0],x,Dfun=j_1)
 
 We could plot the solution if we wanted by doing
 

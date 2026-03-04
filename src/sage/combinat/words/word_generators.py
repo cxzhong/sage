@@ -1,20 +1,19 @@
-# -*- coding: utf-8 -*-
 r"""
 Common words
 
 AUTHORS:
 
 - Franco Saliola (2008-12-17): merged into sage
-- Sebastien Labbe (2008-12-17): merged into sage
+- Sébastien Labbé (2008-12-17): merged into sage
 - Arnaud Bergeron (2008-12-17): merged into sage
 - Amy Glen (2008-12-17): merged into sage
-- Sebastien Labbe (2009-12-19): Added S-adic words (:trac:`7543`)
+- Sébastien Labbé (2009-12-19): Added S-adic words (:issue:`7543`)
 
 USE:
 
-To see a list of all word constructors, type ``words.`` and then press the tab
-key. The documentation for each constructor includes information about each
-word, which provides a useful reference.
+To see a list of all word constructors, type ``words.`` and then press
+the :kbd:`Tab` key. The documentation for each constructor includes
+information about each word, which provides a useful reference.
 
 REFERENCES:
 
@@ -22,11 +21,11 @@ REFERENCES:
    numbers with a regular expansion, J. Number Theory 103 (2003)
    27--37.
 
-.. [BmBGL07] \A. Blondin-Masse, S. Brlek, A. Glen, and S. Labbe. On the
+.. [BmBGL07] \A. Blondin-Massé, S. Brlek, A. Glen, and S. Labbé. On the
    critical exponent of generalized Thue-Morse words. *Discrete Math.
    Theor. Comput.  Sci.* 9 (1):293--304, 2007.
 
-.. [BmBGL09] \A. Blondin-Masse, S. Brlek, A. Garon, and S. Labbe. Christoffel
+.. [BmBGL09] \A. Blondin-Massé, S. Brlek, A. Garon, and S. Labbé. Christoffel
    and Fibonacci Tiles, DGCI 2009, Montreal, to appear in LNCS.
 
 .. [Loth02] \M. Lothaire, Algebraic Combinatorics On Words, vol. 90 of
@@ -41,7 +40,7 @@ EXAMPLES::
     sage: t = words.ThueMorseWord(); t
     word: 0110100110010110100101100110100110010110...
 """
-#*****************************************************************************
+# ****************************************************************************
 #       Copyright (C) 2008 Franco Saliola <saliola@gmail.com>,
 #                          Sebastien Labbe <slabqc@gmail.com>,
 #                          Arnaud Bergeron <abergeron@gmail.com>,
@@ -51,24 +50,26 @@ EXAMPLES::
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
-from __future__ import print_function
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
-from six.moves import range
-
+from collections.abc import Iterable
 from itertools import cycle, count
 from random import randint
 from sage.misc.cachefunc import cached_method
-from sage.rings.all import ZZ, RR
+from sage.rings.integer_ring import ZZ
 from sage.rings.infinity import Infinity
 from sage.combinat.words.abstract_word import Word_class
 from sage.combinat.words.word import FiniteWord_list
 from sage.combinat.words.finite_word import FiniteWord_class, Factorization
 from sage.combinat.words.words import FiniteWords, InfiniteWords
 from sage.combinat.words.morphism import WordMorphism
-from sage.arith.all import gcd
+from sage.arith.misc import gcd
 from sage.misc.decorators import rename_keyword
+from sage.misc.lazy_import import lazy_import
+
+lazy_import('sage.rings.real_mpfr', 'RR')
+
 
 def _build_tab(sym, tab, W):
     r"""
@@ -104,10 +105,11 @@ def _build_tab(sym, tab, W):
         res.append((w[-1] % c) + 1)
     return res
 
+
 class LowerChristoffelWord(FiniteWord_list):
     r"""
-    Returns the lower Christoffel word of slope `p/q`, where `p` and
-    `q` are relatively prime non-negative integers, over the given
+    Return the lower Christoffel word of slope `p/q`, where `p` and
+    `q` are relatively prime nonnegative integers, over the given
     two-letter alphabet.
 
     The *Christoffel word of slope `p/q`* is obtained from the
@@ -138,18 +140,18 @@ class LowerChristoffelWord(FiniteWord_list):
         word: 01
     """
 
-    def __init__(self, p, q, alphabet=(0,1), algorithm='cf'):
+    def __init__(self, p, q, alphabet=(0, 1), algorithm='cf'):
         r"""
         INPUT:
 
-        - ``p`` - integer coprime with ``q``.
-        - ``q`` - integer coprime with ``p``.
-        - ``alphabet`` - sequence of two elements (optional, default: (0, 1)).
-        - ``algorithm`` - construction method (optional, default: 'cf').
+        - ``p`` -- integer coprime with `q`
+        - ``q`` -- integer coprime with `p`
+        - ``alphabet`` -- sequence of two elements (default: (0, 1))
+        - ``algorithm`` -- construction method (default: ``'cf'``).
           It can be one of the following:
 
-          - ``'linear'`` - linear algorithm in the length of the word.
-          - ``'cf'`` - fast method using continued fraction.
+          - ``'linear'`` -- linear algorithm in the length of the word
+          - ``'cf'`` -- fast method using continued fraction
 
         TESTS::
 
@@ -183,7 +185,7 @@ class LowerChristoffelWord(FiniteWord_list):
         if len(set(alphabet)) != 2:
             raise ValueError("alphabet must contain exactly two distinct elements")
         # Compute gcd of p, q; raise TypeError if not 1.
-        if gcd(p,q) != 1:
+        if gcd(p, q) != 1:
             raise ValueError("%s and %s are not relatively prime" % (p, q))
         # Compute the Christoffel word
         if algorithm == 'linear':
@@ -193,7 +195,7 @@ class LowerChristoffelWord(FiniteWord_list):
                 w = [alphabet[0]]
             else:
                 for i in range(p + q):
-                    v = (u+p) % (p+q)
+                    v = (u + p) % (p + q)
                     new_letter = alphabet[0] if u < v else alphabet[1]
                     w.append(new_letter)
                     u = v
@@ -207,7 +209,7 @@ class LowerChristoffelWord(FiniteWord_list):
                 cf = QQ((p, q)).continued_fraction_list()
                 u = [alphabet[0]]
                 v = [alphabet[1]]
-                #do not consider the first zero if p < q
+                # do not consider the first zero if p < q
                 start = 1 if p < q else 0
                 for i in range(start, len(cf)-1):
                     if i % 2 == 0:
@@ -221,14 +223,14 @@ class LowerChristoffelWord(FiniteWord_list):
                     v = u * (cf[i]-1) + v
                 w = u + v
         else:
-            raise ValueError('Unknown algorithm (=%s)'%algorithm)
-        super(LowerChristoffelWord, self).__init__(FiniteWords(alphabet), w)
+            raise ValueError(f'unknown algorithm (={algorithm})')
+        super().__init__(FiniteWords(alphabet), w)
         self.__p = p
         self.__q = q
 
     def markoff_number(self):
         r"""
-        Returns the Markoff number associated to the Christoffel word self.
+        Return the Markoff number associated to the Christoffel word ``self``.
 
         The *Markoff number* of a Christoffel word `w` is `trace(M(w))/3`,
         where `M(w)` is the `2\times 2` matrix obtained by applying the
@@ -240,22 +242,22 @@ class LowerChristoffelWord(FiniteWord_list):
 
             sage: w0 = words.LowerChristoffelWord(4,7)
             sage: w1, w2 = w0.standard_factorization()
-            sage: (m0,m1,m2) = (w.markoff_number() for w in (w0,w1,w2))
-            sage: (m0,m1,m2)
+            sage: (m0,m1,m2) = (w.markoff_number() for w in (w0,w1,w2))                 # needs sage.modules
+            sage: (m0,m1,m2)                                                            # needs sage.modules
             (294685, 13, 7561)
-            sage: m0**2 + m1**2 + m2**2 == 3*m0*m1*m2
+            sage: m0**2 + m1**2 + m2**2 == 3*m0*m1*m2                                   # needs sage.modules
             True
         """
         from sage.matrix.constructor import matrix
-        eta = {0:matrix(2,[2,1,1,1]), 1:matrix(2,[5,2,2,1])}
-        M = matrix(2,[1,0,0,1])
+        eta = {0: matrix(2, [2, 1, 1, 1]), 1: matrix(2, [5, 2, 2, 1])}
+        M = matrix(2, [1, 0, 0, 1])
         for a in self:
             M *= eta[a]
-        return M.trace()/3
+        return M.trace() / 3
 
     def standard_factorization(self):
         r"""
-        Returns the standard factorization of the Christoffel word ``self``.
+        Return the standard factorization of the Christoffel word ``self``.
 
         The *standard factorization* of a Christoffel word `w` is the
         unique factorization of `w` into two Christoffel words.
@@ -292,8 +294,12 @@ class LowerChristoffelWord(FiniteWord_list):
                 break
             u = v
         w1, w2 = self[:index+1], self[index+1:]
-        return Factorization([LowerChristoffelWord(w1.count(1),w1.count(0)),
-                LowerChristoffelWord(w2.count(1),w2.count(0))])
+        w10 = w1.number_of_letter_occurrences(0)
+        w11 = w1.number_of_letter_occurrences(1)
+        w20 = w2.number_of_letter_occurrences(0)
+        w21 = w2.number_of_letter_occurrences(1)
+        return Factorization([LowerChristoffelWord(w11, w10),
+                              LowerChristoffelWord(w21, w20)])
 
     def __reduce__(self):
         r"""
@@ -306,7 +312,8 @@ class LowerChristoffelWord(FiniteWord_list):
         """
         return self.__class__, (self.__p, self.__q, self.parent().alphabet())
 
-class WordGenerator(object):
+
+class WordGenerator:
     r"""
     Constructor of several famous words.
 
@@ -347,7 +354,7 @@ class WordGenerator(object):
     .. NOTE::
 
         To see a list of all word constructors, type ``words.`` and then
-        hit the TAB key. The documentation for each constructor
+        hit the :kbd:`Tab` key. The documentation for each constructor
         includes information about each word, which provides a useful
         reference.
 
@@ -360,7 +367,7 @@ class WordGenerator(object):
     """
     def ThueMorseWord(self, alphabet=(0, 1), base=2):
         r"""
-        Returns the (Generalized) Thue-Morse word over the given alphabet.
+        Return the (Generalized) Thue-Morse word over the given alphabet.
 
         There are several ways to define the Thue-Morse word `t`.
         We use the following definition: `t[n]` is the sum modulo `m` of
@@ -370,10 +377,10 @@ class WordGenerator(object):
 
         INPUT:
 
-        -  ``alphabet`` - (default: (0, 1) ) any container that is suitable to
-           build an instance of OrderedAlphabet (list, tuple, str, ...)
+        - ``alphabet`` -- (default: ``(0, 1)``) any container that is suitable
+          to build an instance of OrderedAlphabet (``list``, ``tuple``, ``str``, ...)
 
-        -  ``base`` - an integer (default : 2) greater or equal to 2
+        - ``base`` -- integer (default: 2); greater than or equal to 2
 
         EXAMPLES:
 
@@ -420,15 +427,15 @@ class WordGenerator(object):
         W = InfiniteWords(alphabet)
         alphabet = W.alphabet()
         m = alphabet.cardinality()
-        if base < 2 or m < 2 :
-            raise ValueError("base (=%s) and len(alphabet) (=%s) must be at least 2"%(base, m))
+        if base < 2 or m < 2:
+            raise ValueError("base (=%s) and len(alphabet) (=%s) must be at least 2" % (base, m))
         from functools import partial
         f = partial(self._ThueMorseWord_nth_digit, alphabet=alphabet, base=base)
         return W(f, datatype='callable')
 
-    def _ThueMorseWord_nth_digit(self, n, alphabet=(0,1), base=2):
+    def _ThueMorseWord_nth_digit(self, n, alphabet=(0, 1), base=2):
         r"""
-        Returns the `n`-th letter of the (Generalized) Thue-Morse word.
+        Return the `n`-th letter of the (Generalized) Thue-Morse word.
 
         The `n`-th digit of the Thue-Morse word can be defined as the number
         of bits in the 2-complement representation of the position
@@ -441,9 +448,9 @@ class WordGenerator(object):
 
         INPUT:
 
-        - ``n`` - integer, the position
-        - ``alphabet`` - an alphabet (default : (0, 1) ) of size at least 2
-        - ``base`` - an integer (default : 2) greater or equal to 2
+        - ``n`` -- integer; the position
+        - ``alphabet`` -- an alphabet (default: (0, 1)) of size at least 2
+        - ``base`` -- integer (default: 2) greater than or equal to 2
 
         OUTPUT:
 
@@ -477,22 +484,22 @@ class WordGenerator(object):
                 if n == 0:
                     return alphabet[tn & 1]
                 n &= n - 1
-        elif base < 2 or m < 2 :
-            raise ValueError("base (=%s) and len(alphabet) (=%s) must be at least 2"%(base, m))
+        elif base < 2 or m < 2:
+            raise ValueError("base (=%s) and len(alphabet) (=%s) must be at least 2" % (base, m))
         else:
-            return alphabet[ZZ(sum(ZZ(n).digits(base = base))).mod(m)]
+            return alphabet[ZZ(sum(ZZ(n).digits(base=base))).mod(m)]
 
-    def FibonacciWord(self, alphabet=(0, 1), construction_method="recursive"):
+    def FibonacciWord(self, alphabet=(0, 1), construction_method='recursive'):
         r"""
-        Returns the Fibonacci word on the given two-letter alphabet.
+        Return the Fibonacci word on the given two-letter alphabet.
 
         INPUT:
 
-        -  ``alphabet`` -- any container of length two that is suitable to
-           build an instance of OrderedAlphabet (list, tuple, str, ...)
+        - ``alphabet`` -- any container of length two that is suitable to
+          build an instance of OrderedAlphabet (``list``, ``tuple``, ``str``, ...)
 
-        -  ``construction_method`` -- can be any of the following:
-           "recursive", "fixed point", "function" (see below for definitions).
+        - ``construction_method`` -- can be any of the following:
+          "recursive", "fixed point", "function" (see below for definitions)
 
         Recursive construction: the Fibonacci word is the limit of the
         following sequence of words: `S_0 = 0`, `S_1 = 01`,
@@ -507,19 +514,19 @@ class WordGenerator(object):
         #. if the next letter is `1`, append `1` to the word;
         #. move to the next letter of the word.
 
-        Function: Over the alphabet `\{1, 2\}`, the n-th letter of the
+        Function: Over the alphabet `\{1, 2\}`, the `n`-th letter of the
         Fibonacci word is
         `\lfloor (n+2) \varphi \rfloor - \lfloor (n+1) \varphi \rfloor`
         where `\varphi=(1+\sqrt{5})/2` is the golden ratio.
 
         EXAMPLES::
 
-            sage: w = words.FibonacciWord(construction_method="recursive"); w
+            sage: w = words.FibonacciWord(construction_method='recursive'); w
             word: 0100101001001010010100100101001001010010...
 
         ::
 
-            sage: v = words.FibonacciWord(construction_method="recursive", alphabet='ab'); v
+            sage: v = words.FibonacciWord(construction_method='recursive', alphabet='ab'); v
             word: abaababaabaababaababaabaababaabaababaaba...
 
         ::
@@ -534,9 +541,9 @@ class WordGenerator(object):
 
         ::
 
-            sage: words.FibonacciWord([0,1], 'function')
+            sage: words.FibonacciWord([0,1], 'function')                                # needs sage.symbolic
             word: 0100101001001010010100100101001001010010...
-            sage: words.FibonacciWord('ab', 'function')
+            sage: words.FibonacciWord('ab', 'function')                                 # needs sage.symbolic
             word: abaababaabaababaababaabaababaabaababaaba...
 
         TESTS::
@@ -549,7 +556,7 @@ class WordGenerator(object):
             word: 0100101001001010010100100101001001010010...
             sage: f[:10000] == w[:10000]
             True
-            sage: f[:10000] == u[:10000] #long time
+            sage: f[:10000] == u[:10000]  #long time
             True
             sage: words.FibonacciWord("abc")
             Traceback (most recent call last):
@@ -560,30 +567,32 @@ class WordGenerator(object):
         alphabet = W.alphabet()
         if alphabet.cardinality() != 2:
             raise TypeError("alphabet does not contain two distinct elements")
-        a,b = alphabet
+        a, b = alphabet
 
         if construction_method == "recursive":
             w = W(self._FibonacciWord_RecursiveConstructionIterator(alphabet),
                   datatype='iter')
             return w
 
-        elif construction_method in ("fixed point", "fixed_point"):
-            d = {b:[a],a:[a,b]}
+        if construction_method in ("fixed point", "fixed_point"):
+            d = {b: [a], a: [a, b]}
             w = self.FixedPointOfMorphism(d, a)
             return w
 
-        elif construction_method == "function":
-            from sage.functions.other import sqrt, floor
-            phi = (1 + sqrt(5))/2 # the golden ratio
-            f = lambda n:a if floor((n+2)*phi) - floor((n+1)*phi) == 2 else b
+        if construction_method == "function":
+            from sage.functions.other import floor
+            from sage.misc.functional import sqrt
+            phi = (1 + sqrt(5))/2  # the golden ratio
+
+            def f(n):
+                return a if floor((n+2)*phi) - floor((n+1)*phi) == 2 else b
             return W(f)
 
-        else:
-            raise NotImplementedError
+        raise NotImplementedError
 
-    def _FibonacciWord_RecursiveConstructionIterator(self,alphabet=(0,1)):
+    def _FibonacciWord_RecursiveConstructionIterator(self, alphabet=(0, 1)):
         r"""
-        Iterates over the symbols of the Fibonacci word, as defined by
+        Iterate over the symbols of the Fibonacci word, as defined by
         the following recursive construction: the Fibonacci word is the
         limit of the sequence `S_0 = 0`, `S_1 = 01`, `S_n = S_{n-1}
         S_{n-2}` for `n \geq 2`.
@@ -593,23 +602,22 @@ class WordGenerator(object):
             sage: from sage.combinat.words.word_generators import WordGenerator
             sage: from itertools import islice
             sage: it = WordGenerator()._FibonacciWord_RecursiveConstructionIterator()
-            sage: list(islice(it,13))
+            sage: list(islice(it,13r))
             [0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1]
         """
         Fib0 = [0]
-        Fib1 = [0,1]
+        Fib1 = [0, 1]
         n = 0
         while True:
             it = iter(Fib1[n:])
             for i in it:
                 n += 1
                 yield alphabet[i]
-            else:
-                Fib1, Fib0 = Fib1 + Fib0, Fib1
+            Fib1, Fib0 = Fib1 + Fib0, Fib1
 
     def FixedPointOfMorphism(self, morphism, first_letter):
         r"""
-        Returns the fixed point of the morphism beginning with
+        Return the fixed point of the morphism beginning with
         ``first_letter``.
 
         A *fixed point* of a morphism `\varphi` is a word `w` such that
@@ -617,15 +625,13 @@ class WordGenerator(object):
 
         INPUT:
 
-        -  ``morphism`` -- endomorphism prolongable on ``first_letter``. It
-           must be something that WordMorphism's constructor understands
-           (dict, str, ...).
+        - ``morphism`` -- endomorphism prolongable on ``first_letter``. It
+          must be something that WordMorphism's constructor understands
+          (dict, str, ...).
 
-        -  ``first_letter`` -- the first letter of the fixed point
+        - ``first_letter`` -- the first letter of the fixed point
 
-        OUTPUT:
-
-        The fixed point of the morphism beginning with ``first_letter``
+        OUTPUT: the fixed point of the morphism beginning with ``first_letter``
 
         EXAMPLES::
 
@@ -633,7 +639,7 @@ class WordGenerator(object):
             sage: tm = words.FixedPointOfMorphism(mu,0); tm
             word: 0110100110010110100101100110100110010110...
             sage: TM = words.ThueMorseWord()
-            sage: tm[:1000] == TM[:1000]
+            sage: tm[:1000] == TM[:1000]                                                # needs sage.modules
             True
 
         ::
@@ -643,7 +649,7 @@ class WordGenerator(object):
             word: 0100101001001010010100100101001001010010...
             sage: F = words.FibonacciWord(); F
             word: 0100101001001010010100100101001001010010...
-            sage: f[:1000] == F[:1000]
+            sage: f[:1000] == F[:1000]                                                  # needs sage.modules
             True
 
         ::
@@ -653,9 +659,9 @@ class WordGenerator(object):
         """
         return WordMorphism(morphism).fixed_point(letter=first_letter)
 
-    def CodingOfRotationWord(self, alpha, beta, x=0, alphabet=(0,1)):
+    def CodingOfRotationWord(self, alpha, beta, x=0, alphabet=(0, 1)):
         r"""
-        Returns the infinite word obtained from the coding of rotation of
+        Return the infinite word obtained from the coding of rotation of
         parameters `(\alpha,\beta, x)` over the given two-letter alphabet.
 
         The *coding of rotation* corresponding to the parameters
@@ -685,11 +691,11 @@ class WordGenerator(object):
         if len(set(alphabet)) != 2:
             raise TypeError("alphabet does not contain two distinct elements")
         from functools import partial
-        f = partial(self._CodingOfRotationWord_function,alpha=alpha,beta=beta,x=x,alphabet=alphabet)
-        w = InfiniteWords(alphabet)(f, datatype='callable')
-        return w
+        f = partial(self._CodingOfRotationWord_function,
+                    alpha=alpha, beta=beta, x=x, alphabet=alphabet)
+        return InfiniteWords(alphabet)(f, datatype='callable')
 
-    def _CodingOfRotationWord_function(self, n, alpha, beta, x=0, alphabet=(0,1)):
+    def _CodingOfRotationWord_function(self, n, alpha, beta, x=0, alphabet=(0, 1)):
         r"""
         Internal function that returns the symbol in position `n` of the
         coding of rotation word corresponding to the parameters `\alpha`,
@@ -717,7 +723,7 @@ class WordGenerator(object):
     @rename_keyword(cf='slope')
     def CharacteristicSturmianWord(self, slope, alphabet=(0, 1), bits=None):
         r"""
-        Returns the characteristic Sturmian word (also called standard
+        Return the characteristic Sturmian word (also called standard
         Sturmian word) of given slope.
 
         Over a binary alphabet `\{a,b\}`, the characteristic Sturmian
@@ -738,23 +744,22 @@ class WordGenerator(object):
 
         INPUT:
 
-        -  ``slope`` - the slope of the word. It can be one of the following :
+        - ``slope`` -- the slope of the word. It can be one of the following:
 
-           -  real number in `]0, 1[`
+          - real number in `]0, 1[`
 
-           -  iterable over the continued fraction expansion of a real
-              number in `]0, 1[`
+          - iterable over the continued fraction expansion of a real
+            number in `]0, 1[`
 
-        -  ``alphabet`` - any container of length two that is suitable to
-           build an instance of OrderedAlphabet (list, tuple, str, ...)
+        - ``alphabet`` -- any container of length two that is suitable to
+          build an instance of OrderedAlphabet (``list``, ``tuple``, ``str``,
+          ...)
 
-        -  ``bits`` - integer (optional and considered only if ``slope`` is
-           a real number) the number of bits to consider when computing the
-           continued fraction.
+        - ``bits`` -- integer (optional and considered only if ``slope`` is
+          a real number); the number of bits to consider when computing the
+          continued fraction
 
-        OUTPUT:
-
-        word
+        OUTPUT: word
 
         ALGORITHM:
 
@@ -767,13 +772,13 @@ class WordGenerator(object):
 
         From real slope::
 
-            sage: words.CharacteristicSturmianWord(1/golden_ratio^2)
+            sage: words.CharacteristicSturmianWord(1/golden_ratio^2)                    # needs sage.symbolic
             word: 0100101001001010010100100101001001010010...
-            sage: words.CharacteristicSturmianWord(4/5)
+            sage: words.CharacteristicSturmianWord(4/5)                                 # needs sage.rings.real_mpfr
             word: 11110
-            sage: words.CharacteristicSturmianWord(5/14)
+            sage: words.CharacteristicSturmianWord(5/14)                                # needs sage.rings.real_mpfr
             word: 01001001001001
-            sage: words.CharacteristicSturmianWord(pi-3)
+            sage: words.CharacteristicSturmianWord(pi - 3)                              # needs sage.symbolic
             word: 0000001000000100000010000001000000100000...
 
         From an iterator of the continued fraction expansion of a real::
@@ -782,21 +787,21 @@ class WordGenerator(object):
             ....:   yield 0
             ....:   yield 2
             ....:   while True: yield 1
-            sage: F = words.CharacteristicSturmianWord(cf()); F
+            sage: F = words.CharacteristicSturmianWord(cf()); F                         # needs sage.rings.real_mpfr
             word: 0100101001001010010100100101001001010010...
             sage: Fib = words.FibonacciWord(); Fib
             word: 0100101001001010010100100101001001010010...
-            sage: F[:10000] == Fib[:10000]
+            sage: F[:10000] == Fib[:10000]                                              # needs sage.rings.real_mpfr
             True
 
         The alphabet may be specified::
 
-            sage: words.CharacteristicSturmianWord(cf(), 'rs')
+            sage: words.CharacteristicSturmianWord(cf(), 'rs')                          # needs sage.rings.real_mpfr
             word: rsrrsrsrrsrrsrsrrsrsrrsrrsrsrrsrrsrsrrsr...
 
         The characteristic sturmian word of slope `(\sqrt{3}-1)/2`::
 
-            sage: words.CharacteristicSturmianWord((sqrt(3)-1)/2)
+            sage: words.CharacteristicSturmianWord((sqrt(3)-1)/2)                       # needs sage.symbolic
             word: 0100100101001001001010010010010100100101...
 
         The same word defined from the continued fraction expansion of
@@ -835,19 +840,18 @@ class WordGenerator(object):
             sage: words.CharacteristicSturmianWord(5/4)
             Traceback (most recent call last):
             ...
-            ValueError: The argument slope (=5/4) must be in ]0,1[.
+            ValueError: the argument slope (=5/4) must be in ]0,1[
 
         ::
 
-            sage: words.CharacteristicSturmianWord(1/golden_ratio^2, bits=30)
-            doctest:...: DeprecationWarning: the argument 'bits' is deprecated
-            See http://trac.sagemath.org/14567 for details.
+            sage: words.CharacteristicSturmianWord(1/golden_ratio^2)                    # needs sage.symbolic
             word: 0100101001001010010100100101001001010010...
-            sage: _.length()
+            sage: _.length()                                                            # needs sage.symbolic
             +Infinity
 
         ::
 
+            sage: # needs sage.symbolic
             sage: a = words.LowerMechanicalWord(1/pi)[1:]
             sage: b = words.UpperMechanicalWord(1/pi)[1:]
             sage: c = words.CharacteristicSturmianWord(1/pi)
@@ -873,16 +877,12 @@ class WordGenerator(object):
             sage: u[1:-1] == v[:-2]
             True
         """
-        if bits is not None:
-            from sage.misc.superseded import deprecation
-            deprecation(14567, "the argument 'bits' is deprecated")
-
         if len(set(alphabet)) != 2:
             raise TypeError("alphabet does not contain two distinct elements")
 
         if slope in RR:
             if not 0 < slope < 1:
-                msg = "The argument slope (=%s) must be in ]0,1[."%slope
+                msg = "the argument slope (=%s) must be in ]0,1[" % slope
                 raise ValueError(msg)
             from sage.rings.continued_fraction import continued_fraction
             cf = continued_fraction(slope)
@@ -891,31 +891,29 @@ class WordGenerator(object):
             else:
                 parent = FiniteWords(alphabet)
             cf = iter(cf)
-        elif hasattr(slope, '__iter__'):
+        elif isinstance(slope, Iterable):
             cf = iter(slope)
             parent = InfiniteWords(alphabet)
         else:
-            raise TypeError("slope (=%s) must be a real number"%slope +
-                            "or an iterable.")
-        w = parent(self._CharacteristicSturmianWord_LetterIterator(cf,alphabet),
+            raise TypeError("slope (=%s) must be a real number" % slope +
+                            "or an iterable")
+        w = parent(self._CharacteristicSturmianWord_LetterIterator(cf, alphabet),
                    datatype='iter')
         return w
 
-    def _CharacteristicSturmianWord_LetterIterator(self, cf, alphabet=(0,1)):
+    def _CharacteristicSturmianWord_LetterIterator(self, cf, alphabet=(0, 1)):
         r"""
-        Returns an iterator over the symbols of the characteristic
+        Return an iterator over the symbols of the characteristic
         Sturmian word of slope ``cf``.
 
         INPUT:
 
-        - ``cf`` - iterator, the continued fraction expansion of a real
-          number in `]0, 1[`.
-        - ``alphabet`` - the alphabet (optional, default ``(0,1)``) of
+        - ``cf`` -- iterator, the continued fraction expansion of a real
+          number in `]0, 1[`
+        - ``alphabet`` -- the alphabet (default: ``(0,1)``) of
           the output
 
-        OUTPUT:
-
-        iterator of letters
+        OUTPUT: iterator of letters
 
         ALGORITHM:
 
@@ -926,14 +924,15 @@ class WordGenerator(object):
 
         EXAMPLES::
 
-            sage: continued_fraction(1/golden_ratio^2)[:8]
+            sage: continued_fraction(1/golden_ratio^2)[:8]                              # needs sage.symbolic
             [0; 2, 1, 1, 1, 1, 2]
-            sage: cf = iter(_)
-            sage: Word(words._CharacteristicSturmianWord_LetterIterator(cf))
+            sage: cf = iter(_)                                                          # needs sage.symbolic
+            sage: Word(words._CharacteristicSturmianWord_LetterIterator(cf))            # needs sage.symbolic
             word: 0100101001001010010100100101001010
 
         ::
 
+            sage: # needs sage.symbolic
             sage: alpha = (sqrt(3)-1)/2
             sage: continued_fraction(alpha)[:10]
             [0; 2, 1, 2, 1, 2, 1, 2, 1, 2]
@@ -941,25 +940,35 @@ class WordGenerator(object):
             sage: Word(words._CharacteristicSturmianWord_LetterIterator(cf))
             word: 0100100101001001001010010010010100100101...
         """
-        if next(cf) != 0:
-            raise ValueError("The first term of the continued fraction expansion must be zero.")
+        try:
+            if next(cf) != 0:
+                raise ValueError("the first term of the continued fraction expansion must be zero")
+        except StopIteration:
+            return
+
         s0 = [1]
         s1 = [0]
-        e = next(cf)
+        try:
+            e = next(cf)
+        except StopIteration:
+            return
+
         if not e >= 1:
-            raise ValueError("The second term of the continued fraction expansion must be larger or equal to 1.")
+            raise ValueError("the second term of the continued fraction expansion must be larger or equal to 1")
         s1, s0 = s1*(e-1) + s0, s1
         n = 0
         while True:
-            for i in s1[n:]:
-                n += 1
-                yield alphabet[i]
-            else:
+            try:
+                for i in s1[n:]:
+                    n += 1
+                    yield alphabet[i]
                 s1, s0 = s1*next(cf) + s0, s1
+            except StopIteration:
+                return
 
-    def KolakoskiWord(self, alphabet=(1,2)):
+    def KolakoskiWord(self, alphabet=(1, 2)):
         r"""
-        Returns the Kolakoski word over the given alphabet and
+        Return the Kolakoski word over the given alphabet and
         starting with the first letter of the alphabet.
 
         Let `A = \{a,b\}` be an alphabet, where `a` and `b` are two
@@ -973,14 +982,15 @@ class WordGenerator(object):
         words `K_{a,b}` and `K_{b,a}` are the unique two words over `A`
         that are fixed by `\Delta`.
 
+        Also note that the Kolakoski word is also known as the
+        Oldenburger word.
+
         INPUT:
 
-        -  ``alphabet`` - (default: (1,2)) an iterable of two positive
-           integers
+        - ``alphabet`` -- (default: (1,2)) an iterable of two positive
+          integers
 
-        OUTPUT:
-
-        infinite word
+        OUTPUT: infinite word
 
         EXAMPLES:
 
@@ -1021,7 +1031,7 @@ class WordGenerator(object):
             sage: words.KolakoskiWord((0, 2))
             Traceback (most recent call last):
             ...
-            ValueError: The alphabet (=(0, 2)) must consist of two distinct positive integers
+            ValueError: the alphabet (=(0, 2)) must consist of two distinct positive integers
 
         REFERENCES:
 
@@ -1031,13 +1041,13 @@ class WordGenerator(object):
         """
         a, b = alphabet
         if a not in ZZ or a <= 0 or b not in ZZ or b <= 0 or a == b:
-            msg = 'The alphabet (=%s) must consist of two distinct positive integers'%(alphabet,)
+            msg = 'the alphabet (=%s) must consist of two distinct positive integers' % (alphabet,)
             raise ValueError(msg)
-        return InfiniteWords(alphabet)(self._KolakoskiWord_iterator(a, b), datatype = 'iter')
+        return InfiniteWords(alphabet)(self._KolakoskiWord_iterator(a, b), datatype='iter')
 
     def _KolakoskiWord_iterator(self, a=1, b=2):
         r"""
-        Returns an iterator over the Kolakoski word over ``{a,b}``
+        Return an iterator over the Kolakoski word over ``{a,b}``
         and starting with ``a``.
 
         Let `A = \{a,b\}` be an alphabet, where `a` and `b` are two
@@ -1053,14 +1063,12 @@ class WordGenerator(object):
 
         INPUT:
 
-        -  ``a`` - positive integer (default: 1), the first letter occurring
-           in the returned Kolakoski word.
-        -  ``b`` - positive integer (default: 2), the second and last letter
-           occuring in the returned Kolakoski word.
+        - ``a`` -- positive integer (default: 1); the first letter occurring
+          in the returned Kolakoski word
+        - ``b`` -- positive integer (default: 2); the second and last letter
+          occurring in the returned Kolakoski word
 
-        OUTPUT:
-
-        iterator
+        OUTPUT: iterator
 
         EXAMPLES:
 
@@ -1083,7 +1091,7 @@ class WordGenerator(object):
             w.pop(0)
         w.pop(0)
         # Letters swap function
-        bar = lambda x : a if x == b else b
+        bar = lambda x: a if x == b else b
         current_letter = bar(w[-1])
         # Now we are ready to go in the recursive part
         while True:
@@ -1095,7 +1103,7 @@ class WordGenerator(object):
 
     def LowerMechanicalWord(self, alpha, rho=0, alphabet=None):
         r"""
-        Returns the lower mechanical word with slope `\alpha` and
+        Return the lower mechanical word with slope `\alpha` and
         intercept `\rho`
 
         The lower mechanical word `s_{\alpha,\rho}` with
@@ -1107,38 +1115,36 @@ class WordGenerator(object):
 
         - ``alpha`` -- real number such that `0 \leq\alpha\leq 1`
 
-        - ``rho`` -- real number (optional, default: 0)
+        - ``rho`` -- real number (default: 0)
 
         - ``alphabet`` -- iterable of two elements or ``None``
-          (optional, default: ``None``)
+          (default: ``None``)
 
-        OUTPUT:
-
-        infinite word
+        OUTPUT: infinite word
 
         EXAMPLES::
 
-            sage: words.LowerMechanicalWord(1/golden_ratio^2)
+            sage: words.LowerMechanicalWord(1/golden_ratio^2)                           # needs sage.symbolic
             word: 0010010100100101001010010010100100101001...
-            sage: words.LowerMechanicalWord(1/5)
+            sage: words.LowerMechanicalWord(1/5)                                        # needs sage.symbolic
             word: 0000100001000010000100001000010000100001...
-            sage: words.LowerMechanicalWord(1/pi)
+            sage: words.LowerMechanicalWord(1/pi)                                       # needs sage.symbolic
             word: 0001001001001001001001000100100100100100...
 
         TESTS::
 
-            sage: m = words.LowerMechanicalWord(1/golden_ratio^2)[1:]
-            sage: s = words.CharacteristicSturmianWord(1/golden_ratio^2)
-            sage: m[:500] == s[:500]
+            sage: m = words.LowerMechanicalWord(1/golden_ratio^2)[1:]                   # needs sage.symbolic
+            sage: s = words.CharacteristicSturmianWord(1/golden_ratio^2)                # needs sage.symbolic
+            sage: m[:500] == s[:500]                                                    # needs sage.symbolic
             True
 
-        Check that this returns a word in an alphabet (:trac:`10054`)::
+        Check that this returns a word in an alphabet (:issue:`10054`)::
 
-            sage: words.UpperMechanicalWord(1/golden_ratio^2).parent()
+            sage: words.UpperMechanicalWord(1/golden_ratio^2).parent()                  # needs sage.symbolic
             Infinite words over {0, 1}
         """
         if not 0 <= alpha <= 1:
-            raise ValueError("Parameter alpha (=%s) must be in [0,1]."%alpha)
+            raise ValueError("parameter alpha (=%s) must be in [0,1]" % alpha)
 
         from sage.functions.other import floor
         from sage.combinat.words.alphabet import build_alphabet
@@ -1149,13 +1155,13 @@ class WordGenerator(object):
             alphabet = build_alphabet(alphabet)
             card = alphabet.cardinality()
             if card != 2:
-                raise TypeError("size of alphabet (=%s) must be two"%card)
+                raise TypeError("size of alphabet (=%s) must be two" % card)
             s = lambda n: alphabet[floor(alpha*(n+1) + rho) - floor(alpha*n + rho)]
         return InfiniteWords(alphabet)(s)
 
     def UpperMechanicalWord(self, alpha, rho=0, alphabet=None):
         r"""
-        Returns the upper mechanical word with slope `\alpha` and
+        Return the upper mechanical word with slope `\alpha` and
         intercept `\rho`
 
         The upper mechanical word `s'_{\alpha,\rho}` with
@@ -1167,38 +1173,36 @@ class WordGenerator(object):
 
         - ``alpha`` -- real number such that `0 \leq\alpha\leq 1`
 
-        - ``rho`` -- real number (optional, default: 0)
+        - ``rho`` -- real number (default: 0)
 
         - ``alphabet`` -- iterable of two elements or ``None``
-          (optional, default: ``None``)
+          (default: ``None``)
 
-        OUTPUT:
-
-        infinite word
+        OUTPUT: infinite word
 
         EXAMPLES::
 
-            sage: words.UpperMechanicalWord(1/golden_ratio^2)
+            sage: words.UpperMechanicalWord(1/golden_ratio^2)                           # needs sage.symbolic
             word: 1010010100100101001010010010100100101001...
-            sage: words.UpperMechanicalWord(1/5)
+            sage: words.UpperMechanicalWord(1/5)                                        # needs sage.symbolic
             word: 1000010000100001000010000100001000010000...
-            sage: words.UpperMechanicalWord(1/pi)
+            sage: words.UpperMechanicalWord(1/pi)                                       # needs sage.symbolic
             word: 1001001001001001001001000100100100100100...
 
         TESTS::
 
-            sage: m = words.UpperMechanicalWord(1/golden_ratio^2)[1:]
-            sage: s = words.CharacteristicSturmianWord(1/golden_ratio^2)
-            sage: m[:500] == s[:500]
+            sage: m = words.UpperMechanicalWord(1/golden_ratio^2)[1:]                   # needs sage.symbolic
+            sage: s = words.CharacteristicSturmianWord(1/golden_ratio^2)                # needs sage.symbolic
+            sage: m[:500] == s[:500]                                                    # needs sage.symbolic
             True
 
-        Check that this returns a word in an alphabet (:trac:`10054`)::
+        Check that this returns a word in an alphabet (:issue:`10054`)::
 
-            sage: words.UpperMechanicalWord(1/golden_ratio^2).parent()
+            sage: words.UpperMechanicalWord(1/golden_ratio^2).parent()                  # needs sage.symbolic
             Infinite words over {0, 1}
         """
         if not 0 <= alpha <= 1:
-            raise ValueError("Parameter alpha (=%s) must be in [0,1]."%alpha)
+            raise ValueError("parameter alpha (=%s) must be in [0,1]" % alpha)
 
         from sage.functions.other import ceil
         from sage.combinat.words.alphabet import build_alphabet
@@ -1209,13 +1213,13 @@ class WordGenerator(object):
             alphabet = build_alphabet(alphabet)
             card = alphabet.cardinality()
             if card != 2:
-                raise TypeError("size of alphabet (=%s) must be two"%card)
+                raise TypeError("size of alphabet (=%s) must be two" % card)
             s = lambda n: alphabet[ceil(alpha*(n+1) + rho) - ceil(alpha*n + rho)]
         return InfiniteWords(alphabet)(s)
 
     def StandardEpisturmianWord(self, directive_word):
         r"""
-        Returns the standard episturmian word (or epistandard word) directed by
+        Return the standard episturmian word (or epistandard word) directed by
         directive_word. Over a 2-letter alphabet, this function
         gives characteristic Sturmian words.
 
@@ -1229,12 +1233,12 @@ class WordGenerator(object):
         Note that an infinite word is *episturmian* if it has the same set
         of factors as some epistandard word.
 
-        See for instance [DJP01]_, [JP02]_, and [GJ07]_.
+        See for instance [DJP2001]_, [JP2002]_, and [GJ2007]_.
 
         INPUT:
 
-        -  ``directive_word`` - an infinite word or a period of a periodic
-           infinite word
+        - ``directive_word`` -- an infinite word or a period of a periodic
+          infinite word
 
         EXAMPLES::
 
@@ -1258,20 +1262,12 @@ class WordGenerator(object):
             Traceback (most recent call last):
             ...
             TypeError: directive_word is not a word, so it cannot be used to build an episturmian word
-
-        REFERENCES:
-
-        .. [JP02] \J. Justin, G. Pirillo, Episturmian words and episturmian
-           morphisms, Theoret. Comput. Sci. 276 (2002) 281--313.
-
-        .. [GJ07] \A. Glen, J. Justin, Episturmian words: a survey, Preprint,
-           2007, arXiv:0801.1655.
         """
         if not isinstance(directive_word, Word_class):
-           raise TypeError("directive_word is not a word, so it cannot be used to build an episturmian word")
-        epistandard = directive_word.parent()(\
-                self._StandardEpisturmianWord_LetterIterator(directive_word), \
-                datatype='iter')
+            raise TypeError("directive_word is not a word, so it cannot be used to build an episturmian word")
+        epistandard = directive_word.parent()(
+            self._StandardEpisturmianWord_LetterIterator(directive_word),
+            datatype='iter')
         return epistandard
 
     def _StandardEpisturmianWord_LetterIterator(self, directive_word):
@@ -1287,45 +1283,42 @@ class WordGenerator(object):
 
         INPUT:
 
-        -  ``directive_word`` - an infinite word or a finite word. If
-           directive_word is finite, then it is repeated to give
-           an infinite word.
+        - ``directive_word`` -- an infinite word or a finite word; if
+          directive_word is finite, then it is repeated to give
+          an infinite word
 
         TESTS::
 
             sage: import itertools
             sage: it = words._StandardEpisturmianWord_LetterIterator(Word('ab'))
-            sage: list(itertools.islice(it, 13))
+            sage: list(itertools.islice(it, 13r))
             ['a', 'b', 'a', 'a', 'b', 'a', 'b', 'a', 'a', 'b', 'a', 'a', 'b']
         """
         if isinstance(directive_word, FiniteWord_class):
-           d = cycle(directive_word)
+            d = cycle(directive_word)
         else:
-           d = iter(directive_word)
+            d = iter(directive_word)
         W = directive_word.parent()
         w = W(next(d))
         n = 0
         while True:
-              for x in w[n:]:
-                  n += 1
-                  yield x
-              else:
-                  w = W(w*W(next(d))).palindromic_closure()
+            for x in w[n:]:
+                n += 1
+                yield x
+            w = W(w * W(next(d))).palindromic_closure()
 
     def MinimalSmoothPrefix(self, n):
         r"""
         This function finds and returns the minimal smooth prefix of length
         ``n``.
 
-        See [BMP07]_ for a definition.
+        See [BMP2007]_ for a definition.
 
         INPUT:
 
         - ``n`` -- the desired length of the prefix
 
-        OUTPUT:
-
-        word -- the prefix
+        OUTPUT: word; the prefix
 
         .. NOTE::
 
@@ -1336,12 +1329,6 @@ class WordGenerator(object):
 
             sage: words.MinimalSmoothPrefix(10)
             word: 1212212112
-
-        REFERENCES:
-
-        .. [BMP07] \S. Brlek, G. Melançon, G. Paquin, Properties of the extremal
-           infinite smooth words, Discrete Math. Theor. Comput. Sci. 9 (2007)
-           33--49.
         """
         tab = []
         W = FiniteWords([1, 2])
@@ -1359,17 +1346,17 @@ class WordGenerator(object):
         return W(w)
 
     def RandomWord(self, n, m=2, alphabet=None):
-        """
-        Returns a random word of length `n` over the given `m`-letter
+        r"""
+        Return a random word of length `n` over the given `m`-letter
         alphabet.
 
         INPUT:
 
-        - ``n`` - integer, the length of the word
-        - ``m`` - integer (default 2), the size of the output alphabet
-        -  ``alphabet`` - (default is `\{0,1,...,m-1\}`) any container of
-           length m that is suitable to build an instance of
-           OrderedAlphabet (list, tuple, str, ...)
+        - ``n`` -- integer; the length of the word
+        - ``m`` -- integer (default: 2); the size of the output alphabet
+        - ``alphabet`` -- (default: `\{0,1,...,m-1\}`) any container of
+          length m that is suitable to build an instance of
+          OrderedAlphabet (``list``, ``tuple``, ``str``, ...)
 
         EXAMPLES::
 
@@ -1396,17 +1383,17 @@ class WordGenerator(object):
         if alphabet is None:
             alphabet = list(range(m))
         if len(set(alphabet)) != m:
-            raise TypeError("alphabet does not contain %s distinct elements" % m)
-        return FiniteWords(alphabet)([alphabet[randint(0,m-1)] for i in range(n)])
+            raise TypeError(f"alphabet does not contain {m} distinct elements")
+        return FiniteWords(alphabet)([alphabet[randint(0, m - 1)] for i in range(n)])
 
     LowerChristoffelWord = LowerChristoffelWord
 
     ChristoffelWord = LowerChristoffelWord
 
-    def UpperChristoffelWord(self, p, q, alphabet=(0,1)):
+    def UpperChristoffelWord(self, p, q, alphabet=(0, 1)):
         r"""
-        Returns the upper Christoffel word of slope `p/q`, where
-        `p` and `q` are relatively prime non-negative
+        Return the upper Christoffel word of slope `p/q`, where
+        `p` and `q` are relatively prime nonnegative
         integers, over the given alphabet.
 
         The *upper Christoffel word of slope `p/q`* is equal to the
@@ -1418,9 +1405,8 @@ class WordGenerator(object):
 
         INPUT:
 
-        -  ``alphabet`` - any container of length two that is
-           suitable to build an instance of OrderedAlphabet (list, tuple, str,
-           ...)
+        - ``alphabet`` -- any container of length two that is suitable to build
+          an instance of OrderedAlphabet (``list``, ``tuple``, ``str``, ...)
 
         EXAMPLES::
 
@@ -1455,7 +1441,7 @@ class WordGenerator(object):
     @cached_method
     def _fibonacci_tile(self, n, q_0=None, q_1=3):
         r"""
-        Returns the word `q_n` defined by the recurrence below.
+        Return the word `q_n` defined by the recurrence below.
 
         The sequence `(q_n)_{n\in\NN}` is defined by `q_0=\varepsilon`,
         `q_1=3` and
@@ -1471,11 +1457,11 @@ class WordGenerator(object):
 
         INPUT:
 
-        - ``n`` - non negative integer
-        - ``q_0`` - first initial value (default: None) It can be None, 0, 1,
-          2 or 3.
-        - ``q_1`` - second initial value (default: 3) It can be None, 0, 1, 2
-          or 3.
+        - ``n`` -- nonnegative integer
+        - ``q_0`` -- first initial value (default: ``None``); it can be
+          ``None``, 0, 1, 2 or 3
+        - ``q_1`` -- second initial value (default: 3); it can be ``None``, 0,
+          1, 2 or 3
 
         EXAMPLES::
 
@@ -1495,31 +1481,31 @@ class WordGenerator(object):
 
         [BmBGL09]_
         """
-        from sage.combinat.words.all import WordMorphism
-        W = FiniteWords([0,1,2,3])
-        bar = WordMorphism({0:0,1:3,3:1,2:2},codomain=W)
-        if n==0:
+        from sage.combinat.words.morphism import WordMorphism
+        W = FiniteWords([0, 1, 2, 3])
+        bar = WordMorphism({0: 0, 1: 3, 3: 1, 2: 2}, codomain=W)
+        if n == 0:
             a = [] if q_0 is None else [q_0]
             return W(a)
-        elif n==1:
+        elif n == 1:
             b = [] if q_1 is None else [q_1]
             return W(b)
-        elif n%3 == 2:
-            u = self._fibonacci_tile(n-1,q_0,q_1)
-            v = self._fibonacci_tile(n-2,q_0,q_1)
+        elif n % 3 == 2:
+            u = self._fibonacci_tile(n - 1, q_0, q_1)
+            v = self._fibonacci_tile(n - 2, q_0, q_1)
             return u * v
         else:
-            u = self._fibonacci_tile(n-1,q_0,q_1)
-            v = bar(self._fibonacci_tile(n-2,q_0,q_1))
+            u = self._fibonacci_tile(n - 1, q_0, q_1)
+            v = bar(self._fibonacci_tile(n - 2, q_0, q_1))
             return u * v
 
     def fibonacci_tile(self, n):
         r"""
-        Returns the `n`-th Fibonacci Tile [BmBGL09]_.
+        Return the `n`-th Fibonacci Tile [BmBGL09]_.
 
         EXAMPLES::
 
-            sage: for i in range(3): words.fibonacci_tile(i)
+            sage: for i in range(3): words.fibonacci_tile(i)                            # needs sage.modules
             Path: 3210
             Path: 323030101212
             Path: 3230301030323212323032321210121232121010...
@@ -1527,39 +1513,39 @@ class WordGenerator(object):
         w = self._fibonacci_tile(3*n+1)
         w = w**4
         from sage.combinat.words.paths import WordPaths
-        P = WordPaths([0,1,2,3])
-        l = list(w.partial_sums(start=3,mod=4))
+        P = WordPaths([0, 1, 2, 3])
+        l = list(w.partial_sums(start=3, mod=4))
         return P(l)[:-1]
 
     def dual_fibonacci_tile(self, n):
         r"""
-        Returns the `n`-th dual Fibonacci Tile [BmBGL09]_.
+        Return the `n`-th dual Fibonacci Tile [BmBGL09]_.
 
         EXAMPLES::
 
-            sage: for i in range(4): words.dual_fibonacci_tile(i)
+            sage: for i in range(4): words.dual_fibonacci_tile(i)                       # needs sage.modules
             Path: 3210
             Path: 32123032301030121012
             Path: 3212303230103230321232101232123032123210...
             Path: 3212303230103230321232101232123032123210...
         """
-        w = self._fibonacci_tile(3*n+1,3,3)
+        w = self._fibonacci_tile(3*n+1, 3, 3)
         w = w**4
         from sage.combinat.words.paths import WordPaths
-        P = WordPaths([0,1,2,3])
-        l = list(w.partial_sums(start=3,mod=4))
+        P = WordPaths([0, 1, 2, 3])
+        l = list(w.partial_sums(start=3, mod=4))
         return P(l)[:-1]
 
     def _s_adic_iterator(self, sequence, letters):
         r"""
-        Returns the iterator over the `s`-adic infinite word obtained from a
+        Return the iterator over the `s`-adic infinite word obtained from a
         sequence of morphisms applied on letters where the hypothesis of
         nested prefixes is used.
 
         DEFINITION (from [Fogg]_):
 
         Let `w` be a infinite word over an alphabet `A = A_0`. A
-        standard representation of $w$ is obtained from a sequence of
+        standard representation of `w` is obtained from a sequence of
         substitutions `\sigma_k : A_{k+1} \to A_k` and a sequence of letters
         `a_k \in A_k` such that:
 
@@ -1573,19 +1559,17 @@ class WordGenerator(object):
 
         INPUT:
 
-        - ``sequence`` - An iterable sequence of morphisms. It may be finite
-          or infinite.
-        - ``letters`` - An iterable  sequence of letters. The image of the
+        - ``sequence`` -- an iterable sequence of morphisms. It may be finite
+          or infinite
+        - ``letters`` -- an iterable  sequence of letters. The image of the
           (i+1)-th letter under the (i+1)-th morphism must start with the i-th
-          letter.
+          letter
 
-        OUTPUT:
-
-        iterator of letters
+        OUTPUT: iterator of letters
 
         EXAMPLES:
 
-        Let's define three morphisms and compute the first nested succesive
+        Let's define three morphisms and compute the first nested successive
         prefixes of the `s`-adic word::
 
             sage: m1 = WordMorphism('e->gh,f->hg')
@@ -1604,7 +1588,7 @@ class WordGenerator(object):
             sage: Word(words._s_adic_iterator([m1,m2,m3],'ecb'))
             Traceback (most recent call last):
             ...
-            ValueError: The hypothesis of the algorithm used is not satisfied: the image of the 3-th letter (=b) under the 3-th morphism (=a->cd, b->dc) should start with the 2-th letter (=c).
+            ValueError: the hypothesis of the algorithm used is not satisfied; the image of the 3-th letter (=b) under the 3-th morphism (=a->cd, b->dc) should start with the 2-th letter (=c)
 
         Two examples of infinite `s`-adic words::
 
@@ -1618,10 +1602,10 @@ class WordGenerator(object):
 
         A less trivial infinite `s`-adic word::
 
-            sage: m = WordMorphism({4:tm,5:fib})
+            sage: D = {4:tm,5:fib}
             sage: tmword = words.ThueMorseWord([4,5])
-            sage: w = m(tmword)
-            sage: Word(words._s_adic_iterator(w, repeat('a')))
+            sage: it = (D[a] for a in tmword)
+            sage: Word(words._s_adic_iterator(it, repeat('a')))
             word: abbaababbaabbaabbaababbaababbaabbaababba...
 
         The morphism `\sigma: a \mapsto ba, b \mapsto b` cannot satisfy the
@@ -1631,34 +1615,32 @@ class WordGenerator(object):
             sage: Word(words._s_adic_iterator(repeat(sigma),repeat('a')))
             Traceback (most recent call last):
             ...
-            ValueError: The hypothesis of the algorithm used is not satisfied: the image of the 2-th letter (=a) under the 2-th morphism (=a->ba, b->b) should start with the 1-th letter (=a).
+            ValueError: the hypothesis of the algorithm used is not satisfied; the image of the 2-th letter (=a) under the 2-th morphism (=a->ba, b->b) should start with the 1-th letter (=a)
 
         AUTHORS:
 
-        - Sebastien Labbe (2009-12-18): initial version
+        - Sébastien Labbé (2009-12-18): initial version
         """
         from itertools import tee
-        from builtins import zip
-        sequence_it,sequence = tee(sequence)
+        sequence_it, sequence = tee(sequence)
         m = next(sequence_it)
         codomain = m.codomain()
         p = codomain.identity_morphism()
-        letters_it,letters = tee(letters)
+        letters_it, letters = tee(letters)
         precedent_letter = m(next(letters_it))[0]
 
         yield precedent_letter
-        for (i,(m,a)) in enumerate(zip(sequence, letters)):
+        for (i, (m, a)) in enumerate(zip(sequence, letters)):
             if not precedent_letter == m(a)[0]:
-                raise ValueError("The hypothesis of the algorithm used is not satisfied: the image of the %s-th letter (=%s) under the %s-th morphism (=%s) should start with the %s-th letter (=%s)."%(i+1,a,i+1,m,i,precedent_letter))
+                raise ValueError("the hypothesis of the algorithm used is not satisfied; the image of the %s-th letter (=%s) under the %s-th morphism (=%s) should start with the %s-th letter (=%s)" % (i+1, a, i+1, m, i, precedent_letter))
             w = p(m(a)[1:])
-            for b in w:
-                yield b
+            yield from w
             p = p * m
             precedent_letter = a
 
     def s_adic(self, sequence, letters, morphisms=None):
         r"""
-        Returns the `s`-adic infinite word obtained from a sequence of
+        Return the `s`-adic infinite word obtained from a sequence of
         morphisms applied on a letter.
 
         DEFINITION (from [Fogg]_):
@@ -1678,24 +1660,22 @@ class WordGenerator(object):
 
         INPUT:
 
-        - ``sequence`` - An iterable sequence of indices or of morphisms. It
+        - ``sequence`` -- an iterable sequence of indices or of morphisms. It
           may be finite or infinite. If ``sequence`` is infinite, the image
           of the `(i+1)`-th letter under the `(i+1)`-th morphism must start
           with the `i`-th letter.
 
-        - ``letters`` - A letter or a sequence of letters.
+        - ``letters`` -- a letter or a sequence of letters
 
-        - ``morphisms`` - dict, list, callable or ``None`` (optional, default
+        - ``morphisms`` -- dict, list, callable or ``None`` (default:
           ``None``) an object that maps indices to morphisms. If ``None``, then
           ``sequence`` must consist of morphisms.
 
-        OUTPUT:
-
-        A word.
+        OUTPUT: a word
 
         EXAMPLES:
 
-        Let's define three morphisms and compute the first nested succesive
+        Let us define three morphisms and compute the first nested successive
         prefixes of the `s`-adic word::
 
             sage: m1 = WordMorphism('e->gh,f->hg')
@@ -1723,7 +1703,7 @@ class WordGenerator(object):
             sage: words.s_adic([m1,m2,m3],'ecb')
             Traceback (most recent call last):
             ...
-            ValueError: The hypothesis of the algorithm used is not satisfied: the image of the 3-th letter (=b) under the 3-th morphism (=a->cd, b->dc) should start with the 2-th letter (=c).
+            ValueError: the hypothesis of the algorithm used is not satisfied; the image of the 3-th letter (=b) under the 3-th morphism (=a->cd, b->dc) should start with the 2-th letter (=c)
 
         Let's define the Thue-Morse morphism and the Fibonacci morphism
         which will be used below to illustrate more examples and let's import
@@ -1745,8 +1725,10 @@ class WordGenerator(object):
 
         A less trivial infinite `s`-adic word::
 
-            sage: t = words.ThueMorseWord([tm,fib])
-            sage: words.s_adic(t, repeat('a'))
+            sage: D = {4:tm,5:fib}
+            sage: tmword = words.ThueMorseWord([4,5])
+            sage: it = (D[a] for a in tmword)
+            sage: words.s_adic(it, repeat('a'))
             word: abbaababbaabbaabbaababbaababbaabbaababba...
 
         The same thing using a sequence of indices::
@@ -1755,7 +1737,7 @@ class WordGenerator(object):
             sage: words.s_adic(tmword, repeat('a'), [tm,fib])
             word: abbaababbaabbaabbaababbaababbaabbaababba...
 
-        The correspondance of the indices may be given as a dict::
+        The correspondence of the indices may be given as a dict::
 
             sage: words.s_adic(tmword, repeat('a'), {0:tm,1:fib})
             word: abbaababbaabbaabbaababbaababbaabbaababba...
@@ -1777,11 +1759,11 @@ class WordGenerator(object):
             sage: from sage.misc.prandom import randint
             sage: def it():
             ....:   while True: yield randint(0,1)
-            sage: words.s_adic(it(), repeat('a'), [tm,fib])
+            sage: words.s_adic(it(), repeat('a'), [tm,fib])  # random
             word: abbaabababbaababbaabbaababbaabababbaabba...
-            sage: words.s_adic(it(), repeat('a'), [tm,fib])
+            sage: words.s_adic(it(), repeat('a'), [tm,fib])  # random
             word: abbaababbaabbaababbaababbaabbaababbaabba...
-            sage: words.s_adic(it(), repeat('a'), [tm,fib])
+            sage: words.s_adic(it(), repeat('a'), [tm,fib])  # random
             word: abaaababaabaabaaababaabaaababaaababaabaa...
 
         An example where the sequences cycle on two morphisms and two
@@ -1803,7 +1785,7 @@ class WordGenerator(object):
             sage: words.s_adic(repeat(sigma),repeat('a'))
             Traceback (most recent call last):
             ...
-            ValueError: The hypothesis of the algorithm used is not satisfied: the image of the 2-th letter (=a) under the 2-th morphism (=a->ba, b->b) should start with the 1-th letter (=a).
+            ValueError: the hypothesis of the algorithm used is not satisfied; the image of the 2-th letter (=a) under the 2-th morphism (=a->ba, b->b) should start with the 1-th letter (=a)
             sage: words.s_adic([sigma],'a')
             word: ba
             sage: words.s_adic([sigma,sigma],'a')
@@ -1851,7 +1833,7 @@ class WordGenerator(object):
             sage: w.parent()
             Finite words over {'a', 'b'}
             sage: type(w)
-            <class 'sage.combinat.words.word.FiniteWord_iter_with_caching'>
+            <class 'sage.combinat.words.word.FiniteWord_callable_with_caching'>
 
         ::
 
@@ -1868,7 +1850,7 @@ class WordGenerator(object):
             sage: words.s_adic([fib,fib],'bb')
             Traceback (most recent call last):
             ...
-            ValueError: The hypothesis of the algorithm used is not satisfied: the image of the 2-th letter (=b) under the 2-th morphism (=a->ab, b->a) should start with the 1-th letter (=b).
+            ValueError: the hypothesis of the algorithm used is not satisfied; the image of the 2-th letter (=b) under the 2-th morphism (=a->ab, b->a) should start with the 1-th letter (=b)
 
         Test on different letters::
 
@@ -1883,56 +1865,54 @@ class WordGenerator(object):
             sage: words.s_adic(words.ThueMorseWord(), repeat(0), 5)
             Traceback (most recent call last):
             ...
-            TypeError: morphisms (=5) must be None, callable or provide a __getitem__ method.
+            TypeError: morphisms (=5) must be None, callable or provide a __getitem__ method
 
         AUTHORS:
 
-        - Sebastien Labbe (2009-12-18): initial version
+        - Sébastien Labbé (2009-12-18): initial version
         """
         if morphisms is None:
             seq = sequence
         elif hasattr(morphisms, '__getitem__'):
             seq = (morphisms[i] for i in sequence)
-        elif hasattr(morphisms, '__call__'):
+        elif callable(morphisms):
             seq = (morphisms(i) for i in sequence)
         else:
-            raise TypeError("morphisms (=%s) must be None, callable or provide a __getitem__ method."%morphisms)
+            raise TypeError("morphisms (=%s) must be None, callable or provide a __getitem__ method" % morphisms)
 
         from sage.combinat.words.word import FiniteWord_class
-        if isinstance(sequence,(tuple,list,str,FiniteWord_class)) \
+        if isinstance(sequence, (tuple, list, str, FiniteWord_class)) \
         and hasattr(letters, "__len__") and len(letters) == 1:
-            from sage.misc.all import prod
+            from sage.misc.misc_c import prod
             return prod(seq)(letters)
 
         from itertools import tee
-        seq_it,seq= tee(seq)
+        seq_it, seq = tee(seq)
         m = next(seq_it)
         W = m.codomain()
 
         kwds = {}
-        kwds['data'] = self._s_adic_iterator(seq,letters)
+        kwds['data'] = self._s_adic_iterator(seq, letters)
         kwds['datatype'] = 'iter'
         kwds['caching'] = True
-        #kwds['check'] = False
+        # kwds['check'] = False
         return W.shift()(**kwds)
 
     def PalindromicDefectWord(self, k=1, alphabet='ab'):
         r"""
-        Returns the finite word `w = a b^k a b^{k-1} a a b^{k-1} a b^{k} a`.
+        Return the finite word `w = a b^k a b^{k-1} a a b^{k-1} a b^{k} a`.
 
-        As described by Brlek, Hamel, Nivat and Reuteunaer in [BHNR04]_, this
+        As described by Brlek, Hamel, Nivat and Reutenauer in [BHNR2004]_, this
         finite word `w` is such that the infinite periodic word `w^{\omega}`
-        have palindromic defect ``k``.
+        has palindromic defect ``k``.
 
         INPUT:
 
-        - ``k`` -- positive integer (optional, default: 1)
+        - ``k`` -- positive integer (default: 1)
 
-        - ``alphabet`` -- iterable (optional, default: ``'ab'``) of size two
+        - ``alphabet`` -- iterable of size two (default: ``'ab'``)
 
-        OUTPUT:
-
-        finite word
+        OUTPUT: finite word
 
         EXAMPLES::
 
@@ -1980,7 +1960,7 @@ class WordGenerator(object):
 
     def BaumSweetWord(self):
         r"""
-        Returns the Baum-Sweet Word.
+        Return the Baum-Sweet Word.
 
         The Baum-Sweet Sequence is an infinite word over the alphabet `\{0,1\}`
         defined by the following string substitution rules:
@@ -2015,7 +1995,7 @@ class WordGenerator(object):
         .. MATH::
 
             b_n = \begin{cases}
-            1,      & \text{if the binary representation of} n \text{ contains no block of consecutive 0's of odd length}\\
+            1,      & \text{if the binary representation of} n \text{ contains no block of consecutive 0s of odd length}\\
             0,      & \text{otherwise}\\
             \end{cases}\\
 
@@ -2041,5 +2021,6 @@ class WordGenerator(object):
         outer = WordMorphism('a->00,b->01,c->10,d->11')
         inner = WordMorphism('a->aa,b->cb,c->ba,d->db')
         return outer(inner.fixed_point('d'))
+
 
 words = WordGenerator()

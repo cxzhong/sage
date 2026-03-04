@@ -1,5 +1,6 @@
+# sage.doctest: needs sage.libs.pari
 r"""
-Modular Forms for `\Gamma_0(N)` over `\QQ`
+Modular forms for `\Gamma_0(N)` over `\QQ`
 
 TESTS::
 
@@ -7,7 +8,6 @@ TESTS::
     sage: loads(dumps(m)) == m
     True
 """
-from __future__ import absolute_import
 
 #########################################################################
 #       Copyright (C) 2006 William Stein <wstein@gmail.com>
@@ -17,16 +17,15 @@ from __future__ import absolute_import
 #                  http://www.gnu.org/licenses/
 #########################################################################
 
-import sage.rings.all as rings
+from sage.misc.cachefunc import cached_method
+from sage.modular.arithgroup.congroup_gamma0 import Gamma0_constructor
+from sage.rings.rational_field import Q as QQ
 
-import sage.modular.arithgroup.all as arithgroup
+from . import ambient, cuspidal_submodule, eisenstein_submodule
 
-from . import ambient
-from . import cuspidal_submodule
-from . import eisenstein_submodule
 
 class ModularFormsAmbient_g0_Q(ambient.ModularFormsAmbient):
-    """
+    r"""
     A space of modular forms for `\Gamma_0(N)` over `\QQ`.
     """
     def __init__(self, level, weight):
@@ -37,15 +36,32 @@ class ModularFormsAmbient_g0_Q(ambient.ModularFormsAmbient):
         EXAMPLES::
 
             sage: m = ModularForms(Gamma0(11),4); m
-            Modular Forms space of dimension 4 for Congruence Subgroup Gamma0(11) of weight 4 over Rational Field
+            Modular Forms space of dimension 4 for Congruence Subgroup Gamma0(11)
+             of weight 4 over Rational Field
             sage: type(m)
             <class 'sage.modular.modform.ambient_g0.ModularFormsAmbient_g0_Q_with_category'>
         """
-        ambient.ModularFormsAmbient.__init__(self, arithgroup.Gamma0(level), weight, rings.QQ)
+        ambient.ModularFormsAmbient.__init__(self, Gamma0_constructor(level), weight, QQ)
+
+    def _pari_init_(self):
+        """
+        Conversion to Pari.
+
+        EXAMPLES::
+
+            sage: m = ModularForms(Gamma0(11),4)
+            sage: pari.mfdim(m)
+            4
+            sage: pari.mfparams(m)
+            [11, 4, 1, 4, t - 1]
+        """
+        from sage.libs.pari import pari
+        return pari.mfinit([self.level(), self.weight()], 4)
 
     ####################################################################
     # Computation of Special Submodules
     ####################################################################
+    @cached_method
     def cuspidal_submodule(self):
         r"""
         Return the cuspidal submodule of this space of modular forms for
@@ -55,19 +71,17 @@ class ModularFormsAmbient_g0_Q(ambient.ModularFormsAmbient):
 
             sage: m = ModularForms(Gamma0(33),4)
             sage: s = m.cuspidal_submodule(); s
-            Cuspidal subspace of dimension 10 of Modular Forms space of dimension 14 for Congruence Subgroup Gamma0(33) of weight 4 over Rational Field
+            Cuspidal subspace of dimension 10 of Modular Forms space of dimension 14
+             for Congruence Subgroup Gamma0(33) of weight 4 over Rational Field
             sage: type(s)
             <class 'sage.modular.modform.cuspidal_submodule.CuspidalSubmodule_g0_Q_with_category'>
         """
-        try:
-            return self.__cuspidal_submodule
-        except AttributeError:
-            if self.level() == 1:
-                self.__cuspidal_submodule = cuspidal_submodule.CuspidalSubmodule_level1_Q(self)
-            else:
-                self.__cuspidal_submodule = cuspidal_submodule.CuspidalSubmodule_g0_Q(self)
-        return self.__cuspidal_submodule
+        if self.level() == 1:
+            return cuspidal_submodule.CuspidalSubmodule_level1_Q(self)
+        else:
+            return cuspidal_submodule.CuspidalSubmodule_g0_Q(self)
 
+    @cached_method
     def eisenstein_submodule(self):
         r"""
         Return the Eisenstein submodule of this space of modular forms for
@@ -77,17 +91,14 @@ class ModularFormsAmbient_g0_Q(ambient.ModularFormsAmbient):
 
             sage: m = ModularForms(Gamma0(389),6)
             sage: m.eisenstein_submodule()
-            Eisenstein subspace of dimension 2 of Modular Forms space of dimension 163 for Congruence Subgroup Gamma0(389) of weight 6 over Rational Field
+            Eisenstein subspace of dimension 2 of Modular Forms space of dimension 163
+             for Congruence Subgroup Gamma0(389) of weight 6 over Rational Field
         """
-        try:
-            return self.__eisenstein_submodule
-        except AttributeError:
-            self.__eisenstein_submodule = eisenstein_submodule.EisensteinSubmodule_g0_Q(self)
-        return self.__eisenstein_submodule
+        return eisenstein_submodule.EisensteinSubmodule_g0_Q(self)
 
     def _compute_atkin_lehner_matrix(self, d):
         r"""
-        Compute the matrix of the Atkin-Lehner involution W_d acting on self,
+        Compute the matrix of the Atkin-Lehner operator W_d acting on self,
         where d is a divisor of the level.  This is only implemented in the
         (trivial) level 1 case.
 

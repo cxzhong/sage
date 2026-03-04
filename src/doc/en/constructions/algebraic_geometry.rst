@@ -38,7 +38,7 @@ algorithm. Here is an example of the syntax:
     sage: C.rational_points(algorithm="bn")
     [(0 : 0 : 1), (0 : 1 : 0), (2 : 2 : 1), (2 : 3 : 1), (3 : 1 : 1), (3 : 4 : 1)]
 
-The option ``algorithm="bn`` uses Sage's Singular interface and
+The option ``algorithm="bn"`` uses Sage's Singular interface and
 calls the ``brnoeth`` package.
 
 Here is another example using Sage's ``rational_points`` applied to
@@ -139,16 +139,20 @@ Other methods
 
        sage: singular.lib("brnoeth.lib")
        sage: s = singular.ring(2,'(x,y)','lp')
-       sage: I = singular.ideal('[x^4+x, y^4+y]')
+       sage: I = singular.ideal('x^4+x', 'y^4+y')
        sage: L = singular.closed_points(I)
        sage: # Here you have all the points :
-       sage: print(L)
+       sage: L       # random
        [1]:
-          _[1]=y+1  # 32-bit
-          _[2]=x+1  # 32-bit
-          _[1]=y    # 64-bit
-          _[2]=x    # 64-bit
+          _[1]=y+1
+          _[2]=x+1
        ...
+       sage: l=[L[k].sage() for k in [1..10]]; len(l) # there are 10 points
+       10
+       sage: r=sorted(l[0].ring().gens()); r
+       [y, x]
+       sage: r in [t.gens() for t in l] #  one of them is given by [y,x]
+       True
 
 -  Another way to compute rational points is to use Singular's
    ``NSplaces`` command. Here's the Klein quartic over :math:`GF(8)`
@@ -158,14 +162,12 @@ Other methods
 
        sage: singular.LIB("brnoeth.lib")
        sage: s = singular.ring(2,'(x,y)','lp')
-       ...
        sage: f = singular.poly('x3y+y3+x')
-       ...
        sage: klein1 = f.Adj_div(); print(klein1)
        [1]:
           [1]:
-             //   coefficients: ZZ/2
-       //   number of vars : 2
+             // coefficients: ZZ/2...
+       // number of vars : 2
        //        block   1 : ordering lp
        //                  : names    x y
        //        block   2 : ordering C
@@ -187,14 +189,14 @@ Other methods
        sage: print(klein1)
        [1]:
           [1]:
-             //   coefficients: ZZ/2
-       //   number of vars : 2
+             // coefficients: ZZ/2...
+       // number of vars : 2
        //        block   1 : ordering lp
        //                  : names    x y
        //        block   2 : ordering C
           [2]:
-             //   coefficients: ZZ/2
-       //   number of vars : 3
+             // coefficients: ZZ/2...
+       // number of vars : 3
        //        block   1 : ordering lp
        //                  : names    x y z
        //        block   2 : ordering C
@@ -210,8 +212,8 @@ Other methods
        [5]:
           [1]:
              [1]:
-                //   coefficients: ZZ/2
-       //   number of vars : 3
+                // coefficients: ZZ/2...
+       // number of vars : 3
        //        block   1 : ordering ls
        //                  : names    x y t
        //        block   2 : ordering C
@@ -325,11 +327,11 @@ Singular itself to help an understanding of how the wrapper works.
        sage: X = Curve(f); pts = X.rational_points()
        sage: D = X.divisor([ (3, pts[0]), (-1,pts[1]), (10, pts[5]) ])
        sage: X.riemann_roch_basis(D)
-       [(-x - 2*y)/(-2*x - 2*y), (-x + z)/(x + y)]
+       [(-2*x + y)/(x + y), (-x + z)/(x + y)]
 
 -  Using Singular's ``BrillNoether`` command (for details see the section
    Brill-Noether in the Singular online documentation
-   (http://www.singular.uni-kl.de/Manual/html/sing_960.htm and the
+   (https://www.singular.uni-kl.de/Manual/4-3-0/sing_2254.htm and the
    paper {CF}):
 
    ::

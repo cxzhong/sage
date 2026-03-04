@@ -3,10 +3,8 @@ Conjugacy Classes Of The Symmetric Group
 
 AUTHORS:
 
-- Vincent Delacroix, Travis Scrimshaw (2014-11-23)
+- Vincent Delecroix, Travis Scrimshaw (2014-11-23)
 """
-from __future__ import print_function
-from six.moves import range
 
 from sage.groups.conjugacy_classes import ConjugacyClass, ConjugacyClassGAP
 from sage.groups.perm_gps.permgroup_element import PermutationGroupElement
@@ -17,7 +15,7 @@ from sage.sets.set import Set
 import itertools
 
 
-class SymmetricGroupConjugacyClassMixin(object):
+class SymmetricGroupConjugacyClassMixin:
     r"""
     Mixin class which contains methods for conjugacy classes of
     the symmetric group.
@@ -30,8 +28,8 @@ class SymmetricGroupConjugacyClassMixin(object):
 
             sage: G = SymmetricGroup(5)
             sage: g = G([(1,2), (3,4,5)])
-            sage: C = G.conjugacy_class(Partition([3,2]))
-            sage: type(C._part)
+            sage: C = G.conjugacy_class(Partition([3,2]))                               # needs sage.combinat
+            sage: type(C._part)                                                         # needs sage.combinat
             <class 'sage.combinat.partition.Partitions_n_with_category.element_class'>
         """
         P = Partitions_n(len(domain))
@@ -46,11 +44,11 @@ class SymmetricGroupConjugacyClassMixin(object):
         EXAMPLES::
 
             sage: G = SymmetricGroup(4)
-            sage: G.conjugacy_class(Partition([4]))
+            sage: G.conjugacy_class(Partition([4]))                                     # needs sage.combinat
             Conjugacy class of cycle type [4] in
              Symmetric group of order 4! as a permutation group
         """
-        return "Conjugacy class of cycle type %s in %s"%(self._part, self._parent)
+        return "Conjugacy class of cycle type %s in %s" % (self._part, self._parent)
 
     def __eq__(self, other):
         r"""
@@ -61,9 +59,9 @@ class SymmetricGroupConjugacyClassMixin(object):
 
             sage: G = SymmetricGroup(5)
             sage: g = G([(1,2), (3,4,5)])
-            sage: C = G.conjugacy_class(Partition([3,2]))
-            sage: Cp = G.conjugacy_class(g)
-            sage: C == Cp
+            sage: C = G.conjugacy_class(Partition([3,2]))                               # needs sage.combinat
+            sage: Cp = G.conjugacy_class(g)                                             # needs sage.combinat
+            sage: C == Cp                                                               # needs sage.combinat
             True
         """
         if not isinstance(other, SymmetricGroupConjugacyClassMixin):
@@ -78,9 +76,9 @@ class SymmetricGroupConjugacyClassMixin(object):
 
             sage: G = SymmetricGroup(5)
             sage: g = G([(1,3), (2,4,5)])
-            sage: C = G.conjugacy_class(Partition([3,2]))
-            sage: Cp = G.conjugacy_class(g)
-            sage: C != Cp
+            sage: C = G.conjugacy_class(Partition([3,2]))                               # needs sage.combinat
+            sage: Cp = G.conjugacy_class(g)                                             # needs sage.combinat
+            sage: C != Cp                                                               # needs sage.combinat
             False
         """
         return not (self == other)
@@ -93,7 +91,7 @@ class SymmetricGroupConjugacyClassMixin(object):
 
             sage: G = SymmetricGroup(5)
             sage: g = G([(1,2), (3,4,5)])
-            sage: C = G.conjugacy_class(g)
+            sage: C = G.conjugacy_class(g)                                              # needs sage.combinat
         """
         return self._part
 
@@ -113,6 +111,7 @@ class SymmetricGroupConjugacyClass(SymmetricGroupConjugacyClassMixin, ConjugacyC
 
         EXAMPLES::
 
+            sage: # needs sage.combinat
             sage: G = SymmetricGroup(5)
             sage: g = G([(1,2), (3,4,5)])
             sage: C = G.conjugacy_class(g)
@@ -135,16 +134,16 @@ class SymmetricGroupConjugacyClass(SymmetricGroupConjugacyClassMixin, ConjugacyC
         EXAMPLES::
 
             sage: G = SymmetricGroup(4)
-            sage: C = G.conjugacy_class(Partition([3,1]))
-            sage: for x in C: x
+            sage: C = G.conjugacy_class(Partition([3,1]))                               # needs sage.combinat
+            sage: for x in C: x                                                         # needs sage.combinat
             (2,3,4)
             (2,4,3)
-            (1,3,4)
-            (1,4,3)
-            (1,2,4)
-            (1,4,2)
             (1,2,3)
             (1,3,2)
+            (1,2,4)
+            (1,4,2)
+            (1,3,4)
+            (1,4,3)
         """
         if self._set:
             for x in self._set:
@@ -152,7 +151,7 @@ class SymmetricGroupConjugacyClass(SymmetricGroupConjugacyClassMixin, ConjugacyC
             return
 
         for x in conjugacy_class_iterator(self._part, self._parent.domain()):
-            yield PermutationGroupElement(x, self._parent, check=False)
+            yield self._parent.element_class(x, self._parent, check=False)
 
     def set(self):
         r"""
@@ -162,15 +161,16 @@ class SymmetricGroupConjugacyClass(SymmetricGroupConjugacyClassMixin, ConjugacyC
 
             sage: G = SymmetricGroup(3)
             sage: g = G((1,2))
-            sage: C = G.conjugacy_class(g)
+            sage: C = G.conjugacy_class(g)                                              # needs sage.combinat
             sage: S = [(2,3), (1,2), (1,3)]
-            sage: C.set() == Set(G(x) for x in S)
+            sage: C.set() == Set(G(x) for x in S)                                       # needs sage.combinat
             True
         """
         if not self._set:
-            self._set = Set(PermutationGroupElement(x, self._parent, check=False)
-                            for x in conjugacy_class_iterator(self._part, self._domain) )
+            self._set = Set(self._parent.element_class(x, self._parent, check=False)
+                            for x in conjugacy_class_iterator(self._part, self._domain))
         return self._set
+
 
 class PermutationsConjugacyClass(SymmetricGroupConjugacyClassMixin, ConjugacyClass):
     """
@@ -187,6 +187,7 @@ class PermutationsConjugacyClass(SymmetricGroupConjugacyClassMixin, ConjugacyCla
 
         EXAMPLES::
 
+            sage: # needs sage.combinat
             sage: G = Permutations(5)
             sage: g = G([2, 1, 4, 5, 3])
             sage: C = G.conjugacy_class(g)
@@ -199,7 +200,7 @@ class PermutationsConjugacyClass(SymmetricGroupConjugacyClassMixin, ConjugacyCla
             part = elt.cycle_type()
         else:
             elt = P.element_in_conjugacy_classes(part)
-        SymmetricGroupConjugacyClassMixin.__init__(self, range(1, P.n+1), part)
+        SymmetricGroupConjugacyClassMixin.__init__(self, range(1, P.n + 1), part)
         ConjugacyClass.__init__(self, P, elt)
 
     def __iter__(self):
@@ -209,16 +210,16 @@ class PermutationsConjugacyClass(SymmetricGroupConjugacyClassMixin, ConjugacyCla
         EXAMPLES::
 
             sage: G = Permutations(4)
-            sage: C = G.conjugacy_class(Partition([3,1]))
-            sage: for x in C: x
+            sage: C = G.conjugacy_class(Partition([3,1]))                               # needs sage.combinat
+            sage: for x in C: x                                                         # needs sage.combinat
             [1, 3, 4, 2]
             [1, 4, 2, 3]
-            [3, 2, 4, 1]
-            [4, 2, 1, 3]
-            [2, 4, 3, 1]
-            [4, 1, 3, 2]
             [2, 3, 1, 4]
             [3, 1, 2, 4]
+            [2, 4, 3, 1]
+            [4, 1, 3, 2]
+            [3, 2, 4, 1]
+            [4, 2, 1, 3]
         """
         if self._set:
             for x in self._set:
@@ -236,18 +237,19 @@ class PermutationsConjugacyClass(SymmetricGroupConjugacyClassMixin, ConjugacyCla
 
             sage: G = Permutations(3)
             sage: g = G([2, 1, 3])
-            sage: C = G.conjugacy_class(g)
+            sage: C = G.conjugacy_class(g)                                              # needs sage.combinat
             sage: S = [[1, 3, 2], [2, 1, 3], [3, 2, 1]]
-            sage: C.set() == Set(G(x) for x in S)
+            sage: C.set() == Set(G(x) for x in S)                                       # needs sage.combinat
             True
         """
         if not self._set:
             self._set = Set(from_cycles(self._parent.n, x, self._parent)
-                            for x in conjugacy_class_iterator(self._part, self._domain) )
+                            for x in conjugacy_class_iterator(self._part, self._domain))
         return self._set
 
+
 #####################################################################
-## Helper functions
+# Helper functions
 
 def default_representative(part, G):
     r"""
@@ -272,9 +274,9 @@ def default_representative(part, G):
 
     EXAMPLES::
 
-        sage: from sage.groups.perm_gps.symgp_conjugacy_class import default_representative
+        sage: from sage.groups.perm_gps.symgp_conjugacy_class import default_representative         # needs sage.combinat
         sage: S = SymmetricGroup(4)
-        sage: for p in Partitions(4):
+        sage: for p in Partitions(4):                                                   # needs sage.combinat
         ....:     print(default_representative(p, S))
         (1,2,3,4)
         (1,2,3)
@@ -286,84 +288,78 @@ def default_representative(part, G):
     total = 0
     cycles = []
     for p in part:
-        cycles.append(tuple(D[total:total+p]))
+        cycles.append(tuple(D[total:total + p]))
         total += p
-    # TODO: Change this to G.element_class(cycles, check=False)
-    #   once SymmetricGroup is a proper parent.
-    return PermutationGroupElement(cycles, G, check=False)
+    return G.element_class(cycles, G, check=False)
+
 
 def conjugacy_class_iterator(part, S=None):
     r"""
     Return an iterator over the conjugacy class associated to
     the partition ``part``.
-    
+
     The elements are given as a list of tuples, each tuple being a cycle.
 
     INPUT:
 
     - ``part`` -- partition
 
-    - ``S`` -- (optional, default: `\{ 1, 2, \ldots, n \}`, where `n`
+    - ``S`` -- (default: `\{ 1, 2, \ldots, n \}`, where `n`
       is the size of ``part``) a set
 
-    OUTPUT:
-
-    An iterator over the conjugacy class consisting of all
-    permutations of the set ``S`` whose cycle type is ``part``.
+    OUTPUT: an iterator over the conjugacy class consisting of all
+    permutations of the set ``S`` whose cycle type is ``part``
 
     EXAMPLES::
 
-        sage: from sage.groups.perm_gps.symgp_conjugacy_class import conjugacy_class_iterator
-        sage: for p in conjugacy_class_iterator([2,2]): print(p)
+        sage: from sage.groups.perm_gps.symgp_conjugacy_class import conjugacy_class_iterator       # needs sage.combinat
+        sage: for p in conjugacy_class_iterator([2,2]): print(p)                        # needs sage.combinat
         [(1, 2), (3, 4)]
-        [(1, 3), (2, 4)]
         [(1, 4), (2, 3)]
+        [(1, 3), (2, 4)]
 
-    In order to get permutations, one can use ``map``
-    from the Python module ``builtins`` (works with Python 2 and Python 3)::
+    In order to get permutations, one just has to wrap::
 
-        sage: from builtins import map
         sage: S = SymmetricGroup(5)
-        sage: for p in map(S, conjugacy_class_iterator([3,2])): print(p)
-        (1,2)(3,4,5)
-        (1,2)(3,5,4)
+        sage: for p in conjugacy_class_iterator([3,2]): print(S(p))                     # needs sage.combinat
         (1,3)(2,4,5)
         (1,3)(2,5,4)
+        (1,2)(3,4,5)
+        (1,2)(3,5,4)
         ...
-        (1,4,2)(3,5)
-        (1,2,3)(4,5)
-        (1,3,2)(4,5)
+        (1,4)(2,3,5)
+        (1,4)(2,5,3)
 
     Check that the number of elements is the number of elements in
     the conjugacy class::
 
         sage: s = lambda p: sum(1 for _ in conjugacy_class_iterator(p))
-        sage: all(s(p) == p.conjugacy_class_size() for p in Partitions(5))
+        sage: all(s(p) == p.conjugacy_class_size() for p in Partitions(5))              # needs sage.combinat
         True
 
     It is also possible to specify any underlying set::
 
-        sage: it = conjugacy_class_iterator([2,2,2], 'abcdef')
-        sage: next(it)
-        [('a', 'c'), ('b', 'e'), ('d', 'f')]
-        sage: next(it)
-        [('a', 'c'), ('b', 'd'), ('e', 'f')]
+        sage: it = conjugacy_class_iterator([2,2,2], 'abcdef')                          # needs sage.combinat
+        sage: sorted(flatten(next(it)))                                                 # needs sage.combinat
+        ['a', 'b', 'c', 'd', 'e', 'f']
+        sage: all(len(x) == 2 for x in next(it))                                        # needs sage.combinat
+        True
     """
     n = sum(part)
     if part not in _Partitions:
         raise ValueError("invalid partition")
     if S is None:
-        S = range(1, n+1)
+        S = range(1, n + 1)
     else:
         S = list(S)
         if n != len(S):
-            raise ValueError("the sum of the partition %s does not match the size of %s"%(part,S))
+            raise ValueError("the sum of the partition %s does not match the size of %s" % (part, S))
 
     m = len(part)
     for s in SetPartitions(S, part):
-        firsts = [t[0] for t in s]
-        rests = [t[1:] for t in s]
+        its = [iter(t) for t in s]
+        firsts = [next(t) for t in its]
+        rests = [list(t) for t in its]
         iterator = tuple(itertools.permutations(r) for r in rests)
         for r in itertools.product(*iterator):
             yield [(firsts[i],) + r[i] for i in range(m)]
-

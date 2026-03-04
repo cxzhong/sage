@@ -1,20 +1,18 @@
-"""
-Cython helper functions for congruence subgroups
+r"""
+Helper functions for congruence subgroups
 
 This file contains optimized Cython implementations of a few functions related
 to the standard congruence subgroups `\Gamma_0, \Gamma_1, \Gamma_H`.  These
 functions are for internal use by routines elsewhere in the Sage library.
 """
 
-#*****************************************************************************
+# ****************************************************************************
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
-
-from __future__ import absolute_import
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
 from cysignals.memory cimport check_allocarray, sig_free
 
@@ -29,11 +27,11 @@ arith_int = sage.rings.fast_arith.arith_int()
 from sage.matrix.matrix_integer_dense cimport Matrix_integer_dense
 from sage.modular.modsym.p1list import lift_to_sl2z
 from sage.matrix.matrix_space import MatrixSpace
-from sage.rings.all import ZZ
-Mat2Z = MatrixSpace(ZZ,2)
+from sage.rings.integer_ring import ZZ
+Mat2Z = MatrixSpace(ZZ, 2)
 
 cdef Matrix_integer_dense genS, genT, genI
-genS = Matrix_integer_dense(Mat2Z, [0,-1, 1, 0], True, True)
+genS = Matrix_integer_dense(Mat2Z, [0, -1, 1, 0], True, True)
 genT = Matrix_integer_dense(Mat2Z, [1, 1, 0, 1], True, True)
 genI = Matrix_integer_dense(Mat2Z, [1, 0, 0, 1], True, True)
 
@@ -54,9 +52,9 @@ def degeneracy_coset_representatives_gamma0(int N, int M, int t):
 
     INPUT:
 
-    - ``N`` -- int
-    - ``M`` -- int (divisor of `N`)
-    - ``t`` -- int (divisor of `N/M`)
+    - ``N`` -- integer
+    - ``M`` -- integer (divisor of `N`)
+    - ``t`` -- integer (divisor of `N/M`)
 
     OUTPUT:
 
@@ -72,10 +70,10 @@ def degeneracy_coset_representatives_gamma0(int N, int M, int t):
 
     ALGORITHM:
 
-    1. Compute representatives for $\Gamma_0(N/t,t)$ inside of $\Gamma_0(M)$:
+    1. Compute representatives for `\Gamma_0(N/t,t)` inside of `\Gamma_0(M)`:
 
       + COSET EQUIVALENCE: Two right cosets represented by `[a,b;c,d]` and
-        `[a',b';c',d']` of `\Gamma_0(N/t,t)` in `{\rm SL}_2(\ZZ)` are equivalent if
+        `[a',b';c',d']` of `\Gamma_0(N/t,t)` in `\SL_2(\ZZ)` are equivalent if
         and only if `(a,b)=(a',b')` as points of `\mathbf{P}^1(\ZZ/t\ZZ)`,
         i.e., `ab' \cong ba' \pmod{t}`, and `(c,d) = (c',d')` as points of
         `\mathbf{P}^1(\ZZ/(N/t)\ZZ)`.
@@ -107,10 +105,10 @@ def degeneracy_coset_representatives_gamma0(int N, int M, int t):
         14
     """
     if N % M != 0:
-        raise ArithmeticError("M (=%s) must be a divisor of N (=%s)" % (M,N))
+        raise ArithmeticError(f"M (={M}) must be a divisor of N (={N})")
 
-    if (N/M) % t != 0:
-        raise ArithmeticError("t (=%s) must be a divisor of N/M (=%s)"%(t,N/M))
+    if (N // M) % t != 0:
+        raise ArithmeticError(f"t (={t}) must be a divisor of N/M (={N//M})")
 
     cdef int n, i, j, k, aa, bb, cc, dd, g, Ndivt, halfmax, is_new
     cdef int* R
@@ -118,24 +116,26 @@ def degeneracy_coset_representatives_gamma0(int N, int M, int t):
     # total number of coset representatives that we'll find
     n = Gamma0(N).index() / Gamma0(M).index()
     k = 0   # number found so far
-    Ndivt = N / t
+    Ndivt = N // t
     R = <int*>check_allocarray(4 * n, sizeof(int))
     halfmax = 2*(n+10)
     while k < n:
         # try to find another coset representative.
         cc = M*random.randrange(-halfmax, halfmax+1)
-        dd =   random.randrange(-halfmax, halfmax+1)
-        g = arith_int.c_xgcd_int(-cc,dd,&bb,&aa)
-        if g == 0: continue
-        cc = cc / g
-        if cc % M != 0: continue
-        dd = dd / g
+        dd = random.randrange(-halfmax, halfmax+1)
+        g = arith_int.c_xgcd_int(-cc, dd, &bb, &aa)
+        if g == 0:
+            continue
+        cc = cc // g
+        if cc % M != 0:
+            continue
+        dd = dd // g
         # Test if we've found a new coset representative.
         is_new = 1
-        for i from 0 <= i < k:
+        for i in range(k):
             j = 4*i
-            if (R[j+1]*aa - R[j]*bb)%t == 0 and \
-               (R[j+3]*cc - R[j+2]*dd)%Ndivt == 0:
+            if (R[j+1]*aa - R[j]*bb) % t == 0 and \
+               (R[j+3]*cc - R[j+2]*dd) % Ndivt == 0:
                 is_new = 0
                 break
         # If our matrix is new add it to the list.
@@ -148,11 +148,12 @@ def degeneracy_coset_representatives_gamma0(int N, int M, int t):
 
     # Return the list left multiplied by T.
     S = []
-    for i from 0 <= i < k:
+    for i in range(k):
         j = 4*i
         S.append([R[j], R[j+1], R[j+2]*t, R[j+3]*t])
     sig_free(R)
     return S
+
 
 def degeneracy_coset_representatives_gamma1(int N, int M, int t):
     r"""
@@ -164,9 +165,9 @@ def degeneracy_coset_representatives_gamma1(int N, int M, int t):
 
     INPUT:
 
-    - ``N`` -- int
-    - ``M`` -- int (divisor of `N`)
-    - ``t`` -- int (divisor of `N/M`)
+    - ``N`` -- integer
+    - ``M`` -- integer (divisor of `N`)
+    - ``t`` -- integer (divisor of `N/M`)
 
     OUTPUT:
 
@@ -184,7 +185,7 @@ def degeneracy_coset_representatives_gamma1(int N, int M, int t):
     form `(1,*; 0,1) \bmod N/t` and `(1,0; *,1) \bmod t`.
 
     COSET EQUIVALENCE: Two right cosets represented by `[a,b;c,d]` and
-    `[a',b';c',d']` of `\Gamma_1(N/t,t)` in `{\rm SL}_2(\ZZ)` are equivalent if
+    `[a',b';c',d']` of `\Gamma_1(N/t,t)` in `\SL_2(\ZZ)` are equivalent if
     and only if
 
     .. MATH::
@@ -204,43 +205,44 @@ def degeneracy_coset_representatives_gamma1(int N, int M, int t):
         sage: len(degeneracy_coset_representatives_gamma1(13, 1, 13))
         168
     """
-
     if N % M != 0:
-        raise ArithmeticError("M (=%s) must be a divisor of N (=%s)" % (M,N))
+        raise ArithmeticError(f"M (={M}) must be a divisor of N (={N})")
 
-    if (N/M) % t != 0:
-        raise ArithmeticError("t (=%s) must be a divisor of N/M (=%s)"%(t,N/M))
+    if (N // M) % t != 0:
+        raise ArithmeticError(f"t (={t}) must be a divisor of N/M (={N//M})")
 
     cdef int d, g, i, j, k, n, aa, bb, cc, dd, Ndivt, halfmax, is_new
     cdef int* R
 
-
     # total number of coset representatives that we'll find
     n = Gamma1(N).index() / Gamma1(M).index()
-    d = arith_int.c_gcd_int(t, N/t)
-    n = n / d
+    d = arith_int.c_gcd_int(t, N // t)
+    n = n // d
     k = 0   # number found so far
-    Ndivt = N / t
+    Ndivt = N // t
     R = <int*>check_allocarray(4 * n, sizeof(int))
     halfmax = 2*(n+10)
     while k < n:
         # try to find another coset representative.
-        cc =     M*random.randrange(-halfmax, halfmax+1)
-        dd = 1 + M*random.randrange(-halfmax, halfmax+1)
-        g = arith_int.c_xgcd_int(-cc,dd,&bb,&aa)
-        if g == 0: continue
-        cc = cc / g
-        if cc % M != 0: continue
-        dd = dd / g
-        if M != 1 and dd % M != 1: continue
+        cc = M * random.randrange(-halfmax, halfmax + 1)
+        dd = 1 + M * random.randrange(-halfmax, halfmax + 1)
+        g = arith_int.c_xgcd_int(-cc, dd, &bb, &aa)
+        if g == 0:
+            continue
+        cc = cc // g
+        if cc % M != 0:
+            continue
+        dd = dd // g
+        if M != 1 and dd % M != 1:
+            continue
         # Test if we've found a new coset representative.
         is_new = 1
-        for i from 0 <= i < k:
+        for i in range(k):
             j = 4*i
-            if (R[j] - aa)%t == 0 and \
-               (R[j+1] - bb)%t == 0 and \
-               (R[j+2] - cc)%(Ndivt) == 0 and \
-               (R[j+3] - dd)%(Ndivt) == 0:
+            if (R[j] - aa) % t == 0 and \
+               (R[j+1] - bb) % t == 0 and \
+               (R[j+2] - cc) % Ndivt == 0 and \
+               (R[j+3] - dd) % Ndivt == 0:
                 is_new = 0
                 break
         # If our matrix is new add it to the list.
@@ -256,23 +258,24 @@ def degeneracy_coset_representatives_gamma1(int N, int M, int t):
 
     # Return the list left multiplied by T.
     S = []
-    for i from 0 <= i < k:
+    for i in range(k):
         j = 4*i
         S.append([R[j], R[j+1], R[j+2]*t, R[j+3]*t])
     sig_free(R)
     return S
+
 
 def generators_helper(coset_reps, level):
     r"""
     Helper function for generators of Gamma0, Gamma1 and GammaH.
 
     These are computed using coset representatives, via an "inverse
-    Todd-Coxeter" algorithm, and generators for `{\rm SL}_2(\ZZ)`.
+    Todd-Coxeter" algorithm, and generators for `\SL_2(\ZZ)`.
 
-    ALGORITHM: Given coset representatives for a finite index
-    subgroup `G` of `{\rm SL}_2(\ZZ)` we compute generators for `G` as follows.
-    Let `R` be a set of coset representatives for `G`.  Let `S, T \in {\rm
-    SL}_2(\ZZ)` be defined by `(0,-1; 1,0)` and `(1,1,0,1)`, respectively.
+    ALGORITHM: Given coset representatives for a finite index subgroup `G` of
+    `\SL_2(\ZZ)` we compute generators for `G` as follows.  Let `R` be a set of
+    coset representatives for `G`.  Let `S, T \in \SL_2(\ZZ)` be defined by
+    `(0,-1; 1,0)` and `(1,1,0,1)`, respectively.
     Define maps `s, t: R \to G` as follows. If `r \in R`, then there exists a
     unique `r' \in R` such that `GrS = Gr'`. Let `s(r) = rSr'^{-1}`. Likewise,
     there is a unique `r'` such that `GrT = Gr'` and we let `t(r) = rTr'^{-1}`.
@@ -285,7 +288,7 @@ def generators_helper(coset_reps, level):
 
     EXAMPLES::
 
-        sage: Gamma0(7).generators(algorithm="todd-coxeter") # indirect doctest
+        sage: Gamma0(7).generators(algorithm='todd-coxeter') # indirect doctest
         [
         [1 1]  [-1  0]  [ 1 -1]  [1 0]  [1 1]  [-3 -1]  [-2 -1]  [-5 -1]
         [0 1], [ 0 -1], [ 0  1], [7 1], [0 1], [ 7  2], [ 7  3], [21  4],
@@ -294,28 +297,30 @@ def generators_helper(coset_reps, level):
         [21  5], [ 7 -1], [-7  1]
         ]
     """
-    cdef Matrix_integer_dense x,y,z,v,vSmod,vTmod
+    cdef Matrix_integer_dense x, y, z, v, vSmod, vTmod
 
     crs = coset_reps.list()
     try:
-        reps = [Matrix_integer_dense(Mat2Z,lift_to_sl2z(c, d, level),False,True) for c,d in crs]
-    except Exception:
+        reps = [Matrix_integer_dense(Mat2Z, lift_to_sl2z(c, d, level),
+                                     False, True) for c, d in crs]
+    except (TypeError, ValueError, NotImplementedError):
         raise ArithmeticError("Error lifting to SL2Z: level=%s crs=%s" % (level, crs))
     ans = []
     cdef Py_ssize_t i
     for i in range(len(crs)):
         x = reps[i]
-        v = Matrix_integer_dense(Mat2Z,[crs[i][0],crs[i][1],0,0],False,True)
+        v = Matrix_integer_dense(Mat2Z, [crs[i][0], crs[i][1], 0, 0],
+                                 False, True)
         vSmod = (v*genS)
         vTmod = (v*genT)
-        y_index = coset_reps.normalize(vSmod[0,0],vSmod[0,1])
-        z_index = coset_reps.normalize(vTmod[0,0],vTmod[0,1])
+        y_index = coset_reps.normalize(vSmod[0, 0], vSmod[0, 1])
+        z_index = coset_reps.normalize(vTmod[0, 0], vTmod[0, 1])
         y_index = crs.index(y_index)
         z_index = crs.index(z_index)
         y = reps[y_index]
         z = reps[z_index]
-        y = y._invert_unit()
-        z = z._invert_unit()
+        y = y.inverse_of_unit()
+        z = z.inverse_of_unit()
         ans.append(x*genS*y)
         ans.append(x*genT*z)
     return [x for x in ans if x != genI]

@@ -1,5 +1,5 @@
 """
-Ambient Jacobian Abelian Variety
+Ambient Jacobian abelian variety
 
 TESTS::
 
@@ -8,23 +8,23 @@ TESTS::
     sage: loads(dumps(J1(13))) == J1(13)
     True
 """
-from __future__ import absolute_import
-
 import weakref
-from sage.structure.sequence import Sequence
 
-from .abvar             import (ModularAbelianVariety_modsym_abstract, ModularAbelianVariety,
-                               simple_factorization_of_modsym_space, modsym_lattices,
-                               ModularAbelianVariety_modsym)
-from sage.rings.all    import QQ, Integer
+from .abvar import (ModularAbelianVariety_modsym_abstract,
+                    simple_factorization_of_modsym_space, modsym_lattices,
+                    ModularAbelianVariety_modsym)
 
+from sage.misc.cachefunc import cached_method
 from sage.modular.modsym.modsym import ModularSymbols
 from sage.modular.modform.constructor import Newforms
-from sage.modular.arithgroup.all import is_Gamma0, is_Gamma1
-from . import morphism
-
+from sage.modular.arithgroup.congroup_gamma0 import Gamma0_class
+from sage.modular.arithgroup.congroup_gamma1 import Gamma1_class
+from sage.modular.abvar import morphism
+from sage.rings.rational_field import QQ
+from sage.structure.sequence import Sequence
 
 _cache = {}
+
 
 def ModAbVar_ambient_jacobian(group):
     """
@@ -36,9 +36,7 @@ def ModAbVar_ambient_jacobian(group):
 
     INPUT:
 
-
-    -  ``group`` - a congruence subgroup.
-
+    - ``group`` -- a congruence subgroup
 
     OUTPUT: a modular abelian variety attached
 
@@ -61,7 +59,7 @@ def ModAbVar_ambient_jacobian(group):
     """
     try:
         X = _cache[group]()
-        if not X is None:
+        if X is not None:
             return X
     except KeyError:
         pass
@@ -69,12 +67,13 @@ def ModAbVar_ambient_jacobian(group):
     _cache[group] = weakref.ref(X)
     return X
 
+
 class ModAbVar_ambient_jacobian_class(ModularAbelianVariety_modsym_abstract):
     """
     An ambient Jacobian modular abelian variety attached to a
     congruence subgroup.
     """
-    def __init__(self, group):
+    def __init__(self, group) -> None:
         """
         Create an ambient Jacobian modular abelian variety.
 
@@ -82,8 +81,6 @@ class ModAbVar_ambient_jacobian_class(ModularAbelianVariety_modsym_abstract):
 
             sage: A = J0(37); A
             Abelian variety J0(37) of dimension 2
-            sage: type(A)
-            <class 'sage.modular.abvar.abvar_ambient_jacobian.ModAbVar_ambient_jacobian_class_with_category'>
             sage: A.group()
             Congruence Subgroup Gamma0(37)
         """
@@ -91,6 +88,7 @@ class ModAbVar_ambient_jacobian_class(ModularAbelianVariety_modsym_abstract):
         self.__group = group
         self._is_hecke_stable = True
 
+    @cached_method
     def _modular_symbols(self):
         """
         Return the modular symbols space associated to this ambient
@@ -101,17 +99,14 @@ class ModAbVar_ambient_jacobian_class(ModularAbelianVariety_modsym_abstract):
         EXAMPLES::
 
             sage: M = J0(33)._modular_symbols(); M
-            Modular Symbols subspace of dimension 6 of Modular Symbols space of dimension 9 for Gamma_0(33) of weight 2 with sign 0 over Rational Field
+            Modular Symbols subspace of dimension 6 of Modular Symbols space of
+            dimension 9 for Gamma_0(33) of weight 2 with sign 0 over Rational Field
             sage: J0(33)._modular_symbols() is M
             True
         """
-        try:
-            return self.__modsym
-        except AttributeError:
-            self.__modsym = ModularSymbols(self.__group, weight=2).cuspidal_submodule()
-            return self.__modsym
+        return ModularSymbols(self.__group, weight=2).cuspidal_submodule()
 
-    def _repr_(self):
+    def _repr_(self) -> str:
         """
         Return string representation of this Jacobian modular abelian
         variety.
@@ -122,24 +117,18 @@ class ModAbVar_ambient_jacobian_class(ModularAbelianVariety_modsym_abstract):
             Abelian variety J0(11) of dimension 1
             sage: A._repr_()
             'Abelian variety J0(11) of dimension 1'
-            sage: A.rename("J_0(11)")
+            sage: A.rename('J_0(11)')
             sage: A
             J_0(11)
-
-        We now clear the cache to get rid of our renamed
-        `J_0(11)`.
-
-        ::
-
-            sage: import sage.modular.abvar.abvar_ambient_jacobian as abvar_ambient_jacobian
-            sage: abvar_ambient_jacobian._cache = {}
+            sage: A.reset_name()
         """
-        return 'Abelian variety %s of dimension %s%s'%(self._ambient_repr(), self.dimension(),
-                                    '' if self.base_field() == QQ else ' over %s'%self.base_field())
+        txt = '' if self.base_field() == QQ else ' over %s' % self.base_field()
+        return 'Abelian variety %s of dimension %s%s' % (self._ambient_repr(),
+                                                         self.dimension(), txt)
 
-    def _latex_(self):
+    def _latex_(self) -> str:
         """
-        Return Latex representation of self.
+        Return Latex representation of ``self``.
 
         EXAMPLES::
 
@@ -154,9 +143,9 @@ class ModAbVar_ambient_jacobian_class(ModularAbelianVariety_modsym_abstract):
 
     def ambient_variety(self):
         """
-        Return the ambient modular abelian variety that contains self.
-        Since self is a Jacobian modular abelian variety, this is just
-        self.
+        Return the ambient modular abelian variety that contains ``self``.
+        Since ``self`` is a Jacobian modular abelian variety, this is just
+        ``self``.
 
         OUTPUT: abelian variety
 
@@ -188,7 +177,7 @@ class ModAbVar_ambient_jacobian_class(ModularAbelianVariety_modsym_abstract):
         """
         return self.__group
 
-    def groups(self):
+    def groups(self) -> tuple:
         """
         Return the tuple of congruence subgroups attached to this ambient
         Jacobian. This is always a tuple of length 1.
@@ -204,7 +193,7 @@ class ModAbVar_ambient_jacobian_class(ModularAbelianVariety_modsym_abstract):
 
     def _calculate_endomorphism_generators(self):
         """
-        Calculate generators for the endomorphism ring of self.
+        Calculate generators for the endomorphism ring of ``self``.
 
         EXAMPLES::
 
@@ -237,39 +226,40 @@ class ModAbVar_ambient_jacobian_class(ModularAbelianVariety_modsym_abstract):
             n2 = to_newform.complementary_isogeny().matrix()
             f_gens = to_newform.codomain()._calculate_endomorphism_generators()
             small_space = to_newform.parent().matrix_space()
-            f_gens = [ small_space(x.list()) for x in f_gens ]
+            f_gens = [small_space(x.list()) for x in f_gens]
             for m in f_gens:
                 mat = H.matrix_space()(0)
-                mat.set_block(ind, ind, n1 * m * n2 )
+                mat.set_block(ind, ind, n1 * m * n2)
                 ls.append((m1 * mat * m2).list())
-            ind += 2*d.dimension()
+            ind += 2 * d.dimension()
 
-        return [ H( morphism.Morphism(H, M(x)) ) for x in ls ]
+        return [H(morphism.Morphism(H, M(x))) for x in ls]
 
     def degeneracy_map(self, level, t=1, check=True):
         """
-        Return the t-th degeneracy map from self to J(level). Here t must
-        be a divisor of either level/self.level() or self.level()/level.
+        Return the `t`-th degeneracy map from ``self`` to ``J(level)``.
+
+        Here `t` must be a divisor of either ``level/self.level()`` or
+        ``self.level()/level``.
 
         INPUT:
 
+        - ``level`` -- integer (multiple or divisor of level of
+          ``self``)
 
-        -  ``level`` - integer (multiple or divisor of level of
-           self)
+        - ``t`` -- divisor of quotient of level of ``self`` and
+          level
 
-        -  ``t`` - divisor of quotient of level of self and
-           level
-
-        -  ``check`` - bool (default: True); if True do some
-           checks on the input
-
+        - ``check`` -- boolean (default: ``True``); if ``True`` do some
+          checks on the input
 
         OUTPUT: a morphism
 
         EXAMPLES::
 
             sage: J0(11).degeneracy_map(33)
-            Degeneracy map from Abelian variety J0(11) of dimension 1 to Abelian variety J0(33) of dimension 3 defined by [1]
+            Degeneracy map from Abelian variety J0(11) of dimension 1 to
+            Abelian variety J0(33) of dimension 3 defined by [1]
             sage: J0(11).degeneracy_map(33).matrix()
             [ 0 -3  2  1 -2  0]
             [ 1 -2  0  1  0 -1]
@@ -290,11 +280,10 @@ class ModAbVar_ambient_jacobian_class(ModularAbelianVariety_modsym_abstract):
         if check:
             if (level % self.level()) and (self.level() % level):
                 raise ValueError("level must be divisible by level of self")
-            if (max(level,self.level()) // min(self.level(),level)) % t:
+            if (max(level, self.level()) // min(self.level(), level)) % t:
                 raise ValueError("t must divide the quotient of the two levels")
 
         Mself = self.modular_symbols()
-        #Jdest = Mself.ambient_module().modular_symbols_of_level(level).cuspidal_subspace().abelian_variety()
         Jdest = (type(Mself.group()))(level).modular_abelian_variety()
         Mdest = Jdest.modular_symbols()
 
@@ -303,6 +292,7 @@ class ModAbVar_ambient_jacobian_class(ModularAbelianVariety_modsym_abstract):
 
         return H(morphism.DegeneracyMap(H, symbol_map.matrix(), [t]))
 
+    @cached_method
     def dimension(self):
         """
         Return the dimension of this modular abelian variety.
@@ -322,14 +312,9 @@ class ModAbVar_ambient_jacobian_class(ModularAbelianVariety_modsym_abstract):
             sage: J1(389).dimension()
             6112
         """
-        try:
-            return self._dimension
-        except AttributeError:
-            d = self.group().genus()
-            self._dimension = d
-            return d
+        return self.group().genus()
 
-    def decomposition(self, simple=True, bound=None):
+    def decomposition(self, simple=True, bound=None) -> list:
         """
         Decompose this ambient Jacobian as a product of abelian
         subvarieties, up to isogeny.
@@ -337,25 +322,19 @@ class ModAbVar_ambient_jacobian_class(ModularAbelianVariety_modsym_abstract):
         EXAMPLES::
 
             sage: J0(33).decomposition(simple=False)
-            [
-            Abelian subvariety of dimension 2 of J0(33),
-            Abelian subvariety of dimension 1 of J0(33)
-            ]
+            [Abelian subvariety of dimension 2 of J0(33),
+             Abelian subvariety of dimension 1 of J0(33)]
             sage: J0(33).decomposition(simple=False)[1].is_simple()
             True
             sage: J0(33).decomposition(simple=False)[0].is_simple()
             False
             sage: J0(33).decomposition(simple=False)
-            [
-            Abelian subvariety of dimension 2 of J0(33),
-            Simple abelian subvariety 33a(None,33) of dimension 1 of J0(33)
-            ]
+            [Abelian subvariety of dimension 2 of J0(33),
+             Simple abelian subvariety 33a(None,33) of dimension 1 of J0(33)]
             sage: J0(33).decomposition(simple=True)
-            [
-            Simple abelian subvariety 11a(1,33) of dimension 1 of J0(33),
-            Simple abelian subvariety 11a(3,33) of dimension 1 of J0(33),
-            Simple abelian subvariety 33a(1,33) of dimension 1 of J0(33)
-            ]
+            [Simple abelian subvariety 11a(1,33) of dimension 1 of J0(33),
+             Simple abelian subvariety 11a(3,33) of dimension 1 of J0(33),
+             Simple abelian subvariety 33a(1,33) of dimension 1 of J0(33)]
         """
         try:
             return self.__decomposition[simple]
@@ -371,36 +350,35 @@ class ModAbVar_ambient_jacobian_class(ModularAbelianVariety_modsym_abstract):
         factors = modsym_lattices(M, factors)
 
         D = []
+        is_simple = True if simple else None
         for newform_level, isogeny_number, number, modsym, lattice in factors:
-            if simple:
-                is_simple = True
-            else:
-                is_simple = None
-            A = ModularAbelianVariety_modsym(modsym, lattice=lattice,
-                               newform_level = (newform_level, group), is_simple=is_simple,
-                               isogeny_number=isogeny_number, number=(number, level), check=False)
+            A = ModularAbelianVariety_modsym(
+                modsym, lattice=lattice,
+                newform_level=(newform_level, group),
+                is_simple=is_simple,
+                isogeny_number=isogeny_number,
+                number=(number, level),
+                check=False)
             D.append(A)
 
-            # This line below could be safely deleted.  It basically creates a circular
-            # reference so that say J0(389)[0] + J0(389)[1] doesn't do two separate
-            # decompositions.  Memory will be freed though, at least if you do
-            # import gc; gc.collect().
+            # This line below could be safely deleted.  It basically
+            # creates a circular reference so that say J0(389)[0] +
+            # J0(389)[1] doesn't do two separate decompositions.
+            # Memory will be freed though, at least if you do import
+            # gc; gc.collect().
             A._ambient = self
-
 
         D.sort()
         D = Sequence(D, immutable=True, cr=True, universe=self.category())
         self.__decomposition[simple] = D
         return D
 
-    def newform_decomposition(self, names=None):
+    def newform_decomposition(self, names=None) -> list:
         """
         Return the newforms of the simple subvarieties in the decomposition of
-        self as a product of simple subvarieties, up to isogeny.
+        ``self`` as a product of simple subvarieties, up to isogeny.
 
-        OUTPUT:
-
-        - an array of newforms
+        OUTPUT: an array of newforms
 
         EXAMPLES::
 
@@ -409,16 +387,17 @@ class ModAbVar_ambient_jacobian_class(ModularAbelianVariety_modsym_abstract):
 
             sage: J1(19).newform_decomposition('a')
             [q - 2*q^3 - 2*q^4 + 3*q^5 + O(q^6),
-             q + a1*q^2 + (-1/9*a1^5 - 1/3*a1^4 - 1/3*a1^3 + 1/3*a1^2 - a1 - 1)*q^3 + (4/9*a1^5 + 2*a1^4 + 14/3*a1^3 + 17/3*a1^2 + 6*a1 + 2)*q^4 + (-2/3*a1^5 - 11/3*a1^4 - 10*a1^3 - 14*a1^2 - 15*a1 - 9)*q^5 + O(q^6)]
+             q + a1*q^2 + (-1/9*a1^5 - 1/3*a1^4 - 1/3*a1^3 + 1/3*a1^2 - a1 - 1)*q^3
+             + (4/9*a1^5 + 2*a1^4 + 14/3*a1^3 + 17/3*a1^2 + 6*a1 + 2)*q^4
+             + (-2/3*a1^5 - 11/3*a1^4 - 10*a1^3 - 14*a1^2 - 15*a1 - 9)*q^5 + O(q^6)]
         """
         if self.dimension() == 0:
             return []
         G = self.group()
-        if not (is_Gamma0(G) or is_Gamma1(G)):
+        if not isinstance(G, (Gamma0_class, Gamma1_class)):
             return [S.newform(names=names) for S in self.decomposition()]
         Gtype = G.parent()
         N = G.level()
-        preans = [Newforms(Gtype(d), names=names) *
-                  len(Integer(N/d).divisors()) for d in N.divisors()]
-        ans = [newform for l in preans for newform in l]
-        return ans
+        preans = (Newforms(Gtype(d), names=names) * len((N // d).divisors())
+                  for d in N.divisors())
+        return [newform for li in preans for newform in li]

@@ -1,3 +1,4 @@
+# sage.doctest: needs sage.combinat
 """
 Utility Functions for Cryptography
 
@@ -10,22 +11,23 @@ AUTHORS:
   ``is_blum_prime``, ``least_significant_bits``, ``random_blum_prime``.
 """
 
-#*****************************************************************************
+# ***************************************************************************
 #       Copyright (c) 2009, 2010 Minh Van Nguyen <nguyenminh2@gmail.com>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
-from __future__ import print_function
-from six.moves import range
+#                  https://www.gnu.org/licenses/
+# ***************************************************************************
 
-from sage.monoids.string_monoid import BinaryStrings
-from sage.arith.all import is_prime, lcm, primes, random_prime
-from sage.rings.integer import Integer
+from sage.arith.misc import is_prime, primes, random_prime
+from sage.misc.lazy_import import lazy_import
 from sage.rings.finite_rings.integer_mod import Mod as mod
+
+lazy_import('sage.arith.misc', ('carmichael_lambda'), deprecation=34719)
+lazy_import('sage.monoids.string_monoid', 'BinaryStrings')
+
 
 def ascii_integer(B):
     r"""
@@ -34,11 +36,9 @@ def ascii_integer(B):
     INPUT:
 
     - ``B`` -- a non-empty binary string or a non-empty list of bits. The
-      number of bits in ``B`` must be 8.
+      number of bits in ``B`` must be 8
 
-    OUTPUT:
-
-    - The ASCII integer corresponding to the 8-bit block ``B``.
+    OUTPUT: the ASCII integer corresponding to the 8-bit block ``B``
 
     EXAMPLES:
 
@@ -91,17 +91,16 @@ def ascii_integer(B):
     return sum([L[7], L[6]*2, L[5]*4, L[4]*8,
                 L[3]*16, L[2]*32, L[1]*64, L[0]*128])
 
+
 def ascii_to_bin(A):
     r"""
     Return the binary representation of the ASCII string ``A``.
 
     INPUT:
 
-    - ``A`` -- a string or list of ASCII characters.
+    - ``A`` -- string or list of ASCII characters
 
-    OUTPUT:
-
-    - The binary representation of ``A``.
+    OUTPUT: the binary representation of ``A``
 
     ALGORITHM:
 
@@ -150,14 +149,15 @@ def ascii_to_bin(A):
         sage: ascii_to_bin(["A", "b", "c", 1, 2, 3])
         Traceback (most recent call last):
         ...
-        TypeError: sequence item 3: expected string, sage.rings.integer.Integer found
+        TypeError: sequence item 3: expected str..., sage.rings.integer.Integer found
         sage: ascii_to_bin(["Abc", 1, 2, 3])
         Traceback (most recent call last):
         ...
-        TypeError: sequence item 1: expected string, sage.rings.integer.Integer found
+        TypeError: sequence item 1: expected str..., sage.rings.integer.Integer found
     """
     bin = BinaryStrings()
     return bin.encoding("".join(list(A)))
+
 
 def bin_to_ascii(B):
     r"""
@@ -166,11 +166,9 @@ def bin_to_ascii(B):
     INPUT:
 
     - ``B`` -- a non-empty binary string or a non-empty list of bits. The
-      number of bits in ``B`` must be a multiple of 8.
+      number of bits in ``B`` must be a multiple of 8
 
-    OUTPUT:
-
-    - The ASCII string corresponding to ``B``.
+    OUTPUT: the ASCII string corresponding to ``B``
 
     ALGORITHM:
 
@@ -257,158 +255,9 @@ def bin_to_ascii(B):
         A.append(chr(ascii_integer(b[8*i: 8*(i+1)])))
     return "".join(A)
 
-def carmichael_lambda(n):
+
+def has_blum_prime(lbound, ubound) -> bool:
     r"""
-    Return the Carmichael function of a positive integer ``n``.
-
-    The Carmichael function of `n`, denoted `\lambda(n)`, is the smallest
-    positive integer `k` such that `a^k \equiv 1 \pmod{n}` for all
-    `a \in \ZZ/n\ZZ` satisfying `\gcd(a, n) = 1`. Thus, `\lambda(n) = k`
-    is the exponent of the multiplicative group `(\ZZ/n\ZZ)^{\ast}`.
-
-    INPUT:
-
-    - ``n`` -- a positive integer.
-
-    OUTPUT:
-
-    - The Carmichael function of ``n``.
-
-    ALGORITHM:
-
-    If `n = 2, 4` then `\lambda(n) = \varphi(n)`. Let `p \geq 3` be an odd
-    prime and let `k` be a positive integer. Then
-    `\lambda(p^k) = p^{k - 1}(p - 1) = \varphi(p^k)`. If `k \geq 3`, then
-    `\lambda(2^k) = 2^{k - 2}`. Now consider the case where `n > 3` is
-    composite and let `n = p_1^{k_1} p_2^{k_2} \cdots p_t^{k_t}` be the
-    prime factorization of `n`. Then
-
-    .. MATH::
-
-        \lambda(n)
-        = \lambda(p_1^{k_1} p_2^{k_2} \cdots p_t^{k_t})
-        = \text{lcm}(\lambda(p_1^{k_1}), \lambda(p_2^{k_2}), \dots, \lambda(p_t^{k_t}))
-
-    EXAMPLES:
-
-    The Carmichael function of all positive integers up to and including 10::
-
-        sage: from sage.crypto.util import carmichael_lambda
-        sage: list(map(carmichael_lambda, [1..10]))
-        [1, 1, 2, 2, 4, 2, 6, 2, 6, 4]
-
-    The Carmichael function of the first ten primes::
-
-        sage: list(map(carmichael_lambda, primes_first_n(10)))
-        [1, 2, 4, 6, 10, 12, 16, 18, 22, 28]
-
-    Cases where the Carmichael function is equivalent to the Euler phi
-    function::
-
-        sage: carmichael_lambda(2) == euler_phi(2)
-        True
-        sage: carmichael_lambda(4) == euler_phi(4)
-        True
-        sage: p = random_prime(1000, lbound=3, proof=True)
-        sage: k = randint(1, 1000)
-        sage: carmichael_lambda(p^k) == euler_phi(p^k)
-        True
-
-    A case where `\lambda(n) \neq \varphi(n)`::
-
-        sage: k = randint(1, 1000)
-        sage: carmichael_lambda(2^k) == 2^(k - 2)
-        True
-        sage: carmichael_lambda(2^k) == 2^(k - 2) == euler_phi(2^k)
-        False
-
-    Verifying the current implementation of the Carmichael function using
-    another implementation. The other implementation that we use for
-    verification is an exhaustive search for the exponent of the
-    multiplicative group `(\ZZ/n\ZZ)^{\ast}`. ::
-
-        sage: from sage.crypto.util import carmichael_lambda
-        sage: n = randint(1, 500)
-        sage: c = carmichael_lambda(n)
-        sage: def coprime(n):
-        ....:     return [i for i in range(n) if gcd(i, n) == 1]
-        sage: def znpower(n, k):
-        ....:     L = coprime(n)
-        ....:     return list(map(power_mod, L, [k]*len(L), [n]*len(L)))
-        sage: def my_carmichael(n):
-        ....:     for k in range(1, n):
-        ....:         L = znpower(n, k)
-        ....:         ones = [1] * len(L)
-        ....:         T = [L[i] == ones[i] for i in range(len(L))]
-        ....:         if all(T):
-        ....:             return k
-        sage: c == my_carmichael(n)
-        True
-
-    Carmichael's theorem states that `a^{\lambda(n)} \equiv 1 \pmod{n}`
-    for all elements `a` of the multiplicative group `(\ZZ/n\ZZ)^{\ast}`.
-    Here, we verify Carmichael's theorem. ::
-
-        sage: from sage.crypto.util import carmichael_lambda
-        sage: n = randint(1, 1000)
-        sage: c = carmichael_lambda(n)
-        sage: ZnZ = IntegerModRing(n)
-        sage: M = ZnZ.list_of_elements_of_multiplicative_group()
-        sage: ones = [1] * len(M)
-        sage: P = [power_mod(a, c, n) for a in M]
-        sage: P == ones
-        True
-
-    TESTS:
-
-    The input ``n`` must be a positive integer::
-
-        sage: from sage.crypto.util import carmichael_lambda
-        sage: carmichael_lambda(0)
-        Traceback (most recent call last):
-        ...
-        ValueError: Input n must be a positive integer.
-        sage: carmichael_lambda(randint(-10, 0))
-        Traceback (most recent call last):
-        ...
-        ValueError: Input n must be a positive integer.
-
-    Bug reported in :trac:`8283`::
-
-        sage: from sage.crypto.util import carmichael_lambda
-        sage: type(carmichael_lambda(16))
-        <type 'sage.rings.integer.Integer'>
-
-    REFERENCES:
-
-    - :wikipedia:`Carmichael_function`
-    """
-    n = Integer(n)
-    # sanity check
-    if n < 1:
-        raise ValueError("Input n must be a positive integer.")
-
-    L = n.factor()
-    t = []
-
-    # first get rid of the prime factor 2
-    if n & 1 == 0:
-        e = L[0][1]
-        L = L[1:]   # now, n = 2**e * L.value()
-        if e < 3:   # for 1 <= k < 3, lambda(2**k) = 2**(k - 1)
-            e = e - 1
-        else:       # for k >= 3, lambda(2**k) = 2**(k - 2)
-            e = e - 2
-        t.append(1 << e)  # 2**e
-
-    # then other prime factors
-    t += [p**(k - 1) * (p - 1) for p, k in L]
-
-    # finish the job
-    return lcm(t)
-
-def has_blum_prime(lbound, ubound):
-    """
     Determine whether or not there is a Blum prime within the specified closed
     interval.
 
@@ -443,14 +292,14 @@ def has_blum_prime(lbound, ubound):
 
         sage: from sage.crypto.util import has_blum_prime
         sage: from sage.crypto.util import is_blum_prime
-        sage: has_blum_prime(4, 100)
+        sage: has_blum_prime(4, 100)                                                    # needs sage.libs.pari
         True
         sage: for n in range(4, 100):
         ....:     if is_blum_prime(n):
         ....:         print(n)
         ....:         break
         7
-        sage: has_blum_prime(24, 28)
+        sage: has_blum_prime(24, 28)                                                    # needs sage.libs.pari
         False
 
     TESTS:
@@ -493,10 +342,8 @@ def has_blum_prime(lbound, ubound):
     if lbound > ubound:
         raise ValueError("The lower bound must be less than the upper bound.")
     # now test for presence of a Blum prime
-    for p in primes(lbound, ubound + 1):
-        if mod(p, 4).lift() == 3:
-            return True
-    return False
+    return any(mod(p, 4).lift() == 3 for p in primes(lbound, ubound + 1))
+
 
 def is_blum_prime(n):
     r"""
@@ -504,11 +351,9 @@ def is_blum_prime(n):
 
     INPUT:
 
-    - ``n`` a positive prime.
+    - ``n`` -- a positive prime
 
-    OUTPUT:
-
-    - ``True`` if ``n`` is a Blum prime; ``False`` otherwise.
+    OUTPUT: ``True`` if ``n`` is a Blum prime; ``False`` otherwise
 
     Let `n` be a positive prime. Then `n` is a Blum prime if `n` is
     congruent to 3 modulo 4, i.e. `n \equiv 3 \pmod{4}`.
@@ -523,19 +368,17 @@ def is_blum_prime(n):
         False
         sage: is_blum_prime(7)
         True
-        sage: p = random_blum_prime(10**3, 10**5)
-        sage: is_blum_prime(p)
+        sage: p = random_blum_prime(10**3, 10**5)                                       # needs sage.libs.pari
+        sage: is_blum_prime(p)                                                          # needs sage.libs.pari
         True
     """
     if n < 0:
         return False
     if is_prime(n):
-        if mod(n, 4).lift() == 3:
-            return True
-        else:
-            return False
+        return mod(n, 4).lift() == 3
     else:
         return False
+
 
 def least_significant_bits(n, k):
     r"""
@@ -543,9 +386,9 @@ def least_significant_bits(n, k):
 
     INPUT:
 
-    - ``n`` -- an integer.
+    - ``n`` -- integer
 
-    - ``k`` -- a positive integer.
+    - ``k`` -- positive integer
 
     OUTPUT:
 
@@ -591,6 +434,7 @@ def least_significant_bits(n, k):
     """
     return [int(_) for _ in list(n.binary()[-k:])]
 
+
 def random_blum_prime(lbound, ubound, ntries=100):
     r"""
     A random Blum prime within the specified bounds.
@@ -615,9 +459,7 @@ def random_blum_prime(lbound, ubound, ntries=100):
       perform that many attempts at generating a random Blum prime. This
       might or might not result in a Blum prime.
 
-    OUTPUT:
-
-    - A random Blum prime within the specified lower and upper bounds.
+    OUTPUT: a random Blum prime within the specified lower and upper bounds
 
     .. NOTE::
 
@@ -632,10 +474,10 @@ def random_blum_prime(lbound, ubound, ntries=100):
     Choose a random prime and check that it is a Blum prime::
 
         sage: from sage.crypto.util import random_blum_prime
-        sage: p = random_blum_prime(10**4, 10**5)
-        sage: is_prime(p)
+        sage: p = random_blum_prime(10**4, 10**5)                                       # needs sage.libs.pari
+        sage: is_prime(p)                                                               # needs sage.libs.pari
         True
-        sage: mod(p, 4) == 3
+        sage: mod(p, 4) == 3                                                            # needs sage.libs.pari
         True
 
     TESTS:
@@ -646,11 +488,11 @@ def random_blum_prime(lbound, ubound, ntries=100):
     is not a Blum prime. ::
 
         sage: from sage.crypto.util import random_blum_prime
-        sage: random_blum_prime(24, 30, ntries=10)
+        sage: random_blum_prime(24, 30, ntries=10)                                      # needs sage.libs.pari
         Traceback (most recent call last):
         ...
         ValueError: No Blum primes within the specified closed interval.
-        sage: random_blum_prime(24, 28)
+        sage: random_blum_prime(24, 28)                                                 # needs sage.libs.pari
         Traceback (most recent call last):
         ...
         ValueError: No Blum primes within the specified closed interval.

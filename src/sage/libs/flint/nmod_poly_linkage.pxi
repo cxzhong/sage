@@ -5,8 +5,9 @@ This file provides the backend for \class{Polynomial_zmod_flint} via
 templating.
 
 AUTHOR:
-    -- Martin Albrecht (2009-01) another initial implementation
-    -- Burcin Erocal (2008-11) initial implementation
+
+- Martin Albrecht (2009-01) another initial implementation
+- Burcin Erocal (2008-11) initial implementation
 """
 #*****************************************************************************
 #       Copyright (C) 2008-2009 Burcin Erocal <burcin@erocal.org>
@@ -14,26 +15,28 @@ AUTHOR:
 #
 #  Distributed under the terms of the GNU General Public License (GPL),
 #  version 2 or any later version.  The full text of the GPL is available at:
-#                  http://www.gnu.org/licenses/
+#                  https://www.gnu.org/licenses/
 #*****************************************************************************
 
 from cysignals.signals cimport sig_on, sig_off
 from cysignals.memory cimport sig_malloc, sig_free
 
+from sage.libs.flint.types cimport *
 from sage.libs.flint.nmod_poly cimport *
+from sage.libs.flint.nmod_poly_factor cimport *
 from sage.libs.flint.ulong_extras cimport *
+from sage.structure.factorization import Factorization
 
-
-cdef inline celement *celement_new(unsigned long n):
+cdef inline celement *celement_new(unsigned long n) noexcept:
     cdef celement *g = <celement *>sig_malloc(sizeof(nmod_poly_t))
     nmod_poly_init(g, n)
     return g
 
-cdef inline int celement_delete(nmod_poly_t e, unsigned long n):
+cdef inline int celement_delete(nmod_poly_t e, unsigned long n) noexcept:
     nmod_poly_clear(e)
     sig_free(e)
 
-cdef inline int celement_construct(nmod_poly_t e, unsigned long n):
+cdef inline int celement_construct(nmod_poly_t e, unsigned long n) noexcept:
     """
     EXAMPLES::
 
@@ -43,7 +46,7 @@ cdef inline int celement_construct(nmod_poly_t e, unsigned long n):
     """
     nmod_poly_init(e, n)
 
-cdef inline int celement_destruct(nmod_poly_t e, unsigned long n):
+cdef inline int celement_destruct(nmod_poly_t e, unsigned long n) noexcept:
     """
     EXAMPLES::
 
@@ -317,13 +320,14 @@ cdef inline int celement_mul_scalar(nmod_poly_t res, nmod_poly_t p,
     TESTS::
 
         sage: P.<x> = GF(32003)[]
-        sage: p = P.random_element()
-        sage: 389*p
-        12219*x^2 + 2340*x + 11045
-        sage: p*983
-        29561*x^2 + 18665*x + 17051
+        sage: p = P.random_element(degree=2)
+        sage: (389*p).coefficients() == [389*x for x in p.coefficients()]
+        True
+        sage: p = P.random_element(degree=8)
+        sage: (p*9836).coefficients() == [x*9836 for x in p.coefficients()]
+        True
     """
-    nmod_poly_scalar_mul_nmod(res, p, (<unsigned long>c)%n)
+    nmod_poly_scalar_mul_nmod(res, p, (<unsigned long>c) % n)
 
 cdef inline int celement_mul(nmod_poly_t res, nmod_poly_t a, nmod_poly_t b, unsigned long n) except -2:
     """
@@ -341,6 +345,23 @@ cdef inline int celement_mul(nmod_poly_t res, nmod_poly_t a, nmod_poly_t b, unsi
 
 cdef inline int celement_div(nmod_poly_t res, nmod_poly_t a, nmod_poly_t b, unsigned long n) except -2:
     raise NotImplementedError
+
+cdef inline int celement_truncate(nmod_poly_t res, nmod_poly_t a, long len, unsigned long n) except -2:
+    """
+    EXAMPLES::
+
+        sage: P.<x> = GF(7)[]
+        sage: p = 4*x^4 + 3*x^3 + 2*x^2 + x
+        sage: p.truncate(3)
+        2*x^2 + x
+
+        sage: Q.<x> = GF(32003)[]
+        sage: q = 1 + x + x^2 * Q.random_element()
+        sage: q.truncate(2)
+        x + 1
+    """
+    nmod_poly_set(res, a)
+    nmod_poly_truncate(res, len)
 
 cdef inline int celement_floordiv(nmod_poly_t res, nmod_poly_t a, nmod_poly_t b, unsigned long n) except -2:
     """
@@ -454,13 +475,13 @@ cdef inline int celement_pow(nmod_poly_t res, nmod_poly_t x, long e, nmod_poly_t
 
     INPUT:
 
-    - ``x`` -- polynomial - the base.
+    - ``x`` -- polynomial; the base
 
-    - ``e`` -- integer - the exponent.
+    - ``e`` -- integer; the exponent
 
-    - ``modulus`` -- polynomial or NULL - if not NULL, then perform a modular exponentiation.
+    - ``modulus`` -- polynomial or NULL; if not NULL, then perform a modular exponentiation
 
-    - ``n`` -- integer - not used, but all polynomials' coefficients are understood modulo ``n``.
+    - ``n`` -- integer; not used, but all polynomials' coefficients are understood modulo ``n``
 
     EXAMPLES::
 
@@ -513,13 +534,11 @@ cdef inline int celement_pow(nmod_poly_t res, nmod_poly_t x, long e, nmod_poly_t
         sage: f^5 % g
         7231*x + 17274
 
-    Make sure that exponentiation can be interrupted, see :trac:`17470`::
+    Make sure that exponentiation can be interrupted, see :issue:`17470`::
 
         sage: n = 2^23
-        sage: alarm(0.2); x^n; cancel_alarm()
-        Traceback (most recent call last):
-        ...
-        AlarmInterrupt
+        sage: from sage.doctest.util import ensure_interruptible_after
+        sage: with ensure_interruptible_after(0.2): (x^n).degree()
     """
     if modulus != NULL:
         sig_on()
@@ -535,49 +554,58 @@ cdef inline int celement_gcd(nmod_poly_t res, nmod_poly_t a, nmod_poly_t b, unsi
     EXAMPLES::
 
         sage: P.<x> = GF(32003)[]
-        sage: f = P.random_element(degree=4); f
-        16660*x^4 + 10640*x^3 + 1430*x^2 + 16460*x + 3566
-        sage: g = P.random_element(degree=3); g
-        28452*x^3 + 2561*x^2 + 22429*x + 5847
-        sage: h = P.random_element(degree=2); h
-        24731*x^2 + 28238*x + 18622
-        sage: F = f*g; F
-        13887*x^7 + 19164*x^6 + 25146*x^5 + 25986*x^4 + 21143*x^3 + 14830*x^2 + 14916*x + 16449
-        sage: G = f*h; G
-        11838*x^6 + 10154*x^5 + 15609*x^4 + 26164*x^3 + 11353*x^2 + 8656*x + 31830
-        sage: d = (F).gcd(G); d
-        x^4 + 18557*x^3 + 22917*x^2 + 30813*x + 4914
+        sage: f = P.random_element(degree=4)
+        sage: g = P.random_element(degree=3)
+        sage: h = P.random_element(degree=2)
+        sage: F = f*g
+        sage: G = f*h
+        sage: d = (F).gcd(G)
         sage: (F//d)*d == F
         True
         sage: (G//d)*d == G
         True
 
         sage: Q.<x> = GF(7)[]
-        sage: f = Q.random_element(degree=4); f
-        5*x^4 + 3*x^3 + 6*x^2 + 6*x + 1
-        sage: g = Q.random_element(degree=3); g
-        2*x^3 + 5*x^2 + 2*x + 3
-        sage: h = Q.random_element(degree=2); h
-        4*x^2 + 4*x + 6
-        sage: F = f*g; F
-        3*x^7 + 3*x^6 + 2*x^5 + 4*x^3 + 6*x + 3
-        sage: G = f*h; G
-        6*x^6 + 4*x^5 + 3*x^4 + 3*x^3 + x^2 + 5*x + 6
-        sage: d = (F).gcd(G); d
-        x^4 + 2*x^3 + 4*x^2 + 4*x + 3
+        sage: f = Q.random_element(degree=4)
+        sage: g = Q.random_element(degree=3)
+        sage: h = Q.random_element(degree=2)
+        sage: F = f*g
+        sage: G = f*h
+        sage: d = (F).gcd(G)
         sage: (F//d)*d == F
         True
         sage: (G//d)*d == G
         True
+
+    Check that we catch a case where FLINT fails.  These generate the unit
+    ideal, so their GCD should be 1 (or another unit)::
+
+        sage: R.<x> = Integers(121)[]
+        sage: f = 11*x^2 + 1
+        sage: f - 61*x*f.derivative()
+        1
+        sage: gcd(f, f.derivative())
+        Traceback (most recent call last):
+        ...
+        RuntimeError: FLINT gcd calculation failed
     """
     if celement_is_zero(b, n):
         nmod_poly_set(res, a)
         return 0
 
-    nmod_poly_gcd(res, a, b)
+    # FLINT provides no interface for detecting errors here
+    try:
+        sig_on()
+        try:
+            nmod_poly_gcd(res, a, b)
+        finally:
+            sig_off()
+    except RuntimeError:
+        raise RuntimeError("FLINT gcd calculation failed")
+
     cdef unsigned long leadcoeff = nmod_poly_get_coeff_ui(res, nmod_poly_degree(res))
     cdef unsigned long modulus = nmod_poly_modulus(res)
-    if n_gcd(modulus,leadcoeff) == 1:
+    if n_gcd(modulus, leadcoeff) == 1:
         nmod_poly_make_monic(res, res)
 
 cdef inline int celement_xgcd(nmod_poly_t res, nmod_poly_t s, nmod_poly_t t, nmod_poly_t a, nmod_poly_t b, unsigned long n) except -2:
@@ -585,42 +613,48 @@ cdef inline int celement_xgcd(nmod_poly_t res, nmod_poly_t s, nmod_poly_t t, nmo
     EXAMPLES::
 
         sage: P.<x> = GF(32003)[]
-        sage: f = P.random_element(degree=4); f
-        16660*x^4 + 10640*x^3 + 1430*x^2 + 16460*x + 3566
-        sage: g = P.random_element(degree=3); g
-        28452*x^3 + 2561*x^2 + 22429*x + 5847
-        sage: h = P.random_element(degree=2); h
-        24731*x^2 + 28238*x + 18622
-        sage: F = f*g; F
-        13887*x^7 + 19164*x^6 + 25146*x^5 + 25986*x^4 + 21143*x^3 + 14830*x^2 + 14916*x + 16449
-        sage: G = f*h; G
-        11838*x^6 + 10154*x^5 + 15609*x^4 + 26164*x^3 + 11353*x^2 + 8656*x + 31830
-        sage: d,s,t = (F).xgcd(G); d
-        x^4 + 18557*x^3 + 22917*x^2 + 30813*x + 4914
+        sage: f = P.random_element(degree=4)
+        sage: g = P.random_element(degree=3)
+        sage: h = P.random_element(degree=2)
+        sage: F = f*g
+        sage: G = f*h
+        sage: d,s,t = (F).xgcd(G)
         sage: (F//d)*d == F
         True
         sage: (G//d)*d == G
         True
 
         sage: Q.<x> = GF(7)[]
-        sage: f = Q.random_element(degree=4); f
-        5*x^4 + 3*x^3 + 6*x^2 + 6*x + 1
-        sage: g = Q.random_element(degree=3); g
-        2*x^3 + 5*x^2 + 2*x + 3
-        sage: h = Q.random_element(degree=2); h
-        4*x^2 + 4*x + 6
-        sage: F = f*g; F
-        3*x^7 + 3*x^6 + 2*x^5 + 4*x^3 + 6*x + 3
-        sage: G = f*h; G
-        6*x^6 + 4*x^5 + 3*x^4 + 3*x^3 + x^2 + 5*x + 6
-        sage: d,s,t = (F).xgcd(G); d
-        x^4 + 2*x^3 + 4*x^2 + 4*x + 3
+        sage: f = Q.random_element(degree=4)
+        sage: g = Q.random_element(degree=3)
+        sage: h = Q.random_element(degree=2)
+        sage: F = f*g
+        sage: G = f*h
+        sage: d,s,t = (F).xgcd(G)
         sage: (F//d)*d == F
         True
         sage: (G//d)*d == G
         True
+
+    TESTS:
+
+    Ensure that :issue:`38537` is fixed::
+
+        sage: k = Zmod(2**16)
+        sage: R.<x> = k[]
+        sage: u = x + 10161
+        sage: v = x + 10681
+        sage: u.xgcd(v)
+        Traceback (most recent call last):
+        ...
+        ValueError: non-invertible elements encountered during XGCD
     """
-    nmod_poly_xgcd(res, s, t, a, b)
+    try:
+        sig_on()
+        nmod_poly_xgcd(res, s, t, a, b)
+        sig_off()
+    except RuntimeError:
+        raise ValueError("non-invertible elements encountered during XGCD")
 
 
 cdef factor_helper(Polynomial_zmod_flint poly, bint squarefree=False):
@@ -628,18 +662,34 @@ cdef factor_helper(Polynomial_zmod_flint poly, bint squarefree=False):
     EXAMPLES::
 
         sage: P.<x> = GF(1009)[]
-        sage: (prod(P.random_element() for i in range(5))).factor()
-        (920) * (x + 96) * (x + 288) * (x + 362) * (x + 432) * (x + 603) * (x + 709) * (x^2 + x + 585) * (x^2 + 40*x + 888)
-        sage: (prod(P.random_element()^i for i in range(5))).squarefree_decomposition()
-        (54) * (x^2 + 55*x + 839) * (x^2 + 48*x + 496)^2 * (x^2 + 435*x + 104)^3 * (x^2 + 176*x + 156)^4
+        sage: factors = (prod(P.random_element(degree=2) for i in range(5))).factor()
+        sage: all(factor.is_irreducible() for factor, mult in factors)
+        True
+
+        sage: def nonzero_random(P):
+        ....:     r = P.random_element()
+        ....:     while r == 0:
+        ....:         r = P.random_element()
+        ....:     return r
+
+        sage: p = (prod(nonzero_random(P)^i for i in range(5)))
+        sage: decomp = p.squarefree_decomposition()
+        sage: any(factor.is_square() for factor, mult in decomp)
+        False
+        sage: start = 0
+        sage: for factor, mult in decomp:
+        ....:     assert mult > start
+        ....:     start = mult
     """
     cdef nmod_poly_factor_t factors_c
     nmod_poly_factor_init(factors_c)
 
+    sig_on()
     if squarefree:
         nmod_poly_factor_squarefree(factors_c, &poly.x)
     else:
         nmod_poly_factor(factors_c, &poly.x)
+    sig_off()
 
     factor_list = []
     cdef Polynomial_zmod_flint t

@@ -1,7 +1,6 @@
 """
 Sum species
 """
-from __future__ import absolute_import
 #*****************************************************************************
 #       Copyright (C) 2008 Mike Hansen <mhansen@gmail.com>,
 #
@@ -24,21 +23,25 @@ from sage.structure.unique_representation import UniqueRepresentation
 class SumSpeciesStructure(SpeciesStructureWrapper):
     pass
 
+
 class SumSpecies(GenericCombinatorialSpecies, UniqueRepresentation):
     def __init__(self, F, G, min=None, max=None, weight=None):
         """
-        Returns the sum of two species.
+        Return the sum of two species.
 
         EXAMPLES::
 
             sage: S = species.PermutationSpecies()
+            doctest:warning...
+            DeprecationWarning: combinat.species is superseded by LazyCombinatorialSpecies
+            See https://github.com/sagemath/sage/issues/38544 for details.
             sage: A = S+S
-            sage: A.generating_series().coefficients(5)
+            sage: A.generating_series()[:5]
             [2, 2, 2, 2, 2]
 
             sage: P = species.PermutationSpecies()
             sage: F = P + P
-            sage: F._check()
+            sage: F._check()                                                            # needs sage.libs.flint
             True
             sage: F == loads(dumps(F))
             True
@@ -64,7 +67,7 @@ class SumSpecies(GenericCombinatorialSpecies, UniqueRepresentation):
 
     def left_summand(self):
         """
-        Returns the left summand of this species.
+        Return the left summand of this species.
 
         EXAMPLES::
 
@@ -77,7 +80,7 @@ class SumSpecies(GenericCombinatorialSpecies, UniqueRepresentation):
 
     def right_summand(self):
         """
-        Returns the right summand of this species.
+        Return the right summand of this species.
 
         EXAMPLES::
 
@@ -85,7 +88,7 @@ class SumSpecies(GenericCombinatorialSpecies, UniqueRepresentation):
             sage: F = P + P*P
             sage: F.right_summand()
             Product of (Permutation species) and (Permutation species)
-        """        
+        """
         return self._G
 
     def _name(self):
@@ -102,7 +105,8 @@ class SumSpecies(GenericCombinatorialSpecies, UniqueRepresentation):
             sage: F._name()
             'Sum of (Permutation species) and (Permutation species)'
         """
-        return "Sum of (%s) and (%s)"%(self.left_summand(), self.right_summand())
+        return "Sum of (%s) and (%s)" % (self.left_summand(),
+                                         self.right_summand())
 
     def _structures(self, structure_class, labels):
         """
@@ -114,10 +118,10 @@ class SumSpecies(GenericCombinatorialSpecies, UniqueRepresentation):
             [[1, 2], [2, 1], [1, 2], [2, 1]]
         """
         for res in self.left_summand().structures(labels):
-            yield structure_class(self, res, tag="left")
+            yield structure_class(self, res, tag='left')
 
         for res in self.right_summand().structures(labels):
-            yield structure_class(self, res, tag="right")
+            yield structure_class(self, res, tag='right')
 
     def _isotypes(self, structure_class, labels):
         """
@@ -125,39 +129,38 @@ class SumSpecies(GenericCombinatorialSpecies, UniqueRepresentation):
 
             sage: P = species.PermutationSpecies()
             sage: F = P + P
-            sage: F.isotypes([1,2]).list()
+            sage: F.isotypes([1,2]).list()                                              # needs sage.libs.flint
             [[2, 1], [1, 2], [2, 1], [1, 2]]
         """
         for res in self._F.isotypes(labels):
-            yield structure_class(self, res, tag="left")
+            yield structure_class(self, res, tag='left')
 
         for res in self._G.isotypes(labels):
-            yield structure_class(self, res, tag="right")
+            yield structure_class(self, res, tag='right')
 
     def _gs(self, series_ring, base_ring):
         """
-        Returns the cycle index series of this species.
+        Return the cycle index series of this species.
 
         EXAMPLES::
 
             sage: P = species.PermutationSpecies()
             sage: F = P + P
-            sage: F.generating_series().coefficients(5)
+            sage: F.generating_series()[:5]
             [2, 2, 2, 2, 2]
         """
         return (self.left_summand().generating_series(base_ring) +
                 self.right_summand().generating_series(base_ring))
 
-
     def _itgs(self, series_ring, base_ring):
         """
-        Returns the isomorphism type generating series of this species.
+        Return the isomorphism type generating series of this species.
 
         EXAMPLES::
 
             sage: P = species.PermutationSpecies()
             sage: F = P + P
-            sage: F.isotype_generating_series().coefficients(5)
+            sage: F.isotype_generating_series()[:5]                                     # needs sage.libs.flint
             [2, 2, 4, 6, 10]
         """
         return (self.left_summand().isotype_generating_series(base_ring) +
@@ -165,13 +168,13 @@ class SumSpecies(GenericCombinatorialSpecies, UniqueRepresentation):
 
     def _cis(self, series_ring, base_ring):
         """
-        Returns the generating series of this species.
+        Return the generating series of this species.
 
         EXAMPLES::
 
             sage: P = species.PermutationSpecies()
             sage: F = P + P
-            sage: F.cycle_index_series().coefficients(5)
+            sage: F.cycle_index_series()[:5]                                            # needs sage.modules
             [2*p[],
              2*p[1],
              2*p[1, 1] + 2*p[2],
@@ -183,7 +186,7 @@ class SumSpecies(GenericCombinatorialSpecies, UniqueRepresentation):
 
     def weight_ring(self):
         """
-        Returns the weight ring for this species. This is determined by
+        Return the weight ring for this species. This is determined by
         asking Sage's coercion model what the result is when you add
         elements of the weight rings for each of the operands.
 
@@ -206,7 +209,7 @@ class SumSpecies(GenericCombinatorialSpecies, UniqueRepresentation):
 
     def _equation(self, var_mapping):
         """
-        Returns the right hand side of an algebraic equation satisfied by
+        Return the right hand side of an algebraic equation satisfied by
         this species. This is a utility function called by the
         algebraic_equation_system method.
 
@@ -214,10 +217,11 @@ class SumSpecies(GenericCombinatorialSpecies, UniqueRepresentation):
 
             sage: X = species.SingletonSpecies()
             sage: S = X + X
-            sage: S.algebraic_equation_system()
-            [node1 - 2*z]
+            sage: S.algebraic_equation_system()                                         # needs sage.graphs
+            [node1 + (-2*z)]
         """
         return sum(var_mapping[operand] for operand in self._state_info)
+
 
 #Backward compatibility
 SumSpecies_class = SumSpecies

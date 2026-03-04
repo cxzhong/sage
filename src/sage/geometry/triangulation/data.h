@@ -1,5 +1,5 @@
-#ifndef __DATA_H__
-#define __DATA_H__
+#ifndef __TRIANGULATION_DATA_H__
+#define __TRIANGULATION_DATA_H__
 
 #include <cstdlib>
 #include <time.h>
@@ -140,8 +140,6 @@ class goodcircuit
   void do_flip(const simplices &, const flip &);
   simplices get_neighbor() const { return(bistellarneighbor); }
 };
-
-
 
 
 #endif

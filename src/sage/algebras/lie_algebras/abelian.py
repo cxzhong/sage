@@ -26,6 +26,7 @@ from sage.rings.polynomial.polynomial_ring_constructor import PolynomialRing
 from sage.rings.infinity import infinity
 from sage.sets.family import Family
 
+
 class AbelianLieAlgebra(LieAlgebraWithStructureCoefficients):
     r"""
     An abelian Lie algebra.
@@ -40,7 +41,7 @@ class AbelianLieAlgebra(LieAlgebraWithStructureCoefficients):
         0
     """
     @staticmethod
-    def __classcall_private__(cls, R, names=None, index_set=None, **kwds):
+    def __classcall_private__(cls, R, names=None, index_set=None, category=None, **kwds):
         """
         Normalize input to ensure a unique representation.
 
@@ -54,9 +55,9 @@ class AbelianLieAlgebra(LieAlgebraWithStructureCoefficients):
         names, index_set = standardize_names_index_set(names, index_set)
         if index_set.cardinality() == infinity:
             return InfiniteDimensionalAbelianLieAlgebra(R, index_set, **kwds)
-        return super(AbelianLieAlgebra, cls).__classcall__(cls, R, names, index_set, **kwds)
+        return super().__classcall__(cls, R, names, index_set, category=category, **kwds)
 
-    def __init__(self, R, names, index_set, **kwds):
+    def __init__(self, R, names, index_set, category, **kwds):
         """
         Initialize ``self``.
 
@@ -65,7 +66,10 @@ class AbelianLieAlgebra(LieAlgebraWithStructureCoefficients):
             sage: L = LieAlgebra(QQ, 3, 'x', abelian=True)
             sage: TestSuite(L).run()
         """
-        LieAlgebraWithStructureCoefficients.__init__(self, R, Family({}), names, index_set, **kwds)
+        cat = LieAlgebras(R).FiniteDimensional().WithBasis().Nilpotent()
+        category = cat.or_subcategory(category)
+        LieAlgebraWithStructureCoefficients.__init__(self, R, Family({}), names,
+                                                     index_set, category, **kwds)
 
     def _repr_(self):
         """
@@ -94,7 +98,7 @@ class AbelianLieAlgebra(LieAlgebraWithStructureCoefficients):
         """
         return PolynomialRing(self.base_ring(), self.variable_names())
 
-    def is_abelian(self):
+    def is_abelian(self) -> bool:
         """
         Return ``True`` since ``self`` is an abelian Lie algebra.
 
@@ -121,6 +125,7 @@ class AbelianLieAlgebra(LieAlgebraWithStructureCoefficients):
                 0
             """
             return self.parent().zero()
+
 
 class InfiniteDimensionalAbelianLieAlgebra(InfinitelyGeneratedLieAlgebra, IndexedGenerators):
     r"""
@@ -154,7 +159,7 @@ class InfiniteDimensionalAbelianLieAlgebra(InfinitelyGeneratedLieAlgebra, Indexe
         """
         return infinity
 
-    def is_abelian(self):
+    def is_abelian(self) -> bool:
         """
         Return ``True`` since ``self`` is an abelian Lie algebra.
 
@@ -188,4 +193,3 @@ class InfiniteDimensionalAbelianLieAlgebra(InfinitelyGeneratedLieAlgebra, Indexe
                 0
             """
             return self.parent().zero()
-

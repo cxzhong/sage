@@ -1,23 +1,24 @@
 """
 Non Negative Integers
 """
-#*****************************************************************************
+# ****************************************************************************
 #  Copyright (C) 2009 Florent Hivert <Florent.Hivert@univ-rouen.fr>
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
-from sage.structure.parent import Parent
 from sage.categories.infinite_enumerated_sets import InfiniteEnumeratedSets
-from sage.structure.unique_representation import UniqueRepresentation
 from sage.rings.integer import Integer
+from sage.structure.parent import Parent
+from sage.structure.unique_representation import UniqueRepresentation
+
 
 class NonNegativeIntegers(UniqueRepresentation, Parent):
     r"""
-    The enumerated set of non negative integers.
+    The enumerated set of nonnegative integers.
 
-    This class implements the set of non negative integers, as an
+    This class implements the set of nonnegative integers, as an
     enumerated set (see :class:`InfiniteEnumeratedSets
     <sage.categories.infinite_enumerated_sets.InfiniteEnumeratedSets>`).
 
@@ -34,7 +35,7 @@ class NonNegativeIntegers(UniqueRepresentation, Parent):
         ...
         NotImplementedError: cannot list an infinite set
         sage: NN.element_class
-        <type 'sage.rings.integer.Integer'>
+        <... 'sage.rings.integer.Integer'>
         sage: it = iter(NN)
         sage: [next(it), next(it), next(it), next(it), next(it)]
         [0, 1, 2, 3, 4]
@@ -45,7 +46,7 @@ class NonNegativeIntegers(UniqueRepresentation, Parent):
     plain Sage ``Integers`` with ``Integer Ring`` as parent::
 
         sage: x = NN(15); type(x)
-        <type 'sage.rings.integer.Integer'>
+        <... 'sage.rings.integer.Integer'>
         sage: x.parent()
         Integer Ring
         sage: x+3
@@ -80,7 +81,8 @@ class NonNegativeIntegers(UniqueRepresentation, Parent):
             sage: TestSuite(NN).run()
         """
         from sage.rings.integer_ring import ZZ
-        Parent.__init__(self, facade = ZZ, category = InfiniteEnumeratedSets().or_subcategory(category) )
+        Parent.__init__(self, facade=ZZ,
+                        category=InfiniteEnumeratedSets().or_subcategory(category))
 
     def _repr_(self):
         """
@@ -100,21 +102,29 @@ class NonNegativeIntegers(UniqueRepresentation, Parent):
             True
             sage: -1 in NN
             False
-            sage: x in NN
+            sage: x in NN                                                               # needs sage.symbolic
             False
             sage: None in NN
             False
+            sage: QQbar(sqrt(2)) in NN                                                  # needs sage.rings.number_field sage.symbolic
+            False
+            sage: RIF(1,2) in NN
+            False
+            sage: QQbar(2) in NN                                                        # needs sage.rings.number_field
+            True
+            sage: RIF(2) in NN
+            True
         """
         try:
             i = Integer(elt)
-            return  i >= Integer(0) and i == elt
-        except TypeError:
+            return i >= Integer(0) and i == elt
+        except (TypeError, ValueError):
             return False
 
     def _element_constructor_(self, i):
         """
-        Constructs an element of self from an integer, testing that
-        this integer is indeed non negative.
+        Construct an element of ``self`` from an integer, testing that
+        this integer is indeed nonnegative.
 
         EXAMPLES::
 
@@ -125,7 +135,7 @@ class NonNegativeIntegers(UniqueRepresentation, Parent):
             Traceback (most recent call last):
             ...
             ValueError: Value -5 in not in Non negative integers.
-            sage: NN._element_constructor_(x)
+            sage: NN._element_constructor_(x)                                           # needs sage.symbolic
             Traceback (most recent call last):
             ...
             ValueError: Value x in not in Non negative integers.
@@ -135,7 +145,7 @@ class NonNegativeIntegers(UniqueRepresentation, Parent):
             sage: n = NN(42); n                  # indirect doctest
             42
             sage: type(n)
-            <type 'sage.rings.integer.Integer'>
+            <... 'sage.rings.integer.Integer'>
             sage: n.parent()
             Integer Ring
             sage: NN(-1)
@@ -153,8 +163,7 @@ class NonNegativeIntegers(UniqueRepresentation, Parent):
         """
         if i in self:
             return self.from_integer(i)
-        else:
-            raise ValueError("Value %s in not in %s."%(i, self))
+        raise ValueError("Value %s in not in %s." % (i, self))
 
     from_integer = Integer
 
@@ -174,8 +183,8 @@ class NonNegativeIntegers(UniqueRepresentation, Parent):
             yield self.from_integer(i)
             i += 1
             # Uncomment the following two lines to catch infinite loops when debugging
-            #if i > 200:
-            #    raise ValueError, "Infinite loop during DEBUG! TODO: remove me"
+            # if i > 200:
+            #     raise ValueError("Infinite loop during DEBUG! TODO:remove me")
 
     def an_element(self):
         """
@@ -203,7 +212,7 @@ class NonNegativeIntegers(UniqueRepresentation, Parent):
             sage: NN.next(3)
             4
         """
-        return self.from_integer(o+1)
+        return self.from_integer(o + 1)
 
     def unrank(self, rnk):
         """
@@ -214,3 +223,19 @@ class NonNegativeIntegers(UniqueRepresentation, Parent):
             100
         """
         return self.from_integer(rnk)
+
+    def _sympy_(self):
+        r"""
+        Return the SymPy set ``Naturals0``.
+
+        EXAMPLES::
+
+            sage: NN = NonNegativeIntegers()
+            sage: NN._sympy_()                                                          # needs sympy
+            Naturals0
+        """
+        from sympy import Naturals0
+
+        from sage.interfaces.sympy import sympy_init
+        sympy_init()
+        return Naturals0

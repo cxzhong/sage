@@ -1,21 +1,10 @@
 """
-Givaro Finite Field
+Givaro finite fields
 
 Finite fields that are implemented using Zech logs and the
 cardinality must be less than `2^{16}`. By default, Conway polynomials are
 used as minimal polynomial.
-
-TESTS:
-
-Test backwards compatibility::
-
-    sage: from sage.rings.finite_rings.finite_field_givaro import FiniteField_givaro
-    sage: FiniteField_givaro(9, 'a')
-    doctest:...: DeprecationWarning: constructing a FiniteField_givaro without giving a polynomial as modulus is deprecated, use the more general FiniteField constructor instead
-    See http://trac.sagemath.org/16930 for details.
-    Finite Field in a of size 3^2
 """
-from __future__ import absolute_import
 
 #*****************************************************************************
 #       Copyright (C) 2010-2012 David Roe
@@ -30,12 +19,11 @@ from __future__ import absolute_import
 #                  http://www.gnu.org/licenses/
 #*****************************************************************************
 
-from sage.rings.finite_rings.finite_field_base import FiniteField, is_FiniteField
+from sage.rings.finite_rings.finite_field_base import FiniteField
 from sage.rings.integer import Integer
 from sage.rings.finite_rings.element_givaro import Cache_givaro
-from sage.rings.integer_ring import ZZ
-from sage.databases.conway import ConwayPolynomials
-from sage.libs.pari.all import pari
+from sage.libs.pari import pari
+
 
 class FiniteField_givaro(FiniteField):
     """
@@ -50,7 +38,7 @@ class FiniteField_givaro(FiniteField):
     - ``name`` -- (default: ``'a'``) variable used for
       :meth:`~sage.rings.finite_rings.element_givaro.FiniteField_givaroElement.poly_repr()`
 
-    - ``modulus`` -- A minimal polynomial to use for reduction.
+    - ``modulus`` -- a minimal polynomial to use for reduction
 
     - ``repr`` -- (default: ``'poly'``) controls the way elements are printed
       to the user:
@@ -62,15 +50,13 @@ class FiniteField_givaro(FiniteField):
       - 'poly': repr is
         :meth:`~sage.rings.finite_rings.element_givaro.FiniteField_givaroElement.poly_repr()`
 
-    - cache -- (default: ``False``) if ``True`` a cache of all elements of
-      this field is created. Thus, arithmetic does not create new elements
-      which speeds calculations up. Also, if many elements are needed during a
-      calculation this cache reduces the memory requirement as at most
+    - ``cache`` -- boolean (default: ``False``); if ``True`` a cache of all
+      elements of this field is created. Thus, arithmetic does not create new
+      elements which speeds calculations up. Also, if many elements are needed
+      during a calculation this cache reduces the memory requirement as at most
       :meth:`order` elements are created.
 
-    OUTPUT:
-
-    Givaro finite field with characteristic `p` and cardinality `p^n`.
+    OUTPUT: Givaro finite field with characteristic `p` and cardinality `p^n`
 
     EXAMPLES:
 
@@ -100,22 +86,22 @@ class FiniteField_givaro(FiniteField):
 
     Three different representations are possible::
 
-        sage: FiniteField(9, 'a', impl='givaro', repr='poly').gen()
+        sage: FiniteField(9, 'a', implementation='givaro', repr='poly').gen()
         a
-        sage: FiniteField(9, 'a', impl='givaro', repr='int').gen()
+        sage: FiniteField(9, 'a', implementation='givaro', repr='int').gen()
         3
-        sage: FiniteField(9, 'a', impl='givaro', repr='log').gen()
+        sage: FiniteField(9, 'a', implementation='givaro', repr='log').gen()
         1
 
     For prime fields, the default modulus is the polynomial `x - 1`,
     but you can ask for a different modulus::
 
-        sage: GF(1009, impl='givaro').modulus()
+        sage: GF(1009, implementation='givaro').modulus()
         x + 1008
-        sage: GF(1009, impl='givaro', modulus='conway').modulus()
+        sage: GF(1009, implementation='givaro', modulus='conway').modulus()
         x + 998
     """
-    def __init__(self, q, name="a", modulus=None, repr="poly", cache=False):
+    def __init__(self, q, name='a', modulus=None, repr='poly', cache=False):
         """
         Initialize ``self``.
 
@@ -131,7 +117,7 @@ class FiniteField_givaro(FiniteField):
             sage: TestSuite(GF(2^3, 'a')).run()
         """
         if repr not in ['int', 'log', 'poly']:
-            raise ValueError("Unknown representation %s"%repr)
+            raise ValueError("Unknown representation %s" % repr)
 
         q = Integer(q)
         if q < 2:
@@ -142,21 +128,15 @@ class FiniteField_givaro(FiniteField):
         p = F[0][0]
         k = F[0][1]
 
-        if q >= 1<<16:
+        if q >= 1 << 16:
             raise ValueError("q must be < 2^16")
 
         from .finite_field_constructor import GF
         FiniteField.__init__(self, GF(p), name, normalize=False)
 
-        from sage.rings.polynomial.polynomial_element import is_Polynomial
-        if not is_Polynomial(modulus):
-            from sage.misc.superseded import deprecation
-            deprecation(16930, "constructing a FiniteField_givaro without giving a polynomial as modulus is deprecated, use the more general FiniteField constructor instead")
-            R = GF(p)['x']
-            if modulus is None or isinstance(modulus, str):
-                modulus = R.irreducible_element(k, algorithm=modulus)
-            else:
-                modulus = R(modulus)
+        from sage.rings.polynomial.polynomial_element import Polynomial
+        if not isinstance(modulus, Polynomial):
+            raise TypeError("modulus must be a polynomial")
 
         self._cache = Cache_givaro(self, p, k, modulus, repr, cache)
         self._modulus = modulus
@@ -170,7 +150,7 @@ class FiniteField_givaro(FiniteField):
             sage: p = GF(19^5,'a').characteristic(); p
             19
             sage: type(p)
-            <type 'sage.rings.integer.Integer'>
+            <class 'sage.rings.integer.Integer'>
         """
         return Integer(self._cache.characteristic())
 
@@ -178,16 +158,14 @@ class FiniteField_givaro(FiniteField):
         """
         Return the cardinality of this field.
 
-        OUTPUT:
-
-        Integer -- the number of elements in ``self``.
+        OUTPUT: integer; the number of elements in ``self``
 
         EXAMPLES::
 
             sage: n = GF(19^5,'a').order(); n
             2476099
             sage: type(n)
-            <type 'sage.rings.integer.Integer'>
+            <class 'sage.rings.integer.Integer'>
         """
         return self._cache.order()
 
@@ -195,14 +173,16 @@ class FiniteField_givaro(FiniteField):
         r"""
         If the cardinality of ``self`` is `p^n`, then this returns `n`.
 
-        OUTPUT:
-
-        Integer -- the degree
+        OUTPUT: integer; the degree
 
         EXAMPLES::
 
             sage: GF(3^4,'a').degree()
             4
+
+        .. SEEALSO::
+
+            :meth:`~sage.rings.finite_rings.finite_field_base.FiniteField.absolute_degree`
         """
         return Integer(self._cache.exponent())
 
@@ -223,7 +203,7 @@ class FiniteField_givaro(FiniteField):
         """
         if key == 'element_is_atomic':
             return self._cache.repr != 0   # 0 means repr='poly'
-        return super(FiniteField_givaro, self)._repr_option(key)
+        return super()._repr_option(key)
 
     def random_element(self, *args, **kwds):
         """
@@ -232,14 +212,15 @@ class FiniteField_givaro(FiniteField):
         EXAMPLES::
 
             sage: k = GF(23**3, 'a')
-            sage: e = k.random_element(); e
-            2*a^2 + 14*a + 21
+            sage: e = k.random_element()
+            sage: e.parent() is k
+            True
             sage: type(e)
-            <type 'sage.rings.finite_rings.element_givaro.FiniteField_givaroElement'>
+            <class 'sage.rings.finite_rings.element_givaro.FiniteField_givaroElement'>
 
             sage: P.<x> = PowerSeriesRing(GF(3^3, 'a'))
-            sage: P.random_element(5)
-            2*a + 2 + (a^2 + a + 2)*x + (2*a + 1)*x^2 + (2*a^2 + a)*x^3 + 2*a^2*x^4 + O(x^5)
+            sage: P.random_element(5).parent() is P
+            True
         """
         return self._cache.random_element()
 
@@ -282,7 +263,7 @@ class FiniteField_givaro(FiniteField):
         'little endian'::
 
             sage: k = GF(2**8, 'a')
-            sage: e = k.vector_space().gen(1); e
+            sage: e = k.vector_space(map=False).gen(1); e
             (0, 1, 0, 0, 0, 0, 0, 0)
             sage: k(e)
             a
@@ -302,7 +283,7 @@ class FiniteField_givaro(FiniteField):
         the polynomial at the field's generator::
 
             sage: R.<x> = QQ[]
-            sage: k.<a> = FiniteField(5^2, 'a', impl='givaro')
+            sage: k.<a> = FiniteField(5^2, 'a', implementation='givaro')
             sage: k(R(2/3))
             4
             sage: k(x^2)
@@ -315,7 +296,7 @@ class FiniteField_givaro(FiniteField):
             sage: k(x^25)
             a
 
-            sage: Q.<q> = FiniteField(5^3, 'q', impl='givaro')
+            sage: Q.<q> = FiniteField(5^3, 'q', implementation='givaro')
             sage: L = GF(5)
             sage: LL.<xx> = L[]
             sage: Q(xx^2 + 2*xx + 4)
@@ -336,32 +317,36 @@ class FiniteField_givaro(FiniteField):
         PARI elements are interpreted as finite field elements; this PARI
         flexibility is (absurdly!) liberal::
 
-            sage: k = GF(2**8, 'a')
+            sage: k.<a> = GF(2^8)
             sage: k(pari('Mod(1,2)'))
             1
             sage: k(pari('Mod(2,3)'))
             a
             sage: k(pari('Mod(1,3)*a^20'))
             a^7 + a^5 + a^4 + a^2
+            sage: k(pari('O(x)'))
+            Traceback (most recent call last):
+            ...
+            TypeError: unable to convert PARI t_SER to Finite Field in a of size 2^8
 
         We can coerce from PARI finite field implementations::
 
-            sage: K.<a> = GF(3^10, impl="givaro")
+            sage: K.<a> = GF(3^10, implementation="givaro")
             sage: a^20
             2*a^9 + 2*a^8 + a^7 + 2*a^5 + 2*a^4 + 2*a^3 + 1
-            sage: M.<c> = GF(3^10, impl="pari_ffelt")
+            sage: M.<c> = GF(3^10, implementation="pari_ffelt")
             sage: K(c^20)
             2*a^9 + 2*a^8 + a^7 + 2*a^5 + 2*a^4 + 2*a^3 + 1
 
         GAP elements need to be finite field elements::
 
             sage: x = gap('Z(13)')
-            sage: F = FiniteField(13, impl='givaro')
+            sage: F = FiniteField(13, implementation='givaro')
             sage: F(x)
             2
             sage: F(gap('0*Z(13)'))
             0
-            sage: F = FiniteField(13^2, 'a', impl='givaro')
+            sage: F = FiniteField(13^2, 'a', implementation='givaro')
             sage: x = gap('Z(13)')
             sage: F(x)
             2
@@ -375,8 +360,8 @@ class FiniteField_givaro(FiniteField):
             sage: k(48771/1225)
             28
 
-            sage: F9 = FiniteField(9, impl='givaro', prefix='a')
-            sage: F81 = FiniteField(81, impl='givaro', prefix='a')
+            sage: F9 = FiniteField(9, implementation='givaro', prefix='a')
+            sage: F81 = FiniteField(81, implementation='givaro', prefix='a')
             sage: F81(F9.gen())
             2*a4^3 + 2*a4^2 + 1
         """
@@ -411,7 +396,7 @@ class FiniteField_givaro(FiniteField):
             Traceback (most recent call last):
             ...
             IndexError: only one generator
-            sage: F = FiniteField(31, impl='givaro')
+            sage: F = FiniteField(31, implementation='givaro')
             sage: F.gen()
             1
         """
@@ -421,7 +406,7 @@ class FiniteField_givaro(FiniteField):
 
     def prime_subfield(self):
         r"""
-        Return the prime subfield `\GF{p}` of self if ``self`` is `\GF{p^n}`.
+        Return the prime subfield `\GF{p}` of ``self`` if ``self`` is `\GF{p^n}`.
 
         EXAMPLES::
 
@@ -452,9 +437,7 @@ class FiniteField_givaro(FiniteField):
 
         - ``n`` -- log representation of a finite field element
 
-        OUTPUT:
-
-        integer representation of a finite field element.
+        OUTPUT: integer representation of a finite field element
 
         EXAMPLES::
 
@@ -474,11 +457,9 @@ class FiniteField_givaro(FiniteField):
 
         INPUT:
 
-        - ``n`` -- integer representation of an finite field element
+        - ``n`` -- integer representation of a finite field element
 
-        OUTPUT:
-
-        log representation of ``n``
+        OUTPUT: log representation of ``n``
 
         EXAMPLES::
 
@@ -492,7 +473,7 @@ class FiniteField_givaro(FiniteField):
         """
         return self._cache.int_to_log(n)
 
-    def fetch_int(self, n):
+    def from_integer(self, n):
         r"""
         Given an integer `n` return a finite field element in ``self``
         which equals `n` under the condition that :meth:`gen()` is set to
@@ -501,9 +482,9 @@ class FiniteField_givaro(FiniteField):
         EXAMPLES::
 
             sage: k.<a> = GF(2^8)
-            sage: k.fetch_int(8)
+            sage: k.from_integer(8)
             a^3
-            sage: e = k.fetch_int(151); e
+            sage: e = k.from_integer(151); e
             a^7 + a^4 + a^2 + a + 1
             sage: 2^7 + 2^4 + 2^2 + 2 + 1
             151
@@ -520,7 +501,7 @@ class FiniteField_givaro(FiniteField):
             Mod(1, 3)*a^4 + Mod(2, 3)*a^3 + Mod(2, 3)
         """
         f = pari(str(self.modulus()))
-        return f.subst('x', 'a') * pari("Mod(1,%s)"%self.characteristic())
+        return f.subst('x', 'a') * pari("Mod(1,%s)" % self.characteristic())
 
     def __iter__(self):
         """
@@ -541,7 +522,7 @@ class FiniteField_givaro(FiniteField):
 
         INPUT:
 
-        - ``a,b,c`` -- :class:`~~sage.rings.finite_rings.element_givaro.FiniteField_givaroElement`
+        - ``a``, ``b``, ``c`` -- :class:`~~sage.rings.finite_rings.element_givaro.FiniteField_givaroElement`
 
         EXAMPLES::
 
@@ -557,7 +538,7 @@ class FiniteField_givaro(FiniteField):
 
         INPUT:
 
-        - ``a,b,c`` -- :class:`~sage.rings.finite_rings.element_givaro.FiniteField_givaroElement`
+        - ``a``, ``b``, ``c`` -- :class:`~sage.rings.finite_rings.element_givaro.FiniteField_givaroElement`
 
         EXAMPLES::
 
@@ -573,7 +554,7 @@ class FiniteField_givaro(FiniteField):
 
         INPUT:
 
-        - ``a,b,c`` -- :class:`~sage.rings.finite_rings.element_givaro.FiniteField_givaroElement`
+        - ``a``, ``b``, ``c`` -- :class:`~sage.rings.finite_rings.element_givaro.FiniteField_givaroElement`
 
         EXAMPLES::
 
@@ -587,7 +568,7 @@ class FiniteField_givaro(FiniteField):
         """
         INPUT:
 
-        -  ``n`` -- an integer (default: 1)
+        - ``n`` -- integer (default: 1)
 
         OUTPUT:
 

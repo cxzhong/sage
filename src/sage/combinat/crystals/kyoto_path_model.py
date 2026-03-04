@@ -1,8 +1,9 @@
+# sage.doctest: needs sage.combinat sage.modules
 r"""
-Kyoto Path Model for Affine Highest Weight Crystals
+Kyoto path model for affine highest weight crystals
 """
 
-#*****************************************************************************
+# ***************************************************************************
 #       Copyright (C) 2013 Travis Scrimshaw <tscrim at ucdavis.edu>
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
@@ -15,7 +16,7 @@ Kyoto Path Model for Affine Highest Weight Crystals
 #  The full text of the GPL is available at:
 #
 #                  http://www.gnu.org/licenses/
-#****************************************************************************
+# ***************************************************************************
 
 from sage.structure.parent import Parent
 from sage.categories.infinite_enumerated_sets import InfiniteEnumeratedSets
@@ -64,7 +65,7 @@ class KyotoPathModel(TensorProductOfCrystals):
         \Phi_n : B(\lambda) \to B^{(0)} \otimes B^{(1)} \otimes \cdots
         \otimes B^{(N)} \otimes B(\lambda_{N+1}).
 
-    We note by Lemma 10.6.2 in [HK02]_ that for any `b \in B(\lambda)` there
+    We note by Lemma 10.6.2 in [HK2002]_ that for any `b \in B(\lambda)` there
     exists a finite `N` such that
 
     .. MATH::
@@ -121,12 +122,6 @@ class KyotoPathModel(TensorProductOfCrystals):
     the :class:`affinization
     <sage.combinat.crystals.affinization.AffinizationOfCrystal>` of the
     of crystals `B^{(i)}` for all `i`.
-
-    REFERENCES:
-
-    .. [HK02] *Introduction to Quantum Groups and Crystal Bases.*
-       Jin Hong and Seok-Jin Kang. 2002. Volume 42.
-       Graduate Studies in Mathematics. American Mathematical Society.
 
     INPUT:
 
@@ -233,7 +228,7 @@ class KyotoPathModel(TensorProductOfCrystals):
                 enumerate(P.simple_coroots()) ) != level:
             raise ValueError( "{} is not a level {} weight".format(weight, level) )
 
-        return super(KyotoPathModel, cls).__classcall__(cls, crystals, weight, P)
+        return super().__classcall__(cls, crystals, weight, P)
 
     def __init__(self, crystals, weight, P):
         """
@@ -327,6 +322,7 @@ class KyotoPathModel(TensorProductOfCrystals):
         An element in the Kyoto path model.
         """
         # For simplicity (and safety), we use the regular crystals implementation
+
         def epsilon(self, i):
             r"""
             Return `\varepsilon_i` of ``self``.
@@ -498,4 +494,3 @@ class KyotoPathModel(TensorProductOfCrystals):
                     i = len(l) % N
                     l.append(self.parent()._phi_dicts[i][ l[-1].Epsilon() ])
             return P(*l)
-

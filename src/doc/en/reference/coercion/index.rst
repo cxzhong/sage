@@ -7,7 +7,8 @@ Preliminaries
 What is coercion all about?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-*The primary goal of coercion is to be able to transparently do arithmetic, comparisons, etc. between elements of distinct sets.*
+*The primary goal of coercion is to be able to transparently do arithmetic,
+comparisons, etc. between elements of distinct sets.*
 
 As a concrete example, when one writes `1 + 1/2` one wants to perform
 arithmetic on the operands as rational numbers, despite the left being
@@ -59,12 +60,11 @@ either parents or have a parent. Typically whenever one sees the word
     x^sin(x)
     sage: R.<t> = Qp(5)[]
     sage: f = t^3-5; f
-    (1 + O(5^20))*t^3 + (4*5 + 4*5^2 + 4*5^3 + 4*5^4 + 4*5^5 + 4*5^6 + 4*5^7 + 4*5^8 + 4*5^9 + 4*5^10 + 4*5^11 + 4*5^12 + 4*5^13 + 4*5^14 + 4*5^15 + 4*5^16 + 4*5^17 + 4*5^18 + 4*5^19 + 4*5^20 + O(5^21))
+    (1 + O(5^20))*t^3 + 4*5 + 4*5^2 + 4*5^3 + 4*5^4 + 4*5^5 + 4*5^6 + 4*5^7 + 4*5^8 + 4*5^9 + 4*5^10 + 4*5^11 + 4*5^12 + 4*5^13 + 4*5^14 + 4*5^15 + 4*5^16 + 4*5^17 + 4*5^18 + 4*5^19 + 4*5^20 + O(5^21)
     sage: parent(f)
     Univariate Polynomial Ring in t over 5-adic Field with capped relative precision 20
-    sage: f = EllipticCurve('37a').lseries().taylor_series(10); f
-    0.990010459847588 + 0.0191338632530789*z - 0.0197489006172923*z^2 + 0.0137240085327618*z^3 - 0.00703880791607153*z^4 + 0.00280906165766519*z^5 + O(z^6)           # 32-bit
-    0.997997869801216 + 0.00140712894524925*z - 0.000498127610960097*z^2 + 0.000118835596665956*z^3 - 0.0000215906522442707*z^4 + (3.20363155418419e-6)*z^5 + O(z^6)  # 64-bit
+    sage: f = EllipticCurve('37a').lseries().taylor_series(10); f  # abs tol 1e-13
+    0.997997869801216 + 0.00140712894524925*z - 0.000498127610960097*z^2 + 0.000118835596665956*z^3 - 0.0000215906522442708*z^4 + (3.20363155418427e-6)*z^5 + O(z^6)
     sage: parent(f)
     Power Series Ring in z over Complex Field with 53 bits of precision
 
@@ -73,9 +73,9 @@ There is an important distinction between Parents and types::
     sage: a = GF(5).random_element()
     sage: b = GF(7).random_element()
     sage: type(a)
-    <type 'sage.rings.finite_rings.integer_mod.IntegerMod_int'>
+    <class 'sage.rings.finite_rings.integer_mod.IntegerMod_int'>
     sage: type(b)
-    <type 'sage.rings.finite_rings.integer_mod.IntegerMod_int'>
+    <class 'sage.rings.finite_rings.integer_mod.IntegerMod_int'>
     sage: type(a) == type(b)
     True
     sage: parent(a)
@@ -83,7 +83,7 @@ There is an important distinction between Parents and types::
     sage: parent(a) == parent(b)
     False
 
-However, non-Sage objects don't really have parents, but we still want
+However, non-Sage objects do not really have parents, but we still want
 to be able to reason with them, so their type is used instead::
 
     sage: a = int(10)
@@ -91,7 +91,7 @@ to be able to reason with them, so their type is used instead::
     <... 'int'>
 
 In fact, under the hood, a special kind of parent "The set of all
-Python objects of type T" is used in these cases.
+Python objects of class T" is used in these cases.
 
 Note that parents are **not** always as tight as possible.
 
@@ -209,8 +209,8 @@ be obtained and queried.
 
     sage: parent(1 + 1/2)
     Rational Field
-    sage: cm = sage.structure.element.get_coercion_model(); cm
-    <sage.structure.coerce.CoercionModel_cache_maps object at ...>
+    sage: cm = coercion_model; cm
+    <sage.structure.coerce.CoercionModel object at ...>
     sage: cm.explain(ZZ, QQ)
     Coercion on left operand via
        Natural morphism:
@@ -270,26 +270,26 @@ discovered between steps 1 and 2 above.
     sage: f(3).parent()
     Rational Field
 
-Note that by :trac:`14711` Sage's coercion system uses maps with weak
+Note that by :issue:`14711` Sage's coercion system uses maps with weak
 references to the domain. Such maps should only be used internally, and so a
 copy should be used instead (unless one knows what one is doing)::
 
     sage: QQ._internal_coerce_map_from(int)
     (map internal to coercion system -- copy before use)
     Native morphism:
-      From: Set of Python objects of type 'int'
+      From: Set of Python objects of class 'int'
       To:   Rational Field
     sage: copy(QQ._internal_coerce_map_from(int))
     Native morphism:
-     From: Set of Python objects of type 'int'
-     To:   Rational Field
+      From: Set of Python objects of class 'int'
+      To:   Rational Field
 
 Note that the user-visible method (without underscore) automates this copy::
 
     sage: copy(QQ.coerce_map_from(int))
     Native morphism:
-     From: Set of Python objects of type 'int'
-     To:   Rational Field
+      From: Set of Python objects of class 'int'
+      To:   Rational Field
 
 ::
 
@@ -322,11 +322,11 @@ Methods to implement
   the function is called on the potential codomain.  To indicate that
   there is no coercion from S to R (self), return ``False`` or
   ``None``. This is the default behavior.  If there is a coercion,
-  return ``True`` (in which case an morphism using
+  return ``True`` (in which case a morphism using
   ``R._element_constructor_`` will be created) or an actual
   :class:`Morphism` object with S as the domain and R as the codomain.
 
-* Actions for Parents: ``_get_action_`` or ``_rmul_``, ``_lmul_``, ``_r_action_``, ``_l_action_``
+* Actions for Parents: ``_get_action_`` or ``_rmul_``, ``_lmul_``, ``_act_on_``, ``_acted_upon_``
 
   Suppose one wants R to act on S. Some examples of this could be
   `R = \QQ`, `S = \QQ[x]` or `R = {\rm Gal}(S/\QQ)`
@@ -335,25 +335,30 @@ Methods to implement
   * If `R` is the base of `S` (as in the first example), simply
     implement ``_rmul_`` and/or ``_lmul_`` on the Elements of `S`.
     In this case ``r * s`` gets handled as ``s._rmul_(r)`` and
-    ``s * r`` as ``s._lmul_(r)``.  The argument to ``_rmul_``
+    ``s * r`` as ``s._lmul_(r)``. The argument to ``_rmul_``
     and ``_lmul_`` are *guaranteed* to be Elements of the base of
     `S` (with coercion happening beforehand if necessary).
 
-  * If `R` acts on `S`, one can alternatively define the methods
-    ``_r_action_`` and/or ``_l_action_`` on the Elements of `R`.
-    There is no constraint on the type or parents of objects passed to
-    these methods; raise a ``TypeError`` or ``ValueError`` if the
-    wrong kind of object is passed in to indicate the action is not
+  * If `R` acts on `S`, one can define the methods
+    ``_act_on_`` on Elements of `R` or ``_acted_upon_`` on Elements of `S`. In
+    this case ``r * s`` gets handled as ``r._act_on_(s, True)`` or
+    ``s._acted_upon_(r, False)`` and ``s * r`` as ``r._act_on_(s, False)`` or
+    ``s._acted_upon_(r, True)``. There is no constraint on the type or parents
+    of objects passed to these methods; raise a :class:`TypeError` or :class:`ValueError`
+    if the wrong kind of object is passed in to indicate the action is not
     appropriate here.
 
   * If either `R` acts on `S` *or* `S` acts on `R`, one may implement
     ``R._get_action_`` to return an actual
-    :class:`~sage.categories.action.Action` object to be used.  This
-    is how non-multiplicative actions must be implemented, and is the
-    most powerful (and completed) way to do things.
+    :class:`~sage.categories.action.Action` object to be used. This is how
+    non-multiplicative actions must be implemented, and is the most powerful
+    and complete way to do things.
 
-* Element conversion/construction for Parents: use
-  ``_element_constructor_`` **not** ``__call__``
+  It should be noted that for the first way to work, elements of `S` are
+  required to be ModuleElements. This requirement is likely to be lifted in the
+  future.
+
+* Element conversion/construction for Parents: use ``_element_constructor_`` **not** ``__call__``
 
   The :meth:`Parent.__call__` method dispatches to
   ``_element_constructor_``. When someone writes ``R(x, ...)``, this is
@@ -380,87 +385,97 @@ but that would obscure the main points being made here.)
 
 ::
 
-    class Localization(Ring):
-       def __init__(self, primes):
-           """
-           Localization of `\ZZ` away from primes.
-           """
-           Ring.__init__(self, base=ZZ)
-           self._primes = primes
-           self._populate_coercion_lists_()
+    sage: from sage.structure.richcmp import richcmp
+    sage: from sage.structure.element import Element
 
-       def _repr_(self):
-           """
-           How to print self.
-           """
-           return "%s localized at %s" % (self.base(), self._primes)
+    sage: class MyLocalization(Parent):
+    ....:     def __init__(self, primes):
+    ....:         r"""
+    ....:         Localization of `\ZZ` away from primes.
+    ....:         """
+    ....:         Parent.__init__(self, base=ZZ, category=Rings().Commutative())
+    ....:         self._primes = primes
+    ....:         self._populate_coercion_lists_()
+    ....:
+    ....:     def _repr_(self) -> str:
+    ....:         """
+    ....:         How to print ``self``.
+    ....:         """
+    ....:         return "%s localized at %s" % (self.base(), self._primes)
+    ....:
+    ....:     def _element_constructor_(self, x):
+    ....:         """
+    ....:         Make sure ``x`` is a valid member of ``self``, and return the constructed element.
+    ....:         """
+    ....:         if isinstance(x, MyLocalizationElement):
+    ....:             x = x._value
+    ....:         else:
+    ....:             x = QQ(x)
+    ....:         for p, e in x.denominator().factor():
+    ....:             if p not in self._primes:
+    ....:                 raise ValueError("not integral at %s" % p)
+    ....:         return self.element_class(self, x)
+    ....:
+    ....:     def _an_element_(self):
+    ....:         return self.element_class(self, 6)
+    ....:
+    ....:     def _coerce_map_from_(self, S):
+    ....:         """
+    ....:         The only things that coerce into this ring are:
+    ....:
+    ....:         - the integer ring
+    ....:
+    ....:         - other localizations away from fewer primes
+    ....:         """
+    ....:         if S is ZZ:
+    ....:             return True
+    ....:         if isinstance(S, MyLocalization):
+    ....:             return all(p in self._primes for p in S._primes)
 
-       def _element_constructor_(self, x):
-           """
-           Make sure x is a valid member of self, and return the constructed element.
-           """
-           if isinstance(x, LocalizationElement):
-               x = x._value
-           else:
-               x = QQ(x)
-           for p, e in x.denominator().factor():
-               if p not in self._primes:
-                   raise ValueError("Not integral at %s" % p)
-           return LocalizationElement(self, x)
+    sage: class MyLocalizationElement(Element):
+    ....:
+    ....:     def __init__(self, parent, x):
+    ....:         Element.__init__(self, parent)
+    ....:         self._value = x
+    ....:
+    ....:     # We are just printing out this way to make it easy to see what's going on in the examples.
+    ....:
+    ....:     def _repr_(self) -> str:
+    ....:         return f"LocalElt({self._value})"
+    ....:
+    ....:     # Now define addition, subtraction and multiplication of elements.
+    ....:     # Note that self and right always have the same parent.
+    ....:
+    ....:     def _add_(self, right):
+    ....:         return self.parent()(self._value + right._value)
+    ....:
+    ....:     def _sub_(self, right):
+    ....:         return self.parent()(self._value - right._value)
+    ....:
+    ....:     def _mul_(self, right):
+    ....:         return self.parent()(self._value * right._value)
+    ....:
+    ....:     # The basering was set to ZZ, so c is guaranteed to be in ZZ
+    ....:
+    ....:     def _rmul_(self, c):
+    ....:         return self.parent()(c * self._value)
+    ....:
+    ....:     def _lmul_(self, c):
+    ....:         return self.parent()(self._value * c)
+    ....:
+    ....:     def _richcmp_(self, other, op):
+    ....:         return richcmp(self._value, other._value, op)
 
-       def _coerce_map_from_(self, S):
-           """
-           The only things that coerce into this ring are:
-
-           - the integer ring
-
-           - other localizations away from fewer primes
-           """
-           if S is ZZ:
-               return True
-           elif isinstance(S, Localization):
-               return all(p in self._primes for p in S._primes)
-
-
-    class LocalizationElement(RingElement):
-
-       def __init__(self, parent, x):
-           RingElement.__init__(self, parent)
-           self._value = x
-
-
-       # We're just printing out this way to make it easy to see what's going on in the examples.
-
-       def _repr_(self):
-           return "LocalElt(%s)" % self._value
-
-       # Now define addition, subtraction, and multiplication of elements.
-       # Note that left and right always have the same parent.
-
-       def _add_(left, right):
-           return LocalizationElement(left.parent(), left._value + right._value)
-
-       def _sub_(left, right):
-           return LocalizationElement(left.parent(), left._value - right._value)
-
-       def _mul_(left, right):
-           return LocalizationElement(left.parent(), left._value * right._value)
-
-       # The basering was set to ZZ, so c is guaranteed to be in ZZ
-
-       def _rmul_(self, c):
-           return LocalizationElement(self.parent(), c * self._value)
-
-       def _lmul_(self, c):
-           return LocalizationElement(self.parent(), self._value * c)
+    sage: MyLocalization.element_class = MyLocalizationElement
 
 That's all there is to it. Now we can test it out:
 
-.. skip
+.. link
 
 ::
 
-    sage: R = Localization([2]); R
+    sage: TestSuite(R).run(skip="_test_pickling")
+    sage: R = MyLocalization([2]); R
     Integer Ring localized at [2]
     sage: R(1)
     LocalElt(1)
@@ -469,12 +484,12 @@ That's all there is to it. Now we can test it out:
     sage: R(1/3)
     Traceback (most recent call last):
     ...
-    ValueError: Not integral at 3
+    ValueError: not integral at 3
 
     sage: R.coerce(1)
     LocalElt(1)
     sage: R.coerce(1/4)
-    Traceback (click to the left for traceback)
+    Traceback (most recent call last):
     ...
     TypeError: no canonical coercion from Rational Field to Integer Ring localized at [2]
 
@@ -491,12 +506,10 @@ That's all there is to it. Now we can test it out:
     sage: R(3/4) * 7
     LocalElt(21/4)
 
-    sage: R.get_action(ZZ)
-    Right scalar multiplication by Integer Ring on Integer Ring localized at [2]
     sage: cm = sage.structure.element.get_coercion_model()
     sage: cm.explain(R, ZZ, operator.add)
     Coercion on right operand via
-       Conversion map:
+       Coercion map:
          From: Integer Ring
          To:   Integer Ring localized at [2]
     Arithmetic performed after coercions.
@@ -504,12 +517,15 @@ That's all there is to it. Now we can test it out:
     Integer Ring localized at [2]
 
     sage: cm.explain(R, ZZ, operator.mul)
-    Action discovered.
-       Right scalar multiplication by Integer Ring on Integer Ring localized at [2]
+    Coercion on right operand via
+        Coercion map:
+          From: Integer Ring
+          To:   Integer Ring localized at [2]
+    Arithmetic performed after coercions.
     Result lives in Integer Ring localized at [2]
     Integer Ring localized at [2]
 
-    sage: R6 = Localization([2,3]); R6
+    sage: R6 = MyLocalization([2,3]); R6
     Integer Ring localized at [2, 3]
     sage: R6(1/3) - R(1/2)
     LocalElt(-1/6)
@@ -519,12 +535,12 @@ That's all there is to it. Now we can test it out:
     sage: R.has_coerce_map_from(ZZ)
     True
     sage: R.coerce_map_from(ZZ)
-    Conversion map:
+    Coercion map:
      From: Integer Ring
      To:   Integer Ring localized at [2]
 
     sage: R6.coerce_map_from(R)
-    Conversion map:
+    Coercion map:
      From: Integer Ring localized at [2]
      To:   Integer Ring localized at [2, 3]
 
@@ -533,7 +549,7 @@ That's all there is to it. Now we can test it out:
 
     sage: cm.explain(R, R6, operator.mul)
     Coercion on left operand via
-       Conversion map:
+       Coercion map:
          From: Integer Ring localized at [2]
          To:   Integer Ring localized at [2, 3]
     Arithmetic performed after coercions.
@@ -589,9 +605,8 @@ Provided Methods
 
 * ``get_action``
 
-  This will unwind all the
-  ``_rmul_, _lmul_, _r_action_, _l_action_, ...`` methods to provide
-  an actual ``Action`` object, if one exists.
+  This will unwind all the ``_get_action_, _rmul_, _lmul_, _act_on_, _acted_upon_, ...``
+  methods to provide an actual ``Action`` object, if one exists.
 
 
 Discovering new parents
@@ -608,13 +623,13 @@ These are accessed via the :meth:`construction` method, which returns a
     sage: CC.construction()
     (AlgebraicClosureFunctor, Real Field with 53 bits of precision)
     sage: RR.construction()
-    (Completion[+Infinity], Rational Field)
+    (Completion[+Infinity, prec=53], Rational Field)
     sage: QQ.construction()
     (FractionField, Integer Ring)
     sage: ZZ.construction()  # None
 
-    sage: Qp(5).construction()
-    (Completion[5], Rational Field)
+    sage: Zp(5).construction()
+    (Completion[5, prec=20], Integer Ring)
     sage: QQ.completion(5, 100, {})
     5-adic Field with capped relative precision 100
     sage: c, R = RR.construction()
@@ -626,12 +641,12 @@ These are accessed via the :meth:`construction` method, which returns a
 
     sage: sage.categories.pushout.construction_tower(Frac(CDF['x']))
     [(None,
-     Fraction Field of Univariate Polynomial Ring in x over Complex Double Field),
-    (FractionField, Univariate Polynomial Ring in x over Complex Double Field),
-    (Poly[x], Complex Double Field),
-    (AlgebraicClosureFunctor, Real Double Field),
-    (Completion[+Infinity], Rational Field),
-    (FractionField, Integer Ring)]
+      Fraction Field of Univariate Polynomial Ring in x over Complex Double Field),
+     (FractionField, Univariate Polynomial Ring in x over Complex Double Field),
+     (Poly[x], Complex Double Field),
+     (AlgebraicClosureFunctor, Real Double Field),
+     (Completion[+Infinity, prec=53], Rational Field),
+     (FractionField, Integer Ring)]
 
 Given Parents R and S, such that there is no coercion either from R to
 S or from S to R, one can find a common Z with coercions
@@ -666,7 +681,7 @@ Modules
 -------
 
 .. toctree::
-    :maxdepth: 2
+    :maxdepth: 1
 
     sage/structure/coerce
     sage/structure/coerce_actions

@@ -1,4 +1,3 @@
-# -*- encoding: utf-8 -*-
 """
 The backend used for doctests
 
@@ -13,30 +12,28 @@ EXAMPLES::
     The Sage display manager using the doctest backend
 """
 
-#*****************************************************************************
+# ****************************************************************************
 #       Copyright (C) 2015 Volker Braun <vbraun.name@gmail.com>
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
 #  as published by the Free Software Foundation; either version 2 of
 #  the License, or (at your option) any later version.
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
 import sys
+
 from sage.repl.rich_output.backend_base import BackendBase
 from sage.repl.rich_output.output_catalog import *
 
 
-    
 class BackendDoctest(BackendBase):
 
     def _repr_(self):
         """
         Return a string representation.
 
-        OUTPUT:
-
-        String.
+        OUTPUT: string
 
         EXAMPLES::
 
@@ -49,11 +46,11 @@ class BackendDoctest(BackendBase):
 
     def default_preferences(self):
         """
-        Return the backend's display preferences
+        Return the backend's display preferences.
 
         Matches the IPython command line display preferences to keep
         the differences between that and the doctests to a minimum.
-        
+
         OUTPUT:
 
         Instance of
@@ -65,6 +62,7 @@ class BackendDoctest(BackendBase):
             sage: backend = BackendIPythonCommandline()
             sage: backend.default_preferences()
             Display preferences:
+            * align_latex is not specified
             * graphics is not specified
             * supplemental_plot = never
             * text is not specified
@@ -82,8 +80,8 @@ class BackendDoctest(BackendBase):
 
         INPUT:
 
-        None of the optional keyword arguments are used in the doctest
-        backend.
+        - ``**kwds`` -- none of the optional keyword arguments are used in the
+          doctest backend
 
         EXAMPLES::
 
@@ -94,10 +92,10 @@ class BackendDoctest(BackendBase):
         """
         self._old_displayhook = sys.displayhook
         sys.displayhook = self.get_display_manager().displayhook
-    
+
     def uninstall(self):
         """
-        Switch away from the doctest backend
+        Switch away from the doctest backend.
 
         This method is being called from within
         :meth:`~sage.repl.rich_output.display_manager.DisplayManager.switch_backend`. You
@@ -114,8 +112,8 @@ class BackendDoctest(BackendBase):
 
     def supported_output(self):
         """
-        Return the supported output types
-        
+        Return the supported output types.
+
         OUTPUT:
 
         Set of subclasses of
@@ -133,8 +131,8 @@ class BackendDoctest(BackendBase):
             True
         """
         return set([
-            OutputPlainText, OutputAsciiArt, OutputUnicodeArt, OutputLatex,
-            OutputImagePng, OutputImageGif, OutputImageJpg, 
+            OutputPlainText, OutputAsciiArt, OutputUnicodeArt,
+            OutputImagePng, OutputImageGif, OutputImageJpg,
             OutputImageSvg, OutputImagePdf, OutputImageDvi,
             OutputSceneJmol, OutputSceneCanvas3d, OutputSceneWavefront,
             OutputVideoOgg, OutputVideoWebM, OutputVideoMp4,
@@ -144,7 +142,7 @@ class BackendDoctest(BackendBase):
 
     def displayhook(self, plain_text, rich_output):
         """
-        Display object from displayhook
+        Display object from displayhook.
 
         INPUT:
 
@@ -163,26 +161,26 @@ class BackendDoctest(BackendBase):
 
         This ends up calling the displayhook::
 
-            sage: plt = plot(sin)
-            sage: plt
+            sage: plt = plot(sin)                                                       # needs sage.plot sage.symbolic
+            sage: plt                                                                   # needs sage.plot sage.symbolic
             Graphics object consisting of 1 graphics primitive
-            sage: plt.show()
+            sage: plt.show()                                                            # needs sage.plot sage.symbolic
 
             sage: from sage.repl.rich_output import get_display_manager
             sage: dm = get_display_manager()
-            sage: dm.displayhook(plt)       # indirect doctest
+            sage: dm.displayhook(plt)       # indirect doctest                          # needs sage.plot sage.symbolic
             Graphics object consisting of 1 graphics primitive
         """
         self.validate(rich_output)
         if any(isinstance(rich_output, cls)
-               for cls in [OutputPlainText, OutputAsciiArt, OutputLatex]):
+               for cls in [OutputPlainText, OutputAsciiArt, OutputLatex, OutputHtml]):
             rich_output.print_to_stdout()
         else:
             plain_text.print_to_stdout()
 
     def display_immediately(self, plain_text, rich_output):
         """
-        Display object immediately
+        Display object immediately.
 
         INPUT:
 
@@ -197,34 +195,30 @@ class BackendDoctest(BackendBase):
         displayhook, the plot is still shown. Nothing is shown during
         doctests::
 
-            sage: plt = plot(sin)
-            sage: plt
+            sage: plt = plot(sin)                                                       # needs sage.plot sage.symbolic
+            sage: plt                                                                   # needs sage.plot sage.symbolic
             Graphics object consisting of 1 graphics primitive
-            sage: plt.show()
+            sage: plt.show()                                                            # needs sage.plot sage.symbolic
 
             sage: from sage.repl.rich_output import get_display_manager
             sage: dm = get_display_manager()
-            sage: dm.display_immediately(plt)   # indirect doctest
+            sage: dm.display_immediately(plt)   # indirect doctest                      # needs sage.plot sage.symbolic
         """
         self.validate(rich_output)
         types_to_print = [OutputPlainText, OutputAsciiArt, OutputUnicodeArt, OutputHtml]
-        if isinstance(rich_output, OutputLatex):
-            print(rich_output.mathjax(display=False))
-        elif any(isinstance(rich_output, cls) for cls in types_to_print):
+        if any(isinstance(rich_output, cls) for cls in types_to_print):
             rich_output.print_to_stdout()
 
     def validate(self, rich_output):
         """
-        Perform checks on ``rich_output``
-        
+        Perform checks on ``rich_output``.
+
         INPUT:
 
         - ``rich_output`` -- instance of a subclass of
-          :class:`~sage.repl.rich_output.output_basic.OutputBase`.
+          :class:`~sage.repl.rich_output.output_basic.OutputBase`
 
-        OUTPUT:
-
-        An assertion is triggered if ``rich_output`` is invalid.
+        OUTPUT: an assertion is triggered if ``rich_output`` is invalid
 
         EXAMPLES::
 
@@ -265,55 +259,57 @@ class BackendDoctest(BackendBase):
         elif isinstance(rich_output, OutputUnicodeArt):
             pass
         elif isinstance(rich_output, OutputLatex):
-            assert rich_output.mathjax().startswith('<html>')
+            pass
+        elif isinstance(rich_output, OutputHtml):
+            pass
         elif isinstance(rich_output, OutputImagePng):
-            assert rich_output.png.get().startswith('\x89PNG')
+            assert rich_output.png.get().startswith(b'\x89PNG')
         elif isinstance(rich_output, OutputImageGif):
-            assert rich_output.gif.get().startswith('GIF89a')
+            assert rich_output.gif.get().startswith(b'GIF89a')
         elif isinstance(rich_output, OutputImageJpg):
-            assert rich_output.jpg.get().startswith('\xff\xd8\xff\xe0\x00\x10JFIF')
+            assert rich_output.jpg.get().startswith(b'\xff\xd8\xff\xe0\x00\x10JFIF')
         elif isinstance(rich_output, OutputImageSvg):
-            assert '</svg>' in rich_output.svg.get()
+            assert b'</svg>' in rich_output.svg.get()
         elif isinstance(rich_output, OutputImagePdf):
-            assert rich_output.pdf.get().startswith('%PDF-')
+            assert rich_output.pdf.get().startswith(b'%PDF-')
         elif isinstance(rich_output, OutputImageDvi):
-            assert 'TeX output' in rich_output.dvi.get()
+            assert b'TeX output' in rich_output.dvi.get()
         elif isinstance(rich_output, OutputSceneJmol):
-            assert rich_output.preview_png.get().startswith('\x89PNG')
-            assert rich_output.scene_zip.get().startswith('PK')  # zip archive
+            assert rich_output.preview_png.get().startswith(b'\x89PNG')
+            assert rich_output.scene_zip.get().startswith(b'PK')  # zip archive
         elif isinstance(rich_output, OutputSceneWavefront):
-            assert rich_output.obj.get().startswith('mtllib ')
-            assert rich_output.mtl.get().startswith('newmtl ')
+            assert rich_output.obj.get().startswith(b'mtllib ')
+            assert rich_output.mtl.get().startswith(b'newmtl ')
         elif isinstance(rich_output, OutputSceneCanvas3d):
-            assert rich_output.canvas3d.get().startswith('[{"vertices":')
+            assert rich_output.canvas3d.get().startswith(b'[{"vertices":')
         elif isinstance(rich_output, OutputVideoOgg):
-            assert rich_output.video.get().startswith('OggS')
+            assert rich_output.video.get().startswith(b'OggS')
         elif isinstance(rich_output, OutputVideoWebM):
             data = rich_output.video.get()
-            assert data.startswith('\x1a\x45\xdf\xa3')
-            assert '\x42\x82\x84webm' in data
+            assert data.startswith(b'\x1a\x45\xdf\xa3')
+            assert b'\x42\x82\x84webm' in data
         elif isinstance(rich_output, OutputVideoMp4):
             data = rich_output.video.get()
-            assert data[4:8] == 'ftyp'
-            assert data.startswith('\0\0\0')
+            assert data[4:8] == b'ftyp'
+            assert data.startswith(b'\0\0\0')
             # See http://www.ftyps.com/
-            ftyps = [data[i:i+4] for i in range(8, ord(data[3]), 4)]
-            del ftyps[1] # version number, not an ftyp
-            expected = ['avc1', 'iso2', 'mp41', 'mp42']
+            ftyps = [data[i:i+4] for i in range(8, data[3], 4)]
+            del ftyps[1]  # version number, not an ftyp
+            expected = [b'avc1', b'iso2', b'mp41', b'mp42']
             assert any(i in ftyps for i in expected)
         elif isinstance(rich_output, OutputVideoFlash):
-            assert rich_output.video.get().startswith('FLV\x01')
+            assert rich_output.video.get().startswith(b'FLV\x01')
         elif isinstance(rich_output, OutputVideoMatroska):
             data = rich_output.video.get()
-            assert data.startswith('\x1a\x45\xdf\xa3')
-            assert '\x42\x82\x88matroska' in data
+            assert data.startswith(b'\x1a\x45\xdf\xa3')
+            assert b'\x42\x82\x88matroska' in data
         elif isinstance(rich_output, OutputVideoAvi):
             data = rich_output.video.get()
-            assert data[:4] == 'RIFF' and data[8:12] == 'AVI '
+            assert data[:4] == b'RIFF' and data[8:12] == b'AVI '
         elif isinstance(rich_output, OutputVideoWmv):
-            assert rich_output.video.get().startswith('\x30\x26\xb2\x75')
+            assert rich_output.video.get().startswith(b'\x30\x26\xb2\x75')
         elif isinstance(rich_output, OutputVideoQuicktime):
             data = rich_output.video.get()
-            assert data[4:12] == 'ftypqt  ' or data[4:8] == 'moov'
+            assert data[4:12] == b'ftypqt  ' or data[4:8] == b'moov'
         else:
             raise TypeError('rich_output type not supported')

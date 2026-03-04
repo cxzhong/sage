@@ -1,7 +1,7 @@
 r"""
 Miscellaneous
 """
-#*****************************************************************************
+# ***************************************************************************
 #       Copyright (C) 2007 Mike Hansen <mhansen@gmail.com>,
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
@@ -13,14 +13,13 @@ Miscellaneous
 #
 #  The full text of the GPL is available at:
 #
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
-from __future__ import print_function
+#                  https://www.gnu.org/licenses/
+# ***************************************************************************
 
-from six.moves import range
-from sage.misc.all import prod
+from sage.misc.misc_c import prod
 
-class DoublyLinkedList():
+
+class DoublyLinkedList:
     """
     A doubly linked list class that provides constant time hiding and
     unhiding of entries.
@@ -40,6 +39,7 @@ class DoublyLinkedList():
         sage: dll.unhide(2); dll
         Doubly linked list of [1, 2, 3]: [1, 2, 3]
     """
+
     def __init__(self, l):
         """
         TESTS::
@@ -100,7 +100,7 @@ class DoublyLinkedList():
             sage: repr(sage.combinat.misc.DoublyLinkedList([1,2,3]))
             'Doubly linked list of [1, 2, 3]: [1, 2, 3]'
         """
-        return "Doubly linked list of %s: %s"%(self.l, list(self))
+        return "Doubly linked list of %s: %s" % (self.l, list(self))
 
     def __iter__(self):
         """
@@ -127,7 +127,7 @@ class DoublyLinkedList():
         self.next_value[self.prev_value[i]] = self.next_value[i]
         self.prev_value[self.next_value[i]] = self.prev_value[i]
 
-    def unhide(self,i):
+    def unhide(self, i):
         """
         TESTS::
 
@@ -179,10 +179,9 @@ class DoublyLinkedList():
         return self.prev_value[j]
 
 
-
 def _monomial_exponent_to_lower_factorial(me, x):
     r"""
-    Converts a tuple of exponents to the monomial obtained by replacing
+    Convert a tuple of exponents to the monomial obtained by replacing
     each me[i] with `x_i*(x_i - 1)*\cdots*(x_i - a_i + 1)`
 
     EXAMPLES::
@@ -203,15 +202,12 @@ def _monomial_exponent_to_lower_factorial(me, x):
         sage: _monomial_exponent_to_lower_factorial(([2,2,2]),a)
         x^2*y^2*z^2 - x^2*y^2*z - x^2*y*z^2 - x*y^2*z^2 + x^2*y*z + x*y^2*z + x*y*z^2 - x*y*z
     """
-    terms = []
-    for i in range(len(me)):
-        for j in range(me[i]):
-            terms.append( x[i]-j )
-    return prod(terms)
+    return prod(x[i] - j for i, mei in enumerate(me) for j in range(mei))
+
 
 def umbral_operation(poly):
     r"""
-    Returns the umbral operation `\downarrow` applied to poly.
+    Return the umbral operation `\downarrow` applied to poly.
 
     The umbral operation replaces each instance of
     `x_i^{a_i}` with
@@ -235,7 +231,7 @@ def umbral_operation(poly):
     exponents = poly.exponents()
     coefficients = poly.coefficients()
     length = len(exponents)
-    return sum( [coefficients[i]*_monomial_exponent_to_lower_factorial(exponents[i],x) for i in range(length)] )
+    return sum(coefficients[i]*_monomial_exponent_to_lower_factorial(exponents[i], x) for i in range(length))
 
 
 class IterableFunctionCall:
@@ -274,6 +270,7 @@ class IterableFunctionCall:
         bbb
         foo
     """
+
     def __init__(self, f, *args, **kwargs):
         """
         EXAMPLES::
@@ -304,7 +301,8 @@ class IterableFunctionCall:
             sage: repr(IterableFunctionCall(iter, [1,2,3]))
             'Iterable function call <built-in function iter> with args=([1, 2, 3],) and kwargs={}'
         """
-        return "Iterable function call %s with args=%s and kwargs=%s"%(self.f, self.args, self.kwargs)
+        return "Iterable function call %s with args=%s and kwargs=%s" % (self.f, self.args, self.kwargs)
+
 
 def check_integer_list_constraints(l, **kwargs):
     """
@@ -385,10 +383,10 @@ def check_integer_list_constraints(l, **kwargs):
     filters['max_part'] = lambda x: max(x) <= max_part
     filters['min_length'] = lambda x: len(x) >= min_length
     filters['max_length'] = lambda x: len(x) <= max_length
-    filters['min_slope'] = lambda x: min([x[i+1]-x[i] for i in range(len(x)-1)]+[min_slope+1]) >= min_slope
-    filters['max_slope'] = lambda x: max([x[i+1]-x[i] for i in range(len(x)-1)]+[max_slope-1]) <= max_slope
-    filters['outer'] = lambda x: len(outer) >= len(x) and min([outer[i]-x[i] for i in range(len(x))]) >= 0
-    filters['inner'] = lambda x: len(x) >= len(inner) and max([inner[i]-x[i] for i in range(len(inner))]) <= 0
+    filters['min_slope'] = lambda x: min((x[i + 1] - x[i] for i in range(len(x) - 1)), default=min_slope + 1) >= min_slope
+    filters['max_slope'] = lambda x: max((x[i + 1] - x[i] for i in range(len(x) - 1)), default=max_slope - 1) <= max_slope
+    filters['outer'] = lambda x: len(outer) >= len(x) and min(outer[i] - x[i] for i in range(len(x))) >= 0
+    filters['inner'] = lambda x: len(x) >= len(inner) and max(inner[i] - x[i] for i in range(len(inner))) <= 0
 
     for key in kwargs:
         result = [x for x in result if filters[key](x)]
@@ -400,4 +398,3 @@ def check_integer_list_constraints(l, **kwargs):
             return None
     else:
         return result
-

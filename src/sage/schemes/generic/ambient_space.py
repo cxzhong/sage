@@ -1,37 +1,21 @@
 """
-Ambient Spaces
+Ambient spaces
 """
-
-#*****************************************************************************
+# ****************************************************************************
 #       Copyright (C) 2006 William Stein <wstein@gmail.com>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
-from sage.rings.all import Integer, ZZ, CommutativeRing
+from sage.rings.integer import Integer
+from sage.rings.integer_ring import ZZ
+from sage.categories.commutative_rings import CommutativeRings
 from sage.schemes.generic.scheme import Scheme
 
-
-def is_AmbientSpace(x):
-    """
-    Return True if `x` is an ambient space.
-
-    EXAMPLES::
-
-        sage: from sage.schemes.generic.ambient_space import is_AmbientSpace
-        sage: is_AmbientSpace(ProjectiveSpace(3, ZZ))
-        True
-        sage: is_AmbientSpace(AffineSpace(2, QQ))
-        True
-        sage: P.<x, y, z> = ProjectiveSpace(2, ZZ)
-        sage: is_AmbientSpace(P.subscheme([x+y+z]))
-        False
-    """
-    return isinstance(x, AmbientSpace)
 
 class AmbientSpace(Scheme):
     """
@@ -39,10 +23,9 @@ class AmbientSpace(Scheme):
 
     INPUT:
 
+    - ``n`` -- dimension
 
-    -  ``n`` - dimension
-
-    -  ``R`` - ring
+    - ``R`` -- ring
     """
     def __init__(self, n, R=ZZ):
         """
@@ -52,36 +35,16 @@ class AmbientSpace(Scheme):
             sage: A = AmbientSpace(5, ZZ)
             sage: TestSuite(A).run() # not tested (abstract scheme with no elements?)
         """
-        if not isinstance(R, CommutativeRing):
-            raise TypeError("R (=%s) must be a commutative ring"%R)
-        n = Integer(n)
+        if R not in CommutativeRings():
+            raise TypeError("R (={}) must be a commutative ring".format(R))
         if n < 0:
-            raise ValueError("n (=%s) must be nonnegative"%n)
-        self._dimension_relative = n
+            raise ValueError("n (={}) must be nonnegative".format(n))
+        self._dimension_relative = Integer(n)
         Scheme.__init__(self, R)
-
-        # NT: this seems to set improperly self._base_scheme to X instead of Spec(X)????
-        # scheme.Scheme.__init__(self, R)
-        # This should be cleaned up by someone who knows about schemes (not me!)
-        #from sage.categories.schemes import Schemes
-        #Parent.__init__(self, R, category = Schemes(self.base_scheme()))
 
     #######################################################################
     # Derived classes must overload all of the following functions
     #######################################################################
-    def __cmp__(self, right):
-        """
-        TESTS::
-
-            sage: from sage.schemes.generic.ambient_space import AmbientSpace
-            sage: A = AmbientSpace(5, ZZ)
-            sage: A.__cmp__(ProjectiveSpace(2, QQ))
-            Traceback (most recent call last):
-            ...
-            NotImplementedError
-        """
-        raise NotImplementedError
-
     def _latex_(self):
         """
         TESTS::
@@ -137,7 +100,7 @@ class AmbientSpace(Scheme):
     def _check_satisfies_equations(self, v):
         """
         Verify that the coordinates of v define a point on this scheme, or
-        raise a TypeError.
+        raise a :exc:`TypeError`.
 
         TESTS::
 
@@ -152,23 +115,21 @@ class AmbientSpace(Scheme):
 
     def _validate(self, polynomials):
         """
-        If ``polynomials`` is a tuple of valid polynomial functions on self,
-        return ``polynomials``, otherwise raise TypeError.
+        If ``polynomials`` is a tuple of valid polynomial functions on
+        ``self``, return ``polynomials``, otherwise raise :exc:`TypeError`.
 
         INPUT:
 
         - ``polynomials`` -- tuple of polynomials in the coordinate ring of
-            self
+          ``self``
 
-        OUTPUT:
-
-        - tuple of polynomials in the coordinate ring of self
+        OUTPUT: tuple of polynomials in the coordinate ring of ``self``
 
         TESTS::
 
             sage: from sage.schemes.generic.ambient_space import AmbientSpace
             sage: A = AmbientSpace(3, ZZ)
-            sage: A._validate((x + 1, 1))
+            sage: A._validate((x + 1, 1))                                               # needs sage.symbolic
             Traceback (most recent call last):
             ...
             NotImplementedError: ambient spaces must override "_validate" method!
@@ -178,15 +139,13 @@ class AmbientSpace(Scheme):
 
     def change_ring(self, R):
         r"""
-        Return an ambient space over ring `R` and otherwise the same as self.
+        Return an ambient space over ring `R` and otherwise the same as ``self``.
 
         INPUT:
 
         - ``R`` -- commutative ring
 
-        OUTPUT:
-
-        - ambient space over ``R``
+        OUTPUT: ambient space over ``R``
 
         .. NOTE::
 
@@ -204,21 +163,21 @@ class AmbientSpace(Scheme):
             NotImplementedError: ambient spaces must override "change_ring" method!
         """
         raise NotImplementedError(
-                        'ambient spaces must override "change_ring" method!')
+            'ambient spaces must override "change_ring" method!')
 
     #######################################################################
     # End overloads
     #######################################################################
 
-    def is_projective(self):
+    def is_projective(self) -> bool:
         """
         Return whether this ambient space is projective n-space.
 
         EXAMPLES::
 
-            sage: AffineSpace(3,QQ).is_projective()
+            sage: AffineSpace(3, QQ).is_projective()
             False
-            sage: ProjectiveSpace(3,QQ).is_projective()
+            sage: ProjectiveSpace(3, QQ).is_projective()
             True
         """
         # overloaded in the projective space derived class
@@ -231,16 +190,14 @@ class AmbientSpace(Scheme):
         INPUT:
 
         - ``R`` -- a commutative ring, such that there is a natural map from
-          the base ring of self to ``R``.
+          the base ring of ``self`` to ``R``
 
-        OUTPUT:
-
-        - an ambient space over ``R`` of the same structure as ``self``.
+        OUTPUT: an ambient space over ``R`` of the same structure as ``self``
 
         .. NOTE::
 
-            A ``ValueError`` is raised if there is no such natural map. If
-            you need to drop this condition, use ``self.change_ring(R)``.
+            A :exc:`ValueError` is raised if there is no such natural map.
+            If you need to drop this condition, use ``self.change_ring(R)``.
 
         EXAMPLES::
 
@@ -253,7 +210,7 @@ class AmbientSpace(Scheme):
             ValueError: no natural map from the base ring (=Rational Field)
             to R (=Finite Field of size 5)!
         """
-        if isinstance(R, CommutativeRing):
+        if R in CommutativeRings():
             if self.base_ring() == R:
                 return self
             if not R.has_coerce_map_from(self.base_ring()):
@@ -285,8 +242,8 @@ class AmbientSpace(Scheme):
 
     def defining_polynomials(self):
         """
-        Return the defining polynomials of the scheme self.  Since
-        self is an ambient space, this is an empty list.
+        Return the defining polynomials of the scheme ``self``.  Since
+        ``self`` is an ambient space, this is an empty list.
 
         EXAMPLES::
 
@@ -297,6 +254,27 @@ class AmbientSpace(Scheme):
         """
         return ()
 
+    def identity_morphism(self):
+        """
+        Return the identity morphism.
+
+        OUTPUT: the identity morphism of the scheme ``self``
+
+        EXAMPLES::
+
+            sage: A = AffineSpace(2, GF(3))
+            sage: A.identity_morphism()
+            Scheme endomorphism of Affine Space of dimension 2 over Finite Field of size 3
+              Defn: Identity map
+
+            sage: P = ProjectiveSpace(3, ZZ)
+            sage: P.identity_morphism()
+            Scheme endomorphism of Projective Space of dimension 3 over Integer Ring
+              Defn: Identity map
+        """
+        from sage.schemes.generic.morphism import SchemeMorphism_polynomial_id
+        return SchemeMorphism_polynomial_id(self)
+
     ######################################################################
     # Associated MPolynomial ring generators
     ######################################################################
@@ -304,7 +282,7 @@ class AmbientSpace(Scheme):
     def gen(self, n=0):
         """
         Return the `n`-th generator of the coordinate ring of the
-        scheme self.
+        scheme ``self``.
 
         EXAMPLES::
 
@@ -314,10 +292,10 @@ class AmbientSpace(Scheme):
         """
         return self.coordinate_ring().gen(n)
 
-    def gens(self):
+    def gens(self) -> tuple:
         """
         Return the generators of the coordinate ring of the scheme
-        self.
+        ``self``.
 
         EXAMPLES::
 
@@ -333,7 +311,7 @@ class AmbientSpace(Scheme):
     def ngens(self):
         """
         Return the number of generators of the coordinate ring of the
-        scheme self.
+        scheme ``self``.
 
         EXAMPLES::
 
@@ -378,7 +356,7 @@ class AmbientSpace(Scheme):
         base = self.base_scheme()
         if base.is_noetherian():
             return self.dimension_relative() + base.dimension()
-        raise NotImplementedError("Cannot compute the dimension of this scheme.")
+        raise NotImplementedError("cannot compute the dimension of this scheme")
 
     dimension = dimension_absolute
 

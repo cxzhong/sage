@@ -1,16 +1,13 @@
+# distutils: libraries = gmp
 """
-Enumeration of Totally Real Fields
+Enumeration of totally real fields: data
 
 AUTHORS:
 
-- Craig Citro and John Voight (2007-11-04):
-  Type checking and other polishing.
-- John Voight (2007-10-09):
-  Improvements: Smyth bound, Lagrange multipliers for b.
-- John Voight (2007-09-19):
-  Various optimization tweaks.
-- John Voight (2007-09-01):
-  Initial version.
+- John Voight (2007-09-01): Initial version
+- John Voight (2007-09-19): various optimization tweaks
+- John Voight (2007-10-09): improvements: Smyth bound, Lagrange multipliers for b
+- Craig Citro and John Voight (2007-11-04): type checking and other polishing
 """
 
 #*****************************************************************************
@@ -23,16 +20,13 @@ AUTHORS:
 #                  http://www.gnu.org/licenses/
 #*****************************************************************************
 
-from __future__ import absolute_import, print_function
-
 from libc.math cimport sqrt
 from cysignals.memory cimport sig_malloc, sig_free
 
-from sage.arith.all import binomial, gcd
+from sage.arith.misc import binomial
+from sage.arith.misc import GCD as gcd
 from sage.libs.gmp.mpz cimport *
-from sage.rings.rational_field import RationalField
 from sage.rings.polynomial.polynomial_ring_constructor import PolynomialRing
-from sage.rings.real_mpfi import RealIntervalField
 from sage.rings.real_mpfr import RealField
 from sage.rings.integer_ring import ZZ
 from sage.rings.integer cimport Integer
@@ -51,9 +45,9 @@ from libc.math cimport lrint, floor, ceil, fabs, round
 
 def hermite_constant(n):
     r"""
-    This function returns the nth Hermite constant
+    Return the `n`-th Hermite constant.
 
-    The nth Hermite constant (typically denoted `\gamma_n`), is defined
+    The `n`-th Hermite constant (typically denoted `\gamma_n`), is defined
     to be
 
     .. MATH::
@@ -67,11 +61,11 @@ def hermite_constant(n):
 
     INPUT:
 
-    - n -- integer
+    - ``n`` -- integer
 
     OUTPUT:
 
-    - (an upper bound for) the Hermite constant gamma_n
+    (an upper bound for) the Hermite constant `\gamma_n`
 
     EXAMPLES::
 
@@ -86,16 +80,7 @@ def hermite_constant(n):
 
     .. NOTE::
 
-        The upper bounds used can be found in [CS]_ and [CE]_.
-
-    REFERENCES:
-
-    .. [CE] Henry Cohn and Noam Elkies, New upper bounds on sphere
-       packings I, Ann. Math. 157 (2003), 689--714.
-
-    .. [CS] \J.H. Conway and N.J.A. Sloane, Sphere packings, lattices
-       and groups, 3rd. ed., Grundlehren der Mathematischen
-       Wissenschaften, vol. 290, Springer-Verlag, New York, 1999.
+        The upper bounds used can be found in [CS1999]_ and [CE2003]_.
 
     AUTHORS:
 
@@ -123,7 +108,8 @@ def hermite_constant(n):
 
     return gamma
 
-cdef double eval_seq_as_poly(int *f, int n, double x):
+
+cdef double eval_seq_as_poly(int *f, int n, double x) noexcept:
     r"""
     Evaluates the sequence a, thought of as a polynomial with
 
@@ -131,16 +117,16 @@ cdef double eval_seq_as_poly(int *f, int n, double x):
 
         f[n]*x^n + f[n-1]*x^(n-1) + ... + f[0].
     """
-    cdef double s, xp
+    cdef double s
 
     # Horner's method: With polynomials of small degree, we shouldn't
     # expect asymptotic methods to be any faster.
     s = f[n]
     for i from n > i >= 0:
-        s = s*x+f[i]
+        s = s * x + f[i]
     return s
 
-cdef double newton(int *f, int *df, int n, double x0, double eps):
+cdef double newton(int *f, int *df, int n, double x0, double eps) noexcept:
     r"""
     Find the real root x of f (with derivative df) near x0
     with provable precision eps, i.e. |x-z| < eps where z is the actual
@@ -185,7 +171,7 @@ cdef double newton(int *f, int *df, int n, double x0, double eps):
     return x
 
 cdef void newton_in_intervals(int *f, int *df, int n, double *beta,
-                              double eps, double *rts):
+                              double eps, double *rts) noexcept:
     r"""
     Find the real roots of f in the intervals specified by beta:
 
@@ -206,12 +192,14 @@ cdef void newton_in_intervals(int *f, int *df, int n, double *beta,
 cpdef lagrange_degree_3(int n, int an1, int an2, int an3):
     r"""
     Private function.  Solves the equations which arise in the Lagrange multiplier
-    for degree 3: for each 1 <= r <= n-2, we solve
+    for degree 3: for each `1 \leq r \leq n-2`, we solve
 
-        r*x^i + (n-1-r)*y^i + z^i = s_i (i = 1,2,3)
+    .. MATH::
 
-    where the s_i are the power sums determined by the coefficients a.
-    We output the largest value of z which occurs.
+        r*x^i + (n-1-r)\cdot y^i + z^i = s_i \quad (i = 1,2,3)
+
+    where the `s_i` are the power sums determined by the coefficients `a`.
+    We output the largest value of `z` which occurs.
     We use a precomputed elimination ideal.
 
     EXAMPLES::
@@ -224,18 +212,15 @@ cpdef lagrange_degree_3(int n, int an1, int an2, int an3):
 
     TESTS:
 
-    Check that :trac:`13101` is solved::
+    Check that :issue:`13101` is solved::
 
         sage: sage.rings.number_field.totallyreal_data.lagrange_degree_3(4,12,19,42)
         [0.0, -1.0]
     """
-    cdef double zmin, zmax, val
-    cdef double *roots_data
     cdef long coeffs[7]
     cdef int r, rsq, rcu
     cdef int nr, nrsq, nrcu
     cdef int s1, s1sq, s1cu, s1fo, s2, s2sq, s2cu, s3, s3sq
-    cdef int found_minmax = 0
 
     RRx = PolynomialRing(RealField(20),'x')
 
@@ -306,17 +291,16 @@ cpdef lagrange_degree_3(int n, int an1, int an2, int an3):
                     3*nrsq*s1sq*s2sq - 3*nr*s1fo*s2 + \
                     s1sq*s1fo
 
-
         fcoeff = [ int(coeffs[i]) for i in range(7) ]
         f = ZZx(fcoeff)
         df = ZZx([i*coeffs[i] for i in range(1,7)])
-        f = f//gcd(f,df)
+        f = f//gcd(f, df)
         fcoeff = [int(c) for c in f.list()]
 
         rts = RRx(fcoeff).roots()
 
-        if len(rts) > 0:
-            rts = [rts[i][0] for i in range(len(rts))]
+        if rts:
+            rts = [rtsi[0] for rtsi in rts]
             z4minmax = [min(rts + z4minmax), max(rts + z4minmax)]
 
     if not z4minmax:
@@ -330,9 +314,10 @@ primessq_py = [4, 9, 25, 49, 121, 169, 289, 361, 529, 841, 961, 1369, 1681, 1849
 for i from 0 <= i < 46:
     primessq[i] = primessq_py[i]
 
+
 def int_has_small_square_divisor(sage.rings.integer.Integer d):
     r"""
-    Returns the largest a such that a^2 divides d and a has prime divisors < 200.
+    Return the largest `a` such that `a^2` divides `d` and `a` has prime divisors `< 200`.
 
     EXAMPLES::
 
@@ -358,7 +343,8 @@ def int_has_small_square_divisor(sage.rings.integer.Integer d):
 
     return asq
 
-cdef int eval_seq_as_poly_int(int *f, int n, int x):
+
+cdef int eval_seq_as_poly_int(int *f, int n, int x) noexcept:
     r"""
     Evaluates the sequence a, thought of as a polynomial with
 
@@ -366,11 +352,11 @@ cdef int eval_seq_as_poly_int(int *f, int n, int x):
 
         f[n]*x^n + f[n-1]*x^(n-1) + ... + f[0].
     """
-    cdef int s, xp
+    cdef int s
 
     s = f[n]
     for i from n > i >= 0:
-        s = s*x+f[i]
+        s = s * x + f[i]
     return s
 
 cdef double eps_abs, phi, sqrt2
@@ -378,12 +364,12 @@ eps_abs = 10.**(-12)
 phi = 0.618033988749895
 sqrt2 = 1.41421356237310
 
-cdef int easy_is_irreducible(int *a, int n):
+cdef int easy_is_irreducible(int *a, int n) noexcept:
     r"""
     Very often, polynomials have roots in {+/-1, +/-2, +/-phi, sqrt2}, so we rule
     these out quickly.  Returns 0 if reducible, 1 if inconclusive.
     """
-    cdef int s, t, st, sgn, i
+    cdef int s, t, st, i
 
     # Check if a has a root in {1,-1,2,-2}.
     if eval_seq_as_poly_int(a,n,1) == 0 or eval_seq_as_poly_int(a,n,-1) == 0 or eval_seq_as_poly_int(a,n,2) == 0 or eval_seq_as_poly_int(a,n,-2) == 0:
@@ -421,6 +407,7 @@ cdef int easy_is_irreducible(int *a, int n):
 
     return 1
 
+
 def easy_is_irreducible_py(f):
     """
     Used solely for testing easy_is_irreducible.
@@ -439,7 +426,6 @@ def easy_is_irreducible_py(f):
     return easy_is_irreducible(a, len(f)-1)
 
 
-
 #****************************************************************************
 # Main class and routine
 #****************************************************************************
@@ -452,7 +438,7 @@ def easy_is_irreducible_py(f):
 cdef double eps_global
 eps_global = 10.**(-4)
 
-from .totallyreal_phc import __lagrange_bounds_phc
+from sage.rings.number_field.totallyreal_phc import __lagrange_bounds_phc
 
 cdef class tr_data:
     r"""
@@ -461,7 +447,7 @@ cdef class tr_data:
 
     We do not give a complete description here.  For more information,
     see the attached functions; all of these are used internally by the
-    functions in totallyreal.py, so see that file for examples and
+    functions in :mod:`.totallyreal`, so see that file for examples and
     further documentation.
     """
 
@@ -471,10 +457,10 @@ cdef class tr_data:
 
         INPUT:
 
-        n -- integer, the degree
-        B -- integer, the discriminant bound
-        a -- list (default: []), the coefficient list to begin with, where
-             a[len(a)]*x^n + ... + a[0]x^(n-len(a))
+        - ``n`` -- integer; the degree
+        - ``B`` -- integer; the discriminant bound
+        - ``a`` -- list (default: ``[]``); the coefficient list to begin with,
+          where ``a[len(a)]*x^n + ... + a[0]x^(n-len(a))``
 
         OUTPUT:
 
@@ -527,7 +513,6 @@ cdef class tr_data:
             self.beta[i] = <double>0
             self.gnk[i] = 0
 
-
         # Initialize variables.
         if a == []:
             # No starting input, all polynomials will be found; initialize to zero.
@@ -574,7 +559,7 @@ cdef class tr_data:
             self.beta[(k+1)*(n+1)+(n-k-1)] = self.b_upper
 
             # Now to really initialize gnk.
-            gnk = [0] + [binomial(j,k+1)*a[j] for j in range (k+2,n+1)]
+            gnk = [0] + [binomial(j,k+1)*a[j] for j in range(k + 2, n + 1)]
             for i from 0 <= i < n-k:
                 self.gnk[(k+1)*n+i] = gnk[i]
         else:
@@ -593,9 +578,9 @@ cdef class tr_data:
 
     def increment(self, verbose=False, haltk=0, phc=False):
         r"""
-        This function 'increments' the totally real data to the next
+        'Increment' the totally real data to the next
         value which satisfies the bounds essentially given by Rolle's
-        theorem, and returns the next polynomial as a sequence of
+        theorem, and return the next polynomial as a sequence of
         integers.
 
         The default or usual case just increments the constant
@@ -607,15 +592,13 @@ cdef class tr_data:
 
         INPUT:
 
-        - verbose -- boolean to print verbosely computational details
-        - haltk -- integer, the level at which to halt the inductive
+        - ``verbose`` -- boolean to print verbosely computational details
+        - ``haltk`` -- integer; the level at which to halt the inductive
           coefficient bounds
-        - phc -- boolean, if PHCPACK is available, use it when k == n-5 to
+        - ``phc`` -- boolean, if PHCPACK is available, use it when `k = n-5` to
           compute an improved Lagrange multiplier bound
 
-        OUTPUT:
-
-        The next polynomial, as a sequence of integers
+        OUTPUT: the next polynomial, as a sequence of integers
 
         EXAMPLES::
 
@@ -647,7 +630,7 @@ cdef class tr_data:
 
         return g
 
-    cdef void incr(self, int *f_out, int verbose, int haltk, int phc):
+    cdef void incr(self, int *f_out, int verbose, int haltk, int phc) noexcept:
         r"""
         This function 'increments' the totally real data to the next
         value which satisfies the bounds essentially given by Rolle's
@@ -663,20 +646,19 @@ cdef class tr_data:
 
         INPUT:
 
-        - f_out -- an integer sequence, to be written with the coefficients of
+        - ``f_out`` -- integer sequence, to be written with the coefficients of
           the next polynomial
-        - verbose -- boolean to print verbosely computational details
-        - haltk -- integer, the level at which to halt the inductive
+        - ``verbose`` -- boolean to print verbosely computational details
+        - ``haltk`` -- integer; the level at which to halt the inductive
           coefficient bounds
-        - phc -- boolean, if PHCPACK is available, use it when k == n-5 to
-          compute an improved Lagrange multiplier bound
+        - ``phc`` -- boolean; if PHCPACK is available, use it when ``k == n-5``
+          to compute an improved Lagrange multiplier bound
 
         OUTPUT:
 
             None. The return value is stored in the variable f_out.
         """
-
-        cdef int n, np1, k, i, j, nk, kz
+        cdef int n, np1, k, i, nk, kz
         cdef int *gnkm
         cdef int *gnkm1
         cdef double *betak
@@ -730,7 +712,7 @@ cdef class tr_data:
         # Recall k == n-1 implies iteration is complete.
         while k < n-1:
             # maxoutflag flags a required abort along the way
-            maxoutflag = 0;
+            maxoutflag = 0
 
             # Recall k == -1 means all coefficients are good to go.
             while k >= 0 and (not haltk or k >= haltk):
@@ -788,7 +770,7 @@ cdef class tr_data:
                     if verbose:
                         print(" ", end="")
                         for i from 0 <= i < n-k-1:
-                             print('%.2f' % self.beta[k * np1 + 1 + i], end="")
+                            print('%.2f' % self.beta[k * np1 + 1 + i], end="")
                         print("")
 
                     for i from 0 <= i < n-k-1:
@@ -820,7 +802,7 @@ cdef class tr_data:
                     elif k == n-5 and phc:
                         # New bounds using phc/Lagrange multiplier in degree 4.
                         bminmax = __lagrange_bounds_phc(n, 4, [self.a[i] for i from 0 <= i <= n])
-                        if len(bminmax) > 0:
+                        if bminmax:
                             self.b_lower = bminmax[0]
                             self.b_upper = bminmax[1]
                         else:
@@ -857,7 +839,6 @@ cdef class tr_data:
                         if tmp_dbl > akmin:
                             akmin = tmp_dbl
 
-
                     akmax = -eval_seq_as_poly(gnkm, n-k, betak[nk]) \
                             +fabs(eval_seq_as_poly(gnkm1, n-(k+1), betak[nk]))*eps_global
                     for i from 1 <= i < nk/2+1:
@@ -870,7 +851,7 @@ cdef class tr_data:
                     self.a[k] = lrint(ceil(akmin))
                     self.amax[k] = lrint(floor(akmax))
 
-                    if self.a[n-1] == 0 and (n-k)%2 == 1:
+                    if self.a[n-1] == 0 and (n-k) % 2 == 1:
                         # Can replace alpha by -alpha, so if all
                         # "odd" coefficients are zero, may assume next
                         # "odd" coefficient is positive.
@@ -921,7 +902,7 @@ cdef class tr_data:
 
     def printa(self):
         """
-        Print relevant data for self.
+        Print relevant data for ``self``.
 
         EXAMPLES::
 
@@ -932,7 +913,6 @@ cdef class tr_data:
             amax = [0, 0, 0, 1]
             beta =  [...]
             gnk =  [...]
-
         """
         print("k =", self.k)
         print("a =", [self.a[i] for i in range(self.n + 1)])

@@ -1,16 +1,9 @@
-# cython: binding=True
 r"""
 Products of graphs
 
 This module gathers everything related to graph products. At the moment it
 contains an implementation of a recognition algorithm for graphs that can be
 written as a Cartesian product of smaller ones.
-
-References:
-
-  .. [HIK11] Handbook of Product Graphs,
-    R. Hammack, W. Imrich, S. Klavzar,
-    CRC press, 2011
 
 Author:
 
@@ -35,8 +28,9 @@ Two remarks follow :
 
 #. The Cartesian product is commutative
 
-#. Any edge `uv` of a graph `G_1 \square \cdots \square G_k` can be given a color
-   `i` corresponding to the unique index `i` such that `u_i` and `v_i` differ.
+#. Any edge `uv` of a graph `G_1 \square \cdots \square G_k` can be given a
+   color `i` corresponding to the unique index `i` such that `u_i` and `v_i`
+   differ.
 
 The problem that is of interest to us in the present module is the following:
 
@@ -45,7 +39,7 @@ The problem that is of interest to us in the present module is the following:
 
 This problem can actually be solved, and the resulting factorization is
 unique. What is explained below can be found in the book *Handbook of Product
-Graphs* [HIK11]_.
+Graphs* [HIK2011]_.
 
 Everything is actually based on simple observations. Given a graph `G`, finding
 out whether `G` can be written as the product of several graphs can be attempted
@@ -111,7 +105,7 @@ All that is left to do is to compute the connected components of this new graph,
 as each of them representing the edges of a factor. Of course, only one
 connected component indicates that the graph has no factorization.
 
-Then again, please refer to [HIK11]_ for any technical question.
+Then again, please refer to [HIK2011]_ for any technical question.
 
 To Do
 ^^^^^
@@ -125,40 +119,44 @@ Methods
 -------
 """
 
-#******************************************************************************
-#          Copyright (C) 2012 Nathann Cohen <nathann.cohen@gmail.com>         *
-#                                                                             *
-# Distributed  under  the  terms  of  the  GNU  General  Public  License (GPL)*
-#                         http://www.gnu.org/licenses/                        *
-#******************************************************************************
+# ****************************************************************************
+#       Copyright (C) 2012 Nathann Cohen <nathann.cohen@gmail.com>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 2 of the License, or
+# (at your option) any later version.
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
-from copy import copy
 
-
-def is_cartesian_product(g, certificate = False, relabeling = False):
+def is_cartesian_product(g, certificate=False, relabeling=False, immutable=None):
     r"""
-    Tests whether the graph is a Cartesian product.
+    Test whether the graph is a Cartesian product.
 
     INPUT:
 
-    - ``certificate`` (boolean) -- if ``certificate = False`` (default) the
-      method only returns ``True`` or ``False`` answers. If ``certificate =
-      True``, the ``True`` answers are replaced by the list of the factors of
-      the graph.
+    - ``certificate`` -- boolean (default: ``False``); if ``certificate =
+      False`` (default) the method only returns ``True`` or ``False``
+      answers. If ``certificate = True``, the ``True`` answers are replaced by
+      the list of the factors of the graph.
 
-    - ``relabeling`` (boolean) -- if ``relabeling = True`` (implies
-      ``certificate = True``), the method also returns a dictionary associating
-      to each vertex its natural coordinates as a vertex of a product graph. If
-      `g` is not a Cartesian product, ``None`` is returned instead.
+    - ``relabeling`` -- boolean (default: ``False``); if ``relabeling = True``
+      (implies ``certificate = True``), the method also returns a dictionary
+      associating to each vertex its natural coordinates as a vertex of a
+      product graph. If `g` is not a Cartesian product, ``None`` is returned
+      instead.
 
-      This is set to ``False`` by default.
+    - ``immutable`` -- boolean (default: ``None``); whether to create a
+      mutable/immutable graph. ``immutable=None`` (default) means that the
+      graph and its factors will behave the same way.
 
     .. SEEALSO::
 
         - :meth:`sage.graphs.generic_graph.GenericGraph.cartesian_product`
 
         - :mod:`~sage.graphs.graph_decompositions.graph_products` -- a module on
-          graph products.
+          graph products
 
     .. NOTE::
 
@@ -187,14 +185,15 @@ def is_cartesian_product(g, certificate = False, relabeling = False):
     Forgetting the graph's labels, then finding them back::
 
         sage: g.relabel()
-        sage: g.is_cartesian_product(g, relabeling = True)
-        (True, {0: (0, 0), 1: (0, 1), 2: (0, 2), 3: (0, 3),
-                4: (0, 4), 5: (5, 0), 6: (5, 1), 7: (5, 2),
-                8: (5, 3), 9: (5, 4), 10: (10, 0), 11: (10, 1),
-                12: (10, 2), 13: (10, 3), 14: (10, 4), 15: (15, 0),
-                16: (15, 1), 17: (15, 2), 18: (15, 3), 19: (15, 4),
-                20: (20, 0), 21: (20, 1), 22: (20, 2), 23: (20, 3),
-                24: (20, 4)})
+        sage: b,D = g.is_cartesian_product(g, relabeling=True)
+        sage: b
+        True
+        sage: D  # random isomorphism
+        {0: (20, 0), 1: (20, 1), 2: (20, 2), 3: (20, 3), 4: (20, 4),
+         5: (15, 0), 6: (15, 1), 7: (15, 2), 8: (15, 3), 9: (15, 4),
+         10: (10, 0), 11: (10, 1), 12: (10, 2), 13: (10, 3), 14: (10, 4),
+         15: (5, 0), 16: (5, 1), 17: (5, 2), 18: (5, 3), 19: (5, 4),
+         20: (0, 0), 21: (0, 1), 22: (0, 2), 23: (0, 3), 24: (0, 4)}
 
     And of course, we find the factors back when we build a graph from a
     product::
@@ -208,17 +207,30 @@ def is_cartesian_product(g, certificate = False, relabeling = False):
 
     TESTS:
 
-    Wagner's Graph (:trac:`13599`)::
+    Wagner's Graph (:issue:`13599`)::
 
         sage: g = graphs.WagnerGraph()
         sage: g.is_cartesian_product()
         False
 
-    Empty and one-element graph (:trac:`19546`)::
+    Empty and one-element graph (:issue:`19546`)::
 
         sage: Graph().is_cartesian_product()
         False
         sage: Graph({0:[]}).is_cartesian_product()
+        False
+
+    Check the behaviour of parameter ``immutable``::
+
+        sage: G = graphs.Grid2dGraph(3, 3)
+        sage: any(f.is_immutable() for f in G.is_cartesian_product(certificate=True))
+        False
+        sage: all(f.is_immutable() for f in G.is_cartesian_product(certificate=True, immutable=True))
+        True
+        sage: G = G.copy(immutable=True)
+        sage: all(f.is_immutable() for f in G.is_cartesian_product(certificate=True))
+        True
+        sage: any(f.is_immutable() for f in G.is_cartesian_product(certificate=True, immutable=False))
         False
     """
     g._scream_if_not_simple()
@@ -228,41 +240,45 @@ def is_cartesian_product(g, certificate = False, relabeling = False):
         certificate = True
 
     from sage.rings.integer import Integer
-    H = g
 
-    # Of course the number of vertices of g can not be prime !
-    if g.order() <= 1 or Integer(g.order()).is_prime():
-        return (False, None) if relabeling else False
     if not g.is_connected():
-        raise ValueError("The graph must be connected !")
+        raise NotImplementedError("recognition of Cartesian product is not implemented for disconnected graphs")
+
+    # Of course the number of vertices of g cannot be prime !
+    if g.order() <= 3 or Integer(g.order()).is_prime():
+        return (False, None) if relabeling else False
 
     from sage.graphs.graph import Graph
 
     # As we need the vertices of g to be linearly ordered, we copy the graph and
     # relabel it
-    g = copy(g)
-    trev = g.relabel(return_map = True)
-    t = dict([(x,y) for y,x in trev.iteritems()])
+    cdef list int_to_vertex = list(g)
+    cdef dict vertex_to_int = {vert: i for i, vert in enumerate(int_to_vertex)}
+    g_int = g.relabel(perm=vertex_to_int, inplace=False)
 
     # Reorder the vertices of an edge
-    r = lambda x,y : (x,y) if x<y else (y,x)
+    def r(x, y):
+        return (x, y) if x < y else (y, x)
+
+    cdef int x, y, u, v
+    cdef set un, intersect
 
     # The equivalence graph on the edges of g
     h = Graph()
-    h.add_vertices([r(x,y) for x, y in g.edges(labels = False)])
+    h.add_vertices(r(x, y) for x, y in g_int.edge_iterator(labels=False))
 
     # For all pairs of vertices u,v of G, according to their number of common
     # neighbors... See the module's documentation !
-    for u in g:
-        un = set(g.neighbors(u))
-        for v in g.breadth_first_search(u):
+    for u in g_int:
+        un = set(g_int.neighbor_iterator(u))
+        for v in g_int.breadth_first_search(u):
 
             # u and v are different
             if u == v:
                 continue
 
             # List of common neighbors
-            intersect = un & set(g.neighbors(v))
+            intersect = un & set(g_int.neighbor_iterator(v))
 
             # If u and v have no neighbors and uv is not an edge then their
             # distance is at least 3. As we enumerate the vertices in a
@@ -270,76 +286,221 @@ def is_cartesian_product(g, certificate = False, relabeling = False):
             # vertices at distance less than two from u, and we are done with
             # this loop !
             if not intersect:
-                if g.has_edge(u,v):
+                if g_int.has_edge(u, v):
                     continue
                 else:
                     break
 
             # If uv is an edge
-            if g.has_edge(u,v):
-                h.add_path([r(u,x) for x in intersect] + [r(v,x) for x in intersect])
+            if g_int.has_edge(u, v):
+                h.add_path([r(u, x) for x in intersect] + [r(v, x) for x in intersect])
 
             # Only one common neighbor
             elif len(intersect) == 1:
                 x = intersect.pop()
-                h.add_edge(r(u,x),r(v,x))
+                h.add_edge(r(u, x), r(v, x))
 
             # Exactly 2 neighbors
             elif len(intersect) == 2:
-                x,y = intersect
-                h.add_edge(r(u,x),r(v,y))
-                h.add_edge(r(v,x),r(u,y))
+                x, y = intersect
+                h.add_edge(r(u, x), r(v, y))
+                h.add_edge(r(v, x), r(u, y))
             # More
             else:
-                h.add_path([r(u,x) for x in intersect] + [r(v,x) for x in intersect])
+                h.add_path([r(u, x) for x in intersect] + [r(v, x) for x in intersect])
 
     # Edges uv and u'v' such that d(u,u')+d(v,v') != d(u,v')+d(v,u') are also
     # equivalent
 
-    edges = g.edges(labels = False)
-    d = g.distance_all_pairs()
-    for i,(u,v) in enumerate(edges):
+    cdef list edges = list(g_int.edges(labels=False, sort=False))
+    cdef dict d = g_int.distance_all_pairs()
+    cdef int uu, vv
+    for i, (u, v) in enumerate(edges):
         du = d[u]
         dv = d[v]
-        for j in range(i+1,len(edges)):
-            uu,vv = edges[j]
-            if du[uu]+dv[vv] != du[vv] + dv[uu]:
-                h.add_edge(r(u,v),r(uu,vv))
+        for j in range(i + 1, g_int.size()):
+            uu, vv = edges[j]
+            if du[uu] + dv[vv] != du[vv] + dv[uu]:
+                h.add_edge(r(u, v), r(uu, vv))
 
     # Gathering the connected components, relabeling the vertices on-the-fly
-    edges = [[(t[y[0]], t[y[1]]) for y in x]
-             for x in h.connected_components()]
-
-    #Print the graph, distinguishing the edges according to their color classes
-    #
-    #from sage.plot.colors import rainbow
-    #g.show(edge_colors = dict(zip(rainbow(len(edges)),edges)))
+    edges = [[(int_to_vertex[u], int_to_vertex[v]) for u, v in cc]
+             for cc in h.connected_components(sort=False)]
 
     # Only one connected component ?
     if len(edges) == 1:
         return (False, None) if relabeling else False
 
+    if immutable is None:
+        immutable = g.is_immutable()
+
     # Building the list of factors
-    factors = []
+    cdef list factors = []
     for cc in edges:
-        tmp = Graph()
-        tmp.add_edges(cc)
-        factors.append(tmp.subgraph(vertices = tmp.connected_components()[0]))
+        tmp = Graph(cc, format='list_of_edges', immutable=immutable)
+        factors.append(tmp.subgraph(vertices=tmp.connected_components(sort=False)[0]))
 
     # Computing the product of these graphs
     answer = factors[0]
-    for i in range(1,len(factors)):
+    for i in range(1, len(factors)):
         answer = answer.cartesian_product(factors[i])
 
     # Checking that the resulting graph is indeed isomorphic to what we have.
     isiso, dictt = g.is_isomorphic(answer, certificate=True)
     if not isiso:
-        raise ValueError("Something weird happened during the algorithm... "+
-                         "Please report the bug and give us the graph instance"+
-                         " that made it fail !!!")
+        raise ValueError("something weird happened during the algorithm... "
+                         "Please report the bug and give us the graph instance"
+                         " that made it fail !")
     if relabeling:
         return isiso, dictt
     if certificate:
         return factors
-    else:
-        return True
+    return True
+
+
+def rooted_product(G, H, root=None, immutable=None):
+    r"""
+    Return the rooted product of `G` and `H`.
+
+    The rooted product of two graphs `G` and `H` is the graph `R` defined as
+    follows: take a copy of `G` and `|V(G)|` copies of `H`, and for every vertex
+    `g_i` of `G`, identify `g_i` with the root of the `i`-th copy of `H`.
+    Mode formally, let `V(G) = \{g_1, g_2, \ldots, g_n\}`,
+    `V(H) = \{h_1, h_2, \ldots, h_m\}`, and let `h_1` be the root vertex of `H`.
+    The vertex set `V(R)` is equal to the cartesian product of the sets of
+    vertices `V(G)` and `V(H)`, that is
+    `V(R) = \{(g_i, h_j) : g_i \in V(G), h_j \in V(H)\}`.  The edge set `E(R)`
+    is the union of the edges of a copy of `G`, that is
+    `\{((g_i, h_1), (g_j, h_1)) : (g_i, g_j) \in E(G)\}`, and the edges of the
+    copies of `H` for every `g_i \in V(G)`, that is
+    `\{((g_i, h_j), (g_i, h_k)) : (h_j, h_k) \in V(H)\}`.
+
+    See :wikipedia:`Rooted_product_of_graphs` for more details.
+
+    .. SEEALSO::
+
+        - :meth:`~sage.graphs.generic_graph.cartesian_product`
+          -- return the cartesian product of two graphs
+
+        - :mod:`~sage.graphs.graph_decompositions.graph_products`
+          -- a module on graph products
+
+    INPUT:
+
+    - ``G, H`` -- two (di)graphs
+
+    - ``immutable`` -- boolean (default: ``None``); whether to create a
+      mutable/immutable (di)graph. When ``immutable=None`` (default) the rooted
+      product will be mutable if one of ``G`` or ``H`` is mutable and immutable
+      otherwise.
+
+    EXAMPLES:
+
+    The rooted product of two trees is a tree::
+
+        sage: T1 = graphs.RandomTree(7)
+        sage: T2 = graphs.RandomTree(8)
+        sage: T = T1.rooted_product(T2)
+        sage: T.is_tree()
+        True
+
+    The rooted product of `G` and `H` depends on the selected root in `H`::
+
+        sage: G = graphs.CycleGraph(4)
+        sage: H = graphs.PathGraph(3)
+        sage: R1 = G.rooted_product(H, root=0)
+        sage: R2 = G.rooted_product(H, root=1)
+        sage: R1.is_isomorphic(R2)
+        False
+        sage: sorted(R1.degree())
+        [1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3]
+        sage: sorted(R2.degree())
+        [1, 1, 1, 1, 1, 1, 1, 1, 4, 4, 4, 4]
+
+    The domination number of the rooted product of any graph `G` and a path of
+    order 2 is the order of `G`::
+
+        sage: G = graphs.RandomGNP(20, .3)
+        sage: P = graphs.PathGraph(2)
+        sage: R = G.rooted_product(P)
+        sage: len(R.dominating_set()) == G.order()                                      # needs sage.numerical.mip
+        True
+        sage: G = digraphs.RandomDirectedGNP(20, .3)
+        sage: P = digraphs.Path(2)
+        sage: R = G.rooted_product(P)
+        sage: len(R.dominating_set()) == G.order()                                      # needs sage.numerical.mip
+        True
+
+    The rooted product of two graphs is a subgraph of the cartesian product of
+    the same two graphs::
+
+        sage: G = graphs.RandomGNP(6, .4)
+        sage: H = graphs.RandomGNP(7, .4)
+        sage: R = G.rooted_product(H)
+        sage: C = G.cartesian_product(H)
+        sage: R.is_subgraph(C, induced=False)
+        True
+
+    Corner cases::
+
+        sage: Graph().rooted_product(Graph())
+        Rooted product of Graph on 0 vertices and Graph on 0 vertices: Graph on 0 vertices
+        sage: Graph(1).rooted_product(Graph())
+        Rooted product of Graph on 1 vertex and Graph on 0 vertices: Graph on 0 vertices
+        sage: Graph().rooted_product(Graph(1))
+        Rooted product of Graph on 0 vertices and Graph on 1 vertex: Graph on 0 vertices
+        sage: Graph(1).rooted_product(Graph(1))
+        Rooted product of Graph on 1 vertex and Graph on 1 vertex: Graph on 1 vertex
+
+    TESTS::
+
+        sage: Graph().rooted_product(DiGraph())
+        Traceback (most recent call last):
+        ...
+        TypeError: the graphs should be both directed or both undirected
+
+    Check the behaviour of parameter ``immutable``::
+
+        sage: G = graphs.CycleGraph(4)
+        sage: H = graphs.PathGraph(3)
+        sage: G.rooted_product(H).is_immutable()
+        False
+        sage: G.rooted_product(H, immutable=True).is_immutable()
+        True
+        sage: G = G.copy(immutable=True)
+        sage: G.rooted_product(H).is_immutable()
+        False
+        sage: G.rooted_product(H, immutable=True).is_immutable()
+        True
+        sage: H = H.copy(immutable=True)
+        sage: G.rooted_product(H).is_immutable()
+        True
+        sage: G.rooted_product(H, immutable=False).is_immutable()
+        False
+    """
+    G._scream_if_not_simple(allow_loops=True)
+    if G._directed is not H._directed:
+        raise TypeError('the graphs should be both directed or both undirected')
+
+    loops = G.has_loops() or H.has_loops()
+    name = f'Rooted product of {G} and {H}'
+    if immutable is None:
+        immutable = G.is_immutable() and H.is_immutable()
+
+    if not G or not H:
+        return G.parent()(loops=loops, name=name, immutable=immutable)
+    if root is None:
+        root = next(H.vertex_iterator())
+    elif root not in H:
+        raise ValueError("the specified root is not a vertex of H")
+
+    vertices = ((u, x) for u in G for x in H)
+
+    def edges():
+        for u, v in G.edge_iterator(labels=False):
+            yield ((u, root), (v, root))
+        for x, y in H.edge_iterator(labels=False):
+            yield from (((u, x), (u, y)) for u in G)
+
+    return G.parent()([vertices, edges()], format='vertices_and_edges',
+                      name=name, loops=loops, immutable=immutable)

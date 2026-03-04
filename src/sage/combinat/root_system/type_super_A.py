@@ -1,24 +1,21 @@
 """
 Root system data for super type A
 """
-#*****************************************************************************
+# ****************************************************************************
 #       Copyright (C) 2017 Travis Scrimshaw <tcscrims at gmail.com>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
-from __future__ import print_function, absolute_import
-from six.moves import range
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
-from sage.rings.all import ZZ
+from sage.rings.integer_ring import ZZ
 from sage.misc.cachefunc import cached_method
-from sage.combinat.root_system.root_lattice_realizations import RootLatticeRealizations
 from . import ambient_space
 from .cartan_type import SuperCartanType_standard
-from six import iteritems
+
 
 class AmbientSpace(ambient_space.AmbientSpace):
     r"""
@@ -30,9 +27,13 @@ class AmbientSpace(ambient_space.AmbientSpace):
         sage: AL = R.ambient_space(); AL
         Ambient space of the Root system of type ['A', [2, 1]]
         sage: AL.basis()
-        Finite family {-2: (0, 1, 0, 0, 0), 2: (0, 0, 0, 0, 1), -3: (1, 0, 0, 0, 0),
-        -1: (0, 0, 1, 0, 0), 1: (0, 0, 0, 1, 0)}
+        Finite family {-3: (1, 0, 0, 0, 0),
+         -2: (0, 1, 0, 0, 0),
+         -1: (0, 0, 1, 0, 0),
+         1: (0, 0, 0, 1, 0),
+         2: (0, 0, 0, 0, 1)}
     """
+
     def __init__(self, root_system, base_ring, index_set=None):
         """
         Initialize ``self``.
@@ -42,7 +43,7 @@ class AmbientSpace(ambient_space.AmbientSpace):
             sage: R = RootSystem(['A', [4,2]])
             sage: AL = R.ambient_space(); AL
             Ambient space of the Root system of type ['A', [4, 2]]
-            sage: TestSuite(AL).run(skip="_test_norm_of_simple_roots")
+            sage: TestSuite(AL).run(skip='_test_norm_of_simple_roots')
         """
         ct = root_system.cartan_type()
         if index_set is None:
@@ -236,7 +237,7 @@ class AmbientSpace(ambient_space.AmbientSpace):
                 for j in range(1, ct.n + 2)]
 
     def fundamental_weight(self, i):
-        """
+        r"""
         Return the fundamental weight `\Lambda_i` of ``self``.
 
         EXAMPLES::
@@ -275,7 +276,7 @@ class AmbientSpace(ambient_space.AmbientSpace):
         if i <= 0:
             return self.sum(self.monomial(j) for j in range(-m-1,i))
         return (self.sum(self.monomial(j) for j in range(-m-1,1))
-                - self.sum(self.monomial(j) for j in range(0,i+1))
+                - self.sum(self.monomial(j) for j in range(i+1))
                 - 2*self.sum(self.monomial(j) for j in range(i+1,n+2)))
 
     def simple_coroot(self, i):
@@ -323,7 +324,7 @@ class AmbientSpace(ambient_space.AmbientSpace):
             lambdacheck_mc = lambdacheck._monomial_coefficients
 
             result = self.parent().base_ring().zero()
-            for t,c in iteritems(lambdacheck_mc):
+            for t,c in lambdacheck_mc.items():
                 if t not in self_mc:
                     continue
                 if t > 0:
@@ -372,12 +373,12 @@ class AmbientSpace(ambient_space.AmbientSpace):
             dep = V.linear_dependence([self._vector_()] +
                                       [al[i]._vector_() for i in P.index_set()])[0]
             I = P.index_set()
-            return P.sum((-c/dep[0]) * h[I[i]] for i,c in dep[1:].iteritems())
+            return P.sum((-c/dep[0]) * h[I[i]] for i,c in dep[1:].items())
 
-        def has_descent(self, i, positive=False):
+        def has_descent(self, i, positive=False) -> bool:
             """
             Test if ``self`` has a descent at position `i`, that is
-            if ``self`` is on the strict negative side of the `i^{th}`
+            if ``self`` is on the strict negative side of the `i`-th
             simple reflection hyperplane.
 
             If ``positive`` is ``True``, tests if it is on the strict
@@ -413,7 +414,7 @@ class AmbientSpace(ambient_space.AmbientSpace):
             else:
                 return s < 0
 
-        def is_dominant_weight(self):
+        def is_dominant_weight(self) -> bool:
             """
             Test whether ``self`` is a dominant element of the weight lattice.
 
@@ -446,12 +447,14 @@ class AmbientSpace(ambient_space.AmbientSpace):
             return all(l[i] * self.inner_product(alpha[i]) in NN
                        for i in self.parent().index_set())
 
+
 class CartanType(SuperCartanType_standard):
     """
     Cartan Type `A(m|n)`.
 
     .. SEEALSO:: :func:`~sage.combinat.root_systems.cartan_type.CartanType`
     """
+
     def __init__(self, m, n):
         """
         EXAMPLES::
@@ -490,7 +493,7 @@ class CartanType(SuperCartanType_standard):
             sage: latex(CartanType(['A',[4,3]]))
             A(4|3)
         """
-        return "A(%s|%s)"%(self.m, self.n)
+        return "A(%s|%s)" % (self.m, self.n)
 
     def index_set(self):
         """
@@ -505,7 +508,7 @@ class CartanType(SuperCartanType_standard):
 
     AmbientSpace = AmbientSpace
 
-    def is_irreducible(self):
+    def is_irreducible(self) -> bool:
         """
         Return whether ``self`` is irreducible, which is ``True``.
 
@@ -518,7 +521,7 @@ class CartanType(SuperCartanType_standard):
 
     # A lot of these methods should be implemented by the ABCs of CartanType
 
-    def is_affine(self):
+    def is_affine(self) -> bool:
         """
         Return whether ``self`` is affine or not.
 
@@ -529,7 +532,7 @@ class CartanType(SuperCartanType_standard):
         """
         return False
 
-    def is_finite(self):
+    def is_finite(self) -> bool:
         """
         Return whether ``self`` is finite or not.
 
@@ -582,10 +585,12 @@ class CartanType(SuperCartanType_standard):
         EXAMPLES::
 
             sage: CartanType(['A', [2,3]]).symmetrizer()
-            Finite family {0: 1, 1: -1, 2: -1, 3: -1, -1: 1, -2: 1}
+            Finite family {-2: 1, -1: 1, 0: 1, 1: -1, 2: -1, 3: -1}
         """
         from sage.sets.family import Family
-        def ell(i): return ZZ.one() if i <= 0 else -ZZ.one()
+
+        def ell(i):
+            return ZZ.one() if i <= 0 else -ZZ.one()
         return Family(self.index_set(), ell)
 
     def dynkin_diagram(self):
@@ -594,46 +599,45 @@ class CartanType(SuperCartanType_standard):
 
         EXAMPLES::
 
-            sage: a = CartanType(['A', [4,2]]).dynkin_diagram()
-            sage: a
+            sage: a = CartanType(['A', [4,2]]).dynkin_diagram(); a                      # needs sage.graphs
             O---O---O---O---X---O---O
             -4  -3  -2  -1  0   1   2
             A4|2
-            sage: sorted(a.edges())
+            sage: a.edges(sort=True)                                                    # needs sage.graphs
             [(-4, -3, 1), (-3, -4, 1), (-3, -2, 1), (-2, -3, 1),
              (-2, -1, 1), (-1, -2, 1), (-1, 0, 1), (0, -1, 1),
              (0, 1, 1), (1, 0, -1), (1, 2, 1), (2, 1, 1)]
 
         TESTS::
 
-            sage: a = DynkinDiagram(['A', [0,0]]); a
+            sage: a = DynkinDiagram(['A', [0,0]]); a                                    # needs sage.graphs
             X
             0
             A0|0
-            sage: a.vertices(), a.edges()
+            sage: a.vertices(sort=False), a.edges(sort=False)                           # needs sage.graphs
             ([0], [])
 
-            sage: a = DynkinDiagram(['A', [1,0]]); a
+            sage: a = DynkinDiagram(['A', [1,0]]); a                                    # needs sage.graphs
             O---X
             -1  0
             A1|0
-            sage: a.vertices(), a.edges()
+            sage: a.vertices(sort=True), a.edges(sort=True)                             # needs sage.graphs
             ([-1, 0], [(-1, 0, 1), (0, -1, 1)])
 
-            sage: a = DynkinDiagram(['A', [0,1]]); a
+            sage: a = DynkinDiagram(['A', [0,1]]); a                                    # needs sage.graphs
             X---O
             0   1
             A0|1
-            sage: a.vertices(), a.edges()
+            sage: a.vertices(sort=True), a.edges(sort=True)                             # needs sage.graphs
             ([0, 1], [(0, 1, 1), (1, 0, -1)])
         """
         from .dynkin_diagram import DynkinDiagram_class
         g = DynkinDiagram_class(self, odd_isotropic_roots=[0])
-        for i in range(0, self.m):
+        for i in range(self.m):
             g.add_edge(-i-1, -i)
         for i in range(1, self.n):
             g.add_edge(i, i+1)
-        g.add_vertex(0) # Usually there, but not when m == n == 0
+        g.add_vertex(0)  # Usually there, but not when m == n == 0
         if self.m > 0:
             g.add_edge(-1, 0)
         if self.n > 0:
@@ -647,7 +651,7 @@ class CartanType(SuperCartanType_standard):
         EXAMPLES::
 
             sage: ct = CartanType(['A', [2,3]])
-            sage: ct.cartan_matrix()
+            sage: ct.cartan_matrix()                                                    # needs sage.graphs
             [ 2 -1  0  0  0  0]
             [-1  2 -1  0  0  0]
             [ 0 -1  0  1  0  0]
@@ -658,16 +662,16 @@ class CartanType(SuperCartanType_standard):
         TESTS::
 
             sage: ct = CartanType(['A', [0,0]])
-            sage: ct.cartan_matrix()
+            sage: ct.cartan_matrix()                                                    # needs sage.graphs
             [0]
 
             sage: ct = CartanType(['A', [1,0]])
-            sage: ct.cartan_matrix()
+            sage: ct.cartan_matrix()                                                    # needs sage.graphs
             [ 2 -1]
             [-1  0]
 
             sage: ct = CartanType(['A', [0,1]])
-            sage: ct.cartan_matrix()
+            sage: ct.cartan_matrix()                                                    # needs sage.graphs
             [ 0  1]
             [-1  2]
         """
@@ -691,22 +695,22 @@ class CartanType(SuperCartanType_standard):
         EXAMPLES::
 
             sage: ct = CartanType(['A', [1,2]])
-            sage: ct.dynkin_diagram()
+            sage: ct.dynkin_diagram()                                                   # needs sage.graphs
             O---X---O---O
             -1  0   1   2
             A1|2
-            sage: f={1:2,2:1,0:0,-1:-1}
+            sage: f = {1:2, 2:1, 0:0, -1:-1}
             sage: ct.relabel(f)
-            ['A', [1, 2]] relabelled by {0: 0, 1: 2, 2: 1, -1: -1}
-            sage: ct.relabel(f).dynkin_diagram()
+            ['A', [1, 2]] relabelled by {-1: -1, 0: 0, 1: 2, 2: 1}
+            sage: ct.relabel(f).dynkin_diagram()                                        # needs sage.graphs
             O---X---O---O
             -1  0   2   1
-            A1|2 relabelled by {0: 0, 1: 2, 2: 1, -1: -1}
+            A1|2 relabelled by {-1: -1, 0: 0, 1: 2, 2: 1}
         """
         from . import type_relabel
         return type_relabel.CartanType(self, relabelling)
 
-    def _latex_draw_node(self, x, y, label, position="below=4pt"):
+    def _latex_draw_node(self, x, y, label, position='below=4pt'):
         r"""
         Draw (possibly marked [crossed out]) circular node ``i`` at the
         position ``(x,y)`` with node label ``label`` .
@@ -733,7 +737,7 @@ class CartanType(SuperCartanType_standard):
                                     x+.17, y-.17, x-.17, y+.17)
         return ret
 
-    def _latex_dynkin_diagram(self, label=lambda i: i, node=None, node_dist=2):
+    def _latex_dynkin_diagram(self, label=None, node=None, node_dist=2):
         r"""
         Return a latex representation of the Dynkin diagram.
 
@@ -771,6 +775,8 @@ class CartanType(SuperCartanType_standard):
             \draw[-,thick] (0.17 cm, 0.17 cm) -- (-0.17 cm, -0.17 cm);
             \draw[-,thick] (0.17 cm, -0.17 cm) -- (-0.17 cm, 0.17 cm);
         """
+        if label is None:
+            label = lambda i: i
         if node is None:
             node = self._latex_draw_node
         if self.n + self.m > 1:
@@ -780,7 +786,7 @@ class CartanType(SuperCartanType_standard):
         return ret + "".join(node((self.m+i)*node_dist, 0, label(i))
                              for i in self.index_set())
 
-    def ascii_art(self, label=lambda i: i, node=None):
+    def ascii_art(self, label=None, node=None):
         """
         Return an ascii art representation of the Dynkin diagram.
 
@@ -808,9 +814,11 @@ class CartanType(SuperCartanType_standard):
             O---O---O---O---O---X
             -5  -4  -3  -2  -1  0
         """
+        if label is None:
+            label = lambda i: i
         if node is None:
             node = lambda i: 'O'
-        ret  = "---".join(node(label(i)) for i in range(1,self.m+1))
+        ret = "---".join(node(label(i)) for i in range(1,self.m+1))
         if self.m == 0:
             if self.n == 0:
                 ret = "X"
@@ -826,4 +834,3 @@ class CartanType(SuperCartanType_standard):
         ret += "{!s:4}".format(label(0))
         ret += "".join("{!s:4}".format(label(i)) for i in range(1,self.n+1))
         return ret
-

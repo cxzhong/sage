@@ -2,7 +2,7 @@
 Quiver Morphisms
 """
 
-#*****************************************************************************
+# ****************************************************************************
 #  Copyright (C) 2012 Jim Stark <jstarx@gmail.com>
 #                2013 Simon King <simon.king@uni-jena.de>
 #
@@ -15,11 +15,12 @@ Quiver Morphisms
 #  See the GNU General Public License for more details; the full text
 #  is available at:
 #
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
 from sage.categories.morphism import CallMorphism
 from sage.matrix.constructor import Matrix
+
 
 class QuiverRepHom(CallMorphism):
     r"""
@@ -36,7 +37,7 @@ class QuiverRepHom(CallMorphism):
 
     - ``codomain`` -- :class:`QuiverRep`, the codomain of the homomorphism
 
-    - ``data`` - dict, list, or :class:`QuiverRepElement`
+    - ``data`` -- dict, list, or :class:`QuiverRepElement`
       (default: empty dict),
       with the following meaning:
 
@@ -65,9 +66,7 @@ class QuiverRepHom(CallMorphism):
         and from ``C`` to the codomain of ``self``.  The composition
         of these maps is the result.
 
-    OUTPUT:
-
-    - :class:`QuiverRepHom`
+    OUTPUT: :class:`QuiverRepHom`
 
     EXAMPLES::
 
@@ -174,7 +173,10 @@ class QuiverRepHom(CallMorphism):
         # this is the case it will be loaded directly into _vector and then
         # _assert_valid_hom is called.
 
-        from sage.quivers.representation import QuiverRepElement, QuiverRep_with_path_basis
+        from sage.quivers.representation import (
+            QuiverRep_with_path_basis,
+            QuiverRepElement,
+        )
 
         self._domain = domain
         self._codomain = codomain
@@ -194,14 +196,14 @@ class QuiverRepHom(CallMorphism):
         for v in self._quiver:
             domain_dims[v] = domain._spaces[v].dimension()
             codomain_dims[v] = codomain._spaces[v].dimension()
-            mat_dims[v] = domain_dims[v]*codomain_dims[v]
+            mat_dims[v] = domain_dims[v] * codomain_dims[v]
         total_dim = sum(mat_dims.values())
 
         # Handle the case when data is a vector
         if data in self._base_ring**total_dim:
             self._vector = data
             self._assert_valid_hom()
-            super(QuiverRepHom, self).__init__(domain.Hom(codomain))
+            super().__init__(domain.Hom(codomain))
             return
 
         # If data is not a dict, create one
@@ -211,25 +213,24 @@ class QuiverRepHom(CallMorphism):
             # If data is not a list create one, then create a dict from it
             if isinstance(data, list):
                 im_list = data
-            else:
-                # If data is a QuiverRepHom, create a list from it
-                if isinstance(data, QuiverRepHom):
-                    f = data._domain.coerce_map_from(domain)
-                    g = self._codomain.coerce_map_from(data._codomain)
-                    im_list = [g(data(f(x))) for x in domain.gens()]
+            # If data is a QuiverRepHom, create a list from it
+            elif isinstance(data, QuiverRepHom):
+                f = data._domain.coerce_map_from(domain)
+                g = self._codomain.coerce_map_from(data._codomain)
+                im_list = [g(data(f(x))) for x in domain.gens()]
 
-                # The only case left is that data is a QuiverRepElement
-                else:
-                    if not isinstance(data, QuiverRepElement):
-                        raise TypeError("input data must be dictionary, list, "
-                                        "QuiverRepElement or vector")
-                    if not isinstance(domain, QuiverRep_with_path_basis):
-                        raise TypeError("if data is a QuiverRepElement then domain "
-                                        "must be a QuiverRep_with_path_basis.")
-                    if data not in codomain:
-                        raise ValueError("if data is a QuiverRepElement then it must "
-                                         "be an element of codomain")
-                    im_list = [codomain.right_edge_action(data, p) for v in domain._quiver for p in domain._bases[v]]
+            # The only case left is that data is a QuiverRepElement
+            else:
+                if not isinstance(data, QuiverRepElement):
+                    raise TypeError("input data must be dictionary, list, "
+                                    "QuiverRepElement or vector")
+                if not isinstance(domain, QuiverRep_with_path_basis):
+                    raise TypeError("if data is a QuiverRepElement then domain "
+                                    "must be a QuiverRep_with_path_basis.")
+                if data not in codomain:
+                    raise ValueError("if data is a QuiverRepElement then it must "
+                                     "be an element of codomain")
+                im_list = [codomain.right_edge_action(data, p) for v in domain._quiver for p in domain._bases[v]]
 
             # WARNING: This code assumes that the function QuiverRep.gens() returns
             # the generators ordered first by vertex and then by the order of the
@@ -250,14 +251,14 @@ class QuiverRepHom(CallMorphism):
                 maps_dict[v] = []
                 dim = domain._spaces[v].dimension()
                 for i in range(start_index, start_index + dim):
-                    if len(im_list[i].support()) != 0 and im_list[i].support() != [v]:
-                        # If the element doesn't have the correct support raise
-                        # an error here, otherwise we might create a valid hom
-                        # that does not map the generators to the supplied
-                        # images
-                        raise ValueError(("generator supported at vertex {} cannot"
-                                          " map to element with support {}").format(
-                                          v, im_list[i].support()))
+                    if im_list[i].support() and im_list[i].support() != [v]:
+                        # If the element does not have the correct
+                        # support raise an error here, otherwise we
+                        # might create a valid hom that does not map
+                        # the generators to the supplied images
+                        txt = "generator supported at vertex {} cannot"
+                        txt += " map to element with support {}"
+                        raise ValueError(txt.format(v, im_list[i].support()))
                     else:
                         # If the support works out add the images coordinates
                         # as a row of the matrix
@@ -266,11 +267,11 @@ class QuiverRepHom(CallMorphism):
                 start_index += dim
 
         # Get the coordinates of the vector
-        from sage.categories.map import is_Map
+        from sage.categories.map import Map
         vector = []
         for v in self._quiver:
             if v in maps_dict:
-                if is_Map(maps_dict[v]):
+                if isinstance(maps_dict[v], Map):
                     try:
                         m = maps_dict[v].matrix()
                     except (AttributeError, ValueError):
@@ -281,13 +282,13 @@ class QuiverRepHom(CallMorphism):
                     m = Matrix(self._base_ring, domain_dims[v], codomain_dims[v], maps_dict[v])
             else:
                 m = Matrix(self._base_ring, domain_dims[v], codomain_dims[v])
-            for i in range(0, domain_dims[v]):
+            for i in range(domain_dims[v]):
                 vector += list(m[i])
 
         # Wrap as a vector, check it, and return
         self._vector = (self._base_ring**total_dim)(vector)
         self._assert_valid_hom()
-        super(QuiverRepHom, self).__init__(domain.Hom(codomain))
+        super().__init__(domain.Hom(codomain))
 
     def _repr_(self):
         """
@@ -324,7 +325,7 @@ class QuiverRepHom(CallMorphism):
             sage: h(S.gens()[1]) == y
             True
 
-        The following was an issue during work on :trac:`12630`::
+        The following was an issue during work on :issue:`12630`::
 
             sage: Q = DiGraph({1: {}}).path_semigroup()
             sage: M = Q.I(GF(3), 1)
@@ -338,7 +339,7 @@ class QuiverRepHom(CallMorphism):
         if not isinstance(x, QuiverRepElement):
             raise ValueError("QuiverRepHom can only be called on QuiverRepElement")
 
-        elements = dict((v, self.get_map(v)(x._elems[v])) for v in self._quiver)
+        elements = {v: self.get_map(v)(x._elems[v]) for v in self._quiver}
         return self._codomain(elements)
 
     def __add__(left, right):
@@ -445,7 +446,7 @@ class QuiverRepHom(CallMorphism):
 
     def __neg__(self):
         """
-        This function overrides the unary ``-`` operator
+        This function overrides the unary ``-`` operator.
 
         TESTS::
 
@@ -468,7 +469,7 @@ class QuiverRepHom(CallMorphism):
 
     def __pos__(self):
         """
-        This function overrides the unary ``+`` operator
+        This function overrides the unary ``+`` operator.
 
         TESTS::
 
@@ -489,7 +490,7 @@ class QuiverRepHom(CallMorphism):
 
     def __eq__(self, other):
         """
-        This function overrides the ``==`` operator
+        This function overrides the ``==`` operator.
 
         TESTS::
 
@@ -506,7 +507,6 @@ class QuiverRepHom(CallMorphism):
             sage: g == h
             True
         """
-        from sage.quivers.morphism import QuiverRepHom
         # A homomorphism can only be equal to another homomorphism between the
         # same domain and codomain
         if not isinstance(other, QuiverRepHom) or self._domain != other._domain or self._codomain != other._codomain:
@@ -515,9 +515,28 @@ class QuiverRepHom(CallMorphism):
         # If all that holds just check the vectors
         return self._vector == other._vector
 
+    def __hash__(self):
+        """
+        Return the hash of ``self``.
+
+        EXAMPLES::
+
+            sage: Q = DiGraph({1:{2:['a', 'b']}, 2:{3:['c']}}).path_semigroup()
+            sage: spaces = {1: QQ^2, 2: QQ^2, 3:QQ^1}
+            sage: maps = {(1, 2, 'a'): [[1, 0], [0, 0]], (1, 2, 'b'): [[0, 0], [0, 1]], (2, 3, 'c'): [[1], [1]]}
+            sage: M = Q.representation(QQ, spaces, maps)
+            sage: spaces2 = {2: QQ^1, 3: QQ^1}
+            sage: S = Q.representation(QQ, spaces2)
+            sage: x = M({2: (1, -1)})
+            sage: y = M({3: (1,)})
+            sage: g = S.hom([x, y], M)
+            sage: H = hash(g)
+        """
+        return hash(tuple(self._vector))
+
     def __ne__(self, other):
         """
-        This function overrides the ``!=`` operator
+        This function overrides the ``!=`` operator.
 
         TESTS::
 
@@ -535,7 +554,6 @@ class QuiverRepHom(CallMorphism):
             sage: g != h
             True
         """
-        from sage.quivers.morphism import QuiverRepHom
         # A homomorphism can only be equal to another homomorphism between the
         # same domain and codomain
         if not isinstance(other, QuiverRepHom) or self._domain != other._domain or self._codomain != other._codomain:
@@ -544,9 +562,33 @@ class QuiverRepHom(CallMorphism):
         # If all that holds just check the vectors
         return self._vector != other._vector
 
+    def __bool__(self) -> bool:
+        """
+        Return whether ``self`` is the zero morphism.
+
+        EXAMPLES::
+
+            sage: Q = DiGraph({1:{2:['a', 'b']}, 2:{3:['c']}}).path_semigroup()
+            sage: spaces = {1: QQ^2, 2: QQ^2, 3:QQ^1}
+            sage: maps = {(1, 2, 'a'): [[1, 0], [0, 0]], (1, 2, 'b'): [[0, 0], [0, 1]], (2, 3, 'c'): [[1], [1]]}
+            sage: M = Q.representation(QQ, spaces, maps)
+            sage: spaces2 = {2: QQ^1, 3: QQ^1}
+            sage: S = Q.representation(QQ, spaces2)
+            sage: x = M({2: (1, -1)})
+            sage: y = M({3: (1,)})
+            sage: z = M.zero()
+            sage: g = S.hom([x, y], M)
+            sage: h = S.hom([z, z], M)
+            sage: bool(g)
+            True
+            sage: bool(h)
+            False
+        """
+        return any(self._vector)
+
     def __mul__(self, other):
         """
-        This function overrides the ``*`` operator
+        This function overrides the ``*`` operator.
 
         TESTS::
 
@@ -560,7 +602,8 @@ class QuiverRepHom(CallMorphism):
             sage: (g*h).is_zero()
             True
         """
-        maps = dict((v, other.get_matrix(v)*self.get_matrix(v)) for v in self._quiver)
+        maps = {v: other.get_matrix(v) * self.get_matrix(v)
+                for v in self._quiver}
         return other._domain.hom(maps, self._codomain)
 
     ###########################################################################
@@ -573,7 +616,7 @@ class QuiverRepHom(CallMorphism):
 
     def _assert_valid_hom(self):
         """
-        Raise a ``ValueError`` if the homomorphism is not well defined.
+        Raise a :exc:`ValueError` if the homomorphism is not well defined.
 
         Specifically it checks that the domain and codomains of the maps are
         correct and that the edge diagrams commute.
@@ -591,18 +634,18 @@ class QuiverRepHom(CallMorphism):
             sage: f = S.hom(maps2, S) # indirect doctest
             Traceback (most recent call last):
             ...
-            TypeError: Unable to coerce x (={...}) to a morphism in Dimension 2 QuiverHomSpace
+            TypeError: unable to convert {2: [1, -1], 3: 1} to an element of Dimension 2 QuiverHomSpace
         """
         # Check that the domain and codomains dimensions add correctly
         totaldim = 0
         for v in self._quiver:
-            totaldim += self._domain._spaces[v].dimension()*self._codomain._spaces[v].dimension()
+            totaldim += self._domain._spaces[v].dimension() * self._codomain._spaces[v].dimension()
         if totaldim != len(self._vector):
             raise ValueError("dimensions do not match domain and codomain")
 
         # Check that the edge diagrams commute
         for e in self._domain._semigroup._sorted_edges:
-            if self.get_matrix(e[0])*self._codomain._maps[e].matrix() != self._domain._maps[e].matrix()*self.get_matrix(e[1]):
+            if self.get_matrix(e[0]) * self._codomain._maps[e].matrix() != self._domain._maps[e].matrix() * self.get_matrix(e[1]):
                 raise ValueError("the diagram of edge {} does not commute".format(e))
 
     ###########################################################################
@@ -616,9 +659,7 @@ class QuiverRepHom(CallMorphism):
         """
         Return the domain of the homomorphism.
 
-        OUTPUT:
-
-        - :class:`QuiverRep`, the domain
+        OUTPUT: :class:`QuiverRep`; the domain
 
         EXAMPLES::
 
@@ -637,9 +678,7 @@ class QuiverRepHom(CallMorphism):
         """
         Return the codomain of the homomorphism.
 
-        OUTPUT:
-
-        - :class:`QuiverRep`, the codomain
+        OUTPUT: :class:`QuiverRep`; the codomain
 
         EXAMPLES::
 
@@ -661,12 +700,10 @@ class QuiverRepHom(CallMorphism):
 
         INPUT:
 
-        - ``vertex`` -- integer, a vertex of the quiver
+        - ``vertex`` -- integer; a vertex of the quiver
 
-        OUTPUT:
-
-        - matrix, the matrix representing the homomorphism associated to
-          the given vertex
+        OUTPUT: the matrix representing the homomorphism associated to
+        the given vertex
 
         EXAMPLES::
 
@@ -683,13 +720,14 @@ class QuiverRepHom(CallMorphism):
         for v in self._quiver:
             if v == vertex:
                 break
-            startdim += self._domain._spaces[v].dimension()*self._codomain._spaces[v].dimension()
+            startdim += self._domain._spaces[v].dimension() * self._codomain._spaces[v].dimension()
 
         rows = self._domain._spaces[vertex].dimension()
         cols = self._codomain._spaces[vertex].dimension()
 
         # Slice out the matrix and return
-        return Matrix(self._base_ring, rows, cols, self._vector.list()[startdim:startdim + rows*cols])
+        return Matrix(self._base_ring, rows, cols,
+                      self._vector.list()[startdim:startdim + rows * cols])
 
     def get_map(self, vertex):
         """
@@ -697,11 +735,9 @@ class QuiverRepHom(CallMorphism):
 
         INPUT:
 
-        - ``vertex`` -- integer, a vertex of the quiver
+        - ``vertex`` -- integer; a vertex of the quiver
 
-        OUTPUT:
-
-        - homomorphism, the homomorphism associated to the given vertex
+        OUTPUT: the homomorphism associated to the given vertex
 
         EXAMPLES::
 
@@ -737,9 +773,7 @@ class QuiverRepHom(CallMorphism):
         """
         Return the base ring of the representation in the codomain.
 
-        OUTPUT:
-
-        - ring, the base ring of the codomain
+        OUTPUT: the base ring of the codomain
 
         EXAMPLES::
 
@@ -758,13 +792,12 @@ class QuiverRepHom(CallMorphism):
     #                                                                         #
     ###########################################################################
 
-    def is_injective(self):
+    def is_injective(self) -> bool:
         """
         Test whether the homomorphism is injective.
 
-        OUTPUT:
-
-        - bool, ``True`` if the homomorphism is injective, ``False`` otherwise
+        OUTPUT: boolean; ``True`` if the homomorphism is injective, ``False``
+        otherwise
 
         EXAMPLES::
 
@@ -779,19 +812,14 @@ class QuiverRepHom(CallMorphism):
         """
         # The homomorphism is injective if and only if it is injective at every
         # vertex
-        for v in self._quiver:
-            if self.get_matrix(v).nullity() != 0:
-                return False
+        return not any(self.get_matrix(v).nullity() for v in self._quiver)
 
-        return True
-
-    def is_surjective(self):
+    def is_surjective(self) -> bool:
         """
         Test whether the homomorphism is surjective.
 
-        OUTPUT:
-
-        - bool, ``True`` if the homomorphism is surjective, ``False`` otherwise
+        OUTPUT: boolean; ``True`` if the homomorphism is surjective, ``False``
+        otherwise
 
         EXAMPLES::
 
@@ -813,14 +841,12 @@ class QuiverRepHom(CallMorphism):
 
         return True
 
-    def is_isomorphism(self):
+    def is_isomorphism(self) -> bool:
         """
         Test whether the homomorphism is an isomorphism.
 
-        OUTPUT:
-
-        - bool, ``True`` if the homomorphism is bijective, ``False``
-          otherwise
+        OUTPUT: boolean; ``True`` if the homomorphism is bijective, ``False``
+        otherwise
 
         EXAMPLES::
 
@@ -834,19 +860,14 @@ class QuiverRepHom(CallMorphism):
             False
         """
         # It's an iso if and only if it's an iso at every vertex
-        for v in self._quiver:
-            if not self.get_matrix(v).is_invertible():
-                return False
+        return all(self.get_matrix(v).is_invertible() for v in self._quiver)
 
-        return True
-
-    def is_zero(self):
+    def is_zero(self) -> bool:
         """
         Test whether the homomorphism is the zero homomorphism.
 
-        OUTPUT:
-
-        - bool, ``True`` if the homomorphism is zero, ``False`` otherwise
+        OUTPUT: boolean; ``True`` if the homomorphism is zero, ``False``
+        otherwise
 
         EXAMPLES::
 
@@ -860,20 +881,14 @@ class QuiverRepHom(CallMorphism):
             True
         """
         # The homomorphism is zero if and only if it is zero at every vertex
-        for v in self._quiver:
-            if not self.get_matrix(v).is_zero():
-                return False
+        return all(self.get_matrix(v).is_zero() for v in self._quiver)
 
-        return True
-
-    def is_endomorphism(self):
+    def is_endomorphism(self) -> bool:
         """
         Test whether the homomorphism is an endomorphism.
 
-        OUTPUT:
-
-        - bool, ``True`` if the domain equals the codomain, ``False``
-          otherwise
+        OUTPUT: boolean; ``True`` if the domain equals the codomain, ``False``
+        otherwise
 
         EXAMPLES::
 
@@ -894,9 +909,7 @@ class QuiverRepHom(CallMorphism):
         Return the rank of the homomorphism ``self`` (as a `k`-linear
         map).
 
-        OUTPUT:
-
-        - integer, the rank
+        OUTPUT: integer; the rank
 
         EXAMPLES::
 
@@ -907,11 +920,7 @@ class QuiverRepHom(CallMorphism):
             sage: assert(f.rank() == 1)
         """
         # The rank is the sum of the ranks at each vertex
-        r = 0
-        for v in self._quiver:
-            r += self.get_matrix(v).rank()
-
-        return r
+        return sum(self.get_matrix(v).rank() for v in self._quiver)
 
     ###########################################################################
     #                                                                         #
@@ -925,9 +934,7 @@ class QuiverRepHom(CallMorphism):
         """
         Return the kernel of ``self``.
 
-        OUTPUT:
-
-        - :class:`QuiverRep`, the kernel
+        OUTPUT: :class:`QuiverRep`; the kernel
 
         .. NOTE::
 
@@ -947,16 +954,14 @@ class QuiverRepHom(CallMorphism):
             sage: g.kernel().dimension_vector()
             (0, 1, 0)
         """
-        spaces = dict((v, self.get_map(v).kernel()) for v in self._quiver)
+        spaces = {v: self.get_map(v).kernel() for v in self._quiver}
         return self._domain._submodule(spaces)
 
     def image(self):
         """
         Return the image of ``self``.
 
-        OUTPUT:
-
-        - :class:`QuiverRep`, the image
+        OUTPUT: :class:`QuiverRep`; the image
 
         .. NOTE::
 
@@ -976,16 +981,14 @@ class QuiverRepHom(CallMorphism):
             sage: g.image().dimension_vector()
             (0, 1, 1)
         """
-        spaces = dict((v, self.get_map(v).image()) for v in self._quiver)
+        spaces = {v: self.get_map(v).image() for v in self._quiver}
         return self._codomain._submodule(spaces)
 
     def cokernel(self):
         """
         Return the cokernel of ``self``.
 
-        OUTPUT:
-
-        - :class:`QuiverRep`, the cokernel
+        OUTPUT: :class:`QuiverRep`; the cokernel
 
         .. NOTE::
 
@@ -1012,9 +1015,7 @@ class QuiverRepHom(CallMorphism):
         Compute the linear dual `Df : DN \to DM` of
         ``self`` = `f : M \to N` where `D(-) = Hom_k(-, k)`.
 
-        OUTPUT:
-
-        - :class:`QuiverRepHom`, the map `Df : DN \to DM`
+        OUTPUT: :class:`QuiverRepHom`; the map `Df : DN \to DM`
 
         .. NOTE::
 
@@ -1052,7 +1053,7 @@ class QuiverRepHom(CallMorphism):
         """
         # The effect of the functor D is that it just transposes the matrix of
         # a hom
-        maps = dict((v, self.get_matrix(v).transpose()) for v in self._quiver)
+        maps = {v: self.get_matrix(v).transpose() for v in self._quiver}
         return self._codomain.linear_dual().hom(maps, self._domain.linear_dual())
 
     def algebraic_dual(self):
@@ -1060,9 +1061,7 @@ class QuiverRepHom(CallMorphism):
         Compute the algebraic dual `f^t : N^t \to M^t` of
         ``self`` = `f : M \to N` where `(-)^t = Hom_Q(-, kQ)`.
 
-        OUTPUT:
-
-        - :class:`QuiverRepHom`, the map `f^t : N^t \to M^t`
+        OUTPUT: :class:`QuiverRepHom`; the map `f^t : N^t \to M^t`
 
         .. NOTE::
 
@@ -1080,7 +1079,7 @@ class QuiverRepHom(CallMorphism):
             Representation with dimension vector (5, 2, 1, 1, 4)
 
         The algebraic dual of an indecomposable projective is the indecomposable
-        projective of the same vertex in the opposite quiver.
+        projective of the same vertex in the opposite quiver. ::
 
             sage: Q.reverse().P(QQ, 4)
             Representation with dimension vector (5, 2, 1, 1, 4)
@@ -1091,8 +1090,8 @@ class QuiverRepHom(CallMorphism):
 
         # Find the images in the domain and create the module
         # H = QuiverHomSpace(self._domain, self._quiver.free_module(self._base_ring))
-        im_gens = [codomain({v: (g*self)._vector})
-                    for v in self._quiver for g in domain_gens[v]]
+        im_gens = [codomain({v: (g * self)._vector})
+                   for v in self._quiver for g in domain_gens[v]]
         return domain.hom(im_gens, codomain)
 
     def direct_sum(self, maps, return_maps=False, pinch=None):
@@ -1103,7 +1102,7 @@ class QuiverRepHom(CallMorphism):
 
         - ``maps`` -- :class:`QuiverRepHom` or list of :class:`QuiverRepHom`'s
 
-        - ``return_maps`` -- bool (default: ``False``). If ``False``, then
+        - ``return_maps`` -- boolean (default: ``False``); if ``False``, then
           the return value is a :class:`QuiverRepHom` which is the direct sum
           of ``self`` with the :class:`QuiverRepHoms` in ``maps``.
           If ``True``, then the return value is a tuple of length either 3
@@ -1119,7 +1118,7 @@ class QuiverRepHom(CallMorphism):
           If ``pinch`` is either ``'domain'`` or ``'codomain'`` then the
           tuple will have length 3.
 
-        - ``pinch`` -- string or ``None`` (default: ``None``). If this is
+        - ``pinch`` -- string or ``None`` (default: ``None``); if this is
           equal to ``'domain'``, then the domains of ``self`` and the
           given maps must be equal.  The direct sum of `f: A \to B` and
           `g: A \to C` returned is then the map `A \to B \oplus C` defined
@@ -1133,9 +1132,7 @@ class QuiverRepHom(CallMorphism):
           `A \oplus C \to B \oplus D` defined by sending `(x, y)` to
           `(f(x), g(y))`.
 
-        OUTPUT:
-
-        - :class:`QuiverRepHom` or tuple
+        OUTPUT: :class:`QuiverRepHom` or tuple
 
         EXAMPLES::
 
@@ -1156,7 +1153,6 @@ class QuiverRepHom(CallMorphism):
             sage: g.is_surjective()
             False
         """
-        from sage.quivers.morphism import QuiverRepHom
         # Get the list of maps to be summed
         if isinstance(maps, QuiverRepHom):
             maplist = [self, maps]
@@ -1169,13 +1165,13 @@ class QuiverRepHom(CallMorphism):
             if not isinstance(x, QuiverRepHom):
                 raise TypeError("maps must be a QuiverRepHom or list of QuiverRepHoms")
             if self._quiver is not x._quiver:
-                raise ValueError("Cannot direct sum maps from different quivers")
+                raise ValueError("cannot direct sum maps from different quivers")
             if self._base_ring is not x._base_ring:
-                raise ValueError("Base rings must be identical")
+                raise ValueError("base rings must be identical")
             if pinch == 'domain' and self._domain is not x._domain:
-                raise ValueError("Cannot pinch maps, domains do not agree")
+                raise ValueError("cannot pinch maps, domains do not agree")
             if pinch == 'codomain' and self._codomain is not x._codomain:
-                raise ValueError("Cannot pinch maps, codomains do not agree")
+                raise ValueError("cannot pinch maps, codomains do not agree")
 
         # Get the sums and their maps
         if pinch == 'domain':
@@ -1191,13 +1187,13 @@ class QuiverRepHom(CallMorphism):
         result = domain.hom(codomain)
 
         # Add each factor
-        for i in range(0, len(maplist)):
+        for i in range(len(maplist)):
             if pinch == 'domain':
-                result += c_incl[i]*maplist[i]
+                result += c_incl[i] * maplist[i]
             elif pinch == 'codomain':
-                result += maplist[i]*d_proj[i]
+                result += maplist[i] * d_proj[i]
             else:
-                result += c_incl[i]*maplist[i]*d_proj[i]
+                result += c_incl[i] * maplist[i] * d_proj[i]
 
         # Return the results
         if return_maps:
@@ -1219,14 +1215,12 @@ class QuiverRepHom(CallMorphism):
 
         - ``x`` -- :class:`QuiverRepElement`
 
-        OUTPUT:
-
-        - :class:`QuiverRepElement`
+        OUTPUT: :class:`QuiverRepElement`
 
         EXAMPLES::
 
             sage: Q = DiGraph({1:{2:['a','b']}, 2:{3:['c','d']}}).path_semigroup()
-            sage: P = Q.P(RR, 3)
+            sage: P = Q.P(QQ, 3)
             sage: S = P/P.radical()
             sage: proj = S.coerce_map_from(P)
             sage: x = S.an_element()
@@ -1240,7 +1234,7 @@ class QuiverRepHom(CallMorphism):
             ValueError: element is not in the image
         """
         # Lift at each vertex
-        elems = dict((v, self.get_map(v).lift(x._elems[v])) for v in self._quiver)
+        elems = {v: self.get_map(v).lift(x._elems[v]) for v in self._quiver}
         return self._domain(elems)
 
     ###########################################################################
@@ -1266,7 +1260,7 @@ class QuiverRepHom(CallMorphism):
             sage: g(x) == 6*f(x)
             True
         """
-        return self._domain.hom(scalar*self._vector, self._codomain)
+        return self._domain.hom(scalar * self._vector, self._codomain)
 
     def iscalar_mult(self, scalar):
         """
@@ -1284,4 +1278,3 @@ class QuiverRepHom(CallMorphism):
             True
         """
         self._vector *= scalar
-

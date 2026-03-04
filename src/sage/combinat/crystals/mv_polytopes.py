@@ -1,6 +1,6 @@
-# -*- coding: utf-8 -*-
+# sage.doctest: needs sage.combinat sage.modules
 r"""
-Crystal Of Mirković-Vilonen (MV) Polytopes
+Crystal of Mirković-Vilonen polytopes
 
 AUTHORS:
 
@@ -17,13 +17,8 @@ AUTHORS:
 # (at your option) any later version.
 #                  http://www.gnu.org/licenses/
 #*****************************************************************************
-
-from sage.structure.parent import Parent
-from sage.structure.unique_representation import UniqueRepresentation
-from sage.categories.highest_weight_crystals import HighestWeightCrystals
-from sage.categories.infinite_enumerated_sets import InfiniteEnumeratedSets
-from sage.combinat.root_system.cartan_type import CartanType
 from sage.combinat.crystals.pbw_crystal import PBWCrystalElement, PBWCrystal
+
 
 class MVPolytope(PBWCrystalElement):
     """
@@ -50,6 +45,7 @@ class MVPolytope(PBWCrystalElement):
         ....:     f.axes(False)
         sage: animate(frames).show(delay=60) # optional -- ImageMagick # long time
     """
+
     def _repr_(self):
         """
         Return a string representation of ``self``.
@@ -74,8 +70,8 @@ class MVPolytope(PBWCrystalElement):
             sage: b = MV.module_generators[0].f_string([1,2,1,2])
             sage: latex(b)
             \begin{tikzpicture}
-            \draw (0, 0) -- (-1, 1) -- (-1, 1) -- (-2, 0) -- (-2, -2);
             \draw (0, 0) -- (0, -2) -- (-1, -3) -- (-1, -3) -- (-2, -2);
+            \draw (0, 0) -- (-1, 1) -- (-1, 1) -- (-2, 0) -- (-2, -2);
             \draw[fill=black] (0, 0) circle (0.1);
             \draw[fill=black] (-2, -2) circle (0.1);
             \end{tikzpicture}
@@ -89,7 +85,7 @@ class MVPolytope(PBWCrystalElement):
             sage: MV = crystals.infinity.MVPolytopes(['A',2])
             sage: u = MV.highest_weight_vector()
             sage: b = u.f_string([1,2,2,1])
-            sage: latex(b)
+            sage: latex(b)                                                              # needs sage.symbolic
             \begin{tikzpicture}
             \draw (0, 0) -- (3/2, -989/1142) -- (3/2, -2967/1142) -- (0, -1978/571);
             \draw (0, 0) -- (-3/2, -989/1142) -- (-3/2, -2967/1142) -- (0, -1978/571);
@@ -116,7 +112,7 @@ class MVPolytope(PBWCrystalElement):
         ret = "\\begin{tikzpicture}\n"
 
         final = None
-        for red in w0.reduced_words():
+        for red in sorted(w0.reduced_words()):
             ret += "\\draw "
             cur = proj(P.zero())
             red = tuple(red)
@@ -145,19 +141,19 @@ class MVPolytope(PBWCrystalElement):
 
             sage: MV = crystals.infinity.MVPolytopes(['C', 3])
             sage: b = MV.module_generators[0].f_string([1,2,1,2])
-            sage: sorted(b._polytope_vertices(MV.weight_lattice_realization()), key=list)
-            [(0, 0, 0), (2, 0, -2), (0, 2, -2)]
+            sage: sorted(b._polytope_vertices(MV.weight_lattice_realization()), key=attrcall('to_vector'))
+            [(0, 0, 0), (0, 2, -2), (2, 0, -2)]
 
             sage: MV = crystals.infinity.MVPolytopes(['D', 4])
             sage: b = MV.module_generators[0].f_string([1,2,3,4])
             sage: P = RootSystem(['D',4]).weight_lattice()
-            sage: sorted(b._polytope_vertices(P), key=list)  # long time
-            [0,
-             -Lambda[1] + Lambda[3] + Lambda[4],
-             Lambda[1] - Lambda[2] + Lambda[3] + Lambda[4],
+            sage: sorted(b._polytope_vertices(P), key=attrcall('to_vector'))  # long time
+            [-Lambda[1] + Lambda[3] + Lambda[4],
              -2*Lambda[2] + 2*Lambda[3] + 2*Lambda[4],
+             -Lambda[2] + 2*Lambda[4],
              -Lambda[2] + 2*Lambda[3],
-             -Lambda[2] + 2*Lambda[4]]
+             0,
+             Lambda[1] - Lambda[2] + Lambda[3] + Lambda[4]]
         """
         pbw_data = self._pbw_datum.parent
         W = pbw_data.weyl_group
@@ -165,7 +161,7 @@ class MVPolytope(PBWCrystalElement):
         al = P.simple_roots()
 
         vertices = set([P.zero()])
-        for red in w0.reduced_words():
+        for red in sorted(w0.reduced_words()):
             cur = P.zero()
             red = tuple(red)
             roots = [P.sum(c*al[a] for a,c in root)
@@ -222,7 +218,7 @@ class MVPolytope(PBWCrystalElement):
 
             sage: MV = crystals.infinity.MVPolytopes(['C', 2])
             sage: b = MV.highest_weight_vector().f_string([1,2,1,2,2,2,1,1,1,1,2,1])
-            sage: b.plot()
+            sage: b.plot()                                                              # needs sage.plot
             Graphics object consisting of 12 graphics primitives
 
         Here is the above example placed inside the ambient space
@@ -242,6 +238,7 @@ class MVPolytope(PBWCrystalElement):
         if P is None:
             P = self.parent().weight_lattice_realization()
         return P.plot_mv_polytope(self, **options)
+
 
 class MVPolytopes(PBWCrystal):
     r"""
@@ -360,6 +357,7 @@ class MVPolytopes(PBWCrystal):
     - [Kam2007]_
     - [Kam2010]_
     """
+
     def __init__(self, cartan_type):
         """
         Initialize ``self``.
@@ -407,24 +405,24 @@ class MVPolytopes(PBWCrystal):
             sage: b = MV.highest_weight_vector().f_string([1,2,1,2])
             sage: latex(b)
             \begin{tikzpicture}
-            \draw (0, 0) -- (-1, 1) -- (-1, 1) -- (-2, 0) -- (-2, -2);
             \draw (0, 0) -- (0, -2) -- (-1, -3) -- (-1, -3) -- (-2, -2);
+            \draw (0, 0) -- (-1, 1) -- (-1, 1) -- (-2, 0) -- (-2, -2);
             \draw[fill=black] (0, 0) circle (0.1);
             \draw[fill=black] (-2, -2) circle (0.1);
             \end{tikzpicture}
             sage: MV.set_latex_options(P=P, circle_size=float(0.2))
             sage: latex(b)
             \begin{tikzpicture}
-            \draw (0, 0) -- (-2, 1) -- (-2, 1) -- (-2, 0) -- (0, -2);
             \draw (0, 0) -- (2, -2) -- (2, -3) -- (2, -3) -- (0, -2);
+            \draw (0, 0) -- (-2, 1) -- (-2, 1) -- (-2, 0) -- (0, -2);
             \draw[fill=black] (0, 0) circle (0.2);
             \draw[fill=black] (0, -2) circle (0.2);
             \end{tikzpicture}
             sage: MV.set_latex_options(mark_endpoints=False)
             sage: latex(b)
             \begin{tikzpicture}
-            \draw (0, 0) -- (-2, 1) -- (-2, 1) -- (-2, 0) -- (0, -2);
             \draw (0, 0) -- (2, -2) -- (2, -3) -- (2, -3) -- (0, -2);
+            \draw (0, 0) -- (-2, 1) -- (-2, 1) -- (-2, 0) -- (0, -2);
             \end{tikzpicture}
             sage: MV.set_latex_options(P=MV.weight_lattice_realization(),
             ....:                      circle_size=0.2,
@@ -466,4 +464,3 @@ class MVPolytopes(PBWCrystal):
         return copy(self._latex_options)
 
     Element = MVPolytope
-

@@ -12,22 +12,23 @@ AUTHORS:
 REFERENCES:
 
 - Chap. 3 of [Lee2013]_
-
 """
 
-#******************************************************************************
+# *****************************************************************************
 #       Copyright (C) 2015 Eric Gourgoulhon <eric.gourgoulhon@obspm.fr>
 #       Copyright (C) 2015 Michal Bejger <bejger@camk.edu.pl>
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
 #  as published by the Free Software Foundation; either version 2 of
 #  the License, or (at your option) any later version.
-#                  http://www.gnu.org/licenses/
-#******************************************************************************
+#                  https://www.gnu.org/licenses/
+# *****************************************************************************
 
-from sage.symbolic.ring import SR
-from sage.tensor.modules.free_module_element import FiniteRankFreeModuleElement
+from sage.manifolds.differentiable.scalarfield import DiffScalarField
 from sage.misc.decorators import options
+from sage.tensor.modules.free_module_alt_form import FreeModuleAltForm
+from sage.tensor.modules.free_module_element import FiniteRankFreeModuleElement
+
 
 class TangentVector(FiniteRankFreeModuleElement):
     r"""
@@ -44,27 +45,81 @@ class TangentVector(FiniteRankFreeModuleElement):
 
     EXAMPLES:
 
-    Tangent vector on a 2-dimensional manifold::
+    A tangent vector `v` on a 2-dimensional manifold::
 
         sage: M = Manifold(2, 'M')
-        sage: c_xy.<x,y> = M.chart()
+        sage: X.<x,y> = M.chart()
         sage: p = M.point((2,3), name='p')
         sage: Tp = M.tangent_space(p)
         sage: v = Tp((-2,1), name='v') ; v
         Tangent vector v at Point p on the 2-dimensional differentiable
          manifold M
         sage: v.display()
-        v = -2 d/dx + d/dy
+        v = -2 ∂/∂x + ∂/∂y
         sage: v.parent()
         Tangent space at Point p on the 2-dimensional differentiable manifold M
         sage: v in Tp
+        True
+
+    Tangent vectors can also be constructed via the manifold method
+    :meth:`~sage.manifolds.differentiable.manifold.DifferentiableManifold.tangent_vector`::
+
+        sage: v = M.tangent_vector(p, (-2, 1), name='v'); v
+        Tangent vector v at Point p on the 2-dimensional differentiable
+         manifold M
+        sage: v.display()
+        v = -2 ∂/∂x + ∂/∂y
+
+    or via the method
+    :meth:`~sage.manifolds.differentiable.tensorfield_paral.TensorFieldParal.at`
+    of vector fields::
+
+        sage: vf = M.vector_field(x - 4*y/3, (x-y)^2, name='v')
+        sage: v = vf.at(p); v
+        Tangent vector v at Point p on the 2-dimensional differentiable
+         manifold M
+        sage: v.display()
+        v = -2 ∂/∂x + ∂/∂y
+
+    By definition, a tangent vector at `p\in M` is a *derivation at* `p` on
+    the space `C^\infty(M)` of smooth scalar fields on `M`. Indeed  let us
+    consider a generic scalar field `f`::
+
+        sage: f = M.scalar_field(function('F')(x,y), name='f')
+        sage: f.display()
+        f: M → ℝ
+           (x, y) ↦ F(x, y)
+
+    The tangent vector `v` maps `f` to the real number
+    `v^i \left. \frac{\partial F}{\partial x^i} \right|_p`::
+
+        sage: v(f)
+        -2*D[0](F)(2, 3) + D[1](F)(2, 3)
+        sage: vdf(x, y) = v[0]*diff(f.expr(), x) + v[1]*diff(f.expr(), y)
+        sage: X(p)
+        (2, 3)
+        sage: bool( v(f) == vdf(*X(p)) )
+        True
+
+    and if `g` is a second scalar field on `M`::
+
+        sage: g = M.scalar_field(function('G')(x,y), name='g')
+
+    then the product `f g` is also a scalar field on `M`::
+
+        sage: (f*g).display()
+        f*g: M → ℝ
+           (x, y) ↦ F(x, y)*G(x, y)
+
+    and we have the derivation law `v(f g) = v(f) g(p) + f(p) v(g)`::
+
+        sage: bool( v(f*g) == v(f)*g(p) + f(p)*v(g) )
         True
 
     .. SEEALSO::
 
         :class:`~sage.tensor.modules.free_module_element.FiniteRankFreeModuleElement`
         for more documentation.
-
     """
     def __init__(self, parent, name=None, latex_name=None):
         r"""
@@ -81,7 +136,6 @@ class TangentVector(FiniteRankFreeModuleElement):
              manifold M
             sage: v[:] = 5, -3/2
             sage: TestSuite(v).run()
-
         """
         FiniteRankFreeModuleElement.__init__(self, parent, name=name,
                                              latex_name=latex_name)
@@ -103,9 +157,12 @@ class TangentVector(FiniteRankFreeModuleElement):
             'Tangent vector v at Point p on the 2-dimensional differentiable manifold M'
             sage: repr(v)  # indirect doctest
             'Tangent vector v at Point p on the 2-dimensional differentiable manifold M'
-
         """
-        desc = "Tangent vector"
+        from sage.manifolds.differentiable.examples.euclidean import EuclideanSpace
+        if isinstance(self._point.parent(), EuclideanSpace):
+            desc = "Vector"
+        else:
+            desc = "Tangent vector"
         if self._name:
             desc += " " + str(self._name)
         desc += " at " + str(self._point)
@@ -150,10 +207,10 @@ class TangentVector(FiniteRankFreeModuleElement):
         - ``scale`` -- (default: 1) value by which the length of the arrow
           representing the vector is multiplied
 
-        - ``color`` -- (default: 'blue') color of the arrow representing the
+        - ``color`` -- (default: ``'blue'``) color of the arrow representing the
           vector
 
-        - ``print_label`` -- (boolean; default: ``True``) determines whether a
+        - ``print_label`` -- boolean (default: ``True``); determines whether a
           label is printed next to the arrow representing the vector
 
         - ``label`` -- (string; default: ``None``) label printed next to the
@@ -200,12 +257,12 @@ class TangentVector(FiniteRankFreeModuleElement):
 
         Plot of the vector alone (arrow + label)::
 
-            sage: v.plot()
+            sage: v.plot()                                                              # needs sage.plot
             Graphics object consisting of 2 graphics primitives
 
         Plot atop of the chart grid::
 
-            sage: X.plot() + v.plot()
+            sage: X.plot() + v.plot()                                                   # needs sage.plot
             Graphics object consisting of 20 graphics primitives
 
         .. PLOT::
@@ -219,7 +276,7 @@ class TangentVector(FiniteRankFreeModuleElement):
 
         Plots with various options::
 
-            sage: X.plot() + v.plot(color='green', scale=2, label='V')
+            sage: X.plot() + v.plot(color='green', scale=2, label='V')                  # needs sage.plot
             Graphics object consisting of 20 graphics primitives
 
         .. PLOT::
@@ -233,7 +290,7 @@ class TangentVector(FiniteRankFreeModuleElement):
 
         ::
 
-            sage: X.plot() + v.plot(print_label=False)
+            sage: X.plot() + v.plot(print_label=False)                                  # needs sage.plot
             Graphics object consisting of 19 graphics primitives
 
         .. PLOT::
@@ -247,7 +304,7 @@ class TangentVector(FiniteRankFreeModuleElement):
 
         ::
 
-            sage: X.plot() + v.plot(color='green', label_color='black',
+            sage: X.plot() + v.plot(color='green', label_color='black',                 # needs sage.plot
             ....:                   fontsize=20, label_offset=0.2)
             Graphics object consisting of 20 graphics primitives
 
@@ -262,7 +319,7 @@ class TangentVector(FiniteRankFreeModuleElement):
 
         ::
 
-            sage: X.plot() + v.plot(linestyle=':', width=4, arrowsize=8,
+            sage: X.plot() + v.plot(linestyle=':', width=4, arrowsize=8,                # needs sage.plot
             ....:                   fontsize=20)
             Graphics object consisting of 20 graphics primitives
 
@@ -280,8 +337,8 @@ class TangentVector(FiniteRankFreeModuleElement):
             sage: var('a b')
             (a, b)
             sage: v = Tp((1+a, -b^2), name='v') ; v.display()
-            v = (a + 1) d/dx - b^2 d/dy
-            sage: X.plot() + v.plot(parameters={a: -2, b: 3})
+            v = (a + 1) ∂/∂x - b^2 ∂/∂y
+            sage: X.plot() + v.plot(parameters={a: -2, b: 3})                           # needs sage.plot
             Graphics object consisting of 20 graphics primitives
 
         Special case of the zero vector::
@@ -289,7 +346,7 @@ class TangentVector(FiniteRankFreeModuleElement):
             sage: v = Tp.zero() ; v
             Tangent vector zero at Point p on the 2-dimensional differentiable
              manifold M
-            sage: X.plot() + v.plot()
+            sage: X.plot() + v.plot()                                                   # needs sage.plot
             Graphics object consisting of 19 graphics primitives
 
         Vector tangent to a 4-dimensional manifold::
@@ -304,7 +361,7 @@ class TangentVector(FiniteRankFreeModuleElement):
 
         We cannot make a 4D plot directly::
 
-            sage: v.plot()
+            sage: v.plot()                                                              # needs sage.plot
             Traceback (most recent call last):
             ...
             ValueError: the number of coordinates involved in the plot must
@@ -314,7 +371,7 @@ class TangentVector(FiniteRankFreeModuleElement):
         the argument ``ambient_coords``. For instance, for a 2-dimensional
         plot in terms of the coordinates `(x, y)`::
 
-            sage: v.plot(ambient_coords=(x,y))
+            sage: v.plot(ambient_coords=(x,y))                                          # needs sage.plot
             Graphics object consisting of 2 graphics primitives
 
         .. PLOT::
@@ -330,14 +387,14 @@ class TangentVector(FiniteRankFreeModuleElement):
         Similarly, for a 3-dimensional plot in terms of the coordinates
         `(t, x, y)`::
 
-            sage: g = v.plot(ambient_coords=(t,x,z))
-            sage: print(g)
+            sage: g = v.plot(ambient_coords=(t,x,z))                                    # needs sage.plot
+            sage: print(g)                                                              # needs sage.plot
             Graphics3d Object
 
         This plot involves only the components `v^t`,  `v^x` and `v^z` of `v`.
         A nice 3D view atop the coordinate grid is obtained via::
 
-            sage: (X.plot(ambient_coords=(t,x,z))  # long time
+            sage: (X.plot(ambient_coords=(t,x,z))  # long time                          # needs sage.plot
             ....:  + v.plot(ambient_coords=(t,x,z),
             ....:           label_offset=0.5, width=6))
             Graphics3d Object
@@ -364,15 +421,15 @@ class TangentVector(FiniteRankFreeModuleElement):
             ....:                                 sin(th)*sin(ph),
             ....:                                 cos(th)]}, name='F')
             sage: F.display() # the standard embedding of S^2 into R^3
-            F: S^2 --> R^3
-            on U: (th, ph) |--> (x, y, z) = (cos(ph)*sin(th), sin(ph)*sin(th), cos(th))
+            F: S^2 → R^3
+            on U: (th, ph) ↦ (x, y, z) = (cos(ph)*sin(th), sin(ph)*sin(th), cos(th))
             sage: p = U.point((pi/4, 7*pi/4), name='p')
-            sage: v = XS.frame()[1].at(p) ; v  # the coordinate vector d/dphi at p
-            Tangent vector d/dph at Point p on the 2-dimensional differentiable
+            sage: v = XS.frame()[1].at(p) ; v  # the coordinate vector ∂/∂phi at p
+            Tangent vector ∂/∂ph at Point p on the 2-dimensional differentiable
              manifold S^2
-            sage: graph_v = v.plot(mapping=F)
-            sage: graph_S2 = XS.plot(chart=X3, mapping=F, number_values=9)  # long time
-            sage: graph_v + graph_S2  # long time
+            sage: graph_v = v.plot(mapping=F)                                           # needs sage.plot
+            sage: graph_S2 = XS.plot(chart=X3, mapping=F, number_values=9)  # long time, needs sage.plot
+            sage: graph_v + graph_S2                                        # long time, needs sage.plot
             Graphics3d Object
 
         .. PLOT::
@@ -390,15 +447,14 @@ class TangentVector(FiniteRankFreeModuleElement):
             graph_v = v.plot(mapping=F)
             graph_S2 = XS.plot(chart=X3, mapping=F, number_values=9)
             sphinx_plot(graph_v + graph_S2)
-
         """
+        from sage.manifolds.differentiable.chart import DiffChart
+        from sage.misc.functional import numerical_approx
         from sage.plot.arrow import arrow2d
-        from sage.plot.text import text
         from sage.plot.graphics import Graphics
         from sage.plot.plot3d.shapes import arrow3d
         from sage.plot.plot3d.shapes2 import text3d
-        from sage.misc.functional import numerical_approx
-        from sage.manifolds.differentiable.chart import DiffChart
+        from sage.plot.text import text
 
         scale = extra_options.pop("scale")
 
@@ -427,7 +483,7 @@ class TangentVector(FiniteRankFreeModuleElement):
         if ambient_coords is None:
             ambient_coords = chart[:]  # all chart coordinates are used
         n_pc = len(ambient_coords)
-        if n_pc != 2 and n_pc !=3:
+        if n_pc != 2 and n_pc != 3:
             raise ValueError("the number of coordinates involved in the " +
                              "plot must be either 2 or 3, not {}".format(n_pc))
         # indices coordinates involved in the plot:
@@ -480,3 +536,80 @@ class TangentVector(FiniteRankFreeModuleElement):
                                    color=label_color)
         return resu
 
+    def __call__(self, f):
+        r"""
+        Action on a scalar field (as a derivation) or on a linear form.
+
+        INPUT:
+
+        - ``f`` -- either a scalar field on the manifold of which ``self`` is
+          defined or a linear form in the same tangent space as ``self``
+
+        OUTPUT:
+
+        - scalar (element of the manifold base field)
+
+        EXAMPLES:
+
+        Let us consider a tangent vector on a 2-dimensional manifold::
+
+            sage: M = Manifold(2, 'M', start_index=1)
+            sage: X.<x,y> = M.chart()
+            sage: p = M((2, 3), name='p')
+            sage: Tp = M.tangent_space(p)
+            sage: v = Tp((-1, 2))
+            sage: v.display()
+            -∂/∂x + 2 ∂/∂y
+
+        The action of `v` on a scalar field `f`::
+
+            sage: f = M.scalar_field(x*y^2, name='f')
+            sage: v(f)
+            15
+
+        Check of the formula `v(f) = v^i \frac{\partial f}{\partial x^i}|_p`::
+
+            sage: vdf(x, y) = v[1]*diff(f.expr(), x) + v[2]*diff(f.expr(), y)
+            sage: vdf
+            (x, y) |--> 4*x*y - y^2
+            sage: X(p)
+            (2, 3)
+            sage: bool( v(f) == vdf(*X(p)) )
+            True
+
+        Case of a generic scalar field::
+
+            sage: f = M.scalar_field(function('F')(x,y), name='f')
+            sage: v(f)
+            -D[0](F)(2, 3) + 2*D[1](F)(2, 3)
+
+        Action of a tangent vector on a linear form on the same tangent space::
+
+            sage: omega = Tp.linear_form()
+            sage: omega[:] = 4, 1
+            sage: omega.display()
+            4 dx + dy
+            sage: v(omega)
+            -2
+
+        Checks of he formula `v(\omega) = v^i \omega_i`::
+
+            sage: bool( v(omega) == v[1]*omega[1] + v[2]*omega[2] )
+            True
+
+        Another check::
+
+            sage: bool( v(omega) == omega(v) )
+            True
+        """
+        if isinstance(f, FreeModuleAltForm):
+            # Case of self acting on a linear form
+            if f.tensor_type() != (0, 1):
+                raise TypeError("the argument of __call__ must be a linear form, "
+                                "not {}".format(f))
+            return f(self)
+        if not isinstance(f, DiffScalarField):
+            raise TypeError("the argument of __call__ must be either a linear "
+                            "form or a scalar field, not {}".format(f))
+        # Case of self acting on a scalar field
+        return f.differential().at(self._point)(self)

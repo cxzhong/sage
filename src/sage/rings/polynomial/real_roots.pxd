@@ -1,12 +1,8 @@
-from sage.rings.rational import Rational
 from sage.rings.rational cimport Rational
-
 from sage.modules.vector_integer_dense cimport Vector_integer_dense
-
 from sage.modules.vector_real_double_dense cimport Vector_real_double_dense
-
-from sage.rings.real_mpfi import RealIntervalFieldElement
 from sage.rings.real_mpfi cimport RealIntervalFieldElement
+
 
 cdef class interval_bernstein_polynomial:
     cdef int min_variations
@@ -24,16 +20,16 @@ cdef class interval_bernstein_polynomial:
     cdef int bitsize
     cdef int scale_log2
 
-    cdef void update_variations(self, interval_bernstein_polynomial bp1, interval_bernstein_polynomial bp2)
-    cdef int degree(self)
+    cdef void update_variations(self, interval_bernstein_polynomial bp1, interval_bernstein_polynomial bp2) noexcept
+    cdef int degree(self) noexcept
 
 cdef class interval_bernstein_polynomial_integer(interval_bernstein_polynomial):
     cdef Vector_integer_dense coeffs
 
     cdef int error
 
-    cdef void _set_bitsize(self)
-    cdef void _count_variations(self)
+    cdef void _set_bitsize(self) noexcept
+    cdef void _count_variations(self) noexcept
 
 cdef class interval_bernstein_polynomial_float(interval_bernstein_polynomial):
     cdef Vector_real_double_dense coeffs
@@ -41,7 +37,7 @@ cdef class interval_bernstein_polynomial_float(interval_bernstein_polynomial):
     cdef double neg_err
     cdef double pos_err
 
-    cdef void _count_variations(self)
+    cdef void _count_variations(self) noexcept
 
 # forward declaration
 cdef class rr_gap
@@ -70,8 +66,8 @@ cdef class context:
     cdef dc_log
     cdef be_log
 
-    cdef void dc_log_append(self, x)
-    cdef void be_log_append(self, x)
+    cdef void dc_log_append(self, x) noexcept
+    cdef void be_log_append(self, x) noexcept
 
 cdef class ocean:
     cdef context ctx

@@ -1,25 +1,24 @@
+# sage.doctest: needs sage.graphs sage.modules
 """
-Integrable Representations of Affine Lie Algebras
+Integrable representations of affine Lie algebras
 """
-
-#*****************************************************************************
+# ***************************************************************************
 #  Copyright (C) 2014, 2105 Daniel Bump <bump at match.stanford.edu>
 #                           Travis Scrimshaw <tscrim at ucdavis.edu>
 #                           Valentin Buciumas <buciumas at stanford.edu>
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
-from __future__ import print_function
-
+#                  https://www.gnu.org/licenses/
+# ***************************************************************************
 from sage.structure.unique_representation import UniqueRepresentation
 from sage.structure.category_object import CategoryObject
 from sage.categories.modules import Modules
-from sage.rings.all import ZZ
-from sage.misc.all import cached_method
+from sage.rings.integer_ring import ZZ
+from sage.misc.cachefunc import cached_method
 from sage.matrix.constructor import Matrix
 from sage.sets.recursively_enumerated_set import RecursivelyEnumeratedSet
 from sage.combinat.root_system.weyl_characters import WeylCharacterRing
+
 
 # TODO: Make this a proper parent and implement actions
 class IntegrableRepresentation(UniqueRepresentation, CategoryObject):
@@ -43,8 +42,8 @@ class IntegrableRepresentation(UniqueRepresentation, CategoryObject):
     .. [KacPeterson] Kac and Peterson. *Infinite-dimensional Lie algebras,
        theta functions and modular forms*. Adv. in Math. 53 (1984),
        no. 2, 125-264.
-       
-    .. [Carter] Carter, *Lie algebras of finite and affine type*. Cambridge 
+
+    .. [Carter] Carter, *Lie algebras of finite and affine type*. Cambridge
        University Press, 2005
 
     If `\Lambda` is a dominant integral weight for an affine root system,
@@ -62,7 +61,7 @@ class IntegrableRepresentation(UniqueRepresentation, CategoryObject):
     lattice and `\rho` is the Weyl vector. Moreover if `m(\mu)>0`
     then `\mu\in\operatorname{supp}(V)` differs from `\Lambda` by an element
     of the root lattice ([Ka1990]_, Propositions 11.3 and 11.4).
-    
+
     Let `\delta` be the nullroot, which is the lowest positive imaginary
     root. Then by [Ka1990]_, Proposition 11.3 or Corollary 11.9, for fixed `\mu`
     the function `m(\mu - k\delta)` is a monotone increasing function of
@@ -151,9 +150,9 @@ class IntegrableRepresentation(UniqueRepresentation, CategoryObject):
         Lambda[0] + Lambda[2] - delta: 1 5 18 55 149 372 872 1941 4141 8523 17005 33019
         2*Lambda[1] - delta: 1 4 15 44 122 304 721 1612 3469 7176 14414 28124
         2*Lambda[2] - 2*delta: 2 7 26 72 194 467 1084 2367 5010 10191 20198 38907
-        
+
     Examples for twisted affine types::
-    
+
         sage: Lambda = RootSystem(["A",2,2]).weight_lattice(extended=True).fundamental_weights()
         sage: IntegrableRepresentation(Lambda[0]).strings()
         {Lambda[0]: [1, 1, 2, 3, 5, 7, 11, 15, 22, 30, 42, 56]}
@@ -161,10 +160,10 @@ class IntegrableRepresentation(UniqueRepresentation, CategoryObject):
         sage: V = IntegrableRepresentation(Lambda[0]+Lambda[1]+Lambda[2])
         sage: V.print_strings() # long time
         6*Lambdacheck[0]: 4 28 100 320 944 2460 6064 14300 31968 69020 144676 293916
-        4*Lambdacheck[0] + Lambdacheck[2]: 4 22 84 276 800 2124 5288 12470 28116 61056 128304 261972
         3*Lambdacheck[0] + Lambdacheck[1]: 2 16 58 192 588 1568 3952 9520 21644 47456 100906 207536
-        Lambdacheck[0] + Lambdacheck[1] + Lambdacheck[2]: 1 6 26 94 294 832 2184 5388 12634 28390 61488 128976
+        4*Lambdacheck[0] + Lambdacheck[2]: 4 22 84 276 800 2124 5288 12470 28116 61056 128304 261972
         2*Lambdacheck[1] - deltacheck: 2 8 32 120 354 980 2576 6244 14498 32480 69776 145528
+        Lambdacheck[0] + Lambdacheck[1] + Lambdacheck[2]: 1 6 26 94 294 832 2184 5388 12634 28390 61488 128976
         2*Lambdacheck[0] + 2*Lambdacheck[2]: 2 12 48 164 492 1344 3428 8256 18960 41844 89208 184512
         3*Lambdacheck[2] - deltacheck: 4 16 60 208 592 1584 4032 9552 21728 47776 101068 207888
         sage: Lambda = RootSystem(['A',6,2]).weight_lattice(extended=true).fundamental_weights()
@@ -177,6 +176,7 @@ class IntegrableRepresentation(UniqueRepresentation, CategoryObject):
         Lambda[0] + 2*Lambda[2] - 2*delta: 3 54 499 3349 18166 84836 353092 1341250 4725259 15625727 48938396 146190544
         Lambda[0] + 2*Lambda[3] - 4*delta: 15 195 1539 9186 45804 200073 789201 2866560 9723582 31120281 94724550 275919741
     """
+
     def __init__(self, Lam):
         """
         Initialize ``self``.
@@ -228,7 +228,7 @@ class IntegrableRepresentation(UniqueRepresentation, CategoryObject):
 
     def highest_weight(self):
         """
-        Returns the highest weight of ``self``.
+        Return the highest weight of ``self``.
 
         EXAMPLES::
 
@@ -264,7 +264,7 @@ class IntegrableRepresentation(UniqueRepresentation, CategoryObject):
 
     @cached_method
     def level(self):
-        """
+        r"""
         Return the level of ``self``.
 
         The level of a highest weight representation `V_{\Lambda}` is
@@ -322,10 +322,10 @@ class IntegrableRepresentation(UniqueRepresentation, CategoryObject):
             sage: IntegrableRepresentation(Lambda[0])
             Integrable representation of ['F', 4, 1] with highest weight Lambda[0]
         """
-        return "Integrable representation of %s with highest weight %s"%(self._cartan_type, self._Lam)
+        return "Integrable representation of %s with highest weight %s" % (self._cartan_type, self._Lam)
 
     def _latex_(self):
-        """
+        r"""
         Return a latex representation of ``self``.
 
         EXAMPLES::
@@ -333,7 +333,7 @@ class IntegrableRepresentation(UniqueRepresentation, CategoryObject):
             sage: Lambda = RootSystem(['C',3,1]).weight_lattice(extended=true).fundamental_weights()
             sage: V = IntegrableRepresentation(Lambda[0]+2*Lambda[3])
             sage: latex(V)
-            V_{\Lambda_{0} + 2\Lambda_{3}}
+            V_{\Lambda_{0} + 2 \Lambda_{3}}
         """
         return "V_{{{}}}".format(self._Lam._latex_())
 
@@ -422,11 +422,11 @@ class IntegrableRepresentation(UniqueRepresentation, CategoryObject):
         mcp = pelt.monomial_coefficients()
         mcq = qelt.monomial_coefficients()
         zero = ZZ.zero()
-        return sum(mcp.get(i, zero) * mcq[i] / self._eps[i] for i in mcq) 
+        return sum(mcp.get(i, zero) * mcq[i] / self._eps[i] for i in mcq)
 
     def _inner_pp(self, pelt1, pelt2):
         """
-        Symmetric form between an two elements of the weight lattice
+        Symmetric form between two elements of the weight lattice
         associated to ``self``.
 
         EXAMPLES::
@@ -466,7 +466,7 @@ class IntegrableRepresentation(UniqueRepresentation, CategoryObject):
 
         INPUT:
 
-        - ``n`` -- a tuple representing a weight
+        - ``n`` -- tuple representing a weight
 
         EXAMPLES::
 
@@ -617,7 +617,7 @@ class IntegrableRepresentation(UniqueRepresentation, CategoryObject):
         EXAMPLES::
 
             sage: Lambda = RootSystem(['B',3,1]).weight_lattice(extended=true).fundamental_weights()
-            sage: V = IntegrableRepresentation(Lambda[0]+Lambda[1]+Lambda[3])   
+            sage: V = IntegrableRepresentation(Lambda[0]+Lambda[1]+Lambda[3])
             sage: [list(V._freudenthal_roots_imaginary(V.highest_weight() - mw))
             ....:  for mw in V.dominant_maximal_weights()]
             [[], [], [], [], []]
@@ -632,10 +632,10 @@ class IntegrableRepresentation(UniqueRepresentation, CategoryObject):
         r"""
         Iterate over the set of real positive roots `\alpha \in \Delta^+`
         in ``self`` such that `\nu - \alpha \in Q^+`.
-        
+
         See [Ka1990]_ Proposition 6.3 for the way to compute the set of real
         roots for twisted affine case.
-        
+
         INPUT:
 
         - ``nu`` -- an element in `Q`
@@ -645,13 +645,13 @@ class IntegrableRepresentation(UniqueRepresentation, CategoryObject):
             sage: Lambda = RootSystem(['B',3,1]).weight_lattice(extended=true).fundamental_weights()
             sage: V = IntegrableRepresentation(Lambda[0]+Lambda[1]+Lambda[3])
             sage: mw = V.dominant_maximal_weights()[0]
-            sage: list(V._freudenthal_roots_real(V.highest_weight() - mw))
+            sage: sorted(V._freudenthal_roots_real(V.highest_weight() - mw), key=str)
             [alpha[1],
-             alpha[2],
-             alpha[3],
              alpha[1] + alpha[2],
+             alpha[1] + alpha[2] + alpha[3],
+             alpha[2],
              alpha[2] + alpha[3],
-             alpha[1] + alpha[2] + alpha[3]]
+             alpha[3]]
         """
         for al in self._classical_positive_roots:
             if min(self._from_weight_helper(nu-al)) >= 0:
@@ -665,7 +665,7 @@ class IntegrableRepresentation(UniqueRepresentation, CategoryObject):
 
         elif self._cartan_type.type() == 'BC':
             #case A^2_{2l}
-            # We have to keep track of the roots we have visted for this case
+            # We have to keep track of the roots we have visited for this case
             ret = set(self._classical_positive_roots)
             for al in self._classical_roots:
                 if al in self._classical_short_roots:
@@ -687,7 +687,7 @@ class IntegrableRepresentation(UniqueRepresentation, CategoryObject):
                         if rt not in ret:
                             ret.add(rt)
                             yield rt
-    
+
         elif self._cartan_type.dual().type() == 'G':
             # case D^3_4 in the Kac notation
             for al in self._classical_roots:
@@ -724,8 +724,8 @@ class IntegrableRepresentation(UniqueRepresentation, CategoryObject):
             sage: V = IntegrableRepresentation(Lambda[0]+Lambda[1]+Lambda[3])
             sage: mw = V.dominant_maximal_weights()[0]
             sage: F = V._freudenthal_roots_real(V.highest_weight() - mw)
-            sage: [V._freudenthal_accum(mw, al) for al in F]
-            [4, 4, 3, 4, 3, 3]
+            sage: sorted([V._freudenthal_accum(mw, al) for al in F])
+            [3, 3, 3, 4, 4, 4]
         """
         ret = 0
         n = list(self._from_weight_helper(self._Lam - nu))
@@ -747,11 +747,11 @@ class IntegrableRepresentation(UniqueRepresentation, CategoryObject):
         Compute the weight multiplicity using the Freudenthal
         multiplicity formula in ``self``.
 
-        The multiplicities of the imaginary roots for the twisted 
+        The multiplicities of the imaginary roots for the twisted
         affine case are different than those for the untwisted case.
         See [Carter]_ Corollary 18.10 for general type and Corollary
         18.15 for `A^2_{2l}`
-        
+
         EXAMPLES::
 
             sage: Lambda = RootSystem(['B',3,1]).weight_lattice(extended=true).fundamental_weights()
@@ -799,7 +799,7 @@ class IntegrableRepresentation(UniqueRepresentation, CategoryObject):
                 # k-th element (starting from 1) is k*delta
                 num += (4 - 2*val) * self._freudenthal_accum(mu, rt)
                 val = 1 - val
-        
+
         elif self._cartan_type.dual().type() == 'G': # D_4^{(3)} (or dual of G_2^{(1)})
             for k,rt in enumerate(self._freudenthal_roots_imaginary(self._Lam - mu)):
                 # k-th element (starting from 1) is k*delta
@@ -820,8 +820,8 @@ class IntegrableRepresentation(UniqueRepresentation, CategoryObject):
         `\mu = \Lambda - \sum_i n_i \alpha_i`.
 
         INPUT:
-        
-        - ``n`` -- a tuple representing a weight `\mu`.
+
+        - ``n`` -- tuple representing a weight `\mu`
 
         EXAMPLES::
 
@@ -850,6 +850,51 @@ class IntegrableRepresentation(UniqueRepresentation, CategoryObject):
         self._mdict[n] = ret
         return ret
 
+    def mult(self, mu):
+        """
+        Return the weight multiplicity of ``mu``.
+
+        INPUT:
+
+        - ``mu`` -- an element of the weight lattice
+
+        EXAMPLES::
+
+            sage: # needs sage.libs.gap
+            sage: L = RootSystem("B3~").weight_lattice(extended=True)
+            sage: Lambda = L.fundamental_weights()
+            sage: delta = L.null_root()
+            sage: W = L.weyl_group(prefix='s')
+            sage: [s0,s1,s2,s3] = W.simple_reflections()
+            sage: V = IntegrableRepresentation(Lambda[0])
+            sage: V.mult(Lambda[2] - 2*delta)
+            3
+            sage: V.mult(Lambda[2] - Lambda[1])
+            0
+            sage: weights = [w.action(Lambda[1] - 4*delta) for w in [s1,s2,s0*s1*s2*s3]]
+            sage: weights
+            [-Lambda[1] + Lambda[2] - 4*delta,
+             Lambda[1] - 4*delta,
+             -Lambda[1] + Lambda[2] - 4*delta]
+            sage: [V.mult(mu) for mu in weights]
+            [35, 35, 35]
+
+        TESTS::
+
+            sage: L = RootSystem("B3~").weight_lattice(extended=True)
+            sage: La = L.fundamental_weights()
+            sage: V = IntegrableRepresentation(La[0])
+            sage: Q = RootSystem("B3~").root_space()
+            sage: al = Q.simple_roots()
+            sage: V.mult(1/2*al[1])
+            0
+        """
+        try:
+            n = self.from_weight(mu)
+        except TypeError:
+            return ZZ.zero()
+        return self.m(n)
+
     @cached_method
     def dominant_maximal_weights(self):
         r"""
@@ -876,6 +921,7 @@ class IntegrableRepresentation(UniqueRepresentation, CategoryObject):
         """
         k = self.level()
         Lambda = self._P.fundamental_weights()
+
         def next_level(wt):
             return [wt + Lambda[i] for i in self._index_set_classical
                     if (wt + Lambda[i]).level() <= k]
@@ -892,7 +938,7 @@ class IntegrableRepresentation(UniqueRepresentation, CategoryObject):
         return tuple(ret)
 
     def string(self, max_weight, depth=12):
-        """
+        r"""
         Return the list of multiplicities `m(\Lambda - k \delta)` in
         ``self``, where `\Lambda` is ``max_weight`` and `k` runs from `0`
         to ``depth``.
@@ -960,7 +1006,7 @@ class IntegrableRepresentation(UniqueRepresentation, CategoryObject):
         """
         S = self.strings(depth=depth)
         for mw in self.dominant_maximal_weights():
-            print( "{}: {}".format(mw, ' '.join(str(x) for x in S[mw])) )
+            print("{}: {}".format(mw, ' '.join(str(x) for x in S[mw])) )
 
     def modular_characteristic(self, mu=None):
         r"""
@@ -985,8 +1031,8 @@ class IntegrableRepresentation(UniqueRepresentation, CategoryObject):
 
         OPTIONAL:
 
-        - ``mu`` -- a weight; or alternatively:
-        - ``n`` -- a tuple representing a weight `\mu`.
+        - ``mu`` -- a weight, or alternatively,
+        - ``n`` -- tuple representing a weight `\mu`
 
         If no optional parameter is specified, this returns `m_\Lambda`.
         If ``mu`` is specified, it returns `m_{\Lambda,\mu}`. You may
@@ -1000,7 +1046,7 @@ class IntegrableRepresentation(UniqueRepresentation, CategoryObject):
             sage: [V.modular_characteristic(x) for x in V.dominant_maximal_weights()]
             [11/56, -1/280, 111/280]
         """
-        if type(mu) is tuple:
+        if isinstance(mu, tuple):
             n = mu
         else:
             n = self.from_weight(mu)
@@ -1036,7 +1082,7 @@ class IntegrableRepresentation(UniqueRepresentation, CategoryObject):
 
         - ``i`` -- (default: 0) an element of the index set
         - ``weyl_character_ring`` -- a WeylCharacterRing
-        - ``sequence`` -- a dictionary
+        - ``sequence`` -- dictionary
         - ``depth`` -- (default: 5) an upper bound for `k` determining
           how many terms to give
 
@@ -1048,7 +1094,7 @@ class IntegrableRepresentation(UniqueRepresentation, CategoryObject):
 
             sage: Lambda = RootSystem(['A',2,1]).weight_lattice(extended=true).fundamental_weights()
             sage: V = IntegrableRepresentation(2*Lambda[0])
-            sage: b = V.branch(); b
+            sage: b = V.branch(); b                                                     # needs sage.libs.gap
             [A2(0,0),
              A2(1,1),
              A2(0,0) + 2*A2(1,1) + A2(2,2),
@@ -1059,7 +1105,7 @@ class IntegrableRepresentation(UniqueRepresentation, CategoryObject):
         If the parameter ``weyl_character_ring`` is omitted, the ring may be recovered
         as the parent of one of the branched coefficients::
 
-            sage: A2 = b[0].parent(); A2
+            sage: A2 = b[0].parent(); A2                                                # needs sage.libs.gap
             The Weyl Character Ring of Type A2 with Integer Ring coefficients
 
         If `i` is not zero then you should specify the :class:`WeylCharacterRing` that you
@@ -1072,7 +1118,7 @@ class IntegrableRepresentation(UniqueRepresentation, CategoryObject):
                 |
                 |
             O---O=>=O
-            1   2   3   
+            1   2   3
             B3~
 
         In this example, we observe that removing the `i=2` node from the
@@ -1080,8 +1126,8 @@ class IntegrableRepresentation(UniqueRepresentation, CategoryObject):
         Thus we have a branching to
         `\mathfrak{sl}(2) \times \mathfrak{sl}(2) \times \mathfrak{sl}(2)`::
 
-            sage: A1xA1xA1 = WeylCharacterRing("A1xA1xA1",style="coroots")
-            sage: V.branch(i=2,weyl_character_ring=A1xA1xA1)
+            sage: A1xA1xA1 = WeylCharacterRing("A1xA1xA1",style='coroots')              # needs sage.libs.gap
+            sage: V.branch(i=2,weyl_character_ring=A1xA1xA1)                            # needs sage.libs.gap
             [A1xA1xA1(1,0,0),
              A1xA1xA1(0,1,2),
              A1xA1xA1(1,0,0) + A1xA1xA1(1,2,0) + A1xA1xA1(1,0,2),
@@ -1099,14 +1145,14 @@ class IntegrableRepresentation(UniqueRepresentation, CategoryObject):
             sage: V = IntegrableRepresentation(Lambda[0])
             sage: V.cartan_type().dynkin_diagram()
             O---O---O=>=O---O
-            0   1   2   3   4   
+            0   1   2   3   4
             F4~
-            sage: A1xC3=WeylCharacterRing("A1xC3",style="coroots")
+            sage: A1xC3=WeylCharacterRing("A1xC3",style='coroots')
             sage: A1xC3.dynkin_diagram()
             O
-            1   
+            1
             O---O=<=O
-            2   3   4   
+            2   3   4
             A1xC3
 
         Observe that removing the `i=1` node from the ``F4~`` Dynkin diagram
@@ -1114,7 +1160,7 @@ class IntegrableRepresentation(UniqueRepresentation, CategoryObject):
         The nodes `0, 2, 3, 4` of ``F4~`` correspond to ``1, 4, 3, 2``
         of ``A1xC3`` and so we encode this in a dictionary::
 
-            sage: V.branch(i=1,weyl_character_ring=A1xC3,sequence={0:1,2:4,3:3,4:2}) # long time
+            sage: V.branch(i=1, weyl_character_ring=A1xC3, sequence={0:1,2:4,3:3,4:2})  # long time
             [A1xC3(1,0,0,0),
              A1xC3(0,0,0,1),
              A1xC3(1,0,0,0) + A1xC3(1,2,0,0),
@@ -1130,15 +1176,14 @@ class IntegrableRepresentation(UniqueRepresentation, CategoryObject):
             [1, 3, 4, 7, 13, 19, 29, 43, 62, 90, 126, 174, 239, 325, 435, 580]
             sage: oeis(r)                                                        # optional -- internet
             0: A029552: Expansion of phi(x) / f(-x) in powers of x where phi(), f() are Ramanujan theta functions.
-
         """
         if i is None:
             i = self._cartan_type.special_node()
         if i == self._cartan_type.special_node() or self._cartan_type.type() == 'A':
             if weyl_character_ring is None:
-                weyl_character_ring = WeylCharacterRing(self._cartan_type.classical(), style="coroots")
+                weyl_character_ring = WeylCharacterRing(self._cartan_type.classical(), style='coroots')
             if weyl_character_ring.cartan_type() != self._cartan_type.classical():
-                raise ValueError("Cartan type of WeylCharacterRing must be %s"%self.cartan_type().classical())
+                raise ValueError("Cartan type of WeylCharacterRing must be %s" % self.cartan_type().classical())
         elif weyl_character_ring is None:
             raise ValueError("the argument weyl_character_ring cannot be omitted if i != 0")
         if sequence is None:
@@ -1148,6 +1193,7 @@ class IntegrableRepresentation(UniqueRepresentation, CategoryObject):
                     sequence[j] = j+1
                 elif j > i:
                     sequence[j] = j
+
         def next_level(x):
             ret = []
             for j in self._index_set:
@@ -1176,4 +1222,3 @@ class IntegrableRepresentation(UniqueRepresentation, CategoryObject):
                     ldict[contr] = x[1]
             ret.append(weyl_character_ring.char_from_weights(ldict))
         return ret
-

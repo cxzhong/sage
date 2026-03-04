@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Construct elliptic curves as Jacobians
 
@@ -13,17 +12,17 @@ take as the origin.
 EXAMPLES::
 
     sage: R.<u,v,w> = QQ[]
-    sage: Jacobian(u^3+v^3+w^3)
+    sage: Jacobian(u^3 + v^3 + w^3)
     Elliptic Curve defined by y^2 = x^3 - 27/4 over Rational Field
-    sage: Jacobian(u^4+v^4+w^2)
+    sage: Jacobian(u^4 + v^4 + w^2)
     Elliptic Curve defined by y^2 = x^3 - 4*x over Rational Field
 
-    sage: C = Curve(u^3+v^3+w^3)
+    sage: C = Curve(u^3 + v^3 + w^3)
     sage: Jacobian(C)
     Elliptic Curve defined by y^2 = x^3 - 27/4 over Rational Field
 
     sage: P2.<u,v,w> = ProjectiveSpace(2, QQ)
-    sage: C = P2.subscheme(u^3+v^3+w^3)
+    sage: C = P2.subscheme(u^3 + v^3 + w^3)
     sage: Jacobian(C)
     Elliptic Curve defined by y^2 = x^3 - 27/4 over Rational Field
 
@@ -36,12 +35,11 @@ relevant functionality::
     sage: C = HyperellipticCurve(f)
     sage: Jacobian(C)
     Jacobian of Hyperelliptic Curve over Rational Field defined
-    by y^2 = x^5 + 1184*x^3 + 1846*x^2 + 956*x + 560
+     by y^2 = x^5 + 1184*x^3 + 1846*x^2 + 956*x + 560
 
 REFERENCES:
 
-..  [WpJacobianVariety]
-    http://en.wikipedia.org/wiki/Jacobian_variety
+- :wikipedia:`Jacobian_variety`
 """
 
 ##############################################################################
@@ -54,10 +52,7 @@ REFERENCES:
 #                  http://www.gnu.org/licenses/
 ##############################################################################
 
-from sage.rings.all import QQ
 from sage.schemes.elliptic_curves.constructor import EllipticCurve
-
-
 
 
 def Jacobian(X, **kwds):
@@ -67,9 +62,9 @@ def Jacobian(X, **kwds):
     INPUT:
 
     - ``X`` -- polynomial, algebraic variety, or anything else that
-      has a Jacobian elliptic curve.
+      has a Jacobian elliptic curve
 
-    - ``kwds`` -- optional keyword arguments.
+    - ``kwds`` -- optional keyword arguments
 
     The input ``X`` can be one of the following:
 
@@ -80,15 +75,15 @@ def Jacobian(X, **kwds):
     EXAMPLES::
 
         sage: R.<u,v,w> = QQ[]
-        sage: Jacobian(u^3+v^3+w^3)
+        sage: Jacobian(u^3 + v^3 + w^3)
         Elliptic Curve defined by y^2 = x^3 - 27/4 over Rational Field
 
-        sage: C = Curve(u^3+v^3+w^3)
+        sage: C = Curve(u^3 + v^3 + w^3)
         sage: Jacobian(C)
         Elliptic Curve defined by y^2 = x^3 - 27/4 over Rational Field
 
         sage: P2.<u,v,w> = ProjectiveSpace(2, QQ)
-        sage: C = P2.subscheme(u^3+v^3+w^3)
+        sage: C = P2.subscheme(u^3 + v^3 + w^3)
         sage: Jacobian(C)
         Elliptic Curve defined by y^2 = x^3 - 27/4 over Rational Field
 
@@ -99,44 +94,52 @@ def Jacobian(X, **kwds):
           To:   Elliptic Curve defined by y^2 = x^3 - 27/4 over Rational Field
           Defn: Defined on coordinates by sending (u : v : w) to
                 (-u^4*v^4*w - u^4*v*w^4 - u*v^4*w^4 :
-                1/2*u^6*v^3 - 1/2*u^3*v^6 - 1/2*u^6*w^3 + 1/2*v^6*w^3 + 1/2*u^3*w^6 - 1/2*v^3*w^6 :
-                u^3*v^3*w^3)
+                 1/2*u^6*v^3 - 1/2*u^3*v^6 - 1/2*u^6*w^3 + 1/2*v^6*w^3 + 1/2*u^3*w^6 - 1/2*v^3*w^6 :
+                 u^3*v^3*w^3)
+
+    TESTS:
+
+    Check that the following doesn't segmentation fault
+    (the error message could be improved)::
+
+        sage: Jacobian(GF(11)['x,y'](3))
+        Traceback (most recent call last):
+        ...
+        AssertionError
     """
     try:
         return X.jacobian(**kwds)
-    except AttributeError:
+    except (AttributeError, TypeError):
         pass
 
     morphism = kwds.pop('morphism', False)
-    from sage.rings.polynomial.multi_polynomial_element import is_MPolynomial
-    if is_MPolynomial(X):
+    from sage.rings.polynomial.multi_polynomial import MPolynomial
+    if isinstance(X, MPolynomial):
         if morphism:
             from sage.schemes.curves.constructor import Curve
             return Jacobian_of_equation(X, curve=Curve(X), **kwds)
         else:
             return Jacobian_of_equation(X, **kwds)
 
-    from sage.schemes.generic.scheme import is_Scheme
-    if is_Scheme(X) and X.dimension() == 1:
+    from sage.schemes.generic.scheme import Scheme
+    if isinstance(X, Scheme) and X.dimension() == 1:
         return Jacobian_of_curve(X, morphism=morphism, **kwds)
 
 
 def Jacobian_of_curve(curve, morphism=False):
     """
-    Return the Jacobian of a genus-one curve
+    Return the Jacobian of a genus-one curve.
 
     INPUT:
 
-    - ``curve`` -- a one-dimensional algebraic variety of genus one.
+    - ``curve`` -- a one-dimensional algebraic variety of genus one
 
-    OUTPUT:
-
-    Its Jacobian elliptic curve.
+    OUTPUT: its Jacobian elliptic curve
 
     EXAMPLES::
 
         sage: R.<u,v,w> = QQ[]
-        sage: C = Curve(u^3+v^3+w^3)
+        sage: C = Curve(u^3 + v^3 + w^3)
         sage: Jacobian(C)
         Elliptic Curve defined by y^2 = x^3 - 27/4 over Rational Field
     """
@@ -162,7 +165,7 @@ def Jacobian_of_equation(polynomial, variables=None, curve=None):
     INPUT:
 
     - ``F`` -- a polynomial defining a plane curve of genus one. May
-      be homogeneous or inhomogeneous.
+      be homogeneous or inhomogeneous
 
     - ``variables`` -- list of two or three variables or ``None``
       (default). The inhomogeneous or homogeneous coordinates. By
@@ -182,22 +185,23 @@ def Jacobian_of_equation(polynomial, variables=None, curve=None):
     EXAMPLES::
 
         sage: R.<a,b,c> = QQ[]
-        sage: f = a^3+b^3+60*c^3
+        sage: f = a^3 + b^3 + 60*c^3
         sage: Jacobian(f)
         Elliptic Curve defined by y^2 = x^3 - 24300 over Rational Field
         sage: Jacobian(f.subs(c=1))
         Elliptic Curve defined by y^2 = x^3 - 24300 over Rational Field
 
-    If we specify the domain curve the birational covering is returned::
+    If we specify the domain curve, the birational covering is returned::
 
         sage: h = Jacobian(f, curve=Curve(f));  h
         Scheme morphism:
           From: Projective Plane Curve over Rational Field defined by a^3 + b^3 + 60*c^3
           To:   Elliptic Curve defined by y^2 = x^3 - 24300 over Rational Field
           Defn: Defined on coordinates by sending (a : b : c) to
-                (-216000*a^4*b^4*c - 12960000*a^4*b*c^4 - 12960000*a*b^4*c^4 :
-                108000*a^6*b^3 - 108000*a^3*b^6 - 6480000*a^6*c^3 + 6480000*b^6*c^3 + 388800000*a^3*c^6 - 388800000*b^3*c^6 :
-                216000*a^3*b^3*c^3)
+                (-216000*a^4*b^4*c - 12960000*a^4*b*c^4 - 12960000*a*b^4*c^4
+                 : 108000*a^6*b^3 - 108000*a^3*b^6 - 6480000*a^6*c^3 + 6480000*b^6*c^3
+                   + 388800000*a^3*c^6 - 388800000*b^3*c^6
+                 : 216000*a^3*b^3*c^3)
 
         sage: h([1,-1,0])
         (0 : 1 : 0)
@@ -207,19 +211,18 @@ def Jacobian_of_equation(polynomial, variables=None, curve=None):
 
         sage: E = h.codomain()
         sage: E.defining_polynomial()(h.defining_polynomials()).factor()
-        (2519424000000000) * c^3 * b^3 * a^3 * (a^3 + b^3 + 60*c^3) *
-        (a^9*b^6 + a^6*b^9 - 120*a^9*b^3*c^3 + 900*a^6*b^6*c^3 - 120*a^3*b^9*c^3 +
-        3600*a^9*c^6 + 54000*a^6*b^3*c^6 + 54000*a^3*b^6*c^6 + 3600*b^9*c^6 +
-        216000*a^6*c^9 - 432000*a^3*b^3*c^9 + 216000*b^6*c^9)
-
+        (2519424000000000) * c^3 * b^3 * a^3 * (a^3 + b^3 + 60*c^3)
+        * (a^9*b^6 + a^6*b^9 - 120*a^9*b^3*c^3 + 900*a^6*b^6*c^3 - 120*a^3*b^9*c^3
+           + 3600*a^9*c^6 + 54000*a^6*b^3*c^6 + 54000*a^3*b^6*c^6 + 3600*b^9*c^6
+           + 216000*a^6*c^9 - 432000*a^3*b^3*c^9 + 216000*b^6*c^9)
 
     By specifying the variables, we can also construct an elliptic
     curve over a polynomial ring::
 
         sage: R.<u,v,t> = QQ[]
-        sage: Jacobian(u^3+v^3+t, variables=[u,v])
+        sage: Jacobian(u^3 + v^3 + t, variables=[u,v])
         Elliptic Curve defined by y^2 = x^3 + (-27/4*t^2) over
-        Multivariate Polynomial Ring in u, v, t over Rational Field
+         Multivariate Polynomial Ring in u, v, t over Rational Field
 
     TESTS::
 
@@ -241,4 +244,3 @@ def Jacobian_of_equation(polynomial, variables=None, curve=None):
     X, Y, Z = WeierstrassForm(polynomial, variables=variables, transformation=True)
     from sage.schemes.elliptic_curves.weierstrass_transform import WeierstrassTransformation
     return WeierstrassTransformation(curve, E, [X*Z, Y, Z**3], 1)
-

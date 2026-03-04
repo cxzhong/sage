@@ -1,11 +1,14 @@
+.. _sage.combinat:
+
 Combinatorics
 =============
 
-.. automodule:: sage.combinat
+.. automodule:: sage.combinat.all
+   :noindex:
 
 
-Comprehensive Module List
--------------------------
+Modules
+-------
 
 .. toctree::
    :maxdepth: 1
@@ -13,4 +16,3 @@ Comprehensive Module List
    module_list
 
 .. include:: ../footer.txt
-

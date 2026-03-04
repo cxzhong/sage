@@ -25,31 +25,31 @@ ctypedef struct c_a_data:
          double x
 
 
-cdef class GLPKGraphBackend(object):
+cdef class GLPKGraphBackend():
     cdef glp_graph * graph
-    cpdef add_vertex(self, char* name = ?)
+    cpdef add_vertex(self, name=?)
     cpdef list add_vertices(self, vertices)
     cpdef __add_vertices_sage(self, g)
-    cpdef dict get_vertex(self, char* vertex)
+    cpdef dict get_vertex(self, vertex)
     cpdef dict get_vertices(self, verts)
-    cpdef set_vertex_demand(self, char* vertex, param)
+    cpdef set_vertex_demand(self, vertex, param)
     cpdef set_vertices_demand(self, list pairs)
     cpdef list vertices(self)
-    cpdef add_edge(self, char* u, char* v, dict params = ?)
+    cpdef add_edge(self, u, v, dict params=?)
     cpdef __add_edges_sage(self, g)
     cpdef list add_edges(self, edges)
-    cpdef delete_edge(self, char* u, char* v, dict params = ?)
-    cpdef tuple get_edge(self, char* u, char* v)
+    cpdef delete_edge(self, u, v, dict params=?)
+    cpdef tuple get_edge(self, u, v)
     cpdef list edges(self)
-    cpdef delete_vertex(self, char* vert)
+    cpdef delete_vertex(self, vert)
     cpdef delete_vertices(self, list verts)
-    cpdef int _find_vertex(self, char *)
-    cpdef int write_graph(self, char *fname)
-    cpdef int write_ccdata(self, char *fname)
-    cpdef int write_mincost(self, char *fname)
+    cpdef int _find_vertex(self, vert) noexcept
+    cpdef int write_graph(self, fname) noexcept
+    cpdef int write_ccdata(self, fname) noexcept
+    cpdef int write_mincost(self, fname) noexcept
     cpdef double mincost_okalg(self) except -1
     cdef int s
     cdef int t
-    cpdef int write_maxflow(self, char *fname) except -1
-    cpdef double maxflow_ffalg(self, u = ?, v = ?) except -1
-    cpdef double cpp(self)
+    cpdef int write_maxflow(self, fname) except -1
+    cpdef double maxflow_ffalg(self, u=?, v=?) except -1
+    cpdef double cpp(self) noexcept

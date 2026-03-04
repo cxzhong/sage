@@ -1,10 +1,11 @@
+# sage.doctest: needs sage.geometry.polyhedron sage.graphs
 r"""
-Weierstrass form of a toric elliptic curve.
+Weierstrass form of a toric elliptic curve
 
 There are 16 reflexive polygons in the plane, see
 :func:`~sage.geometry.lattice_polytope.ReflexivePolytopes`. Each of
 them defines a toric Fano variety. And each of them has a unique
-crepant resolution to a smooth toric surface [CLSsurfaces]_ by
+crepant resolution to a smooth toric surface (Section 10.4 in [CLS2011]_) by
 subdividing the face fan. An anticanonical hypersurface defines an
 elliptic curve in this ambient space, which we call a toric elliptic
 curve. The purpose of this module is to write an anticanonical
@@ -20,14 +21,14 @@ Technically, this module computes the Weierstrass form of the Jacobian
 of the elliptic curve. This is why you will never have to specify the
 origin (or zero section) in the following.
 
-It turns out [VolkerBraun]_ that the anticanonical hypersurface
+It turns out [Bra2011]_ that the anticanonical hypersurface
 equation of any one of the above 16 toric surfaces is a specialization
 (that is, set one or more of the coefficients to zero) of the
 following three cases. In inhomogeneous coordinates, they are
 
-  * Cubic in `\mathbb{P}^2`:
+* Cubic in `\mathbb{P}^2`:
 
-    .. MATH::
+  .. MATH::
 
         \begin{split}
           p(x,y) =&\;
@@ -38,9 +39,9 @@ following three cases. In inhomogeneous coordinates, they are
           a_{02} y^{2} + a_{10} x + a_{01} y + a_{00}
         \end{split}
 
-  * Biquadric in `\mathbb{P}^1\times \mathbb{P}^1`:
+* Biquadric in `\mathbb{P}^1\times \mathbb{P}^1`:
 
-    .. MATH::
+  .. MATH::
 
         \begin{split}
           p(x,y) =&\;
@@ -51,10 +52,9 @@ following three cases. In inhomogeneous coordinates, they are
           y^2 a_{02} + y a_{01} + a_{00}
         \end{split}
 
-  * Anticanonical hypersurface in weighted projective space
-    `\mathbb{P}^2[1,1,2]`:
+* Anticanonical hypersurface in weighted projective space `\mathbb{P}^2[1,1,2]`:
 
-    .. MATH::
+  .. MATH::
 
         \begin{split}
           p(x,y) =&\;
@@ -123,28 +123,10 @@ TESTS::
 
 REFERENCES:
 
-..  [VolkerBraun]
-    Volker Braun:
-    Toric Elliptic Fibrations and F-Theory Compactifications
-    :arxiv:`1110.4883`
-
-..  [Duistermaat]
-    J. J. Duistermaat,
-    Discrete integrable systems. QRT maps and elliptic surfaces.
-    Springer Monographs in Mathematics. Berlin: Springer. xxii, 627 p., 2010
-
-..  [ArtinVillegasTate]
-    Michael Artin, Fernando Rodriguez-Villegas, John Tate,
-    On the Jacobians of plane cubics,
-    Advances in Mathematics 198 (2005) 1, pp. 366--382
-    :doi:`10.1016/j.aim.2005.06.004`
-    http://www.math.utexas.edu/users/villegas/publications/jacobian-cubics.pdf
-
-..  [CLSsurfaces]
-    Section 10.4 in
-    David A. Cox, John B. Little,  Hal Schenck,
-    "Toric Varieties", Graduate Studies in Mathematics,
-    Amer. Math. Soc., Providence, RI, 2011
+- [Bra2011]_
+- [Du2010]_
+- [ARVT2005]_
+- [CLS2011]_
 """
 
 ########################################################################
@@ -152,17 +134,14 @@ REFERENCES:
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
 #
-#                  http://www.gnu.org/licenses/
+#                  https://www.gnu.org/licenses/
 ########################################################################
-from __future__ import print_function
 
-from sage.misc.all import prod
+from sage.misc.misc_c import prod
 from sage.rings.infinity import Infinity
-from sage.modules.all import vector
+from sage.modules.free_module_element import vector
 from sage.geometry.polyhedron.ppl_lattice_polytope import LatticePolytope_PPL
-from sage.rings.all import invariant_theory
-
-import six
+from sage.rings.invariants.invariant_theory import invariant_theory
 
 
 ######################################################################
@@ -181,26 +160,24 @@ def Discriminant(polynomial, variables=None):
     See :func:`WeierstrassForm` for how to specify the input
     polynomial(s) and variables.
 
-    OUTPUT:
-
-    The discriminant of the elliptic curve.
+    OUTPUT: the discriminant of the elliptic curve
 
     EXAMPLES::
 
         sage: from sage.schemes.toric.weierstrass import Discriminant
         sage: R.<x, y, z> = QQ[]
-        sage: Discriminant(x^3+y^3+z^3)
+        sage: Discriminant(x^3 + y^3 + z^3)
         19683/16
         sage: Discriminant(x*y*z)
         0
         sage: R.<w,x,y,z> = QQ[]
-        sage: quadratic1 = w^2+x^2+y^2
+        sage: quadratic1 = w^2 + x^2 + y^2
         sage: quadratic2 = z^2 + w*x
         sage: Discriminant([quadratic1, quadratic2])
         -1/16
     """
-    (f, g) = WeierstrassForm(polynomial, variables)
-    return 4*f**3+27*g**2
+    f, g = WeierstrassForm(polynomial, variables)
+    return 4*f**3 + 27*g**2
 
 
 ######################################################################
@@ -217,18 +194,18 @@ def j_invariant(polynomial, variables=None):
 
     The j-invariant of the (irreducible) cubic. Notable special values:
 
-      * The Fermat cubic: `j(x^3+y^3+z^3) = 0`
+    * The Fermat cubic: `j(x^3+y^3+z^3) = 0`
 
-      * A nodal cubic: `j(-y^2 + x^2 + x^3) = \infty`
+    * A nodal cubic: `j(-y^2 + x^2 + x^3) = \infty`
 
-      * A cuspidal cubic `y^2=x^3` has undefined `j`-invariant. In this
-        case, a ``ValueError`` is returned.
+    * A cuspidal cubic `y^2=x^3` has undefined `j`-invariant. In this
+      case, a :exc:`ValueError` is raised.
 
     EXAMPLES::
 
         sage: from sage.schemes.toric.weierstrass import j_invariant
         sage: R.<x,y,z> = QQ[]
-        sage: j_invariant(x^3+y^3+z^3)
+        sage: j_invariant(x^3 + y^3 + z^3)
         0
         sage: j_invariant(-y^2 + x^2 + x^3)
         +Infinity
@@ -243,10 +220,10 @@ def j_invariant(polynomial, variables=None):
         ...
         ValueError: curve is singular and has no well-defined j-invariant
     """
-    (f, g) = WeierstrassForm(polynomial, variables)
-    disc = 4*f**3+27*g**2
+    f, g = WeierstrassForm(polynomial, variables)
+    disc = 4*f**3 + 27*g**2
     if disc != 0:
-        return 1728 * 4*f**3/disc
+        return 1728 * 4 * f**3 / disc
     if f != 0:
         return Infinity
     raise ValueError('curve is singular and has no well-defined j-invariant')
@@ -268,8 +245,7 @@ def Newton_polytope_vars_coeffs(polynomial, variables):
 
     OUTPUT:
 
-    A tuple containing of the affine span of the Netwton polytope and
-    a dictionary with keys the integral values of the Newton polytope
+    A dictionary with keys the integral values of the Newton polytope
     and values the corresponding coefficient of ``polynomial``.
 
     EXAMPLES::
@@ -291,7 +267,7 @@ def Newton_polytope_vars_coeffs(polynomial, variables):
          (3, 0, 0): a30}
 
         sage: from sage.geometry.polyhedron.ppl_lattice_polytope import LatticePolytope_PPL
-        sage: polytope = LatticePolytope_PPL(p_data.keys());  polytope
+        sage: polytope = LatticePolytope_PPL(list(p_data));  polytope
         A 2-dimensional lattice polytope in ZZ^3 with 3 vertices
         sage: polytope.vertices()
         ((0, 0, 3), (3, 0, 0), (0, 3, 0))
@@ -305,7 +281,7 @@ def Newton_polytope_vars_coeffs(polynomial, variables):
     """
     R = polynomial.parent()
     var_indices = [R.gens().index(x) for x in variables]
-    result = dict()
+    result = {}
     for c, m in polynomial:
         e = m.exponents()[0]
         v = tuple([e[i] for i in var_indices])
@@ -360,12 +336,12 @@ def Newton_polygon_embedded(polynomial, variables):
          (s, t))
     """
     p_dict = Newton_polytope_vars_coeffs(polynomial, variables)
-    newton_polytope = LatticePolytope_PPL(p_dict.keys())
+    newton_polytope = LatticePolytope_PPL(list(p_dict))
     assert newton_polytope.affine_dimension() <= 2
     embedding = newton_polytope.embed_in_reflexive_polytope('points')
     x, y = variables[0:2]
     embedded_polynomial = polynomial.parent().zero()
-    for e, c in six.iteritems(p_dict):
+    for e, c in p_dict.items():
         e_embed = embedding[e]
         embedded_polynomial += c * x**(e_embed[0]) * y**(e_embed[1])
     return newton_polytope, embedded_polynomial, (x, y)
@@ -375,7 +351,7 @@ def Newton_polygon_embedded(polynomial, variables):
 def WeierstrassForm(polynomial, variables=None, transformation=False):
     r"""
     Return the Weierstrass form of an elliptic curve inside either
-    inside a toric surface or $\mathbb{P}^3$.
+    inside a toric surface or `\mathbb{P}^3`.
 
     INPUT:
 
@@ -388,16 +364,16 @@ def WeierstrassForm(polynomial, variables=None, transformation=False):
       If two polynomials are passed, they must both be quadratics in
       `\mathbb{P}^3`.
 
-    - ``variables`` -- a list of variables of the parent polynomial
+    - ``variables`` -- list of variables of the parent polynomial
       ring or ``None`` (default). In the latter case, all variables
       are taken to be polynomial ring variables. If a subset of
       polynomial ring variables are given, the Weierstrass form is
       determined over the function field generated by the remaining
       variables.
 
-    - ``transformation`` -- boolean (default: ``False``). Whether to
+    - ``transformation`` -- boolean (default: ``False``); whether to
       return the new variables that bring ``polynomial`` into
-      Weierstrass form.
+      Weierstrass form
 
     OUTPUT:
 
@@ -406,7 +382,7 @@ def WeierstrassForm(polynomial, variables=None, transformation=False):
 
     If ``transformation=True``, a triple `(X,Y,Z)` of polynomials
     defining a rational map of the toric hypersurface or complete
-    intersection in `\mathbb{P}^3` to its Weierstrass form in 
+    intersection in `\mathbb{P}^3` to its Weierstrass form in
     `\mathbb{P}^2[2,3,1]` is returned.
     That is, the triple satisfies
 
@@ -529,28 +505,28 @@ def WeierstrassForm(polynomial, variables=None, transformation=False):
 ######################################################################
 def _check_homogeneity(polynomial, variables, weights, total_weight=None):
     """
-    Raise ``ValueError`` if the polynomial is not weighted
+    Raise :exc:`ValueError` if the polynomial is not weighted
     homogeneous.
 
     INPUT:
 
-    - ``polynomial`` -- the input polynomial. See
-      :func:`WeierstrassForm` for details.
+    - ``polynomial`` -- the input polynomial; see
+      :func:`WeierstrassForm` for details
 
-    - ``variables`` -- the variables.  See :func:`WeierstrassForm` for
-      details.
+    - ``variables`` -- the variables; see :func:`WeierstrassForm` for
+      details
 
-    - ``weights`` -- list of integers, one per variable. the weights
-      of the variables.
+    - ``weights`` -- list of integers, one per variable; the weights
+      of the variables
 
-    - ``total_weight`` -- an integer or ``None`` (default). If an
+    - ``total_weight`` -- integer or ``None`` (default); if an
       integer is passed, it is also checked that the weighted total
-      degree of polynomial is this value.
+      degree of polynomial is this value
 
     OUTPUT:
 
     This function returns nothing. If the polynomial is not weighted
-    homogeneous, a ``ValueError`` is raised.
+    homogeneous, a :exc:`ValueError` is raised.
 
     EXAMPLES::
 
@@ -560,10 +536,10 @@ def _check_homogeneity(polynomial, variables, weights, total_weight=None):
         ....:      a11*x*y*z + a02*y^2*z + a10*x*z^2 + a01*y*z^2 + a00*z^3)
         sage: _check_homogeneity(p, [x,y,z], (1,1,1), 3)
 
-        sage: _check_homogeneity(p+x^4, [x,y,z], (1,1,1), 3)
+        sage: _check_homogeneity(p + x^4, [x,y,z], (1,1,1), 3)
         Traceback (most recent call last):
         ...
-        ValueError: The polynomial is not homogeneous with weights (1, 1, 1)
+        ValueError: the polynomial is not homogeneous with weights (1, 1, 1)
     """
     w = vector(weights)
     n = w.degree()
@@ -576,8 +552,8 @@ def _check_homogeneity(polynomial, variables, weights, total_weight=None):
             total_weight = weight_e
         else:
             if weight_e != total_weight:
-                raise ValueError('The polynomial is not homogeneous with '
-                                 'weights '+str(weights))
+                msg = f'the polynomial is not homogeneous with weights {weights}'
+                raise ValueError(msg)
 
 
 ######################################################################
@@ -589,9 +565,9 @@ def _extract_coefficients(polynomial, monomials, variables):
 
     - ``polynomial`` -- the input polynomial
 
-    - ``monomials`` -- a list of monomials in the polynomial ring
+    - ``monomials`` -- list of monomials in the polynomial ring
 
-    - ``variables`` -- a list of variables in the polynomial ring
+    - ``variables`` -- list of variables in the polynomial ring
 
     OUTPUT:
 
@@ -620,14 +596,14 @@ def _extract_coefficients(polynomial, monomials, variables):
             return tuple(0 for i in indices)
         e = monomial.exponents()[0]
         return tuple(e[i] for i in indices)
-    coeffs = dict()
+    coeffs = {}
     for c, m in polynomial:
         i = index(m)
         coeffs[i] = c*m + coeffs.pop(i, R.zero())
     result = tuple(coeffs.pop(index(m), R.zero()) // m for m in monomials)
-    if len(coeffs) != 0:
-        raise ValueError('The polynomial contains more monomials than '
-                         'given: '+str(coeffs))
+    if coeffs:
+        msg = f'the polynomial contains more monomials than given: {coeffs}'
+        raise ValueError(msg)
     return result
 
 
@@ -638,23 +614,23 @@ def _check_polynomial_P2(cubic, variables):
 
     INPUT:
 
-    - ``cubic`` -- the input polynomial. See
-      :func:`WeierstrassForm` for details.
+    - ``cubic`` -- the input polynomial; see
+      :func:`WeierstrassForm` for details
 
-    - ``variables`` -- the variables or ``None``.  See
-      :func:`WeierstrassForm` for details.
+    - ``variables`` -- the variables or ``None``; see
+      :func:`WeierstrassForm` for details
 
     OUTPUT:
 
     This functions returns ``variables``, potentially guessed from the
-    polynomial ring. A ``ValueError`` is raised if the polynomial is
+    polynomial ring. A :exc:`ValueError` is raised if the polynomial is
     not homogeneous.
 
-    EXAMPLES:
+    EXAMPLES::
 
         sage: from sage.schemes.toric.weierstrass import _check_polynomial_P2
         sage: R.<x,y,z> = QQ[]
-        sage: cubic = x^3+y^3+z^3
+        sage: cubic = x^3 + y^3 + z^3
         sage: _check_polynomial_P2(cubic, [x,y,z])
         (x, y, z)
         sage: _check_polynomial_P2(cubic, None)
@@ -662,13 +638,13 @@ def _check_polynomial_P2(cubic, variables):
         sage: _check_polynomial_P2(cubic.subs(z=1), None)
         (x, y, None)
         sage: R.<x,y,z,t> = QQ[]
-        sage: cubic = x^3+y^3+z^3 + t*x*y*z
+        sage: cubic = x^3 + y^3 + z^3 + t*x*y*z
         sage: _check_polynomial_P2(cubic, [x,y,z])
         (x, y, z)
         sage: _check_polynomial_P2(cubic, [x,y,t])
         Traceback (most recent call last):
         ...
-        ValueError: The polynomial is not homogeneous with weights (1, 1, 1)
+        ValueError: the polynomial is not homogeneous with weights (1, 1, 1)
     """
     if variables is None:
         variables = cubic.variables()
@@ -679,7 +655,7 @@ def _check_polynomial_P2(cubic, variables):
         x, y = variables
         z = None
     else:
-        raise ValueError('Need two or three variables, got '+str(variables))
+        raise ValueError(f'need two or three variables, got {variables}')
     return (x, y, z)
 
 
@@ -706,11 +682,11 @@ def WeierstrassForm_P2(polynomial, variables=None):
 
         sage: from sage.schemes.toric.weierstrass import WeierstrassForm_P2
         sage: R.<x,y,z> = QQ[]
-        sage: WeierstrassForm_P2( x^3+y^3+z^3 )
+        sage: WeierstrassForm_P2(x^3 + y^3 + z^3)
         (0, -27/4)
 
         sage: R.<x,y,z, a,b> = QQ[]
-        sage: WeierstrassForm_P2( -y^2*z+x^3+a*x*z^2+b*z^3, [x,y,z] )
+        sage: WeierstrassForm_P2(-y^2*z + x^3 + a*x*z^2 + b*z^3, [x,y,z])
         (a, b)
 
     TESTS::
@@ -781,7 +757,7 @@ def WeierstrassForm_P2(polynomial, variables=None):
     F = polynomial.base_ring()
     S = cubic.S_invariant()
     T = cubic.T_invariant()
-    return (27*S, -27/F(4)*T)
+    return (27 * S, -27 / F(4) * T)
 
 
 ######################################################################
@@ -795,25 +771,25 @@ def _check_polynomial_P1xP1(biquadric, variables):
 
     INPUT:
 
-    - ``biquadric`` -- the input polynomial. See
-      :func:`WeierstrassForm` for details.
+    - ``biquadric`` -- the input polynomial; see
+      :func:`WeierstrassForm` for details
 
-    - ``variables`` -- the variables or ``None``.  See
-      :func:`WeierstrassForm` for details.
+    - ``variables`` -- the variables or ``None``; see
+      :func:`WeierstrassForm` for details
 
     OUTPUT:
 
     This functions returns ``variables``, potentially guessed from the
-    polynomial ring. A ``ValueError`` is raised if the polynomial is
+    polynomial ring. A :exc:`ValueError` is raised if the polynomial is
     not homogeneous.
 
     EXAMPLES::
 
         sage: from sage.schemes.toric.weierstrass import _check_polynomial_P1xP1
         sage: R.<x0,x1,y0,y1> = QQ[]
-        sage: biquadric = ( x0^2*y0^2 + x0*x1*y0^2*2 + x1^2*y0^2*3
-        ....:    + x0^2*y0*y1*4 + x0*x1*y0*y1*5 + x1^2*y0*y1*6
-        ....:    + x0^2*y1^2*7 + x0*x1*y1^2*8 )
+        sage: biquadric = (x0^2*y0^2 + x0*x1*y0^2*2 + x1^2*y0^2*3
+        ....:     + x0^2*y0*y1*4 + x0*x1*y0*y1*5 + x1^2*y0*y1*6
+        ....:     + x0^2*y1^2*7 + x0*x1*y1^2*8)
         sage: _check_polynomial_P1xP1(biquadric, [x0,x1,y0,y1])
         [x0, x1, y0, y1]
         sage: _check_polynomial_P1xP1(biquadric, None)
@@ -823,7 +799,7 @@ def _check_polynomial_P1xP1(biquadric, variables):
         sage: _check_polynomial_P1xP1(biquadric, [x0,y0,x1,y1])
         Traceback (most recent call last):
         ...
-        ValueError: The polynomial is not homogeneous with weights (1, 1, 0, 0)
+        ValueError: the polynomial is not homogeneous with weights (1, 1, 0, 0)
     """
     if variables is None:
         variables = biquadric.variables()
@@ -833,7 +809,7 @@ def _check_polynomial_P1xP1(biquadric, variables):
     elif len(variables) == 2:
         variables = [variables[0], None, variables[1], None]
     else:
-        raise ValueError('Need two or four variables, got '+str(variables))
+        raise ValueError(f'need two or four variables, got {variables}')
     return variables
 
 
@@ -844,21 +820,19 @@ def _partial_discriminant(quadric, y0, y1=None):
 
     INPUT:
 
-    - ``quadric`` -- a biquadric.
+    - ``quadric`` -- a biquadric
 
-    - ``y_0``, ``y_1`` -- the variables of the quadric. The ``y_1``
-      variable can be omitted if the quadric is inhomogeneous.
+    - ``y_0``, ``y_1`` -- the variables of the quadric; the ``y_1``
+      variable can be omitted if the quadric is inhomogeneous
 
-    OUTPUT:
-
-    A plane quartic in ``x0``, ``x1``.
+    OUTPUT: a plane quartic in ``x0``, ``x1``
 
     EXAMPLES::
 
         sage: R.<x0,x1,y0,y1,a00,a10,a20,a01,a11,a21,a02,a12,a22> = QQ[]
-        sage: biquadric = ( x0^2*y0^2*a00 + x0*x1*y0^2*a10 + x1^2*y0^2*a20
-        ....:    + x0^2*y0*y1*a01 + x0*x1*y0*y1*a11 + x1^2*y0*y1*a21
-        ....:    + x0^2*y1^2*a02 + x0*x1*y1^2*a12 + x1^2*y1^2*a22 )
+        sage: biquadric = (x0^2*y0^2*a00 + x0*x1*y0^2*a10 + x1^2*y0^2*a20
+        ....:     + x0^2*y0*y1*a01 + x0*x1*y0*y1*a11 + x1^2*y0*y1*a21
+        ....:     + x0^2*y1^2*a02 + x0*x1*y1^2*a12 + x1^2*y1^2*a22)
         sage: from sage.schemes.toric.weierstrass import _partial_discriminant
         sage: _partial_discriminant(biquadric, y0, y1)
         x0^4*a01^2 + 2*x0^3*x1*a01*a11 + x0^2*x1^2*a11^2
@@ -877,7 +851,7 @@ def _partial_discriminant(quadric, y0, y1=None):
         monomials = (quadric.parent().one(), y0, y0**2)
         variables = [y0]
     else:
-        monomials = (y1**2, y0*y1, y0**2)
+        monomials = (y1**2, y0 * y1, y0**2)
         variables = [y0, y1]
     c = _extract_coefficients(quadric, monomials, variables)
     return c[1]**2 - 4*c[0]*c[2]
@@ -886,7 +860,7 @@ def _partial_discriminant(quadric, y0, y1=None):
 ######################################################################
 def WeierstrassForm_P1xP1(biquadric, variables=None):
     r"""
-    Bring a biquadric into Weierstrass form
+    Bring a biquadric into Weierstrass form.
 
     Input/output is the same as :func:`WeierstrassForm`, except that
     the input polynomial must be a standard biquadric in `\mathbb{P}^2`,
@@ -910,10 +884,10 @@ def WeierstrassForm_P1xP1(biquadric, variables=None):
     EXAMPLES::
 
         sage: from sage.schemes.toric.weierstrass import WeierstrassForm_P1xP1
-        sage: R.<x0,x1,y0,y1>= QQ[]
-        sage: biquadric = ( x0^2*y0^2 + x0*x1*y0^2*2 + x1^2*y0^2*3
-        ....:    + x0^2*y0*y1*4 + x0*x1*y0*y1*5 + x1^2*y0*y1*6
-        ....:    + x0^2*y1^2*7 + x0*x1*y1^2*8 )
+        sage: R.<x0,x1,y0,y1> = QQ[]
+        sage: biquadric = (x0^2*y0^2 + x0*x1*y0^2*2 + x1^2*y0^2*3
+        ....:     + x0^2*y0*y1*4 + x0*x1*y0*y1*5 + x1^2*y0*y1*6
+        ....:     + x0^2*y1^2*7 + x0*x1*y1^2*8)
         sage: WeierstrassForm_P1xP1(biquadric, [x0, x1, y0, y1])
         (1581/16, -3529/32)
 
@@ -927,9 +901,9 @@ def WeierstrassForm_P1xP1(biquadric, variables=None):
     TESTS::
 
         sage: R.<x0,x1,y0,y1,a00,a10,a20,a01,a11,a21,a02,a12,a22> = QQ[]
-        sage: biquadric = ( x0^2*y0^2*a00 + x0*x1*y0^2*a10 + x1^2*y0^2*a20
-        ....:    + x0^2*y0*y1*a01 + x0*x1*y0*y1*a11 + x1^2*y0*y1*a21
-        ....:    + x0^2*y1^2*a02 + x0*x1*y1^2*a12 )
+        sage: biquadric = (x0^2*y0^2*a00 + x0*x1*y0^2*a10 + x1^2*y0^2*a20
+        ....:     + x0^2*y0*y1*a01 + x0*x1*y0*y1*a11 + x1^2*y0*y1*a21
+        ....:     + x0^2*y1^2*a02 + x0*x1*y1^2*a12)
         sage: WeierstrassForm_P1xP1(biquadric, [x0, x1, y0, y1])
         (-1/48*a11^4 + 1/6*a01*a11^2*a21 - 1/3*a01^2*a21^2
          + 1/6*a20*a11^2*a02 + 1/3*a20*a01*a21*a02 - 1/2*a10*a11*a21*a02
@@ -957,7 +931,7 @@ def WeierstrassForm_P1xP1(biquadric, variables=None):
          + 1/9*a10^2*a20*a02*a12^2 - 2/3*a00*a20^2*a02*a12^2
          - 2/27*a10^3*a12^3 + 1/3*a00*a10*a20*a12^3)
 
-        sage: _ == WeierstrassForm_P1xP1(biquadric.subs(x1=1,y1=1), [x0, y0])
+        sage: _ == WeierstrassForm_P1xP1(biquadric.subs(x1=1, y1=1), [x0, y0])
         True
     """
     x, y, s, t = _check_polynomial_P1xP1(biquadric, variables)
@@ -965,7 +939,7 @@ def WeierstrassForm_P1xP1(biquadric, variables=None):
     Q = invariant_theory.binary_quartic(delta, x, y)
     g2 = Q.EisensteinD()
     g3 = -Q.EisensteinE()
-    return (-g2/4, -g3/4)
+    return (-g2 / 4, -g3 / 4)
 
 
 ######################################################################
@@ -979,19 +953,19 @@ def _check_polynomial_P2_112(polynomial, variables):
 
     INPUT:
 
-    - ``polynomial`` -- the input polynomial. See
-      :func:`WeierstrassForm` for details.
+    - ``polynomial`` -- the input polynomial; see
+      :func:`WeierstrassForm` for details
 
-    - ``variables`` -- the variables or ``None``.  See
-      :func:`WeierstrassForm` for details.
+    - ``variables`` -- the variables or ``None``; see
+      :func:`WeierstrassForm` for details
 
     OUTPUT:
 
     This functions returns ``variables``, potentially guessed from the
-    polynomial ring. A ``ValueError`` is raised if the polynomial is
+    polynomial ring. A :exc:`ValueError` is raised if the polynomial is
     not homogeneous.
 
-    EXAMPLES:
+    EXAMPLES::
 
         sage: from sage.schemes.toric.weierstrass import _check_polynomial_P2_112
         sage: R.<x,y,z,t> = QQ[]
@@ -1006,7 +980,7 @@ def _check_polynomial_P2_112(polynomial, variables):
         sage: _check_polynomial_P2_112(polynomial, [x,y,t,z])
         Traceback (most recent call last):
         ...
-        ValueError: The polynomial is not homogeneous with weights (1, 0, 1, -2)
+        ValueError: the polynomial is not homogeneous with weights (1, 0, 1, -2)
     """
     if variables is None:
         variables = polynomial.variables()
@@ -1016,9 +990,9 @@ def _check_polynomial_P2_112(polynomial, variables):
         _check_homogeneity(polynomial, variables, (1, 0, 1, -2), 0)
         _check_homogeneity(polynomial, variables, (0, 1, 0, 1), 2)
     elif len(variables) == 2:
-        variables = tuple([variables[0], variables[1], None, None])
+        variables = (variables[0], variables[1], None, None)
     else:
-        raise ValueError('Need two or four variables, got '+str(variables))
+        raise ValueError(f'need two or four variables, got {variables}')
     return variables
 
 
@@ -1049,7 +1023,8 @@ def WeierstrassForm_P2_112(polynomial, variables=None):
     EXAMPLES::
 
         sage: from sage.schemes.toric.weierstrass import WeierstrassForm_P2_112
-        sage: fan = Fan(rays=[(1,0),(0,1),(-1,-2),(0,-1)],cones=[[0,1],[1,2],[2,3],[3,0]])
+        sage: fan = Fan(rays=[(1,0),(0,1),(-1,-2),(0,-1)],
+        ....:           cones=[[0,1],[1,2],[2,3],[3,0]])
         sage: P112.<x,y,z,t> = ToricVariety(fan)
         sage: (-P112.K()).sections_monomials()
         (z^4*t^2, x*z^3*t^2, x^2*z^2*t^2, x^3*z*t^2,
@@ -1060,8 +1035,8 @@ def WeierstrassForm_P2_112(polynomial, variables=None):
     TESTS::
 
         sage: R.<x,y,z,t,a40,a30,a20,a10,a00,a21,a11,a01,a02> = QQ[]
-        sage: p = ( a40*x^4*t^2 + a30*x^3*z*t^2 + a20*x^2*z^2*t^2 + a10*x*z^3*t^2 +
-        ....:       a00*z^4*t^2 + a21*x^2*y*t + a11*x*y*z*t + a01*y*z^2*t + a02*y^2 )
+        sage: p = (a40*x^4*t^2 + a30*x^3*z*t^2 + a20*x^2*z^2*t^2 + a10*x*z^3*t^2 +
+        ....:      a00*z^4*t^2 + a21*x^2*y*t + a11*x*y*z*t + a01*y*z^2*t + a02*y^2)
         sage: WeierstrassForm_P2_112(p, [x,y,z,t])
         (-1/48*a11^4 + 1/6*a21*a11^2*a01 - 1/3*a21^2*a01^2 + a00*a21^2*a02
          - 1/2*a10*a21*a11*a02 + 1/6*a20*a11^2*a02 + 1/3*a20*a21*a01*a02
@@ -1083,15 +1058,15 @@ def WeierstrassForm_P2_112(polynomial, variables=None):
          + 1/3*a30*a20*a10*a02^3 - a40*a10^2*a02^3 - a30^2*a00*a02^3
          + 8/3*a40*a20*a00*a02^3)
 
-        sage: _ == WeierstrassForm_P2_112(p.subs(z=1,t=1), [x,y])
+        sage: _ == WeierstrassForm_P2_112(p.subs(z=1, t=1), [x,y])
         True
 
         sage: cubic = p.subs(a40=0)
         sage: a,b = WeierstrassForm_P2_112(cubic, [x,y,z,t])
-        sage: a = a.subs(t=1,z=1)
-        sage: b = b.subs(t=1,z=1)
+        sage: a = a.subs(t=1, z=1)
+        sage: b = b.subs(t=1, z=1)
         sage: from sage.schemes.toric.weierstrass import WeierstrassForm_P2
-        sage: (a,b) == WeierstrassForm_P2(cubic.subs(t=1,z=1), [x,y])
+        sage: (a,b) == WeierstrassForm_P2(cubic.subs(t=1, z=1), [x,y])
         True
     """
     x, y, z, t = _check_polynomial_P2_112(polynomial, variables)
@@ -1099,4 +1074,4 @@ def WeierstrassForm_P2_112(polynomial, variables=None):
     Q = invariant_theory.binary_quartic(delta, x, z)
     g2 = Q.EisensteinD()
     g3 = -Q.EisensteinE()
-    return (-g2/4, -g3/4)
+    return (-g2 / 4, -g3 / 4)

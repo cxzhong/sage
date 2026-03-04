@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Symbols for Character Art
 
@@ -8,51 +7,50 @@ EXAMPLES::
 
     sage: from sage.typeset.symbols import *
 
-    sage: symbols = ascii_art(u'')
+    sage: symbols = ascii_art('')
     sage: for i in range(1, 5):
     ....:     symbols += ascii_left_parenthesis.character_art(i)
-    ....:     symbols += ascii_art(u' ')
+    ....:     symbols += ascii_art(' ')
     ....:     symbols += ascii_right_parenthesis.character_art(i)
-    ....:     symbols += ascii_art(u' ')
+    ....:     symbols += ascii_art(' ')
     sage: for i in range(1, 5):
     ....:     symbols += ascii_left_square_bracket.character_art(i)
-    ....:     symbols += ascii_art(u' ')
+    ....:     symbols += ascii_art(' ')
     ....:     symbols += ascii_right_square_bracket.character_art(i)
-    ....:     symbols += ascii_art(u' ')
+    ....:     symbols += ascii_art(' ')
     sage: for i in range(1, 5):
     ....:     symbols += ascii_left_curly_brace.character_art(i)
-    ....:     symbols += ascii_art(u' ')
+    ....:     symbols += ascii_art(' ')
     ....:     symbols += ascii_right_curly_brace.character_art(i)
-    ....:     symbols += ascii_art(u' ')
+    ....:     symbols += ascii_art(' ')
     sage: symbols
                 ( )             [ ]             { }
             ( ) ( )         [ ] [ ]         { } { }
         ( ) ( ) ( )     [ ] [ ] [ ]     { } { } { }
     ( ) ( ) ( ) ( ) [ ] [ ] [ ] [ ] { } { } { } { }
 
-    sage: symbols = unicode_art(u'')
+    sage: symbols = unicode_art('')
     sage: for i in range(1, 5):
     ....:     symbols += unicode_left_parenthesis.character_art(i)
-    ....:     symbols += unicode_art(u' ')
+    ....:     symbols += unicode_art(' ')
     ....:     symbols += unicode_right_parenthesis.character_art(i)
-    ....:     symbols += unicode_art(u' ')
+    ....:     symbols += unicode_art(' ')
     sage: for i in range(1, 5):
     ....:     symbols += unicode_left_square_bracket.character_art(i)
-    ....:     symbols += unicode_art(u' ')
+    ....:     symbols += unicode_art(' ')
     ....:     symbols += unicode_right_square_bracket.character_art(i)
-    ....:     symbols += unicode_art(u' ')
+    ....:     symbols += unicode_art(' ')
     sage: for i in range(1, 5):
     ....:     symbols += unicode_left_curly_brace.character_art(i)
-    ....:     symbols += unicode_art(u' ')
+    ....:     symbols += unicode_art(' ')
     ....:     symbols += unicode_right_curly_brace.character_art(i)
-    ....:     symbols += unicode_art(u' ')
+    ....:     symbols += unicode_art(' ')
     sage: symbols
                 ⎛ ⎞             ⎡ ⎤             ⎧ ⎫
             ⎛ ⎞ ⎜ ⎟         ⎡ ⎤ ⎢ ⎥         ⎧ ⎫ ⎭ ⎩
         ⎛ ⎞ ⎜ ⎟ ⎜ ⎟     ⎡ ⎤ ⎢ ⎥ ⎢ ⎥     ⎰ ⎱ ⎨ ⎬ ⎫ ⎧
     ( ) ⎝ ⎠ ⎝ ⎠ ⎝ ⎠ [ ] ⎣ ⎦ ⎣ ⎦ ⎣ ⎦ { } ⎱ ⎰ ⎩ ⎭ ⎩ ⎭
 """
-
 import unicodedata
 from sage.structure.sage_object import SageObject
 
@@ -64,36 +62,36 @@ class CompoundSymbol(SageObject):
                  middle_top=None, middle_bottom=None,
                  top_2=None, bottom_2=None):
         """
-        A multi-character (ascii/unicode art) symbol
+        A multi-character (ascii/unicode art) symbol.
 
         INPUT:
 
-        Instead of string, each of these can be unicode in Python 2:
+        Instead of a string, each of these can be unicode in Python 2:
 
-        - ``character`` -- string. The single-line version of the symbol.
+        - ``character`` -- string; the single-line version of the symbol
 
-        - ``top`` -- string. The top line of a multi-line symbol.
+        - ``top`` -- string; the top line of a multi-line symbol
 
-        - ``extension`` -- string. The extension line of a multi-line symbol (will
-          be repeated).
+        - ``extension`` -- string; the extension line of a multi-line symbol (will
+          be repeated)
 
-        - ``bottom`` -- string. The bottom line of a multi-line symbol.
+        - ``bottom`` -- string; the bottom line of a multi-line symbol
 
-        - ``middle`` -- optional string. The middle part, for example
+        - ``middle`` -- (optional) string; the middle part, for example
           in curly braces. Will be used only once for the symbol, and
           only if its height is odd.
 
-        - ``middle_top`` -- optional string. The upper half of the
+        - ``middle_top`` -- (optional) string; the upper half of the
           2-line middle part if the height of the symbol is even.
           Will be used only once for the symbol.
 
-        - ``middle_bottom`` -- optional string. The lower half of the
+        - ``middle_bottom`` -- (optional) string; the lower half of the
           2-line middle part if the height of the symbol is even.
           Will be used only once for the symbol.
 
-        - ``top_2`` -- optional string. The upper half of a 2-line symbol.
+        - ``top_2`` -- (optional) string; the upper half of a 2-line symbol
 
-        - ``bottom_2`` -- optional string. The lower half of a 2-line symbol.
+        - ``bottom_2`` -- (optional) string; the lower half of a 2-line symbol
 
         EXAMPLES::
 
@@ -118,7 +116,7 @@ class CompoundSymbol(SageObject):
 
     def _repr_(self):
         """
-        Return string representation
+        Return string representation.
 
         EXAMPLES::
 
@@ -126,25 +124,23 @@ class CompoundSymbol(SageObject):
             sage: unicode_left_parenthesis
             multi_line version of "("
         """
-        return u'multi_line version of "{0}"'.format(self.character).encode('utf-8')
+        return 'multi_line version of "{0}"'.format(self.character)
 
     def __call__(self, num_lines):
         r"""
-        Return the lines for a multi-line symbol
+        Return the lines for a multi-line symbol.
 
         INPUT:
 
-        - ``num_lines`` -- integer. The total number of lines.
+        - ``num_lines`` -- integer; the total number of lines
 
-        OUTPUT:
-
-        List of strings / unicode strings.
+        OUTPUT: list of strings / unicode strings
 
         EXAMPLES::
 
             sage: from sage.typeset.symbols import unicode_left_parenthesis
             sage: unicode_left_parenthesis(4)
-            [u'\u239b', u'\u239c', u'\u239c', u'\u239d']
+            ['\u239b', '\u239c', '\u239c', '\u239d']
         """
         if num_lines <= 0:
             raise ValueError('number of lines must be positive')
@@ -154,22 +150,22 @@ class CompoundSymbol(SageObject):
             return [self.top_2, self.bottom_2]
         elif num_lines == 3:
             return [self.top, self.middle, self.bottom]
-        elif num_lines %2 == 0:
-            ext = [self.extension] * ((num_lines-4) // 2)
+        elif num_lines % 2 == 0:
+            ext = [self.extension] * ((num_lines - 4) // 2)
             return [self.top] + ext + [self.middle_top, self.middle_bottom] + ext + [self.bottom]
-        else: # num_lines %2 == 1
-            ext = [self.extension] * ((num_lines-3) // 2)
+        else:  # num_lines %2 == 1
+            ext = [self.extension] * ((num_lines - 3) // 2)
             return [self.top] + ext + [self.middle] + ext + [self.bottom]
 
     def print_to_stdout(self, num_lines):
         """
-        Print the multi-line symbol
+        Print the multi-line symbol.
 
         This method is for testing purposes.
 
         INPUT:
 
-        - ``num_lines`` -- integer. The total number of lines.
+        - ``num_lines`` -- integer; the total number of lines
 
         EXAMPLES::
 
@@ -189,14 +185,14 @@ class CompoundSymbol(SageObject):
             ⎮
             ⌡
         """
-        print(u'\n'.join(self(num_lines)))
+        print('\n'.join(self(num_lines)))
 
 
 class CompoundAsciiSymbol(CompoundSymbol):
 
     def character_art(self, num_lines):
         """
-        Return the ASCII art of the symbol
+        Return the ASCII art of the symbol.
 
         EXAMPLES::
 
@@ -214,7 +210,7 @@ class CompoundUnicodeSymbol(CompoundSymbol):
 
     def character_art(self, num_lines):
         """
-        Return the unicode art of the symbol
+        Return the unicode art of the symbol.
 
         EXAMPLES::
 
@@ -335,6 +331,3 @@ unicode_right_curly_brace = CompoundUnicodeSymbol(
     unicodedata.lookup('UPPER RIGHT OR LOWER LEFT CURLY BRACKET SECTION'),
     unicodedata.lookup('UPPER LEFT OR LOWER RIGHT CURLY BRACKET SECTION'),
 )
-
-
-

@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+# sage.doctest: needs sage.groups sage.modules
 r"""
 Group algebras and beyond: the Algebra functorial construction
 
@@ -17,7 +17,7 @@ linear combinations of elements of `group` with coefficients in `R`::
     Algebra of Dihedral group of order 6 as a permutation group
             over Rational Field
     sage: a = A.an_element(); a
-    () + 4*(1,2,3) + 2*(1,3)
+    () + (1,2) + 3*(1,2,3) + 2*(1,3,2)
 
 This space is endowed with an algebra structure, obtained by extending
 by bilinearity the multiplication of `G` to a multiplication on `RG`::
@@ -25,13 +25,13 @@ by bilinearity the multiplication of `G` to a multiplication on `RG`::
     sage: A in Algebras
     True
     sage: a * a
-    5*() + 8*(2,3) + 8*(1,2) + 8*(1,2,3) + 16*(1,3,2) + 4*(1,3)
+    14*() + 5*(2,3) + 2*(1,2) + 10*(1,2,3) + 13*(1,3,2) + 5*(1,3)
 
 In particular, the product of two basis elements is induced by the
 product of the corresponding elements of the group, and the unit of
 the group algebra is indexed by the unit of the group::
 
-    sage: (s, t) = A.algebra_generators()
+    sage: s, t = A.algebra_generators()
     sage: s*t
     (1,2)
     sage: A.one_basis()
@@ -46,7 +46,7 @@ can also be constructed with::
     Algebra of Dihedral group of order 6 as a permutation group
             over Rational Field
 
-Since :trac:`18700`, both constructions are strictly equivalent::
+Since :issue:`18700`, both constructions are strictly equivalent::
 
     sage: GroupAlgebra(G, R) is G.algebra(R)
     True
@@ -127,7 +127,6 @@ additional features::
      Category of semigroup algebras over Rational Field,
      ...
      Category of unital magma algebras over Rational Field,
-     ...
      Category of magma algebras over Rational Field,
      ...
      Category of set algebras over Rational Field,
@@ -205,7 +204,7 @@ By Maschke's theorem, for a finite group whose cardinality does not
 divide the characteristic of the base field, the algebra is
 semisimple::
 
-    sage: SymmetricGroup(5).algebra(QQ) in Algebras(QQ).Semisimple()
+    sage: SymmetricGroup(5).algebra(QQ) in Algebras(QQ).Semisimple()                    # needs sage.combinat
     True
     sage: CyclicPermutationGroup(10).algebra(FiniteField(7)) in Algebras.Semisimple
     True
@@ -225,16 +224,18 @@ group `D_2` of order 4 into the symmetric group `S_4` of order 4!, and
 since there is a natural map from the integers to the rationals, there
 is a natural map from `\ZZ[D_2]` to `\QQ[S_4]`::
 
+    sage: # needs sage.combinat
     sage: A = DihedralGroup(2).algebra(ZZ)
     sage: B = SymmetricGroup(4).algebra(QQ)
     sage: a = A.an_element(); a
-    () + 3*(3,4) + 3*(1,2)
+    () + 2*(3,4) + 3*(1,2) + (1,2)(3,4)
     sage: b = B.an_element(); b
-    () + 2*(1,2) + 4*(1,2,3,4)
+    () + (2,3,4) + 2*(1,3)(2,4) + 3*(1,4)(2,3)
     sage: B(a)
-    () + 3*(3,4) + 3*(1,2)
+    () + 2*(3,4) + 3*(1,2) + (1,2)(3,4)
     sage: a * b  # a is automatically converted to an element of B
-    7*() + 3*(3,4) + 5*(1,2) + 6*(1,2)(3,4) + 12*(1,2,3) + 4*(1,2,3,4) + 12*(1,3,4)
+    () + 2*(3,4) + 2*(2,3) + (2,3,4) + 3*(1,2) + (1,2)(3,4) + (1,3,2)
+     + 3*(1,3,4,2) + 5*(1,3)(2,4) + 13*(1,3,2,4) + 12*(1,4,2,3) + 5*(1,4)(2,3)
     sage: parent(a * b)
     Symmetric group algebra of order 4 over Rational Field
 
@@ -243,10 +244,9 @@ There is no obvious map in the other direction, though::
     sage: A(b)
     Traceback (most recent call last):
     ...
-    TypeError: do not know how to make x (= () + 2*(1,2) + 4*(1,2,3,4))
+    TypeError: do not know how to make x (= () + (2,3,4) + 2*(1,3)(2,4) + 3*(1,4)(2,3))
      an element of self
-     (=Algebra of Dihedral group of order 4 as a permutation group
-               over Integer Ring)
+     (=Algebra of Dihedral group of order 4 as a permutation group over Integer Ring)
 
 If `S` is a unital (additive) magma, then `RS` is a unital algebra,
 and thus admits a coercion from its base ring `R` and any ring that
@@ -274,7 +274,7 @@ into `A` in two ways -- via `S`, or via the base ring `R` -- and *the
 answers are different*. It that case the coercion to `R` takes
 precedence. In particular, if `\ZZ` is the ring (or group) of
 integers, then `\ZZ` will coerce to any `RS`, by sending `\ZZ` to `R`.
-In generic code, it is therefore recommented to always explicitly use
+In generic code, it is therefore recommended to always explicitly use
 ``A.monomial(g)`` to convert an element of the group into `A`.
 
 TESTS:
@@ -308,12 +308,12 @@ Equality tests::
 
 Properties of group algebras::
 
-    sage: SU(2, GF(4, 'a')).algebra(IntegerModRing(12)).category()
+    sage: SU(2, GF(4, 'a')).algebra(IntegerModRing(12)).category()                      # needs sage.rings.finite_rings
     Category of finite group algebras over Ring of integers modulo 12
 
-    sage: SymmetricGroup(2).algebra(QQ).is_commutative()
+    sage: SymmetricGroup(2).algebra(QQ).is_commutative()                                # needs sage.combinat
     True
-    sage: SymmetricGroup(3).algebra(QQ).is_commutative()
+    sage: SymmetricGroup(3).algebra(QQ).is_commutative()                                # needs sage.combinat
     False
 
     sage: G = DihedralGroup(4)
@@ -330,7 +330,7 @@ Properties of group algebras::
     Univariate Polynomial Ring in x over Rational Field
     sage: g = G.an_element()
     sage: A(g)
-    (1,2,3,4)
+    (1,3)
 
 Hopf algebra structure::
 
@@ -339,11 +339,11 @@ Hopf algebra structure::
     sage: kD4 in HopfAlgebras
     True
     sage: a = kD4.an_element(); a
-    () + 4*(1,2,3,4) + 2*(1,4)(2,3)
+    () + (1,3) + 2*(1,3)(2,4) + 3*(1,4,3,2)
     sage: a.antipode()
-    () + 4*(1,4,3,2) + 2*(1,4)(2,3)
+    () + 3*(1,2,3,4) + (1,3) + 2*(1,3)(2,4)
     sage: a.coproduct()
-    () # () + 4*(1,2,3,4) # (1,2,3,4) + 2*(1,4)(2,3) # (1,4)(2,3)
+    () # () + (1,3) # (1,3) + 2*(1,3)(2,4) # (1,3)(2,4) + 3*(1,4,3,2) # (1,4,3,2)
 
 Coercions from the base ring::
 
@@ -364,7 +364,7 @@ Coercion from the group::
 
     sage: G = SymmetricGroup(5)
     sage: x,y = G.gens()
-    sage: A = G.algebra(QQ)
+    sage: A = G.algebra(QQ)                                                             # needs sage.combinat
     sage: A( A(x) )
     (1,2,3,4,5)
 
@@ -379,21 +379,21 @@ Coercion from the group::
 Coercion from the base ring takes precedences over coercion from the
 group::
 
+    sage: # needs sage.rings.number_field
     sage: G = GL(2,7)
-    sage: OG = GroupAlgebra(G, ZZ[sqrt(5)])
+    sage: OG = GroupAlgebra(G, ZZ[AA(5).sqrt()])
     sage: OG(2)
     2*[1 0]
     [0 1]
     sage: OG(G(2))
     [2 0]
     [0 2]
-
     sage: OG(FormalSum([ (1, G(2)), (2, RR(0.77)) ]) )
     Traceback (most recent call last):
     ...
     TypeError: Attempt to coerce non-integral RealNumber to Integer
     sage: OG(OG.base_ring().basis()[1])
-    sqrt5*[1 0]
+    a*[1 0]
     [0 1]
 
 Coercions from other group algebras::
@@ -411,7 +411,7 @@ Using the functor `R \mapsto RG` to build the base ring extension
 morphism::
 
     sage: G = SymmetricGroup(3)
-    sage: A = G.algebra(ZZ)
+    sage: A = G.algebra(ZZ)                                                             # needs sage.combinat
     sage: h = GF(5).coerce_map_from(ZZ)
 
     sage: functor = A.construction()[0]; functor
@@ -420,12 +420,12 @@ morphism::
     sage: hh
     Generic morphism:
       From: Symmetric group algebra of order 3 over Integer Ring
-      To: Symmetric group algebra of order 3 over Finite Field of size 5
+      To:   Symmetric group algebra of order 3 over Finite Field of size 5
     sage: a = 2 * A.an_element(); a
-    2*() + 4*(1,2) + 8*(1,2,3)
+    2*() + 2*(2,3) + 6*(1,2,3) + 4*(1,3,2)
 
     sage: hh(a)
-    2*() + 4*(1,2) + 3*(1,2,3)
+    2*() + 2*(2,3) + (1,2,3) + 4*(1,3,2)
 
 Conversion from a formal sum::
 
@@ -440,20 +440,20 @@ AUTHORS:
 
 - David Loeffler (2008-08-24): initial version
 - Martin Raum (2009-08): update to use new coercion model -- see
-  :trac:`6670`.
+  :issue:`6670`.
 - John Palmieri (2011-07): more updates to coercion, categories, etc.,
   group algebras constructed using CombinatorialFreeModule -- see
-  :trac:`6670`.
+  :issue:`6670`.
 - Nicolas M. Thiéry (2010-2017), Travis Scrimshaw (2017):
   generalization to a covariant functorial construction for
-  monoid algebras, and beyond -- see e.g. :trac:`18700`.
+  monoid algebras, and beyond -- see e.g. :issue:`18700`.
 """
-#*****************************************************************************
+# ****************************************************************************
 #  Copyright (C) 2010-2017 Nicolas M. Thiéry <nthiery at users.sf.net>
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
 from sage.categories.pushout import ConstructionFunctor
 from sage.categories.morphism import SetMorphism
@@ -462,6 +462,7 @@ from sage.categories.covariant_functorial_construction import CovariantFunctoria
 from sage.categories.category_types import Category_over_base_ring
 
 # TODO: merge the two univariate functors below into a bivariate one
+
 
 class AlgebraFunctor(CovariantFunctorialConstruction):
     r"""
@@ -529,6 +530,7 @@ class AlgebraFunctor(CovariantFunctorialConstruction):
         """
         return G.algebra(self._base_ring, category=category)
 
+
 class GroupAlgebraFunctor(ConstructionFunctor):
     r"""
     For a fixed group, a functor sending a commutative ring to the
@@ -561,7 +563,7 @@ class GroupAlgebraFunctor(ConstructionFunctor):
         EXAMPLES::
 
             sage: from sage.categories.algebra_functor import GroupAlgebraFunctor
-            sage: GroupAlgebra(SU(2, GF(4, 'a')), IntegerModRing(12)).category()
+            sage: GroupAlgebra(SU(2, GF(4, 'a')), IntegerModRing(12)).category()        # needs sage.rings.finite_rings
             Category of finite group algebras over Ring of integers modulo 12
         """
         self.__group = group
@@ -577,20 +579,18 @@ class GroupAlgebraFunctor(ConstructionFunctor):
             sage: from sage.categories.algebra_functor import GroupAlgebraFunctor
             sage: GroupAlgebraFunctor(CyclicPermutationGroup(17)).group() == CyclicPermutationGroup(17)
             True
-         """
+        """
         return self.__group
 
     def _apply_functor(self, base_ring):
         r"""
         Create the group algebra with given base ring over ``self.group()``.
 
-        INPUT :
+        INPUT:
 
         - ``base_ring`` -- the base ring of the group algebra
 
-        OUTPUT:
-
-        A group algebra.
+        OUTPUT: a group algebra
 
         EXAMPLES::
 
@@ -611,12 +611,11 @@ class GroupAlgebraFunctor(ConstructionFunctor):
 
         - ``f`` -- a morphism of rings
 
-        OUTPUT:
-
-        A morphism of group algebras.
+        OUTPUT: a morphism of group algebras
 
         EXAMPLES::
 
+            sage: # needs sage.combinat
             sage: G = SymmetricGroup(3)
             sage: A = GroupAlgebra(G, ZZ)
             sage: h = GF(5).coerce_map_from(ZZ)
@@ -624,14 +623,13 @@ class GroupAlgebraFunctor(ConstructionFunctor):
             Generic morphism:
               From: Symmetric group algebra of order 3 over Integer Ring
               To:   Symmetric group algebra of order 3 over Finite Field of size 5
-
             sage: a = 2 * A.an_element(); a
-            2*() + 4*(1,2) + 8*(1,2,3)
+            2*() + 2*(2,3) + 6*(1,2,3) + 4*(1,3,2)
             sage: hh(a)
-            2*() + 4*(1,2) + 3*(1,2,3)
+            2*() + 2*(2,3) + (1,2,3) + 4*(1,3,2)
         """
         from sage.categories.rings import Rings
-        domain   = self(f.domain())
+        domain = self(f.domain())
         codomain = self(f.codomain())
         # we would want to use something like:
         # domain.module_morphism(on_coefficients=h, codomain=codomain, category=Rings())
@@ -640,7 +638,7 @@ class GroupAlgebraFunctor(ConstructionFunctor):
 
 
 class AlgebrasCategory(CovariantConstructionCategory, Category_over_base_ring):
-    """
+    r"""
     An abstract base class for categories of monoid algebras,
     groups algebras, and the like.
 
@@ -673,12 +671,11 @@ class AlgebrasCategory(CovariantConstructionCategory, Category_over_base_ring):
         """
         EXAMPLES::
 
-            sage: Semigroups().Algebras(QQ) # indirect doctest
+            sage: Semigroups().Algebras(QQ)  # indirect doctest
             Category of semigroup algebras over Rational Field
         """
         return "{} algebras over {}".format(self.base_category()._repr_object_names()[:-1],
                                             self.base_ring())
-
 
     @staticmethod
     def __classcall__(cls, category=None, R=None):
@@ -714,3 +711,34 @@ class AlgebrasCategory(CovariantConstructionCategory, Category_over_base_ring):
             # category should now be the base ring ...
             return cls.category_of(base_category_class(), category)
 
+    class ParentMethods:
+
+        # coalgebra structure
+
+        def coproduct_on_basis(self, g):
+            r"""
+            Return the coproduct of the element ``g`` of the basis.
+
+            Each basis element ``g`` is group-like. This method is
+            used to compute the coproduct of any element.
+
+            EXAMPLES::
+
+                sage: # needs sage.combinat
+                sage: PF = NonDecreasingParkingFunctions(4)
+                sage: A = PF.algebra(ZZ); A
+                Algebra of Non-decreasing parking functions of size 4 over Integer Ring
+                sage: g = PF.an_element(); g
+                [1, 1, 1, 1]
+                sage: A.coproduct_on_basis(g)
+                B[[1, 1, 1, 1]] # B[[1, 1, 1, 1]]
+                sage: a = A.an_element(); a
+                2*B[[1, 1, 1, 1]] + 2*B[[1, 1, 1, 2]] + 3*B[[1, 1, 1, 3]]
+                sage: a.coproduct()
+                2*B[[1, 1, 1, 1]] # B[[1, 1, 1, 1]] +
+                2*B[[1, 1, 1, 2]] # B[[1, 1, 1, 2]] +
+                3*B[[1, 1, 1, 3]] # B[[1, 1, 1, 3]]
+            """
+            from sage.categories.tensor import tensor
+            g = self.term(g)
+            return tensor([g, g])

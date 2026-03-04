@@ -1,3 +1,5 @@
-from __future__ import absolute_import
+from sage.misc.lazy_import import lazy_import
+
 from .anf2cnf import ANF2CNFConverter
-from brial.cnf import CNFEncoder as PolyBoRiCNFEncoder
+
+lazy_import('sage.rings.polynomial.pbori.cnf', 'CNFEncoder', as_='PolyBoRiCNFEncoder')

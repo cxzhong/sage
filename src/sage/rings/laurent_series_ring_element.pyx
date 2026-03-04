@@ -1,5 +1,11 @@
-"""
+r"""
 Laurent Series
+
+Laurent series in Sage are represented internally as a power of the variable
+times the power series part. If a Laurent series `f` is represented as
+`f = t^n \cdot u` where `t` is the variable and `u` has nonzero constant term,
+`u` can be accessed through :meth:`~LaurentSeries.valuation_zero_part` and `n`
+can be accessed through :meth:`~LaurentSeries.valuation`.
 
 EXAMPLES::
 
@@ -21,25 +27,19 @@ We compute with a Laurent series over the complex mpfr numbers.
 
 ::
 
-    sage: K.<q> = Frac(CC[['q']])
-    sage: K
+    sage: K.<q> = Frac(CC[['q']]); K                                                    # needs sage.rings.real_mpfr
     Laurent Series Ring in q over Complex Field with 53 bits of precision
-    sage: q
+    sage: q                                                                             # needs sage.rings.real_mpfr
     1.00000000000000*q
 
 Saving and loading.
 
 ::
 
-    sage: loads(q.dumps()) == q
+    sage: loads(q.dumps()) == q                                                         # needs sage.rings.real_mpfr
     True
-    sage: loads(K.dumps()) == K
+    sage: loads(K.dumps()) == K                                                         # needs sage.rings.real_mpfr
     True
-
-IMPLEMENTATION: Laurent series in Sage are represented internally
-as a power of the variable times the unit part (which need not be a
-unit - it's a polynomial with nonzero constant term). The zero
-Laurent series has unit part 0.
 
 AUTHORS:
 
@@ -51,32 +51,47 @@ AUTHORS:
 
 - Robert Bradshaw: Cython version
 """
-from __future__ import print_function, absolute_import
+# ****************************************************************************
+#       Copyright (C) 2005 William Stein <wstein@gmail.com>
+#                     2017 Vincent Delecroix <20100.delecroix@gmail.com>
+#
+#  Distributed under the terms of the GNU General Public License (GPL)
+#
+#    This code is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#    General Public License for more details.
+#
+#  The full text of the GPL is available at:
+#
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
-import operator
+from sage.rings.infinity import infinity
 
-from .infinity import infinity
-
-import sage.rings.polynomial.polynomial_element as polynomial
+from sage.rings.rational_field import QQ
 import sage.misc.latex
-from sage.rings.integer import Integer
 from sage.rings.polynomial.laurent_polynomial import LaurentPolynomial_univariate
-from .power_series_ring_element cimport PowerSeries
-from sage.structure.element cimport Element, ModuleElement, RingElement, AlgebraElement
+from sage.rings.power_series_ring_element cimport PowerSeries
+from sage.structure.element cimport Element, AlgebraElement
 from sage.structure.richcmp cimport richcmp_not_equal, rich_to_bool
 from sage.misc.derivative import multi_derivative
 
 
 def is_LaurentSeries(x):
+    from sage.misc.superseded import deprecation_cython
+    deprecation_cython(38266,
+                       "The function is_LaurentSeries is deprecated; "
+                       "use 'isinstance(..., LaurentSeries)' instead.")
     return isinstance(x, LaurentSeries)
 
 
 cdef class LaurentSeries(AlgebraElement):
-    """
+    r"""
     A Laurent Series.
 
-    We consider a Laurent series of the form `t^n \cdot f` where `f` is a
-    power series.
+    We consider a Laurent series of the form `f = t^n \cdot u` where `u` is a
+    power series with nonzero constant term.
 
     INPUT:
 
@@ -98,11 +113,12 @@ cdef class LaurentSeries(AlgebraElement):
             sage: R.<q> = LaurentSeriesRing(ZZ)
             sage: R([1,2,3])
             1 + 2*q + 3*q^2
-            sage: R([1,2,3],-5)
+            sage: R([1,2,3], -5)
             q^-5 + 2*q^-4 + 3*q^-3
 
         ::
 
+            sage: # needs sage.rings.finite_rings sage.rings.padics
             sage: S.<s> = LaurentSeriesRing(GF(5))
             sage: T.<t> = PowerSeriesRing(pAdicRing(5))
             sage: S(t)
@@ -122,6 +138,14 @@ cdef class LaurentSeries(AlgebraElement):
                 f = parent._power_series_ring((<LaurentSeries>f).__u)
         elif isinstance(f, LaurentPolynomial_univariate):
             f = f(parent.gen())
+        elif isinstance(f, dict):
+            ## Sanitize input to make sure all exponents are nonnegative,
+            ## adjusting n to match.
+            n1 = min(f.keys())
+            if n1 < 0:
+                f = {e - n1: c for e, c in f.items()}
+                n += n1
+            f = parent._power_series_ring(f)
         elif not isinstance(f, PowerSeries):
             f = parent._power_series_ring(f)
         ## now this is a power series, over a different ring ...
@@ -130,29 +154,28 @@ cdef class LaurentSeries(AlgebraElement):
         elif parent is not f.parent():
             f = parent._power_series_ring(f)
 
-
         # self is that t^n * u:
         if not f:
-            if n == infinity:
+            if n is infinity:
                 self.__n = 0
                 self.__u = parent._power_series_ring.zero()
             else:
                 self.__n = n
-                self.__u = f
+                self.__u = parent._power_series_ring(f)
         else:
             val = f.valuation()
-            if val == infinity:
+            if val is infinity:
                 self.__n = 0
-                self.__u = f
+                self.__u = parent._power_series_ring(f)
             elif val == 0:
                 self.__n = n    # power of the variable
-                self.__u = f    # unit part
+                self.__u = parent._power_series_ring(f)    # unit part
             else:
                 self.__n = n + val
-                self.__u = f >> val
+                self.__u = parent._power_series_ring(f >> val)
 
     def __reduce__(self):
-        return make_element_from_parent, (self._parent, self.__u, self.__n)
+        return self._parent, (self.__u, self.__n)
 
     def change_ring(self, R):
         """
@@ -175,9 +198,9 @@ cdef class LaurentSeries(AlgebraElement):
         EXAMPLES::
 
             sage: R.<t> = LaurentSeriesRing(QQ)
-            sage: (2+t).is_unit()
+            sage: (2 + t).is_unit()
             True
-            sage: f = 2+t^2+O(t^10); f.is_unit()
+            sage: f = 2 + t^2 + O(t^10); f.is_unit()
             True
             sage: 1/f
             1/2 - 1/4*t^2 + 1/8*t^4 - 1/16*t^6 + 1/32*t^8 + O(t^10)
@@ -213,7 +236,7 @@ cdef class LaurentSeries(AlgebraElement):
 
     def is_monomial(self):
         """
-        Return True if this element is a monomial.  That is, if self is
+        Return ``True`` if this element is a monomial.  That is, if ``self`` is
         `x^n` for some integer `n`.
 
         EXAMPLES::
@@ -232,7 +255,7 @@ cdef class LaurentSeries(AlgebraElement):
         """
         return self.__u.is_monomial()
 
-    def __nonzero__(self):
+    def __bool__(self):
         """
         EXAMPLES::
 
@@ -258,10 +281,33 @@ cdef class LaurentSeries(AlgebraElement):
         """
         return bool(self.__u)
 
-    def _im_gens_(self, codomain, im_gens):
-        return codomain(self(im_gens[0]))
+    def _im_gens_(self, codomain, im_gens, base_map=None):
+        """
+        Return the image of this series under the map that sends the generators of
+        the parent to ``im_gens``.
 
-    cdef __normalize(self):
+        EXAMPLES::
+
+            sage: # needs sage.rings.number_field
+            sage: Zx.<x> = ZZ[]
+            sage: K.<i> = NumberField(x^2 + 1)
+            sage: R.<t> = LaurentSeriesRing(K)
+            sage: z = t^-1 + i*t
+            sage: z._im_gens_(R, [t^2])
+            t^-2 + i*t^2
+
+        The argument ``base_map`` is not yet supported, because it isn't over power series::
+
+            sage: cc = K.hom([i])                                                       # needs sage.rings.number_field
+            sage: z._im_gens_(R, [t^2], base_map=cc)                                    # needs sage.rings.number_field
+            Traceback (most recent call last):
+            ...
+            NotImplementedError
+        """
+        x = im_gens[0]
+        return codomain(self.__u._im_gens_(codomain, im_gens, base_map=base_map) * x**self.__n)
+
+    cdef _normalize(self):
         r"""
         A Laurent series is a pair (u(t), n), where either u=0 (to some
         precision) or u is a unit. This pair corresponds to
@@ -284,10 +330,9 @@ cdef class LaurentSeries(AlgebraElement):
             '2 + 2/3*t^3'
         """
         if self.is_zero():
-            if self.prec() == infinity:
+            if self.prec() is infinity:
                 return "0"
-            else:
-                return "O(%s^%s)"%(self._parent.variable_name(),self.prec())
+            return "O(%s^%s)" % (self._parent.variable_name(), self.prec())
         s = " "
         v = self.__u.list()
         valuation = self.__n
@@ -295,7 +340,7 @@ cdef class LaurentSeries(AlgebraElement):
         X = self._parent.variable_name()
         atomic_repr = self._parent.base_ring()._repr_option('element_is_atomic')
         first = True
-        for n in xrange(m):
+        for n in range(m):
             x = v[n]
             e = n + valuation
             x = str(x)
@@ -303,14 +348,14 @@ cdef class LaurentSeries(AlgebraElement):
                 if not first:
                     s += " + "
                 if not atomic_repr and (x[1:].find("+") != -1 or x[1:].find("-") != -1):
-                    x = "(%s)"%x
+                    x = "(%s)" % x
                 if e == 1:
-                    var = "*%s"%X
+                    var = "*%s" % X
                 elif e == 0:
                     var = ""
                 else:
-                    var = "*%s^%s"%(X,e)
-                s += "%s%s"%(x,var)
+                    var = "*%s^%s" % (X, e)
+                s += "%s%s" % (x, var)
                 first = False
         s = s.replace(" + -", " - ")
         s = s.replace(" 1*"," ")
@@ -318,14 +363,74 @@ cdef class LaurentSeries(AlgebraElement):
         if self.prec() == 0:
             bigoh = "O(1)"
         elif self.prec() == 1:
-            bigoh = "O(%s)"%self._parent.variable_name()
+            bigoh = "O(%s)" % self._parent.variable_name()
         else:
-            bigoh = "O(%s^%s)"%(self._parent.variable_name(),self.prec())
+            bigoh = "O(%s^%s)" % (self._parent.variable_name(),self.prec())
         if self.prec() != infinity:
             if s == " ":
                 return bigoh
-            s += " + %s"%bigoh
+            s += " + %s" % bigoh
         return s[1:]
+
+    def verschiebung(self, n):
+        r"""
+        Return the ``n``-th Verschiebung of ``self``.
+
+        If `f = \sum a_m x^m` then this function returns `\sum a_m x^{mn}`.
+
+        EXAMPLES::
+
+            sage: R.<x> = LaurentSeriesRing(QQ)
+            sage: f = -1/x + 1 + 2*x^2 + 5*x^5
+            sage: f.V(2)
+            -x^-2 + 1 + 2*x^4 + 5*x^10
+            sage: f.V(-1)
+            5*x^-5 + 2*x^-2 + 1 - x
+            sage: h = f.add_bigoh(7)
+            sage: h.V(2)
+            -x^-2 + 1 + 2*x^4 + 5*x^10 + O(x^14)
+            sage: h.V(-2)
+            Traceback (most recent call last):
+            ...
+            ValueError: For finite precision only positive arguments allowed
+
+        TESTS::
+
+            sage: R.<x> = LaurentSeriesRing(QQ)
+            sage: f = x
+            sage: f.V(3)
+            x^3
+            sage: f.V(-3)
+            x^-3
+            sage: g = 2*x^(-1) + 3 + 5*x
+            sage: g.V(-1)
+            5*x^-1 + 3 + 2*x
+        """
+        if n == 0:
+            raise ValueError('n must be nonzero')
+
+        if n < 0:
+            if not self.prec() is infinity:
+                raise ValueError('For finite precision only positive arguments allowed')
+
+            exponents = [e * n for e in self.exponents()]
+            u = min(exponents)
+            exponents = [e - u for e in exponents]
+            coefficients = self.coefficients()
+            zero = self.base_ring().zero()
+            w = [zero] * (max(exponents) + 1)
+            for i in range(len(exponents)):
+                e = exponents[i]
+                c = coefficients[i]
+                w[e] = c
+            l = LaurentSeries(self._parent, w, u)
+        else:
+            __u = self.__u.V(n)
+            __n = <long>self.__n * n
+            l = LaurentSeries(self._parent, __u, __n)
+        return l
+
+    V = verschiebung
 
     def _latex_(self):
         r"""
@@ -336,18 +441,18 @@ cdef class LaurentSeries(AlgebraElement):
             sage: latex(f)
             \frac{\frac{17}{2}}{x^{2}} + x + x^{2} + 3x^{4} + O(x^{7})
 
-        Verify that :trac:`6656` has been fixed::
+        Verify that :issue:`6656` has been fixed::
 
-            sage: R.<a,b>=PolynomialRing(QQ)
-            sage: T.<x>=LaurentSeriesRing(R)
-            sage: y = a*x+b*x
+            sage: R.<a,b> = PolynomialRing(QQ)
+            sage: T.<x> = LaurentSeriesRing(R)
+            sage: y = a*x + b*x
             sage: y._latex_()
             '\\left(a + b\\right)x'
             sage: latex(y)
             \left(a + b\right)x
         """
         if self.is_zero():
-            if self.prec() == infinity:
+            if self.prec() is infinity:
                 return "0"
             else:
                 return "0 + \\cdots"
@@ -358,7 +463,7 @@ cdef class LaurentSeries(AlgebraElement):
         X = self._parent.latex_variable_names()[0]
         atomic_repr = self._parent.base_ring()._repr_option('element_is_atomic')
         first = True
-        for n in xrange(m):
+        for n in range(m):
             x = v[n]
             e = n + valuation
             x = sage.misc.latex.latex(x)
@@ -366,20 +471,20 @@ cdef class LaurentSeries(AlgebraElement):
                 if not first:
                     s += " + "
                 if not atomic_repr and e > 0 and (x[1:].find("+") != -1 or x[1:].find("-") != -1):
-                    x = "\\left(%s\\right)"%x
+                    x = "\\left(%s\\right)" % x
                 if e == 1:
-                    var = "|%s"%X
+                    var = "|%s" % X
                 elif e == 0:
                     var = ""
                 elif e > 0:
-                    var = "|%s^{%s}"%(X,e)
+                    var = "|%s^{%s}" % (X, e)
                 if e >= 0:
-                    s += "%s%s"%(x,var)
+                    s += "%s%s" % (x, var)
                 else: # negative e
                     if e == -1:
-                        s += "\\frac{%s}{%s}"%(x, X)
+                        s += "\\frac{%s}{%s}" % (x, X)
                     else:
-                        s += "\\frac{%s}{%s^{%s}}"%(x, X,-e)
+                        s += "\\frac{%s}{%s^{%s}}" % (x, X, -e)
                 first = False
         s = s.replace(" + -", " - ")
         s = s.replace(" 1|"," ")
@@ -390,12 +495,12 @@ cdef class LaurentSeries(AlgebraElement):
             if pr == 0:
                 bigoh = "O(1)"
             elif pr == 1:
-                bigoh = "O(%s)"%(X,)
+                bigoh = "O(%s)" % (X,)
             else:
-                bigoh = "O(%s^{%s})"%(X,pr)
+                bigoh = "O(%s^{%s})" % (X, pr)
             if s == " ":
                 return bigoh
-            s += " + %s"%bigoh
+            s += " + %s" % bigoh
         return s[1:]
 
     def __hash__(self):
@@ -419,22 +524,32 @@ cdef class LaurentSeries(AlgebraElement):
             sage: f = -5/t^(10) + 1/3 + t + t^2 - 10/3*t^3 + O(t^5); f
             -5*t^-10 + 1/3 + t + t^2 - 10/3*t^3 + O(t^5)
 
-        Slicing is deprecated::
+        Slicing can be used to truncate, keeping the same precision::
 
-            sage: f[-10:2]
-            doctest:...: DeprecationWarning: polynomial slicing with a start index is deprecated, use list() and slice the resulting list instead
-            See http://trac.sagemath.org/18940 for details.
+            sage: f[:2]
             -5*t^-10 + 1/3 + t + O(t^5)
+
+        Any other kind of slicing is an error, see :issue:`18940`::
+
+            sage: f[-10:2:2]
+            Traceback (most recent call last):
+            ...
+            IndexError: polynomial slicing with a step is not defined
+
             sage: f[0:]
-            1/3 + t + t^2 - 10/3*t^3 + O(t^5)
+            Traceback (most recent call last):
+            ...
+            IndexError: polynomial slicing with a start is not defined
         """
         if isinstance(i, slice):
             start, stop, step = i.start, i.stop, i.step
-            if start is None:
-                start = 0
+            if step is not None:
+                raise IndexError("polynomial slicing with a step is not defined")
+            if start is not None:
+                raise IndexError("polynomial slicing with a start is not defined")
             if stop > self.__u.degree() or stop is None:
                 stop = self.__u.degree()
-            f = self.__u[start-self.__n:stop-self.__n:step]  # deprecation(18940)
+            f = self.__u[:stop - self.__n]
             return type(self)(self._parent, f, self.__n)
 
         return self.__u[i - self.__n]
@@ -502,10 +617,10 @@ cdef class LaurentSeries(AlgebraElement):
         EXAMPLES::
 
             sage: t = LaurentSeriesRing(ZZ,'t').gen()
-            sage: f = 1/t**2+2/t+3+4*t
+            sage: f = 1/t**2 + 2/t + 3 + 4*t
             sage: f.residue()
             2
-            sage: f = t+t**2
+            sage: f = t + t**2
             sage: f.residue()
             0
             sage: f.residue().parent()
@@ -515,7 +630,7 @@ cdef class LaurentSeries(AlgebraElement):
 
     def exponents(self):
         """
-        Return the exponents appearing in self with nonzero coefficients.
+        Return the exponents appearing in ``self`` with nonzero coefficients.
 
         EXAMPLES::
 
@@ -543,6 +658,36 @@ cdef class LaurentSeries(AlgebraElement):
         """
         R = self._parent.laurent_polynomial_ring()
         return R(self.__u.polynomial()) * R.gen()**(self.__n)
+
+    def lift_to_precision(self, absprec=None):
+        """
+        Return a congruent Laurent series with absolute precision at least
+        ``absprec``.
+
+        INPUT:
+
+        - ``absprec`` -- integer or ``None`` (default: ``None``); the
+          absolute precision of the result. If ``None``, lifts to an exact
+          element.
+
+        EXAMPLES::
+
+            sage: # needs sage.rings.finite_rings
+            sage: A.<t> = LaurentSeriesRing(GF(5))
+            sage: x = t^(-1) + t^2 + O(t^5)
+            sage: x.lift_to_precision(10)
+            t^-1 + t^2 + O(t^10)
+            sage: x.lift_to_precision()
+            t^-1 + t^2
+        """
+        if absprec is not None and absprec <= self.precision_absolute():
+            return self
+
+        exact = self._parent(0) if self.is_zero() else self._parent(self.list()) << self.__n
+        if absprec is None:
+            return exact
+        else:
+            return exact.add_bigoh(absprec)
 
     def __setitem__(self, n, value):
         """
@@ -585,7 +730,7 @@ cdef class LaurentSeries(AlgebraElement):
                 R = self._parent.base_ring()
                 coeffs = [value] + [R(0) for _ in range(1,-j)] + self.__u.list()
                 self.__u = self.__u._parent(coeffs)
-        self.__normalize()
+        self._normalize()
 
     cpdef _add_(self, right_m):
         """
@@ -611,6 +756,14 @@ cdef class LaurentSeries(AlgebraElement):
             t^-3 + t^3 + O(t^9)
 
         ALGORITHM: Shift the unit parts to align them, then add.
+
+        TESTS:
+
+        Verify that :issue:`35860` is fixed::
+
+            sage: R.<t> = LaurentPolynomialRing(ZZ)
+            sage: sqrt(t^2) + t^-1
+            t^-1 + t
         """
         cdef LaurentSeries right = <LaurentSeries>right_m
         cdef long m
@@ -672,9 +825,16 @@ cdef class LaurentSeries(AlgebraElement):
         # 3. Subtract
         return type(self)(self._parent, f1 - f2, m)
 
-
     def add_bigoh(self, prec):
         """
+        Return the truncated series at chosen precision ``prec``.
+
+        See also :meth:`O`.
+
+        INPUT:
+
+        - ``prec`` -- the precision of the series as an integer
+
         EXAMPLES::
 
             sage: R.<t> = LaurentSeriesRing(QQ)
@@ -682,14 +842,49 @@ cdef class LaurentSeries(AlgebraElement):
             t^2 + t^3 + O(t^10)
             sage: f.add_bigoh(5)
             t^2 + t^3 + O(t^5)
+
+        TESTS:
+
+        Check that :issue:`28239` is fixed::
+
+            sage: (t^(-2)).add_bigoh(-1)
+            t^-2 + O(t^-1)
+            sage: (t^(-2)).add_bigoh(-2)
+            O(t^-2)
+            sage: (t^(-2)).add_bigoh(-3)
+            O(t^-3)
         """
-        if prec == infinity or prec >= self.prec():
+        if prec is infinity or prec >= self.prec():
             return self
         P = self._parent
-        if not self:
+        if not self or prec < self.__n:
             return type(self)(P, P._power_series_ring(0, prec=0), prec)
         u = self.__u.add_bigoh(prec - self.__n)
         return type(self)(P, u, self.__n)
+
+    def O(self, prec):
+        r"""
+        Return the Laurent series of precision at most ``prec`` obtained by
+        adding `O(q^\text{prec})`, where `q` is the variable.
+
+        The precision of ``self`` and the integer ``prec`` can be arbitrary. The
+        resulting Laurent series will have precision equal to the minimum of
+        the precision of ``self`` and ``prec``. The term `O(q^\text{prec})` is the
+        zero series with precision ``prec``.
+
+        See also :meth:`add_bigoh`.
+
+        EXAMPLES::
+
+            sage: R.<t> = LaurentSeriesRing(QQ)
+            sage: f = t^-5 + t^-4 + t^3 + O(t^10); f
+            t^-5 + t^-4 + t^3 + O(t^10)
+            sage: f.O(-4)
+            t^-5 + O(t^-4)
+            sage: f.O(15)
+            t^-5 + t^-4 + t^3 + O(t^10)
+        """
+        return self.add_bigoh(prec)
 
     def degree(self):
         """
@@ -754,16 +949,47 @@ cdef class LaurentSeries(AlgebraElement):
             x^7 + 7*x^8 + 21*x^9 + 56*x^10 + 161*x^11 + 336*x^12 + O(x^13)
             sage: g^7
             x^-70 - 7*x^-59 + 7*x^-58 - 7*x^-56 + O(x^-52)
+            sage: g^(1/2)
+            x^-5 - 1/2*x^6 + 1/2*x^7 - 1/2*x^9 + O(x^13)
+            sage: g^(1/5)
+            x^-2 - 1/5*x^9 + 1/5*x^10 - 1/5*x^12 + O(x^16)
+            sage: g^(2/5)
+            x^-4 - 2/5*x^7 + 2/5*x^8 - 2/5*x^10 + O(x^14)
+            sage: h = x^2 + 2*x^4 + x^6
+            sage: h^(1/2)
+            x + x^3
         """
         cdef LaurentSeries self = _self
-        right=int(r)
-        if right != r:
-            raise ValueError("exponent must be an integer")
-        return type(self)(self._parent, self.__u**right, self.__n*right)
+
+        try:
+            right = QQ.coerce(r)
+        except TypeError:
+            raise ValueError("exponent must be a rational number")
+
+        if right.denominator() == 1:
+            right = right.numerator()
+            return type(self)(self._parent, self.__u**right, self.__n*right)
+
+        if self.is_zero():
+            return self._parent(0).O(self.prec()*right)
+
+        d = right.denominator()
+        n = right.numerator()
+
+        val = self.valuation()
+
+        if val % d:
+            raise ValueError("power series valuation would be fractional")
+
+        u = self.valuation_zero_part().nth_root(d)
+
+        s = type(self)(self._parent, u, val // d)
+
+        return s**n
 
     def shift(self, k):
         r"""
-        Returns this Laurent series multiplied by the power `t^n`.
+        Return this Laurent series multiplied by the power `t^n`.
         Does not change this series.
 
         .. NOTE::
@@ -803,14 +1029,15 @@ cdef class LaurentSeries(AlgebraElement):
     def truncate(self, long n):
         r"""
         Return the Laurent series of degree ` < n` which is
-        equivalent to self modulo `x^n`.
+        equivalent to ``self`` modulo `x^n`.
 
         EXAMPLES::
 
             sage: A.<x> = LaurentSeriesRing(ZZ)
             sage: f = 1/(1-x)
             sage: f
-            1 + x + x^2 + x^3 + x^4 + x^5 + x^6 + x^7 + x^8 + x^9 + x^10 + x^11 + x^12 + x^13 + x^14 + x^15 + x^16 + x^17 + x^18 + x^19 + O(x^20)
+            1 + x + x^2 + x^3 + x^4 + x^5 + x^6 + x^7 + x^8 + x^9 + x^10 + x^11
+             + x^12 + x^13 + x^14 + x^15 + x^16 + x^17 + x^18 + x^19 + O(x^20)
             sage: f.truncate(10)
             1 + x + x^2 + x^3 + x^4 + x^5 + x^6 + x^7 + x^8 + x^9
         """
@@ -828,7 +1055,8 @@ cdef class LaurentSeries(AlgebraElement):
             sage: A.<x> = LaurentSeriesRing(ZZ)
             sage: f = 1/(1-x)
             sage: f
-            1 + x + x^2 + x^3 + x^4 + x^5 + x^6 + x^7 + x^8 + x^9 + x^10 + x^11 + x^12 + x^13 + x^14 + x^15 + x^16 + x^17 + x^18 + x^19 + O(x^20)
+            1 + x + x^2 + x^3 + x^4 + x^5 + x^6 + x^7 + x^8 + x^9 + x^10 + x^11
+             + x^12 + x^13 + x^14 + x^15 + x^16 + x^17 + x^18 + x^19 + O(x^20)
             sage: f.truncate_laurentseries(10)
             1 + x + x^2 + x^3 + x^4 + x^5 + x^6 + x^7 + x^8 + x^9 + O(x^10)
         """
@@ -844,7 +1072,7 @@ cdef class LaurentSeries(AlgebraElement):
 
         This is equivalent to::
 
-            self - self.truncate(n)
+            ``self - self.truncate(n)``
 
         EXAMPLES::
 
@@ -852,6 +1080,24 @@ cdef class LaurentSeries(AlgebraElement):
             sage: f = 1/(1-t)
             sage: f.truncate_neg(15)
             t^15 + t^16 + t^17 + t^18 + t^19 + O(t^20)
+
+        TESTS:
+
+        Check that :issue:`39710` is fixed::
+
+            sage: S.<t> = LaurentSeriesRing(QQ)
+            sage: (t+t^2).truncate_neg(-1)
+            t + t^2
+            sage: (t+t^2).truncate_neg(-2)
+            t + t^2
+
+        Check that :issue:`39842` is fixed::
+
+            sage: f = LaurentSeriesRing(QQ, "t")(LaurentPolynomialRing(QQ, "t")([1, 2, 3]))
+            sage: f
+            1 + 2*t + 3*t^2
+            sage: f.truncate_neg(1)
+            2*t + 3*t^2
         """
         return type(self)(self._parent, self.__u >> (n - self.__n), n)
 
@@ -872,8 +1118,8 @@ cdef class LaurentSeries(AlgebraElement):
             raise ZeroDivisionError
         try:
             return type(self)(self._parent,
-                             self.__u / right.__u,
-                             self.__n - right.__n)
+                              self.__u / right.__u,
+                              self.__n - right.__n)
         except TypeError as msg:
             # todo: this could also make something in the formal fraction field.
             raise ArithmeticError("division not defined")
@@ -978,7 +1224,7 @@ cdef class LaurentSeries(AlgebraElement):
 
     cpdef _richcmp_(self, right_r, int op):
         r"""
-        Comparison of self and right.
+        Comparison of ``self`` and ``right``.
 
         We say two approximate Laurent series are equal, if they agree for
         all coefficients up to the *minimum* of the precisions of each.
@@ -987,7 +1233,7 @@ cdef class LaurentSeries(AlgebraElement):
         but consistent with the idea that the variable of a Laurent
         series is considered to be "very small".
 
-        See power_series_ring_element.__cmp__() for more
+        See :meth:`power_series_ring_element._richcmp_` for more
         information.
 
         EXAMPLES::
@@ -1020,7 +1266,7 @@ cdef class LaurentSeries(AlgebraElement):
             sage: f > g
             True
 
-        Check that :trac:`19664` is fixed::
+        Check that :issue:`19664` is fixed::
 
             sage: R.<x> = LaurentSeriesRing(RR)
             sage: x^(10^9) > 0
@@ -1038,7 +1284,6 @@ cdef class LaurentSeries(AlgebraElement):
             deg = prec - 1
 
         cdef long i
-        cdef int c
         for i in range(val, deg + 1):
             li = self[i]
             ri = right[i]
@@ -1074,7 +1319,7 @@ cdef class LaurentSeries(AlgebraElement):
             sage: g.valuation()
             0
 
-        Note that the valuation of an element undistinguishable from
+        Note that the valuation of an element indistinguishable from
         zero is infinite::
 
             sage: h = f - f; h
@@ -1085,7 +1330,7 @@ cdef class LaurentSeries(AlgebraElement):
         TESTS:
 
         The valuation of the zero element is ``+Infinity``
-        (see :trac:`15088`)::
+        (see :issue:`15088`)::
 
             sage: zero = R(0)
             sage: zero.valuation()
@@ -1145,7 +1390,7 @@ cdef class LaurentSeries(AlgebraElement):
     def precision_relative(self):
         """
         Return the relative precision of this series, that
-        is the difference between its absolute precision  
+        is the difference between its absolute precision
         and its valuation.
 
         By convention, the relative precision of `0` (or
@@ -1167,7 +1412,206 @@ cdef class LaurentSeries(AlgebraElement):
             return self.prec() - self.valuation()
 
     def __copy__(self):
-        return type(self)(self._parent, self.__u.copy(), self.__n)
+        return type(self)(self._parent, self.__u.__copy__(), self.__n)
+
+    def reverse(self, precision=None):
+        """
+        Return the reverse of f, i.e., the series g such that g(f(x)) = x.
+        Given an optional argument ``precision``, return the reverse with given
+        precision (note that the reverse can have precision at most
+        ``f.prec()``).  If ``f`` has infinite precision, and the argument
+        ``precision`` is not given, then the precision of the reverse defaults
+        to the default precision of ``f.parent()``.
+
+        Note that this is only possible if the valuation of ``self`` is exactly
+        1.
+
+        The implementation depends on the underlying power series element
+        implementing a reverse method.
+
+        EXAMPLES::
+
+            sage: R.<x> = Frac(QQ[['x']])
+            sage: f = 2*x + 3*x^2 - x^4 + O(x^5)
+            sage: g = f.reverse()
+            sage: g
+            1/2*x - 3/8*x^2 + 9/16*x^3 - 131/128*x^4 + O(x^5)
+            sage: f(g)
+            x + O(x^5)
+            sage: g(f)
+            x + O(x^5)
+
+            sage: A.<t> = LaurentSeriesRing(ZZ)
+            sage: a = t - t^2 - 2*t^4 + t^5 + O(t^6)
+            sage: b = a.reverse(); b
+            t + t^2 + 2*t^3 + 7*t^4 + 25*t^5 + O(t^6)
+            sage: a(b)
+            t + O(t^6)
+            sage: b(a)
+            t + O(t^6)
+
+            sage: B.<b,c> = ZZ[ ]
+            sage: A.<t> = LaurentSeriesRing(B)
+            sage: f = t + b*t^2 + c*t^3 + O(t^4)
+            sage: g = f.reverse(); g
+            t - b*t^2 + (2*b^2 - c)*t^3 + O(t^4)
+            sage: f(g)
+            t + O(t^4)
+            sage: g(f)
+            t + O(t^4)
+
+            sage: A.<t> = PowerSeriesRing(ZZ)
+            sage: B.<s> = LaurentSeriesRing(A)
+            sage: f = (1 - 3*t + 4*t^3 + O(t^4))*s + (2 + t + t^2 + O(t^3))*s^2 + O(s^3)
+            sage: set_verbose(1)
+            sage: g = f.reverse(); g
+            verbose 1 (<module>) passing to pari failed; trying Lagrange inversion
+            (1 + 3*t + 9*t^2 + 23*t^3 + O(t^4))*s + (-2 - 19*t - 118*t^2 + O(t^3))*s^2 + O(s^3)
+            sage: set_verbose(0)
+            sage: f(g) == g(f) == s
+            True
+
+        If the leading coefficient is not a unit, we pass to its fraction
+        field if possible::
+
+            sage: A.<t> = LaurentSeriesRing(ZZ)
+            sage: a = 2*t - 4*t^2 + t^4 - t^5 + O(t^6)
+            sage: a.reverse()
+            1/2*t + 1/2*t^2 + t^3 + 79/32*t^4 + 437/64*t^5 + O(t^6)
+
+            sage: B.<b> = PolynomialRing(ZZ)
+            sage: A.<t> = LaurentSeriesRing(B)
+            sage: f = 2*b*t + b*t^2 + 3*b^2*t^3 + O(t^4)
+            sage: g = f.reverse(); g
+            1/(2*b)*t - 1/(8*b^2)*t^2 + ((-3*b + 1)/(16*b^3))*t^3 + O(t^4)
+            sage: f(g)
+            t + O(t^4)
+            sage: g(f)
+            t + O(t^4)
+
+        We can handle some base rings of positive characteristic::
+
+            sage: A8.<t> = LaurentSeriesRing(Zmod(8))
+            sage: a = t - 15*t^2 - 2*t^4 + t^5 + O(t^6)
+            sage: b = a.reverse(); b
+            t + 7*t^2 + 2*t^3 + 5*t^4 + t^5 + O(t^6)
+            sage: a(b)
+            t + O(t^6)
+            sage: b(a)
+            t + O(t^6)
+
+        The optional argument ``precision`` sets the precision of the output::
+
+            sage: R.<x> = LaurentSeriesRing(QQ)
+            sage: f = 2*x + 3*x^2 - 7*x^3 + x^4 + O(x^5)
+            sage: g = f.reverse(precision=3); g
+            1/2*x - 3/8*x^2 + O(x^3)
+            sage: f(g)
+            x + O(x^3)
+            sage: g(f)
+            x + O(x^3)
+
+        If the input series has infinite precision, the precision of the
+        output is automatically set to the default precision of the parent
+        ring::
+
+            sage: R.<x> = LaurentSeriesRing(QQ, default_prec=20)
+            sage: (x - x^2).reverse()  # get some Catalan numbers
+            x + x^2 + 2*x^3 + 5*x^4 + 14*x^5 + 42*x^6 + 132*x^7 + 429*x^8 + 1430*x^9
+             + 4862*x^10 + 16796*x^11 + 58786*x^12 + 208012*x^13 + 742900*x^14
+             + 2674440*x^15 + 9694845*x^16 + 35357670*x^17 + 129644790*x^18
+             + 477638700*x^19 + O(x^20)
+            sage: (x - x^2).reverse(precision=3)
+            x + x^2 + O(x^3)
+
+        TESTS::
+
+            sage: R.<x> = LaurentSeriesRing(QQ)
+            sage: f = 1 + 2*x + 3*x^2 - x^4 + O(x^5)
+            sage: f.reverse()
+            Traceback (most recent call last):
+            ...
+            ValueError: Series must have valuation one for reversion.
+        """
+        val = self.valuation()
+        if val != 1:
+            raise ValueError("Series must have valuation one for reversion.")
+        u = self.valuation_zero_part()
+        u = u.parent().gen(0) * u
+
+        rev = u.reverse(precision=precision)
+
+        if rev.parent() == u.parent():
+            return self._parent(rev)
+        else:
+            P = self._parent.change_ring(rev.parent().base_ring())
+            return P(rev)
+
+    def is_square(self, root=False):
+        r"""
+        Return whether this Laurent series is a square.
+
+        INPUT:
+
+        - ``root`` -- boolean (default: ``False``); if ``True``, return a pair
+          ``(True, sqrt)`` if this element is a square, and ``(False, None)``
+          otherwise
+
+        EXAMPLES::
+
+            sage: R.<x> = LaurentSeriesRing(QQ)
+            sage: (x^2).is_square()
+            True
+            sage: (x^3).is_square()
+            False
+            sage: (4/x^2 + 4/x + 1).is_square(root=True)
+            (True, 2*x^-1 + 1)
+            sage: R.<t> = LaurentSeriesRing(ZZ)
+            sage: (t^-4).is_square()
+            True
+            sage: (2*t^-4).is_square()
+            False
+        """
+        # Case 1: Handle Zero
+        if self.is_zero():
+            if root:
+                return True, self
+            return True
+
+        # Case 2: Valuation must be even
+        v = self.valuation()
+        if v % 2:
+            if root:
+                return False, None
+            return False
+
+        # Case 3: The unit part must be a square
+        unit_part = (self >> v).power_series()
+        
+        # We use a try-except block to handle inconsistent API in base rings
+        try:
+            # Check is_square without keyword args first (safest)
+            is_sq = unit_part.is_square()
+        except (TypeError, ValueError, ArithmeticError, NotImplementedError):
+            if root:
+                return False, None
+            return False
+
+        if not root:
+            return is_sq
+
+        if is_sq:
+            # If we need the root, calculate it
+            # We try .sqrt() which is standard across most elements
+            try:
+                sqrt_unit = unit_part.sqrt()
+            except (ValueError, ArithmeticError):
+                return False, None
+                
+            # Reconstruct: t^(v/2) * sqrt(unit)
+            return True, self.parent()(sqrt_unit) << (v // 2)
+        else:
+            return False, None
 
     def derivative(self, *args):
         """
@@ -1205,7 +1649,6 @@ cdef class LaurentSeries(AlgebraElement):
         """
         return multi_derivative(self, args)
 
-
     def _derivative(self, var=None):
         """
         The formal derivative of this Laurent series with respect to var.
@@ -1238,12 +1681,23 @@ cdef class LaurentSeries(AlgebraElement):
             sage: f = 2*t/x + (3*t^2 + 6*t)*x + O(x^2)
             sage: f._derivative(t)
             2*x^-1 + (6*t + 6)*x + O(x^2)
+
+        TESTS::
+
+            sage: y = var('y')                                                          # needs sage.symbolic
+            sage: f.derivative(y)                                                       # needs sage.symbolic
+            Traceback (most recent call last):
+            ...
+            ValueError: cannot differentiate with respect to y
         """
-        if var is not None and var is not self._parent.gen():
-            # call _derivative() recursively on coefficients
-            u = [coeff._derivative(var) for coeff in self.__u.list()]
-            u = self._parent._power_series_ring(u, self.__u.prec())
-            return type(self)(self._parent, u, self.__n)
+        if var is not None and var != self._parent.gen():
+            try:
+                # call _derivative() recursively on coefficients
+                u = [coeff._derivative(var) for coeff in self.__u.list()]
+                u = self._parent._power_series_ring(u, self.__u.prec())
+                return type(self)(self._parent, u, self.__n)
+            except AttributeError:
+                raise ValueError("cannot differentiate with respect to {}".format(var))
 
         # compute formal derivative with respect to generator
         if self.is_zero():
@@ -1253,7 +1707,6 @@ cdef class LaurentSeries(AlgebraElement):
         v = [(n+m)*a[m] for m from 0 <= m < len(a)]
         u = self._parent._power_series_ring(v, self.__u.prec())
         return type(self)(self._parent, u, n-1)
-
 
     def integral(self):
         r"""
@@ -1312,9 +1765,58 @@ cdef class LaurentSeries(AlgebraElement):
             raise ArithmeticError("Coefficients of integral cannot be coerced into the base ring")
         return type(self)(self._parent, u, n+1)
 
+    def nth_root(self, long n, prec=None):
+        r"""
+        Return the ``n``-th root of this Laurent power series.
+
+        INPUT:
+
+        - ``n`` -- integer
+
+        - ``prec`` -- integer (optional); precision of the result. Though, if
+          this series has finite precision, then the result cannot have larger
+          precision.
+
+        EXAMPLES::
+
+            sage: R.<x> = LaurentSeriesRing(QQ)
+            sage: (x^-2 + 1 + x).nth_root(2)
+            x^-1 + 1/2*x + 1/2*x^2 - ... - 19437/65536*x^18 + O(x^19)
+            sage: (x^-2 + 1 + x).nth_root(2)**2
+            x^-2 + 1 + x + O(x^18)
+
+            sage: # needs sage.modular
+            sage: j = j_invariant_qexp()
+            sage: q = j.parent().gen()
+            sage: j(q^3).nth_root(3)
+            q^-1 + 248*q^2 + 4124*q^5 + ... + O(q^29)
+            sage: (j(q^2) - 1728).nth_root(2)
+            q^-1 - 492*q - 22590*q^3 - ... + O(q^19)
+        """
+        if prec is None:
+            prec = self.prec()
+            if prec is infinity:
+                prec = self.parent().default_prec()
+        else:
+            prec = min(self.prec(), prec)
+
+        if n <= 0:
+            raise ValueError('n must be positive')
+
+        i = self.valuation()
+        if i % n:
+            raise ValueError('valuation must be divisible by n')
+
+        q = self.__u.nth_root(n, prec)
+        return type(self)(self._parent, q + self.parent()(0).O(prec), i // n)
 
     def power_series(self):
         """
+        Convert this Laurent series to a power series.
+
+        An error is raised if the Laurent series has a term (or an error
+        term `O(x^k)`) whose exponent is negative.
+
         EXAMPLES::
 
             sage: R.<t> = LaurentSeriesRing(ZZ)
@@ -1333,20 +1835,42 @@ cdef class LaurentSeries(AlgebraElement):
         TESTS:
 
         Check whether a polynomial over a Laurent series ring is contained in the
-        polynomial ring over the power series ring (see :trac:`19459`):
+        polynomial ring over the power series ring (see :issue:`19459`):
 
+            sage: # needs sage.rings.finite_rings
             sage: L.<t> = LaurentSeriesRing(GF(2))
             sage: R.<x,y> = PolynomialRing(L)
-            sage: O = L._power_series_ring
-            sage: S.<x,y> = PolynomialRing(O)
+            sage: S.<x,y> = PolynomialRing(L._power_series_ring)
             sage: t**(-1)*x*y in S
             False
+
+        There used to be an issue with non-canonical representations of zero,
+        see :issue:`31383`::
+
+            sage: S.<x> = PowerSeriesRing(QQ)
+            sage: L = Frac(S)
+            sage: s = L(O(x^2))
+            sage: (s*x^(-1)).power_series()
+            O(x^1)
+            sage: (s*x^(-2)).power_series()
+            O(x^0)
+            sage: (s*x^(-3)).power_series()
+            Traceback (most recent call last):
+            ...
+            TypeError: self is not a power series
+
+        Test for :issue:`32440`::
+
+            sage: L.<x> = LaurentSeriesRing(QQ, implementation='pari')                  # needs sage.libs.pari
+            sage: (x + O(x^3)).power_series()                                           # needs sage.libs.pari
+            x + O(x^3)
         """
         if self.__n < 0:
-            raise TypeError("self is not a power series")
-        u = self.__u
-        t = u.parent().gen()
-        return t**(self.__n) * u
+            if self.__u.is_zero() and self.__u.prec() >= - self.__n:
+                return self.__u >> (- self.__n)
+            else:
+                raise TypeError("self is not a power series")
+        return self.__u << self.__n
 
     def inverse(self):
         """
@@ -1379,13 +1903,13 @@ cdef class LaurentSeries(AlgebraElement):
             x*t^-2 + O(t^2)
             sage: f(y=x)
             x*t^-2 + x*t^2 + O(t^8)
-            sage: f(t^3, x=2, y=x+x^2)
+            sage: f(t^3, x=2, y=x + x^2)
             2*t^-6 + (x^2 + x)*t^6 + O(t^24)
             sage: f(t^3, 2, x+x^2)
             2*t^-6 + (x^2 + x)*t^6 + O(t^24)
-            sage: f(x=2, t=t^3, y=x+x^2)
+            sage: f(x=2, t=t^3, y=x + x^2)
             2*t^-6 + (x^2 + x)*t^6 + O(t^24)
-            sage: f(2, x+x^2, t=t^3)
+            sage: f(2, x + x^2, t=t^3)
             Traceback (most recent call last):
             ...
             ValueError: must not specify t keyword and positional argument
@@ -1396,11 +1920,18 @@ cdef class LaurentSeries(AlgebraElement):
             Traceback (most recent call last):
             ...
             ValueError: Can only substitute elements of positive valuation
+
+        Test for :issue:`23928`::
+
+            sage: R.<x> = LaurentSeriesRing(QQ, implementation='pari')                  # needs sage.libs.pari
+            sage: f = x.add_bigoh(7)                                                    # needs sage.libs.pari
+            sage: f(x)                                                                  # needs sage.libs.pari
+            x + O(x^7)
             """
         if len(kwds) >= 1:
             name = self.parent().variable_name()
             if name in kwds: # a keyword specifies the Laurent series generator
-                if len(x) > 0:
+                if x:
                     raise ValueError("must not specify %s keyword and positional argument" % name)
                 a = self(kwds[name])
                 del kwds[name]
@@ -1408,7 +1939,7 @@ cdef class LaurentSeries(AlgebraElement):
                     return a(**kwds)
                 except TypeError:
                     return a
-            elif len(x) > 0:       # both keywords and positional arguments
+            elif x:       # both keywords and positional arguments
                 a = self(*x)
                 try:
                     return a(**kwds)
@@ -1423,7 +1954,30 @@ cdef class LaurentSeries(AlgebraElement):
         if isinstance(x[0], tuple):
             x = x[0]
 
-        return self.__u(x)*(x[0]**self.__n)
+        return self.__u(*x)*(x[0]**self.__n)
 
-def make_element_from_parent(parent, *args):
-    return parent(*args)
+    def __pari__(self):
+        """
+        Convert ``self`` to a PARI object.
+
+        TESTS::
+
+            sage: L.<x> = LaurentSeriesRing(QQ)
+            sage: f = x + 1/x + O(x^2); f
+            x^-1 + x + O(x^2)
+            sage: f.__pari__()                                                          # needs sage.libs.pari
+            x^-1 + x + O(x^2)
+
+        Check that :issue:`32437` is fixed::
+
+            sage: # needs sage.rings.finite_rings
+            sage: F.<u> = GF(257^2)
+            sage: R.<t> = LaurentSeriesRing(F)
+            sage: g = t + O(t^99)
+            sage: f = u*t + O(t^99)
+            sage: g(f)  # indirect doctest                                              # needs sage.libs.pari
+            u*t + O(t^99)
+        """
+        f = self.__u
+        x = f.parent().gen()
+        return f.__pari__() * x.__pari__()**self.__n

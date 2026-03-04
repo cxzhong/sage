@@ -1,14 +1,12 @@
-p-Adics
+`p`-adics
 =======================
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    sage/rings/padics/tutorial
 
-
    sage/rings/padics/factory
-
 
    sage/rings/padics/local_generic
    sage/rings/padics/padic_generic
@@ -21,7 +19,6 @@ p-Adics
 
    sage/rings/padics/padic_base_leaves
    sage/rings/padics/padic_extension_leaves
-
 
    sage/rings/padics/local_generic_element
    sage/rings/padics/padic_generic_element
@@ -36,7 +33,6 @@ p-Adics
    sage/rings/padics/padic_ZZ_pX_CA_element
    sage/rings/padics/padic_ZZ_pX_FM_element
 
-
    sage/rings/padics/pow_computer
    sage/rings/padics/pow_computer_ext
    sage/rings/padics/padic_printing
@@ -44,7 +40,9 @@ p-Adics
    sage/rings/padics/misc
 
    sage/rings/padics/common_conversion
-   sage/rings/padics/discrete_value_group
    sage/rings/padics/morphism
+
+   sage/rings/padics/witt_vector_ring
+   sage/rings/padics/witt_vector
 
 .. include:: ../footer.txt

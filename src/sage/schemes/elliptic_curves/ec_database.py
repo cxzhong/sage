@@ -58,40 +58,39 @@ of the given rank with conductor less than the listed maximal conductor,
 which are not included in the tables.
 
 AUTHORS:
+
 - William Stein (2007-10-07): initial version
+
 - Simon Spicer (2014-10-24): Added examples of more high-rank curves
 
-See also the functions cremona_curves() and cremona_optimal_curves()
+See also the functions :func:`cremona_curves` and :func:`cremona_optimal_curves`
 which enable easy looping through the Cremona elliptic curve database.
-
 """
-from __future__ import absolute_import
 
-import os
+from pathlib import Path
 from ast import literal_eval
 
 from .constructor import EllipticCurve
 
+
 class EllipticCurves:
     def rank(self, rank, tors=0, n=10, labels=False):
         r"""
-        Return a list of at most `n` non-isogenous curves with given
+        Return a list of at most `n` curves with given
         rank and torsion order.
 
         INPUT:
 
-        - ``rank`` (int) -- the desired rank
+        - ``rank`` -- integer; the desired rank
 
-        - ``tors`` (int, default 0) -- the desired torsion order (ignored if 0)
+        - ``tors`` -- integer (default: 0); the desired torsion order (ignored if 0)
 
-        - ``n`` (int, default 10) -- the maximum number of curves returned.
+        - ``n`` -- integer (default: 10); the maximum number of curves returned
 
-        - ``labels`` (bool, default False) -- if True, return Cremona
-          labels instead of curves.
+        - ``labels`` -- boolean (default: ``False``); if ``True``, return Cremona
+          labels instead of curves
 
-        OUTPUT:
-
-        (list) A list at most `n` of elliptic curves of required rank.
+        OUTPUT: list at most `n` of elliptic curves of required rank
 
         EXAMPLES::
 
@@ -126,15 +125,17 @@ class EllipticCurves:
             sage: L[0].cremona_label()
             Traceback (most recent call last):
             ...
-            LookupError: Cremona database does not contain entry for Elliptic Curve defined by y^2 + x*y = x^3 + x^2 - 2582*x + 48720 over Rational Field
+            LookupError: Cremona database does not contain entry for Elliptic Curve
+            defined by y^2 + x*y = x^3 + x^2 - 2582*x + 48720 over Rational Field
             sage: elliptic_curves.rank(6, n=3, labels=True)
             []
         """
-        from sage.env import ELLCURVE_DATA_DIR
-        data = os.path.join(ELLCURVE_DATA_DIR, 'rank%s'%rank)
+        from sage.features.databases import DatabaseEllcurves
+        db = DatabaseEllcurves()
+        data = Path(db.absolute_filename()).parent / f'rank{rank}'
         try:
-            f = open(data)
-        except IOError:
+            f = data.open()
+        except OSError:
             return []
         v = []
         tors = int(tors)
@@ -149,7 +150,7 @@ class EllipticCurves:
             # NOTE: only change this bound below after checking/fixing
             # the Cremona labels in the elliptic_curves package!
             if N <= 400000:
-                label = '%s%s%s'%(N, iso, num)
+                label = '%s%s%s' % (N, iso, num)
             else:
                 label = None
 
@@ -168,6 +169,5 @@ class EllipticCurves:
                 break
         return v
 
+
 elliptic_curves = EllipticCurves()
-
-

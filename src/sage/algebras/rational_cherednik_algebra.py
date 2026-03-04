@@ -1,12 +1,13 @@
+# sage.doctest: needs sage.combinat sage.modules
 """
 Rational Cherednik Algebras
 """
-#*****************************************************************************
+# ****************************************************************************
 #  Copyright (C) 2015 Travis Scrimshaw <tscrim at ucdavis.edu>
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
 from sage.misc.cachefunc import cached_method
 from sage.misc.lazy_attribute import lazy_attribute
@@ -19,7 +20,8 @@ from sage.sets.disjoint_union_enumerated_sets import DisjointUnionEnumeratedSets
 from sage.sets.family import Family
 from sage.monoids.indexed_free_monoid import IndexedFreeAbelianMonoid
 from sage.rings.polynomial.polynomial_ring_constructor import PolynomialRing
-from sage.rings.all import QQ
+from sage.rings.rational_field import QQ
+
 
 class RationalCherednikAlgebra(CombinatorialFreeModule):
     r"""
@@ -113,9 +115,9 @@ class RationalCherednikAlgebra(CombinatorialFreeModule):
             else:
                 c = (c, c)
 
-        return super(RationalCherednikAlgebra, cls).__classcall__(cls, ct, c, t, base_ring, tuple(prefix))
+        return super().__classcall__(cls, ct, c, t, base_ring, tuple(prefix))
 
-    def __init__(self, ct, c, t, base_ring, prefix):
+    def __init__(self, ct, c, t, base_ring, prefix) -> None:
         r"""
         Initialize ``self``.
 
@@ -139,7 +141,7 @@ class RationalCherednikAlgebra(CombinatorialFreeModule):
                                          sorting_key=self._genkey)
 
     def _genkey(self, t):
-        """
+        r"""
         Construct a key for comparison for a term indexed by ``t``.
 
         The key we create is the tuple in the following order:
@@ -159,7 +161,7 @@ class RationalCherednikAlgebra(CombinatorialFreeModule):
         return (self.degree_on_basis(t), t[1].length(), t[1], str(t[0]), str(t[2]))
 
     @lazy_attribute
-    def _reflections(self):
+    def _reflections(self) -> dict:
         """
         A dictionary of reflections to a pair of the associated root
         and coroot.
@@ -183,11 +185,11 @@ class RationalCherednikAlgebra(CombinatorialFreeModule):
             d[s] = (r, r.associated_coroot(), c)
         return d
 
-    def _repr_(self):
+    def _repr_(self) -> str:
         r"""
         Return a string representation of ``self``.
 
-        EXAMPLES ::
+        EXAMPLES::
 
             sage: RationalCherednikAlgebra(['A',4], 2, 1, QQ)
             Rational Cherednik Algebra of type ['A', 4] with c=2 and t=1
@@ -203,7 +205,7 @@ class RationalCherednikAlgebra(CombinatorialFreeModule):
             ret += "c_L={} and c_S={}".format(*self._c)
         return ret + " and t={} over {}".format(self._t, self.base_ring())
 
-    def _repr_term(self, t):
+    def _repr_term(self, t) -> str:
         """
         Return a string representation of the term indexed by ``t``.
 
@@ -236,25 +238,26 @@ class RationalCherednikAlgebra(CombinatorialFreeModule):
             sage: list(R.algebra_generators())
             [a1, a2, s1, s2, ac1, ac2]
         """
-        keys  = ['a'+str(i) for i in self._cartan_type.index_set()]
-        keys += ['s'+str(i) for i in self._cartan_type.index_set()]
-        keys += ['ac'+str(i) for i in self._cartan_type.index_set()]
+        keys = ['a' + str(i) for i in self._cartan_type.index_set()]
+        keys += ['s' + str(i) for i in self._cartan_type.index_set()]
+        keys += ['ac' + str(i) for i in self._cartan_type.index_set()]
+
         def gen_map(k):
             if k[0] == 's':
                 i = int(k[1:])
-                return self.monomial( (self._hd.one(),
-                                       self._weyl.group_generators()[i],
-                                       self._h.one()) )
+                return self.monomial((self._hd.one(),
+                                      self._weyl.group_generators()[i],
+                                      self._h.one()))
             if k[1] == 'c':
                 i = int(k[2:])
-                return self.monomial( (self._hd.one(),
-                                       self._weyl.one(),
-                                       self._h.monoid_generators()[i]) )
+                return self.monomial((self._hd.one(),
+                                      self._weyl.one(),
+                                      self._h.monoid_generators()[i]))
 
             i = int(k[1:])
-            return self.monomial( (self._hd.monoid_generators()[i],
-                                   self._weyl.one(),
-                                   self._h.one()) )
+            return self.monomial((self._hd.monoid_generators()[i],
+                                  self._weyl.one(),
+                                  self._h.one()))
         return Family(keys, gen_map)
 
     @cached_method
@@ -317,19 +320,19 @@ class RationalCherednikAlgebra(CombinatorialFreeModule):
         I = self._cartan_type.index_set()
         P = PolynomialRing(R, 'x', len(I))
         G = P.gens()
-        gens_dict = {a:G[i] for i,a in enumerate(I)}
+        gens_dict = {a: G[i] for i, a in enumerate(I)}
         Q = RootSystem(self._cartan_type).root_lattice()
         alpha = Q.simple_roots()
         alphacheck = Q.simple_coroots()
 
-        def commute_w_hd(w, al): # al is given as a dictionary
+        def commute_w_hd(w, al):  # al is given as a dictionary
             ret = P.one()
             for k in al:
-                x = sum(c * gens_dict[i] for i,c in alpha[k].weyl_action(w))
+                x = sum(c * gens_dict[i] for i, c in alpha[k].weyl_action(w))
                 ret *= x**al[k]
-            ret = ret.dict()
+            ret = ret.monomial_coefficients()
             for k in ret:
-                yield (self._hd({I[i]: e for i,e in enumerate(k) if e != 0}), ret[k])
+                yield (self._hd({I[i]: e for i, e in enumerate(k) if e != 0}), ret[k])
 
         # Do Lac Ra if they are both non-trivial
         if dl and dr:
@@ -348,16 +351,16 @@ class RationalCherednikAlgebra(CombinatorialFreeModule):
                 del dr[ir]
 
             # We now commute right roots past the left reflections: s Ra = Ra' s
-            cur = self._from_dict({ (hd, s*right[1], right[2]): c * cc
-                                    for s,c in terms
-                                    for hd, cc in commute_w_hd(s, dr) })
-            cur = self.monomial( (left[0], left[1], self._h(dl)) ) * cur
+            cur = self._from_dict({(hd, s * right[1], right[2]): c * cc
+                                   for s, c in terms
+                                   for hd, cc in commute_w_hd(s, dr)})
+            cur = self.monomial((left[0], left[1], self._h(dl))) * cur
 
             # Add back in the commuted h and hd elements
-            rem = self.monomial( (left[0], left[1], self._h(dl)) )
-            rem = rem * self.monomial( (self._hd({ir:1}), self._weyl.one(),
-                                        self._h({il:1})) )
-            rem = rem * self.monomial( (self._hd(dr), right[1], right[2]) )
+            rem = self.monomial((left[0], left[1], self._h(dl)))
+            rem = rem * self.monomial((self._hd({ir: 1}), self._weyl.one(),
+                                       self._h({il: 1})))
+            rem = rem * self.monomial((self._hd(dr), right[1], right[2]))
 
             return cur + rem
 
@@ -366,24 +369,25 @@ class RationalCherednikAlgebra(CombinatorialFreeModule):
             #   so we must commute Lac Rs = Rs Lac'
             #   and obtain La (Ls Rs) (Lac' Rac)
             ret = P.one()
-            for k in dl:
+            r1_red = right[1].reduced_word()
+            for k, dlk in dl.items():
                 x = sum(c * gens_dict[i]
-                        for i,c in alphacheck[k].weyl_action(right[1].reduced_word(),
-                                                             inverse=True))
-                ret *= x**dl[k]
-            ret = ret.dict()
-            w = left[1]*right[1]
-            return self._from_dict({ (left[0], w,
-                                      self._h({I[i]: e for i,e in enumerate(k)
-                                               if e != 0}) * right[2]
+                        for i, c in alphacheck[k].weyl_action(r1_red,
+                                                              inverse=True))
+                ret *= x**dlk
+            ret = ret.monomial_coefficients()
+            w = left[1] * right[1]
+            return self._from_dict({(left[0], w,
+                                     self._h({I[i]: e for i, e in enumerate(k)
+                                              if e != 0}) * right[2]
                                      ): ret[k]
-                                     for k in ret })
+                                    for k in ret})
 
         # Otherwise dr is non-trivial and we have La Ls Ra Rs Rac,
         #   so we must commute Ls Ra = Ra' Ls
-        w = left[1]*right[1]
-        return self._from_dict({ (left[0] * hd, w, right[2]): c
-                                 for hd, c in commute_w_hd(left[1], dr) })
+        w = left[1] * right[1]
+        return self._from_dict({(left[0] * hd, w, right[2]): c
+                                for hd, c in commute_w_hd(left[1], dr)})
 
     @cached_method
     def _product_coroot_root(self, i, j):
@@ -394,27 +398,44 @@ class RationalCherednikAlgebra(CombinatorialFreeModule):
 
             sage: k = QQ['c,t']
             sage: R = algebras.RationalCherednik(['A',3], k.gen(0), k.gen(1))
-            sage: R._product_coroot_root(1, 1)
-            ((1, 2*t), (s1*s2*s3*s2*s1, 1/2*c), (s2*s3*s2, 1/2*c),
-             (s1*s2*s1, 1/2*c), (s1, 2*c), (s3, 0), (s2, 1/2*c))
-            sage: R._product_coroot_root(1, 2)
-            ((1, -t), (s1*s2*s3*s2*s1, 0), (s2*s3*s2, -1/2*c),
-             (s1*s2*s1, 1/2*c), (s1, -c), (s3, 0), (s2, -c))
-            sage: R._product_coroot_root(1, 3)
-            ((1, 0), (s1*s2*s3*s2*s1, 1/2*c), (s2*s3*s2, -1/2*c),
-             (s1*s2*s1, -1/2*c), (s1, 0), (s3, 0), (s2, 1/2*c))
+            sage: sorted(R._product_coroot_root(1, 1))
+            [(s1, 2*c),
+             (s1*s2*s1, 1/2*c),
+             (s1*s2*s3*s2*s1, 1/2*c),
+             (1, 2*t),
+             (s3, 0),
+             (s2, 1/2*c),
+             (s2*s3*s2, 1/2*c)]
+
+            sage: sorted(R._product_coroot_root(1, 2))
+            [(s1, -c),
+             (s1*s2*s1, 1/2*c),
+             (s1*s2*s3*s2*s1, 0),
+             (1, -t),
+             (s3, 0),
+             (s2, -c),
+             (s2*s3*s2, -1/2*c)]
+
+            sage: sorted(R._product_coroot_root(1, 3))
+            [(s1, 0),
+             (s1*s2*s1, -1/2*c),
+             (s1*s2*s3*s2*s1, 1/2*c),
+             (1, 0),
+             (s3, 0),
+             (s2, 1/2*c),
+             (s2*s3*s2, -1/2*c)]
         """
         Q = RootSystem(self._cartan_type).root_lattice()
         ac = Q.simple_coroot(i)
         al = Q.simple_root(j)
 
         R = self.base_ring()
-        terms = [( self._weyl.one(), self._t * R(ac.scalar(al)) )]
+        terms = [(self._weyl.one(), self._t * R(ac.scalar(al)))]
         for s in self._reflections:
             # p[0] is the root, p[1] is the coroot, p[2] the value c_s
             pr, pc, c = self._reflections[s]
-            terms.append(( s, c * R(ac.scalar(pr) * pc.scalar(al)
-                                    / pc.scalar(pr)) ))
+            terms.append((s, c * R(ac.scalar(pr) * pc.scalar(al)
+                                   / pc.scalar(pr))))
         return tuple(terms)
 
     def degree_on_basis(self, m):
@@ -432,7 +453,7 @@ class RationalCherednikAlgebra(CombinatorialFreeModule):
 
     @cached_method
     def trivial_idempotent(self):
-        """
+        r"""
         Return the trivial idempotent of ``self``.
 
         Let `e = |W|^{-1} \sum_{w \in W} w` is the trivial idempotent.
@@ -447,8 +468,8 @@ class RationalCherednikAlgebra(CombinatorialFreeModule):
             1/6*I + 1/6*s1 + 1/6*s2 + 1/6*s2*s1 + 1/6*s1*s2 + 1/6*s1*s2*s1
         """
         coeff = self.base_ring()(~self._weyl.cardinality())
-        hd_one = self._hd.one() # root - a
-        h_one = self._h.one() # coroot - ac
+        hd_one = self._hd.one()  # root - a
+        h_one = self._h.one()  # coroot - ac
         return self._from_dict({(hd_one, w, h_one): coeff for w in self._weyl},
                                remove_zeros=False)
 
@@ -468,12 +489,13 @@ class RationalCherednikAlgebra(CombinatorialFreeModule):
         G = self.algebra_generators()
         cm = ~CartanMatrix(self._cartan_type)
         n = len(I)
-        ac = [G['ac'+str(i)] for i in I]
-        la = [sum(cm[i,j]*G['a'+str(I[i])] for i in range(n)) for j in range(n)]
-        return self.sum(ac[i]*la[i] for i in range(n))
+        ac = [G['ac' + str(i)] for i in I]
+        la = [sum(cm[i, j] * G['a' + str(I[i])]
+                  for i in range(n)) for j in range(n)]
+        return self.sum(ac[i] * la[i] for i in range(n))
 
     @cached_method
-    def an_element(self):
+    def _an_element_(self):
         """
         Return an element of ``self``.
 
@@ -485,7 +507,7 @@ class RationalCherednikAlgebra(CombinatorialFreeModule):
         """
         G = self.algebra_generators()
         i = str(self._cartan_type.index_set()[0])
-        return G['a'+i] + 2*G['s'+i] + 3*G['ac'+i]
+        return G['a' + i] + 2 * G['s' + i] + 3 * G['ac' + i]
 
     def some_elements(self):
         """
@@ -500,4 +522,3 @@ class RationalCherednikAlgebra(CombinatorialFreeModule):
         ret = [self.zero(), self.one(), self.an_element()]
         ret += list(self.algebra_generators())
         return ret
-

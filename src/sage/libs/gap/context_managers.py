@@ -41,12 +41,11 @@ The value is reset even if exceptions occur::
 #   the License, or (at your option) any later version.
 #                   http://www.gnu.org/licenses/
 ###############################################################################
-from __future__ import print_function
 
 from sage.libs.gap.libgap import libgap
 
 
-class GlobalVariableContext():
+class GlobalVariableContext:
 
     def __init__(self, variable, value):
         """
@@ -58,9 +57,9 @@ class GlobalVariableContext():
 
         INPUT:
 
-        - ``variable`` -- string. The variable name.
+        - ``variable`` -- string; the variable name
 
-        - ``value`` -- anything that defines a GAP object.
+        - ``value`` -- anything that defines a GAP object
 
         EXAMPLES::
 
@@ -76,7 +75,7 @@ class GlobalVariableContext():
 
     def __enter__(self):
         """
-        Called when entering the with-block
+        Called when entering the with-block.
 
         EXAMPLES::
 
@@ -92,7 +91,7 @@ class GlobalVariableContext():
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         """
-        Called when exiting the with-block
+        Called when exiting the with-block.
 
         EXAMPLES::
 

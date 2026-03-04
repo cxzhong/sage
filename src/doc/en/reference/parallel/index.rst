@@ -2,7 +2,7 @@ Parallel Computing
 ==================
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    sage/parallel/decorate
    sage/parallel/reference
@@ -14,6 +14,6 @@ Parallel Computing
 
 .. SEEALSO::
 
-    - :ref:`sage.interfaces.psage`
+    - :mod:`sage.interfaces.psage`
 
 .. include:: ../footer.txt

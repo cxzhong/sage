@@ -2,12 +2,24 @@ r"""
 Normal form games with N players.
 
 This module implements a class for normal form games (strategic form games)
-[NN2007]_. At present 3 algorithms are implemented to compute equilibria
-of these games (``'lrs'`` - interfaced with the 'lrslib' library, ``'LCP'`` interfaced
-with the 'gambit' library and support enumeration built in Sage). The architecture
-for the class is based on the gambit architecture to ensure an easy transition
-between gambit and Sage.  At present the algorithms for the computation of equilibria
-only solve 2 player games.
+[NN2007]_. At present the following algorithms are implemented to
+compute equilibria of these games:
+
+ * ``'enumeration'`` - An implementation of the support enumeration
+   algorithm built in Sage.
+
+ * ``'LCP'`` - An interface with the 'gambit' solver's implementation
+   of the Lemke-Howson algorithm.
+
+ * ``'lp'`` - A built-in Sage implementation (with a gambit alternative)
+   of a zero-sum game solver using linear programming. See
+   :class:`MixedIntegerLinearProgram` for more on MILP solvers in Sage.
+
+ * ``'lrs'`` - A solver interfacing with the 'lrslib' library.
+
+The architecture for the class is based on the gambit architecture to
+ensure an easy transition between gambit and Sage.  At present the
+algorithms for the computation of equilibria only solve 2 player games.
 
 A very simple and well known example of normal form game is referred
 to as the 'Battle of the Sexes' in which two players Amy and Bob
@@ -59,7 +71,8 @@ Here is how we create the game in Sage::
     sage: B = matrix([[2, 1], [0, 3]])
     sage: battle_of_the_sexes = NormalFormGame([A, B])
     sage: battle_of_the_sexes
-    Normal Form Game with the following utilities: {(0, 1): [1, 1], (1, 0): [0, 0], (0, 0): [3, 2], (1, 1): [2, 3]}
+    Normal Form Game with the following utilities: {(0, 0): [3, 2],
+     (0, 1): [1, 1], (1, 0): [0, 0], (1, 1): [2, 3]}
 
 To obtain the Nash equilibria we run the ``obtain_nash()`` method. In the
 first few examples, we will use the 'support enumeration' algorithm.
@@ -144,10 +157,12 @@ playing strategy number `i` is given by the matrix/vector multiplication
 `(Ay)_i`, ie element in position `i` of the matrix/vector multiplication
 `Ay`) ::
 
-    sage: y = var('y')
+    sage: y = var('y')                                                                  # needs sage.symbolic
     sage: A = matrix([[1, -1], [-1, 1]])
-    sage: p = plot((A * vector([y, 1 - y]))[0], y, 0, 1, color='blue', legend_label='$u_1(r_1, (y, 1-y))$', axes_labels=['$y$', ''])
-    sage: p += plot((A * vector([y, 1 - y]))[1], y, 0, 1, color='red', legend_label='$u_1(r_2, (y, 1-y))$'); p
+    sage: p = plot((A * vector([y, 1 - y]))[0], y, 0, 1, color='blue',                  # needs sage.symbolic
+    ....:          legend_label='$u_1(r_1, (y, 1-y))$', axes_labels=['$y$', ''])
+    sage: p += plot((A * vector([y, 1 - y]))[1], y, 0, 1, color='red',                  # needs sage.symbolic
+    ....:           legend_label='$u_1(r_2, (y, 1-y))$'); p
     Graphics object consisting of 2 graphics primitives
 
 We see that the only point at which player 1 is indifferent amongst
@@ -201,7 +216,15 @@ time spent in prison)::
     sage: prisoners_dilemma.obtain_nash(algorithm='enumeration', maximization=False)
     [[(0, 1), (0, 1)]]
 
-When obtaining Nash equilibrium there are 3 algorithms currently available:
+When obtaining Nash equilibrium the following algorithms are
+currently available:
+
+* ``'lp'``: A solver for constant sum 2 player games using linear
+  programming. This constructs a
+  :mod:`MixedIntegerLinearProgram <sage.numerical.MILP>` using the
+  solver which was passed in with ``solver`` to solve the linear
+  programming representation of the game. See
+  :class:`MixedIntegerLinearProgram` for more on MILP solvers in Sage.
 
 * ``'lrs'``: Reverse search vertex enumeration for 2 player games. This
   algorithm uses the optional 'lrslib' package. To install it, type
@@ -212,8 +235,7 @@ When obtaining Nash equilibrium there are 3 algorithms currently available:
   `Gambit <http://gambit.sourceforge.net/>`_ [Gambit]_. At present this is
   the only gambit algorithm available in sage but further development will
   hope to implement more algorithms
-  (in particular for games with more than 2 players). To install it,
-  type ``sage -i gambit`` in the shell.
+  (in particular for games with more than 2 players).
 
 * ``'enumeration'``: Support enumeration for 2 player games. This
   algorithm is hard coded in Sage and checks through all potential
@@ -223,11 +245,15 @@ When obtaining Nash equilibrium there are 3 algorithms currently available:
   algorithm described in [NN2007]_ and a pruning component described
   in [SLB2008]_.
 
-Below we show how the three algorithms are called::
+Below we show how the these algorithms are called::
 
     sage: matching_pennies.obtain_nash(algorithm='lrs')  # optional - lrslib
     [[(1/2, 1/2), (1/2, 1/2)]]
     sage: matching_pennies.obtain_nash(algorithm='LCP')  # optional - gambit
+    [[(0.5, 0.5), (0.5, 0.5)]]
+    sage: matching_pennies.obtain_nash(algorithm='lp', solver='PPL')
+    [[(1/2, 1/2), (1/2, 1/2)]]
+    sage: matching_pennies.obtain_nash(algorithm='lp', solver='gambit') # optional - gambit
     [[(0.5, 0.5), (0.5, 0.5)]]
     sage: matching_pennies.obtain_nash(algorithm='enumeration')
     [[(1/2, 1/2), (1/2, 1/2)]]
@@ -236,8 +262,9 @@ Note that if no algorithm argument is passed then the default will be
 selected according to the following order (if the corresponding package is
 installed):
 
-1. ``'lrs'`` (requires 'lrslib')
-2. ``'enumeration'``
+1. ``'lp'`` (if the game is constant-sum; uses the solver chosen by Sage)
+2. ``'lrs'`` (requires 'lrslib')
+3. ``'enumeration'``
 
 Here is a game being constructed using gambit syntax (note that a
 ``NormalFormGame`` object acts like a dictionary with pure strategy tuples as
@@ -255,7 +282,8 @@ keys and payoffs as their values)::
     sage: f[1,1][0] = 4
     sage: f[1,1][1] = 4
     sage: f
-    Normal Form Game with the following utilities: {(0, 1): [2, 3], (1, 0): [3, 1], (0, 0): [1, 3], (1, 1): [4, 4]}
+    Normal Form Game with the following utilities: {(0, 0): [1, 3],
+     (0, 1): [2, 3], (1, 0): [3, 1], (1, 1): [4, 4]}
 
 Once this game is constructed we can view the payoff matrices and solve the
 game::
@@ -272,7 +300,12 @@ We can add an extra strategy to the first player::
 
     sage: f.add_strategy(0)
     sage: f
-    Normal Form Game with the following utilities: {(0, 1): [2, 3], (0, 0): [1, 3], (2, 1): [False, False], (2, 0): [False, False], (1, 0): [3, 1], (1, 1): [4, 4]}
+    Normal Form Game with the following utilities: {(0, 0): [1, 3],
+     (0, 1): [2, 3],
+     (1, 0): [3, 1],
+     (1, 1): [4, 4],
+     (2, 0): [False, False],
+     (2, 1): [False, False]}
 
 If we do this and try and obtain the Nash equilibrium or view the payoff
 matrices(without specifying the utilities), an error is returned::
@@ -331,7 +364,14 @@ more than 2 players::
     sage: threegame[1, 1, 1][1] = 6
     sage: threegame[1, 1, 1][2] = 4
     sage: threegame
-    Normal Form Game with the following utilities: {(0, 1, 1): [3, 5, 8], (1, 1, 0): [8, 4, 6], (1, 0, 0): [9, 7, 9], (0, 0, 1): [1, 5, 9], (1, 0, 1): [3, 2, 3], (0, 0, 0): [3, 1, 4], (0, 1, 0): [2, 6, 5], (1, 1, 1): [2, 6, 4]}
+    Normal Form Game with the following utilities: {(0, 0, 0): [3, 1, 4],
+     (0, 0, 1): [1, 5, 9],
+     (0, 1, 0): [2, 6, 5],
+     (0, 1, 1): [3, 5, 8],
+     (1, 0, 0): [9, 7, 9],
+     (1, 0, 1): [3, 2, 3],
+     (1, 1, 0): [8, 4, 6],
+     (1, 1, 1): [2, 6, 4]}
 
 The above requires a lot of input that could be simplified if there is
 another data structure with our utilities and/or a structure to the
@@ -348,7 +388,14 @@ utility function::
     ....:     for p in range(3):
     ....:          threegame[i, j, k][p] = utility([i, j, k], p)
     sage: threegame
-    Normal Form Game with the following utilities: {(0, 1, 1): [0, 2, 4], (1, 1, 0): [0, 2, 4], (1, 0, 0): [0, 1, 2], (0, 0, 1): [0, 1, 2], (1, 0, 1): [0, 2, 4], (0, 0, 0): [0, 0, 0], (0, 1, 0): [0, 1, 2], (1, 1, 1): [0, 3, 6]}
+    Normal Form Game with the following utilities: {(0, 0, 0): [0, 0, 0],
+     (0, 0, 1): [0, 1, 2],
+     (0, 1, 0): [0, 1, 2],
+     (0, 1, 1): [0, 2, 4],
+     (1, 0, 0): [0, 1, 2],
+     (1, 0, 1): [0, 2, 4],
+     (1, 1, 0): [0, 2, 4],
+     (1, 1, 1): [0, 3, 6]}
 
 At present no algorithm has been implemented in Sage for games with
 more than 2 players::
@@ -356,33 +403,24 @@ more than 2 players::
     sage: threegame.obtain_nash()
     Traceback (most recent call last):
     ...
-    NotImplementedError: Nash equilibrium for games with more than 2 players have not been implemented yet. Please see the gambit website (http://gambit.sourceforge.net/) that has a variety of available algorithms
+    NotImplementedError: Nash equilibrium for games with more than 2 players
+     have not been implemented yet. Please see the gambit website
+     (http://gambit.sourceforge.net/) that has a variety of available algorithms
 
 There are however a variety of such algorithms available in gambit,
 further compatibility between Sage and gambit is actively being developed:
 https://github.com/tturocy/gambit/tree/sage_integration.
 
-Note that the Gambit implementation of ``LCP`` can only handle integer
-payoffs. If a non integer payoff is used an error will be raised::
+It can be shown that linear scaling of the payoff matrices conserves the
+equilibrium values::
 
     sage: A = matrix([[2, 1], [1, 2.5]])
     sage: B = matrix([[-1, 3], [2, 1]])
     sage: g = NormalFormGame([A, B])
-    sage: g.obtain_nash(algorithm='LCP')  # optional - gambit
-    Traceback (most recent call last):
-    ...
-    ValueError: The Gambit implementation of LCP only allows for integer valued payoffs. Please scale your payoff matrices.
-
-Other algorithms can handle these payoffs::
-
     sage: g.obtain_nash(algorithm='enumeration')
     [[(1/5, 4/5), (3/5, 2/5)]]
     sage: g.obtain_nash(algorithm='lrs') # optional - lrslib
     [[(1/5, 4/5), (3/5, 2/5)]]
-
-It can be shown that linear scaling of the payoff matrices conserves the
-equilibrium values::
-
     sage: A = 2 * A
     sage: g = NormalFormGame([A, B])
     sage: g.obtain_nash(algorithm='LCP')  # optional - gambit
@@ -390,19 +428,22 @@ equilibrium values::
 
 It is also possible to generate a Normal form game from a gambit Game::
 
-    sage: from gambit import Game  # optional - gambit
-    sage: gambitgame= Game.new_table([2, 2])  # optional - gambit
-    sage: gambitgame[int(0), int(0)][int(0)] = int(8)  # optional - gambit
-    sage: gambitgame[int(0), int(0)][int(1)] = int(8)  # optional - gambit
-    sage: gambitgame[int(0), int(1)][int(0)] = int(2)  # optional - gambit
-    sage: gambitgame[int(0), int(1)][int(1)] = int(10)  # optional - gambit
-    sage: gambitgame[int(1), int(0)][int(0)] = int(10)  # optional - gambit
-    sage: gambitgame[int(1), int(0)][int(1)] = int(2)  # optional - gambit
-    sage: gambitgame[int(1), int(1)][int(0)] = int(5)  # optional - gambit
-    sage: gambitgame[int(1), int(1)][int(1)] = int(5)  # optional - gambit
-    sage: g = NormalFormGame(gambitgame)  # optional - gambit
-    sage: g  # optional - gambit
-    Normal Form Game with the following utilities: {(0, 1): [2.0, 10.0], (1, 0): [10.0, 2.0], (0, 0): [8.0, 8.0], (1, 1): [5.0, 5.0]}
+    sage: # optional - gambit
+    sage: from gambit import Game
+    sage: gambitgame= Game.new_table([2, 2])
+    sage: gambitgame[int(0), int(0)][int(0)] = int(8)
+    sage: gambitgame[int(0), int(0)][int(1)] = int(8)
+    sage: gambitgame[int(0), int(1)][int(0)] = int(2)
+    sage: gambitgame[int(0), int(1)][int(1)] = int(10)
+    sage: gambitgame[int(1), int(0)][int(0)] = int(10)
+    sage: gambitgame[int(1), int(0)][int(1)] = int(2)
+    sage: gambitgame[int(1), int(1)][int(0)] = int(5)
+    sage: gambitgame[int(1), int(1)][int(1)] = int(5)
+    sage: g = NormalFormGame(gambitgame); g
+    Normal Form Game with the following utilities: {(0, 0): [8.0, 8.0],
+     (0, 1): [2.0, 10.0],
+     (1, 0): [10.0, 2.0],
+     (1, 1): [5.0, 5.0]}
 
 For more information on using Gambit in Sage see: :mod:`Using Gambit in
 Sage<sage.game_theory.gambit_docs>`. This includes how to access Gambit
@@ -439,9 +480,9 @@ In the following we create the game (with a max value of 10) and solve it::
     sage: B = matrix([[min(i,j) + 2 * sign(i-j)  for j in range(K, 1, -1)]
     ....:             for i in range(K, 1, -1)])
     sage: g = NormalFormGame([A, B])
-    sage: g.obtain_nash(algorithm='lrs') # optional - lrslib
+    sage: g.obtain_nash(algorithm='lrs')  # optional - lrslib
     [[(0, 0, 0, 0, 0, 0, 0, 0, 1), (0, 0, 0, 0, 0, 0, 0, 0, 1)]]
-    sage: g.obtain_nash(algorithm='LCP') # optional - gambit
+    sage: g.obtain_nash(algorithm='LCP')  # optional - gambit
     [[(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0),
       (0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0)]]
 
@@ -527,9 +568,9 @@ is evidenced by the various algorithms returning different solutions::
     sage: A = matrix([[3,3],[2,5],[0,6]])
     sage: B = matrix([[3,3],[2,6],[3,1]])
     sage: degenerate_game = NormalFormGame([A,B])
-    sage: degenerate_game.obtain_nash(algorithm='lrs') # optional - lrslib
+    sage: degenerate_game.obtain_nash(algorithm='lrs')  # random, optional - lrslib
     [[(0, 1/3, 2/3), (1/3, 2/3)], [(1, 0, 0), (1/2, 3)], [(1, 0, 0), (1, 3)]]
-    sage: degenerate_game.obtain_nash(algorithm='LCP') # optional - gambit
+    sage: degenerate_game.obtain_nash(algorithm='LCP')  # optional - gambit
     [[(0.0, 0.3333333333, 0.6666666667), (0.3333333333, 0.6666666667)],
      [(1.0, -0.0, 0.0), (0.6666666667, 0.3333333333)],
      [(1.0, 0.0, 0.0), (1.0, 0.0)]]
@@ -576,40 +617,43 @@ REFERENCES:
 
 - [SLB2008]_
 
-AUTHOR:
+AUTHORS:
 
 - James Campbell and Vince Knight (06-2014): Original version
 
+- Tobenna P. Igwe: Constant-sum game solvers
 """
 
-#*****************************************************************************
+# ****************************************************************************
 #       Copyright (C) 2014 James Campbell james.campbell@tanti.org.uk
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
-from __future__ import print_function
-from __future__ import absolute_import
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
-from collections import MutableMapping
+from collections.abc import MutableMapping
 from itertools import product
 from .parser import Parser
 from sage.misc.latex import latex
-from sage.misc.misc import powerset
-from sage.rings.all import QQ
+from sage.combinat.subset import powerset
+from sage.rings.rational_field import QQ
 from sage.structure.sage_object import SageObject
 from sage.matrix.constructor import matrix
 from sage.matrix.constructor import vector
-from sage.misc.package import is_package_installed, PackageNotFoundError
 from sage.misc.temporary_file import tmp_filename
+from sage.numerical.mip import MixedIntegerLinearProgram
+from sage.cpython.string import bytes_to_str
 
 try:
     from gambit import Game
+    from gambit.nash import ExternalLPSolver, ExternalLCPSolver
 except ImportError:
     Game = None
+    ExternalLPSolver = None
+    ExternalLCPSolver = None
 
 
 class NormalFormGame(SageObject, MutableMapping):
@@ -621,12 +665,11 @@ class NormalFormGame(SageObject, MutableMapping):
 
     - ``generator`` -- can be a list of 2 matrices, a single matrix or left
       blank
-
     """
 
     def __init__(self, generator=None):
         r"""
-        Initializes a Normal Form game and checks the inputs.
+        Initialize a Normal Form game and checks the inputs.
 
         EXAMPLES:
 
@@ -663,23 +706,29 @@ class NormalFormGame(SageObject, MutableMapping):
             sage: threegame.obtain_nash()
             Traceback (most recent call last):
             ...
-            NotImplementedError: Nash equilibrium for games with more than 2 players have not been implemented yet. Please see the gambit website (http://gambit.sourceforge.net/) that has a variety of available algorithms
+            NotImplementedError: Nash equilibrium for games with more than
+             2 players have not been implemented yet. Please see the gambit
+             website (http://gambit.sourceforge.net/) that has a variety of
+             available algorithms
 
         Can initialise a game from a gambit game object::
 
-            sage: from gambit import Game  # optional - gambit
-            sage: gambitgame= Game.new_table([2, 2])  # optional - gambit
-            sage: gambitgame[int(0), int(0)][int(0)] = int(5)  # optional - gambit
-            sage: gambitgame[int(0), int(0)][int(1)] = int(8)  # optional - gambit
-            sage: gambitgame[int(0), int(1)][int(0)] = int(2)  # optional - gambit
-            sage: gambitgame[int(0), int(1)][int(1)] = int(11)  # optional - gambit
-            sage: gambitgame[int(1), int(0)][int(0)] = int(10)  # optional - gambit
-            sage: gambitgame[int(1), int(0)][int(1)] = int(7)  # optional - gambit
-            sage: gambitgame[int(1), int(1)][int(0)] = int(5)  # optional - gambit
-            sage: gambitgame[int(1), int(1)][int(1)] = int(5)  # optional - gambit
-            sage: g = NormalFormGame(gambitgame)  # optional - gambit
-            sage: g  # optional - gambit
-            Normal Form Game with the following utilities: {(0, 1): [2.0, 11.0], (1, 0): [10.0, 7.0], (0, 0): [5.0, 8.0], (1, 1): [5.0, 5.0]}
+            sage: # optional - gambit
+            sage: from gambit import Game
+            sage: gambitgame= Game.new_table([2, 2])
+            sage: gambitgame[int(0), int(0)][int(0)] = int(5)
+            sage: gambitgame[int(0), int(0)][int(1)] = int(8)
+            sage: gambitgame[int(0), int(1)][int(0)] = int(2)
+            sage: gambitgame[int(0), int(1)][int(1)] = int(11)
+            sage: gambitgame[int(1), int(0)][int(0)] = int(10)
+            sage: gambitgame[int(1), int(0)][int(1)] = int(7)
+            sage: gambitgame[int(1), int(1)][int(0)] = int(5)
+            sage: gambitgame[int(1), int(1)][int(1)] = int(5)
+            sage: g = NormalFormGame(gambitgame); g
+            Normal Form Game with the following utilities: {(0, 0): [5.0, 8.0],
+             (0, 1): [2.0, 11.0],
+             (1, 0): [10.0, 7.0],
+             (1, 1): [5.0, 5.0]}
 
         TESTS:
 
@@ -699,7 +748,7 @@ class NormalFormGame(SageObject, MutableMapping):
             sage: error = NormalFormGame(p1, p2)
             Traceback (most recent call last):
             ...
-            TypeError: __init__() takes at most 2 arguments (3 given)
+            TypeError: ...__init__() takes from 1 to 2 positional arguments but 3 were given
 
         When initiating, argument passed must be a list or nothing::
 
@@ -713,7 +762,6 @@ class NormalFormGame(SageObject, MutableMapping):
             sage: game = NormalFormGame()
             sage: game
             Normal Form Game with the following utilities: {}
-
         """
         self.players = []
         self.utilities = {}
@@ -745,10 +793,12 @@ class NormalFormGame(SageObject, MutableMapping):
             sage: B = matrix([[2, 0], [5, 4]])
             sage: prisoners_dilemma = NormalFormGame([A, B])
             sage: prisoners_dilemma
-            Normal Form Game with the following utilities: {(0, 1): [5, 0], (1, 0): [0, 5], (0, 0): [2, 2], (1, 1): [4, 4]}
+            Normal Form Game with the following utilities: {(0, 0): [2, 2],
+             (0, 1): [5, 0], (1, 0): [0, 5], (1, 1): [4, 4]}
             sage: del(prisoners_dilemma[(0,1)])
             sage: prisoners_dilemma
-            Normal Form Game with the following utilities: {(1, 0): [0, 5], (0, 0): [2, 2], (1, 1): [4, 4]}
+            Normal Form Game with the following utilities: {(0, 0): [2, 2],
+             (1, 0): [0, 5], (1, 1): [4, 4]}
         """
         self.utilities.pop(key, None)
 
@@ -786,11 +836,11 @@ class NormalFormGame(SageObject, MutableMapping):
             sage: A = matrix([[2, 5], [0, 4]])
             sage: B = matrix([[2, 0], [5, 4]])
             sage: prisoners_dilemma = NormalFormGame([A, B])
-            sage: for key in prisoners_dilemma:
-            ....:     print("The strategy pair {} gives utilities {}".format(key, prisoners_dilemma[key]))
+            sage: for key, value in sorted(prisoners_dilemma.items()):
+            ....:     print("The strategy pair {} gives utilities {}".format(key, value))
+            The strategy pair (0, 0) gives utilities [2, 2]
             The strategy pair (0, 1) gives utilities [5, 0]
             The strategy pair (1, 0) gives utilities [0, 5]
-            The strategy pair (0, 0) gives utilities [2, 2]
             The strategy pair (1, 1) gives utilities [4, 4]
         """
         return iter(self.utilities)
@@ -840,7 +890,7 @@ class NormalFormGame(SageObject, MutableMapping):
         """
         return len(self.utilities)
 
-    def _repr_(self):
+    def _repr_(self) -> str:
         r"""
         Return the strategy_profiles of the game.
 
@@ -852,12 +902,14 @@ class NormalFormGame(SageObject, MutableMapping):
             sage: p2 = matrix([[3, 3], [1, 4]])
             sage: g = NormalFormGame([p1, p2])
             sage: g
-            Normal Form Game with the following utilities: {(0, 1): [2, 3], (1, 0): [3, 1], (0, 0): [1, 3], (1, 1): [4, 4]}
+            Normal Form Game with the following utilities: {(0, 0): [1, 3],
+             (0, 1): [2, 3], (1, 0): [3, 1], (1, 1): [4, 4]}
         """
+        from pprint import pformat
         base_str = "Normal Form Game with the following utilities: {}"
-        return base_str.format(self.utilities)
+        return base_str.format(pformat(self.utilities))
 
-    def _latex_(self):
+    def _latex_(self) -> str:
         r"""
         Return the LaTeX code representing the ``NormalFormGame``.
 
@@ -884,11 +936,14 @@ class NormalFormGame(SageObject, MutableMapping):
             sage: g.add_player(2)  # Adding second player with 2 strategies
             sage: g.add_player(2)  # Creating a game with three players
             sage: latex(g)
-            \text{\texttt{Normal{ }Form{ }Game{ }...[False,{ }False,{ }False]{\char`\}}}}
+            \begin{array}{l}
+            \text{\texttt{Normal{ }Form{ }Game{ }with{ }the{ }...
+            ...
+            \end{array}
         """
         if len(self.players) == 2:
             M1, M2 = self.payoff_matrices()
-            return "\left(%s, %s\\right)" % (M1._latex_(), M2._latex_())
+            return r"\left(%s, %s\right)" % (M1._latex_(), M2._latex_())
         return latex(str(self))
 
     def _two_matrix_game(self, matrices):
@@ -914,26 +969,27 @@ class NormalFormGame(SageObject, MutableMapping):
 
     def _gambit_game(self, game):
         r"""
-        Creates a ``NormalFormGame`` object from a Gambit game.
+        Create a ``NormalFormGame`` object from a Gambit game.
 
         TESTS::
 
-            sage: from gambit import Game  # optional - gambit
-            sage: testgame = Game.new_table([2, 2])  # optional - gambit
-            sage: testgame[int(0), int(0)][int(0)] = int(8)  # optional - gambit
-            sage: testgame[int(0), int(0)][int(1)] = int(8)  # optional - gambit
-            sage: testgame[int(0), int(1)][int(0)] = int(2)  # optional - gambit
-            sage: testgame[int(0), int(1)][int(1)] = int(10)  # optional - gambit
-            sage: testgame[int(1), int(0)][int(0)] = int(10)  # optional - gambit
-            sage: testgame[int(1), int(0)][int(1)] = int(2)  # optional - gambit
-            sage: testgame[int(1), int(1)][int(0)] = int(5)  # optional - gambit
-            sage: testgame[int(1), int(1)][int(1)] = int(5)  # optional - gambit
-            sage: g = NormalFormGame()  # optional - gambit
-            sage: g._gambit_game(testgame)  # optional - gambit
-            sage: g  # optional - gambit
-            Normal Form Game with the following utilities:
-             {(0, 1): [2.0, 10.0], (1, 0): [10.0, 2.0],
-              (0, 0): [8.0, 8.0], (1, 1): [5.0, 5.0]}
+            sage: # optional - gambit
+            sage: from gambit import Game
+            sage: testgame = Game.new_table([2, 2])
+            sage: testgame[int(0), int(0)][int(0)] = int(8)
+            sage: testgame[int(0), int(0)][int(1)] = int(8)
+            sage: testgame[int(0), int(1)][int(0)] = int(2)
+            sage: testgame[int(0), int(1)][int(1)] = int(10)
+            sage: testgame[int(1), int(0)][int(0)] = int(10)
+            sage: testgame[int(1), int(0)][int(1)] = int(2)
+            sage: testgame[int(1), int(1)][int(0)] = int(5)
+            sage: testgame[int(1), int(1)][int(1)] = int(5)
+            sage: g = NormalFormGame()
+            sage: g._gambit_game(testgame); g
+            Normal Form Game with the following utilities: {(0, 0): [8.0, 8.0],
+            (0, 1): [2.0, 10.0],
+            (1, 0): [10.0, 2.0],
+            (1, 1): [5.0, 5.0]}
         """
         self.players = []
         self.utilities = {}
@@ -943,6 +999,209 @@ class NormalFormGame(SageObject, MutableMapping):
         for strategy_profile in self.utilities:
             utility_vector = [float(game[strategy_profile][i]) for i in range(len(self.players))]
             self.utilities[strategy_profile] = utility_vector
+
+    def _gambit_(self, as_integer=False, maximization=True):
+        r"""
+        Create a Gambit game from a ``NormalFormGame`` object.
+
+        INPUT:
+
+        - ``as_integer`` -- boolean; whether the gambit representation
+          should have the payoffs represented as integers or decimals
+
+        - ``maximization`` -- boolean; whether a player is trying to
+          maximize their utility or minimize it
+
+        TESTS::
+
+            sage: # optional - gambit
+            sage: from gambit import Game
+            sage: A = matrix([[2, 1], [1, 2.5]])
+            sage: g = NormalFormGame([A])
+            sage: gg = g._gambit_(); gg
+            NFG 1 R "" { "1" "2" }
+            <BLANKLINE>
+            { { "1" "2" }
+            { "1" "2" }
+            }
+            ""
+            <BLANKLINE>
+            {
+            { "" 2, -2 }
+            { "" 1, -1 }
+            { "" 1, -1 }
+            { "" 2.5, -2.5 }
+            }
+            1 2 3 4
+            <BLANKLINE>
+            sage: gg = g._gambit_(as_integer=True); gg
+            NFG 1 R "" { "1" "2" }
+            <BLANKLINE>
+            { { "1" "2" }
+            { "1" "2" }
+            }
+            ""
+            <BLANKLINE>
+            {
+            { "" 2, -2 }
+            { "" 1, -1 }
+            { "" 1, -1 }
+            { "" 2, -2 }
+            }
+            1 2 3 4
+            <BLANKLINE>
+
+        ::
+
+            sage: # optional - gambit
+            sage: A = matrix([[2, 1], [1, 2.5]])
+            sage: B = matrix([[3, 2], [5.5, 4]])
+            sage: g = NormalFormGame([A, B])
+            sage: gg = g._gambit_(); gg
+            NFG 1 R "" { "1" "2" }
+            <BLANKLINE>
+            { { "1" "2" }
+            { "1" "2" }
+            }
+            ""
+            <BLANKLINE>
+            {
+            { "" 2, 3 }
+            { "" 1, 5.5 }
+            { "" 1, 2 }
+            { "" 2.5, 4 }
+            }
+            1 2 3 4
+            <BLANKLINE>
+            sage: gg = g._gambit_(as_integer = True); gg
+            NFG 1 R "" { "1" "2" }
+            <BLANKLINE>
+            { { "1" "2" }
+            { "1" "2" }
+            }
+            ""
+            <BLANKLINE>
+            {
+            { "" 2, 3 }
+            { "" 1, 5 }
+            { "" 1, 2 }
+            { "" 2, 4 }
+            }
+            1 2 3 4
+            <BLANKLINE>
+
+        ::
+
+            sage: # optional - gambit
+            sage: threegame = NormalFormGame()
+            sage: threegame.add_player(2)
+            sage: threegame.add_player(2)
+            sage: threegame.add_player(2)
+            sage: threegame[0, 0, 0][0] = 3
+            sage: threegame[0, 0, 0][1] = 1
+            sage: threegame[0, 0, 0][2] = 4
+            sage: threegame[0, 0, 1][0] = 1
+            sage: threegame[0, 0, 1][1] = 5
+            sage: threegame[0, 0, 1][2] = 9
+            sage: threegame[0, 1, 0][0] = 2
+            sage: threegame[0, 1, 0][1] = 6
+            sage: threegame[0, 1, 0][2] = 5
+            sage: threegame[0, 1, 1][0] = 3
+            sage: threegame[0, 1, 1][1] = 5
+            sage: threegame[0, 1, 1][2] = 8
+            sage: threegame[1, 0, 0][0] = 9
+            sage: threegame[1, 0, 0][1] = 7
+            sage: threegame[1, 0, 0][2] = 9
+            sage: threegame[1, 0, 1][0] = 3
+            sage: threegame[1, 0, 1][1] = 2
+            sage: threegame[1, 0, 1][2] = 3
+            sage: threegame[1, 1, 0][0] = 8
+            sage: threegame[1, 1, 0][1] = 4
+            sage: threegame[1, 1, 0][2] = 6
+            sage: threegame[1, 1, 1][0] = 2
+            sage: threegame[1, 1, 1][1] = 6
+            sage: threegame[1, 1, 1][2] = 4
+            sage: threegame._gambit_(as_integer = True)
+            NFG 1 R "" { "1" "2" "3" }
+            <BLANKLINE>
+            { { "1" "2" }
+            { "1" "2" }
+            { "1" "2" }
+            }
+            ""
+            <BLANKLINE>
+            {
+            { "" 3, 1, 4 }
+            { "" 9, 7, 9 }
+            { "" 2, 6, 5 }
+            { "" 8, 4, 6 }
+            { "" 1, 5, 9 }
+            { "" 3, 2, 3 }
+            { "" 3, 5, 8 }
+            { "" 2, 6, 4 }
+            }
+            1 2 3 4 5 6 7 8
+            <BLANKLINE>
+        """
+        from decimal import Decimal
+        strategy_sizes = [p.num_strategies for p in self.players]
+        g = Game.new_table(strategy_sizes)
+
+        sgn = 1
+        if not maximization:
+            sgn = -1
+
+        players = len(strategy_sizes)
+
+        for strategy_profile in self.utilities:
+            for i in range(players):
+                if as_integer:
+                    g[strategy_profile][i] = sgn * int(self.utilities[strategy_profile][i])
+                else:
+                    g[strategy_profile][i] = sgn * Decimal(float(self.utilities[strategy_profile][i]))
+        return g
+
+    def is_constant_sum(self):
+        r"""
+        Check if the game is constant sum.
+
+        EXAMPLES::
+
+            sage: A = matrix([[2, 1], [1, 2.5]])
+            sage: g = NormalFormGame([A])
+            sage: g.is_constant_sum()
+            True
+            sage: g = NormalFormGame([A, A])
+            sage: g.is_constant_sum()
+            False
+            sage: A = matrix([[1, 1], [1, 1]])
+            sage: g = NormalFormGame([A, A])
+            sage: g.is_constant_sum()
+            True
+            sage: A = matrix([[1, 1, 2], [1, 1, -1], [1, -1, 1]])
+            sage: B = matrix([[2, 2, 1], [2, 2, 4], [2, 4, 2]])
+            sage: g = NormalFormGame([A, B])
+            sage: g.is_constant_sum()
+            True
+            sage: A = matrix([[1, 1, 2], [1, 1, -1], [1, -1, 1]])
+            sage: B = matrix([[2, 2, 1], [2, 2.1, 4], [2, 4, 2]])
+            sage: g = NormalFormGame([A, B])
+            sage: g.is_constant_sum()
+            False
+        """
+        import sys
+        if len(self.players) > 2:
+            return False
+        m1, m2 = self.payoff_matrices()
+        c = m1 + m2
+        t = c[0, 0]
+
+        for row in c:
+            for i in row:
+                if abs(t - i) > sys.float_info.epsilon:
+                    return False
+
+        return True
 
     def payoff_matrices(self):
         r"""
@@ -1018,7 +1277,9 @@ class NormalFormGame(SageObject, MutableMapping):
             sage: g.add_player(1)  # Adding second player with 1 strategy
             sage: g.add_player(1)  # Adding third player with 1 strategy
             sage: g
-            Normal Form Game with the following utilities: {(1, 0, 0): [False, False, False], (0, 0, 0): [False, False, False]}
+            Normal Form Game with the following utilities:
+             {(0, 0, 0): [False, False, False],
+              (1, 0, 0): [False, False, False]}
         """
         self.players.append(_Player(num_strategies))
         self._generate_utilities(True)
@@ -1031,7 +1292,7 @@ class NormalFormGame(SageObject, MutableMapping):
 
         INPUT:
 
-        - ``replacement`` -- Boolean value of whether previously created
+        - ``replacement`` -- boolean value of whether previously created
           profiles should be replaced or not
 
         TESTS::
@@ -1045,25 +1306,30 @@ class NormalFormGame(SageObject, MutableMapping):
 
             sage: g._generate_utilities(True)
             sage: g
-            Normal Form Game with the following utilities:
-             {(0, 1): [False, False], (1, 0): [False, False],
-              (0, 0): [False, False], (1, 1): [False, False]}
+            Normal Form Game with the following utilities: {(0, 0): [False, False],
+             (0, 1): [False, False],
+             (1, 0): [False, False],
+             (1, 1): [False, False]}
 
             sage: g[(0,1)] = [2, 3]
             sage: g.add_strategy(1)
             sage: g._generate_utilities(False)
             sage: g
-            Normal Form Game with the following utilities:
-             {(0, 1): [2, 3], (1, 2): [False, False],
-              (0, 0): [False, False], (0, 2): [False, False],
-              (1, 0): [False, False], (1, 1): [False, False]}
+            Normal Form Game with the following utilities: {(0, 0): [False, False],
+             (0, 1): [2, 3],
+             (0, 2): [False, False],
+             (1, 0): [False, False],
+             (1, 1): [False, False],
+             (1, 2): [False, False]}
 
             sage: g._generate_utilities(True)
             sage: g
-            Normal Form Game with the following utilities:
-             {(0, 1): [False, False], (1, 2): [False, False],
-              (0, 0): [False, False], (1, 1): [False, False],
-              (1, 0): [False, False], (0, 2): [False, False]}
+            Normal Form Game with the following utilities: {(0, 0): [False, False],
+             (0, 1): [False, False],
+             (0, 2): [False, False],
+             (1, 0): [False, False],
+             (1, 1): [False, False],
+             (1, 2): [False, False]}
         """
         strategy_sizes = [range(p.num_strategies) for p in self.players]
         if replacement is True:
@@ -1089,11 +1355,16 @@ class NormalFormGame(SageObject, MutableMapping):
             sage: t = matrix([[3, 2], [-1, 0]])
             sage: example = NormalFormGame([s, t])
             sage: example
-            Normal Form Game with the following utilities: {(0, 1): [0, 2], (1, 0): [-2, -1], (0, 0): [1, 3], (1, 1): [3, 0]}
+            Normal Form Game with the following utilities: {(0, 0): [1, 3],
+             (0, 1): [0, 2], (1, 0): [-2, -1], (1, 1): [3, 0]}
             sage: example.add_strategy(0)
             sage: example
-            Normal Form Game with the following utilities: {(0, 1): [0, 2], (0, 0): [1, 3], (2, 1): [False, False], (2, 0): [False, False], (1, 0): [-2, -1], (1, 1): [3, 0]}
-
+            Normal Form Game with the following utilities: {(0, 0): [1, 3],
+             (0, 1): [0, 2],
+             (1, 0): [-2, -1],
+             (1, 1): [3, 0],
+             (2, 0): [False, False],
+             (2, 1): [False, False]}
         """
         self.players[player].add_strategy()
         self._generate_utilities(False)
@@ -1114,12 +1385,11 @@ class NormalFormGame(SageObject, MutableMapping):
             sage: example._is_complete()
             False
         """
-        results = []
-        for profile in self.utilities.values():
-            results.append(all(type(i) is not bool for i in profile))
+        results = (all(not isinstance(i, bool) for i in profile)
+                   for profile in self.utilities.values())
         return all(results)
 
-    def obtain_nash(self, algorithm=False, maximization=True):
+    def obtain_nash(self, algorithm=False, maximization=True, solver=None):
         r"""
         A function to return the Nash equilibrium for the game.
         Optional arguments can be used to specify the algorithm used.
@@ -1128,18 +1398,20 @@ class NormalFormGame(SageObject, MutableMapping):
 
         INPUT:
 
-        - ``algorithm`` - the following algorithms should be available through
+        - ``algorithm`` -- the following algorithms should be available through
           this function:
 
-          * ``'lrs'`` - This algorithm is only suited for 2 player games.
+          * ``'lrs'`` -- this algorithm is only suited for 2 player games.
             See the lrs web site (http://cgm.cs.mcgill.ca/~avis/C/lrs.html).
 
-          * ``'LCP'`` - This algorithm is only suited for 2 player games.
-            See the gambit web site (http://gambit.sourceforge.net/). Note
-            that the output differs from the other algorithms: floats are
-            returned.
+          * ``'LCP'`` -- this algorithm is only suited for 2 player games.
+            See the gambit web site (http://gambit.sourceforge.net/).
 
-          * ``'enumeration'`` - This is a very inefficient
+          * ``'lp'`` -- this algorithm is only suited for 2 player
+            constant sum games. Uses MILP solver determined by the
+            ``solver`` argument.
+
+          * ``'enumeration'`` -- this is a very inefficient
             algorithm (in essence a brute force approach).
 
             1. For each k in 1...min(size of strategy sets)
@@ -1178,14 +1450,20 @@ class NormalFormGame(SageObject, MutableMapping):
 
                 \sum_{j\in S(\rho_1)}{\rho_2}_j = 1
 
-        - ``maximization`` -- Whether a player is trying to maximize their
-          utility or minimize it.
+        - ``maximization`` -- boolean (default: ``True``); whether a player is
+          trying to maximize their utility or minimize it:
 
-          * When set to ``True`` (default) it is assumed that players
-            aim to maximise their utility.
+          * When set to ``True`` it is assumed that players aim to
+            maximise their utility.
 
           * When set to ``False`` it is assumed that players aim to
             minimise their utility.
+
+        - ``solver`` -- (optional) see :class:`MixedIntegerLinearProgram`
+          for more information on the MILP solvers in Sage, may also
+          be ``'gambit'`` to use the MILP solver included with the gambit
+          library. Note that ``None`` means to use the default Sage LP solver,
+          normally GLPK.
 
         EXAMPLES:
 
@@ -1201,10 +1479,12 @@ class NormalFormGame(SageObject, MutableMapping):
             ....:             [3, 4, 1],
             ....:             [4, 1, 20]])
             sage: g=NormalFormGame([A, B])
-            sage: g.obtain_nash(algorithm='lrs') # optional - lrslib
+            sage: g.obtain_nash(algorithm='lrs')  # optional - lrslib
             [[(0, 0, 0, 1), (0, 0, 1)]]
-            sage: g.obtain_nash(algorithm='lrs', maximization=False) # optional - lrslib
-            [[(2/3, 1/12, 1/4, 0), (6333/8045, 247/8045, 293/1609)], [(3/4, 0, 1/4, 0), (0, 11/307, 296/307)], [(5/6, 1/6, 0, 0), (98/99, 1/99, 0)]]
+            sage: g.obtain_nash(algorithm='lrs', maximization=False)  # optional - lrslib
+            [[(2/3, 1/12, 1/4, 0), (6333/8045, 247/8045, 293/1609)],
+             [(3/4, 0, 1/4, 0), (0, 11/307, 296/307)],
+             [(5/6, 1/6, 0, 0), (98/99, 1/99, 0)]]
 
         This particular game has 3 Nash equilibria::
 
@@ -1216,7 +1496,9 @@ class NormalFormGame(SageObject, MutableMapping):
             ....:             [3,1]])
             sage: g = NormalFormGame([A, B])
             sage: g.obtain_nash(algorithm='enumeration')
-            [[(0, 1/3, 2/3), (1/3, 2/3)], [(4/5, 1/5, 0), (2/3, 1/3)], [(1, 0, 0), (1, 0)]]
+            [[(0, 1/3, 2/3), (1/3, 2/3)],
+             [(4/5, 1/5, 0), (2/3, 1/3)],
+             [(1, 0, 0), (1, 0)]]
 
         Here is a slightly larger game::
 
@@ -1251,10 +1533,66 @@ class NormalFormGame(SageObject, MutableMapping):
             sage: fivegame = NormalFormGame([player1, player2])
             sage: fivegame.obtain_nash(algorithm='enumeration')
             [[(1, 0, 0, 0, 0), (0, 1, 0, 0, 0)]]
-            sage: fivegame.obtain_nash(algorithm='lrs') # optional - lrslib
+            sage: fivegame.obtain_nash(algorithm='lrs')  # optional - lrslib
             [[(1, 0, 0, 0, 0), (0, 1, 0, 0, 0)]]
-            sage: fivegame.obtain_nash(algorithm='LCP') # optional - gambit
+            sage: fivegame.obtain_nash(algorithm='LCP')  # optional - gambit
             [[(1.0, 0.0, 0.0, 0.0, 0.0), (0.0, 1.0, 0.0, 0.0, 0.0)]]
+
+        Here are some examples of finding Nash equilibria for constant-sum games::
+
+            sage: A = matrix.identity(2)
+            sage: cg = NormalFormGame([A])
+            sage: cg.obtain_nash(algorithm='lp')
+            [[(0.5, 0.5), (0.5, 0.5)]]
+            sage: cg.obtain_nash(algorithm='lp', solver='Coin')                   # optional - sage_numerical_backends_coin
+            [[(0.5, 0.5), (0.5, 0.5)]]
+            sage: cg.obtain_nash(algorithm='lp', solver='PPL')
+            [[(1/2, 1/2), (1/2, 1/2)]]
+            sage: cg.obtain_nash(algorithm='lp', solver='gambit')                 # optional - gambit
+            [[(0.5, 0.5), (0.5, 0.5)]]
+            sage: A = matrix([[2, 1], [1, 3]])
+            sage: cg = NormalFormGame([A])
+            sage: ne = cg.obtain_nash(algorithm='lp', solver='glpk')
+            sage: [[[round(el, 6) for el in v] for v in eq] for eq in ne]
+            [[[0.666667, 0.333333], [0.666667, 0.333333]]]
+            sage: ne = cg.obtain_nash(algorithm='lp', solver='Coin')              # optional - sage_numerical_backends_coin
+            sage: [[[round(el, 6) for el in v] for v in eq] for eq in ne]         # optional - sage_numerical_backends_coin
+            [[[0.666667, 0.333333], [0.666667, 0.333333]]]
+            sage: cg.obtain_nash(algorithm='lp', solver='PPL')
+            [[(2/3, 1/3), (2/3, 1/3)]]
+            sage: ne = cg.obtain_nash(algorithm='lp', solver='gambit')            # optional - gambit
+            sage: [[[round(el, 6) for el in v] for v in eq] for eq in ne]         # optional - gambit
+            [[[0.666667, 0.333333], [0.666667, 0.333333]]]
+            sage: A = matrix([[1, 2, 1], [1, 1, 2], [2, 1, 1]])
+            sage: B = matrix([[2, 1, 2], [2, 2, 1], [1, 2, 2]])
+            sage: cg = NormalFormGame([A, B])
+            sage: ne = cg.obtain_nash(algorithm='lp', solver='glpk')
+            sage: [[[round(el, 6) for el in v] for v in eq] for eq in ne]
+            [[[0.333333, 0.333333, 0.333333], [0.333333, 0.333333, 0.333333]]]
+            sage: ne = cg.obtain_nash(algorithm='lp', solver='Coin')              # optional - sage_numerical_backends_coin
+            sage: [[[round(el, 6) for el in v] for v in eq] for eq in ne]         # optional - sage_numerical_backends_coin
+            [[[0.333333, 0.333333, 0.333333], [0.333333, 0.333333, 0.333333]]]
+            sage: cg.obtain_nash(algorithm='lp', solver='PPL')
+            [[(1/3, 1/3, 1/3), (1/3, 1/3, 1/3)]]
+            sage: ne = cg.obtain_nash(algorithm='lp', solver='gambit')            # optional - gambit
+            sage: [[[round(el, 6) for el in v] for v in eq] for eq in ne]         # optional - gambit
+            [[[0.333333, 0.333333, 0.333333], [0.333333, 0.333333, 0.333333]]]
+            sage: A = matrix([[160, 205, 44],
+            ....:             [175, 180, 45],
+            ....:             [201, 204, 50],
+            ....:             [120, 207, 49]])
+            sage: cg = NormalFormGame([A])
+            sage: cg.obtain_nash(algorithm='lp', solver='PPL')
+            [[(0, 0, 1, 0), (0, 0, 1)]]
+
+        Running the constant-sum solver on a game which is not a constant sum
+        game generates a :exc:`ValueError`::
+
+            sage: cg = NormalFormGame([A, A])
+            sage: cg.obtain_nash(algorithm='lp', solver='glpk')
+            Traceback (most recent call last):
+            ...
+            ValueError: Input game needs to be a two player constant sum game
 
         Here is an example of a 3 by 2 game with 3 Nash equilibrium::
 
@@ -1267,6 +1605,32 @@ class NormalFormGame(SageObject, MutableMapping):
             sage: g = NormalFormGame([A, B])
             sage: g.obtain_nash(algorithm='enumeration')
             [[(0, 1/3, 2/3), (1/3, 2/3)], [(4/5, 1/5, 0), (2/3, 1/3)], [(1, 0, 0), (1, 0)]]
+
+        Of the algorithms implemented, only ``'lrs'`` and ``'enumeration'``
+        are guaranteed to find all Nash equilibria in a game. The solver for
+        constant sum games only ever finds one Nash equilibrium. Although it
+        is possible for the ``'LCP'`` solver to find all Nash equilibria
+        in some instances, there are instances where it will not be able to
+        find all Nash equilibria.::
+
+            sage: A = matrix(2, 2)
+            sage: gg = NormalFormGame([A])
+            sage: gg.obtain_nash(algorithm='enumeration')
+            [[(0, 1), (0, 1)], [(0, 1), (1, 0)], [(1, 0), (0, 1)], [(1, 0), (1, 0)]]
+            sage: gg.obtain_nash(algorithm='lrs')  # optional - lrs
+            [[(0, 1), (0, 1)], [(0, 1), (1, 0)], [(1, 0), (0, 1)], [(1, 0), (1, 0)]]
+            sage: gg.obtain_nash(algorithm='lp', solver='glpk')
+            [[(1.0, 0.0), (1.0, 0.0)]]
+            sage: gg.obtain_nash(algorithm='LCP')  # optional - gambit
+            [[(1.0, 0.0), (1.0, 0.0)]]
+            sage: gg.obtain_nash(algorithm='enumeration', maximization=False)
+            [[(0, 1), (0, 1)], [(0, 1), (1, 0)], [(1, 0), (0, 1)], [(1, 0), (1, 0)]]
+            sage: gg.obtain_nash(algorithm='lrs', maximization=False)  # optional - lrs
+            [[(0, 1), (0, 1)], [(0, 1), (1, 0)], [(1, 0), (0, 1)], [(1, 0), (1, 0)]]
+            sage: gg.obtain_nash(algorithm='lp', solver='glpk', maximization=False)
+            [[(1.0, 0.0), (1.0, 0.0)]]
+            sage: gg.obtain_nash(algorithm='LCP', maximization=False)  # optional - gambit
+            [[(1.0, 0.0), (1.0, 0.0)]]
 
         Note that outputs for all algorithms are as lists of lists of
         tuples and the equilibria have been sorted so that all algorithms give
@@ -1294,6 +1658,19 @@ class NormalFormGame(SageObject, MutableMapping):
             sage: [[[round(float(p), 6) for p in str] for str in eq] for eq in enumeration_eqs] == [[[round(float(p), 6) for p in str] for str in eq] for eq in LCP_eqs]  # optional - gambit
             True
 
+        Also, not specifying a valid solver would lead to an error::
+
+            sage: A = matrix.identity(2)
+            sage: g = NormalFormGame([A])
+            sage: g.obtain_nash(algorithm='invalid')
+            Traceback (most recent call last):
+            ...
+            ValueError: 'algorithm' should be set to 'enumeration', 'LCP', 'lp' or 'lrs'
+            sage: g.obtain_nash(algorithm='lp', solver='invalid')
+            Traceback (most recent call last):
+            ...
+            ValueError: 'solver' should be set to 'GLPK', ..., None
+             (in which case the default one is used), or a callable.
         """
         if len(self.players) > 2:
             raise NotImplementedError("Nash equilibrium for games with more "
@@ -1305,31 +1682,31 @@ class NormalFormGame(SageObject, MutableMapping):
         if not self._is_complete():
             raise ValueError("utilities have not been populated")
 
+        from sage.features.lrs import LrsNash
         if not algorithm:
-            if is_package_installed('lrslib'):
+            if self.is_constant_sum():
+                algorithm = "lp"
+            elif LrsNash().is_present():
                 algorithm = "lrs"
             else:
                 algorithm = "enumeration"
 
         if algorithm == "lrs":
-            if not is_package_installed('lrslib'):
-                raise PackageNotFoundError("lrslib")
-
+            LrsNash().require()
             return self._solve_lrs(maximization)
 
         if algorithm == "LCP":
             if Game is None:
-                raise PackageNotFoundError("gambit")
-            for strategy_profile in self.utilities:
-                payoffs = self.utilities[strategy_profile]
-                if payoffs != [int(payoffs[0]), int(payoffs[1])]:
-                    raise ValueError("""The Gambit implementation of LCP only
-                                     allows for integer valued payoffs.
-                                     Please scale your payoff matrices.""")
+                raise RuntimeError("gambit not found")  # should later become a FeatureNotFoundError
             return self._solve_LCP(maximization)
+
+        if algorithm.startswith('lp'):
+            return self._solve_LP(solver=solver, maximization=maximization)
 
         if algorithm == "enumeration":
             return self._solve_enumeration(maximization)
+
+        raise ValueError("'algorithm' should be set to 'enumeration', 'LCP', 'lp' or 'lrs'")
 
     def _solve_lrs(self, maximization=True):
         r"""
@@ -1340,7 +1717,7 @@ class NormalFormGame(SageObject, MutableMapping):
             sage: A = matrix([[1, 2], [3, 4]])
             sage: B = matrix([[3, 3], [1, 4]])
             sage: C = NormalFormGame([A, B])
-            sage: C._solve_lrs() # optional - lrslib
+            sage: C._solve_lrs()  # optional - lrslib
             [[(0, 1), (0, 1)]]
 
         2 random matrices::
@@ -1356,7 +1733,7 @@ class NormalFormGame(SageObject, MutableMapping):
             ....:              [1, 0, 0, 0, 0,],
             ....:              [1, -3, 1, 21, -2]])
             sage: biggame = NormalFormGame([p1, p2])
-            sage: biggame._solve_lrs() # optional - lrslib
+            sage: biggame._solve_lrs()  # optional - lrslib
             [[(0, 0, 0, 20/21, 1/21), (11/12, 0, 0, 1/12, 0)]]
 
         Another test::
@@ -1368,7 +1745,7 @@ class NormalFormGame(SageObject, MutableMapping):
             ....:              [6, -2, -3],
             ....:              [-4, 6, -10]])
             sage: biggame = NormalFormGame([p1, p2])
-            sage: biggame._solve_lrs() # optional - lrslib
+            sage: biggame._solve_lrs()  # optional - lrslib
             [[(0, 1, 0), (1, 0, 0)],
              [(1/3, 2/3, 0), (0, 1/6, 5/6)],
              [(1/3, 2/3, 0), (1/7, 0, 6/7)],
@@ -1379,24 +1756,18 @@ class NormalFormGame(SageObject, MutableMapping):
         if maximization is False:
             m1 = - m1
             m2 = - m2
-        game1_str, game2_str = self._Hrepresentation(m1, m2)
 
-        g1_name = tmp_filename()
-        with open(g1_name, 'w') as g1_file:
-            g1_file.write(game1_str)
-        g2_name = tmp_filename()
-        with open(g2_name, 'w') as g2_file:
-            g2_file.write(game2_str)
+        game_str = self._lrs_nash_format(m1, m2)
+        game_name = tmp_filename()
+        with open(game_name, 'w') as game_file:
+            game_file.write(game_str)
 
-        try:
-            process = Popen(['lrsnash', g1_name, g2_name],
-                    stdout=PIPE,
-                    stderr=PIPE)
-        except OSError:
-            from sage.misc.package import PackageNotFoundError
-            raise PackageNotFoundError("lrslib")
+        from sage.features.lrs import LrsNash
+        LrsNash().require()
+        process = Popen([LrsNash().absolute_filename(), game_name],
+                        stdout=PIPE, stderr=PIPE)
 
-        lrs_output = [row for row in process.stdout]
+        lrs_output = [bytes_to_str(row) for row in process.stdout]
         process.terminate()
 
         nasheq = Parser(lrs_output).format_lrs()
@@ -1411,23 +1782,121 @@ class NormalFormGame(SageObject, MutableMapping):
             sage: a = matrix([[1, 0], [1, 4]])
             sage: b = matrix([[2, 3], [2, 4]])
             sage: c = NormalFormGame([a, b])
-            sage: c._solve_LCP(maximization=True) # optional - gambit
+            sage: c._solve_LCP(maximization=True)  # optional - gambit
             [[(0.0, 1.0), (0.0, 1.0)]]
         """
-        from gambit.nash import ExternalLCPSolver
-        strategy_sizes = [p.num_strategies for p in self.players]
-        g = Game.new_table(strategy_sizes)
-        scalar = 1
-        if maximization is False:
-            scalar *= -1
-        for strategy_profile in self.utilities:
-            g[strategy_profile][0] = int(scalar *
-                                         self.utilities[strategy_profile][0])
-            g[strategy_profile][1] = int(scalar *
-                                         self.utilities[strategy_profile][1])
+        g = self._gambit_(maximization)
         output = ExternalLCPSolver().solve(g)
         nasheq = Parser(output).format_gambit(g)
         return sorted(nasheq)
+
+    def _solve_gambit_LP(self, maximization=True):
+        r"""
+        Solve a constant sum :class:`NormalFormGame` using Gambit's
+        LP implementation.
+
+        EXAMPLES::
+
+            sage: A = matrix([[2, 1], [1, 2.5]])
+            sage: g = NormalFormGame([A])
+            sage: g._solve_gambit_LP()  # optional - gambit
+            [[(0.6, 0.4), (0.6, 0.4)]]
+            sage: A = matrix.identity(2)
+            sage: g = NormalFormGame([A])
+            sage: g._solve_gambit_LP()  # optional - gambit
+            [[(0.5, 0.5), (0.5, 0.5)]]
+            sage: g = NormalFormGame([A,A])
+            sage: g._solve_gambit_LP()  # optional - gambit
+            Traceback (most recent call last):
+            ...
+            RuntimeError: Method only valid for constant-sum games.
+        """
+        if Game is None:
+            raise NotImplementedError("gambit is not installed")
+        g = self._gambit_(maximization=maximization)
+        output = ExternalLPSolver().solve(g)
+        nasheq = Parser(output).format_gambit(g)
+        return sorted(nasheq)
+
+    def _solve_LP(self, solver='glpk', maximization=True):
+        r"""
+        Solve a constant sum :class:`NormalFormGame` using
+        the specified LP solver.
+
+        INPUT:
+
+        - ``solver`` -- the solver to be used to solve the LP:
+
+          * ``'gambit'`` -- his uses the solver included within the gambit
+            library to create and solve the LP
+
+          * for further possible values, see :class:`MixedIntegerLinearProgram`
+
+        EXAMPLES::
+
+            sage: A = matrix.identity(2)
+            sage: g = NormalFormGame([A])
+            sage: g._solve_LP()
+            [[(0.5, 0.5), (0.5, 0.5)]]
+            sage: g._solve_LP('gambit')  # optional - gambit
+            [[(0.5, 0.5), (0.5, 0.5)]]
+            sage: g._solve_LP('Coin')  # optional - sage_numerical_backends_coin
+            [[(0.5, 0.5), (0.5, 0.5)]]
+            sage: g._solve_LP('PPL')
+            [[(1/2, 1/2), (1/2, 1/2)]]
+            sage: A = matrix([[2, 1], [1, 3]])
+            sage: g = NormalFormGame([A])
+            sage: ne = g._solve_LP()
+            sage: [[[round(el, 6) for el in v] for v in eq] for eq in ne]
+            [[[0.666667, 0.333333], [0.666667, 0.333333]]]
+            sage: ne = g._solve_LP('gambit')  # optional - gambit
+            sage: [[[round(el, 6) for el in v] for v in eq] for eq in ne]  # optional - gambit
+            [[[0.666667, 0.333333], [0.666667, 0.333333]]]
+            sage: ne = g._solve_LP('Coin')  # optional - sage_numerical_backends_coin
+            sage: [[[round(el, 6) for el in v] for v in eq] for eq in ne]  # optional - sage_numerical_backends_coin
+            [[[0.666667, 0.333333], [0.666667, 0.333333]]]
+            sage: g._solve_LP('PPL')
+            [[(2/3, 1/3), (2/3, 1/3)]]
+
+        An exception is raised if the input game is not constant sum::
+
+            sage: A = matrix.identity(2)
+            sage: B = A.transpose()
+            sage: g = NormalFormGame([A, B])
+            sage: g._solve_LP()
+            Traceback (most recent call last):
+            ...
+            ValueError: Input game needs to be a two player constant sum game
+        """
+        if not self.is_constant_sum():
+            raise ValueError("Input game needs to be a two player constant sum game")
+        if solver == 'gambit':
+            return self._solve_gambit_LP(maximization)
+
+        sgn = 1
+        if not maximization:
+            sgn = -1
+
+        strategy_sizes = [p.num_strategies for p in self.players]
+
+        p = MixedIntegerLinearProgram(maximization=False, solver=solver)
+        y = p.new_variable(nonnegative=True)
+        v = p.new_variable(nonnegative=False)
+        p.add_constraint(sgn * self.payoff_matrices()[0] * y - v[0] <= 0)
+        p.add_constraint(matrix([[1] * strategy_sizes[1]]) * y == 1)
+        p.set_objective(v[0])
+        p.solve()
+        y = tuple(p.get_values(y).values())
+
+        p = MixedIntegerLinearProgram(maximization=False, solver=solver)
+        x = p.new_variable(nonnegative=True)
+        u = p.new_variable(nonnegative=False)
+        p.add_constraint(sgn * -self.payoff_matrices()[0].T * x - u[0] <= 0)
+        p.add_constraint(matrix([[1] * strategy_sizes[0]]) * x == 1)
+        p.set_objective(u[0])
+        p.solve()
+        x = tuple(p.get_values(x).values())
+        return [[x, y]]
 
     def _solve_enumeration(self, maximization=True):
         r"""
@@ -1489,7 +1958,9 @@ class NormalFormGame(SageObject, MutableMapping):
             ....:             [3, 2, 1, 1]])
             sage: C = NormalFormGame([A, B])
             sage: C._solve_enumeration()
-            [[(0, 0, 0, 1), (1, 0, 0, 0)], [(2/7, 0, 0, 5/7), (5/11, 0, 6/11, 0)], [(1, 0, 0, 0), (0, 0, 1, 0)]]
+            [[(0, 0, 0, 1), (1, 0, 0, 0)],
+             [(2/7, 0, 0, 5/7), (5/11, 0, 6/11, 0)],
+             [(1, 0, 0, 0), (0, 0, 1, 0)]]
 
         Again::
 
@@ -1518,7 +1989,7 @@ class NormalFormGame(SageObject, MutableMapping):
             sage: c._solve_enumeration()
             [[(0, 1), (1, 0)]]
 
-        Testing against an error in `_is_NE`.  Note that 1 equilibrium is
+        Testing against an error in ``_is_NE``.  Note that 1 equilibrium is
         missing: ``[(2/3, 1/3), (0, 1)]``, however this equilibrium has
         supports of different sizes. This only occurs in degenerate games
         and is not supported in the `enumeration` algorithm::
@@ -1550,7 +2021,7 @@ class NormalFormGame(SageObject, MutableMapping):
                                powerset(range(player.num_strategies))]
                               for player in self.players]
 
-        potential_support_pairs = [pair for pair in product(*potential_supports) if len(pair[0]) == len(pair[1])]
+        potential_support_pairs = (pair for pair in product(*potential_supports) if len(pair[0]) == len(pair[1]))
 
         equilibria = []
         for pair in potential_support_pairs:
@@ -1602,7 +2073,7 @@ class NormalFormGame(SageObject, MutableMapping):
 
     def _solve_indifference(self, support1, support2, M):
         r"""
-        For support1, retrns the strategy with support: support2 that makes the
+        For support1, returns the strategy with support: support2 that makes the
         column player indifferent for the utilities given by M.
 
         This is done by building the corresponding linear system.
@@ -1680,7 +2151,7 @@ class NormalFormGame(SageObject, MutableMapping):
                         M[strategy1][support2[strategy_pair2]] -\
                         M[strategy1][support2[strategy_pair2 - 1]]
             # Coefficients of linear system that ensure the vector is
-            # a probability vecotor. ie. sum to 1
+            # a probability vector. ie. sum to 1
             linearsystem[-1, strategy1] = 1
         # Create rhs of linear systems
         linearsystem_rhs = vector([0 for i in range(len(support2))] + [1])
@@ -1744,12 +2215,12 @@ class NormalFormGame(SageObject, MutableMapping):
             False
         """
         # Check that supports are obeyed
-        if not(all([a[i] > 0 for i in p1_support]) and
-               all([b[j] > 0 for j in p2_support]) and
-               all([a[i] == 0 for i in range(len(a))
-                    if i not in p1_support]) and
-               all([b[j] == 0 for j in range(len(b))
-                    if j not in p2_support])):
+        if not (all(a[i] > 0 for i in p1_support) and
+                all(b[j] > 0 for j in p2_support) and
+                all(a[i] == 0 for i in range(len(a))
+                    if i not in p1_support) and
+                all(b[j] == 0 for j in range(len(b))
+                    if j not in p2_support)):
             return False
 
         # Check that have pair of best responses
@@ -1759,89 +2230,54 @@ class NormalFormGame(SageObject, MutableMapping):
         p2_payoffs = [sum(v * col[j] for j, v in enumerate(a))
                       for col in M2.columns()]
 
-        #if p1_payoffs.index(max(p1_payoffs)) not in p1_support:
+        # if p1_payoffs.index(max(p1_payoffs)) not in p1_support:
         if not any(i in p1_support for i, x in enumerate(p1_payoffs)
                    if x == max(p1_payoffs)):
             return False
-        if not any(i in p2_support for i, x in enumerate(p2_payoffs)
-                   if x == max(p2_payoffs)):
-            return False
+        return any(i in p2_support for i, x in enumerate(p2_payoffs)
+                   if x == max(p2_payoffs))
 
-        return True
-
-    def _Hrepresentation(self, m1, m2):
+    def _lrs_nash_format(self, m1, m2):
         r"""
-        Create the H-representation strings required to use lrs nash.
+        Create the input format for ``lrsnash``, version 6.1 or newer.
 
-        EXAMPLES::
+        EXAMPLES:
 
-            sage: A = matrix([[1, 2], [3, 4]])
-            sage: B = matrix([[3, 3], [1, 4]])
+        An example from the ``lrsnash`` manual in the old and the format::
+
+            sage: A = matrix([[0, 6], [2, 5], [3, 3]])
+            sage: B = matrix([[1, 0], [0, 2], [4, 3]])
             sage: C = NormalFormGame([A, B])
-            sage: print(C._Hrepresentation(A, B)[0])
-            H-representation
-            linearity 1 5
-            begin
-            5 4 rational
-            0 1 0 0
-            0 0 1 0
-            0 -3 -1 1
-            0 -3 -4 1
-            -1 1 1 0
-            end
+            sage: print(C._lrs_nash_format(A, B))
+            3 2
             <BLANKLINE>
-            sage: print(C._Hrepresentation(A, B)[1])
-            H-representation
-            linearity 1 5
-            begin
-            5 4 rational
-            0 -1 -2 1
-            0 -3 -4 1
-            0 1 0 0
-            0 0 1 0
-            -1 1 1 0
-            end
+            0 6
+            2 5
+            3 3
+            <BLANKLINE>
+            1 0
+            0 2
+            4 3
             <BLANKLINE>
 
+        .. NOTE::
+
+            The former legacy format has been removed in :issue:`39464`.
         """
         from sage.geometry.polyhedron.misc import _to_space_separated_string
         m = self.players[0].num_strategies
         n = self.players[1].num_strategies
-        midentity = list(matrix.identity(m))
-        nidentity = list(matrix.identity(n))
+        s = f'{m} {n}\n\n'
+        s += '\n'.join(_to_space_separated_string(r) for r in m1.rows())
+        s += '\n\n'
+        s += '\n'.join(_to_space_separated_string(r) for r in m2.rows())
+        s += '\n'
+        return s
 
-        s = 'H-representation\n'
-        s += 'linearity 1 ' + str(m + n + 1) + '\n'
-        s += 'begin\n'
-        s += str(m + n + 1) + ' ' + str(m + 2) + ' rational\n'
-        for f in list(midentity):
-            s += '0 ' + _to_space_separated_string(f) + ' 0 \n'
-        for e in list(m2.transpose()):
-            s += '0 ' + _to_space_separated_string(-e) + '  1 \n'
-        s += '-1 '
-        for g in range(m):
-            s += '1 '
-        s += '0 \n'
-        s += 'end\n'
-
-        t = 'H-representation\n'
-        t += 'linearity 1 ' + str(m + n + 1) + '\n'
-        t += 'begin\n'
-        t += str(m + n + 1) + ' ' + str(n + 2) + ' rational\n'
-        for e in list(m1):
-            t += '0 ' + _to_space_separated_string(-e) + '  1 \n'
-        for f in list(nidentity):
-            t += '0 ' + _to_space_separated_string(f) + ' 0 \n'
-        t += '-1 '
-        for g in range(n):
-            t += '1 '
-        t += '0 \n'
-        t += 'end\n'
-        return s, t
-
-    def is_degenerate(self, certificate=False):
+    def is_degenerate(self, certificate=False) -> bool:
         """
         A function to check whether the game is degenerate or not.
+
         Will return a boolean.
 
         A two-player game is called nondegenerate if no mixed strategy of
@@ -1853,7 +2289,7 @@ class NormalFormGame(SageObject, MutableMapping):
         search over supports which is a discrete search. A full explanation of
         this is given in [CK2015]_. This problem is known to be NP-Hard
         [Du2009]_.  Another possible implementation is via best response
-        polytopes, see :trac:`18958`.
+        polytopes, see :issue:`18958`.
 
         The game Rock-Paper-Scissors is an example of a non-degenerate game,::
 
@@ -1943,11 +2379,11 @@ class NormalFormGame(SageObject, MutableMapping):
             ....:            [-17, 25, -97, -82],
             ....:            [30, 31, -1, 50]])
             sage: d_game = NormalFormGame([a, b])
-            sage: d_game.obtain_nash(algorithm='lrs') # optional - lrslib
+            sage: d_game.obtain_nash(algorithm='lrs')  # optional - lrslib
             [[(0, 0, 1, 0), (0, 1, 0, 0)],
              [(17/29, 0, 0, 12/29), (0, 0, 42/73, 31/73)],
              [(122/145, 0, 23/145, 0), (0, 1, 0, 0)]]
-            sage: d_game.obtain_nash(algorithm='LCP') # optional - gambit
+            sage: d_game.obtain_nash(algorithm='LCP')  # optional - gambit
             [[(0.5862068966, 0.0, 0.0, 0.4137931034),
               (0.0, 0.0, 0.5753424658, 0.4246575342)]]
             sage: d_game.obtain_nash(algorithm='enumeration')
@@ -1990,7 +2426,8 @@ class NormalFormGame(SageObject, MutableMapping):
             sage: g.is_degenerate()
             Traceback (most recent call last):
             ...
-            NotImplementedError: Tests for Degeneracy is not yet implemented for games with more than two players.
+            NotImplementedError: Tests for Degeneracy is not yet implemented for
+             games with more than two players.
         """
         if len(self.players) > 2:
             raise NotImplementedError("Tests for Degeneracy is not yet "
@@ -2049,7 +2486,7 @@ class NormalFormGame(SageObject, MutableMapping):
         - ``strategy`` -- a probability distribution vector
 
         - ``player`` -- the index of the opponent, ``0`` for the row player,
-          ``1`` for the column player.
+          ``1`` for the column player
 
         EXAMPLES::
 
@@ -2065,7 +2502,7 @@ class NormalFormGame(SageObject, MutableMapping):
             sage: g.best_responses((3/4, 1/4), player=0)
             [0]
 
-        To get the best responses for Player 2 we pass the argument :code:`player=1`
+        To get the best responses for Player 2 we pass the argument :code:`player=1`::
 
             sage: g.best_responses((4/5, 1/5, 0), player=1)
             [0, 1]
@@ -2116,7 +2553,7 @@ class NormalFormGame(SageObject, MutableMapping):
             ValueError: Strategy is not of correct dimension
 
         If the strategy is not a true probability vector then an error is
-        passed:
+        passed::
 
             sage: A = matrix([[3, 0], [0, 3], [1.5, 1.5]])
             sage: B = matrix([[4, 3], [2, 6], [3, 1]])
@@ -2142,13 +2579,13 @@ class NormalFormGame(SageObject, MutableMapping):
             sage: g.best_responses((1/2, 1/2), player='Player1')
             Traceback (most recent call last):
             ...
-            ValueError: Player1 is not an index of the oponent, must be 0 or 1
+            ValueError: Player1 is not an index of the opponent, must be 0 or 1
         """
         if len(self.players) != 2:
             raise ValueError('Only available for 2 player games')
 
         if player != 0 and player != 1:
-            raise ValueError('%s is not an index of the oponent, must be 0 or 1' % player)
+            raise ValueError('%s is not an index of the opponent, must be 0 or 1' % player)
 
         strategy = vector(strategy)
 
@@ -2170,7 +2607,7 @@ class NormalFormGame(SageObject, MutableMapping):
 
     def _is_degenerate_pure(self, certificate=False):
         """
-        Checks whether a game is degenerate in pure strategies.
+        Check whether a game is degenerate in pure strategies.
 
         TESTS::
 
@@ -2201,8 +2638,8 @@ class NormalFormGame(SageObject, MutableMapping):
             sage: g._is_degenerate_pure()
             True
 
-            Whilst this game is not degenerate in pure strategies, it is
-            actually degenerate, but only in mixed strategies.
+        Whilst this game is not degenerate in pure strategies, it is
+        actually degenerate, but only in mixed strategies::
 
             sage: A = matrix([[3, 0], [0, 3], [1.5, 1.5]])
             sage: B = matrix([[4, 3], [2, 6], [3, 1]])
@@ -2231,7 +2668,7 @@ class NormalFormGame(SageObject, MutableMapping):
         return False
 
 
-class _Player():
+class _Player:
     def __init__(self, num_strategies):
         r"""
         TESTS::

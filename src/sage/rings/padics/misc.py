@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 r"""
 Miscellaneous Functions
 
@@ -15,7 +14,7 @@ AUTHORS:
 - Ander Steele
 - Kiran Kedlaya (modified gauss_sum 2017/09)
 """
-#*****************************************************************************
+# ****************************************************************************
 #       Copyright (C) 2007-2013 David Roe <roed.math@gmail.com>
 #                               William Stein <wstein@gmail.com>
 #
@@ -23,15 +22,16 @@ AUTHORS:
 #  as published by the Free Software Foundation; either version 2 of
 #  the License, or (at your option) any later version.
 #
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
-from __future__ import absolute_import
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
-from six.moves.builtins import min as python_min
-from six.moves.builtins import max as python_max
 from sage.rings.infinity import infinity
 
-def gauss_sum(a, p, f, prec=20, factored=False):
+python_min = min
+python_max = max
+
+
+def gauss_sum(a, p, f, prec=20, factored=False, algorithm='pari', parent=None):
     r"""
     Return the Gauss sum `g_q(a)` as a `p`-adic number.
 
@@ -69,9 +69,11 @@ def gauss_sum(a, p, f, prec=20, factored=False):
 
     - ``f`` -- positive integer
 
-    - ``prec`` -- positive integer (optional, 20 by default)
+    - ``prec`` -- positive integer (default: 20)
 
-    - ``factored`` - boolean (optional, False by default)
+    - ``factored`` -- boolean (default: ``False``)
+
+    - ``algorithm`` -- flag passed to `p`-adic Gamma function (default: ``'pari'``)
 
     OUTPUT:
 
@@ -89,25 +91,25 @@ def gauss_sum(a, p, f, prec=20, factored=False):
     In this example, we verify that `g_3(0) = -1`::
 
         sage: from sage.rings.padics.misc import gauss_sum
-        sage: -gauss_sum(0,3,1)
+        sage: -gauss_sum(0, 3, 1)                                                       # needs sage.libs.ntl sage.rings.padics
         1 + O(pi^40)
 
     Next, we verify that `g_5(a) g_5(-a) = 5 (-1)^a`::
 
         sage: from sage.rings.padics.misc import gauss_sum
-        sage: gauss_sum(2,5,1)^2-5
+        sage: gauss_sum(2,5,1)^2 - 5                                                    # needs sage.libs.ntl
         O(pi^84)
-        sage: gauss_sum(1,5,1)*gauss_sum(3,5,1)+5
+        sage: gauss_sum(1,5,1)*gauss_sum(3,5,1) + 5                                     # needs sage.libs.ntl
         O(pi^84)
 
     Finally, we compute a non-trivial value::
 
         sage: from sage.rings.padics.misc import gauss_sum
-        sage: gauss_sum(2,13,2)
+        sage: gauss_sum(2,13,2)                                                         # needs sage.libs.ntl
         6*pi^2 + 7*pi^14 + 11*pi^26 + 3*pi^62 + 6*pi^74 + 3*pi^86 + 5*pi^98 +
         pi^110 + 7*pi^134 + 9*pi^146 + 4*pi^158 + 6*pi^170 + 4*pi^194 +
         pi^206 + 6*pi^218 + 9*pi^230 + O(pi^242)
-        sage: gauss_sum(2,13,2,prec=5,factored=True)
+        sage: gauss_sum(2,13,2, prec=5, factored=True)                                  # needs sage.rings.padics
         (2, 6 + 6*13 + 10*13^2 + O(13^5))
 
     .. SEEALSO::
@@ -119,20 +121,23 @@ def gauss_sum(a, p, f, prec=20, factored=False):
           for prime finite fields
     """
     from sage.rings.padics.factory import Zp
-    from sage.rings.all import PolynomialRing
-    a = a % (p**f - 1)
-    R = Zp(p, prec)
-    digits = Zp(p)(a).list(start_val=0)
-    n = len(digits)
-    digits = digits + [0] * (f - n)
-    s = sum(digits)
-    out = R(-1)
-    for i in range(f):
-        a_i = R.sum(digits[k] * p**((i + k) % f) for k in range(f))
-        if a_i:
-            out *= R((a_i / (p**f - 1)).gamma())
+    from sage.rings.polynomial.polynomial_ring_constructor import PolynomialRing
+
+    q = p**f
+    a = a % (q-1)
+    if parent is None:
+        R = Zp(p, prec)
+    else:
+        R = parent
+    out = -R.one()
+    if a != 0:
+        t = R(1/(q-1))
+        for i in range(f):
+            out *= (a*t).gamma(algorithm)
+            a = (a*p) % (q-1)
+    s = sum(a.digits(base=p))
     if factored:
-        return(s, out)
+        return s, out
     X = PolynomialRing(R, name='X').gen()
     pi = R.ext(X**(p - 1) + p, names='pi').gen()
     out *= pi**s
@@ -180,9 +185,10 @@ def max(*L):
     except ValueError:
         return -infinity
 
+
 def precprint(prec_type, prec_cap, p):
     """
-    String describing the precision mode on a p-adic ring or field.
+    String describing the precision mode on a `p`-adic ring or field.
 
     EXAMPLES::
 
@@ -196,8 +202,54 @@ def precprint(prec_type, prec_cap, p):
         sage: precprint('fixed-mod', 1, 17)
         'of fixed modulus 17^1'
     """
-    precD = {'capped-rel':'with capped relative precision %s'%prec_cap,
-             'capped-abs':'with capped absolute precision %s'%prec_cap,
-             'floating-point':'with floating precision %s'%prec_cap,
-             'fixed-mod':'of fixed modulus %s^%s'%(p, prec_cap)}
+    precD = {'capped-rel':'with capped relative precision %s' % prec_cap,
+             'capped-abs':'with capped absolute precision %s' % prec_cap,
+             'floating-point':'with floating precision %s' % prec_cap,
+             'fixed-mod':'of fixed modulus %s^%s' % (p, prec_cap),
+             'lattice-cap':'with lattice-cap precision',
+             'lattice-float':'with lattice-float precision',
+             'relaxed':'handled with relaxed arithmetics'}
     return precD[prec_type]
+
+
+def trim_zeros(L):
+    r"""
+    Strip trailing zeros/empty lists from a list.
+
+    EXAMPLES::
+
+        sage: from sage.rings.padics.misc import trim_zeros
+        sage: trim_zeros([1,0,1,0])
+        [1, 0, 1]
+        sage: trim_zeros([[1],[],[2],[],[]])
+        [[1], [], [2]]
+        sage: trim_zeros([[],[]])
+        []
+        sage: trim_zeros([])
+        []
+
+    Zeros are also trimmed from nested lists (one deep)::
+
+        sage: trim_zeros([[1,0]])
+        [[1]]
+        sage: trim_zeros([[0],[1]])
+        [[], [1]]
+    """
+    strip_trailing = True
+    n = len(L)
+    for i, c in zip(reversed(range(len(L))), reversed(L)):
+        if strip_trailing and (c == 0 or c == []):
+            n = i
+        elif isinstance(c, list):
+            strip_trailing = False
+            m = len(c)
+            # strip trailing zeros from the sublists
+            for j, d in zip(reversed(range(len(c))), reversed(c)):
+                if d == 0:
+                    m = j
+                else:
+                    break
+            L[i] = c[:m]
+        else:
+            break
+    return L[:n]
