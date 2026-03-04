@@ -45,10 +45,14 @@ result no matter how a generator is identified::
 #                  https://www.gnu.org/licenses/
 # ****************************************************************************
 
-from collections.abc import Mapping
+from collections.abc import Callable, Iterable, Mapping
+from typing import Any, TypeVar
+
+KT = TypeVar("KT")
+VT = TypeVar("VT")
 
 
-class KeyConvertingDict(dict):
+class KeyConvertingDict(dict[KT, VT]):
     r"""
     A dictionary which automatically applies a conversions to its keys.
 
@@ -77,7 +81,13 @@ class KeyConvertingDict(dict):
         64
     """
 
-    def __init__(self, key_conversion_function, data=None):
+    key_conversion_function: Callable[[Any], KT]
+
+    def __init__(
+        self,
+        key_conversion_function: Callable[[Any], KT],
+        data: Mapping[Any, VT] | Iterable[tuple[Any, VT]] | None = None,
+    ) -> None:
         r"""
         Construct a dictionary with a given conversion function.
 
@@ -98,7 +108,7 @@ class KeyConvertingDict(dict):
         if data:
             self.update(data)
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: Any) -> VT:
         r"""
         Retrieve an element from the dictionary.
 
@@ -117,7 +127,7 @@ class KeyConvertingDict(dict):
         key = self.key_conversion_function(key)
         return super().__getitem__(key)
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: Any, value: VT) -> None:
         r"""
         Assign an element in the dictionary.
 
@@ -137,7 +147,7 @@ class KeyConvertingDict(dict):
         key = self.key_conversion_function(key)
         return super().__setitem__(key, value)
 
-    def __delitem__(self, key):
+    def __delitem__(self, key: Any) -> None:
         r"""
         Remove a mapping from the dictionary.
 
@@ -157,7 +167,7 @@ class KeyConvertingDict(dict):
         key = self.key_conversion_function(key)
         return super().__delitem__(key)
 
-    def __contains__(self, key):
+    def __contains__(self, key: object) -> bool:
         r"""
         Test whether a given key is contained in the mapping.
 
@@ -178,7 +188,7 @@ class KeyConvertingDict(dict):
         key = self.key_conversion_function(key)
         return super().__contains__(key)
 
-    def pop(self, key, *args):
+    def pop(self, key: Any, *args: Any) -> VT:
         r"""
         Remove and retrieve a given element from the dictionary.
 
@@ -204,7 +214,7 @@ class KeyConvertingDict(dict):
         key = self.key_conversion_function(key)
         return super().pop(key, *args)
 
-    def setdefault(self, key, default=None):
+    def setdefault(self, key: Any, default: VT = None) -> VT:  # type: ignore[assignment]
         r"""
         Create a given mapping unless there already exists a mapping
         for that key.
@@ -223,9 +233,9 @@ class KeyConvertingDict(dict):
             [(3, None)]
         """
         key = self.key_conversion_function(key)
-        return super().setdefault(key, default)
+        return super().setdefault(key, default)  # type: ignore[arg-type]
 
-    def update(self, *args, **kwds):
+    def update(self, *args: Any, **kwds: Any) -> None:
         r"""
         Update the dictionary with key-value pairs from another dictionary,
         sequence of key-value pairs, or keyword arguments.
@@ -267,7 +277,7 @@ class KeyConvertingDict(dict):
             seq = ((f(k), v) for k, v in kwds.items())
             u(seq)
 
-    def _repr_pretty_(self, p, cycle):
+    def _repr_pretty_(self, p: Any, cycle: bool) -> None:
         """
         For pretty printing in the Sage command prompt.
 
