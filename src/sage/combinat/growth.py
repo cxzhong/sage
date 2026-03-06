@@ -11,8 +11,6 @@ AUTHORS:
 .. TODO::
 
     - provide examples for the P and Q-symbol in the skew case
-    - implement a method providing a visualization of the growth
-      diagram with all labels, perhaps as LaTeX code
     - when shape is given, check that it is compatible with filling
       or labels
     - optimize rules, mainly for :class:`RuleRSK` and
@@ -1643,6 +1641,35 @@ class GrowthDiagram(SageObject):
             sage: latex(G)
             ...
             \end{tikzpicture}
+
+        Check that it is not necessary that both the forward and the
+        backward rules are implemented::
+
+            sage: from sage.combinat.growth import Rule
+            sage: class RulePascal(Rule):
+            ....:     zero = 0
+            ....:     has_multiple_edges = True
+            ....:     zero_edge = None
+            ....:     def rank(self, v): return v
+            ....:     def vertices(self, n): return [n]
+            ....:     def is_P_edge(self, v, w): return [0] if w == v + 1 else []
+            ....:     def is_Q_edge(self, v, w): return list(range(w)) if w == v+1 else []
+            ....:     def backward_rule(self, y, g, z, h, x):
+            ....:         if g is None:
+            ....:             return (0, x, None, 0)
+            ....:         if h is None:
+            ....:             return (None, y, g, 0)
+            ....:         if g == 0:
+            ....:             return (None, y, None, 1)
+            ....:         else:
+            ....:             return (0, x-1, g-1, 0)
+
+            sage: G = RulePascal()(labels=[0,0,1,1,2,0,1,1,2,0,1,0,0])
+            sage: G
+              0  0  1
+              0  1  0
+              1  0
+            sage: view(G)  # not tested
         """
         from sage.misc.latex import latex
         latex.add_package_to_preamble_if_available("tikz")
@@ -1652,54 +1679,97 @@ class GrowthDiagram(SageObject):
         y_unit = "0.9em"
 
         if not self._lambda:
-            return (
-                f"\\begin{{tikzpicture}}[baseline=(BL.base),x={x_unit},y={y_unit}]\n"
-                "  \\coordinate (BL) at (0,0);\n"
-                "\\end{tikzpicture}"
-            )
+            return (f"\\begin{{tikzpicture}}[baseline=(BL.base),x={x_unit},y={y_unit}]\n"
+                    "  \\coordinate (BL) at (0,0);\n"
+                    "\\end{tikzpicture}")
+
         h = len(self._lambda)
-
-        # Replay forward sweep to collect vertex labels
         rule = self.rule
-        labels = list(self._in_labels)  # local copy
         V = {}  # (x, y) -> raw label
+        try:
+            forward = rule.forward_rule
+        except AttributeError:
+            forward = None
 
-        if rule.has_multiple_edges:
-            for j in range(h):
-                for c in range(self._mu[j] + h - j, self._lambda[j] + h - j):
-                    i = c - h + j
-                    NW = labels[2*c - 2]
-                    SW = labels[2*c]
-                    SE = labels[2*c + 2]
-                    (labels[2*c - 1],
-                     labels[2*c],
-                     labels[2*c + 1]) = rule.forward_rule(labels[2*c - 2],
-                                                          labels[2*c - 1],
-                                                          labels[2*c],
-                                                          labels[2*c + 1],
-                                                          labels[2*c + 2],
-                                                          self._filling.get((i, j), 0))
-                    NE = labels[2*c]
-                    V[(i,   j   )] = SW
-                    V[(i+1, j   )] = SE
-                    V[(i,   j+1 )] = NW
-                    V[(i+1, j+1 )] = NE
+        if forward is not None:
+            # Forward sweep: start from boundary near origin
+            labels = list(self._in_labels)  # local copy
+            if rule.has_multiple_edges:
+                for j in range(h):
+                    for c in range(self._mu[j] + h - j, self._lambda[j] + h - j):
+                        i = c - h + j
+                        NW = labels[2*c - 2]
+                        SW = labels[2*c]
+                        SE = labels[2*c + 2]
+                        (labels[2*c - 1],
+                         labels[2*c],
+                         labels[2*c + 1]) = forward(labels[2*c - 2],
+                                                    labels[2*c - 1],
+                                                    labels[2*c],
+                                                    labels[2*c + 1],
+                                                    labels[2*c + 2],
+                                                    self._filling.get((i, j), 0))
+                        NE = labels[2*c]
+                        V[(i,   j   )] = SW
+                        V[(i+1, j   )] = SE
+                        V[(i,   j+1 )] = NW
+                        V[(i+1, j+1 )] = NE
+            else:
+                for j in range(h):
+                    for c in range(self._mu[j] + h - j, self._lambda[j] + h - j):
+                        i = c - h + j
+                        NW = labels[c - 1]
+                        SW = labels[c]
+                        SE = labels[c + 1]
+                        labels[c] = forward(labels[c - 1],
+                                            labels[c],
+                                            labels[c + 1],
+                                            self._filling.get((i, j), 0))
+                        NE = labels[c]
+                        V[(i,   j   )] = SW
+                        V[(i+1, j   )] = SE
+                        V[(i,   j+1 )] = NW
+                        V[(i+1, j+1 )] = NE
+
         else:
-            for j in range(h):
-                for c in range(self._mu[j] + h - j, self._lambda[j] + h - j):
-                    i = c - h + j
-                    NW = labels[c - 1]
-                    SW = labels[c]
-                    SE = labels[c + 1]
-                    labels[c] = rule.forward_rule(labels[c - 1],
-                                                  labels[c],
-                                                  labels[c + 1],
-                                                  self._filling.get((i, j), 0))
-                    NE = labels[c]
-                    V[(i,   j   )] = SW
-                    V[(i+1, j   )] = SE
-                    V[(i,   j+1 )] = NW
-                    V[(i+1, j+1 )] = NE
+            # Backward sweep fallback: start from boundary opposite the origin
+            labels = list(self._out_labels)  # local copy
+            if rule.has_multiple_edges:
+                for r in range(h):
+                    j = h - r - 1
+                    for c in range(self._lambda[j] + r, self._mu[j] + r, -1):
+                        i = c - r - 1
+                        NW = labels[2*c - 2]
+                        NE = labels[2*c]      # capture NE before update
+                        SE = labels[2*c + 2]
+                        (labels[2*c - 1],
+                         labels[2*c],
+                         labels[2*c + 1], v) = rule.backward_rule(labels[2*c - 2],
+                                                                  labels[2*c - 1],
+                                                                  labels[2*c],
+                                                                  labels[2*c + 1],
+                                                                  labels[2*c + 2])
+                        SW = labels[2*c]      # after update
+                        V[(i,   j   )] = SW
+                        V[(i+1, j   )] = SE
+                        V[(i,   j+1 )] = NW
+                        V[(i+1, j+1 )] = NE
+            else:
+                for r in range(h):
+                    j = h - r - 1
+                    for c in range(self._lambda[j] + r, self._mu[j] + r, -1):
+                        i = c - r - 1
+                        NW = labels[c - 1]
+                        NE = labels[c]        # capture NE before update
+                        SE = labels[c + 1]
+                        labels[c], v = rule.backward_rule(labels[c - 1],
+                                                          labels[c],
+                                                          labels[c + 1])
+                        SW = labels[c]        # after update
+                        V[(i,   j   )] = SW
+                        V[(i+1, j   )] = SE
+                        V[(i,   j+1 )] = NW
+                        V[(i+1, j+1 )] = NE
 
         # Coordinate transforms (draw top row at the top)
         def y_rect(j):
@@ -2495,7 +2565,7 @@ class RuleLLMS(Rule):
         sage: LLMS3.vertices(4)
         3-Cores of length 4
 
-    Let us check example of Figure 1 in [LS2007]_.  Note that,
+    Let us check the example of Figure 1 in [LS2007]_.  Note that,
     instead of passing the rule to :class:`GrowthDiagram`, we can
     also call the rule to create growth diagrams::
 
