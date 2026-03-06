@@ -1625,6 +1625,12 @@ class GrowthDiagram(SageObject):
             sage: view(GrowthDiagram.rules.BinaryWord()(pi))  # not tested
             sage: view(GrowthDiagram.rules.Domino()(pi))  # not tested
 
+        Edge labels are also displayed::
+
+            sage: LLMS3 = GrowthDiagram.rules.LLMS(3)
+            sage: G = LLMS3([4,1,2,6,3,5])
+            sage: view(G)
+
         TESTS::
 
             sage: G = GrowthDiagram.rules.RSK()([1])
@@ -1678,6 +1684,13 @@ class GrowthDiagram(SageObject):
         x_unit = "0.9em"
         y_unit = "0.9em"
 
+        # Coordinate transforms (draw top row at the top)
+        def y_rect(j):
+            return h - 1 - j
+
+        def y_vert(y):
+            return h - y
+
         if not self._lambda:
             return (f"\\begin{{tikzpicture}}[baseline=(BL.base),x={x_unit},y={y_unit}]\n"
                     "  \\coordinate (BL) at (0,0);\n"
@@ -1685,7 +1698,8 @@ class GrowthDiagram(SageObject):
 
         h = len(self._lambda)
         rule = self.rule
-        V = {}  # (x, y) -> raw label
+        V = {}  # (x, y) -> raw vertex label
+        E = {}  # (x, y) -> raw edge label
         try:
             forward = rule.forward_rule
         except AttributeError:
@@ -1701,6 +1715,8 @@ class GrowthDiagram(SageObject):
                         NW = labels[2*c - 2]
                         SW = labels[2*c]
                         SE = labels[2*c + 2]
+                        mW = labels[2*c - 1]  # m for middle
+                        mS = labels[2*c + 1]
                         (labels[2*c - 1],
                          labels[2*c],
                          labels[2*c + 1]) = forward(labels[2*c - 2],
@@ -1709,11 +1725,18 @@ class GrowthDiagram(SageObject):
                                                     labels[2*c + 1],
                                                     labels[2*c + 2],
                                                     self._filling.get((i, j), 0))
+                        mN = labels[2*c - 1]
                         NE = labels[2*c]
-                        V[(i,   j   )] = SW
-                        V[(i+1, j   )] = SE
-                        V[(i,   j+1 )] = NW
-                        V[(i+1, j+1 )] = NE
+                        mE = labels[2*c + 1]
+                        V[(i,   j  )] = SW
+                        V[(i+1, j  )] = SE
+                        V[(i,   j+1)] = NW
+                        V[(i+1, j+1)] = NE
+                        E[(i,   j+0.5)] = mW
+                        E[(i+1, j+0.5)] = mE
+                        E[(i+0.5,   j)] = mS
+                        E[(i+0.5, j+1)] = mN
+
             else:
                 for j in range(h):
                     for c in range(self._mu[j] + h - j, self._lambda[j] + h - j):
@@ -1726,10 +1749,10 @@ class GrowthDiagram(SageObject):
                                             labels[c + 1],
                                             self._filling.get((i, j), 0))
                         NE = labels[c]
-                        V[(i,   j   )] = SW
-                        V[(i+1, j   )] = SE
-                        V[(i,   j+1 )] = NW
-                        V[(i+1, j+1 )] = NE
+                        V[(i,   j  )] = SW
+                        V[(i+1, j  )] = SE
+                        V[(i,   j+1)] = NW
+                        V[(i+1, j+1)] = NE
 
         else:
             # Backward sweep fallback: start from boundary opposite the origin
@@ -1740,8 +1763,10 @@ class GrowthDiagram(SageObject):
                     for c in range(self._lambda[j] + r, self._mu[j] + r, -1):
                         i = c - r - 1
                         NW = labels[2*c - 2]
-                        NE = labels[2*c]      # capture NE before update
+                        NE = labels[2*c]
                         SE = labels[2*c + 2]
+                        mN = labels[2*c - 1]  # m for middle
+                        mE = labels[2*c + 1]
                         (labels[2*c - 1],
                          labels[2*c],
                          labels[2*c + 1], v) = rule.backward_rule(labels[2*c - 2],
@@ -1749,34 +1774,33 @@ class GrowthDiagram(SageObject):
                                                                   labels[2*c],
                                                                   labels[2*c + 1],
                                                                   labels[2*c + 2])
-                        SW = labels[2*c]      # after update
-                        V[(i,   j   )] = SW
-                        V[(i+1, j   )] = SE
-                        V[(i,   j+1 )] = NW
-                        V[(i+1, j+1 )] = NE
+                        mW = labels[2*c - 1]
+                        SW = labels[2*c]
+                        mS = labels[2*c + 1]
+                        V[(i,   j  )] = SW
+                        V[(i+1, j  )] = SE
+                        V[(i,   j+1)] = NW
+                        V[(i+1, j+1)] = NE
+                        E[(i,   j+0.5)] = mW
+                        E[(i+1, j+0.5)] = mE
+                        E[(i+0.5,   j)] = mS
+                        E[(i+0.5, j+1)] = mN
             else:
                 for r in range(h):
                     j = h - r - 1
                     for c in range(self._lambda[j] + r, self._mu[j] + r, -1):
                         i = c - r - 1
                         NW = labels[c - 1]
-                        NE = labels[c]        # capture NE before update
+                        NE = labels[c]
                         SE = labels[c + 1]
                         labels[c], v = rule.backward_rule(labels[c - 1],
                                                           labels[c],
                                                           labels[c + 1])
-                        SW = labels[c]        # after update
-                        V[(i,   j   )] = SW
-                        V[(i+1, j   )] = SE
-                        V[(i,   j+1 )] = NW
-                        V[(i+1, j+1 )] = NE
-
-        # Coordinate transforms (draw top row at the top)
-        def y_rect(j):
-            return h - 1 - j
-
-        def y_vert(y):
-            return h - y
+                        SW = labels[c]
+                        V[(i,   j  )] = SW
+                        V[(i+1, j  )] = SE
+                        V[(i,   j+1)] = NW
+                        V[(i+1, j+1)] = NE
 
         # Target size inside a 1x1 cell (in ems, consistent with x=..., y=...):
         target_em = 0.80
@@ -1794,8 +1818,7 @@ class GrowthDiagram(SageObject):
 
         coord_dict = {}  # coordinates in the tikz grid to box_id "GDlbl@1", "GDlbl@2", ...
         all_labels = []  # distinct (possibly non-hashable) labels
-        for (x, y_raw), raw_label in V.items():
-            label = rule.normalize_vertex(raw_label)
+        def add_label(coords, label):
             try:
                 k = all_labels.index(label)
                 box_id = f"GDlbl@{k}"
@@ -1803,24 +1826,28 @@ class GrowthDiagram(SageObject):
                 k = len(all_labels)
                 all_labels.append(label)
                 box_id = f"GDlbl@{k}"
-
                 tikz.append(f"\\expandafter\\newsavebox\\csname {box_id}\\endcsname")
                 tikz.append(f"\\expandafter\\sbox\\csname {box_id}\\endcsname{{\\GDwrap{{{latex(label)}}}}}")
                 # width max
                 tikz.append(f"\\setlength\\GDtmp{{\\wd\\csname {box_id}\\endcsname}}")
                 tikz.append("\\ifdim\\GDtmp>\\GDWmax\\setlength\\GDWmax{\\GDtmp}\\fi")
                 # height+depth max
-                tikz.append(f"\\setlength\\GDtmp{{\\ht\\csname {box_id}\\endcsname}}\\addtolength\\GDtmp{{\\dp\\csname {box_id}\\endcsname}}")
+                tikz.append(f"\\setlength\\GDtmp{{\\ht\\csname {box_id}\\endcsname}}")
+                tikz.append(f"\\addtolength\\GDtmp{{\\dp\\csname {box_id}\\endcsname}}")
                 tikz.append("\\ifdim\\GDtmp>\\GDHmax\\setlength\\GDHmax{\\GDtmp}\\fi")
 
-            coords = (x, y_vert(y_raw))
             coord_dict[coords] = box_id
 
-        # Avoid degenerate division
+        for coords, raw_label in V.items():
+            add_label(coords, rule.normalize_vertex(raw_label))
+
+        for coords, raw_label in E.items():
+            if raw_label != rule.zero_edge:
+                add_label(coords, raw_label)
+
+        # determine scale = min(targetW/Wmax, targetH/Hmax, 1)
         tikz.append("\\ifdim\\GDWmax<1pt \\setlength\\GDWmax{1pt}\\fi")
         tikz.append("\\ifdim\\GDHmax<1pt \\setlength\\GDHmax{1pt}\\fi")
-
-        # Convert to numbers and compute scale = min(targetW/Wmax, targetH/Hmax, 1)
         tikz.append("\\pgfmathsetlengthmacro{\\GDWmaxNum}{\\GDWmax}")
         tikz.append("\\pgfmathsetlengthmacro{\\GDHmaxNum}{\\GDHmax}")
         tikz.append("\\pgfmathsetlengthmacro{\\GDtargetWNum}{\\GDtargetW}")
@@ -1835,6 +1862,7 @@ class GrowthDiagram(SageObject):
         tikz.append("  \\coordinate (BL) at (0,0);")
         # Region boxes
         tikz.append("  \\begin{scope}[draw=black!40,line width=0.2pt]")
+
         for j in range(h):
             for i in range(self._mu[j], self._lambda[j]):
                 y = y_rect(j)
@@ -1852,7 +1880,7 @@ class GrowthDiagram(SageObject):
             tikz.append("  \\end{scope}")
 
         tikz.append("  \\begin{scope}[every node/.style={inner sep=0.2pt,outer sep=0pt}]")
-        tikz.extend(f"\\node at ({x},{y}) {{\\scalebox{{\\GDscale}}{{\\usebox{{\\csname {box_id}\\endcsname}}}}}};"
+        tikz.extend(f"\\node at ({x},{y_vert(y)}) {{\\scalebox{{\\GDscale}}{{\\usebox{{\\csname {box_id}\\endcsname}}}}}};"
                     for (x, y), box_id in coord_dict.items())
         tikz.append("  \\end{scope}")
         tikz.append("\\end{tikzpicture}")
