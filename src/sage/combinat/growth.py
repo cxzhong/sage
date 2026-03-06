@@ -1624,10 +1624,22 @@ class GrowthDiagram(SageObject):
             sage: pi = [2, 1, 5, 9, 3, 10, 4, 7, 8, 6]
             sage: view(GrowthDiagram.rules.RSK()(pi))  # not tested
             sage: view(GrowthDiagram.rules.Sylvester()(pi))  # not tested
+            sage: view(GrowthDiagram.rules.BinaryWord()(pi))  # not tested
+            sage: view(GrowthDiagram.rules.Domino()(pi))  # not tested
 
         TESTS::
 
             sage: G = GrowthDiagram.rules.RSK()([1])
+            sage: latex(G)
+            ...
+            \end{tikzpicture}
+
+        Check that non-hashable labels work::
+
+            sage: class RuleNonHashable(GrowthDiagram.rules.RSK):
+            ....:     def normalize_vertex(self, v):
+            ....:         return v
+            sage: G = RuleNonHashable()([1])
             sage: latex(G)
             ...
             \end{tikzpicture}
@@ -1700,59 +1712,53 @@ class GrowthDiagram(SageObject):
         target_em = 0.80
         default_scale = 0.33  # fallback if measurement degenerates
 
-        # Collect normalized LaTeX for all vertex labels in traversal order
-        label_tex = []
-        coords = []
-        for (x, y_raw), raw_label in sorted(V.items()):
-            coords.append((x, y_vert(y_raw)))
-            try:
-                obj = rule.normalize_vertex(raw_label)
-                lab = latex(obj)
-            except Exception:
-                lab = latex(raw_label)
-            label_tex.append(lab)
-
         tikz = []
-        if label_tex:
-            tikz.append("\\newcommand{\\GDwrap}[1]{$\\displaystyle #1$}")
+        tikz.append("\\newcommand{\\GDwrap}[1]{$\\displaystyle #1$}")
 
-            tikz.append("\\newlength\\GDWmax\\newlength\\GDHmax\\newlength\\GDtmp")
-            tikz.append("\\setlength\\GDWmax{0pt}\\setlength\\GDHmax{0pt}")
-            tikz.append("\\newcount\\GDidx \\GDidx=0")
+        tikz.append("\\newlength\\GDWmax\\newlength\\GDHmax\\newlength\\GDtmp")
+        tikz.append("\\setlength\\GDWmax{0pt}\\setlength\\GDHmax{0pt}")
 
-            tikz.append("\\newlength\\GDtargetW\\newlength\\GDtargetH")
-            tikz.append("\\setlength\\GDtargetW{" + f"{target_em:.3f}" + "em}")
-            tikz.append("\\setlength\\GDtargetH{" + f"{target_em:.3f}" + "em}")
+        tikz.append("\\newlength\\GDtargetW\\newlength\\GDtargetH")
+        tikz.append("\\setlength\\GDtargetW{" + f"{target_em:.3f}" + "em}")
+        tikz.append("\\setlength\\GDtargetH{" + f"{target_em:.3f}" + "em}")
 
-            box_ids = []  # like "GDlbl@1", "GDlbl@2", ...
-            for k, lab in enumerate(label_tex, start=1):
-                bid = f"GDlbl@{k}"
-                box_ids.append(bid)
-                tikz.append(f"\\expandafter\\newsavebox\\csname {bid}\\endcsname")
-                tikz.append(f"\\expandafter\\sbox\\csname {bid}\\endcsname{{\\GDwrap{{{lab}}}}}")
-                tikz.append("  \\advance\\GDidx by 1")
+        coord_dict = {}  # coordinates in the tikz grid to box_id "GDlbl@1", "GDlbl@2", ...
+        all_labels = []  # distinct (possibly non-hashable) labels
+        for (x, y_raw), raw_label in V.items():
+            label = rule.normalize_vertex(raw_label)
+            try:
+                k = all_labels.index(label)
+                box_id = f"GDlbl@{k}"
+            except ValueError:
+                k = len(all_labels)
+                all_labels.append(label)
+                box_id = f"GDlbl@{k}"
+
+                tikz.append(f"\\expandafter\\newsavebox\\csname {box_id}\\endcsname")
+                tikz.append(f"\\expandafter\\sbox\\csname {box_id}\\endcsname{{\\GDwrap{{{latex(label)}}}}}")
                 # width max
-                tikz.append(f"  \\setlength\\GDtmp{{\\wd\\csname {bid}\\endcsname}}")
-                tikz.append("  \\ifdim\\GDtmp>\\GDWmax\\setlength\\GDWmax{\\GDtmp}\\fi")
+                tikz.append(f"\\setlength\\GDtmp{{\\wd\\csname {box_id}\\endcsname}}")
+                tikz.append("\\ifdim\\GDtmp>\\GDWmax\\setlength\\GDWmax{\\GDtmp}\\fi")
                 # height+depth max
-                tikz.append(f"  \\setlength\\GDtmp{{\\ht\\csname {bid}\\endcsname}}\\addtolength\\GDtmp{{\\dp\\csname {bid}\\endcsname}}")
-                tikz.append("  \\ifdim\\GDtmp>\\GDHmax\\setlength\\GDHmax{\\GDtmp}\\fi")
+                tikz.append(f"\\setlength\\GDtmp{{\\ht\\csname {box_id}\\endcsname}}\\addtolength\\GDtmp{{\\dp\\csname {box_id}\\endcsname}}")
+                tikz.append("\\ifdim\\GDtmp>\\GDHmax\\setlength\\GDHmax{\\GDtmp}\\fi")
 
-            # Avoid degenerate division
-            tikz.append("\\ifdim\\GDWmax<1pt \\setlength\\GDWmax{1pt}\\fi")
-            tikz.append("\\ifdim\\GDHmax<1pt \\setlength\\GDHmax{1pt}\\fi")
+            coords = (x, y_vert(y_raw))
+            coord_dict[coords] = box_id
 
-            # Convert to numbers and compute scale = min(targetW/Wmax, targetH/Hmax, 1)
-            tikz.append("\\pgfmathsetlengthmacro{\\GDWmaxNum}{\\GDWmax}")
-            tikz.append("\\pgfmathsetlengthmacro{\\GDHmaxNum}{\\GDHmax}")
-            tikz.append("\\pgfmathsetlengthmacro{\\GDtargetWNum}{\\GDtargetW}")
-            tikz.append("\\pgfmathsetlengthmacro{\\GDtargetHNum}{\\GDtargetH}")
-            tikz.append("\\pgfmathsetmacro{\\GDscaleW}{\\GDtargetWNum/\\GDWmaxNum}")
-            tikz.append("\\pgfmathsetmacro{\\GDscaleH}{\\GDtargetHNum/\\GDHmaxNum}")
-            tikz.append("\\pgfmathparse{min(\\GDscaleW,\\GDscaleH,1)}")
-            tikz.append("\\xdef\\GDscale{\\pgfmathresult}")
-        else:
-            tikz.append("\\def\\GDscale{" + f"{default_scale:.3f}" + "}")
+        # Avoid degenerate division
+        tikz.append("\\ifdim\\GDWmax<1pt \\setlength\\GDWmax{1pt}\\fi")
+        tikz.append("\\ifdim\\GDHmax<1pt \\setlength\\GDHmax{1pt}\\fi")
+
+        # Convert to numbers and compute scale = min(targetW/Wmax, targetH/Hmax, 1)
+        tikz.append("\\pgfmathsetlengthmacro{\\GDWmaxNum}{\\GDWmax}")
+        tikz.append("\\pgfmathsetlengthmacro{\\GDHmaxNum}{\\GDHmax}")
+        tikz.append("\\pgfmathsetlengthmacro{\\GDtargetWNum}{\\GDtargetW}")
+        tikz.append("\\pgfmathsetlengthmacro{\\GDtargetHNum}{\\GDtargetH}")
+        tikz.append("\\pgfmathsetmacro{\\GDscaleW}{\\GDtargetWNum/\\GDWmaxNum}")
+        tikz.append("\\pgfmathsetmacro{\\GDscaleH}{\\GDtargetHNum/\\GDHmaxNum}")
+        tikz.append("\\pgfmathparse{min(\\GDscaleW,\\GDscaleH,1)}")
+        tikz.append("\\xdef\\GDscale{\\pgfmathresult}")
 
         # Begin outer TikZ picture
         tikz.append(f"\\begin{{tikzpicture}}[baseline=(BL.base),x={x_unit},y={y_unit}]")
@@ -1776,9 +1782,8 @@ class GrowthDiagram(SageObject):
             tikz.append("  \\end{scope}")
 
         tikz.append("  \\begin{scope}[every node/.style={inner sep=0.2pt,outer sep=0pt}]")
-        if label_tex:
-            tikz.extend(f"\\node at ({x},{y}) {{\\scalebox{{\\GDscale}}{{\\usebox{{\\csname {bid}\\endcsname}}}}}};"
-                       for (x, y), bid in zip(coords, box_ids))
+        tikz.extend(f"\\node at ({x},{y}) {{\\scalebox{{\\GDscale}}{{\\usebox{{\\csname {box_id}\\endcsname}}}}}};"
+                    for (x, y), box_id in coord_dict.items())
         tikz.append("  \\end{scope}")
         tikz.append("\\end{tikzpicture}")
         return "\n".join(tikz)
