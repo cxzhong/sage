@@ -1629,7 +1629,7 @@ class GrowthDiagram(SageObject):
 
             sage: LLMS3 = GrowthDiagram.rules.LLMS(3)
             sage: G = LLMS3([4,1,2,6,3,5])
-            sage: view(G)
+            sage: view(G)  # not tested
 
         TESTS::
 
