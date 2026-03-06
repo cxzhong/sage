@@ -1610,13 +1610,14 @@ class GrowthDiagram(SageObject):
 
     def _latex_(self):
         r"""
-        Return a TikZ ``tikzpicture`` representing the growth diagram.
+        Return a `\LaTeX` representation of ``self``.
 
-        - the skew region drawn as a grid of light boxes,
-        - the filling values at cell centers,
-        - the labels at lattice vertices (converted via ``rule.normalize_vertex``),
+        The latex output of the growth diagram is given using TikZ as follows:
+
+        - The skew region drawn as a grid of light boxes,
+        - The filling values at cell centers,
+        - The labels at lattice vertices (converted via ``rule.normalize_vertex``),
           scaled to fit within about one third of a cell.
-
 
         EXAMPLES::
 
@@ -1638,13 +1639,13 @@ class GrowthDiagram(SageObject):
         x_unit = "0.9em"
         y_unit = "0.9em"
 
-        h = len(self._lambda)
-        if not h:
+        if not self._lambda:
             return (
                 f"\\begin{{tikzpicture}}[baseline=(BL.base),x={x_unit},y={y_unit}]\n"
                 "  \\coordinate (BL) at (0,0);\n"
                 "\\end{tikzpicture}"
             )
+        h = len(self._lambda)
 
         # Replay forward sweep to collect vertex labels
         rule = self.rule
@@ -1776,8 +1777,8 @@ class GrowthDiagram(SageObject):
 
         tikz.append("  \\begin{scope}[every node/.style={inner sep=0.2pt,outer sep=0pt}]")
         if label_tex:
-            for (x, y), bid in zip(coords, box_ids):
-                tikz.append(f"\\node at ({x},{y}) {{\\scalebox{{\\GDscale}}{{\\usebox{{\\csname {bid}\\endcsname}}}}}};")
+            tikz.extend(f"\\node at ({x},{y}) {{\\scalebox{{\\GDscale}}{{\\usebox{{\\csname {bid}\\endcsname}}}}}};"
+                       for (x, y), bid in zip(coords, box_ids))
         tikz.append("  \\end{scope}")
         tikz.append("\\end{tikzpicture}")
         return "\n".join(tikz)
