@@ -1608,6 +1608,180 @@ class GrowthDiagram(SageObject):
         self._in_labels = labels
         self._filling = F
 
+    def _latex_(self):
+        r"""
+        Return a TikZ ``tikzpicture`` representing the growth diagram.
+
+        - the skew region drawn as a grid of light boxes,
+        - the filling values at cell centers,
+        - the labels at lattice vertices (converted via ``rule.normalize_vertex``),
+          scaled to fit within about one third of a cell.
+
+
+        EXAMPLES::
+
+            sage: pi = [2, 1, 5, 9, 3, 10, 4, 7, 8, 6]
+            sage: view(GrowthDiagram.rules.RSK()(pi))  # not tested
+            sage: view(GrowthDiagram.rules.Sylvester()(pi))  # not tested
+
+        TESTS::
+
+            sage: G = GrowthDiagram.rules.RSK()([1])
+            sage: latex(G)
+            ...
+            \end{tikzpicture}
+        """
+        from sage.misc.latex import latex
+        latex.add_package_to_preamble_if_available("tikz")
+
+        # Visual parameters (later to be routed through GlobalOptions)
+        x_unit = "0.9em"
+        y_unit = "0.9em"
+
+        h = len(self._lambda)
+        if not h:
+            return (
+                f"\\begin{{tikzpicture}}[baseline=(BL.base),x={x_unit},y={y_unit}]\n"
+                "  \\coordinate (BL) at (0,0);\n"
+                "\\end{tikzpicture}"
+            )
+
+        # Replay forward sweep to collect vertex labels
+        rule = self.rule
+        labels = list(self._in_labels)  # local copy
+        V = {}  # (x, y) -> raw label
+
+        if rule.has_multiple_edges:
+            for j in range(h):
+                for c in range(self._mu[j] + h - j, self._lambda[j] + h - j):
+                    i = c - h + j
+                    NW = labels[2*c - 2]
+                    SW = labels[2*c]
+                    SE = labels[2*c + 2]
+                    (labels[2*c - 1],
+                     labels[2*c],
+                     labels[2*c + 1]) = rule.forward_rule(labels[2*c - 2],
+                                                          labels[2*c - 1],
+                                                          labels[2*c],
+                                                          labels[2*c + 1],
+                                                          labels[2*c + 2],
+                                                          self._filling.get((i, j), 0))
+                    NE = labels[2*c]
+                    V[(i,   j   )] = SW
+                    V[(i+1, j   )] = SE
+                    V[(i,   j+1 )] = NW
+                    V[(i+1, j+1 )] = NE
+        else:
+            for j in range(h):
+                for c in range(self._mu[j] + h - j, self._lambda[j] + h - j):
+                    i = c - h + j
+                    NW = labels[c - 1]
+                    SW = labels[c]
+                    SE = labels[c + 1]
+                    labels[c] = rule.forward_rule(labels[c - 1],
+                                                  labels[c],
+                                                  labels[c + 1],
+                                                  self._filling.get((i, j), 0))
+                    NE = labels[c]
+                    V[(i,   j   )] = SW
+                    V[(i+1, j   )] = SE
+                    V[(i,   j+1 )] = NW
+                    V[(i+1, j+1 )] = NE
+
+        # Coordinate transforms (draw top row at the top)
+        def y_rect(j):
+            return h - 1 - j
+
+        def y_vert(y):
+            return h - y
+
+        # Target size inside a 1x1 cell (in ems, consistent with x=..., y=...):
+        target_em = 0.80
+        default_scale = 0.33  # fallback if measurement degenerates
+
+        # Collect normalized LaTeX for all vertex labels in traversal order
+        label_tex = []
+        coords = []
+        for (x, y_raw), raw_label in sorted(V.items()):
+            coords.append((x, y_vert(y_raw)))
+            try:
+                obj = rule.normalize_vertex(raw_label)
+                lab = latex(obj)
+            except Exception:
+                lab = latex(raw_label)
+            label_tex.append(lab)
+
+        tikz = []
+        if label_tex:
+            tikz.append("\\newcommand{\\GDwrap}[1]{$\\displaystyle #1$}")
+
+            tikz.append("\\newlength\\GDWmax\\newlength\\GDHmax\\newlength\\GDtmp")
+            tikz.append("\\setlength\\GDWmax{0pt}\\setlength\\GDHmax{0pt}")
+            tikz.append("\\newcount\\GDidx \\GDidx=0")
+
+            tikz.append("\\newlength\\GDtargetW\\newlength\\GDtargetH")
+            tikz.append("\\setlength\\GDtargetW{" + f"{target_em:.3f}" + "em}")
+            tikz.append("\\setlength\\GDtargetH{" + f"{target_em:.3f}" + "em}")
+
+            box_ids = []  # like "GDlbl@1", "GDlbl@2", ...
+            for k, lab in enumerate(label_tex, start=1):
+                bid = f"GDlbl@{k}"
+                box_ids.append(bid)
+                tikz.append(f"\\expandafter\\newsavebox\\csname {bid}\\endcsname")
+                tikz.append(f"\\expandafter\\sbox\\csname {bid}\\endcsname{{\\GDwrap{{{lab}}}}}")
+                tikz.append("  \\advance\\GDidx by 1")
+                # width max
+                tikz.append(f"  \\setlength\\GDtmp{{\\wd\\csname {bid}\\endcsname}}")
+                tikz.append("  \\ifdim\\GDtmp>\\GDWmax\\setlength\\GDWmax{\\GDtmp}\\fi")
+                # height+depth max
+                tikz.append(f"  \\setlength\\GDtmp{{\\ht\\csname {bid}\\endcsname}}\\addtolength\\GDtmp{{\\dp\\csname {bid}\\endcsname}}")
+                tikz.append("  \\ifdim\\GDtmp>\\GDHmax\\setlength\\GDHmax{\\GDtmp}\\fi")
+
+            # Avoid degenerate division
+            tikz.append("\\ifdim\\GDWmax<1pt \\setlength\\GDWmax{1pt}\\fi")
+            tikz.append("\\ifdim\\GDHmax<1pt \\setlength\\GDHmax{1pt}\\fi")
+
+            # Convert to numbers and compute scale = min(targetW/Wmax, targetH/Hmax, 1)
+            tikz.append("\\pgfmathsetlengthmacro{\\GDWmaxNum}{\\GDWmax}")
+            tikz.append("\\pgfmathsetlengthmacro{\\GDHmaxNum}{\\GDHmax}")
+            tikz.append("\\pgfmathsetlengthmacro{\\GDtargetWNum}{\\GDtargetW}")
+            tikz.append("\\pgfmathsetlengthmacro{\\GDtargetHNum}{\\GDtargetH}")
+            tikz.append("\\pgfmathsetmacro{\\GDscaleW}{\\GDtargetWNum/\\GDWmaxNum}")
+            tikz.append("\\pgfmathsetmacro{\\GDscaleH}{\\GDtargetHNum/\\GDHmaxNum}")
+            tikz.append("\\pgfmathparse{min(\\GDscaleW,\\GDscaleH,1)}")
+            tikz.append("\\xdef\\GDscale{\\pgfmathresult}")
+        else:
+            tikz.append("\\def\\GDscale{" + f"{default_scale:.3f}" + "}")
+
+        # Begin outer TikZ picture
+        tikz.append(f"\\begin{{tikzpicture}}[baseline=(BL.base),x={x_unit},y={y_unit}]")
+        tikz.append("  \\coordinate (BL) at (0,0);")
+        # Region boxes
+        tikz.append("  \\begin{scope}[draw=black!40,line width=0.2pt]")
+        for j in range(h):
+            for i in range(self._mu[j], self._lambda[j]):
+                y = y_rect(j)
+                tikz.append(f"    \\draw ({i},{y}) rectangle ++(1,1);")
+        tikz.append("  \\end{scope}")
+
+        # Filling values at cell centers
+        if self._filling:
+            tikz.append("  % filling values")
+            tikz.append("  \\begin{scope}[black]")
+            for (i, j), v in self._filling.items():
+                if v != 0:
+                    y = y_rect(j)
+                    tikz.append(f"    \\node at ({i+0.5},{y+0.5}) {{$ {latex(v)} $}};")
+            tikz.append("  \\end{scope}")
+
+        tikz.append("  \\begin{scope}[every node/.style={inner sep=0.2pt,outer sep=0pt}]")
+        if label_tex:
+            for (x, y), bid in zip(coords, box_ids):
+                tikz.append(f"\\node at ({x},{y}) {{\\scalebox{{\\GDscale}}{{\\usebox{{\\csname {bid}\\endcsname}}}}}};")
+        tikz.append("  \\end{scope}")
+        tikz.append("\\end{tikzpicture}")
+        return "\n".join(tikz)
+
 ######################################################################
 # ABC for rules of growth diagrams
 ######################################################################
