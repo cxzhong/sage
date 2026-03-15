@@ -372,7 +372,7 @@ package within SageMath, or install FriCAS separately, see
 http://fricas.sourceforge.net.
 """
 
-    def _quit_string(self):
+    def _quit_string(self) -> str:
         """
         Return the string used to quit FriCAS.
 
@@ -774,7 +774,7 @@ http://fricas.sourceforge.net.
         """
         return int(self.get_unparsed_InputForm(str(var)))
 
-    def get_boolean(self, var):
+    def get_boolean(self, var) -> bool:
         """
         Return the value of a FriCAS boolean as a boolean, without checking
         that it is a boolean.
@@ -835,7 +835,7 @@ http://fricas.sourceforge.net.
         """
         return ":="
 
-    def _equality_symbol(self):
+    def _equality_symbol(self) -> str:
         """
         Return the equality testing logical symbol in FriCAS.
 
@@ -854,7 +854,7 @@ http://fricas.sourceforge.net.
         """
         return "="
 
-    def _true_symbol(self):
+    def _true_symbol(self) -> str:
         """
         Return the string used for ``True`` in FriCAS.
 
@@ -865,7 +865,7 @@ http://fricas.sourceforge.net.
         """
         return "true"
 
-    def _false_symbol(self):
+    def _false_symbol(self) -> str:
         """
         Return the string used for ``False`` in FriCAS.
 
@@ -876,7 +876,7 @@ http://fricas.sourceforge.net.
         """
         return "false"
 
-    def _inequality_symbol(self):
+    def _inequality_symbol(self) -> str:
         """
         Return the string used for False in FriCAS.
 
@@ -887,7 +887,7 @@ http://fricas.sourceforge.net.
         """
         return '~='
 
-    def _repr_(self):
+    def _repr_(self) -> str:
         """
         EXAMPLES::
 
@@ -1929,6 +1929,15 @@ class FriCASElement(ExpectElement, sage.interfaces.abc.FriCASElement):
             An error occurred when FriCAS evaluated 'unparse(...::InputForm)':
             <BLANKLINE>
                Cannot convert the value from type Any to InputForm .
+
+        TESTS:
+
+        Do not try to sort factorized objets::
+
+            sage: x, y, z = polygens(GF(3),'x,y,z')
+            sage: F = (x+y) * (x+z)
+            sage: fricas(F).factor().sage()
+            (y + x) * (z + x)
         """
         from sage.rings.polynomial.polynomial_ring_constructor import PolynomialRing
         from sage.rings.real_double import RDF
@@ -1982,7 +1991,7 @@ class FriCASElement(ExpectElement, sage.interfaces.abc.FriCASElement):
 
         if head == "Factored":
             l = P.new('[[f.factor, f.exponent] for f in factors(%s)]' % self._name).sage()
-            return Factorization(list(l))
+            return Factorization(list(l), sort=False)
 
         if head == "UnivariatePolynomial":
             base_ring = self._get_sage_type(domain[2])
