@@ -1188,6 +1188,8 @@ cdef class MPolynomial(CommutativePolynomial):
 
         TESTS::
 
+            sage: # optional - fricas
+            sage: a,b = GF(13)['a,b'].gens()
             sage: p = a**3+b**3
             sage: fricas(p).factor()
             (b + a)(b + 9 a)(b + 3 a)
