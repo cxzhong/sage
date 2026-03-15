@@ -1174,6 +1174,27 @@ cdef class MPolynomial(CommutativePolynomial):
                      for c, m in self)
         return s if s else '0'
 
+    def _fricas_init_(self):
+        """
+        Return a FriCAS string representation of this polynomial.
+
+        EXAMPLES::
+
+            sage: # optional - fricas
+            sage: a,b = GF(13)['a,b'].gens()
+            sage: p = 4*a+b*b
+            sage: fricas(p).typeOf()
+            Polynomial(FiniteField(13,1))
+
+        TESTS::
+
+            sage: p = a**3+b**3
+            sage: fricas(p).factor()
+            (b + a)(b + 9 a)(b + 3 a)
+        """
+        BR = self.parent().base_ring()._fricas_init_()
+        return '(%s) :: Polynomial(%s)' % (self, BR)
+
     def gradient(self):
         r"""
         Return a list of partial derivatives of this polynomial,

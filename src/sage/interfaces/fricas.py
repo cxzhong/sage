@@ -1258,6 +1258,10 @@ class FriCASElement(ExpectElement, sage.interfaces.abc.FriCASElement):
         if head == "PrimeField":
             return FiniteField(domain[1].integer().sage())
 
+        if head == "FiniteField":
+            return FiniteField(domain[1].integer().sage(),
+                               domain[2].integer().sage())
+
         if head == "Fraction":
             return FractionField(self._get_sage_type(domain[1]))
 
