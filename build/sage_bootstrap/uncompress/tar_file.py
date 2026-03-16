@@ -20,7 +20,6 @@ import tarfile
 import stat
 import subprocess
 import time
-import inspect
 
 from io import BytesIO
 
@@ -105,13 +104,10 @@ class SageBaseTarFile(tarfile.TarFile):
         for member in members:
             if os.path.isabs(member.name):
                 raise tarfile.AbsolutePathError(member)
-            if hasattr(tarfile, 'data_filter'):
-                tarfile.data_filter(member, path)
+            tarfile.data_filter(member, path)
 
-        tfile = super(SageBaseTarFile, self)
-        if 'filter' in inspect.signature(tfile.extractall).parameters:
-            kwargs['filter'] = 'data'
-        return tfile.extractall(path=path, members=members, **kwargs)
+        kwargs['filter'] = 'data'
+        return super(SageBaseTarFile, self).extractall(path=path, members=members, **kwargs)
 
     def extractbytes(self, member):
         """

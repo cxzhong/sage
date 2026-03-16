@@ -79,9 +79,9 @@ class UncompressTarFileTestCase(unittest.TestCase):
         filename = self.make_malicious_tarfile('../escape')
         dst = os.path.join(self.tmp, 'dst')
         os.mkdir(dst)
-        archive = open_archive(filename)
-        with self.assertRaises(tarfile.TarError):
-            archive.extractall(path=dst, members=archive.names)
+        with open_archive(filename) as archive:
+            with self.assertRaises(tarfile.TarError):
+                archive.extractall(path=dst, members=archive.names)
         self.assertFalse(os.path.exists(os.path.join(self.tmp, 'escape')))
 
     def test_tarball_rejects_absolute_paths(self):
@@ -89,9 +89,9 @@ class UncompressTarFileTestCase(unittest.TestCase):
         filename = self.make_malicious_tarfile(outside)
         dst = os.path.join(self.tmp, 'dst')
         os.mkdir(dst)
-        archive = open_archive(filename)
-        with self.assertRaises(tarfile.TarError):
-            archive.extractall(path=dst, members=archive.names)
+        with open_archive(filename) as archive:
+            with self.assertRaises(tarfile.TarError):
+                archive.extractall(path=dst, members=archive.names)
         self.assertFalse(os.path.exists(outside))
 
 
