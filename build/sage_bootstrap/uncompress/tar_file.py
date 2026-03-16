@@ -90,8 +90,7 @@ class SageBaseTarFile(tarfile.TarFile):
         the members argument (like zipfile.ZipFile).
 
         .. note::
-            The additional ``**kwargs`` are for Python 2/3 compatibility, since
-            different versions of this method accept additional arguments.
+            The additional ``**kwargs`` are passed through to ``tarfile.TarFile.extractall``.
         """
         if members is not None:
             name_to_member = {member.name: member for member in self.getmembers()}
