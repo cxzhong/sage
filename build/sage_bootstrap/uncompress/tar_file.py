@@ -73,6 +73,8 @@ class SageBaseTarFile(tarfile.TarFile):
     def chmod(self, tarinfo, targetpath):
         """Apply ``self.umask`` instead of the permissions in the TarInfo."""
         tarinfo = copy.copy(tarinfo)
+        if tarinfo.mode is None:
+            return
         tarinfo.mode &= ~self.umask
         tarinfo.mode |= stat.S_IWUSR
         tarinfo.mode &= ~(stat.S_ISUID | stat.S_ISGID)
@@ -92,14 +94,23 @@ class SageBaseTarFile(tarfile.TarFile):
             The additional ``**kwargs`` are for Python 2/3 compatibility, since
             different versions of this method accept additional arguments.
         """
-        if members:
-            name_to_member = dict([member.name, member] for member in self.getmembers())
+        if members is not None:
+            name_to_member = {member.name: member for member in self.getmembers()}
             members = [m if isinstance(m, tarfile.TarInfo)
                        else name_to_member[m]
                        for m in members]
+        else:
+            members = self.getmembers()
+
+        for member in members:
+            if os.path.isabs(member.name):
+                raise tarfile.AbsolutePathError(member)
+            if hasattr(tarfile, 'data_filter'):
+                tarfile.data_filter(member, path)
+
         tfile = super(SageBaseTarFile, self)
         if 'filter' in inspect.signature(tfile.extractall).parameters:
-            kwargs['filter'] = 'fully_trusted'
+            kwargs['filter'] = 'data'
         return tfile.extractall(path=path, members=members, **kwargs)
 
     def extractbytes(self, member):
