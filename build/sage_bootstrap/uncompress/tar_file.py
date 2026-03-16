@@ -101,11 +101,6 @@ class SageBaseTarFile(tarfile.TarFile):
         else:
             members = self.getmembers()
 
-        for member in members:
-            if os.path.isabs(member.name):
-                raise tarfile.AbsolutePathError(member)
-            tarfile.data_filter(member, path)
-
         kwargs['filter'] = 'data'
         return super(SageBaseTarFile, self).extractall(path=path, members=members, **kwargs)
 

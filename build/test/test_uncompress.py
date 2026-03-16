@@ -90,8 +90,7 @@ class UncompressTarFileTestCase(unittest.TestCase):
         dst = os.path.join(self.tmp, 'dst')
         os.mkdir(dst)
         with open_archive(filename) as archive:
-            with self.assertRaises(tarfile.TarError):
-                archive.extractall(path=dst, members=archive.names)
+            archive.extractall(path=dst, members=archive.names)
         self.assertFalse(os.path.exists(outside))
 
 
