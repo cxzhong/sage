@@ -84,13 +84,17 @@ class SageBaseTarFile(tarfile.TarFile):
         tarinfo.mtime = self._extracted_mtime
         return super(SageBaseTarFile, self).utime(tarinfo, targetpath)
 
-    def extractall(self, path='.', members=None, **kwargs):
+    def extractall(self, path='.', members=None):
         """
         Same as tarfile.TarFile.extractall but allows filenames for
         the members argument (like zipfile.ZipFile).
 
         .. note::
-            The additional ``**kwargs`` are passed through to ``tarfile.TarFile.extractall``.
+            Members are pre-filtered through ``tarfile.data_filter`` to
+            reject absolute paths, parent directory traversals, absolute
+            symlink/hardlink targets, and other dangerous tar features.
+            Rejected members are skipped with a warning instead of
+            aborting the whole extraction.
         """
         if members is not None:
             name_to_member = {member.name: member for member in self.getmembers()}
@@ -100,8 +104,14 @@ class SageBaseTarFile(tarfile.TarFile):
         else:
             members = self.getmembers()
 
-        kwargs['filter'] = 'data'
-        return super(SageBaseTarFile, self).extractall(path=path, members=members, **kwargs)
+        safe_members = []
+        for m in members:
+            try:
+                safe_members.append(tarfile.data_filter(m, path))
+            except tarfile.FilterError as exc:
+                print('Warning: skipping tar member {!r}: {}'.format(m.name, exc))
+
+        return super(SageBaseTarFile, self).extractall(path=path, members=safe_members)
 
     def extractbytes(self, member):
         """

@@ -75,16 +75,15 @@ class UncompressTarFileTestCase(unittest.TestCase):
             'diff', '-r', 'src', 'dst'
         ], cwd=self.tmp)
 
-    def test_tarball_rejects_parent_traversal(self):
+    def test_tarball_skips_parent_traversal(self):
         filename = self.make_malicious_tarfile('../escape')
         dst = os.path.join(self.tmp, 'dst')
         os.mkdir(dst)
         with open_archive(filename) as archive:
-            with self.assertRaises(tarfile.TarError):
-                archive.extractall(path=dst, members=archive.names)
+            archive.extractall(path=dst, members=archive.names)
         self.assertFalse(os.path.exists(os.path.join(self.tmp, 'escape')))
 
-    def test_tarball_rejects_absolute_paths(self):
+    def test_tarball_skips_absolute_paths(self):
         outside = os.path.join(self.tmp, 'escape')
         filename = self.make_malicious_tarfile(outside)
         dst = os.path.join(self.tmp, 'dst')
