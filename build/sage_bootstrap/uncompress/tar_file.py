@@ -90,28 +90,27 @@ class SageBaseTarFile(tarfile.TarFile):
         the members argument (like zipfile.ZipFile).
 
         .. note::
-            Members are pre-filtered through ``tarfile.data_filter`` to
+            Members are filtered through ``tarfile.data_filter`` during
+            extraction. Rejected members are skipped by setting
+            ``errorlevel = 0`` for the duration of the extraction.
+
+            This relies on ``tarfile``'s built-in data filter to
             reject absolute paths, parent directory traversals, absolute
             symlink/hardlink targets, and other dangerous tar features.
-            Rejected members are skipped with a warning instead of
-            aborting the whole extraction.
         """
         if members is not None:
             name_to_member = {member.name: member for member in self.getmembers()}
             members = [m if isinstance(m, tarfile.TarInfo)
                        else name_to_member[m]
                        for m in members]
-        else:
-            members = self.getmembers()
 
-        safe_members = []
-        for m in members:
-            try:
-                safe_members.append(tarfile.data_filter(m, path))
-            except tarfile.FilterError as exc:
-                print('Warning: skipping tar member {!r}: {}'.format(m.name, exc))
-
-        return super(SageBaseTarFile, self).extractall(path=path, members=safe_members)
+        old_errorlevel = self.errorlevel
+        self.errorlevel = 0
+        try:
+            return super(SageBaseTarFile, self).extractall(
+                path=path, members=members, filter='data')
+        finally:
+            self.errorlevel = old_errorlevel
 
     def extractbytes(self, member):
         """
