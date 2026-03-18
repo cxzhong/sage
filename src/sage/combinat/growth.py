@@ -1636,7 +1636,7 @@ class GrowthDiagram(SageObject):
             sage: G = GrowthDiagram.rules.RSK()([1])
             sage: latex(G)
             ...
-            \end{tikzpicture}
+            \endgroup
 
         Check that we can have two growth diagrams in the same
         picture::
@@ -1651,7 +1651,7 @@ class GrowthDiagram(SageObject):
             sage: G = RuleNonHashable()([1])
             sage: latex(G)
             ...
-            \end{tikzpicture}
+            \endgroup
 
         Check that it is not necessary that both the forward and the
         backward rules are implemented::
@@ -1682,7 +1682,7 @@ class GrowthDiagram(SageObject):
               1  0
             sage: latex(G)
             ...
-            \end{tikzpicture}
+            \endgroup
         """
         from sage.misc.latex import latex
         latex.add_package_to_preamble_if_available("tikz")
