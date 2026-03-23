@@ -760,7 +760,6 @@ def BilinearFormsGraph(const int d, const int e, const int q, immutable=False):
 
     EXAMPLES::
 
-        sage: # needs sage.modules
         sage: G = graphs.BilinearFormsGraph(3, 3, 2)
         sage: G.is_distance_regular(True)
         ([49, 36, 16, None], [None, 1, 6, 28])
@@ -778,7 +777,6 @@ def BilinearFormsGraph(const int d, const int e, const int q, immutable=False):
 
     TESTS::
 
-        sage: # needs sage.modules
         sage: G = graphs.BilinearFormsGraph(2,3,2)
         sage: G.is_distance_regular(True)
         ([21, 12, None], [None, 1, 6])
@@ -867,7 +865,6 @@ def AlternatingFormsGraph(const int n, const int q, immutable=False):
 
     TESTS::
 
-         sage: # needs sage.modules
          sage: G = graphs.AlternatingFormsGraph(6,2)    # not tested (2 min)            # needs sage.rings.finite_rings
          sage: G.order()                        # not tested (because of above)         # needs sage.rings.finite_rings
          32768
@@ -935,7 +932,7 @@ def AlternatingFormsGraph(const int n, const int q, immutable=False):
                  name=f"Alternating forms graph on (F_{q})^{n}")
 
 
-def HermitianFormsGraph(const int n, const int r):
+def HermitianFormsGraph(const int n, const int r, immutable=False):
     r"""
     Return the Hermitian forms graph with the given parameters.
 
@@ -949,11 +946,14 @@ def HermitianFormsGraph(const int n, const int r):
     INPUT:
 
     - ``n`` -- integer
+
     - ``r`` -- a prime power
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES::
 
-        sage: # needs sage.modules sage.rings.finite_rings
         sage: G = graphs.HermitianFormsGraph(2, 2)
         sage: G.is_distance_regular(True)
         ([5, 4, None], [None, 1, 2])
@@ -967,7 +967,6 @@ def HermitianFormsGraph(const int n, const int r):
 
     TESTS::
 
-         sage: # needs sage.modules sage.rings.finite_rings
          sage: G = graphs.HermitianFormsGraph(3, 2)
          sage: G.is_distance_regular(True)
          ([21, 20, 16, None], [None, 1, 2, 12])
@@ -1035,12 +1034,11 @@ def HermitianFormsGraph(const int n, const int r):
             N = tuple([M[i] + R[i] for i in range((n * (n+1)) // 2)])
             edges.append((M, N))
 
-    G = Graph(edges, format='list_of_edges')
-    G.name(f"Hermitian forms graph on (F_{q})^{n}")
-    return G
+    return Graph(edges, format='list_of_edges', immutable=immutable,
+                 name=f"Hermitian forms graph on (F_{q})^{n}")
 
 
-def DoubleOddGraph(const int n):
+def DoubleOddGraph(const int n, immutable=False):
     r"""
     Return the double odd graph on `2n+1` points.
 
@@ -1053,6 +1051,9 @@ def DoubleOddGraph(const int n):
     INPUT:
 
     - ``n`` -- integer; must be greater than 0
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES::
 
@@ -1087,26 +1088,27 @@ def DoubleOddGraph(const int n):
     if n < 1:
         raise ValueError("n must be >= 1")
 
-    cdef list edges, s1
+    cdef list edges, s2
+    cdef tuple s1
     cdef int i
+    cdef int k = 2*n + 1
 
     # a binary vector of size 2n + 1 represents a set
     edges = []
-    for s in IntegerVectors(n, k=2*n + 1, max_part=1):
-        s1 = list(s)
+    for s in IntegerVectors(n, k=k, max_part=1):
+        s1 = tuple(s)
         for i in range(2*n + 1):
             sig_check()
             if s1[i] == 0:
                 s2 = list(s)  # duplicate list
                 s2[i] = 1
-                edges.append((tuple(s1), tuple(s2)))
+                edges.append((s1, tuple(s2)))
 
-    G = Graph(edges, format='list_of_edges')
-    G.name("Bipartite double of Odd graph on a set of %d elements" % (2*n + 1))
-    return G
+    return Graph(edges, format='list_of_edges', immutable=immutable,
+                 name=f"Bipartite double of Odd graph on a set of {k} elements")
 
 
-def HalfCube(const int n):
+def HalfCube(const int n, immutable=False):
     r"""
     Return the halved cube in `n` dimensions.
 
@@ -1116,6 +1118,9 @@ def HalfCube(const int n):
     INPUT:
 
     - ``n`` -- integer; must be greater than 2
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES::
 
@@ -1169,13 +1174,14 @@ def HalfCube(const int n):
                 if u < v:
                     E.append((u, v))
 
-    G = Graph([range(2**(n - 1)), E], format='vertices_and_edges')
+    G = Graph([range(2**(n - 1)), E], format='vertices_and_edges',
+              name=f"Half {n} Cube", immutable=immutable)
     G.set_pos(pos)
-    G.name("Half %d Cube" % n)
     return G
 
 
-def GrassmannGraph(const int q, const int n, const int input_e):
+def GrassmannGraph(const int q, const int n, const int input_e,
+                   immutable=False):
     r"""
     Return the Grassmann graph with parameters `(q, n, e)`.
 
@@ -1190,7 +1196,11 @@ def GrassmannGraph(const int q, const int n, const int input_e):
     INPUT:
 
     - ``q`` -- a prime power
+
     - ``n``, ``e`` -- integers with `n > e+1`
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES::
 
@@ -1204,7 +1214,6 @@ def GrassmannGraph(const int q, const int n, const int input_e):
 
     TESTS::
 
-        sage: # needs sage.modules sage.rings.finite_rings
         sage: G = graphs.GrassmannGraph(2, 6, 3)        # long time
         sage: G.is_distance_regular(True)       # long time
         ([98, 72, 32, None], [None, 1, 9, 49])
@@ -1225,12 +1234,12 @@ def GrassmannGraph(const int q, const int n, const int input_e):
     # we want the intersection graph
     # the size of the intersection must be (q^{e-1} - 1) / (q-1)
     size = (q**(e - 1) - 1) // (q - 1)
-    G = PG.intersection_graph([size])
-    G.name("Grassmann graph J_%d(%d, %d)" % (q, n, e))
+    G = PG.intersection_graph([size], immutable=immutable)
+    G._name = f"Grassmann graph J_{q}({n}, {e})"
     return G
 
 
-def DoubleGrassmannGraph(const int q, const int e):
+def DoubleGrassmannGraph(const int q, const int e, immutable=False):
     r"""
     Return the bipartite double of the distance-`e` graph of the Grassmann graph `J_q(n,e)`.
 
@@ -1244,7 +1253,11 @@ def DoubleGrassmannGraph(const int q, const int e):
     INPUT:
 
     - ``q`` -- a prime power
+
     - ``e`` -- integer
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES::
 
@@ -1261,7 +1274,6 @@ def DoubleGrassmannGraph(const int q, const int e):
 
     TESTS::
 
-        sage: # needs sage.modules
         sage: G = graphs.DoubleGrassmannGraph(5,1)
         sage: G.order()
         62
@@ -1284,9 +1296,8 @@ def DoubleGrassmannGraph(const int q, const int e):
             Ubasis = frozenset(U.basis())
             edges.append((Wbasis, Ubasis))
 
-    G = Graph(edges, format='list_of_edges')
-    G.name("Double Grassmann graph (%d, %d, %d)" % (n, e, q))
-    return G
+    return Graph(edges, format='list_of_edges', immutable=immutable,
+                 name=f"Double Grassmann graph ({n}, {e}, {q})")
 
 
 def is_from_GQ_spread(list arr):
@@ -1359,7 +1370,7 @@ def is_from_GQ_spread(list arr):
     return (s, t)
 
 
-def graph_from_GQ_spread(const int s, const int t):
+def graph_from_GQ_spread(const int s, const int t, immutable=False):
     r"""
     Return the point graph of the generalised quadrangle with
     order `(s, t)` after removing one of its spreads.
@@ -1370,6 +1381,9 @@ def graph_from_GQ_spread(const int s, const int t):
     INPUT:
 
     - ``s``, ``t`` -- integers; order of the generalised quadrangle
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES::
 
@@ -1406,7 +1420,7 @@ def graph_from_GQ_spread(const int s, const int t):
             sig_check()
             edges.append((p1, p2))
 
-    return Graph(edges, format='list_of_edges')
+    return Graph(edges, format='list_of_edges', immutable=immutable)
 
 
 def GeneralisedDodecagonGraph(const int s, const int t):
@@ -1527,7 +1541,6 @@ def GeneralisedOctagonGraph(const int s, const int t):
 
     EXAMPLES::
 
-        sage: # needs sage.libs.gap
         sage: G = graphs.GeneralisedOctagonGraph(1, 4)          # optional - database_graphs
         sage: G.is_distance_regular(True)                       # optional - database_graphs
         ([5, 4, 4, 4, None], [None, 1, 1, 1, 5])
@@ -1638,7 +1651,6 @@ def GeneralisedHexagonGraph(const int s, const int t):
 
     EXAMPLES::
 
-        sage: # needs sage.libs.gap
         sage: G = graphs.GeneralisedHexagonGraph(5, 5)          # optional - gap_package_atlasrep internet
         sage: G.is_distance_regular(True)                       # optional - gap_package_atlasrep internet
         ([30, 25, 25, None], [None, 1, 1, 6])
@@ -1795,7 +1807,6 @@ def _extract_lines(G):
 
     EXAMPLES::
 
-        sage: # needs sage.libs.gap
         sage: from sage.graphs.generators.distance_regular import _extract_lines
         sage: G = graphs.GeneralisedHexagonGraph(1, 8)
         sage: lines = _extract_lines(G)
@@ -1863,7 +1874,6 @@ def _line_graph_generalised_polygon(H):
 
     EXAMPLES::
 
-        sage: # needs sage.libs.gap
         sage: from sage.graphs.generators.distance_regular import (
         ....:     _line_graph_generalised_polygon)
         sage: G = graphs.GeneralisedHexagonGraph(1, 8)
@@ -2528,7 +2538,6 @@ def is_near_polygon(array):
 
     TESTS::
 
-        sage: # needs sage.combinat sage.libs.pari
         sage: from sage.graphs.generators.distance_regular import (
         ....: is_near_polygon, near_polygon_graph)
         sage: is_near_polygon([7, 6, 6, 4, 4, 1, 1, 3, 3, 7])
@@ -2666,7 +2675,6 @@ def near_polygon_graph(family, params):
 
     TESTS::
 
-        sage: # needs sage.combinat
         sage: near_polygon_graph(12, 9)
         Traceback (most recent call last):
         ...
@@ -2840,7 +2848,6 @@ def distance_regular_graph(list arr, existence=False, check=True):
         sage: graphs.distance_regular_graph([18, 16, 16, 1, 1, 9])              # optional - internet gap_package_atlasrep
         Generalised hexagon of order (2, 8): Graph on 819 vertices
 
-        sage: # needs sage.combinat
         sage: graphs.distance_regular_graph([14, 12, 10, 8, 6, 4, 2,
         ....:                                1, 2, 3, 4, 5, 6, 7])
         Hamming Graph with parameters 7,3: Graph on 2187 vertices
@@ -2891,10 +2898,10 @@ def distance_regular_graph(list arr, existence=False, check=True):
                                  f"parameters {arr} exists; error: {err}"))
     else:
         # basic checks
-        if len(arr) % 2 == 1 or any([i <= 0 for i in arr]) or \
-           any([x != int(x) for x in arr]) or \
-           any([(arr[i] - arr[i + 1]) < 0 for i in range(d - 1)]) or \
-           any([(arr[d + i + 1] - arr[d + i]) < 0 for i in range(d - 1)]):
+        if len(arr) % 2 == 1 or any(i <= 0 for i in arr) or \
+           any(x != int(x) for x in arr) or \
+           any((arr[i] - arr[i + 1]) < 0 for i in range(d - 1)) or \
+           any((arr[d + i + 1] - arr[d + i]) < 0 for i in range(d - 1)):
             if existence:
                 return False
             raise EmptySetError(("No distance-regular graphs with "
