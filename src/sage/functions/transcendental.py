@@ -163,9 +163,10 @@ class Function_zeta(GinacFunction):
         r"""
         TESTS::
 
-            sage: zeta(oo)                                                              # needs sage.symbolic
+            sage: #needs sage.symbolic
+            sage: zeta(oo)
             1
-            sage: zeta(-oo)                                                             # needs sage.symbolic
+            sage: zeta(-oo)
             zeta(-Infinity)
         """
         if len(args) == 1 and not kwargs.get('hold', False):

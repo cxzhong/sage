@@ -1169,13 +1169,14 @@ class Function_harmonic_number_generalized(BuiltinFunction):
 
         TESTS::
 
-            sage: harmonic_number(int(3), int(3))                                       # needs sage.symbolic
+            sage: # needs sage.symbolic
+            sage: harmonic_number(int(3), int(3))
             1.162037037037037
-            sage: harmonic_number(oo, 2)                                                # needs sage.symbolic
+            sage: harmonic_number(oo, 2)
             1/6*pi^2
-            sage: harmonic_number(oo, 1)                                                # needs sage.symbolic
+            sage: harmonic_number(oo, 1)
             +Infinity
-            sage: harmonic_number(oo, 1/2)                                              # needs sage.symbolic
+            sage: harmonic_number(oo, 1/2)
             +Infinity
         """
         if m == 0:
