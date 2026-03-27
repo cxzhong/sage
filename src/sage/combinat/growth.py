@@ -479,7 +479,6 @@ from sage.structure.unique_representation import UniqueRepresentation
 from sage.combinat.words.word import Word
 from sage.combinat.words.words import Words
 from sage.combinat.binary_tree import BinaryTree, BinaryTrees, LabelledBinaryTree
-from sage.combinat.composition import Compositions
 from sage.combinat.partition import _Partitions, Partitions
 from sage.combinat.composition import Composition, Compositions
 from sage.combinat.composition_tableau import CompositionTableau, CompositionTableaux
@@ -4379,7 +4378,7 @@ def mason_insert(k, T):
 
 def mason(pi):
     """
-    Return the composition tableau corresponding to the word pi.
+    Return the composition tableau corresponding to the word ``pi``.
 
     EXAMPLES::
 
@@ -4408,10 +4407,11 @@ def mason(pi):
 
 
 class RuleLeftCompositions(Rule):
-    """Dual graded graphs for (skew) quasisymmetric Schur functions.
+    r"""
+    Dual graded graphs for (skew) quasisymmetric Schur functions.
 
     These were introduced by Vasu Tewari and Stephanie Van
-    Willigenburg in https://arxiv.org/pdf/1512.04614v1.pdf.
+    Willigenburg in :arxiv:`1512.04614`.
     Currently, the backward rule is not implemented.  The forward
     rule seems to agree with Mason's insertion algorithm from Section
     6.1 of http://www.math.ubc.ca/~steph/papers/QS5.pdf.
@@ -4472,7 +4472,8 @@ class RuleLeftCompositions(Rule):
         return Compositions(n)
 
     def is_P_edge_aux(self, v, w):
-        """Return `i` if `w = t_i(v)`, ``None`` otherwise.
+        r"""
+        Return `i` if `w = t_i(v)`, ``None`` otherwise.
 
         `t_i(v)` increases the left most occurrence of `i-1` by one.
         `t_1(v)` prepends `1` to the composition.  `t_i(w)=0` if
@@ -4529,7 +4530,8 @@ class RuleLeftCompositions(Rule):
         return self.rank(v) + 1 == self.rank(w) and self.is_P_edge_aux(v, w) is not None
 
     def is_Q_edge_aux(self, v, w):
-        """Return `i` if `v = d_i(w)`, ``None`` otherwise.
+        r"""
+        Return `i` if `v = d_i(w)`, ``None`` otherwise.
 
         `d_i(w)` decreases the right most occurrence of `i` by one.
         `d_i(w)=0` if `i` does not occur in `w`.
@@ -4700,15 +4702,12 @@ class RuleLeftCompositions(Rule):
                     if e != f:
                         return Composition(t_operator(x_sorted[i+1]+1, x))
                 raise ValueError("y=%s, t=%s, x=%s"%(y,t,x))
-            else:
-                i = self.is_P_edge_aux(t, y)
-                return Composition(t_operator(i, x))
-        else:
-            assert y == t == x
-            if len(y) == 0:
-                return Composition([1])
-            else:
-                return Composition(t_operator(max(t)+1, t))
+            i = self.is_P_edge_aux(t, y)
+            return Composition(t_operator(i, x))
+        assert y == t == x
+        if not y:
+            return Composition([1])
+        return Composition(t_operator(max(t)+1, t))
 
 #####################################################################
 ## Set the rules available from GrowthDiagram.rules.<tab>
