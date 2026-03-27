@@ -10,6 +10,7 @@ AUTHORS:
 
 from sage.misc.functional import log
 from sage.misc.lazy_import import lazy_import
+from sage.rings.infinity import infinity
 from sage.rings.integer import Integer
 from sage.rings.integer_ring import ZZ
 from sage.rings.rational_field import QQ
@@ -1170,10 +1171,37 @@ class Function_harmonic_number_generalized(BuiltinFunction):
 
             sage: harmonic_number(int(3), int(3))                                       # needs sage.symbolic
             1.162037037037037
+            sage: harmonic_number(oo, 2)                                                # needs sage.symbolic
+            1/6*pi^2
+            sage: harmonic_number(oo, 1)                                                # needs sage.symbolic
+            +Infinity
+            sage: harmonic_number(oo, 1/2)                                              # needs sage.symbolic
+            +Infinity
         """
         if m == 0:
             return z
-        elif m == 1:
+
+        if ((isinstance(z, Expression) and z.is_positive_infinity())
+                or (not isinstance(z, Expression) and z == infinity)):
+            if m == 1:
+                return z
+            if isinstance(m, Expression):
+                if m.is_real():
+                    delta = m - 1
+                    if delta.is_positive():
+                        return zeta(m)
+                    if delta.is_negative() or delta.is_trivial_zero():
+                        return z
+            else:
+                try:
+                    if m > 1:
+                        return zeta(m)
+                    if m <= 1:
+                        return z
+                except TypeError:
+                    pass
+
+        if m == 1:
             return harmonic_m1._eval_(z)
 
         if z in ZZ and z >= 0:
