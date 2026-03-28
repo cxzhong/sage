@@ -163,7 +163,7 @@ class Function_zeta(GinacFunction):
         r"""
         TESTS::
 
-            sage: #needs sage.symbolic
+            sage: # needs sage.symbolic
             sage: zeta(oo)
             1
             sage: zeta(-oo)
