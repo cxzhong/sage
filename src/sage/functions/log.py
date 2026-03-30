@@ -1090,6 +1090,16 @@ class Function_harmonic_number_generalized(BuiltinFunction):
         sage: harmonic_number(5, 1. + I)
         1.57436810798989 - 1.06194728851357*I
 
+    Evaluation at infinity is handled using zeta functions::
+
+        sage: # needs sage.symbolic
+        sage: harmonic_number(oo, 2)
+        1/6*pi^2
+        sage: harmonic_number(oo, 1)
+        +Infinity
+        sage: harmonic_number(oo, 1/2)
+        +Infinity
+
     Solutions to certain sums are returned in terms of harmonic numbers::
 
         sage: k = var('k')                                                              # needs sage.symbolic
@@ -1172,12 +1182,6 @@ class Function_harmonic_number_generalized(BuiltinFunction):
             sage: # needs sage.symbolic
             sage: harmonic_number(int(3), int(3))
             1.162037037037037
-            sage: harmonic_number(oo, 2)
-            1/6*pi^2
-            sage: harmonic_number(oo, 1)
-            +Infinity
-            sage: harmonic_number(oo, 1/2)
-            +Infinity
         """
         if m == 0:
             return z
