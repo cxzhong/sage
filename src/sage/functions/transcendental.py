@@ -266,9 +266,9 @@ class Function_HurwitzZeta(BuiltinFunction):
             -1/5*x^5 + 1/2*x^4 - 1/3*x^3 + 1/30*x
             sage: hurwitz_zeta(0, x)
             -x + 1/2
-            sage: hurwitz_zeta(11/10, oo)                                               # needs sage.symbolic
+            sage: hurwitz_zeta(11/10, oo)
             0
-            sage: hurwitz_zeta(2, +Infinity)                                            # needs sage.symbolic
+            sage: hurwitz_zeta(2, +Infinity)
             0
 
             sage: hurwitz_zeta(3, 0.5)                                                  # needs mpmath
