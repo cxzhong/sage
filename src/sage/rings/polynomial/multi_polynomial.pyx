@@ -1165,7 +1165,7 @@ cdef class MPolynomial(CommutativePolynomial):
             sage: a,b = GF(13)['a,b'].gens()
             sage: p = 4*a+b*b
             sage: fricas(p).typeOf()
-            Polynomial(FiniteField(13,1))
+            Polynomial(PrimeField(13))
 
         TESTS::
 
