@@ -176,6 +176,8 @@ class CCInterpreter(StackInterpreter):
         self.c_header = ri(0,
             '''
             #include <mpc.h>
+
+            int cc_py_call_helper(PyObject *, PyObject *, int, mpc_t *, __mpc_struct *);
             ''')
 
         self.pxd_header = ri(0,

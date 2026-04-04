@@ -191,6 +191,8 @@ class RRInterpreter(StackInterpreter):
         self.c_header = ri(0,
             '''
             #include <mpfr.h>
+
+            int rr_py_call_helper(PyObject *, PyObject *, int, mpfr_t *, __mpfr_struct *);
             ''')
 
         self.pxd_header = ri(0,
