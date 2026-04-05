@@ -149,12 +149,14 @@ class CCInterpreter(StackInterpreter):
             }
             <BLANKLINE>
 
-        This instruction makes use of the function cc_py_call_helper,
-        which is declared::
+        This instruction makes use of the function ``cc_py_call_helper``,
+        which is forward-declared in ``c_header``::
 
             sage: print(interp.c_header)
             <BLANKLINE>
             #include <mpc.h>
+            <BLANKLINE>
+            int cc_py_call_helper(PyObject *, PyObject *, int, mpc_t *, __mpc_struct *);
             <BLANKLINE>
 
         So instructions where you need to interact with Python can
