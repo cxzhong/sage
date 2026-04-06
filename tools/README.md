@@ -51,6 +51,38 @@ Set `SAGE_ROOT` to the root directory of the Sage project and run the following 
 tools/update_version
 ```
 
+## Generate cython header files for flint
+
+The flint-autogen directory contains a script (`flint_autogen.py`)
+that will automatically generate the pxd files in
+`SAGE_ROOT/src/sage/libs/flint`. It requires gitpython to be
+installed, and for `FLINT_GIT_DIR` to be set to a clone of the flint
+git repository.
+
+Example:
+
+```bash
+# don't forget to install gitpython first
+cd flint-autogen
+FLINT_GIT_DIR=/path/to/flint.git python flint_autogen.py
+```
+
+## Generate cython header files for flint
+
+The flint-autogen directory contains a script (`flint_autogen.py`)
+that will automatically generate the pxd files in
+`SAGE_ROOT/src/sage/libs/flint`. It requires gitpython to be
+installed, and for `FLINT_GIT_DIR` to be set to a clone of the flint
+git repository.
+
+Example:
+
+```bash
+# don't forget to install gitpython first
+cd flint-autogen
+FLINT_GIT_DIR=/path/to/flint.git python flint_autogen.py
+```
+
 ## Update Type Stubs
 
 This command updates the type stubs (`.pyi` files) in the source folder based on the corresponding Cython files (`.pyx` files).
