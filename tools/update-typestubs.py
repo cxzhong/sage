@@ -5,7 +5,28 @@
 #     "cython",
 # ]
 # ///
-"""Generate and validate typing stubs for Cython sources."""
+"""Generate and validate typing stubs for Cython sources.
+
+This script uses Cython's compiler frontend to parse ``.pyx`` and ``.pxd``
+files into compiler ASTs, walks those trees to collect public symbols, and then
+either renders matching ``.pyi`` files or checks existing stubs for drift.
+
+At a high level, the workflow is:
+
+1. Parse the Cython source into compiler nodes.
+2. Extract public classes, functions, and module attributes.
+3. Render a lightweight stub or compare an existing stub against the extracted
+    symbol set using Python's :mod:`ast` module.
+
+Relevant Cython documentation:
+
+- https://cython.readthedocs.io/en/latest/src/userguide/language_basics.html
+- https://cython.readthedocs.io/en/latest/src/userguide/extension_types.html
+
+Inspired by:
+
+- https://github.com/Vizonex/CyStub
+"""
 
 from __future__ import annotations
 
@@ -63,10 +84,14 @@ if TYPE_CHECKING:
 
 @dataclass(frozen=True, slots=True)
 class DefaultValue:
+    """Normalized representation of a default argument or attribute value."""
+
     repr: str | None = None
 
     @classmethod
     def from_cython(cls, node: ExprNode | None) -> DefaultValue | None:
+        """Convert a Cython expression node into a normalized default value representation."""
+
         if node is None:
             return None
         if isinstance(node, BoolNode):
@@ -113,10 +138,12 @@ class DefaultValue:
 
     @classmethod
     def from_python(cls, node: ast.AST | None) -> DefaultValue | None:
+        """Convert a Python AST node into a normalized default value representation."""
+
         if node is None:
             return None
         try:
-            text = ast.unparse(node)  # Python 3.9+
+            text = ast.unparse(node)
         except Exception:
             text = node.__class__.__name__
         return cls(text)
@@ -124,6 +151,8 @@ class DefaultValue:
 
 @dataclass(frozen=True, slots=True)
 class Param:
+    """Description of one function parameter."""
+
     name: str
     kind: str  # pos, vararg, varkw, kwonly
     type: str | None
@@ -132,11 +161,15 @@ class Param:
 
 @dataclass(frozen=True, slots=True)
 class Symbol:
+    """Base record for a public symbol within a module or nested class path."""
+
     path: tuple[str, ...]
     name: str
 
     @property
     def dotted(self) -> str:
+        """Return the fully qualified symbol name."""
+
         if not self.path:
             return self.name
         return ".".join((*self.path, self.name))
@@ -144,11 +177,15 @@ class Symbol:
 
 @dataclass(frozen=True, slots=True)
 class FunctionSymbol(Symbol):
+    """Public callable symbol together with its parameter list."""
+
     params: tuple[Param, ...]
 
 
 @dataclass(frozen=True, slots=True)
 class AttributeSymbol(Symbol):
+    """Public attribute symbol together with any detected default value."""
+
     default: DefaultValue | None
 
 
@@ -169,6 +206,8 @@ def _iter_child_nodes(node: Node) -> Iterator[Node]:
 
 
 def _build_context(source: Path) -> Context:
+    """Create a Cython compilation context for the given source file."""
+
     options = CompilationOptions(
         defaults=default_options, include_path=[str(source.parent)]
     )
@@ -200,6 +239,8 @@ def _is_public_name(name: str) -> bool:
 
 
 def _params_from_def(node: DefNode) -> tuple[Param, ...]:
+    """Extract parameters from a Cython ``def`` node."""
+
     params: list[Param] = []
 
     for arg in node.args:
@@ -222,6 +263,8 @@ def _params_from_def(node: DefNode) -> tuple[Param, ...]:
 
 
 def _params_from_cfunc(node: CFuncDefNode) -> tuple[Param, ...]:
+    """Extract parameters from a Cython ``cdef`` or ``cpdef``."""
+
     py_func = node.py_func
     if isinstance(py_func, DefNode):
         return _params_from_def(py_func)
@@ -243,6 +286,8 @@ def _params_from_cfunc(node: CFuncDefNode) -> tuple[Param, ...]:
 
 
 def _collect_public_symbols(module: ModuleNode) -> set[Symbol]:
+    """Walk a parsed Cython module and collect exported symbols."""
+
     symbols: set[Symbol] = set()
 
     def visit(node: Node, cls_path: tuple[str, ...]) -> None:
@@ -302,6 +347,8 @@ def _build_symbol_tree(symbols: Iterable[Symbol]) -> dict:
 
 
 def _format_params(params: Sequence[Param]) -> str:
+    """Format extracted parameters as a ``.pyi`` function signature fragment."""
+
     parts: list[str] = []
     for param in params:
         name = param.name
@@ -318,6 +365,8 @@ def _format_params(params: Sequence[Param]) -> str:
 
 
 def _render_tree(tree: dict, indent: int = 0) -> list[str]:
+    """Render the nested symbol tree into stub lines."""
+
     lines: list[str] = []
     current_indent = " " * indent
 
@@ -361,6 +410,8 @@ def render_stub(symbols: set[Symbol], source: Path) -> str:
 
 
 def write_stub(source: Path, output_dir: Path | None) -> Path:
+    """Generate and write the stub for the given Cython source file."""
+
     module = parse_cython_module(source)
     symbols = _collect_public_symbols(module)
     target_dir = output_dir if output_dir is not None else source.parent
@@ -371,6 +422,8 @@ def write_stub(source: Path, output_dir: Path | None) -> Path:
 
 
 def _params_from_stub_func(node: ast.AST) -> tuple[Param, ...]:
+    """Extract parameter metadata from a Python stub function definition."""
+
     assert isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
     params: list[Param] = []
 
@@ -402,6 +455,8 @@ def _params_from_stub_func(node: ast.AST) -> tuple[Param, ...]:
 
 
 def _collect_stub_symbols(stub_path: Path) -> set[Symbol]:
+    """Collect public symbols from an existing ``.pyi`` file."""
+
     content = stub_path.read_text(encoding="utf-8")
     tree = ast.parse(content, filename=str(stub_path))
     symbols: set[Symbol] = set()
@@ -473,6 +528,8 @@ def _collect_stub_symbols(stub_path: Path) -> set[Symbol]:
 
 
 def check_stub(source: Path, output_dir: Path | None) -> bool:
+    """Compare a generated symbol model against the existing stub on disk."""
+
     expected = _collect_public_symbols(parse_cython_module(source))
     stub_path = (
         output_dir if output_dir is not None else source.parent
@@ -556,6 +613,8 @@ def check_stub(source: Path, output_dir: Path | None) -> bool:
 
 
 def _iter_source_paths(inputs: Sequence[Path]) -> list[Path]:
+    """Expand file and directory inputs into the list of ``.pyx`` sources."""
+
     paths: list[Path] = []
     for inp in inputs:
         if inp.is_file() and inp.suffix == ".pyx":
@@ -569,6 +628,8 @@ def _iter_source_paths(inputs: Sequence[Path]) -> list[Path]:
 
 
 def _parse_args(argv: Sequence[str]) -> argparse.Namespace:
+    """Parse command-line arguments for the ``write`` and ``check`` subcommands."""
+
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
 
@@ -597,6 +658,8 @@ def _parse_args(argv: Sequence[str]) -> argparse.Namespace:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
+    """Run the command-line entry point."""
+
     args = _parse_args(list(argv) if argv is not None else sys.argv[1:])
     sources = _iter_source_paths(args.sources)
 
