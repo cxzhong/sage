@@ -1,6 +1,5 @@
 # sage.doctest: needs sage.combinat sage.graphs
-r"""
-Growth diagrams and dual graded graphs
+r"""Growth diagrams and dual graded graphs
 
 AUTHORS:
 
@@ -66,9 +65,12 @@ of a cell and the other three partitions::
 
 .. WARNING::
 
-    Note that a growth diagram is printed with matrix coordinates,
-    the origin being in the top-left corner.  Therefore, the growth
-    is from the top left to the bottom right!
+    Note that, by default, a growth diagram is printed with matrix
+    coordinates, the origin being in the top-left corner.  Thus, the
+    growth is from the top left to the bottom right and the
+    `P`-symbol is computed along the right hand border.
+
+    This can be changed using :obj:`GrowthDiagram.options`.
 
 The partitions along the boundary opposite of the origin, reading
 from the bottom left to the top right, are obtained by using the
@@ -472,6 +474,7 @@ from __future__ import annotations
 from copy import copy
 from itertools import zip_longest
 
+from sage.structure.global_options import GlobalOptions
 from sage.structure.sage_object import SageObject
 from sage.structure.unique_representation import UniqueRepresentation
 from sage.combinat.words.word import Word
@@ -594,14 +597,17 @@ class GrowthDiagram(SageObject):
 
     .. NOTE::
 
-        Coordinates are of the form ``(col, row)`` where the origin is
-        in the upper left, to be consistent with permutation matrices
-        and skew tableaux (in English convention).  This is different
-        from Fomin's convention, who uses a Cartesian coordinate system.
+        Coordinates are of the form ``(col, row)`` where the
+        `P`-symbol is labelling the last column and the `Q`-symbol
+        the last row.  This convention is different from Fomin's
+        convention, who uses a Cartesian coordinate system.
 
-        Conventions are chosen such that for permutations, the same
-        growth diagram is constructed when passing the permutation
-        matrix instead.
+        It is chosen such that for permutations, the same growth
+        diagram is constructed when passing the permutation matrix
+        instead.
+
+        The display of growth diagrams can be modified by setting
+        :obj:`GrowthDiagram.options`.
 
     EXAMPLES:
 
@@ -643,8 +649,8 @@ class GrowthDiagram(SageObject):
         0  0  1  0
         0  0  0  1
         1  0
-    """
 
+    """
     def __init__(self, rule, filling=None, shape=None, labels=None):
         r"""
         Initialize ``self``.
@@ -699,6 +705,49 @@ class GrowthDiagram(SageObject):
 
             self._check_labels(self._in_labels)
             self._grow()
+
+    class options(GlobalOptions):
+        """
+        Set and display the options for elements of the growth diagram
+        class.  If no parameters are set, then the function returns a copy of
+        the options dictionary.
+
+        The ``options`` to growth diagrams can be accessed as the method
+        :obj:`GrowthDiagram.options` of :class:`GrowthDiagram`.
+
+        @OPTIONS@
+
+        EXAMPLES::
+
+            sage: RuleRSK = GrowthDiagram.rules.RSK()
+            sage: w = [4,2,1,3]; G = GrowthDiagram(RuleRSK, w); G
+              0  0  1  0
+              0  1  0  0
+              0  0  0  1
+              1  0  0  0
+            sage: G.options.convention = "cartesian"
+            sage: G
+              1  0  0  0
+              0  0  0  1
+              0  1  0  0
+              0  0  1  0
+            sage: GrowthDiagram.options._reset()
+        """
+        NAME = 'GrowthDiagram'
+        module = 'sage.combinat.growth'
+        convention = dict(default='matrix',
+                          description='Sets the convention used for displaying a growth diagram',
+                          values=dict(
+                              Cartesian='use Cartesian coordinates',
+                              matrix='use matrix coordinates',
+                          ),
+                          case_sensitive=False)
+        x_unit = dict(default="0.9em",
+                      description='Sets the horizontal size of a cell',
+                      checker=lambda x: isinstance(x, str))
+        y_unit = dict(default="0.9em",
+                      description='Sets the vertical size of a cell',
+                      checker=lambda x: isinstance(x, str))
 
     def filling(self):
         r"""
@@ -1082,6 +1131,8 @@ class GrowthDiagram(SageObject):
         Return a string with the filling of the growth diagram
         as a skew tableau.
 
+        The orientation can be changed using :obj:`GrowthDiagram.options`.
+
         TESTS::
 
             sage: RuleRSK = GrowthDiagram.rules.RSK()
@@ -1093,10 +1144,20 @@ class GrowthDiagram(SageObject):
             .  0  1
             1
         """
-        return SkewTableau(expr=[self._mu,
-                                 [[self._filling.get((self._mu[r]+j,r), 0)
-                                   for j in range(self._lambda[r]-self._mu[r])]
-                                  for r in range(len(self._lambda))][::-1]])._repr_diagram()
+        S = SkewTableau(expr=[self._mu,
+                              [[self._filling.get((self._mu[r]+j,r), 0)
+                                for j in range(self._lambda[r]-self._mu[r])]
+                               for r in range(len(self._lambda))][::-1]])
+
+        def none_str(x):
+            return "  ." if x is None else "%3s" % str(x)
+        if self.options.convention == 'Cartesian':
+            new_rows = ["".join(map(none_str, row)) for row in reversed(S)]
+        elif self.options.convention == 'matrix':
+            new_rows = ["".join(map(none_str, row)) for row in S]
+        else:
+            raise ValueError(f"unknown option {self.options.convention} for convention")
+        return '\n'.join(new_rows)
 
     def __eq__(self, other):
         r"""
@@ -1668,7 +1729,7 @@ class GrowthDiagram(SageObject):
             \endgroup
 
         Check that we can have two growth diagrams in the same
-        picture::
+        `\LaTeX` document::
 
             sage: view([G, G])  # not tested
 
@@ -1716,16 +1777,24 @@ class GrowthDiagram(SageObject):
         from sage.misc.latex import latex
         latex.add_package_to_preamble_if_available("tikz")
 
-        # Visual parameters (later to be routed through GlobalOptions)
-        x_unit = "0.9em"
-        y_unit = "0.9em"
+        x_unit = self.options.x_unit
+        y_unit = self.options.y_unit
 
         # Coordinate transforms (draw top row at the top)
-        def y_rect(j):
-            return h - 1 - j
+        if self.options.convention == 'matrix':
+            def y_rect(j):
+                return h - 1 - j
 
-        def y_vert(y):
-            return h - y
+            def y_vert(y):
+                return h - y
+        elif self.options.convention == 'Cartesian':
+            def y_rect(j):
+                return j
+
+            def y_vert(y):
+                return y
+        else:
+            raise ValueError(f"unknown option {self.options.convention} for convention")
 
         if not self._lambda:
             return (f"\\begin{{tikzpicture}}[baseline=(BL.base),x={x_unit},y={y_unit}]\n"
