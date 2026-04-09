@@ -2945,32 +2945,46 @@ def special_supersingular_curve(F, q=None, *, endomorphism=False, maximal_order=
         (Elliptic Curve defined by y^2 = x^3 + 1 over Finite Field in z2 of size 1013^2,
          Isogeny of degree 3 from Elliptic Curve defined by y^2 = x^3 + 1 over Finite Field in z2 of size 1013^2 to Elliptic Curve defined by y^2 = x^3 + 1 over Finite Field in z2 of size 1013^2)
 
+    ::
+
         sage: special_supersingular_curve(GF(1019^2), endomorphism=True)
         (Elliptic Curve defined by y^2 = x^3 + x over Finite Field in z2 of size 1019^2,
          Elliptic-curve endomorphism of Elliptic Curve defined by y^2 = x^3 + x over Finite Field in z2 of size 1019^2
            Via:  (u,r,s,t) = (389*z2 + 241, 0, 0, 0))
 
+    ::
+
         sage: special_supersingular_curve(GF(1021^2), endomorphism=True)
         (Elliptic Curve defined by y^2 = x^3 + 791*x + 230 over Finite Field in z2 of size 1021^2,
          Isogeny of degree 2 from Elliptic Curve defined by y^2 = x^3 + 791*x + 230 over Finite Field in z2 of size 1021^2 to Elliptic Curve defined by y^2 = x^3 + 791*x + 230 over Finite Field in z2 of size 1021^2)
+
+    ::
 
         sage: special_supersingular_curve(GF(1031^2), endomorphism=True)
         (Elliptic Curve defined by y^2 = x^3 + x over Finite Field in z2 of size 1031^2,
          Elliptic-curve endomorphism of Elliptic Curve defined by y^2 = x^3 + x over Finite Field in z2 of size 1031^2
            Via:  (u,r,s,t) = (747*z2 + 284, 0, 0, 0))
 
+    ::
+
         sage: special_supersingular_curve(GF(1033^2), endomorphism=True)
         (Elliptic Curve defined by y^2 = x^3 + 53*x + 980 over Finite Field in z2 of size 1033^2,
          Isogeny of degree 11 from Elliptic Curve defined by y^2 = x^3 + 53*x + 980 over Finite Field in z2 of size 1033^2 to Elliptic Curve defined by y^2 = x^3 + 53*x + 980 over Finite Field in z2 of size 1033^2)
+
+    ::
 
         sage: special_supersingular_curve(GF(1039^2), endomorphism=True)
         (Elliptic Curve defined by y^2 = x^3 + x over Finite Field in z2 of size 1039^2,
          Elliptic-curve endomorphism of Elliptic Curve defined by y^2 = x^3 + x over Finite Field in z2 of size 1039^2
            Via:  (u,r,s,t) = (626*z2 + 200, 0, 0, 0))
 
+    ::
+
         sage: special_supersingular_curve(GF(1049^2), endomorphism=True)
         (Elliptic Curve defined by y^2 = x^3 + 1 over Finite Field in z2 of size 1049^2,
          Isogeny of degree 3 from Elliptic Curve defined by y^2 = x^3 + 1 over Finite Field in z2 of size 1049^2 to Elliptic Curve defined by y^2 = x^3 + 1 over Finite Field in z2 of size 1049^2)
+
+    ::
 
         sage: special_supersingular_curve(GF(1051^2), endomorphism=True)
         (Elliptic Curve defined by y^2 = x^3 + x over Finite Field in z2 of size 1051^2,
@@ -2982,9 +2996,13 @@ def special_supersingular_curve(F, q=None, *, endomorphism=False, maximal_order=
         sage: special_supersingular_curve(GF(1019), q=99)
         Elliptic Curve defined by y^2 = x^3 + 211*x + 808 over Finite Field of size 1019
 
+    ::
+
         sage: special_supersingular_curve(GF(1019^2), q=99, endomorphism=True)
         (Elliptic Curve defined by y^2 = x^3 + 211*x + 808 over Finite Field in z2 of size 1019^2,
          Isogeny of degree 99 from Elliptic Curve defined by y^2 = x^3 + 211*x + 808 over Finite Field in z2 of size 1019^2 to Elliptic Curve defined by y^2 = x^3 + 211*x + 808 over Finite Field in z2 of size 1019^2)
+
+    ::
 
         sage: special_supersingular_curve(GF(1013), q=99)
         Traceback (most recent call last):
@@ -2994,7 +3012,58 @@ def special_supersingular_curve(F, q=None, *, endomorphism=False, maximal_order=
     If ``maximal_order`` is set to ``True``, the function also returns
     a quaternion maximal order which corresponds to the endomorphism ring::
 
-        sage: TODO
+        sage: special_supersingular_curve(GF(1013^2), endomorphism=True, maximal_order=True)[2]
+        Order of Quaternion Algebra (-3, -1013) with base ring Rational Field
+          with basis (1, 1/2 + 1/2*i, 1/2*j + 1/2*k, 1/3*i + 1/3*k)
+
+    ::
+
+        sage: special_supersingular_curve(GF(1019^2), endomorphism=True, maximal_order=True)[2]
+        Order of Quaternion Algebra (-1, -1019) with base ring Rational Field
+          with basis (1, i, 1/2*i + 1/2*j, 1/2 + 1/2*k)
+
+    ::
+
+        sage: special_supersingular_curve(GF(1021^2), endomorphism=True, maximal_order=True)[2]
+        Order of Quaternion Algebra (-2, -1021) with base ring Rational Field
+          with basis (1, i, 1/2 + 1/2*i + 1/2*j, 1/2 + 1/4*i + 1/4*k)
+
+    ::
+
+        sage: special_supersingular_curve(GF(1031^2), endomorphism=True, maximal_order=True)[2]
+        Order of Quaternion Algebra (-1, -1031) with base ring Rational Field
+          with basis (1, i, 1/2*i + 1/2*j, 1/2 + 1/2*k)
+
+    ::
+
+        sage: special_supersingular_curve(GF(1033^2), endomorphism=True, maximal_order=True)[2]
+        Order of Quaternion Algebra (-11, -1033) with base ring Rational Field
+          with basis (1, 1/2 + 1/2*i, j, 5/11*i + 1/2*j + 1/22*k)
+
+    ::
+
+        sage: special_supersingular_curve(GF(1039^2), endomorphism=True, maximal_order=True)[2]
+        Order of Quaternion Algebra (-1, -1039) with base ring Rational Field
+          with basis (1, i, 1/2*i + 1/2*j, 1/2 + 1/2*k)
+
+    ::
+
+        sage: special_supersingular_curve(GF(1049^2), endomorphism=True, maximal_order=True)[2]
+        Order of Quaternion Algebra (-3, -1049) with base ring Rational Field
+          with basis (1, 1/2 + 1/2*i, 1/2*j + 1/2*k, 1/3*i + 1/3*k)
+
+    ::
+
+        sage: special_supersingular_curve(GF(1051^2), endomorphism=True, maximal_order=True)[2]
+        Order of Quaternion Algebra (-1, -1051) with base ring Rational Field
+          with basis (1, i, 1/2*i + 1/2*j, 1/2 + 1/2*k)
+
+    ...also when `q` is given::
+
+        sage: special_supersingular_curve(GF(1019^2), q=99, endomorphism=True, maximal_order=True)[2]
+        Order of Quaternion Algebra (-99, -1019) with base ring Rational Field
+          with basis (1, 1/2 + 1/6*i, j, 1/2 + 3/22*i + 1/2*j + 1/66*k)
+
 
     TESTS::
 
@@ -3021,6 +3090,21 @@ def special_supersingular_curve(F, q=None, *, endomorphism=False, maximal_order=
         True
         sage: pi * endo == -endo * pi
         True
+
+    Also try it when ``maximal_order`` is requested::
+
+        sage: E, iota, O = special_supersingular_curve(F, endomorphism=True, maximal_order=True)
+        sage: pi = E.frobenius_isogeny()
+        sage: O.discriminant() == p
+        True
+        sage: O.quaternion_algebra().invariants() == (-iota.degree(), -p)
+        True
+        sage: from sage.schemes.elliptic_curves.hom_fractional import EllipticCurveHom_fractional
+        sage: for vec in map(vector, O.basis()):
+        ....:     denom = vec.denominator()
+        ....:     vec *= denom
+        ....:     numer = sum(ZZ(c) * gen for c,gen in zip(vec, [1, iota, pi, iota*pi]))
+        ....:     _ = EllipticCurveHom_fractional(numer, denom, check=True)  # fails if not divisible
 
     Also try it for larger-degree fields::
 
@@ -3072,6 +3156,29 @@ def special_supersingular_curve(F, q=None, *, endomorphism=False, maximal_order=
         True
         sage: pi * endo == -endo * pi
         True
+
+    Also try it when `q` is given and ``maximal_order`` is requested::
+
+        sage: while True:
+        ....:     q = ZZ(randrange(1, min(50, p)))
+        ....:     if QuaternionAlgebra(-q, -p).discriminant() != p:
+        ....:         continue
+        ....:     E = special_supersingular_curve(F, q)
+        ....:     if any(q.divides(n) for n in E.count_points(20)):
+        ....:         break
+        sage: E, iota, O = special_supersingular_curve(F, q, endomorphism=True, maximal_order=True)
+        sage: pi = E.frobenius_isogeny()
+        sage: O.discriminant() == p
+        True
+        sage: O.quaternion_algebra().invariants() == (-iota.degree(), -p)
+        True
+        sage: from sage.schemes.elliptic_curves.hom_fractional import EllipticCurveHom_fractional
+        sage: for vec in map(vector, O.basis()):
+        ....:     denom = vec.denominator()
+        ....:     vec *= denom
+        ....:     numer = sum(ZZ(c) * gen for c,gen in zip(vec, [1, iota, pi, iota*pi]))
+        ....:     numer._degree = ZZ(O.quaternion_algebra()(vec).reduced_norm())
+        ....:     _ = EllipticCurveHom_fractional(numer, denom, check=True)  # fails if not divisible
 
     .. NOTE::
 
