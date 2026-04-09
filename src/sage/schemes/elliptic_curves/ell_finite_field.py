@@ -2247,6 +2247,7 @@ class EllipticCurve_finite_field(EllipticCurve_field, ProjectivePlaneCurve_finit
             ....:     except ValueError:
             ....:         if I.dimension() == 0:
             ....:              raise
+            ....:         continue
             ....:     if not V:
             ....:         continue
             ....:     sol = choice(V)
