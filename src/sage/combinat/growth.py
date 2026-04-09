@@ -1641,8 +1641,8 @@ class GrowthDiagram(SageObject):
 
         The latex output of the growth diagram is given using TikZ as follows:
 
-        - The skew region drawn as a grid of light boxes,
-        - The filling values at cell centers,
+        - The skew region drawn as a grid of light boxes.
+        - The filling values at cell centers.
         - The labels at lattice vertices (converted via ``rule.normalize_vertex``),
           scaled to fit within about one third of a cell.
 
