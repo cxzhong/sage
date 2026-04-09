@@ -214,7 +214,7 @@ class KeyConvertingDict(dict[KT, VT]):
         key = self.key_conversion_function(key)
         return super().pop(key, *args)
 
-    def setdefault(self, key: Any, default: VT = None) -> VT:  # type: ignore[assignment]
+    def setdefault(self, key: Any, default: VT | None = None) -> VT | None:
         r"""
         Create a given mapping unless there already exists a mapping
         for that key.
@@ -233,7 +233,7 @@ class KeyConvertingDict(dict[KT, VT]):
             [(3, None)]
         """
         key = self.key_conversion_function(key)
-        return super().setdefault(key, default)  # type: ignore[arg-type]
+        return super().setdefault(key, default)
 
     def update(self, *args: Any, **kwds: Any) -> None:
         r"""

@@ -119,7 +119,7 @@ def banner() -> None:
         │ Using Python .... Type "help()" for help.                          │
         ...
     """
-    typ = (SAGE_BANNER or "").lower()
+    typ = SAGE_BANNER.lower()
 
     if typ == "no":
         return
