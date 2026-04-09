@@ -1669,7 +1669,6 @@ cdef class PowerSeries(AlgebraElement):
             sage: R(2)._is_square_crt()
             False
         """
-        from sage.rings.finite_rings.integer_mod_ring import IntegerModRing
 
         # Zero is always a square
         if self.is_zero():
