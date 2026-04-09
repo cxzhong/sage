@@ -143,7 +143,7 @@ standing for reelection. If there are not enough such members available, the
 outgoing CoCC will appoint a trusted group of community members to oversee the
 election.
 
-Any member of the sage-devel community may nominate any other member, including
+Any member of the sage-devel mailing list may nominate any other member, including
 themselves. Additionally, any member of sage-devel may confidentially inform
 the election committee that they believe somebody should not serve. After the
 nomination period, the election committee will inform each nominee of the
@@ -155,7 +155,8 @@ Voting is conducted using the method of equal shares.
 
 In the event of resignations or other mid-term vacancies, the committee may
 either call an off-cycle election or leave the position vacant until the next
-regular election.
+regular election. Someone who is elected in an off-cycle election will only serve
+for the remainder of the term of the committee member they replaced.
 
 ## Incident reporting resolution & Code of Conduct enforcement ##
 
