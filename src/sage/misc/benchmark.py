@@ -1,19 +1,24 @@
 "Benchmarks"
 
-from typing import overload
+from typing import Literal, overload
 
 from sage.misc.misc import cputime
 
 from sage.all import *
 
+# Type alias for a single benchmark result
+BenchmarkResult = tuple[int, float, str]
+
 
 @overload
-def benchmark(n: list[int]) -> tuple[list, float]: ...
+def benchmark(n: list[int]) -> tuple[list[BenchmarkResult], float]: ...
 @overload
-def benchmark(n: int = ...) -> tuple[list, float] | tuple[int, float, str]: ...
+def benchmark(n: int = ...) -> BenchmarkResult: ...
+@overload
+def benchmark(n: Literal[-1]) -> tuple[list[BenchmarkResult], float]: ...
 
 
-def benchmark(n: list[int] | int = -1) -> tuple[list, float] | tuple[int, float, str]:
+def benchmark(n: list[int] | int = -1) -> tuple[list[BenchmarkResult], float] | BenchmarkResult:
     """
     Run a well-chosen range of Sage commands and record the time it
     takes for each to run.

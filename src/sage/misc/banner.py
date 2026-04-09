@@ -11,7 +11,7 @@ SageMath version and banner info
 #                  https://www.gnu.org/licenses/
 # ****************************************************************************
 import sys
-from typing import TypedDict
+from typing import TypedDict, cast
 
 from sage.env import SAGE_BANNER, SAGE_VERSION
 from sage.version import banner as sage_banner
@@ -172,8 +172,8 @@ def version_dict() -> VersionDict:
         sage: version_dict()['major'] == int(sage.version.version.split('.')[0])
         True
     """
-    v = (SAGE_VERSION or "").split('.')
-    dict: VersionDict = {
+    v = cast(str, SAGE_VERSION).split('.')
+    version_info: VersionDict = {
         'major': int(v[0]),
         'minor': int(v[1]),
         'tiny': 0,
@@ -182,15 +182,15 @@ def version_dict() -> VersionDict:
     try:
         int(v[-1])
     except ValueError:  # when last entry is not an integer
-        dict['prerelease'] = True
-    if (len(v) == 3 and not dict['prerelease']) or len(v) > 3:
-        dict['tiny'] = int(v[2])
+        version_info['prerelease'] = True
+    if (len(v) == 3 and not version_info['prerelease']) or len(v) > 3:
+        version_info['tiny'] = int(v[2])
     try:
         teeny = int(v[3])
-        dict['tiny'] += 0.1 * teeny
+        version_info['tiny'] += 0.1 * teeny
     except (ValueError, IndexError):
         pass
-    return dict
+    return version_info
 
 
 def require_version(major: int, minor: int = 0, tiny: float = 0,

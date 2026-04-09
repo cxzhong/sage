@@ -46,10 +46,11 @@ result no matter how a generator is identified::
 # ****************************************************************************
 
 from collections.abc import Callable, Iterable, Mapping
-from typing import Any, TypeVar
+from typing import Any, TypeVar, overload
 
 KT = TypeVar("KT")
 VT = TypeVar("VT")
+TDefault = TypeVar("TDefault")
 
 
 class KeyConvertingDict(dict[KT, VT]):
@@ -188,7 +189,12 @@ class KeyConvertingDict(dict[KT, VT]):
         key = self.key_conversion_function(key)
         return super().__contains__(key)
 
-    def pop(self, key: Any, *args: Any) -> VT:
+    @overload
+    def pop(self, key: Any) -> VT: ...
+    @overload
+    def pop(self, key: Any, default: TDefault) -> VT | TDefault: ...
+
+    def pop(self, key: Any, *args: Any) -> VT | Any:
         r"""
         Remove and retrieve a given element from the dictionary.
 
@@ -214,7 +220,14 @@ class KeyConvertingDict(dict[KT, VT]):
         key = self.key_conversion_function(key)
         return super().pop(key, *args)
 
-    def setdefault(self, key: Any, default: VT | None = None) -> VT | None:
+    @overload
+    def setdefault(self, key: Any) -> VT | None: ...
+    @overload
+    def setdefault(self, key: Any, default: VT) -> VT: ...
+    @overload
+    def setdefault(self, key: Any, default: TDefault) -> VT | TDefault: ...
+
+    def setdefault(self, key: Any, default: VT | TDefault | None = None) -> VT | TDefault | None:
         r"""
         Create a given mapping unless there already exists a mapping
         for that key.
