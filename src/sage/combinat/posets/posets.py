@@ -298,6 +298,8 @@ from sage.categories.sets_cat import Sets
 from sage.categories.finite_enumerated_sets import FiniteEnumeratedSets
 from sage.categories.posets import Posets
 from sage.categories.finite_posets import FinitePosets
+from sage.misc.classcall_metaclass import typecall
+from sage.misc.weak_dict import WeakValueDictionary
 from sage.structure.unique_representation import UniqueRepresentation
 from sage.structure.parent import Parent
 from sage.rings.integer import Integer
@@ -952,6 +954,12 @@ class FinitePoset(UniqueRepresentation, Parent):
     _lin_ext_type = LinearExtensionsOfPoset
     _desc = 'Finite poset'
 
+    # Custom cache using WeakValueDictionary with integer-labeled
+    # HasseDiagram keys.  This avoids a memory leak where element labels
+    # that reference back to the poset keep it alive via
+    # UniqueRepresentation's cache key (see :issue:`14356`).
+    _cache = WeakValueDictionary()
+
     # The parsing of the construction data (like a list of cover relations)
     #   into a :class:`DiGraph` is done in :func:`Poset`.
     @staticmethod
@@ -983,6 +991,28 @@ class FinitePoset(UniqueRepresentation, Parent):
             sage: p = Poset()
             sage: p is Poset(p, category=p.category())
             True
+
+        Check that posets whose element labels reference back to the
+        poset can be garbage collected (:issue:`14356`)::
+
+            sage: import gc, weakref
+            sage: from sage.combinat.posets.posets import FinitePoset
+            sage: class Foo:
+            ....:     pass
+            sage: foo = Foo()
+            sage: foo.dag = DiGraph({0: [1, 2], 1: [3], 2: [3]})
+            sage: foo.poset = Poset(foo.dag,
+            ....:     element_labels=[(i, foo) for i in range(4)],
+            ....:     key=id(foo))
+            sage: w = weakref.ref(foo.poset)
+            sage: pid = id(foo.poset)
+            sage: del foo
+            sage: _ = gc.collect()
+            sage: w() is None
+            True
+            sage: [x for x in gc.get_objects()
+            ....:  if isinstance(x, FinitePoset) and id(x) == pid]
+            []
         """
         assert isinstance(hasse_diagram, (FinitePoset, DiGraph))
         if isinstance(hasse_diagram, FinitePoset):
@@ -999,7 +1029,8 @@ class FinitePoset(UniqueRepresentation, Parent):
             hasse_diagram = poset._hasse_diagram.relabel(relabel, inplace=False)
             hasse_diagram = hasse_diagram.copy(immutable=True)
         else:
-            hasse_diagram = HasseDiagram(hasse_diagram, data_structure='static_sparse')
+            if not isinstance(hasse_diagram, HasseDiagram):
+                hasse_diagram = HasseDiagram(hasse_diagram, data_structure='static_sparse')
             if facade is None:
                 facade = True
             if elements is not None:
@@ -1009,10 +1040,71 @@ class FinitePoset(UniqueRepresentation, Parent):
         if category is not None and category.is_subcategory(Sets().Facade()):
             category = category._without_axiom("Facade")
         category = Category.join([FinitePosets().or_subcategory(category), FiniteEnumeratedSets()])
-        return super().__classcall__(cls, hasse_diagram=hasse_diagram,
-                                     elements=elements,
-                                     category=category, facade=facade,
-                                     key=key)
+
+        # Build a reference-free cache key from the hash of the labeled
+        # hasse_diagram.  Using hashes (integers) avoids holding strong
+        # references to element objects in the cache key, which prevents
+        # a memory leak when element labels reference the poset itself
+        # (see :issue:`14356`).
+        try:
+            _hd_hash = hash(hasse_diagram)
+        except TypeError:
+            _hd_hash = id(hasse_diagram)
+        try:
+            _elts_hash = hash(elements) if elements is not None else 0
+        except TypeError:
+            _elts_hash = 0
+        cache_key = (cls, _hd_hash, _elts_hash,
+                     elements is not None, category, facade, key)
+
+        cached = FinitePoset._cache.get(cache_key)
+        if cached is not None:
+            try:
+                # Verify it is really the same poset (hash collision guard):
+                # reconstruct the labeled graph from the cached instance
+                # and compare with the input.
+                _relabel = dict(enumerate(cached._elements))
+                _cached_hd = cached._hasse_diagram.relabel(_relabel,
+                                                           inplace=False)
+                if _cached_hd == hasse_diagram:
+                    if elements is None or cached._elements == tuple(
+                            Integer(i) if isinstance(i, int) else i
+                            for i in elements):
+                        return cached
+            except Exception:
+                pass
+
+        # Create the instance via typecall (bypasses
+        # CachedRepresentation's weak_cached_function cache, which
+        # would store the full arguments — including element labels —
+        # as a strong-referenced key and thereby prevent garbage
+        # collection when labels reference the poset; see :issue:`14356`).
+        from sage.structure.unique_representation import WithPicklingByInitArgs
+        result = WithPicklingByInitArgs.__classcall__(
+            cls, hasse_diagram=hasse_diagram, elements=elements,
+            category=category, facade=facade, key=key)
+
+        FinitePoset._cache[cache_key] = result
+        return result
+
+    @classmethod
+    def _clear_cache_(cls):
+        """
+        Remove all cached instances of this class.
+
+        EXAMPLES::
+
+            sage: P = Poset({0: [1]})
+            sage: Q = Poset({0: [1]})
+            sage: P is Q
+            True
+            sage: from sage.combinat.posets.posets import FinitePoset
+            sage: FinitePoset._clear_cache_()
+            sage: R = Poset({0: [1]})
+            sage: P is R
+            False
+        """
+        FinitePoset._cache.clear()
 
     def __init__(self, hasse_diagram, elements, category, facade, key) -> None:
         r"""
