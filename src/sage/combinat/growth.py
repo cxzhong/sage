@@ -314,17 +314,17 @@ labels.::
 
     sage: shape = SkewPartition([[5,5,5,4,4],[4,3]])
     sage: f = [3, 5, 4, 2, 1]
-    sage: view(GrowthDiagram.rules.RSK()(f, shape))  # not tested
-    sage: view(GrowthDiagram.rules.Sylvester()(f, shape))  # not tested
-    sage: view(GrowthDiagram.rules.BinaryWord()(f, shape))  # not tested
+    sage: view(GrowthDiagram.rules.RSK()(f, shape))                             # not tested
+    sage: view(GrowthDiagram.rules.Sylvester()(f, shape))                       # not tested
+    sage: view(GrowthDiagram.rules.BinaryWord()(f, shape))                      # not tested
     sage: f = [3, 5, -4, 2, 1]
-    sage: view(GrowthDiagram.rules.Domino()(f, shape))  # not tested
+    sage: view(GrowthDiagram.rules.Domino()(f, shape))                          # not tested
 
 Edge labels are also displayed::
 
     sage: LLMS3 = GrowthDiagram.rules.LLMS(3)
     sage: G = LLMS3([4,1,2,6,3,5])
-    sage: view(G)  # not tested
+    sage: view(G)                                                               # not tested
 
 Background
 ----------
@@ -1748,15 +1748,15 @@ class GrowthDiagram(SageObject):
 
         TESTS::
 
-            sage: file = tmp_filename()
+            sage: fn = tmp_filename()
             sage: G = GrowthDiagram.rules.RSK()([1])
-            sage: latex.eval(latex(G), locals(), filename=file)
+            sage: latex.eval(latex(G), locals(), filename=fn)                   # optional - latex
             ''
 
         Check that we can have two growth diagrams in the same
         `\LaTeX` document::
 
-            sage: latex.eval("$" + latex([G, G]) + "$", locals(), filename=file)
+            sage: latex.eval("$" + latex([G, G]) + "$", locals(), filename=fn)  # optional - latex
             ''
 
         Check that fillings of skew regions work::
@@ -1767,7 +1767,7 @@ class GrowthDiagram(SageObject):
             sage: G
              .  1
              1  0
-            sage: latex.eval(latex(G), locals(), filename=file)
+            sage: latex.eval(latex(G), locals(), filename=fn)                   # optional - latex
             ''
 
         Check that non-hashable labels work::
@@ -1776,7 +1776,7 @@ class GrowthDiagram(SageObject):
             ....:     def normalize_vertex(self, v):
             ....:         return v
             sage: G = RuleNonHashable()([1])
-            sage: latex.eval(latex(G), locals(), filename=file)
+            sage: latex.eval(latex(G), locals(), filename=fn)                   # optional - latex
             ''
 
         Check that it is not necessary that both the forward and the
@@ -1806,7 +1806,7 @@ class GrowthDiagram(SageObject):
               0  0  1
               0  1  0
               1  0
-            sage: latex.eval(latex(G), locals(), filename=file)
+            sage: latex.eval(latex(G), locals(), filename=fn)                   # optional - latex
             ''
         """
         latex.add_package_to_preamble_if_available("tikz")
