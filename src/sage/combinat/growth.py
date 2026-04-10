@@ -1,5 +1,6 @@
 # sage.doctest: needs sage.combinat sage.graphs
-r"""Growth diagrams and dual graded graphs
+r"""
+Growth diagrams and dual graded graphs
 
 AUTHORS:
 
