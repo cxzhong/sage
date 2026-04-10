@@ -649,7 +649,6 @@ class GrowthDiagram(SageObject):
         0  0  1  0
         0  0  0  1
         1  0
-
     """
     def __init__(self, rule, filling=None, shape=None, labels=None):
         r"""
@@ -1793,8 +1792,6 @@ class GrowthDiagram(SageObject):
 
             def y_vert(y):
                 return y
-        else:
-            raise ValueError(f"unknown option {self.options.convention} for convention")
 
         if not self._lambda:
             return (f"\\begin{{tikzpicture}}[baseline=(BL.base),x={x_unit},y={y_unit}]\n"
