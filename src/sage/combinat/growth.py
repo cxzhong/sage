@@ -70,7 +70,23 @@ of a cell and the other three partitions::
     growth is from the top left to the bottom right and the
     `P`-symbol is computed along the right hand border.
 
-    This can be changed using :obj:`GrowthDiagram.options`.
+    This can be changed using :obj:`GrowthDiagram.options`::
+
+        sage: RuleRSK = GrowthDiagram.rules.RSK()
+        sage: pi = [4,2,1,3]; H = GrowthDiagram(RuleRSK, pi); H
+          0  0  1  0
+          0  1  0  0
+          0  0  0  1
+          1  0  0  0
+        sage: GrowthDiagram.options.convention = "cartesian"
+        sage: H
+          1  0  0  0
+          0  0  0  1
+          0  1  0  0
+          0  0  1  0
+        sage: GrowthDiagram.options._reset()
+
+    Within this documentation, we stick to matrix coordinates.
 
 The partitions along the boundary opposite of the origin, reading
 from the bottom left to the top right, are obtained by using the
@@ -287,6 +303,28 @@ particular, we have implemented the following local rules:
   (:class:`~sage.combinat.growth.RuleYoungFibonacci`).
 - LLMS insertion (:class:`~sage.combinat.growth.RuleLLMS`).
 
+Displaying diagrams
+-------------------
+
+Since labels usually take a significant amount of space, only the
+filling is shown when displaying a diagram using ASCII art.  However,
+the `\LaTeX` output shows the diagram as usually typeset, including edge
+labels.::
+
+    sage: shape = SkewPartition([[5,5,5,4,4],[4,3]])
+    sage: f = [3, 5, 4, 2, 1]
+    sage: view(GrowthDiagram.rules.RSK()(f, shape))  # not tested
+    sage: view(GrowthDiagram.rules.Sylvester()(f, shape))  # not tested
+    sage: view(GrowthDiagram.rules.BinaryWord()(f, shape))  # not tested
+    sage: f = [3, 5, -4, 2, 1]
+    sage: view(GrowthDiagram.rules.Domino()(f, shape))  # not tested
+
+Edge labels are also displayed::
+
+    sage: LLMS3 = GrowthDiagram.rules.LLMS(3)
+    sage: G = LLMS3([4,1,2,6,3,5])
+    sage: view(G)  # not tested
+
 Background
 ----------
 
@@ -453,6 +491,7 @@ The labels are now alternating between vertices and edge-colors::
     sage: GrowthDiagram(RulePascal(), labels=[0,0,1,1,2,0,1,0,0])
     0  1
     1  0
+
 """
 
 # ****************************************************************************
@@ -488,6 +527,7 @@ from sage.combinat.core import Core, Cores
 from sage.combinat.k_tableau import WeakTableau, StrongTableau
 from sage.combinat.shifted_primed_tableau import ShiftedPrimedTableau
 from sage.misc.lazy_import import lazy_import
+from sage.misc.latex import latex
 
 lazy_import('sage.graphs.digraph', 'DiGraph')
 lazy_import('sage.combinat.posets.posets', 'Poset')
@@ -964,7 +1004,7 @@ class GrowthDiagram(SageObject):
         Check that :issue:`25631` is fixed::
 
             sage: BinaryWord = GrowthDiagram.rules.BinaryWord()
-            sage: BinaryWord(filling = {}).P_chain()
+            sage: BinaryWord(filling={}).P_chain()
             [word: ]
         """
         if not self.is_rectangular():
@@ -993,7 +1033,7 @@ class GrowthDiagram(SageObject):
         Check that :issue:`25631` is fixed::
 
             sage: BinaryWord = GrowthDiagram.rules.BinaryWord()
-            sage: BinaryWord(filling = {}).Q_chain()
+            sage: BinaryWord(filling={}).Q_chain()
             [word: ]
         """
         if not self.is_rectangular():
@@ -1154,8 +1194,7 @@ class GrowthDiagram(SageObject):
             new_rows = ["".join(map(none_str, row)) for row in reversed(S)]
         elif self.options.convention == 'matrix':
             new_rows = ["".join(map(none_str, row)) for row in S]
-        else:
-            raise ValueError(f"unknown option {self.options.convention} for convention")
+
         return '\n'.join(new_rows)
 
     def __eq__(self, other):
@@ -1706,31 +1745,28 @@ class GrowthDiagram(SageObject):
         - The labels at lattice vertices (converted via ``rule.normalize_vertex``),
           scaled to fit within about one third of a cell.
 
-        EXAMPLES::
-
-            sage: pi = [2, 1, 5, 9, 3, 10, 4, 7, 8, 6]
-            sage: view(GrowthDiagram.rules.RSK()(pi))  # not tested
-            sage: view(GrowthDiagram.rules.Sylvester()(pi))  # not tested
-            sage: view(GrowthDiagram.rules.BinaryWord()(pi))  # not tested
-            sage: view(GrowthDiagram.rules.Domino()(pi))  # not tested
-
-        Edge labels are also displayed::
-
-            sage: LLMS3 = GrowthDiagram.rules.LLMS(3)
-            sage: G = LLMS3([4,1,2,6,3,5])
-            sage: view(G)  # not tested
-
         TESTS::
 
             sage: G = GrowthDiagram.rules.RSK()([1])
-            sage: latex(G)
-            ...
-            \endgroup
+            sage: latex.eval(latex(G), locals())
+            ''
 
         Check that we can have two growth diagrams in the same
         `\LaTeX` document::
 
-            sage: view([G, G])  # not tested
+            sage: latex.eval("$" + latex([G, G]) + "$", locals())
+            ''
+
+        Check that fillings of skew regions work::
+
+            sage: shape = SkewPartition([[2,2],[1]])
+            sage: f = [2, 1]
+            sage: G = GrowthDiagram.rules.Sylvester()(f, shape)
+            sage: G
+             .  1
+             1  0
+            sage: latex.eval(latex(G), locals())
+            ''
 
         Check that non-hashable labels work::
 
@@ -1738,9 +1774,8 @@ class GrowthDiagram(SageObject):
             ....:     def normalize_vertex(self, v):
             ....:         return v
             sage: G = RuleNonHashable()([1])
-            sage: latex(G)
-            ...
-            \endgroup
+            sage: latex.eval(latex(G), locals())
+            ''
 
         Check that it is not necessary that both the forward and the
         backward rules are implemented::
@@ -1769,11 +1804,9 @@ class GrowthDiagram(SageObject):
               0  0  1
               0  1  0
               1  0
-            sage: latex(G)
-            ...
-            \endgroup
+            sage: latex.eval(latex(G), locals())
+            ''
         """
-        from sage.misc.latex import latex
         latex.add_package_to_preamble_if_available("tikz")
 
         x_unit = self.options.x_unit
@@ -1923,7 +1956,7 @@ class GrowthDiagram(SageObject):
             for (i, j), v in self._filling.items():
                 if v != 0:
                     y = y_rect(j)
-                    tikz.append(f"    \\node at ({i+0.5},{y+0.5}) {{$ {latex(v)} $}};")
+                    tikz.append(f"    \\node at ({i+0.5},{y+0.5}) {{${rule.latex_vertex(v)}$}};")
             tikz.append("  \\end{scope}")
 
         tikz.append("  \\begin{scope}[every node/.style={inner sep=0.2pt,outer sep=0pt}]")
@@ -2040,6 +2073,18 @@ class Rule(UniqueRepresentation):
             True
         """
         return v
+
+    def latex_vertex(self, v):
+        r"""
+        Return `\LaTeX` used to typeset a vertex.
+
+        EXAMPLES::
+
+            sage: from sage.combinat.growth import Rule
+            sage: Rule().latex_vertex(5)
+            5
+        """
+        return latex(v)
 
     def __call__(self, *args, **kwds):
         r"""
@@ -4428,6 +4473,20 @@ class RuleDomino(Rule):
             Partitions
         """
         return _make_partition(v)
+
+    def latex_vertex(self, v):
+        r"""
+        Return `\LaTeX` used to typeset a vertex.
+
+        EXAMPLES::
+
+            sage: Domino = GrowthDiagram.rules.Domino()
+            sage: Domino.latex_vertex(-42)
+            \bar{ 42 }
+        """
+        if v > 0:
+            return latex(v)
+        return latex(r"\bar{"+ latex(-v) + "}")
 
     def vertices(self, n):
         r"""
