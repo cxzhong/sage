@@ -492,7 +492,6 @@ The labels are now alternating between vertices and edge-colors::
     sage: GrowthDiagram(RulePascal(), labels=[0,0,1,1,2,0,1,0,0])
     0  1
     1  0
-
 """
 
 # ****************************************************************************
