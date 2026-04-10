@@ -1747,14 +1747,15 @@ class GrowthDiagram(SageObject):
 
         TESTS::
 
+            sage: file = tmp_filename()
             sage: G = GrowthDiagram.rules.RSK()([1])
-            sage: latex.eval(latex(G), locals())
+            sage: latex.eval(latex(G), locals(), filename=file)
             ''
 
         Check that we can have two growth diagrams in the same
         `\LaTeX` document::
 
-            sage: latex.eval("$" + latex([G, G]) + "$", locals())
+            sage: latex.eval("$" + latex([G, G]) + "$", locals(), filename=file)
             ''
 
         Check that fillings of skew regions work::
@@ -1765,7 +1766,7 @@ class GrowthDiagram(SageObject):
             sage: G
              .  1
              1  0
-            sage: latex.eval(latex(G), locals())
+            sage: latex.eval(latex(G), locals(), filename=file)
             ''
 
         Check that non-hashable labels work::
@@ -1774,7 +1775,7 @@ class GrowthDiagram(SageObject):
             ....:     def normalize_vertex(self, v):
             ....:         return v
             sage: G = RuleNonHashable()([1])
-            sage: latex.eval(latex(G), locals())
+            sage: latex.eval(latex(G), locals(), filename=file)
             ''
 
         Check that it is not necessary that both the forward and the
@@ -1804,7 +1805,7 @@ class GrowthDiagram(SageObject):
               0  0  1
               0  1  0
               1  0
-            sage: latex.eval(latex(G), locals())
+            sage: latex.eval(latex(G), locals(), filename=file)
             ''
         """
         latex.add_package_to_preamble_if_available("tikz")
