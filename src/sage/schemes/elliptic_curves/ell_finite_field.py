@@ -2942,8 +2942,8 @@ def special_supersingular_curve(F, q=None, *, endomorphism=False, maximal_order=
     EXAMPLES::
 
         sage: special_supersingular_curve(GF(1013^2), endomorphism=True)
-        (Elliptic Curve defined by y^2 = x^3 + 1 over Finite Field in z2 of size 1013^2,
-         Isogeny of degree 3 from Elliptic Curve defined by y^2 = x^3 + 1 over Finite Field in z2 of size 1013^2 to Elliptic Curve defined by y^2 = x^3 + 1 over Finite Field in z2 of size 1013^2)
+        (Elliptic Curve defined by y^2 = x^3 + 578*x + 435 over Finite Field in z2 of size 1013^2,
+             Isogeny of degree 2 from Elliptic Curve defined by y^2 = x^3 + 578*x + 435 over Finite Field in z2 of size 1013^2 to Elliptic Curve defined by y^2 = x^3 + 578*x + 435 over Finite Field in z2 of size 1013^2)
 
     ::
 
@@ -3013,8 +3013,8 @@ def special_supersingular_curve(F, q=None, *, endomorphism=False, maximal_order=
     a quaternion maximal order which corresponds to the endomorphism ring::
 
         sage: special_supersingular_curve(GF(1013^2), endomorphism=True, maximal_order=True)[2]
-        Order of Quaternion Algebra (-3, -1013) with base ring Rational Field
-          with basis (1, 1/2 + 1/2*i, 1/2*j + 1/2*k, 1/3*i + 1/3*k)
+        Order of Quaternion Algebra (-2, -1013) with base ring Rational Field
+          with basis (1, i, 1/2 + 1/2*i + 1/2*j, 1/2 + 1/4*i + 1/4*k)
 
     ::
 
@@ -3203,31 +3203,16 @@ def special_supersingular_curve(F, q=None, *, endomorphism=False, maximal_order=
     if maximal_order and not endomorphism:
         raise ValueError('maximal_order can only be returned if endomorphism is, too')
 
-    if q is not None:
-        from sage.arith.misc import hilbert_conductor
+    from sage.arith.misc import hilbert_conductor
+
+    if q is None:
+        q = ZZ.one()
+        while hilbert_conductor(-q, -p) != p:
+            q += 1
+    else:
+        q = ZZ(q)
         if p.divides(q) or hilbert_conductor(-q, -p) != p:
             raise ValueError('invalid choice of q')
-
-    # first find the degree q of our special endomorphism
-    if q is None:
-        if p == 2:
-            q = 3
-        elif p % 4 == 3:
-            q = 1
-        elif p % 3 == 2:
-            q = 3
-        elif p % 8 == 5:
-            q = 2
-        else:
-            from sage.arith.misc import legendre_symbol
-            for q in map(ZZ, range(3,p,4)):
-                if not q.is_prime():
-                    continue
-                if legendre_symbol(-q, p) == -1:
-                    break
-            else:  # should never happen
-                assert False, 'bug in special_supersingular_curve()'
-    q = ZZ(q)
 
     from sage.arith.misc import fundamental_discriminant
     from sage.schemes.elliptic_curves.cm import hilbert_class_polynomial
