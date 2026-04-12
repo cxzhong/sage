@@ -1051,7 +1051,30 @@ class FinitePoset(UniqueRepresentation, Parent):
                 _elts_hash = hash(elements)
             except TypeError:
                 _elts_hash = hash(tuple(id(e) for e in elements))
-        cache_key = (cls, _hd_hash, _elts_hash,
+
+        # Guard against hash collisions between structurally-isomorphic
+        # posets whose vertex labels come from *different* parent spaces.
+        # For example, RootSystem(['C',2]).root_lattice().root_poset() and
+        # RootSystem(['B',2]).coroot_lattice().root_poset() produce graphs
+        # with the same topology; their vertex labels (roots vs. coroots)
+        # have identical Python hashes yet live in different parents and
+        # are not equal.  Without this extra discriminator the cache would
+        # return the *first* poset for both callers, causing the elements
+        # of the second poset to carry the wrong parent.
+        #
+        # Use id(parent) of the first Sage element vertex — an integer,
+        # holding *no* strong references — so that two posets whose vertex
+        # labels belong to different parent objects get distinct cache keys.
+        _vertex_parent_id = None
+        try:
+            for _v in hasse_diagram.vertices():
+                if hasattr(_v, 'parent'):
+                    _vertex_parent_id = id(_v.parent())
+                break
+        except (AttributeError, TypeError):
+            pass
+
+        cache_key = (cls, _hd_hash, _elts_hash, _vertex_parent_id,
                      elements is not None, category, facade, key)
 
         cached = cls._cache.get(cache_key)
