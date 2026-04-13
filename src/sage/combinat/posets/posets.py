@@ -1073,16 +1073,22 @@ class FinitePoset(UniqueRepresentation, Parent):
             except Exception:
                 return cached
 
-        # Create the instance via WithPicklingByInitArgs.__classcall__
-        # (bypasses CachedRepresentation's weak_cached_function cache,
-        # which would store the full arguments — including element
-        # labels — as a strong-referenced key and thereby prevent
-        # garbage collection when labels reference the poset; see
-        # :issue:`14356`).
-        from sage.structure.unique_representation import WithPicklingByInitArgs
-        result = WithPicklingByInitArgs.__classcall__(
+        # Create the instance directly via typecall (equivalent to
+        # type.__call__), bypassing both CachedRepresentation's
+        # weak_cached_function cache and WithPicklingByInitArgs's
+        # _reduction attribute.  Both would store the full arguments
+        # — including element labels — as strong references and
+        # thereby prevent garbage collection when labels reference
+        # the poset (see :issue:`14356`).  Pickling is handled by
+        # the __reduce__ override below.
+        from sage.misc.classcall_metaclass import typecall
+        result = typecall(
             cls, hasse_diagram=hasse_diagram, elements=elements,
             category=category, facade=facade, key=key)
+        # Store the "canonical" class (e.g. FinitePoset, not
+        # FinitePoset_with_category) so that __reduce__ can
+        # reconstruct through the same __classcall__ entry point.
+        result._reduction_cls = cls
 
         cls._cache[cache_key] = result
         return result
@@ -1105,6 +1111,41 @@ class FinitePoset(UniqueRepresentation, Parent):
             False
         """
         cls._cache.clear()
+
+    def __reduce__(self):
+        """
+        Return pickling data for this poset.
+
+        This overrides :meth:`WithPicklingByInitArgs.__reduce__`
+        because ``__classcall__`` no longer stores ``_reduction``
+        (to avoid the memory leak described in :issue:`14356`).
+        The constructor arguments are recomputed here at pickle time.
+
+        TESTS::
+
+            sage: P = Poset({0: [1, 2], 1: [3], 2: [3]})
+            sage: loads(dumps(P)) == P
+            True
+            sage: P = Poset(DiGraph({'a':['b'],'b':['c'],'c':['d']}), facade=False)
+            sage: Q = loads(dumps(P))
+            sage: Q == P
+            True
+            sage: Q._is_facade
+            False
+        """
+        from sage.structure.unique_representation import unreduce
+        hd = self._hasse_diagram.relabel(
+            dict(enumerate(self._elements)), inplace=False)
+        hd = hd.copy(immutable=True)
+        elements = self._elements if self._with_linear_extension else None
+        reduction = (self._reduction_cls, (),
+                     dict(hasse_diagram=hd, elements=elements,
+                          category=self.category(),
+                          facade=self._is_facade, key=self._key))
+        d = self.__getstate__()
+        if d:
+            return (unreduce, reduction, d)
+        return (unreduce, reduction)
 
     def __init__(self, hasse_diagram, elements, category, facade, key) -> None:
         r"""
@@ -1177,6 +1218,7 @@ class FinitePoset(UniqueRepresentation, Parent):
                                            data_structure='static_sparse')
         self._element_to_vertex_dict = rdict
         self._is_facade = facade
+        self._key = key
 
     @lazy_attribute
     def _list(self):
