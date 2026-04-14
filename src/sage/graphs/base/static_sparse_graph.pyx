@@ -363,17 +363,18 @@ cdef int init_short_digraph_from_data(short_digraph g, vertices, edges,
 
     The edges must only use vertices contained in ``vertices``.
     """
+    cdef MemoryAllocator mem = MemoryAllocator()
     cdef list vertex_list = list(vertices)
     cdef dict v_to_id
     cdef object e, u, v, l
     cdef list edge_data = []
-    cdef list degrees
+    cdef uint32_t *degrees
     cdef int u_id, v_id
     cdef int i
     cdef int number_of_loops = 0
     cdef int n_edges
-    cdef list starts
-    cdef list next_pos
+    cdef uint32_t *starts
+    cdef uint32_t *next_pos
     cdef list by_target
     cdef int source, target, idx
     cdef list edge_labels
@@ -387,7 +388,7 @@ cdef int init_short_digraph_from_data(short_digraph g, vertices, edges,
 
     g.edge_labels = NULL
     g.n = len(vertex_list)
-    degrees = [0] * g.n
+    degrees = <uint32_t *> mem.calloc(g.n, sizeof(uint32_t))
 
     for e in edges:
         if len(e) == 3:
@@ -417,12 +418,12 @@ cdef int init_short_digraph_from_data(short_digraph g, vertices, edges,
     g.edges = <uint32_t *>check_allocarray(n_edges, sizeof(uint32_t))
     g.neighbors = <uint32_t **>check_allocarray(1 + g.n, sizeof(uint32_t *))
 
-    starts = [0] * (g.n + 1)
+    starts = <uint32_t *> mem.calloc(g.n + 1, sizeof(uint32_t))
     for i in range(g.n):
         starts[i + 1] = starts[i] + degrees[i]
         g.neighbors[i] = g.edges + starts[i]
     g.neighbors[g.n] = g.edges + starts[g.n]
-    next_pos = starts[:-1]
+    next_pos = starts
 
     if edge_labelled:
         edge_labels = [None] * n_edges
