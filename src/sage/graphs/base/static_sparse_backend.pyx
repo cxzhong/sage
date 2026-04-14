@@ -39,6 +39,7 @@ cimport cython
 from cysignals.memory cimport check_calloc, sig_free
 
 from sage.graphs.base.static_sparse_graph cimport (init_short_digraph,
+                                                   init_short_digraph_from_data,
                                                    init_reverse,
                                                    out_degree,
                                                    has_edge,
@@ -59,7 +60,8 @@ cdef class StaticSparseCGraph(CGraph):
     <sage.graphs.base.static_sparse_graph>`.
     """
 
-    def __cinit__(self, G, vertex_list=None):
+    def __cinit__(self, G=None, vertex_list=None, edges=None, directed=None,
+                  edge_labelled=False):
         r"""
         Cython constructor.
 
@@ -106,19 +108,44 @@ cdef class StaticSparseCGraph(CGraph):
             ValueError: vertex_list has wrong length
         """
         cdef int i, j, tmp
-        has_labels = any(l is not None for _, _, l in G.edge_iterator())
-        self._directed = G.is_directed()
+        cdef bint has_loops = False
+        cdef bint has_labels
 
-        if vertex_list is not None and len(vertex_list) != G.order():
-            raise ValueError('vertex_list has wrong length')
+        if G is None:
+            if directed is None:
+                raise TypeError("missing required argument 'directed'")
+            if vertex_list is None:
+                raise TypeError("missing required argument 'vertex_list'")
+            if edges is None:
+                edges = []
 
-        init_short_digraph(self.g, G, edge_labelled=has_labels,
-                           vertex_list=vertex_list)
+            self._directed = bool(directed)
+            init_short_digraph_from_data(self.g, vertex_list, edges,
+                                         isdigraph=self._directed,
+                                         edge_labelled=edge_labelled)
+            for i in range(self.g.n):
+                for tmp in range(out_degree(self.g, i)):
+                    if self.g.neighbors[i][tmp] == i:
+                        has_loops = True
+                        break
+                if has_loops:
+                    break
+        else:
+            has_labels = any(l is not None for _, _, l in G.edge_iterator())
+            self._directed = G.is_directed()
+
+            if vertex_list is not None and len(vertex_list) != G.order():
+                raise ValueError('vertex_list has wrong length')
+
+            init_short_digraph(self.g, G, edge_labelled=has_labels,
+                               vertex_list=vertex_list)
+            has_loops = G.has_loops()
+
         if self._directed:
             init_reverse(self.g_rev, self.g)
 
         # Store the number of loops for undirected graphs
-        elif not G.has_loops():
+        elif not has_loops:
             self.number_of_loops = NULL
         else:
             try:
@@ -427,7 +454,9 @@ cdef class StaticSparseCGraph(CGraph):
 
 cdef class StaticSparseBackend(CGraphBackend):
 
-    def __init__(self, G, loops=False, multiedges=False, sort=True):
+    def __init__(self, G=None, loops=False, multiedges=False, sort=True,
+                 vertex_list=None, edges=None, directed=None,
+                 edge_labelled=False):
         """
         A graph :mod:`backend <sage.graphs.base.graph_backends>` for static
         sparse graphs.
@@ -510,19 +539,49 @@ cdef class StaticSparseBackend(CGraphBackend):
 
             sage: DiGraph({1: {2: ['a', 'b'], 3: ['c']}, 2: {3: ['d']}}, immutable=True).is_directed_acyclic()
             True
+
+        Direct initialization from raw vertices/edges::
+
+            sage: from sage.graphs.base.static_sparse_backend import StaticSparseBackend
+            sage: b = StaticSparseBackend(vertex_list=['b', 'a'],
+            ....:                        edges=[('b', 'a')],
+            ....:                        directed=False, sort=False)
+            sage: list(b.iterator_edges(['b'], True))
+            [('b', 'a', None)]
         """
-        vertices = list(G)
-        if sort:
-            try:
-                vertices.sort()
-            except TypeError:
-                pass
-        cdef StaticSparseCGraph cg = <StaticSparseCGraph> StaticSparseCGraph(G, vertices)
+        cdef StaticSparseCGraph cg
+
+        if G is None:
+            if directed is None:
+                raise TypeError("missing required argument 'directed'")
+            if vertex_list is None:
+                vertex_list = []
+            vertices = list(vertex_list)
+            if sort:
+                try:
+                    vertices.sort()
+                except TypeError:
+                    pass
+            cg = <StaticSparseCGraph> StaticSparseCGraph(
+                None,
+                vertex_list=vertices,
+                edges=edges,
+                directed=directed,
+                edge_labelled=edge_labelled,
+            )
+            self._order = len(vertices)
+        else:
+            vertices = list(G)
+            if sort:
+                try:
+                    vertices.sort()
+                except TypeError:
+                    pass
+            cg = <StaticSparseCGraph> StaticSparseCGraph(G, vertices)
+            self._order = G.order()
         self._cg = cg
 
         self._directed = cg._directed
-
-        self._order = G.order()
 
         # Does it allow loops/multiedges ?
         self._loops = loops
