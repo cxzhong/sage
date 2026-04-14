@@ -57,6 +57,7 @@ Features
    sage/features/pandoc
    sage/features/pdf2svg
    sage/features/polymake
+   sage/features/rankwidth
    sage/features/rubiks
    sage/features/tdlib
    sage/features/topcom
