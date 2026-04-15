@@ -141,7 +141,7 @@ class FreeAlgebraQuotientElement(AlgebraElement):
         """
         return self.__vector
 
-    def _richcmp_(self, right, op):
+    def _richcmp_(self, other, op):
         """
         Compare two quotient algebra elements; done by comparing the
         underlying vector representatives.
@@ -158,7 +158,7 @@ class FreeAlgebraQuotientElement(AlgebraElement):
             sage: i + j == j + i
             True
         """
-        return richcmp(self.vector(), right.vector(), op)
+        return richcmp(self.vector(), other.vector(), op)
 
     def __neg__(self):
         """
