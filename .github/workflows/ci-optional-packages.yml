@@ -1,0 +1,41 @@
+name: Test Optional Packages
+
+on:
+  workflow_dispatch:
+    inputs:
+      packages:
+        description: 'List (comma separated, no whitespaces) of optional packages'
+        required: true
+        type: string
+
+jobs:
+  prepare:
+    name: Build and Test Sage with given optional packages
+    runs-on: ubuntu-latest
+    outputs:
+       opt_targets: ${{ steps.convert.outputs.opt_targets }}
+    steps:
+     - name: Checkout
+       uses: actions/checkout@v4
+
+     - name: Convert input
+       id: convert
+       run: |
+         IFS=',' read -r -a array <<< "${{ github.event.inputs.packages }}"
+         opt_targets=$(for a in "${array[@]}"; do echo "${a}-ensure"; done | tr '\n' ' ')
+         echo "opt_targets=${opt_targets}" >> "$GITHUB_OUTPUT"
+
+  run_tests:
+    needs: prepare
+    name: Call reusable workflow docker.yml
+    uses: ./.github/workflows/docker.yml
+    with:
+      targets: "${{ needs.prepare.outputs.opt_targets }} ci-build-with-fallback ptest-nodoc"
+      incremental: false
+      tox_system_factors: >-
+        ["ubuntu-noble",
+         "debian-trixie",
+         "fedora-42",]
+      tox_packages_factors: >-
+        ["standard"]
+      max_parallel: 4
