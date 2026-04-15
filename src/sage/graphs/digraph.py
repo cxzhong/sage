@@ -827,7 +827,6 @@ class DiGraph(GenericGraph):
                                                 loops=loops_allowed,
                                                 multiedges=multiedges_allowed,
                                                 sort=sort_vertices)
-            self._immutable = True
 
         # At this point, format has been set. We build the graph
 
@@ -976,13 +975,14 @@ class DiGraph(GenericGraph):
         if format != 'DiGraph' or name is not None:
             self.name(name)
 
-        if data_structure == "static_sparse" and not direct_static_sparse:
-            from sage.graphs.base.static_sparse_backend import StaticSparseBackend
-            ib = StaticSparseBackend(self,
-                                     loops=self.allows_loops(),
-                                     multiedges=self.allows_multiple_edges(),
-                                     sort=(format != "vertices_and_edges"))
-            self._backend = ib
+        if data_structure == "static_sparse":
+            if not direct_static_sparse:
+                from sage.graphs.base.static_sparse_backend import StaticSparseBackend
+                ib = StaticSparseBackend(self,
+                                         loops=self.allows_loops(),
+                                         multiedges=self.allows_multiple_edges(),
+                                         sort=(format != "vertices_and_edges"))
+                self._backend = ib
             self._immutable = True
 
     # Formats
