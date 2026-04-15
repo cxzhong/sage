@@ -889,7 +889,7 @@ class DiGraph(GenericGraph):
                 self.add_edges((u, v) for u in data[0] for v in data[0] if f(u, v))
 
         elif format == "vertices_and_edges":
-            if data_structure == "static_sparse":
+            if data_structure == "static_sparse" and not bool(multiedges):
                 _direct_static_sparse_from_edges(data[0], data[1],
                                                  loops_allowed=bool(loops),
                                                  multiedges_allowed=bool(multiedges),
@@ -949,7 +949,7 @@ class DiGraph(GenericGraph):
                 if data:
                     self.add_vertices(range(data))
         elif format == 'list_of_edges':
-            if data_structure == "static_sparse":
+            if data_structure == "static_sparse" and not bool(multiedges):
                 _direct_static_sparse_from_edges([], data,
                                                  loops_allowed=bool(loops),
                                                  multiedges_allowed=bool(multiedges),

@@ -1328,7 +1328,7 @@ class Graph(GenericGraph):
                     self.add_edges((v, v) for v in verts if f(v, v))
 
         elif format == "vertices_and_edges":
-            if data_structure == "static_sparse":
+            if data_structure == "static_sparse" and not bool(multiedges):
                 _direct_static_sparse_from_edges(data[0], data[1],
                                                  loops_allowed=bool(loops),
                                                  multiedges_allowed=bool(multiedges),
@@ -1366,7 +1366,7 @@ class Graph(GenericGraph):
                     self.add_vertices(range(data))
 
         elif format == 'list_of_edges':
-            if data_structure == "static_sparse":
+            if data_structure == "static_sparse" and not bool(multiedges):
                 _direct_static_sparse_from_edges([], data,
                                                  loops_allowed=bool(loops),
                                                  multiedges_allowed=bool(multiedges),
