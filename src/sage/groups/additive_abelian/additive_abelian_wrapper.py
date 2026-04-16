@@ -749,6 +749,25 @@ class AdditiveAbelianGroupWrapper(addgp.AdditiveAbelianGroup_fixed_gens):
             True
             sage: gs[1:] + Is[0] == H
             True
+
+        TESTS:
+
+        Random testing::
+
+            sage: invs = []
+            sage: while not 1 < prod(invs) < 10^4:
+            ....:     invs = [randrange(1,100) for _ in range(randrange(1,20))]
+            sage: G = AdditiveAbelianGroup(invs)
+            sage: gs = [G.random_element() for _ in range(randrange(1,10))]
+            sage: H = AdditiveAbelianGroupWrapper.from_generators(gs)
+            sage: myH = AdditiveAbelianGroupWrapper(G, [], [])
+            sage: for _ in range(999):
+            ....:     g = H.random_element().element()
+            ....:     myH += g
+            ....:     assert myH <= H
+            ....:     if myH == H:
+            ....:         break
+            sage: assert myH == H
         """
         if other in self.universe():
             other_gens = Sequence([other], self.universe())
