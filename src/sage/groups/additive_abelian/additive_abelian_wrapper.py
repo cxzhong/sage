@@ -713,6 +713,64 @@ class AdditiveAbelianGroupWrapper(addgp.AdditiveAbelianGroup_fixed_gens):
 
         return AdditiveAbelianGroupWrapper(self.universe(), newgens, newords)
 
+    def __add__(self, other):
+        r"""
+        Compute the (not necessarily direct) sum of this group
+        with another :class:`AdditiveAbelianGroupWrapper` over
+        the same :meth:`universe`.
+
+        EXAMPLES::
+
+            sage: from sage.groups.additive_abelian.additive_abelian_wrapper import expand_basis
+            sage: G = AdditiveAbelianGroup([15, 30, 45])
+            sage: gs = [G((1,2,3)), G((4,5,6)), G((7,7,7)), G((3,2,1))]
+            sage: H = AdditiveAbelianGroupWrapper.from_generators(gs); H
+            Additive abelian group isomorphic to Z/90 + Z/15 embedded in Additive abelian group isomorphic to Z/15 + Z/30 + Z/45
+            sage: Is = [AdditiveAbelianGroupWrapper.from_generators([g]) for g in gs]; Is
+            [Additive abelian group isomorphic to Z/15 embedded in Additive abelian group isomorphic to Z/15 + Z/30 + Z/45,
+             Additive abelian group isomorphic to Z/30 embedded in Additive abelian group isomorphic to Z/15 + Z/30 + Z/45,
+             Additive abelian group isomorphic to Z/90 embedded in Additive abelian group isomorphic to Z/15 + Z/30 + Z/45,
+             Additive abelian group isomorphic to Z/45 embedded in Additive abelian group isomorphic to Z/15 + Z/30 + Z/45]
+            sage: Is[0] + Is[1]
+            Additive abelian group isomorphic to Z/30 + Z/15 embedded in Additive abelian group isomorphic to Z/15 + Z/30 + Z/45
+            sage: sum(Is) == H
+            True
+
+        By a slight abuse of notation, we can also use the `+` operator
+        for adding single elements and sequences of elements to the set
+        of generators::
+
+            sage: Is[0] + gs[1] == Is[0] + Is[1]
+            True
+            sage: gs[0] + Is[1] == Is[0] + Is[1]
+            True
+            sage: Is[0] + gs[1:] == H
+            True
+            sage: gs[1:] + Is[0] == H
+            True
+        """
+        if other in self.universe():
+            other_gens = Sequence([other], self.universe())
+            other_ords = [None]
+        elif isinstance(other, (list, tuple)):
+            other_gens = Sequence(other, self.universe())
+            other_ords = [None] * len(other)
+        elif isinstance(other, AdditiveAbelianGroupWrapper):
+            if other.universe() != self.universe():
+                raise TypeError('groups to be added must have the same universe')
+            other_gens = list(other._gen_elements)
+            other_ords = list(other._gen_orders)
+        else:
+            return NotImplemented
+
+        gens, ords = self._gen_elements, self._gen_orders
+        for g, o in zip(other_gens, other_ords):
+            gens, ords = expand_basis(gens, g, ords, o)
+
+        return AdditiveAbelianGroupWrapper(self.universe(), gens, ords)
+
+    __radd__ = __add__
+
 
 def _discrete_log_pgroup(p, vals, aa, b):
     r"""
