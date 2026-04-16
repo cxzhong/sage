@@ -120,6 +120,34 @@ cdef class StaticSparseCGraph(CGraph):
             Traceback (most recent call last):
             ...
             ValueError: vertex_list has wrong length
+
+        Direct initialization from raw vertices/edges::
+
+            sage: g = StaticSparseCGraph(G=None,
+            ....:                      vertex_list=['b', 'a', 'c'],
+            ....:                      edges=[('b', 'a'), ('c', 'a')],
+            ....:                      directed=True)
+            sage: (g.has_arc(0, 1), g.has_arc(2, 1), g.has_arc(1, 0))
+            (True, True, False)
+
+        Error cases for raw initialization::
+
+            sage: StaticSparseCGraph(G=None, vertex_list=[0], directed=None)
+            Traceback (most recent call last):
+            ...
+            TypeError: missing required argument 'directed'
+            sage: StaticSparseCGraph(G=None, directed=True)
+            Traceback (most recent call last):
+            ...
+            TypeError: missing required argument 'vertex_list'
+            sage: StaticSparseCGraph(G=None, vertex_list=[0, 0], edges=[], directed=False)
+            Traceback (most recent call last):
+            ...
+            ValueError: vertex_list has duplicates
+            sage: StaticSparseCGraph(G=None, vertex_list=[0], edges=[(0, 1)], directed=True)
+            Traceback (most recent call last):
+            ...
+            ValueError: edge contains a vertex not in vertex_list
         """
         cdef int i, j, tmp
         cdef bint has_loops = False
@@ -587,6 +615,27 @@ cdef class StaticSparseBackend(CGraphBackend):
             ....:                        directed=False, sort=False)
             sage: list(b.iterator_edges(['b'], True))
             [('b', 'a', None)]
+
+            sage: b = StaticSparseBackend(vertex_list=['d', 'b', 'a', 'c'],
+            ....:                        edges=[('d', 'a', 3), ('b', 'a', 2), ('c', 'a', 1)],
+            ....:                        directed=True, edge_labelled=True, sort=False)
+            sage: list(b.iterator_in_edges(['a'], True))
+            [('d', 'a', 3), ('b', 'a', 2), ('c', 'a', 1)]
+
+        Error cases for direct initialization::
+
+            sage: StaticSparseBackend(vertex_list=[0], edges=[])
+            Traceback (most recent call last):
+            ...
+            TypeError: missing required argument 'directed'
+            sage: StaticSparseBackend(vertex_list=[0, 0], edges=[], directed=False)
+            Traceback (most recent call last):
+            ...
+            ValueError: vertex_list has duplicates
+            sage: StaticSparseBackend(vertex_list=[0], edges=[(0, 1)], directed=True)
+            Traceback (most recent call last):
+            ...
+            ValueError: edge contains a vertex not in vertex_list
         """
         cdef StaticSparseCGraph cg
 

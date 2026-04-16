@@ -362,6 +362,27 @@ cdef int init_short_digraph_from_data(short_digraph g, vertices, edges,
       labels
 
     The edges must only use vertices contained in ``vertices``.
+
+    TESTS:
+
+    Indirect doctests for sorted output and labels (directed case)::
+
+        sage: from sage.graphs.base.static_sparse_backend import StaticSparseBackend
+        sage: B = StaticSparseBackend(vertex_list=['b', 'a', 'd', 'c'],
+        ....:                        edges=[('b', 'a', 'ba'),
+        ....:                               ('d', 'a', 'da'),
+        ....:                               ('c', 'a', 'ca')],
+        ....:                        directed=True, edge_labelled=True, sort=False)
+        sage: list(B.iterator_in_edges(['a'], True))
+        [('b', 'a', 'ba'), ('d', 'a', 'da'), ('c', 'a', 'ca')]
+
+    Same with undirected edges and a loop::
+
+        sage: B = StaticSparseBackend(vertex_list=['b', 'a'],
+        ....:                        edges=[('b', 'a', 'x'), ('a', 'a', 'loop')],
+        ....:                        directed=False, edge_labelled=True, sort=False)
+        sage: set(B.iterator_edges(['b', 'a'], True)) == {('a', 'a', 'loop'), ('b', 'a', 'x')}
+        True
     """
     cdef MemoryAllocator mem = MemoryAllocator()
     cdef list vertex_list = list(vertices)
