@@ -854,7 +854,8 @@ def _expand_basis_pgroup(p, alphas, vals, beta, h, rel):
     to the subgroup spanned jointly by the original subgroup and
     the new element.
 
-    Used as a subroutine in :func:`basis_from_generators`.
+    Used as a subroutine in :func:`basis_from_generators`
+    and :func:`expand_basis`.
 
     This function modifies ``alphas`` and ``vals`` in place.
 
@@ -970,6 +971,91 @@ def _expand_basis_pgroup(p, alphas, vals, beta, h, rel):
         vals.append(h)
     # assert all(a.order() == p**v for a,v in zip(alphas,vals))
 
+def expand_basis(gens, new_gen, ords=None, new_ord=None):
+    r"""
+    Given a basis of a subgroup `G` of some finite abelian
+    group (additively written), as well as another element
+    `g` of the group, compute and return a basis of the
+    subgroup `G + \langle g\rangle`.
+
+    .. NOTE::
+
+        A *basis* of a finite abelian group is a generating
+        set `\{g_1, \ldots, g_n\}` such that each element of the
+        group can be written as a unique linear combination
+        `\alpha_1 g_1 + \cdots + \alpha_n g_n` with each
+        `\alpha_i \in \{0, \ldots, \mathrm{ord}(g_i)-1\}`.
+
+    EXAMPLES:
+
+    The result of adding generators progressively using this
+    method matches the one-shot basis computation algorithm
+    in :func:`basis_from_generators`::
+
+        sage: from sage.groups.additive_abelian.additive_abelian_wrapper import expand_basis
+        sage: G = AdditiveAbelianGroup([15, 30, 45])
+        sage: gs = [G((1,2,3)), G((4,5,6)), G((7,7,7)), G((3,2,1))]
+        sage: H = AdditiveAbelianGroupWrapper.from_generators(gs); H
+        Additive abelian group isomorphic to Z/90 + Z/15 embedded in Additive abelian group isomorphic to Z/15 + Z/30 + Z/45
+        sage: basis = []
+        sage: for g in gs:
+        ....:     basis, orders = expand_basis(basis, g)
+        ....:     print(basis, orders)
+        [(1, 2, 3)] [15]
+        [(4, 5, 6), (8, 16, 24)] [30, 15]
+        [(4, 13, 7), (4, 20, 21)] [90, 15]
+        [(7, 19, 16), (2, 10, 33)] [90, 15]
+        sage: AdditiveAbelianGroupWrapper(G, basis, orders) == H
+        True
+    """
+    gens = list(gens)
+    if ords is None:
+        ords = [g.order() for g in gens]
+    else:
+        ords = Sequence(ords, ZZ)
+        if len(ords) != len(gens):
+            raise ValueError('ords must have the same length as gens')
+    if new_ord is None:
+        new_ord = new_gen.order()
+    else:
+        new_ord = ZZ(new_ord)
+
+    ps = sorted({p for o in ords for p in o.prime_factors()})
+
+    gammas, ms = [], []
+
+    coprime_ord = new_ord.prime_to_m_part(ZZ.prod(ps))
+    if not coprime_ord.is_one():
+        coprime_gen = new_ord // coprime_ord * new_gen
+        gammas.append(coprime_gen)
+        ms.append(coprime_ord)
+
+    for p in ps:
+        pgens = [(o.prime_to_m_part(p) * g, o.valuation(p))
+                 for g, o in zip(gens, ords) if not o % p]
+        assert pgens
+        pgens.sort(key=lambda tup: tup[1])
+        alphas, vals = map(list, zip(*pgens))
+
+        if p.divides(new_ord):
+            beta, h = new_ord.prime_to_m_part(p) * new_gen, new_ord.valuation(p)
+            e = _basis_relation_pgroup(p, alphas, vals, beta, h)
+            if e is None:
+                alphas.append(beta)
+                vals.append(h)
+            elif e[-1].valuation(p):
+                _expand_basis_pgroup(p, alphas, vals, beta, h, e)
+            assert all(vals)
+
+        for i, (v, a) in enumerate(sorted(zip(vals, alphas), reverse=True)):
+            if i < len(gammas):
+                gammas[i] += a
+                ms[i] *= p ** v
+            else:
+                gammas.append(a)
+                ms.append(p ** v)
+
+    return gammas, ms
 
 def basis_from_generators(gens, ords=None):
     r"""
