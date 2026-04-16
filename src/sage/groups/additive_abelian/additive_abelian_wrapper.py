@@ -811,6 +811,42 @@ def _discrete_log_pgroup(p, vals, aa, b):
     return _rec(0, max(vals), b)
 
 
+def _basis_relation_pgroup(p, alphas, vals, beta, h):
+    r"""
+    Given a basis `g_1,...,g_r` of a `p`-subgroup of a finite abelian group
+    and an element `g_{r+1}` of `p`-power order, find a *relation*, i.e., a
+    non-negative integer vector `(v_1,...,v_{r+1})` such that
+    `v_1\cdot g_1+\cdots+v_{r+1} g_{r+1} = 0` and such that `v_{r+1}>0`
+    is of minimal `p`-adic valuation.
+
+    If no nontrivial relation exists, return ``None``.
+
+    EXAMPLES::
+
+        sage: from sage.groups.additive_abelian.additive_abelian_wrapper import _basis_relation_pgroup
+        sage: p = 5
+        sage: G = Zmod(p^10)^4
+        sage: vss = diagonal_matrix([1,3,3,7])
+        sage: alphas = [G([p^(10-v) for v in vs]) for vs in vss]
+        sage: vals = [alpha.order().valuation(p) for alpha in alphas]
+        sage: ws = [2,2,2,2]
+        sage: beta = G([p^(10-w) for w in ws])
+        sage: h = beta.order().valuation(p)
+        sage: rel = _basis_relation_pgroup(p, alphas, vals, beta, h); rel
+        [4, 100, 100, 62500, 5]
+        sage: sum(c * elt for c, elt in zip(rel, alphas + [beta]))
+        (0, 0, 0, 0)
+    """
+    beta_q = beta
+    for v in range(h):
+        if v:
+            beta_q *= p
+        try:
+            e = _discrete_log_pgroup(p, vals, alphas, -beta_q)
+        except ValueError:
+            continue
+        return list(e) + [p**v]
+
 def _expand_basis_pgroup(p, alphas, vals, beta, h, rel):
     r"""
     Given a basis of a `p`-subgroup of a finite abelian group
@@ -990,47 +1026,29 @@ def basis_from_generators(gens, ords=None):
     if not all(o < Infinity for o in ords):
         raise ValueError('all provided generators must have finite order')
 
-    from sage.arith.functions import lcm
-    lam = lcm(ords)
-    ps = sorted(lam.prime_factors(), key=lam.valuation)
+    ps = sorted({p for o in ords for p in o.prime_factors()})
 
     gammas = []
     ms = []
     for p in ps:
-        pgens = [(o.prime_to_m_part(p) * g, o.p_primary_part(p))
+        pgens = [(o.prime_to_m_part(p) * g, o.valuation(p))
                  for g, o in zip(gens, ords) if not o % p]
         assert pgens
         pgens.sort(key=lambda tup: tup[1])
 
-        alpha, ord_alpha = pgens.pop()
-        vals = [ord_alpha.valuation(p)]
+        alpha, val_alpha = pgens.pop()
+        vals = [val_alpha]
         alphas = [alpha]
 
         while pgens:
-            beta, ord_beta = pgens.pop()
-            try:
-                _ = _discrete_log_pgroup(p, vals, alphas, beta)
-            except ValueError:
-                pass
-            else:
-                continue
-
-            # step 4
-            val_beta = ord_beta.valuation(p)
-            beta_q = beta
-            for v in range(1, val_beta):
-                beta_q *= p
-#                assert beta_q == beta * p**v
-                try:
-                    e = _discrete_log_pgroup(p, vals, alphas, -beta_q)
-                except ValueError:
-                    continue
-                _expand_basis_pgroup(p, alphas, vals, beta, val_beta, list(e) + [p**v])
-#                assert all(a.order() == p**v for a,v in zip(alphas, vals))
-                break
-            else:
+            beta, h = pgens.pop()
+            e = _basis_relation_pgroup(p, alphas, vals, beta, h)
+            if e is None:
                 alphas.append(beta)
-                vals.append(val_beta)
+                vals.append(h)
+            elif e[-1].valuation(p):
+                _expand_basis_pgroup(p, alphas, vals, beta, h, e)
+        assert all(vals)
 
         for i, (v, a) in enumerate(sorted(zip(vals, alphas), reverse=True)):
             if i < len(gammas):
@@ -1039,9 +1057,5 @@ def basis_from_generators(gens, ords=None):
             else:
                 gammas.append(a)
                 ms.append(p ** v)
-
-#    assert len({sum(i*g for i,g in zip(vec,gammas))
-#                for vec in __import__('itertools').product(*map(range,ms))}) \
-#               == __import__('sage').misc.misc_c.prod(ms)
 
     return gammas, ms
