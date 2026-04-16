@@ -575,7 +575,7 @@ cdef class ElementWrapperCheckWrappedClass(ElementWrapper):
             return PyObject_RichCompare(self.value, other, op)
         elif self._parent is (<Element>other)._parent:
             # Different types but same parent? This should not happen
-            raise TypeError(f"cannot compare {type(self).__name__} with {type(right).__name__} if parents are equal")
+            raise TypeError(f"cannot compare {type(self).__name__} with {type(other).__name__} if parents are equal")
 
         # Different parents => use coercion model
         return coercion_model.richcmp(self, other, op)
