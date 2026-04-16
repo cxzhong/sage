@@ -1167,6 +1167,10 @@ class Graph(GenericGraph):
                                              sort_vertices):
             """
             Build ``self`` directly with ``StaticSparseBackend`` from raw data.
+
+            This helper intentionally stays at constructor level in phase 1 to
+            keep the refactor scope small; vertex-label mapping is preserved in
+            backend dictionaries via ``vertex_list``.
             """
             vertices = []
             vertex_to_id = {}
@@ -1309,14 +1313,16 @@ class Graph(GenericGraph):
                 loops = any(f(v, v) for v in verts)
             if weighted is None:
                 weighted = False
+            loops_allowed = bool(loops)
+            multiedges_allowed = bool(multiedges)
             if data_structure == "static_sparse":
                 edge_data = (e for e in itertools.combinations(verts, 2) if f(*e))
                 if loops:
                     edge_data = itertools.chain(edge_data,
                                                 ((v, v) for v in verts if f(v, v)))
                 _direct_static_sparse_from_edges(verts, edge_data,
-                                                 loops_allowed=bool(loops),
-                                                 multiedges_allowed=bool(multiedges),
+                                                 loops_allowed=loops_allowed,
+                                                 multiedges_allowed=multiedges_allowed,
                                                  sort_vertices=True)
                 direct_static_sparse = True
             else:
@@ -1328,10 +1334,12 @@ class Graph(GenericGraph):
                     self.add_edges((v, v) for v in verts if f(v, v))
 
         elif format == "vertices_and_edges":
-            if data_structure == "static_sparse" and not bool(multiedges):
+            loops_allowed = bool(loops)
+            multiedges_allowed = bool(multiedges)
+            if data_structure == "static_sparse" and not multiedges_allowed:
                 _direct_static_sparse_from_edges(data[0], data[1],
-                                                 loops_allowed=bool(loops),
-                                                 multiedges_allowed=bool(multiedges),
+                                                 loops_allowed=loops_allowed,
+                                                 multiedges_allowed=multiedges_allowed,
                                                  sort_vertices=False)
                 direct_static_sparse = True
             else:
@@ -1353,10 +1361,12 @@ class Graph(GenericGraph):
         elif format == 'int':
             if data < 0:
                 raise ValueError("The number of vertices cannot be strictly negative!")
+            loops_allowed = bool(loops)
+            multiedges_allowed = bool(multiedges)
             if data_structure == "static_sparse":
                 _direct_static_sparse_from_edges(range(data), [],
-                                                 loops_allowed=bool(loops),
-                                                 multiedges_allowed=bool(multiedges),
+                                                 loops_allowed=loops_allowed,
+                                                 multiedges_allowed=multiedges_allowed,
                                                  sort_vertices=True)
                 direct_static_sparse = True
             else:
@@ -1366,10 +1376,12 @@ class Graph(GenericGraph):
                     self.add_vertices(range(data))
 
         elif format == 'list_of_edges':
-            if data_structure == "static_sparse" and not bool(multiedges):
+            loops_allowed = bool(loops)
+            multiedges_allowed = bool(multiedges)
+            if data_structure == "static_sparse" and not multiedges_allowed:
                 _direct_static_sparse_from_edges([], data,
-                                                 loops_allowed=bool(loops),
-                                                 multiedges_allowed=bool(multiedges),
+                                                 loops_allowed=loops_allowed,
+                                                 multiedges_allowed=multiedges_allowed,
                                                  sort_vertices=True)
                 direct_static_sparse = True
             else:

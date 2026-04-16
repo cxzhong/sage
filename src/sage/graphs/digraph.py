@@ -761,6 +761,10 @@ class DiGraph(GenericGraph):
                                              sort_vertices):
             """
             Build ``self`` directly with ``StaticSparseBackend`` from raw data.
+
+            This helper intentionally stays at constructor level in phase 1 to
+            keep the refactor scope small; vertex-label mapping is preserved in
+            backend dictionaries via ``vertex_list``.
             """
             vertices = []
             vertex_to_id = {}
@@ -873,12 +877,14 @@ class DiGraph(GenericGraph):
                 loops = any(f(v, v) for v in data[0])
             if weighted is None:
                 weighted = False
+            loops_allowed = bool(loops)
+            multiedges_allowed = bool(multiedges)
             if data_structure == "static_sparse":
                 _direct_static_sparse_from_edges(
                     data[0],
                     ((u, v) for u in data[0] for v in data[0] if f(u, v)),
-                    loops_allowed=bool(loops),
-                    multiedges_allowed=bool(multiedges),
+                    loops_allowed=loops_allowed,
+                    multiedges_allowed=multiedges_allowed,
                     sort_vertices=True,
                 )
                 direct_static_sparse = True
@@ -889,10 +895,12 @@ class DiGraph(GenericGraph):
                 self.add_edges((u, v) for u in data[0] for v in data[0] if f(u, v))
 
         elif format == "vertices_and_edges":
-            if data_structure == "static_sparse" and not bool(multiedges):
+            loops_allowed = bool(loops)
+            multiedges_allowed = bool(multiedges)
+            if data_structure == "static_sparse" and not multiedges_allowed:
                 _direct_static_sparse_from_edges(data[0], data[1],
-                                                 loops_allowed=bool(loops),
-                                                 multiedges_allowed=bool(multiedges),
+                                                 loops_allowed=loops_allowed,
+                                                 multiedges_allowed=multiedges_allowed,
                                                  sort_vertices=False)
                 direct_static_sparse = True
             else:
@@ -936,10 +944,12 @@ class DiGraph(GenericGraph):
                 weighted = False
             if data < 0:
                 raise ValueError("the number of vertices cannot be strictly negative")
+            loops_allowed = bool(loops)
+            multiedges_allowed = bool(multiedges)
             if data_structure == "static_sparse":
                 _direct_static_sparse_from_edges(range(data), [],
-                                                 loops_allowed=bool(loops),
-                                                 multiedges_allowed=bool(multiedges),
+                                                 loops_allowed=loops_allowed,
+                                                 multiedges_allowed=multiedges_allowed,
                                                  sort_vertices=True)
                 direct_static_sparse = True
             else:
@@ -949,10 +959,12 @@ class DiGraph(GenericGraph):
                 if data:
                     self.add_vertices(range(data))
         elif format == 'list_of_edges':
-            if data_structure == "static_sparse" and not bool(multiedges):
+            loops_allowed = bool(loops)
+            multiedges_allowed = bool(multiedges)
+            if data_structure == "static_sparse" and not multiedges_allowed:
                 _direct_static_sparse_from_edges([], data,
-                                                 loops_allowed=bool(loops),
-                                                 multiedges_allowed=bool(multiedges),
+                                                 loops_allowed=loops_allowed,
+                                                 multiedges_allowed=multiedges_allowed,
                                                  sort_vertices=True)
                 direct_static_sparse = True
             else:
