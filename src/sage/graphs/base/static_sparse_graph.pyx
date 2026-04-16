@@ -428,6 +428,8 @@ cdef int init_short_digraph_from_data(short_digraph g, vertices, edges,
     if edge_labelled:
         edge_labels = [None] * n_edges
 
+    # Grouping by target lets us fill each source adjacency segment in
+    # increasing target order, matching the sorted-neighbor invariant.
     by_target = [[] for _ in range(g.n)]
     if isdigraph:
         for source, target, l in edge_data:

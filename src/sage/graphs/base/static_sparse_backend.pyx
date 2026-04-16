@@ -67,9 +67,23 @@ cdef class StaticSparseCGraph(CGraph):
 
         INPUT:
 
-        - ``G`` -- a :class:`Graph` object
+        - ``G`` -- a :class:`Graph` or :class:`DiGraph` object, or ``None``
+          (default: ``None``)
 
-        - ``vertex_list`` -- (optional) list of all vertices of ``G``
+        - ``vertex_list`` -- (optional) list of vertices; when ``G`` is not
+          ``None``, it must contain all vertices of ``G`` in the desired order.
+          When ``G`` is ``None``, this argument is mandatory and defines the
+          vertex order directly.
+
+        - ``edges`` -- (optional) iterable of edges/arcs in the form
+          ``(u, v)`` or ``(u, v, label)``; used only when ``G`` is ``None``
+
+        - ``directed`` -- boolean (default: ``None``); mandatory when ``G`` is
+          ``None``
+
+        - ``edge_labelled`` -- boolean (default: ``False``); whether labels are
+          stored when ``G`` is ``None``. When ``G`` is not ``None``, labels are
+          detected from ``G``.
 
         The optional argument ``vertex_list`` is assumed to be a list of all
         vertices of the graph ``G`` in some order.
@@ -131,11 +145,11 @@ cdef class StaticSparseCGraph(CGraph):
                 if has_loops:
                     break
         else:
-            has_labels = any(l is not None for _, _, l in G.edge_iterator())
-            self._directed = G.is_directed()
-
             if vertex_list is not None and len(vertex_list) != G.order():
                 raise ValueError('vertex_list has wrong length')
+
+            has_labels = any(l is not None for _, _, l in G.edge_iterator())
+            self._directed = G.is_directed()
 
             init_short_digraph(self.g, G, edge_labelled=has_labels,
                                vertex_list=vertex_list)
@@ -461,6 +475,31 @@ cdef class StaticSparseBackend(CGraphBackend):
         A graph :mod:`backend <sage.graphs.base.graph_backends>` for static
         sparse graphs.
 
+        INPUT:
+
+        - ``G`` -- a :class:`Graph` or :class:`DiGraph` object, or ``None``
+          (default: ``None``)
+
+        - ``loops`` -- boolean (default: ``False``); whether loops are allowed
+
+        - ``multiedges`` -- boolean (default: ``False``); whether multiple
+          edges are allowed
+
+        - ``sort`` -- boolean (default: ``True``); whether vertices are sorted
+          before building the backend
+
+        - ``vertex_list`` -- (optional) list of vertices; used when ``G`` is
+          ``None`` to define vertex order explicitly
+
+        - ``edges`` -- (optional) iterable of edges/arcs used when ``G`` is
+          ``None``
+
+        - ``directed`` -- boolean (default: ``None``); mandatory when ``G`` is
+          ``None``
+
+        - ``edge_labelled`` -- boolean (default: ``False``); whether labels are
+          stored when ``G`` is ``None``
+
         EXAMPLES::
 
             sage: D = sage.graphs.base.sparse_graph.SparseGraphBackend(9)
@@ -563,7 +602,7 @@ cdef class StaticSparseBackend(CGraphBackend):
                 except TypeError:
                     pass
             cg = <StaticSparseCGraph> StaticSparseCGraph(
-                None,
+                G=None,
                 vertex_list=vertices,
                 edges=edges,
                 directed=directed,
