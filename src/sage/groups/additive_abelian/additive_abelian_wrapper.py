@@ -50,6 +50,7 @@ AUTHORS:
 - David Loeffler (2010)
 - Lorenz Panny (2017): :meth:`AdditiveAbelianGroupWrapper.discrete_log`
 - Lorenz Panny (2023): :meth:`AdditiveAbelianGroupWrapper.from_generators`
+- Lorenz Panny (2026): :func:`expand_basis`, sums of :class:`AdditiveAbelianGroupWrapper` objects
 """
 
 # ****************************************************************************
