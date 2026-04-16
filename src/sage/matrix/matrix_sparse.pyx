@@ -369,7 +369,7 @@ cdef class Matrix_sparse(matrix.Matrix):
         else:
             raise RuntimeError("unknown matrix version (=%s)" % version)
 
-    cpdef _richcmp_(self, other, int op) -> bool:
+    cpdef _richcmp_(self, other, int op):
         """
         Rich comparison.
 
