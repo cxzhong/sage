@@ -1749,6 +1749,16 @@ class GrowthDiagram(SageObject):
 
             sage: fn = tmp_filename()
             sage: G = GrowthDiagram.rules.RSK()([1])
+            sage: latex(G)
+            \begingroup
+            ...
+            \begin{tikzpicture}[baseline=(BL.base),x=0.9em,y=0.9em]
+            ...
+              \node at (0.5,0.5) {$1$};
+            ...
+            \end{tikzpicture}
+            \endgroup
+
             sage: latex.eval(latex(G), locals(), filename=fn)                   # optional - latex
             ''
 
@@ -1766,6 +1776,16 @@ class GrowthDiagram(SageObject):
             sage: G
              .  1
              1  0
+            sage: latex(G)
+            \begingroup
+            ...
+            \matrix[column sep=.3cm, row sep=.3cm,ampersand replacement=\&]{
+            ...
+            \begin{tikzpicture}[baseline=(BL.base),x=0.9em,y=0.9em]
+            ...
+            \end{tikzpicture}
+            \endgroup
+
             sage: latex.eval(latex(G), locals(), filename=fn)                   # optional - latex
             ''
 
