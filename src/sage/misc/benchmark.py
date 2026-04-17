@@ -95,7 +95,7 @@ def bench0():
     x = polygen(QQ, "x")
     f = (x**97+19*x+1)*(x**103-19*x**97+14)*(x**100-1)
     t = cputime()
-    F = f.factor()
+    f.factor()
     return (desc, cputime(t))
 
 
@@ -112,7 +112,7 @@ def bench1():
     desc = """Find the Mordell-Weil group of the elliptic curve 5077A using mwrank"""
     E = mwrank_EllipticCurve([0, 0, 1, -7, 6])
     t = cputime()
-    g = E.gens()
+    E.gens()
     return (desc, cputime(t))
 
 
@@ -128,7 +128,7 @@ def bench2():
     """
     desc = """Some basic arithmetic with very large Integer numbers: '3^1000001 * 19^100001"""
     t = cputime()
-    a = ZZ(3)**1000001 * ZZ(19)**100001
+    _ = ZZ(3)**1000001 * ZZ(19)**100001
     return (desc, cputime(t))
 
 
@@ -144,7 +144,7 @@ def bench3():
     """
     desc = """Some basic arithmetic with very large Rational numbers: '(2/3)^100001 * (17/19)^100001"""
     t = cputime()
-    a = QQ((2, 3))**100001 * QQ((17, 19))**100001
+    _ = QQ((2, 3))**100001 * QQ((17, 19))**100001
     return (desc, cputime(t))
 
 
@@ -162,7 +162,7 @@ def bench4():
     x = PolynomialRing(QQ, 'x').gen()
     t = cputime()
     f = x**29 + 17*x-5
-    a = f**200
+    _ = f**200
     return (desc, cputime(t))
 
 
@@ -180,7 +180,7 @@ def bench5():
     x = PolynomialRing(QQ, 'x').gen()
     t = cputime()
     f = x**19 - 18*x + 1
-    w = [f**50 for _ in range(100)]
+    _ = [f**50 for _ in range(100)]
     return (desc, cputime(t))
 
 
@@ -198,7 +198,7 @@ def bench6():
     E = EllipticCurve([0, 0, 0, 37, -997])
     t = cputime()
     for p in [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37]:
-        f = E.division_polynomial(p)
+        E.division_polynomial(p)
     return (desc, cputime(t))
 
 
@@ -215,5 +215,5 @@ def bench7():
     desc = """Compute the Mordell-Weil group of y^2 = x^3 + 37*x - 997."""
     E = EllipticCurve([0, 0, 0, 37, -997])
     t = cputime()
-    G = E.gens()
+    E.gens()
     return (desc, cputime(t))

@@ -2471,8 +2471,6 @@ class OreSubmodule(OreModule):
         """
         if f.codomain() is not self._ambient:
             raise ValueError("the codomain of the morphism must be the ambient space")
-        rows = []
-        C = self._submodule.coordinates
         try:
             im_gens = [self(f(x)) for x in f.domain().basis()]
         except ValueError:

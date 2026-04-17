@@ -846,7 +846,7 @@ class FileDocTestSource(DocTestSource):
                         if ".. skip" in last_line:
                             skipping = True
                         in_block = True
-                        starting_indent = whitespace.match(line).end()
+                        whitespace.match(line).end()
                 last_line = line
             if (not rest or in_block) and sagestart.match(line) and not ((rest and skipping) or untested.search(line.lower())):
                 expected.append(lineno+1)

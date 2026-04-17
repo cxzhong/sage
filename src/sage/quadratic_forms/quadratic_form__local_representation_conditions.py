@@ -349,7 +349,7 @@ class QuadraticFormLocalRepresentationConditions:
 
             for i, sqi in enumerate(sqclass):
                 if QQ(self.coeff / sqi).is_padic_square(p):    # Note:This should happen only once!
-                    nu = valuation(self.coeff / sqi, p) / 2    # UNUSED VARIABLE !
+                    _ = valuation(self.coeff / sqi, p) / 2
                 else:
                     v[i + 1] = infinity
 
