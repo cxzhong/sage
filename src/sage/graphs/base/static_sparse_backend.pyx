@@ -53,6 +53,91 @@ from sage.data_structures.bitset_base cimport *
 cdef extern from "Python.h":
     int unlikely(int) nogil  # Defined by Cython
 
+
+def _direct_static_sparse_backend_from_edges(initial_vertices, edges, directed,
+                                             loops_allowed, multiedges_allowed,
+                                             sort_vertices):
+    """
+    Build a :class:`StaticSparseBackend` directly from raw constructor data.
+
+    This helper centralizes the direct immutable-construction logic used by
+    :class:`~sage.graphs.graph.Graph` and :class:`~sage.graphs.digraph.DiGraph`
+    for simple input formats. Original vertex labels are preserved through
+    ``vertex_list`` and the backend mapping dictionaries.
+    """
+    directed = bool(directed)
+
+    vertices = []
+    vertex_to_id = {}
+    next_auto_vertex = 0
+
+    def add_or_get_vertex(v):
+        nonlocal next_auto_vertex
+        if v is None:
+            while next_auto_vertex in vertex_to_id:
+                next_auto_vertex += 1
+            v = next_auto_vertex
+            next_auto_vertex += 1
+        if v not in vertex_to_id:
+            vertex_to_id[v] = len(vertices)
+            vertices.append(v)
+        return v, vertex_to_id[v]
+
+    for v in initial_vertices:
+        add_or_get_vertex(v)
+
+    has_labels = False
+    if multiedges_allowed:
+        edge_data = []
+        for e in edges:
+            if len(e) == 3:
+                u, v, l = e
+            else:
+                u, v = e
+                l = None
+            u, _ = add_or_get_vertex(u)
+            v, _ = add_or_get_vertex(v)
+            if u == v and not loops_allowed:
+                raise ValueError(f"cannot add edge from {u!r} to {v!r} in graph without loops")
+            has_labels = has_labels or l is not None
+            edge_data.append((u, v, l))
+    else:
+        edge_map = {}
+        for e in edges:
+            if len(e) == 3:
+                u, v, l = e
+            else:
+                u, v = e
+                l = None
+            u, u_id = add_or_get_vertex(u)
+            v, v_id = add_or_get_vertex(v)
+            if u == v and not loops_allowed:
+                raise ValueError(f"cannot add edge from {u!r} to {v!r} in graph without loops")
+            if directed:
+                key = (u_id, v_id)
+            else:
+                key = (u_id, v_id) if u_id <= v_id else (v_id, u_id)
+            old = edge_map.get(key)
+            if old is not None and old[2] == l:
+                has_labels = has_labels or l is not None
+                continue
+            if key in edge_map:
+                del edge_map[key]
+            edge_map[key] = (u, v, l)
+            has_labels = has_labels or l is not None
+        edge_data = list(edge_map.values())
+
+    return StaticSparseBackend(
+        vertex_list=vertices,
+        edges=edge_data,
+        directed=directed,
+        edge_labelled=has_labels,
+        loops=loops_allowed,
+        multiedges=multiedges_allowed,
+        sort=sort_vertices,
+    )
+
+
 cdef class StaticSparseCGraph(CGraph):
     """
     :mod:`CGraph <sage.graphs.base.c_graph>` class based on the sparse graph

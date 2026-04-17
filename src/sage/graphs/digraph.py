@@ -755,82 +755,11 @@ class DiGraph(GenericGraph):
             raise ValueError("This input cannot be turned into a graph")
 
         direct_static_sparse = False
-
-        def _direct_static_sparse_from_edges(initial_vertices, edges,
-                                             loops_allowed, multiedges_allowed,
-                                             sort_vertices):
-            """
-            Build ``self`` directly with ``StaticSparseBackend`` from raw data.
-
-            This helper intentionally stays at constructor level in phase 1 to
-            keep the refactor scope small; vertex-label mapping is preserved in
-            backend dictionaries via ``vertex_list``.
-            """
-            vertices = []
-            vertex_to_id = {}
-            next_auto_vertex = 0
-
-            def add_or_get_vertex(v):
-                nonlocal next_auto_vertex
-                if v is None:
-                    while next_auto_vertex in vertex_to_id:
-                        next_auto_vertex += 1
-                    v = next_auto_vertex
-                    next_auto_vertex += 1
-                if v not in vertex_to_id:
-                    vertex_to_id[v] = len(vertices)
-                    vertices.append(v)
-                return v, vertex_to_id[v]
-
-            for v in initial_vertices:
-                add_or_get_vertex(v)
-
-            has_labels = False
-            if multiedges_allowed:
-                edge_data = []
-                for e in edges:
-                    if len(e) == 3:
-                        u, v, l = e
-                    else:
-                        u, v = e
-                        l = None
-                    u, _ = add_or_get_vertex(u)
-                    v, _ = add_or_get_vertex(v)
-                    if u == v and not loops_allowed:
-                        raise ValueError(f"cannot add edge from {u!r} to {v!r} in graph without loops")
-                    has_labels = has_labels or l is not None
-                    edge_data.append((u, v, l))
-            else:
-                edge_map = {}
-                for e in edges:
-                    if len(e) == 3:
-                        u, v, l = e
-                    else:
-                        u, v = e
-                        l = None
-                    u, u_id = add_or_get_vertex(u)
-                    v, v_id = add_or_get_vertex(v)
-                    if u == v and not loops_allowed:
-                        raise ValueError(f"cannot add edge from {u!r} to {v!r} in graph without loops")
-                    key = (u_id, v_id)
-                    old = edge_map.get(key)
-                    if old is not None and old[2] == l:
-                        has_labels = has_labels or l is not None
-                        continue
-                    if key in edge_map:
-                        del edge_map[key]
-                    edge_map[key] = (u, v, l)
-                    has_labels = has_labels or l is not None
-                edge_data = list(edge_map.values())
-
-            from sage.graphs.base.static_sparse_backend import StaticSparseBackend
-            self._backend = StaticSparseBackend(vertex_list=vertices,
-                                                edges=edge_data,
-                                                directed=True,
-                                                edge_labelled=has_labels,
-                                                loops=loops_allowed,
-                                                multiedges=multiedges_allowed,
-                                                sort=sort_vertices)
+        if data_structure == "static_sparse":
+            from sage.graphs.base.static_sparse_backend import (
+                StaticSparseBackend,
+                _direct_static_sparse_backend_from_edges,
+            )
 
         # At this point, format has been set. We build the graph
 
@@ -880,9 +809,10 @@ class DiGraph(GenericGraph):
             loops_allowed = bool(loops)
             multiedges_allowed = bool(multiedges)
             if data_structure == "static_sparse":
-                _direct_static_sparse_from_edges(
+                self._backend = _direct_static_sparse_backend_from_edges(
                     data[0],
                     ((u, v) for u in data[0] for v in data[0] if f(u, v)),
+                    directed=True,
                     loops_allowed=loops_allowed,
                     multiedges_allowed=multiedges_allowed,
                     sort_vertices=True,
@@ -898,10 +828,14 @@ class DiGraph(GenericGraph):
             loops_allowed = bool(loops)
             multiedges_allowed = bool(multiedges)
             if data_structure == "static_sparse" and not multiedges_allowed:
-                _direct_static_sparse_from_edges(data[0], data[1],
-                                                 loops_allowed=loops_allowed,
-                                                 multiedges_allowed=multiedges_allowed,
-                                                 sort_vertices=False)
+                self._backend = _direct_static_sparse_backend_from_edges(
+                    data[0],
+                    data[1],
+                    directed=True,
+                    loops_allowed=loops_allowed,
+                    multiedges_allowed=multiedges_allowed,
+                    sort_vertices=False,
+                )
                 direct_static_sparse = True
             else:
                 self.allow_multiple_edges(bool(multiedges), check=False)
@@ -947,10 +881,14 @@ class DiGraph(GenericGraph):
             loops_allowed = bool(loops)
             multiedges_allowed = bool(multiedges)
             if data_structure == "static_sparse":
-                _direct_static_sparse_from_edges(range(data), [],
-                                                 loops_allowed=loops_allowed,
-                                                 multiedges_allowed=multiedges_allowed,
-                                                 sort_vertices=True)
+                self._backend = _direct_static_sparse_backend_from_edges(
+                    range(data),
+                    [],
+                    directed=True,
+                    loops_allowed=loops_allowed,
+                    multiedges_allowed=multiedges_allowed,
+                    sort_vertices=True,
+                )
                 direct_static_sparse = True
             else:
                 self.allow_loops(bool(loops), check=False)
@@ -962,10 +900,14 @@ class DiGraph(GenericGraph):
             loops_allowed = bool(loops)
             multiedges_allowed = bool(multiedges)
             if data_structure == "static_sparse" and not multiedges_allowed:
-                _direct_static_sparse_from_edges([], data,
-                                                 loops_allowed=loops_allowed,
-                                                 multiedges_allowed=multiedges_allowed,
-                                                 sort_vertices=True)
+                self._backend = _direct_static_sparse_backend_from_edges(
+                    [],
+                    data,
+                    directed=True,
+                    loops_allowed=loops_allowed,
+                    multiedges_allowed=multiedges_allowed,
+                    sort_vertices=True,
+                )
                 direct_static_sparse = True
             else:
                 self.allow_multiple_edges(bool(multiedges),
@@ -989,7 +931,6 @@ class DiGraph(GenericGraph):
 
         if data_structure == "static_sparse":
             if not direct_static_sparse:
-                from sage.graphs.base.static_sparse_backend import StaticSparseBackend
                 ib = StaticSparseBackend(self,
                                          loops=self.allows_loops(),
                                          multiedges=self.allows_multiple_edges(),
