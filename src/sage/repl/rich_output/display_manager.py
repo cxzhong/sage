@@ -224,8 +224,7 @@ class DisplayManager(SageObject):
         """
         if cls._instance is not None:
             return cls._instance
-        else:
-            return cls()
+        return cls()
 
     def _repr_(self):
         """
@@ -773,7 +772,7 @@ class DisplayManager(SageObject):
         """
         return self._supported_output
 
-    def displayhook(self, obj: Any) -> None | Any:
+    def displayhook(self, obj: Any) -> Any | None:
         """
         Implementation of the displayhook.
 

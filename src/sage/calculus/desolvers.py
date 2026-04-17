@@ -77,7 +77,8 @@ import shutil
 
 
 from sage.calculus.functional import diff
-from sage.interfaces.maxima_lib import maxima
+from sage.misc.lazy_import import lazy_import
+lazy_import("sage.interfaces.maxima_lib","maxima")
 from sage.misc.functional import N
 from sage.rings.real_mpfr import RealField
 from sage.structure.element import Expression
@@ -563,7 +564,7 @@ def desolve(de, dvar, ics=None, ivar=None, show_method=False, contrib_ode=False,
 
     if algorithm == "fricas":
         return fricas_desolve(de, dvar, ics, ivar)
-    elif algorithm != "maxima":
+    if algorithm != "maxima":
         raise ValueError("unknown algorithm %s" % algorithm)
 
     de00 = de._maxima_()
@@ -924,7 +925,7 @@ def desolve_system(des, vars, ics=None, ivar=None, algorithm='maxima'):
 
     if algorithm == "fricas":
         return fricas_desolve_system(des, vars, ics, ivar)
-    elif algorithm != "maxima":
+    if algorithm != "maxima":
         raise ValueError("unknown algorithm %s" % algorithm)
 
     dvars = [v._maxima_() for v in vars]
@@ -1219,8 +1220,7 @@ def desolve_rk4_determine_bounds(ics, end_points=None):
         end_points = [end_points]
     if len(end_points) == 1:
         return min(ics[0], end_points[0]), max(ics[0], end_points[0])
-    else:
-        return min(ics[0], end_points[0]), max(ics[0], end_points[1])
+    return min(ics[0], end_points[0]), max(ics[0], end_points[1])
 
 
 def desolve_rk4(de, dvar, ics=None, ivar=None, end_points=None, step=0.1, output='list', **kwds):
@@ -1622,7 +1622,7 @@ def desolve_odeint(des, ics, times, dvars, ivar=None, compute_jac=False, args=()
             assert len(des) == 1
             dvar = dvars[0]
             de = des[0]
-            func = fast_float(de, dvar, ivar)
+            func = lambda y, t: fast_float(de, dvar, ivar)(y.item(), t)
             if not compute_jac:
                 Dfun = None
             else:
@@ -1671,7 +1671,7 @@ def desolve_odeint(des, ics, times, dvars, ivar=None, compute_jac=False, args=()
 
         if len(ivars) == 1:
             return desolve_odeint_inner(next(iter(ivars)))
-        elif not ivars:
+        if not ivars:
             from sage.symbolic.ring import SR
             with SR.temp_var() as ivar:
                 return desolve_odeint_inner(ivar)
