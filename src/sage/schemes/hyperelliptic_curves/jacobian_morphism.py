@@ -395,7 +395,7 @@ class MumfordDivisorClassFieldRamified(MumfordDivisorClassField):
 class MumfordDivisorClassFieldInert(MumfordDivisorClassField):
     def __init__(self, parent, u, v, check=True) -> None:
         r"""
-        Create an element of the Jacobian of a ramified
+        Create an element of the Jacobian of an inert
         hyperelliptic curve.
 
         TESTS::
