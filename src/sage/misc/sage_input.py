@@ -1165,8 +1165,6 @@ class SageInputBuilder:
 
         e._sie_prepare(sif)
 
-        sif.format(e, 0)
-
         locals = self._locals
         if len(locals):
             return SageInputAnswer(sif._commands, sif.format(e, 0), locals)

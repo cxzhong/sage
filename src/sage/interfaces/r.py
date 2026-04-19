@@ -448,8 +448,6 @@ def _setup_r_to_sage_converter():
         # we have a R list (vector of arbitrary elements)
         names = vec.do_slot('names')
         values = [rpy2py(val) for val in vec]
-        if 'class' in vec.list_attrs():
-            vec.do_slot('class')
         data = zip(names, values)
         return {
             'DATA': dict(data),
