@@ -26,6 +26,7 @@ import sage.env
 
 from sage.libs.gap.gap_includes cimport *
 from sage.libs.gap.element cimport *
+from sage.misc.cachefunc import cached_function
 from sage.cpython.string import FS_ENCODING
 from sage.cpython.string cimport str_to_bytes, char_to_str
 from sage.interfaces.gap_workspace import prepare_workspace_dir
@@ -36,6 +37,7 @@ from sage.interfaces.gap_workspace import prepare_workspace_dir
 ############################################################################
 
 
+@cached_function
 def kernel_info():
     r"""
     Return the GAP version, architecture, and root paths in a tuple.
