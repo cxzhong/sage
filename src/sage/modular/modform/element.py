@@ -1049,7 +1049,8 @@ class ModularForm_abstract(ModuleElement):
         We compute with the `L`-series of the Eisenstein series `E_4`::
 
             sage: f = ModularForms(1,4).0
-            sage: L = f.lseries()
+            sage: L = f.lseries(); L
+            ???bug_here???
             sage: L(1)
             -0.0304484570583933
             sage: L = eisenstein_series_lseries(4)
@@ -1159,11 +1160,12 @@ class ModularForm_abstract(ModuleElement):
         is_good = L.check_functional_equation()
         assert is_good < 1e-10, is_good
 
+        mf = "cusp" if self.is_cuspidal() else "modular"
         if K == QQ:
-            L.rename('L-series associated to the cusp form %s' % self)
+            L.rename(f'L-series associated to the {mf} form {self}')
         else:
-            L.rename('L-series associated to the cusp form %s, %s=%s'
-                     % (self, K.variable_name(), emb(K.gen())))
+            g, emb = K.variable_name(), emb(K.gen())
+            L.rename(f'L-series associated to the {mf} form {self}, {g}={emb}')
         return L
 
     def symsquare_lseries(self, chi=None, embedding=0, prec=53):
