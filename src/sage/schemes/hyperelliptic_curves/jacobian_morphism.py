@@ -465,10 +465,11 @@ class MumfordDivisorClassFieldInert(MumfordDivisorClassField):
             sage: D + D
             Traceback (most recent call last):
             ...
-            NotImplementedError: unable to perform arithmetic for inert models of odd genus
+            NotImplementedError: unable to perform arithmetic for inert models of odd genus; consider extending the base field to adjoin the points at infinity
         """
         if self.parent().curve().genus() % 2:
-            raise NotImplementedError('unable to perform arithmetic for inert models of odd genus')
+            raise NotImplementedError('unable to perform arithmetic for inert models of odd genus; '
+                                      'consider extending the base field to adjoin the points at infinity')
         return super()._add_(*args, **kwds)
 
     def _neg_(self, *args, **kwds):
@@ -501,10 +502,11 @@ class MumfordDivisorClassFieldInert(MumfordDivisorClassField):
             sage: -D
             Traceback (most recent call last):
             ...
-            NotImplementedError: unable to perform arithmetic for inert models of odd genus
+            NotImplementedError: unable to perform arithmetic for inert models of odd genus; consider extending the base field to adjoin the points at infinity
         """
         if self.parent().curve().genus() % 2:
-            raise NotImplementedError('unable to perform arithmetic for inert models of odd genus')
+            raise NotImplementedError('unable to perform arithmetic for inert models of odd genus; '
+                                      'consider extending the base field to adjoin the points at infinity')
         return super()._neg_(*args, **kwds)
 
 

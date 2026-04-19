@@ -769,7 +769,7 @@ class HyperellipticJacobianHomset(SchemeHomset_points):
             sage: HyperellipticCurve(f).jacobian()(K)._random_element_cover()
             Traceback (most recent call last):
             ...
-            NotImplementedError: unable to perform arithmetic for inert models of odd genus
+            NotImplementedError: unable to perform arithmetic for inert models of odd genus; consider extending the base field to adjoin the points at infinity
         """
         H = self.extended_curve()
         R = H.polynomial_ring()
@@ -777,7 +777,8 @@ class HyperellipticJacobianHomset(SchemeHomset_points):
 
         # For the inert case, the genus must be even
         if H.is_inert() and g % 2:
-            raise NotImplementedError('unable to perform arithmetic for inert models of odd genus')
+            raise NotImplementedError('unable to perform arithmetic for inert models of odd genus; '
+                                      'consider extending the base field to adjoin the points at infinity')
 
         if degree is None:
             degree = (-1, g)
@@ -824,7 +825,7 @@ class HyperellipticJacobianHomset(SchemeHomset_points):
             sage: HyperellipticCurve(f).jacobian()(K)._random_element_rational()
             Traceback (most recent call last):
             ...
-            NotImplementedError: unable to perform arithmetic for inert models of odd genus
+            NotImplementedError: unable to perform arithmetic for inert models of odd genus; consider extending the base field to adjoin the points at infinity
         """
         H = self.extended_curve()
         g = H.genus()
