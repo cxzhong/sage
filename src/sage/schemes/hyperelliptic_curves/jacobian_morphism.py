@@ -435,6 +435,78 @@ class MumfordDivisorClassFieldInert(MumfordDivisorClassField):
         """
         return f"({self._u}, {self._v} : {self._n})"
 
+    def _add_(self, *args, **kwds):
+        r"""
+        Thin wrapper around :meth:`MumfordDivisorClassField._add_` which
+        fails in case of odd genus since that case is not implemented.
+
+        EXAMPLES::
+
+            sage: R.<x> = GF(5)[]
+            sage: H = HyperellipticCurve(2*x^6 + 1)
+            sage: H.genus()
+            2
+            sage: H.is_inert()
+            True
+            sage: J = Jacobian(H)
+            sage: D = J(x^2 + x + 4, 4*x)
+            sage: D + D
+            (x^2 + x + 4, x : 0)
+
+        ::
+
+            sage: H = HyperellipticCurve(2*x^8 + 1)
+            sage: H.genus()
+            3
+            sage: H.is_inert()
+            True
+            sage: J = Jacobian(H)
+            sage: D = J(x^2 + 3, 3*x)
+            sage: D + D
+            Traceback (most recent call last):
+            ...
+            NotImplementedError: unable to perform arithmetic for inert models of odd genus
+        """
+        if self.parent().curve().genus() % 2:
+            raise NotImplementedError('unable to perform arithmetic for inert models of odd genus')
+        return super()._add_(*args, **kwds)
+
+    def _neg_(self, *args, **kwds):
+        r"""
+        Thin wrapper around :meth:`MumfordDivisorClassField._neg_` which
+        fails in case of odd genus since that case is not implemented.
+
+        EXAMPLES::
+
+            sage: R.<x> = GF(5)[]
+            sage: H = HyperellipticCurve(2*x^6 + 1)
+            sage: H.genus()
+            2
+            sage: H.is_inert()
+            True
+            sage: J = Jacobian(H)
+            sage: D = J(x^2 + x + 4, 4*x)
+            sage: -D
+            (x^2 + x + 4, x : 0)
+
+        ::
+
+            sage: H = HyperellipticCurve(2*x^8 + 1)
+            sage: H.genus()
+            3
+            sage: H.is_inert()
+            True
+            sage: J = Jacobian(H)
+            sage: D = J(x^2 + 3, 3*x)
+            sage: -D
+            Traceback (most recent call last):
+            ...
+            NotImplementedError: unable to perform arithmetic for inert models of odd genus
+        """
+        if self.parent().curve().genus() % 2:
+            raise NotImplementedError('unable to perform arithmetic for inert models of odd genus')
+        return super()._neg_(*args, **kwds)
+
 
 class MumfordDivisorClassFieldSplit(MumfordDivisorClassField):
     def __init__(self, parent, u, v, n=0, check=True) -> None:
