@@ -664,7 +664,10 @@ class LFunction(SageObject):
 
         self._conductor = ZZ(self._L[4])
         self._weight = ZZ(self._L[3])
-        self._eps = ZZ(self._L[5])
+        try:
+            self._eps = ZZ(self._L[5])
+        except (TypeError, ValueError):
+            self._eps = self._L[5]
 
         self._max_im = max_im
 
