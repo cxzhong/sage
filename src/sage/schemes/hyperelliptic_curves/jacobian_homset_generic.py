@@ -149,12 +149,14 @@ class HyperellipticJacobianHomset(SchemeHomset_points):
             sage: J.order()
             Traceback (most recent call last):
             ...
-            NotImplementedError
+            NotImplementedError: order computation is only implemented for Jacobians over finite fields
         """
         if isinstance(self.base_ring(), FiniteField_generic):
             return sum(self.extended_curve().frobenius_polynomial())
 
-        raise NotImplementedError
+        raise NotImplementedError(
+            "order computation is only implemented for Jacobians over finite fields"
+        )
 
     @cached_method
     def _curve_frobenius_roots(self):
