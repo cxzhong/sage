@@ -1185,7 +1185,7 @@ class HyperellipticCurve_generic(WeightedProjectiveCurve):
             sage: J.zero()
             Traceback (most recent call last):
             ...
-            ValueError: unable to perform arithmetic for inert models of odd genus
+            NotImplementedError: unable to perform arithmetic for inert models of odd genus
 
         """
         from sage.schemes.hyperelliptic_curves.jacobian_generic import (
