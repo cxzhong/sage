@@ -119,10 +119,7 @@ def _direct_static_sparse_backend_from_edges(initial_vertices, edges, directed,
                 key = (u_id, v_id) if u_id <= v_id else (v_id, u_id)
             old = edge_map.get(key)
             if old is not None and old[2] == l:
-                has_labels = has_labels or l is not None
                 continue
-            if key in edge_map:
-                del edge_map[key]
             edge_map[key] = (u, v, l)
             has_labels = has_labels or l is not None
         edge_data = list(edge_map.values())
