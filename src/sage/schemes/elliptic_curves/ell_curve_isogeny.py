@@ -3670,6 +3670,19 @@ def compute_isogeny_kernel_polynomial(E1, E2, ell, algorithm=None):
         sage: for phi in E1.isogenies_degree(5):
         ....:     E2 = phi.codomain().isomorphism(~phi.scaling_factor()).codomain()
         ....:     assert phi.kernel_polynomial() == compute_isogeny_kernel_polynomial(E1, E2, phi.degree(), algorithm='bruteforce')
+
+    Verify that it works with the ``"bruteforce"`` algorithm even when
+    the Weierstrass isomorphism from the model of the codomain curve
+    chosen by :meth:`~EllipticCurve_field.isogenies_degree` to ``E2``
+    has `\{r,s,t\}\neq\{0\}`; see :issue:`42051`::
+
+        sage: from sage.schemes.elliptic_curves.ell_curve_isogeny import compute_isogeny_kernel_polynomial
+        sage: E1 = EllipticCurve([-3483, 121014])
+        sage: E2 = EllipticCurve([-275643, -61114986])
+        sage: [(phi.codomain().isomorphism_to(E2) * phi).scaling_factor() for phi in E1.isogenies_prime_degree(7)]
+        [1]
+        sage: compute_isogeny_kernel_polynomial(E1, E2, 7, algorithm='bruteforce')
+        x^3 - 81*x^2 - 2997*x + 120285
     """
     if algorithm is None:
         char = E1.base_ring().characteristic()
