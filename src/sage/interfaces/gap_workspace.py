@@ -61,8 +61,7 @@ def gap_workspace_file(system='gap', name='workspace', dir=None):
         dir = os.path.join(DOT_SAGE, 'gap')
 
     from sage.libs.gap.util import kernel_info
-    version, arch, paths = kernel_info()
-    data = ";".join(paths + [version, arch])
+    data = ";".join(kernel_info())
     h = hashlib.sha1(data.encode('utf-8')).hexdigest()
     return os.path.join(dir, f'{system}-{name}-{HOSTNAME}-{h}')
 
