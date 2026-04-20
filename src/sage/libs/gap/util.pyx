@@ -38,14 +38,14 @@ from sage.interfaces.gap_workspace import prepare_workspace_dir
 
 
 @cached_function
-def kernel_info():
+def kernel_info() -> tuple[str, str, str]:
     r"""
     Return the GAP version, architecture, and root paths in a tuple.
 
     The first two are used as cache keys to invalidate old workspaces
     in :func:`sage.interfaces.gap_workspace.gap_workspace_file`. The
-    root paths are used (required) to initialize libgap. In the past
-    we computed the root paths at build-time, but that may not work if
+    root paths are required to initialize libgap. In the past we
+    computed the root paths at build-time, but that may not work if
     (say) the build and target hosts have different libdirs.
 
     This is fast enough that it should suffice until a more reliable
@@ -53,11 +53,11 @@ def kernel_info():
 
     OUTPUT:
 
-    A tuple with three elements:
+    A tuple containing three strings:
 
-    1. The GAP version (str)
-    2. The GAP architecture (str)
-    3. A list of GAP's RootPaths (list of str)
+    1. The GAP version
+    2. The GAP architecture
+    3. A semicolon-delimited list of GAP's RootPaths
 
     TESTS:
 
@@ -69,13 +69,7 @@ def kernel_info():
         True
         sage: len(ki) == 3
         True
-        sage: isinstance(ki[0], str)
-        True
-        sage: isinstance(ki[1], str)
-        True
-        sage: isinstance(ki[2], list)
-        True
-        sage: all( isinstance(p, str) for p in ki[2] )
+        sage: all( isinstance(p, str) for p in ki )
         True
 
     """
@@ -88,7 +82,6 @@ def kernel_info():
                             check=True,
                             text=True)
     version, arch, roots = result.stdout.strip().split("\n")
-    roots = roots.split(";")
     return (version, arch, roots)
 
 
@@ -289,7 +282,7 @@ cdef initialize():
     argv[1] = "-A"
     argv[2] = "-l"
     gap_roots = kernel_info()[2]
-    s = str_to_bytes(";".join(gap_roots), FS_ENCODING, "surrogateescape")
+    s = str_to_bytes(gap_roots, FS_ENCODING, "surrogateescape")
     argv[3] = s
 
     argv[4] = "-m"
