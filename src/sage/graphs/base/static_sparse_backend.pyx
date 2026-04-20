@@ -122,7 +122,7 @@ def _direct_static_sparse_backend_from_edges(initial_vertices, edges, directed,
                 continue
             edge_map[key] = (u, v, l)
             has_labels = has_labels or l is not None
-        edge_data = list(edge_map.values())
+        edge_data = edge_map.values()
 
     return StaticSparseBackend(
         vertex_list=vertices,

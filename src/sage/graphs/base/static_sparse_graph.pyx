@@ -386,7 +386,6 @@ cdef int init_short_digraph_from_data(short_digraph g, vertices, edges,
     """
     cdef MemoryAllocator mem = MemoryAllocator()
     cdef list vertex_list = list(vertices)
-    cdef dict v_to_id
     cdef object e, u, v, l
     cdef list edge_data = []
     cdef uint32_t *degrees
@@ -403,7 +402,7 @@ cdef int init_short_digraph_from_data(short_digraph g, vertices, edges,
     if len(vertex_list) >= INT_MAX:
         raise ValueError(f"short_digraph can handle at most {INT_MAX} vertices")
 
-    v_to_id = {v: i for i, v in enumerate(vertex_list)}
+    cdef dict v_to_id = {v: i for i, v in enumerate(vertex_list)}
     if len(v_to_id) != len(vertex_list):
         raise ValueError("vertex_list has duplicates")
 
