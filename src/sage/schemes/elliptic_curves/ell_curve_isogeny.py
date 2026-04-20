@@ -3685,17 +3685,9 @@ def compute_isogeny_kernel_polynomial(E1, E2, ell, algorithm=None):
         # This is a lazy workaround; there are better algorithms
         # for most cases even when BMSS fails. See :issue:`38481`.
         for phi in E1.isogenies_degree(ell):
-            if not any(E1.a_invariants()[:3] + E2.a_invariants()[:3]):
-                # short Weierstrass
-                u = phi.scaling_factor()
-                iso = phi.codomain().isomorphism(~u)
-                if iso.codomain() == E2:
+            for iso in phi.codomain().isomorphisms(E2):
+                if (iso * phi).scaling_factor().is_one():
                     return phi.kernel_polynomial()
-            else:
-                # long Weierstrass
-                for iso in phi.codomain().isomorphisms(E2):
-                    if iso.scaling_factor().is_one():
-                        return phi.kernel_polynomial()
         raise ValueError(f"the two curves are not linked by a cyclic normalized isogeny of degree {ell}")
 
     if algorithm == 'bmss':
