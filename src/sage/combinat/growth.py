@@ -4416,10 +4416,11 @@ class RuleLeftCompositions(Rule):
     Dual graded graphs for (skew) quasisymmetric Schur functions.
 
     These were introduced by Vasu Tewari and Stephanie Van
-    Willigenburg in :arxiv:`1512.04614`.
+    Willigenburg in [TW2018]_.
+
     Currently, the backward rule is not implemented.  The forward
     rule seems to agree with Mason's insertion algorithm from Section
-    6.1 of http://www.math.ubc.ca/~steph/papers/QS5.pdf.
+    6.1 of [HLMW2011]_.
 
     The vertices of the dual graded graph are
     :class:`~sage.combinat.composition.Compositions`::
