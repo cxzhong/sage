@@ -1050,7 +1050,7 @@ class ModularForm_abstract(ModuleElement):
 
             sage: f = ModularForms(1,4).0
             sage: L = f.lseries(); L
-            ???bug_here???
+            L-series associated to the modular form 1 + 240*q + 2160*q^2 + 6720*q^3 + 17520*q^4 + 30240*q^5 + O(q^6)
             sage: L(1)
             -0.0304484570583933
             sage: L = eisenstein_series_lseries(4)
@@ -1153,9 +1153,8 @@ class ModularForm_abstract(ModuleElement):
             coeffs = (invb * c for c in coeffs)
 
         v = [emb(c) for c in coeffs]
-        w = [c.conjugate() for c in v]
 
-        Lpari.init_coeffs(v, w)
+        Lpari.init_coeffs(v, 1)  # 1 means conjugate coefficients
         L = LFunction(Lpari, prec=prec, max_im=max_imaginary_part)
         is_good = L.check_functional_equation()
         assert is_good < 1e-10, is_good
