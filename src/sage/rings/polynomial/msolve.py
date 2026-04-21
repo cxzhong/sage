@@ -57,9 +57,8 @@ def _run_msolve(ideal, options):
                 sep=',\n', file=msolve_in)
         msolve_in.close()
         command = [msolve().absolute_filename(), "-f", msolve_in.name] + options
-        msolve_out = subprocess.run(command,
-                                    capture_output=True,
-                                    text=True)
+        msolve_out = subprocess.run(command, capture_output=True, text=True,
+                                    check=False)
         msolve_out.check_returncode()
 
     return msolve_out.stdout
