@@ -82,7 +82,6 @@ def _symbol(val: str) -> SymbolNode:
 
 def update_python_sources(self: Rewriter, visitor: AstPython):
     for target in visitor.install_sources_calls:
-        ignored_files = {'cmdline.py'}
         # Generate the current source list
         src_list: list[str] = []
         for arg in arg_list_from_node(target):
