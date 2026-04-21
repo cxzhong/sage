@@ -4458,7 +4458,6 @@ class RuleLeftCompositions(Rule):
         sage: l = {pi: L(pi) for pi in Permutations(4)}
         sage: len(set([tuple(G.out_labels()) for G in l.values()]))
         24
-
     """
     zero = Composition([])
 
