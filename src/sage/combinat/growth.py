@@ -4362,17 +4362,13 @@ def mason_insert(k, T):
     r = max([0] + [len(row) for row in S])
     j = r
     while j > 0:
-        # print "j is", j
         for i, row in enumerate(S):
-            # print "row", row
             if len(row) == j and row[j-1] >= k :
-                S[i].append(k)
+                row.append(k)
                 return S
             if len(row) > j and row[j-1] >= k > row[j]:
-                # print "bumping", k, row[j]
                 S[i] = row[:j] + [k] + row[j+1:]
                 k = row[j]
-                # print "S is now", S
         j -= 1
     return sorted([[k]] + S)
 
@@ -4398,7 +4394,6 @@ def mason(pi):
         [3, 6, 10, 13, 14, 16, 17]
         sage: mason(pi).descent_set()
         [3, 4, 6, 7, 10, 14, 17]
-
     """
     T = []
     for e in pi:
