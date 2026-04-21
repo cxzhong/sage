@@ -1632,7 +1632,7 @@ cdef class PowerSeries(AlgebraElement):
         Check if this power series is a square over `\Zmod{n}` using CRT.
 
         This method works for squarefree moduli (products of distinct primes).
-        For prime power moduli with exponent > 1, it raises NotImplementedError.
+        For prime power moduli with exponent > 1, it raises ``NotImplementedError``.
 
         EXAMPLES::
 
