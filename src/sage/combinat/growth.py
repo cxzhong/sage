@@ -4346,6 +4346,7 @@ class RuleDomino(Rule):
 
         return z
 
+
 def mason_insert(k, T):
     """
     Insert ``k`` into a composition tableau ``T``.
@@ -4357,20 +4358,29 @@ def mason_insert(k, T):
         sage: T = [[1,1],[3,2,2,2],[6,5,4],[7,4,3]]
         sage: mason_insert(5, T)
         [[1, 1], [2], [3, 3, 2, 2], [6, 5, 5], [7, 4, 4]]
+
+    TESTS::
+
+        sage: T
+        [[1, 1], [3, 2, 2, 2], [6, 5, 4], [7, 4, 3]]
+
+        sage: mason_insert(1, [])
+        [[1]]
     """
-    S = T[:]
-    r = max([0] + [len(row) for row in S])
-    j = r
-    while j > 0:
-        for i, row in enumerate(S):
-            if len(row) == j and row[j-1] >= k :
+    S = [row[:] for row in T]
+    r = max((len(row) for row in S), default=0)
+
+    for j in range(r, 0, -1):
+        for row in S:
+            if len(row) == j and row[j-1] >= k:
                 row.append(k)
                 return S
+
             if len(row) > j and row[j-1] >= k > row[j]:
-                S[i] = row[:j] + [k] + row[j+1:]
-                k = row[j]
-        j -= 1
+                row[j], k = k, row[j]
+
     return sorted([[k]] + S)
+
 
 def mason(pi):
     """
@@ -4439,8 +4449,8 @@ class RuleLeftCompositions(Rule):
         sage: [StandardTableaux(n).cardinality() for n in range(7)]
         [1, 1, 2, 4, 10, 26, 76]
 
-    The saturated chains in the :meth:`Q_graph` are not familiar to
-    the author::
+    The saturated chains in the :meth:`Q_graph` are not in the OEIS
+    as of 2026::
 
         sage: [len(L.Q_graph(n).maximal_chains()) for n in range(1,8)]
         [1, 1, 2, 6, 19, 69, 285]
@@ -4453,16 +4463,44 @@ class RuleLeftCompositions(Rule):
         sage: l = {pi: L(pi) for pi in Permutations(4)}
         sage: len(set([tuple(G.out_labels()) for G in l.values()]))
         24
+
     """
     zero = Composition([])
 
     def rank(self, v):
+        r"""
+        Return the rank of ``v``: the size of the composition.
+
+        EXAMPLES::
+
+            sage: L = GrowthDiagram.rules.LeftCompositions()
+            sage: L.rank(L.vertices(3)[0])
+            3
+        """
         return v.size()
 
     def normalize_vertex(self, v):
+        """
+        Return ``v`` as a composition.
+
+        EXAMPLES::
+
+            sage: L = GrowthDiagram.rules.LeftCompositions()
+            sage: L.normalize_vertex([2,3,1,2])
+            [2, 3, 1, 2]
+        """
         return Composition(v)
 
     def vertices(self, n):
+        r"""
+        Return the vertices of the dual graded graph on level ``n``.
+
+        EXAMPLES::
+
+            sage: L = GrowthDiagram.rules.LeftCompositions()
+            sage: L.vertices(3)
+            Compositions of 3
+        """
         return Compositions(n)
 
     def is_P_edge_aux(self, v, w):
@@ -4641,8 +4679,8 @@ class RuleLeftCompositions(Rule):
 
         INPUT:
 
-        - ``y, t, x`` -- three compositions from a cell in a growth
-          diagram, labelled as::
+        - ``y``, ``t``, ``x`` -- three compositions from a cell in a
+          growth diagram, labelled as::
 
               t x
               y
@@ -4651,12 +4689,13 @@ class RuleLeftCompositions(Rule):
 
         OUTPUT:
 
-        The fourth partition according to domino insertion.
+        Conjecturally, the fourth partition according to Mason's
+        insertion.
 
         EXAMPLES::
 
             sage: L = GrowthDiagram.rules.LeftCompositions()
-            sage: L([3,1,2]).out_labels()
+            sage: L([3,1,2]).out_labels()  # indirect doctest
             [[], [1], [1, 1], [1, 2], [2], [1], []]
 
         TESTS::
@@ -4695,7 +4734,7 @@ class RuleLeftCompositions(Rule):
                 for i, (e, f) in enumerate(zip(t_sorted, x_sorted)):
                     if e != f:
                         return Composition(t_operator(x_sorted[i+1]+1, x))
-                raise ValueError("y=%s, t=%s, x=%s"%(y,t,x))
+                raise ValueError(f"y={y}, t={t}, x={x}")
             i = self.is_P_edge_aux(t, y)
             return Composition(t_operator(i, x))
         assert y == t == x
