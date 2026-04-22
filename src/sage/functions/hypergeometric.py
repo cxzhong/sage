@@ -313,11 +313,10 @@ class Hypergeometric(BuiltinFunction):
             S = z.parent()
             from sage.functions.hypergeometric_algebraic import HypergeometricFunctions
             return HypergeometricFunctions(S.base_ring(), S.variable_name())(a, b)
-        else:
-            return BuiltinFunction.__call__(self,
-                                            SR._force_pyobject(a),
-                                            SR._force_pyobject(b),
-                                            z, **kwargs)
+        return BuiltinFunction.__call__(self,
+                                        SR._force_pyobject(a),
+                                        SR._force_pyobject(b),
+                                        z, **kwargs)
 
     def _print_latex_(self, a, b, z):
         r"""

@@ -253,13 +253,21 @@ class HypergeometricParameters(SageObject):
     @cached_method
     def christol_sorting(self, c=1):
         r"""
-        Return a sorted list of triples, where each triple is associated to one
-        of the parameters a, and consists of the decimal part of d*c*a (where
-        integers are assigned 1 instead of 0), the negative value of a, and a
-        sign (plus or minus 1), where top parameters are assigned -1 and bottom
-        parameters +1. Sorting the list lexecographically according to the
-        first two entries of the tuples sorts the corresponing parameters
-        according to the total ordering (defined on p.6 in [Chr1986]_).
+        Return a sorted list of triples.
+
+        Each triple is associated to one of the parameters `a`, and
+        consists of
+
+        - the decimal part of `d\cdot c\cdot a` (where integers are
+          assigned `1` instead of `0`),
+        - the negative value of `a`, and
+        - a sign (plus or minus `1`), where top parameters are
+          assigned `-1` and bottom parameters `+1`.
+
+        Sorting the list lexicographically according to the first two
+        entries of the tuples sorts the corresponding parameters
+        according to the total ordering (defined on p.6 in
+        [Chr1986]_).
 
         INPUT:
 
@@ -773,7 +781,7 @@ class HypergeometricParameters(SageObject):
         d = lcm(pa.denominator() for pa, _ in params)
         order = IntegerModRing(d)(p).multiplicative_order()
         bound = p**order * max(pa.abs() for pa, _ in params if pa)
-        thresold = order * sum(dw for _, dw in params if dw > 0)
+        threshold = order * sum(dw for _, dw in params if dw > 0)
 
         valfinal = None
         signature_prev = indices_prev = None
@@ -862,7 +870,10 @@ class HypergeometricParameters(SageObject):
             # The halting criterion
             if q > bound:
                 valuation, position, _ = min(signature[i] for i in range(negpivot))
-                if anticipated and drift > 2*thresold and all(signature[i][0] > valuation + thresold for i in range(negpivot, n)):
+                if (anticipated
+                    and drift > 2*threshold
+                    and all(signature[i][0] > valuation + threshold
+                            for i in range(negpivot, n))):
                     return QQ(valuation), ZZ(position), r
                 if degree is not infinity or growth == 0:
                     if count < order:
@@ -886,7 +897,7 @@ class HypergeometricParameters(SageObject):
 
     def newton_polygon(self, p, start):
         r"""
-        If the `h_k`s are the coefficients of the hypergeometric
+        If the `h_k`'s are the coefficients of the hypergeometric
         series corresponding to these parameters, return the vertices
         of the upper convex hull of the points
 

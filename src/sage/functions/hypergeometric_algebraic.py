@@ -33,7 +33,7 @@ when this property is satisfied::
     sage: h.is_globally_bounded()
     False
 
-More genrally, the method
+More generally, the method
 :meth:`HypergeometricAlgebraic_QQ.good_reduction_primes` returns the
 set of primes modulo which the hypergeometric function can be reduced::
 
@@ -187,7 +187,7 @@ from sage.rings.polynomial.ore_polynomial_ring import OrePolynomialRing
 from sage.functions.hypergeometric_parameters import HypergeometricParameters
 
 
-# Do we want to implement polynomial linear combinaison
+# Do we want to implement polynomial linear combination
 # of hypergeometric functions?
 # Advantages:
 #  . reductions mod p of hypergeometric functions have this form in general
@@ -197,7 +197,7 @@ from sage.functions.hypergeometric_parameters import HypergeometricParameters
 
 class HypergeometricAlgebraic(Element):
     r"""
-    Class for hypergeometric functions over arbitrary base rings.
+    Class for (scalar multiples of) hypergeometric functions over arbitrary base rings.
     """
     def __init__(self, parent, arg1, arg2=None, scalar=None, check=True):
         r"""
@@ -209,7 +209,7 @@ class HypergeometricAlgebraic(Element):
 
         - ``arg1``, ``arg2`` -- arguments defining this hypergeometric
           function, they can be:
-          - the top and bottom paramters
+          - the top and bottom parameters
           - a hypergeometric function and ``None``
           - an instance of the class :class:`HypergeometricParameters` and ``None``
 
@@ -318,7 +318,7 @@ class HypergeometricAlgebraic(Element):
             sage: h13.power_series(500)
             1 + 6*x + 6*x^13 + 10*x^14 + 6*x^169 + 10*x^170 + 10*x^182 + 8*x^183 + O(x^500)
 
-        .. SEEALSO:
+        .. SEEALSO::
 
             :meth:`~HypergeometricAlgebraic_GFp.is_equal_as_series`
         """
@@ -699,7 +699,7 @@ class HypergeometricAlgebraic(Element):
     def __getitem__(self, n):
         r"""
         Return the ``n``-th coefficient of the series representation of this
-        hypergeoimetric function.
+        hypergeometric function.
 
         INPUT:
 
@@ -722,7 +722,7 @@ class HypergeometricAlgebraic(Element):
     def coefficient(self, n):
         r"""
         Return the ``n``-th coefficient of the series representation of this
-        hypergeoimetric function.
+        hypergeometric function.
 
         INPUT:
 
@@ -840,10 +840,9 @@ class HypergeometricAlgebraic(Element):
         if prec is infinity:
             S = self.parent().power_series_ring(infinity)
             return S(lambda n: self[n])
-        else:
-            S = self.parent().power_series_ring()
-            self._compute_coeffs(prec)
-            return S(self._coeffs, prec=prec)
+        S = self.parent().power_series_ring()
+        self._compute_coeffs(prec)
+        return S(self._coeffs, prec=prec)
 
     def shift(self, s):
         r"""
@@ -868,7 +867,7 @@ class HypergeometricAlgebraic(Element):
     @coerce_binop
     def hadamard_product(self, other):
         r"""
-        Return the hadamard product of this hypergeometric function
+        Return the Hadamard product of this hypergeometric function
         and ``other``.
 
         INPUT:
@@ -1257,9 +1256,9 @@ class HypergeometricAlgebraic_QQ(HypergeometricAlgebraic):
 
     def p_curvature_coranks(self):
         r"""
-        Return a dictonary, where the integers from ``1`` to the number of
-        parameters of this hypergeometric function, are assigned the set of
-        prime numbers for which the ``p``-curvature has this given corank.
+        Return a dictionary, where the integers from `1` to the number of
+        parameters of this hypergeometric function are assigned the set of
+        prime numbers for which the `p`-curvature has this given corank.
 
         EXAMPLES::
 
@@ -1396,7 +1395,7 @@ class HypergeometricAlgebraic_padic(HypergeometricAlgebraic):
         - ``arg1``, ``arg2`` -- arguments defining this hypergeometric
           function, they can be:
 
-          - the top and bottom paramters
+          - the top and bottom parameters
 
           - a hypergeometric function and ``None``
 
@@ -1567,8 +1566,7 @@ class HypergeometricAlgebraic_padic(HypergeometricAlgebraic):
         val += self._scalar.valuation()
         if position:
             return val, pos
-        else:
-            return val
+        return val
 
     def newton_polygon(self, log_radius=None):
         r"""
@@ -1784,7 +1782,7 @@ class HypergeometricAlgebraic_GFp(HypergeometricAlgebraic):
         - ``arg1``, ``arg2`` -- arguments defining this hypergeometric
           function, they can be:
 
-          - the top and bottom paramters
+          - the top and bottom parameters
 
           - a hypergeometric function and ``None``
 
