@@ -882,7 +882,7 @@ class DrinfeldToAnderson(Map):
 
         INPUT:
 
-        - ``f`` -- a Ore polynomial
+        - ``f`` -- an Ore polynomial
 
         TESTS::
 
