@@ -13161,12 +13161,11 @@ cdef class Expression(Expression_abc):
         crash). If giac is available, you may even get a usable
         answer::
 
-            sage: # needs sage.libs.giac
             sage: f = ln(1+4/5*sin(x))
             sage: integrate(f, x, -3.1415, 3.1415)  # random, long time (:issue:`39569`)
             integrate(log(4/5*sin(x) + 1), x, -3.14150000000000,
             3.14150000000000)
-            sage:
+            sage: # needs sage.libs.giac
             sage: ans = integrate(f, x, -3.1415, 3.1415)  # random
             sage: ans  # tol 10e-6
             -1.40205228301000
