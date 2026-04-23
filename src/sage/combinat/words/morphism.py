@@ -3096,6 +3096,9 @@ class WordMorphism(SageObject):
             True
             sage: WordMorphism('0->01,1->1').is_growing('1')
             False
+            sage: m2 = WordMorphism({0:[0,1],1:[1]})
+            sage: m2.is_growing(0)
+            True
             sage: WordMorphism('0->01,1->10').is_growing()
             True
             sage: WordMorphism('0->1,1->2,2->01').is_growing()
@@ -3133,7 +3136,7 @@ class WordMorphism(SageObject):
             Combinatorics, automata and number theory, 163--247, Encyclopedia
             Math. Appl., 135, Cambridge Univ. Press, Cambridge, 2010.
         """
-        if not letter:
+        if letter is None:
             return self.domain().alphabet().cardinality() == len(self.growing_letters())
         return letter in self.growing_letters()
 
