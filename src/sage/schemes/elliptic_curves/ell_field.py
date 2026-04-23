@@ -20,6 +20,7 @@ from sage.rings.integer_ring import ZZ
 from sage.rings.polynomial.polynomial_ring import polygen
 from sage.rings.rational_field import QQ
 from sage.misc.misc_c import prod
+from sage.rings.infinity import Infinity as oo
 from sage.schemes.elliptic_curves.ell_point import EllipticCurvePoint_field
 from sage.schemes.curves.projective_curve import ProjectivePlaneCurve_field
 
@@ -3085,6 +3086,260 @@ class EllipticCurve_field(ell_generic.EllipticCurve_generic, ProjectivePlaneCurv
             raise NotImplementedError
 
         return self.frobenius() not in ZZ
+
+    def xDBL(self, xP):
+        r"""
+        Return the `x`-coordinate of `[2]P` given the `x`-coordinate of `P`.
+
+        INPUT:
+
+        - ``xP`` -- `x`-coordinate of a point `P` on this curve, or :const:`~sage.rings.infinity.Infinity`
+
+        OUTPUT:
+
+        `x`-coordinate of `[2]P`, or :const:`~sage.rings.infinity.Infinity`
+
+        EXAMPLES::
+
+            sage: E = EllipticCurve(GF(127), [6, 7])
+            sage: xP = 53
+            sage: P = E.lift_x(xP); P
+            (53 : 55 : 1)
+            sage: E.xDBL(xP)
+            30
+            sage: 2 * P
+            (30 : 3 : 1)
+
+        This method works even if the `y`-coordinate associated to
+        the given `x`-coordinate is irrational::
+
+            sage: E = EllipticCurve(GF(127), [6, 7])
+            sage: xP = 1
+            sage: EE = E.change_ring(GF((127, 2)))
+            sage: P = EE.lift_x(xP); P
+            (1 : 48*z2 + 103 : 1)
+            sage: E.xDBL(xP)
+            38
+            sage: 2 * P
+            (38 : 125*z2 + 1 : 1)
+
+        TESTS:
+
+        Random testing::
+
+            sage: F = GF((random_prime(100, lbound=5), randrange(1,7)))
+            sage: E = choice(EllipticCurve(j=F.random_element()).twists()).short_weierstrass_model()
+            sage: P = E.random_point()
+            sage: xP = P.x() if P else oo
+            sage: xR = (2*P).x() if 2*P else oo
+            sage: E.xDBL(xP) == xR
+            True
+        """
+        if xP == oo:
+            return oo
+
+        if any(self.a_invariants()[:-2]):
+            raise NotImplementedError('only implemented for short Weierstrass curves')
+
+        a, b = self.a_invariants()[-2:]
+
+        # https://hyperelliptic.org/EFD/g1p/auto-code/shortw/xz/doubling/dbl-2002-it-2.op3
+        # simplified using Z1=1
+        T1 = xP**2
+        T4 = T1 - a
+        T5 = T4**2
+        T8 = b * xP
+        T9 = 8 * T8
+        X3 = T5 - T9
+        T10 = T1 + a
+        T11 = xP * T10
+        T13 = T11 + b
+        Z3 = 4 * T13
+
+        if not Z3:
+            return oo
+        return X3 / Z3
+
+    def xADD(self, xP, xQ, xPQ):
+        r"""
+        Return the `x`-coordinate of `P + Q` given the `x`-coordinates of `P`, `Q`, and `P - Q`.
+
+        It is required that ``xP \neq xQ``.
+
+        INPUT:
+
+        - ``xP`` -- `x`-coordinate of a point `P` on this curve, or :const:`~sage.rings.infinity.Infinity`
+        - ``xQ`` -- `x`-coordinate of a point `Q` on this curve, or :const:`~sage.rings.infinity.Infinity`
+        - ``xPQ`` -- `x`-coordinate of the point `P - Q` on this curve
+
+        OUTPUT:
+
+        `x`-coordinate of `P + Q`, or :const:`~sage.rings.infinity.Infinity`
+
+        EXAMPLES::
+
+            sage: E = EllipticCurve(GF(127), [6, 7])
+            sage: xP, xQ = 53, 32
+            sage: P = E.lift_x(xP); P
+            (53 : 55 : 1)
+            sage: Q = E.lift_x(xQ); Q
+            (32 : 57 : 1)
+            sage: xPQ = (P - Q).x(); xPQ
+            14
+            sage: E.xADD(xP, xQ, xPQ)
+            59
+            sage: P + Q
+            (59 : 0 : 1)
+
+        This method works even if the `y`-coordinate associated to (some or all)
+        of the given `x`-coordinates is irrational::
+
+            sage: E = EllipticCurve(GF(127), [6, 7])
+            sage: xP, xQ = 1, 2
+            sage: EE = E.change_ring(GF((127, 2)))
+            sage: P = EE.lift_x(xP); P
+            (1 : 48*z2 + 103 : 1)
+            sage: Q = EE.lift_x(xQ); Q
+            (2 : 43*z2 + 42 : 1)
+            sage: xPQ = GF(127)((P - Q).x()); xPQ
+            116
+            sage: E.xADD(xP, xQ, xPQ)
+            87
+            sage: P + Q
+            (87 : z2 + 63 : 1)
+
+        TESTS:
+
+        Random testing::
+
+            sage: F = GF((random_prime(100, lbound=5), randrange(1,7)))
+            sage: E = choice(EllipticCurve(j=F.random_element()).twists()).short_weierstrass_model()
+            sage: P = E.random_point()
+            sage: Q = E.random_point()
+            sage: PQ = P - Q
+            sage: xP = P.x() if P else oo
+            sage: xQ = Q.x() if Q else oo
+            sage: xPQ = PQ.x() if PQ else oo
+            sage: xR = (P + Q).x() if P + Q else oo
+            sage: E.xADD(xP, xQ, xPQ) == xR
+            True
+        """
+        if xPQ == oo:
+            if xP != xQ:
+                raise ValueError('incorrect value of xPQ')
+            return self.xDBL(xP)
+        if xP == oo:
+            if xQ != xPQ:
+                raise ValueError('incorrect value of xPQ')
+            return xQ
+        if xQ == oo:
+            if xP != xPQ:
+                raise ValueError('incorrect value of xPQ')
+            return xP
+
+        if any(self.a_invariants()[:-2]):
+            raise NotImplementedError('only implemented for short Weierstrass curves')
+
+        a, b = self.a_invariants()[-2:]
+
+        if xPQ:
+            # https://hyperelliptic.org/EFD/g1p/auto-code/shortw/xz/diffadd/mdadd-2002-it-3.op3
+            # simplified using Z2=Z3=1
+            T1 = xP * xQ
+            T6 = T1 - a
+            T7 = T6**2
+            T9 = b + b
+            T9 += T9
+            T10 = xP + xQ
+            T11 = T9 * T10
+            X5 = T7 - T11
+            T13 = xP - xQ
+            T14 = T13**2
+            Z5 = xPQ * T14
+        else:
+            # https://hyperelliptic.org/EFD/g1p/auto-code/shortw/xz/diffadd/mdadd-2002-it-2.op3
+            # simplified using Z2=Z3=1
+            t2 = xP * xQ
+            t5 = xP + xQ
+            t6 = t2 + a
+            t11 = b + b
+            t11 += t11
+            t12 = t5 * t6
+            t13 = t12 + t12
+            R = t13 + t11
+            t16 = xP - xQ
+            Z5 = t16**2
+            t17 = Z5 * xPQ
+            X5 = R - t17
+
+        if not Z5:
+            return oo
+        return X5/Z5
+
+    def xMUL(self, n, xP):
+        r"""
+        Return the `x`-coordinate of `[n]P` given an integer `n` and the `x`-coordinate of `P`.
+
+        INPUT:
+
+        - ``n`` -- integer
+        - ``xP`` -- `x`-coordinate of a point `P` on this curve, or :const:`~sage.rings.infinity.Infinity`
+
+        OUTPUT:
+
+        `x`-coordinate of `[n]P`, or :const:`~sage.rings.infinity.Infinity`
+
+        EXAMPLES::
+
+            sage: E = EllipticCurve(GF(127), [6, 7])
+            sage: xP = 53
+            sage: P = E.lift_x(xP); P
+            (53 : 55 : 1)
+            sage: E.xMUL(7, xP)
+            32
+            sage: 7 * P
+            (32 : 70 : 1)
+
+        This method works even if the `y`-coordinate associated to
+        the given `x`-coordinate is irrational::
+
+            sage: E = EllipticCurve(GF(127), [6, 7])
+            sage: xP = 1
+            sage: EE = E.change_ring(GF((127, 2)))
+            sage: P = EE.lift_x(xP); P
+            (1 : 48*z2 + 103 : 1)
+            sage: E.xMUL(42, xP)
+            44
+            sage: 42 * P
+            (44 : 59*z2 + 34 : 1)
+
+        TESTS:
+
+        Random testing::
+
+            sage: F = GF((random_prime(100, lbound=5), randrange(1,7)))
+            sage: E = choice(EllipticCurve(j=F.random_element()).twists()).short_weierstrass_model()
+            sage: P = E.random_point()
+            sage: xP = P.x() if P else oo
+            sage: n = randrange(-2^99, 2^99)
+            sage: xR = (n * P).x() if n * P else oo
+            sage: E.xMUL(n, xP) == xR
+            True
+        """
+        n = ZZ(n).abs()
+        if not n:
+            return oo
+        if n.is_one():
+            return xP
+        R0, R1, diff = xP, self.xDBL(xP), xP
+        for bit in reversed(n.digits(2)[:-1]):
+            R0R1 = self.xADD(R0, R1, diff)
+            diff = self.xADD(R0, R1, R0R1)
+            if bit:
+                R0, R1 = R0R1, self.xDBL(R1)
+            else:
+                R0, R1 = self.xDBL(R0), R0R1
+        return R0
 
 
 def compute_model(E, name):
