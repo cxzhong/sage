@@ -4313,6 +4313,7 @@ class Link(SageObject):
 
         EXAMPLES::
 
+            sage: # needs libhomfly
             sage: KnotInfo.L4a1_0.inject()
             Defining L4a1_0
             sage: L4a1_0.link()._knotinfo_matching_dict()
@@ -4423,7 +4424,7 @@ class Link(SageObject):
             sage: b, = BraidGroup(2).gens()
             sage: Link(b**13).get_knotinfo()    # optional - database_knotinfo
             KnotInfo['K13a_4878']
-            sage: Link(b**14).get_knotinfo()
+            sage: Link(b**14).get_knotinfo()    # needs libhomfly
             Traceback (most recent call last):
             ...
             NotImplementedError: this link having more than 11 crossings cannot be determined
@@ -4438,6 +4439,7 @@ class Link(SageObject):
 
         Lets identify the monster unknot::
 
+            sage: # needs libhomfly
             sage: L = Link([[3,1,2,4], [8,9,1,7], [5,6,7,3], [4,18,6,5],
             ....:           [17,19,8,18], [9,10,11,14], [10,12,13,11],
             ....:           [12,19,15,13], [20,16,14,15], [16,20,17,2]])
@@ -4446,6 +4448,7 @@ class Link(SageObject):
 
         Usage of option ``mirror_version``::
 
+            sage: # needs libhomfly
             sage: L.get_knotinfo(mirror_version=False) == KnotInfo.K0_1
             True
 
@@ -4488,6 +4491,7 @@ class Link(SageObject):
         the same unoriented name (according to the note above) the option can be
         used to achieve more detailed information::
 
+            sage: # needs libhomfly
             sage: L2a1 = Link(b**2)
             sage: L2a1.get_knotinfo()
             (Series of links L2a1, <SymmetryMutant.mixed: 'x'>)
@@ -4495,6 +4499,7 @@ class Link(SageObject):
             [(<KnotInfo.L2a1_0: 'L2a1{0}'>, <SymmetryMutant.mirror_image: 'm'>),
              (<KnotInfo.L2a1_1: 'L2a1{1}'>, <SymmetryMutant.itself: 's'>)]
 
+            sage: # needs libhomfly
             sage: KnotInfo.L5a1_0.inject()
             Defining L5a1_0
             sage: l5 = Link(L5a1_0.braid())
@@ -4560,6 +4565,7 @@ class Link(SageObject):
 
         Non prime knots can be detected, as well::
 
+            sage: # needs libhomfly
             sage: b = BraidGroup(4)((1, 2, 2, 2, -1, 2, 2, 2, -3, -3, -3))
             sage: Kb = Knot(b)
             sage: Kb.get_knotinfo()
@@ -4593,6 +4599,7 @@ class Link(SageObject):
              (<KnotInfo.L10a151_1_0: 'L10a151{1,0}'>, <SymmetryMutant.unknown: '?'>),
              (<KnotInfo.L10a151_1_1: 'L10a151{1,1}'>, <SymmetryMutant.unknown: '?'>)]
 
+            sage: # needs libhomfly
             sage: L = KnotInfo.L6a2_0
             sage: L1 = L.link()
             sage: L2 = L.link(L.items.braid_notation)
@@ -4768,6 +4775,7 @@ class Link(SageObject):
 
         EXAMPLES::
 
+            sage: # needs libhomfly
             sage: l1 = Link([[2, 9, 3, 10], [4, 13, 5, 14], [6, 11, 7, 12],
             ....:            [8, 1, 9, 2], [10, 7, 11, 8], [12, 5, 13, 6],
             ....:            [14, 3, 1, 4]])
@@ -4777,6 +4785,7 @@ class Link(SageObject):
             sage: l1.is_isotopic(l2)
             True
 
+            sage: # needs libhomfly
             sage: l3 = l2.mirror_image()
             sage: l1.is_isotopic(l3)
             False
@@ -4799,6 +4808,7 @@ class Link(SageObject):
 
         Using verbosity::
 
+            sage: # needs libhomfly
             sage: set_verbose(1)
             sage: l1.is_isotopic(l2)
             verbose 1 (... link.py, is_isotopic) identified by KnotInfo (KnotInfo.K7_2, SymmetryMutant.mirror_image)
@@ -4816,7 +4826,7 @@ class Link(SageObject):
             sage: L1 = L.link()
             sage: L2 = L.link(L.items.braid_notation)
             sage: set_verbose(1)
-            sage: L1.is_isotopic(L2)
+            sage: L1.is_isotopic(L2)  # needs libhomfly
             verbose 1 (... link.py, is_isotopic) identified by KnotInfo uniquely (KnotInfo.L6a2_0, SymmetryMutant.itself)
             True
             sage: KnotInfo.K0_1.link().is_isotopic(KnotInfo.L2a1_0.link())
