@@ -558,3 +558,31 @@ class EllipticCurveHom_scalar(EllipticCurveHom):
             w = negation_morphism(self._domain).rational_maps()
             result._rational_maps = tuple(f(*w) if f is not None else None for f in self._rational_maps)
         return result
+
+    def xEVAL(self, xP):
+        r"""
+        Return the `x`-coordinate of `[m]P` given the `x`-coordinate of `P`,
+        where this morphism equals `[m]`.
+
+        INPUT:
+
+        - ``xP`` -- `x`-coordinate of a point `P` on the domain of this isogeny
+
+        OUTPUT:
+
+        `x`-coordinate of `\varphi(P)`, or :const:`~sage.rings.infinity.Infinity`
+
+        EXAMPLES::
+
+            sage: E = EllipticCurve(GF(2^127-1), [1, 0])
+            sage: phi = E.scalar_multiplication(31337)
+            sage: phi(E.lift_x(42)).x()
+            57585471024709306431549264638431243650
+            sage: phi.xEVAL(42)
+            57585471024709306431549264638431243650
+            sage: E.scalar_multiplication(2^127).xEVAL(42)
+            +Infinity
+            sage: phi.xEVAL(oo)
+            +Infinity
+        """
+        return self._domain.xMUL(self._m, xP)

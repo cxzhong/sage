@@ -1852,6 +1852,109 @@ class EllipticCurveHom(Morphism):
             return R.one()
         return alpha.minpoly()
 
+    def xEVAL(self, xP):
+        r"""
+        Return the `x`-coordinate of `\varphi(P)` given the `x`-coordinate of `P`.
+
+        INPUT:
+
+        - ``xP`` -- `x`-coordinate of a point `P` on the domain of this isogeny
+
+        OUTPUT:
+
+        `x`-coordinate of `\varphi(P)`, or :const:`~sage.rings.infinity.Infinity`
+
+        EXAMPLES:
+
+        Example for :class:`WeierstrassIsomorphism`::
+
+            sage: E = EllipticCurve(GF(101), [1,1,1,1,1])
+            sage: iso = E.isomorphism_to(E.short_weierstrass_model())
+            sage: iso(E.lift_x(42)).x()
+            12
+            sage: iso.xEVAL(42)
+            12
+            sage: iso.xEVAL(oo)
+            +Infinity
+
+        Example for :class:`EllipticCurveIsogeny` (Vélu)::
+
+            sage: E = EllipticCurve(GF(101^2), [1, 1, 1, 1, 1])
+            sage: K = (E.cardinality() // 11) * E.gens()[0]
+            sage: phi = E.isogeny(K, algorithm='velu', model='montgomery'); phi
+            Isogeny of degree 11 from Elliptic Curve defined by y^2 + x*y + y = x^3 + x^2 + x + 1 over Finite Field in z2 of size 101^2 to Elliptic Curve defined by y^2 = x^3 + 40*x^2 + x over Finite Field in z2 of size 101^2
+            sage: phi(E.lift_x(42)).x()
+            5
+            sage: phi.xEVAL(42)
+            5
+            sage: phi.xEVAL((2*K).x())
+            +Infinity
+            sage: phi.xEVAL(oo)
+            +Infinity
+
+        Example for :class:`EllipticCurveIsogeny` (Kohel)::
+
+            sage: x = polygen(E.base_field())
+            sage: h = x^5 + 5*x^4 + 98*x^3 + 43*x^2 + 12*x + 23
+            sage: psi = E.isogeny(h, algorithm='kohel', model='montgomery'); psi
+            Isogeny of degree 11 from Elliptic Curve defined by y^2 + x*y + y = x^3 + x^2 + x + 1 over Finite Field in z2 of size 101^2 to Elliptic Curve defined by y^2 = x^3 + 40*x^2 + x over Finite Field in z2 of size 101^2
+            sage: psi(E.lift_x(42)).x()
+            5
+            sage: psi.xEVAL(42)
+            5
+            sage: psi.xEVAL((2*K).x())
+            +Infinity
+            sage: psi.xEVAL(oo)
+            +Infinity
+
+        Example for :class:`EllipticCurveHom_frobenius`::
+
+            sage: pi = E.frobenius_isogeny(); pi
+            Frobenius endomorphism of degree 101:
+              From: Elliptic Curve defined by y^2 + x*y + y = x^3 + x^2 + x + 1 over Finite Field in z2 of size 101^2
+              To:   Elliptic Curve defined by y^2 + x*y + y = x^3 + x^2 + x + 1 over Finite Field in z2 of size 101^2
+            sage: E.base_field().inject_variables()
+            Defining z2
+            sage: pi(E.lift_x(z2-1)).x()
+            100*z2 + 3
+            sage: pi.xEVAL(z2-1)
+            100*z2 + 3
+            sage: pi.xEVAL(oo)
+            +Infinity
+
+        Example for :class:`EllipticCurveHom_fractional`::
+
+            sage: pi = E.frobenius_isogeny()
+            sage: chi = (1 + pi) / 2; chi
+            Fractional elliptic-curve morphism of degree 22:
+              Numerator:   Sum morphism:
+              From: Elliptic Curve defined by y^2 + x*y + y = x^3 + x^2 + x + 1 over Finite Field in z2 of size 101^2
+              To:   Elliptic Curve defined by y^2 + x*y + y = x^3 + x^2 + x + 1 over Finite Field in z2 of size 101^2
+              Via:  (Scalar-multiplication endomorphism [1] of Elliptic Curve defined by y^2 + x*y + y = x^3 + x^2 + x + 1 over Finite Field in z2 of size 101^2, Frobenius endomorphism of degree 101:
+              From: Elliptic Curve defined by y^2 + x*y + y = x^3 + x^2 + x + 1 over Finite Field in z2 of size 101^2
+              To:   Elliptic Curve defined by y^2 + x*y + y = x^3 + x^2 + x + 1 over Finite Field in z2 of size 101^2)
+              Denominator: 2
+            sage: chi(E.lift_x(z2-1)).x()
+            100*z2 + 1
+            sage: chi.xEVAL(z2-1)
+            100*z2 + 1
+            sage: chi.xEVAL(oo)
+            +Infinity
+
+        .. TODO ::
+
+            For (at least) :class:`EllipticCurveHom_fractional`,
+            a specialized implementation could be (much) faster.
+        """
+        from sage.rings.infinity import Infinity as oo
+        if xP == oo:
+            return oo
+        xmap = self.x_rational_map()
+        d = xmap.denominator()(xP)
+        if not d:
+            return oo
+        return xmap.numerator()(xP) / d
+
 
 def compare_via_evaluation(left, right):
     r"""

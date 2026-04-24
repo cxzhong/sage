@@ -1320,6 +1320,45 @@ class EllipticCurveHom_velusqrt(EllipticCurveHom):
         pt = (~self._pre_iso)(self._P)
         return AdditiveAbelianGroupWrapper(pt.parent(), [pt], [self._degree])
 
+    def xEVAL(self, xP):
+        r"""
+        Return the `x`-coordinate of `\varphi(P)` given the `x`-coordinate of `P`.
+
+        INPUT:
+
+        - ``xP`` -- `x`-coordinate of a point `P` on the domain of this isogeny
+
+        OUTPUT:
+
+        `x`-coordinate of `\varphi(P)`, or :const:`~sage.rings.infinity.Infinity`
+
+        EXAMPLES::
+
+            sage: E = EllipticCurve(GF(101^2), [1, 1, 1, 1, 1])
+            sage: K = (E.cardinality() // 11) * E.gens()[0]
+            sage: phi = E.isogeny(K, algorithm='velusqrt', model='montgomery'); phi
+            Elliptic-curve isogeny (using square-root Vélu) of degree 11:
+              From: Elliptic Curve defined by y^2 + x*y + y = x^3 + x^2 + x + 1 over Finite Field in z2 of size 101^2
+              To:   Elliptic Curve defined by y^2 = x^3 + 61*x^2 + x over Finite Field in z2 of size 101^2
+            sage: phi(E.lift_x(42)).x()
+            96
+            sage: phi.xEVAL(42)
+            96
+            sage: phi.xEVAL(K.x())
+            +Infinity
+            sage: phi.xEVAL(oo)
+            +Infinity
+        """
+        from sage.rings.infinity import Infinity as oo
+        xP = self._pre_iso.xEVAL(xP)
+        if xP == oo:
+            return oo
+        xP = self._raw_eval(xP)
+        if xP == ():
+            return oo
+        xP = self._post_iso.xEVAL(xP)
+        return xP
+
 
 def _random_example_for_testing():
     r"""

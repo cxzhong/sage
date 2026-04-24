@@ -1080,3 +1080,36 @@ class EllipticCurveHom_composite(EllipticCurveHom):
         for phi in self.factors():
             f = phi.push_subgroup(f)
         return f
+
+    def xEVAL(self, xP):
+        r"""
+        Return the `x`-coordinate of `\varphi(P)` given the `x`-coordinate of `P`.
+
+        INPUT:
+
+        - ``xP`` -- `x`-coordinate of a point `P` on the domain of this isogeny
+
+        OUTPUT:
+
+        `x`-coordinate of `\varphi(P)`, or :const:`~sage.rings.infinity.Infinity`
+
+        EXAMPLES::
+
+            sage: E = EllipticCurve(GF(2^127-1), [1, 0])
+            sage: E.set_order(2^127)
+            sage: phi = E.isogeny(E.lift_x(23), algorithm='factored'); phi
+            Composite morphism of degree 10633823966279326983230456482242756608 = 2^123:
+              From: Elliptic Curve defined by y^2 = x^3 + x over Finite Field of size 170141183460469231731687303715884105727
+              To:   Elliptic Curve defined by y^2 = x^3 + 162550045451550460557922666121135128575*x + 1200556389578808323656854947039887360 over Finite Field of size 170141183460469231731687303715884105727
+            sage: phi(E.lift_x(42)).x()
+            2658455996521591903525595972729044992
+            sage: phi.xEVAL(42)
+            2658455996521591903525595972729044992
+            sage: phi.xEVAL(23)
+            +Infinity
+            sage: phi.xEVAL(oo)
+            +Infinity
+        """
+        for phi in self.factors():
+            xP = phi.xEVAL(xP)
+        return xP
