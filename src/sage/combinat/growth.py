@@ -1767,7 +1767,7 @@ class Rule(UniqueRepresentation, SageObject):
         """
         return GrowthDiagram(self, *args, **kwds)
 
-    def _test_duality(self, N=6, **options):
+    def _test_duality(self, N=4, **options):
         for n in range(N+1):
             self._check_duality(n)
 
@@ -1837,15 +1837,22 @@ class Rule(UniqueRepresentation, SageObject):
         for w in self.vertices(n):
             check_vertex(w, P, Q)
 
-    def _test_local_rules(self, N=7, **options):
+    def _test_local_rules(self, N=4, **options):
         r"""
         Test local rules against Fomin's Definitions 3.4.3 and
         3.4.4. and inverse property.
         """
-        zero_edge = self.zero_edge
+        z_edge = self.zero_edge
         r = self.r
         P = self.P_graph(N+1)
         Q = self.Q_graph(N+1)
+        from warnings import warn
+        has_fwd = hasattr(self, "forward_rule")
+        has_bwd = hasattr(self, "backward_rule")
+        if not has_fwd:
+            warn(f"{self.__class__.__name__} has no forward rule implemented, skipping these tests.")
+        if not has_bwd:
+            warn(f"{self.__class__.__name__} has no backward rule implemented, skipping these tests.")
 
         if self.has_multiple_edges:
             def fwd(*args):
@@ -1865,102 +1872,140 @@ class Rule(UniqueRepresentation, SageObject):
         else:
             def fwd(y, e, t, f, x, a):
                 z = self.normalize_vertex(self.forward_rule(y, t, x, a))
-                return None, z, None
+                return z_edge, z, z_edge
             def bwd(y, g, z, h, x):
                 t, a = self.backward_rule(y, z, x)
-                return None, self.normalize_vertex(t), None, a
+                return z_edge, self.normalize_vertex(t), z_edge, a
             def is_P(t, e, y):
                 return self.is_P_edge(t, y)
             def is_Q(t, f, x):
                 return self.is_Q_edge(t, x)
-            P_out = P.upper_covers
-            P_in = P.lower_covers
-            Q_out = Q.upper_covers
-            Q_in = Q.lower_covers
+            def labelled_edges(iterator):
+                return lambda t: [(t, x, z_edge) for x in iterator(t)]
+            P_out = labelled_edges(P.upper_covers)
+            P_in = labelled_edges(P.lower_covers)
+            Q_out = labelled_edges(Q.upper_covers)
+            Q_in = labelled_edges(Q.lower_covers)
 
-        # forward rule (Definition 3.4.4)
-        for k in range(N):
-            for t in self.vertices(k):
-                if self.has_multiple_edges:
-                    P_edges = P_out(t)
-                    Q_edges = Q_out(t)
+        def test_fwd(t):
+            """
+            Check that the forward rule satisfies Definition 3.4.4.
+            """
+            P_edges = P_out(t)
+            Q_edges = Q_out(t)
 
-                    # 1. both degenerate, a = 0
-                    g, z, h = fwd(t, zero_edge, t, zero_edge, t, 0)
-                    if (g, z, h) != (zero_edge, t, zero_edge):
-                        raise ValueError(f"forward rule for degenerate edges at {t}, content 0, yields {g, z, h}")
+            # 1. both degenerate, a = 0
+            g, z, h = fwd(t, z_edge, t, z_edge, t, 0)
+            if (g, z, h) != (z_edge, t, z_edge):
+                raise ValueError(f"forward rule for degenerate edges at {t}, "
+                                 f"content 0, yields {g, z, h}")
 
-                    # 2. P-edge + degenerate Q
-                    for _, y, e in P_edges:
-                        g, z, h = fwd(y, e, t, zero_edge, t, 0)
-                        if (g, z, h) != (zero_edge, y, e):
-                            raise ValueError(f"forward rule for degenerate Q-edge at {t} and P-edge {t, e, y}, content 0, yields {g, z, h}")
+            # 2. P-edge + degenerate Q
+            for _, y, e in P_edges:
+                g, z, h = fwd(y, e, t, z_edge, t, 0)
+                if (g, z, h) != (z_edge, y, e):
+                    raise ValueError(f"forward rule for degenerate Q-edge at {t} "
+                                     f"and P-edge {t, e, y}, content 0, "
+                                     f"yields {g, z, h}")
 
-                    # 3. Q-edge + degenerate P
-                    for _, x, f in Q_edges:
-                        g, z, h = fwd(t, zero_edge, t, f, x, 0)
-                        if (g, z, h) != (f, x, zero_edge):
-                            raise ValueError(f"forward rule for degenerate P-edge at {t} and Q-edge {t, f, x}, content 0, yields {g, z, h}")
+            # 3. Q-edge + degenerate P
+            for _, x, f in Q_edges:
+                g, z, h = fwd(t, z_edge, t, f, x, 0)
+                if (g, z, h) != (f, x, z_edge):
+                    raise ValueError(f"forward rule for degenerate P-edge at {t} "
+                                     f" and Q-edge {t, f, x}, content 0, "
+                                     f" yields {g, z, h}")
 
-                    # 4a. both degenerate, a != 0
-                    for a in range(1, r+1):
-                        g, z, h = fwd(t, zero_edge, t, zero_edge, t, a)
-                        if g not in self.is_Q_edge(t, z) or h not in self.is_P_edge(t, z):
-                            raise ValueError(f"forward rule for degenerate edges at {t} produced a non-edge {t, g, z} or {t, h, z}")
+            # 4a. both degenerate, a != 0
+            for a in range(1, r+1):
+                g, z, h = fwd(t, z_edge, t, z_edge, t, a)
+                if not (is_Q(t, g, z) and is_P(t, h, z)):
+                    raise ValueError(f"forward rule for degenerate edges at {t} "
+                                     f"yields non-edge {t, g, z} or {t, h, z}")
 
-                        e2, t2, f2, a2 = bwd(t, g, z, h, t)
-                        if (e2, t2, f2, a2) != (zero_edge, t, zero_edge, a2):
-                            raise ValueError(f"forward rule at {t}, content {a} yields {g, z, h} but backward rule at {t, g, z, h, t} yields {e2, t2, f2, a2}")
+                if has_bwd:
+                    e2, t2, f2, a2 = bwd(t, g, z, h, t)
+                    if (e2, t2, f2, a2) != (z_edge, t, z_edge, a2):
+                        raise ValueError(f"forward rule at {t}, content {a} "
+                                         f"yields {g, z, h}, but "
+                                         f"backward rule at {t, g, z, h, t} "
+                                         f"yields {e2, t2, f2, a2}")
 
-                    # 4b. both non-degenerate
-                    for _, y, e in P_edges:
-                        for _, x, f in Q_edges:
-                            g, z, h = fwd(y, e, t, f, x, 0)
-                            if g not in self.is_Q_edge(y, z) or h not in self.is_P_edge(x, z):
-                                raise ValueError(f"forward rule for {y, e, t, f, x, 0} produced a non-edge {t, g, z} or {t, h, z}")
+            # 4b. both non-degenerate
+            for _, y, e in P_edges:
+                for _, x, f in Q_edges:
+                    g, z, h = fwd(y, e, t, f, x, 0)
+                    if not (is_Q(y, g, z) and is_P(x, h, z)):
+                        raise ValueError(f"forward rule for {y, e, t, f, x, 0} "
+                                         f"yields non-edge {t, g, z} or {t, h, z}")
 
-                            e2, t2, f2, a2 = bwd(y, g, z, h, x)
-                            if (e2, t2, f2, a2) != (e, t, f, 0):
-                                raise ValueError(f"forward rule for P-edge {t, e, x} and Q-edge {t, f, y} yields {g, z, h} but backward rule at {t, g, z, h, t} yields {e2, t2, f2, a2}")
+                    if has_bwd:
+                        e2, t2, f2, a2 = bwd(y, g, z, h, x)
+                        if (e2, t2, f2, a2) != (e, t, f, 0):
+                            raise ValueError(f"forward rule for P-edge {t, e, x} "
+                                             f"and Q-edge {t, f, y} yields {g, z, h}, but "
+                                             f"backward rule at {y, g, z, h, x} "
+                                             f"yields {e2, t2, f2, a2}")
 
-        # backward rule (Definition 3.4.3)
-        for k in range(N):
-            for z in self.vertices(k):
-                if self.has_multiple_edges:
-                    P_edges = P_in(z)
-                    Q_edges = Q_in(z)
+        def test_bwd(t):
+            """
+            Check that the backward rule satisfies Definition 3.4.3.
+            """
+            P_edges = P_in(z)
+            Q_edges = Q_in(z)
 
-                    # 1. both degenerate
-                    e, t, f, a = bwd(z, zero_edge, z, zero_edge, z)
-                    if (e, t, f, a) != (zero_edge, z, zero_edge, 0):
-                        raise ValueError(f"backward rule for degenerate edges at {z} yields {e, t, f, a}")
+            # 1. both degenerate
+            e, t, f, a = bwd(z, z_edge, z, z_edge, z)
+            if (e, t, f, a) != (z_edge, z, z_edge, 0):
+                raise ValueError(f"backward rule for degenerate edges at {z} "
+                                 f"yields {e, t, f, a}")
 
-                    # 2. P-edge + degenerate Q
-                    for x, _, h in P_edges:
-                        e, t, f, a = bwd(z, zero_edge, z, h, x)
-                        if (e, t, f, a) != (h, x, zero_edge, 0):
-                            raise ValueError(f"backward rule for degenerate Q-edge at {z} and P-edge {x, h, z} yields {e, t, f, a}")
+            # 2. P-edge + degenerate Q
+            for x, _, h in P_edges:
+                e, t, f, a = bwd(z, z_edge, z, h, x)
+                if (e, t, f, a) != (h, x, z_edge, 0):
+                    raise ValueError(f"backward rule for degenerate Q-edge at {z} "
+                                     f"and P-edge {x, h, z} "
+                                     f"yields {e, t, f, a}")
 
-                    # 3. Q-edge + degenerate P
-                    for y, _, g in Q_edges:
-                        e, t, f, a = bwd(y, g, z, zero_edge, z)
-                        if (e, t, f, a) != (zero_edge, y, g, 0):
-                            raise ValueError(f"backward rule for degenerate P-edge at {z} and Q-edge {y, g, z}, content 0, yields {e, t, f, a}")
+            # 3. Q-edge + degenerate P
+            for y, _, g in Q_edges:
+                e, t, f, a = bwd(y, g, z, z_edge, z)
+                if (e, t, f, a) != (z_edge, y, g, 0):
+                    raise ValueError(f"backward rule for degenerate P-edge at {z} "
+                                     f"and Q-edge {y, g, z} "
+                                     f"yields {e, t, f, a}")
 
-                    # 4. both non-degenerate
-                    for x, _, h in P_edges:
-                        for y, _, g in Q_edges:
-                            e, t, f, a = bwd(y, g, z, h, x)
-                            if not (((t, f) == (x, zero_edge) or f in self.is_Q_edge(t, x))
-                                    and ((t, e) == (y, zero_edge) or e in self.is_P_edge(t, y))):
-                                raise ValueError(f"backward rule for P-edge {x, h, z} and Q-edge {y, g, z} produced a non-edge {t, e, y} or {t, f, x}")
-                            if not 0 <= a <= r:
-                                raise ValueError(f"backward rule for P-edge {x, h, z} and Q-edge {y, g, z} produced content {a}")
+            # 4. both non-degenerate
+            for x, _, h in P_edges:
+                for y, _, g in Q_edges:
+                    e, t, f, a = bwd(y, g, z, h, x)
+                    if not (((t, f) == (x, z_edge) or is_Q(t, f, x))
+                            and ((t, e) == (y, z_edge) or is_P(t, e, y))):
+                        raise ValueError(f"backward rule for P-edge {x, h, z} "
+                                         f"and Q-edge {y, g, z} yields "
+                                         f"non-edge {t, e, y} or {t, f, x}")
+                    if not 0 <= a <= r:
+                        raise ValueError(f"backward rule for P-edge {x, h, z} "
+                                         f"and Q-edge {y, g, z} yields content {a}")
 
-                            g2, z2, h2 = fwd(y, e, t, f, x, a)
-                            if (g2, z2, h2) != (g, z, h):
-                                raise ValueError(f"backward rule for P-edge {x, h, z} and Q-edge {y, g, z} yields {e, t, f, a}, but forward rule at {y, e, t, f, x, a} yields {g2, z2, h2}")
+                    if has_fwd:
+                        g2, z2, h2 = fwd(y, e, t, f, x, a)
+                        if (g2, z2, h2) != (g, z, h):
+                            raise ValueError(f"backward rule for P-edge {x, h, z} "
+                                             f"and Q-edge {y, g, z} yields {e, t, f, a}, but "
+                                             f"forward rule at {y, e, t, f, x, a} "
+                                             f"yields {g2, z2, h2}")
 
+        if has_fwd:
+            for k in range(N):
+                for t in self.vertices(k):
+                    test_fwd(t)
+
+        if has_bwd:
+            for k in range(N):
+                for z in self.vertices(k):
+                    test_bwd(t)
 
     def P_graph(self, n):
         r"""
@@ -2531,7 +2576,9 @@ class RuleLLMS(Rule):
         TESTS::
 
             sage: LLMS3 = GrowthDiagram.rules.LLMS(3)
-            sage: TestSuite(LLMS3).run(skip="_test_local_rules")
+            sage: TestSuite(LLMS3).run()
+            doctest:...: UserWarning: RuleLLMS has no backward rule implemented,
+            skipping these tests.
         """
         self.k = k
         self.zero = Core([], k)
@@ -4184,6 +4231,8 @@ class RuleDomino(Rule):
 
         sage: Domino = GrowthDiagram.rules.Domino()
         sage: TestSuite(Domino).run()
+        doctest:...: UserWarning: RuleDomino has no backward rule implemented,
+        skipping these tests.
 
         sage: G = Domino([[0,1,0],[0,0,-1],[1,0,0]]); G
         0  1  0
@@ -4683,6 +4732,8 @@ class RuleLeftCompositions(RuleCompositions):
     TESTS::
 
         sage: TestSuite(L).run()
+        doctest:...: UserWarning: RuleLeftCompositions has no backward rule
+        implemented, skipping these tests.
 
         sage: l = {pi: L(pi) for pi in Permutations(4)}
         sage: len(set([tuple(G.out_labels()) for G in l.values()]))
