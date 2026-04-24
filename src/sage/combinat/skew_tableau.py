@@ -872,9 +872,9 @@ class SkewTableau(ClonableList,
         if corner is not None:
             if tuple(corner) not in inner_corners:
                 raise ValueError("corner must be an inner corner")
-        elif not inner_corners:
-            return self
         else:
+            if not inner_corners:
+                return self
             corner = inner_corners[0]
 
         spotl, spotc = corner
@@ -1005,9 +1005,9 @@ class SkewTableau(ClonableList,
             if tuple(corner) not in outer_outisde_corners:
                 raise ValueError("corner must be an outside corner"
                                  " of the outer shape")
-        elif not outer_outisde_corners:
-            return self
         else:
+            if not outer_outisde_corners:
+                return self
             corner = outer_outisde_corners[0]
 
         i, j = corner
@@ -1229,11 +1229,10 @@ class SkewTableau(ClonableList,
         # attempt to return a skew tableau of the same type as self
         if tab in self.parent():
             return self.parent()(tab)
-        else:
-            try:
-                return self.parent().Element(tab)
-            except ValueError:
-                return SkewTableau(tab)
+        try:
+            return self.parent().Element(tab)
+        except ValueError:
+            return SkewTableau(tab)
 
     def anti_restrict(self, n):
         """
@@ -2186,12 +2185,11 @@ class StandardSkewTableaux(SkewTableaux):
         """
         if skp is None:
             return StandardSkewTableaux_all()
-        elif isinstance(skp, (int, Integer)):
+        if isinstance(skp, (int, Integer)):
             return StandardSkewTableaux_size(skp)
-        elif skp in SkewPartitions():
+        if skp in SkewPartitions():
             return StandardSkewTableaux_shape(skp)
-        else:
-            raise TypeError("invalid argument")
+        raise TypeError("invalid argument")
 
     def __contains__(self, x):
         """
@@ -2550,14 +2548,12 @@ class SemistandardSkewTableaux(SkewTableaux):
         if isinstance(p, (int, Integer)):
             if mu is None:
                 return SemistandardSkewTableaux_size(p, max_entry)
-            else:
-                return SemistandardSkewTableaux_size_weight(p, mu)
+            return SemistandardSkewTableaux_size_weight(p, mu)
 
         if p in SkewPartitions():
             if mu is None:
                 return SemistandardSkewTableaux_shape(p, max_entry)
-            else:
-                return SemistandardSkewTableaux_shape_weight(p, mu)
+            return SemistandardSkewTableaux_shape_weight(p, mu)
 
         raise ValueError("invalid input")
 
