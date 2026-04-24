@@ -512,7 +512,8 @@ cdef class Converter(SageObject):
         from sage.matrix.matrix_mpolynomial_dense import Matrix_mpolynomial_dense
         from sage.matrix.matrix_integer_dense import Matrix_integer_dense
         from sage.matrix.matrix_generic_dense import Matrix_generic_dense
-        from sage.rings.polynomial.multi_polynomial_sequence import PolynomialSequence_generic # local import to break cyclic dependency (rings.polynomial.multi_polynomial_sequence > ... > libs.singular.function > rings.polynomial.multi_polynomial_sequence)
+        # local import to break cyclic dependency (rings.polynomial.multi_polynomial_sequence > ... > libs.singular.function > rings.polynomial.multi_polynomial_sequence)
+        from sage.rings.polynomial.multi_polynomial_sequence import PolynomialSequence_generic
         for a in args:
             if is_singular_poly_wrapper(a):
                 v = self.append_polynomial(a)

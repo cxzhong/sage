@@ -6209,9 +6209,7 @@ class Partitions(UniqueRepresentation, Parent):
                 'ending' in kwargs or
                 'regular' in kwargs or
                 'restricted' in kwargs):
-                raise ValueError("the parameters 'parts_in', 'starting', "
-                                 + "'ending', 'regular' and 'restricted' "
-                                 + "cannot be combined with anything else")
+                raise ValueError("the parameters 'parts_in', 'starting', 'ending', 'regular' and 'restricted' cannot be combined with anything else")
 
             if set(kwargs).issubset(['length', 'min_part', 'max_part',
                                      'min_length', 'max_length']):
