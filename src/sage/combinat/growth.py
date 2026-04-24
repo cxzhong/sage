@@ -1643,7 +1643,7 @@ class GrowthDiagram(SageObject):
 ######################################################################
 
 
-class Rule(UniqueRepresentation):
+class Rule(UniqueRepresentation, SageObject):
     r"""
     Generic base class for a rule for a growth diagram.
 
@@ -1767,6 +1767,10 @@ class Rule(UniqueRepresentation):
         """
         return GrowthDiagram(self, *args, **kwds)
 
+    def _test_duality(self, N=6, **options):
+        for n in range(N+1):
+            self._check_duality(n)
+
     def _check_duality(self, n):
         r"""
         Raise an error if the graphs are not `r`-dual at level ``n``.
@@ -1832,6 +1836,131 @@ class Rule(UniqueRepresentation):
         Q = self.Q_graph(n + 2)
         for w in self.vertices(n):
             check_vertex(w, P, Q)
+
+    def _test_local_rules(self, N=7, **options):
+        r"""
+        Test local rules against Fomin's Definitions 3.4.3 and
+        3.4.4. and inverse property.
+        """
+        zero_edge = self.zero_edge
+        r = self.r
+        P = self.P_graph(N+1)
+        Q = self.Q_graph(N+1)
+
+        if self.has_multiple_edges:
+            def fwd(*args):
+                g, z, h = self.forward_rule(*args)
+                return g, self.normalize_vertex(z), h
+            def bwd(*args):
+                e, t, f, a = self.backward_rule(*args)
+                return e, self.normalize_vertex(t), f, a
+            def is_P(t, e, y):
+                return e in self.is_P_edge(t, y)
+            def is_Q(t, f, x):
+                return f in self.is_Q_edge(t, x)
+            P_out = P.outgoing_edges
+            P_in = P.incoming_edges
+            Q_out = Q.outgoing_edges
+            Q_in = Q.incoming_edges
+        else:
+            def fwd(y, e, t, f, x, a):
+                z = self.normalize_vertex(self.forward_rule(y, t, x, a))
+                return None, z, None
+            def bwd(y, g, z, h, x):
+                t, a = self.backward_rule(y, z, x)
+                return None, self.normalize_vertex(t), None, a
+            def is_P(t, e, y):
+                return self.is_P_edge(t, y)
+            def is_Q(t, f, x):
+                return self.is_Q_edge(t, x)
+            P_out = P.upper_covers
+            P_in = P.lower_covers
+            Q_out = Q.upper_covers
+            Q_in = Q.lower_covers
+
+        # forward rule (Definition 3.4.4)
+        for k in range(N):
+            for t in self.vertices(k):
+                if self.has_multiple_edges:
+                    P_edges = P_out(t)
+                    Q_edges = Q_out(t)
+
+                    # 1. both degenerate, a = 0
+                    g, z, h = fwd(t, zero_edge, t, zero_edge, t, 0)
+                    if (g, z, h) != (zero_edge, t, zero_edge):
+                        raise ValueError(f"forward rule for degenerate edges at {t}, content 0, yields {g, z, h}")
+
+                    # 2. P-edge + degenerate Q
+                    for _, y, e in P_edges:
+                        g, z, h = fwd(y, e, t, zero_edge, t, 0)
+                        if (g, z, h) != (zero_edge, y, e):
+                            raise ValueError(f"forward rule for degenerate Q-edge at {t} and P-edge {t, e, y}, content 0, yields {g, z, h}")
+
+                    # 3. Q-edge + degenerate P
+                    for _, x, f in Q_edges:
+                        g, z, h = fwd(t, zero_edge, t, f, x, 0)
+                        if (g, z, h) != (f, x, zero_edge):
+                            raise ValueError(f"forward rule for degenerate P-edge at {t} and Q-edge {t, f, x}, content 0, yields {g, z, h}")
+
+                    # 4a. both degenerate, a != 0
+                    for a in range(1, r+1):
+                        g, z, h = fwd(t, zero_edge, t, zero_edge, t, a)
+                        if g not in self.is_Q_edge(t, z) or h not in self.is_P_edge(t, z):
+                            raise ValueError(f"forward rule for degenerate edges at {t} produced a non-edge {t, g, z} or {t, h, z}")
+
+                        e2, t2, f2, a2 = bwd(t, g, z, h, t)
+                        if (e2, t2, f2, a2) != (zero_edge, t, zero_edge, a2):
+                            raise ValueError(f"forward rule at {t}, content {a} yields {g, z, h} but backward rule at {t, g, z, h, t} yields {e2, t2, f2, a2}")
+
+                    # 4b. both non-degenerate
+                    for _, y, e in P_edges:
+                        for _, x, f in Q_edges:
+                            g, z, h = fwd(y, e, t, f, x, 0)
+                            if g not in self.is_Q_edge(y, z) or h not in self.is_P_edge(x, z):
+                                raise ValueError(f"forward rule for {y, e, t, f, x, 0} produced a non-edge {t, g, z} or {t, h, z}")
+
+                            e2, t2, f2, a2 = bwd(y, g, z, h, x)
+                            if (e2, t2, f2, a2) != (e, t, f, 0):
+                                raise ValueError(f"forward rule for P-edge {t, e, x} and Q-edge {t, f, y} yields {g, z, h} but backward rule at {t, g, z, h, t} yields {e2, t2, f2, a2}")
+
+        # backward rule (Definition 3.4.3)
+        for k in range(N):
+            for z in self.vertices(k):
+                if self.has_multiple_edges:
+                    P_edges = P_in(z)
+                    Q_edges = Q_in(z)
+
+                    # 1. both degenerate
+                    e, t, f, a = bwd(z, zero_edge, z, zero_edge, z)
+                    if (e, t, f, a) != (zero_edge, z, zero_edge, 0):
+                        raise ValueError(f"backward rule for degenerate edges at {z} yields {e, t, f, a}")
+
+                    # 2. P-edge + degenerate Q
+                    for x, _, h in P_edges:
+                        e, t, f, a = bwd(z, zero_edge, z, h, x)
+                        if (e, t, f, a) != (h, x, zero_edge, 0):
+                            raise ValueError(f"backward rule for degenerate Q-edge at {z} and P-edge {x, h, z} yields {e, t, f, a}")
+
+                    # 3. Q-edge + degenerate P
+                    for y, _, g in Q_edges:
+                        e, t, f, a = bwd(y, g, z, zero_edge, z)
+                        if (e, t, f, a) != (zero_edge, y, g, 0):
+                            raise ValueError(f"backward rule for degenerate P-edge at {z} and Q-edge {y, g, z}, content 0, yields {e, t, f, a}")
+
+                    # 4. both non-degenerate
+                    for x, _, h in P_edges:
+                        for y, _, g in Q_edges:
+                            e, t, f, a = bwd(y, g, z, h, x)
+                            if not (((t, f) == (x, zero_edge) or f in self.is_Q_edge(t, x))
+                                    and ((t, e) == (y, zero_edge) or e in self.is_P_edge(t, y))):
+                                raise ValueError(f"backward rule for P-edge {x, h, z} and Q-edge {y, g, z} produced a non-edge {t, e, y} or {t, f, x}")
+                            if not 0 <= a <= r:
+                                raise ValueError(f"backward rule for P-edge {x, h, z} and Q-edge {y, g, z} produced content {a}")
+
+                            g2, z2, h2 = fwd(y, e, t, f, x, a)
+                            if (g2, z2, h2) != (g, z, h):
+                                raise ValueError(f"backward rule for P-edge {x, h, z} and Q-edge {y, g, z} yields {e, t, f, a}, but forward rule at {y, e, t, f, x, a} yields {g2, z2, h2}")
+
 
     def P_graph(self, n):
         r"""
@@ -1926,10 +2055,9 @@ class RuleShiftedShapes(Rule):
     TESTS::
 
         sage: Shifted = GrowthDiagram.rules.ShiftedShapes()
+        sage: TestSuite(Shifted).run()
         sage: Shifted.zero
         []
-
-        sage: Shifted._check_duality(4)
 
     Check that the rules are bijective::
 
@@ -2293,13 +2421,13 @@ class RuleShiftedShapes(Rule):
 
         if x == y == z:
             if g != 0:
-                raise ValueError("degenerate edge g should have color 0")
+                raise ValueError(f"degenerate edge {x, g, y} should have color 0")
             return (0, x, 0, 0)
         if x == z != y:
             return (0, y, g, 0)
         if x != z == y:
             if g != 0:
-                raise ValueError("degenerate edge g should have color 0")
+                raise ValueError("degenerate edge {z, g, y} should have color 0")
             return (0, x, 0, 0)
 
         if x != y:
@@ -2403,7 +2531,7 @@ class RuleLLMS(Rule):
         TESTS::
 
             sage: LLMS3 = GrowthDiagram.rules.LLMS(3)
-            sage: TestSuite(LLMS3).run()
+            sage: TestSuite(LLMS3).run(skip="_test_local_rules")
         """
         self.k = k
         self.zero = Core([], k)
@@ -2687,6 +2815,8 @@ class RuleBinaryWord(Rule):
     TESTS::
 
         sage: BinaryWord = GrowthDiagram.rules.BinaryWord()
+        sage: TestSuite(BinaryWord).run()
+
         sage: BinaryWord.zero
         word:
         sage: G = BinaryWord(labels=[[1,1],[1,1,0],[0,1]])
@@ -2698,10 +2828,6 @@ class RuleBinaryWord(Rule):
         Traceback (most recent call last):
         ...
         ValueError: 11 has smaller rank than 101 but is not covered by it in Q
-
-    Check duality::
-
-        sage: BinaryWord._check_duality(4)
 
     Check that the rules are bijective::
 
@@ -2959,6 +3085,7 @@ class RuleSylvester(Rule):
 
     TESTS::
 
+        sage: TestSuite(Sylvester).run()
         sage: Sylvester.zero
         .
 
@@ -2975,10 +3102,6 @@ class RuleSylvester(Rule):
         ...
         ValueError: [., [., .]] has smaller rank than [[[., .], .], .]
          but is not covered by it in Q
-
-    Check duality::
-
-        sage: Sylvester._check_duality(4)
 
     Check that the rules are bijective::
 
@@ -3415,12 +3538,9 @@ class RuleYoungFibonacci(Rule):
     TESTS::
 
         sage: YF = GrowthDiagram.rules.YoungFibonacci()
+        sage: TestSuite(YF).run()
         sage: YF.zero
         word:
-
-    Check duality::
-
-        sage: YF._check_duality(4)
 
         sage: G = YF(labels=[[1],[1,0],[1]])
         Traceback (most recent call last):
@@ -4062,10 +4182,8 @@ class RuleDomino(Rule):
 
     TESTS:
 
-    Check duality::
-
         sage: Domino = GrowthDiagram.rules.Domino()
-        sage: Domino._check_duality(3)
+        sage: TestSuite(Domino).run()
 
         sage: G = Domino([[0,1,0],[0,0,-1],[1,0,0]]); G
         0  1  0
@@ -4411,59 +4529,13 @@ def mason(pi):
     return CompositionTableau(T)
 
 
-class RuleLeftCompositions(Rule):
+class RuleCompositions(Rule):
     r"""
-    Dual graded graphs for (skew) quasisymmetric Schur functions.
+    A base class for growth diagrams on the composition poset.
 
     These were introduced by Stephanie van Willigenburg in [vW2019]_,
-    cf. [TvW2018]_.
-
-    Currently, the backward rule is not implemented.  The forward
-    rule seems to agree with Mason's insertion algorithm from Section
-    6.1 of [HLMvW2011]_.
-
-    The vertices of the dual graded graph are
-    :class:`~sage.combinat.composition.Compositions`::
-
-        sage: L = GrowthDiagram.rules.LeftCompositions()
-        sage: L.vertices(3)
-        Compositions of 3
-
-    A saturated chain in the :meth:`P_graph` is a (skew)
-    :class:`~sage.combinat.composition_tableau.CompositionTableau`::
-
-        sage: c = [[], [1], [2], [1, 2], [1, 1, 2], [1, 1, 3], [2, 1, 3], [1, 2, 1, 3]]
-        sage: L.P_symbol(c).pp()
-        1
-        4  2
-        5
-        7  6  3
-
-    The number of
-    :class:`~sage.combinat.composition_tableau.CompositionTableau` is
-    the same as the number of standard Young tableaux with one entry
-    less::
-
-        sage: [len(L.P_graph(n).maximal_chains()) for n in range(1,8)]
-        [1, 1, 2, 4, 10, 26, 76]
-
-        sage: [StandardTableaux(n).cardinality() for n in range(7)]
-        [1, 1, 2, 4, 10, 26, 76]
-
-    The saturated chains in the :meth:`Q_graph` are not in the OEIS
-    as of 2026::
-
-        sage: [len(L.Q_graph(n).maximal_chains()) for n in range(1,8)]
-        [1, 1, 2, 6, 19, 69, 285]
-
-    TESTS::
-
-        sage: [L._check_duality(n) for n in range(6)]
-        [None, None, None, None, None, None]
-
-        sage: l = {pi: L(pi) for pi in Permutations(4)}
-        sage: len(set([tuple(G.out_labels()) for G in l.values()]))
-        24
+    cf. [TvW2018]_.  More precisely, this class implements Theorem
+    3.15 of [vW2019]_.
     """
     zero = Composition([])
 
@@ -4502,64 +4574,6 @@ class RuleLeftCompositions(Rule):
             Compositions of 3
         """
         return Compositions(n)
-
-    def is_P_edge_aux(self, v, w):
-        r"""
-        Return `i` if `w = t_i(v)`, ``None`` otherwise.
-
-        `t_i(v)` increases the left most occurrence of `i-1` by one.
-        `t_1(v)` prepends `1` to the composition.  `t_i(w)=0` if
-        `i-1` does not occur in `w`.
-
-        EXAMPLES::
-
-            sage: L = GrowthDiagram.rules.LeftCompositions()
-            sage: L.is_P_edge_aux([1],[1,1])
-            1
-            sage: L.is_P_edge_aux([1],[2])
-            2
-            sage: L.is_P_edge_aux([1,1,1],[1,2,1])
-
-            sage: L.is_P_edge_aux([3,2,3,1,2],[3,3,3,1,2])
-            3
-        """
-        # find difference between v and w:
-        #    v = ... l_{j-1} x l_{j+1} ..., and x is left most
-        #    w = ... l_{j-1} x+1 l_{j+1} ...
-        # or
-        #    v = l_0 ...
-        #    w = 1 l_0 ...
-        if w[1:] == v:
-            assert w[0] == 1
-            return 1
-
-        for j in range(len(v)):
-            if v[j] != w[j]:
-                if w[j] == v[j] + 1 and w[j+1:] == v[j+1:] and v[j] not in v[:j]:
-                    return w[j]
-                return None
-        return None
-
-    def is_P_edge(self, v, w):
-        r"""
-        Return whether ``(v, w)`` is a `P`-edge of ``self``.
-
-        ``(v, w)`` is an edge if any left most occurrence of a letter
-        in ``v`` can be increased by one to obtain ``w``.
-
-        TESTS::
-
-            sage: L = GrowthDiagram.rules.LeftCompositions()
-            sage: L.is_P_edge(L.zero, Composition([1]))
-            True
-
-            sage: L.is_P_edge(Composition([1]), Composition([1,1]))
-            True
-
-            sage: L.is_P_edge(Composition([2]), Composition([2,1]))
-            False
-        """
-        return self.rank(v) + 1 == self.rank(w) and self.is_P_edge_aux(v, w) is not None
 
     def is_Q_edge_aux(self, v, w):
         r"""
@@ -4618,6 +4632,119 @@ class RuleLeftCompositions(Rule):
             False
         """
         return self.rank(v) + 1 == self.rank(w) and self.is_Q_edge_aux(v, w) is not None
+
+
+
+class RuleLeftCompositions(RuleCompositions):
+    r"""
+    Dual graded graphs for (skew) quasisymmetric Schur functions.
+
+    These were introduced by Stephanie van Willigenburg in [vW2019]_,
+    cf. [TvW2018]_.  This class implements Theorem 3.15 of [vW2019]_.
+
+    Currently, no backward rule is implemented.  The forward rule
+    implemented here seems to agree with Mason's insertion algorithm
+    from Section 6.1 of [HLMvW2011]_.
+
+    The vertices of the dual graded graph are
+    :class:`~sage.combinat.composition.Compositions`::
+
+        sage: L = GrowthDiagram.rules.LeftCompositions()
+        sage: L.vertices(3)
+        Compositions of 3
+
+    A saturated chain in the :meth:`P_graph` is a (skew)
+    :class:`~sage.combinat.composition_tableau.CompositionTableau`::
+
+        sage: c = [[], [1], [2], [1, 2], [1, 1, 2], [1, 1, 3], [2, 1, 3], [1, 2, 1, 3]]
+        sage: L.P_symbol(c).pp()
+        1
+        4  2
+        5
+        7  6  3
+
+    The number of
+    :class:`~sage.combinat.composition_tableau.CompositionTableau` is
+    the same as the number of standard Young tableaux with one entry
+    less::
+
+        sage: [len(L.P_graph(n).maximal_chains()) for n in range(1,8)]
+        [1, 1, 2, 4, 10, 26, 76]
+
+        sage: [StandardTableaux(n).cardinality() for n in range(7)]
+        [1, 1, 2, 4, 10, 26, 76]
+
+    The saturated chains in the :meth:`Q_graph` are not in the OEIS
+    as of 2026::
+
+        sage: [len(L.Q_graph(n).maximal_chains()) for n in range(1,8)]
+        [1, 1, 2, 6, 19, 69, 285]
+
+    TESTS::
+
+        sage: TestSuite(L).run()
+
+        sage: l = {pi: L(pi) for pi in Permutations(4)}
+        sage: len(set([tuple(G.out_labels()) for G in l.values()]))
+        24
+    """
+    def is_P_edge_aux(self, v, w):
+        r"""
+        Return `i` if `w = t_i(v)`, ``None`` otherwise.
+
+        `t_i(v)` increases the left most occurrence of `i-1` by one.
+        `t_1(v)` prepends `1` to the composition.  `t_i(w)=0` if
+        `i-1` does not occur in `w`.
+
+        EXAMPLES::
+
+            sage: L = GrowthDiagram.rules.LeftCompositions()
+            sage: L.is_P_edge_aux([1],[1,1])
+            1
+            sage: L.is_P_edge_aux([1],[2])
+            2
+            sage: L.is_P_edge_aux([1,1,1],[1,2,1])
+
+            sage: L.is_P_edge_aux([3,2,3,1,2],[3,3,3,1,2])
+            3
+        """
+        # find difference between v and w:
+        #    v = ... l_{j-1} x l_{j+1} ..., and x is left most
+        #    w = ... l_{j-1} x+1 l_{j+1} ...
+        # or
+        #    v = l_0 ...
+        #    w = 1 l_0 ...
+        if w[1:] == v:
+            assert w[0] == 1
+            return 1
+
+        for j in range(len(v)):
+            if v[j] != w[j]:
+                if w[j] == v[j] + 1 and w[j+1:] == v[j+1:] and v[j] not in v[:j]:
+                    return w[j]
+                return None
+        return None
+
+    def is_P_edge(self, v, w):
+        r"""
+        Return whether ``(v, w)`` is a `P`-edge of ``self``.
+
+        ``(v, w)`` is an edge if any left most occurrence of a letter
+        in ``v`` can be increased by one to obtain ``w``.
+
+        TESTS::
+
+            sage: L = GrowthDiagram.rules.LeftCompositions()
+            sage: L.is_P_edge(L.zero, Composition([1]))
+            True
+
+            sage: L.is_P_edge(Composition([1]), Composition([1,1]))
+            True
+
+            sage: L.is_P_edge(Composition([2]), Composition([2,1]))
+            False
+        """
+        return self.rank(v) + 1 == self.rank(w) and self.is_P_edge_aux(v, w) is not None
 
     def P_symbol(self, P_chain):
         """
@@ -4742,6 +4869,56 @@ class RuleLeftCompositions(Rule):
             return Composition([1])
         return Composition(t_operator(max(t)+1, t))
 
+
+class RuleRightCompositions(RuleCompositions):
+    r"""
+    Dual graded graphs for (skew) quasisymmetric Schur functions.
+
+    These were introduced by Stephanie van Willigenburg in [vW2019]_,
+    cf. [TvW2018]_.  This class implements Theorem 3.3 of [vW2019]_.
+
+    TESTS::
+
+        sage: L = GrowthDiagram.rules.RightCompositions()
+        sage: [L._check_duality(n) for n in range(6)]
+        [None, None, None, None, None, None]
+    """
+    def is_P_edge_aux(self, v, w):
+        r"""
+        Return `i` if `w = u_i(v)`, ``None`` otherwise.
+
+        `u_i(v) = a_i d_{[i-1]}(v)` appends `i` after removing a box
+        from the rightmost occurrences of `i-1, i-2, \dots, 1`.
+
+        """
+        if not w:
+            return None
+
+        # The appending operator a_i guarantees that the result ends with i
+        i = w[-1]
+        v_list = list(v)
+
+        # Apply \down_{i-1}, \down_{i-2}, ..., \down_1 sequentially
+        for k in range(i - 1, 0, -1):
+            for j in range(len(v_list) - 1, -1, -1):
+                if v_list[j] == k:
+                    v_list[j] -= 1
+                    # Ignore parts of size 0 as per Section 1.1
+                    if v_list[j] == 0:
+                        v_list.pop(j)
+                    break
+            else:
+                # k was not found, so \down_k returns 0
+                return None
+
+        if v_list == list(w[:-1]):
+            return i
+
+        return None
+
+    def is_P_edge(self, v, w):
+        return self.rank(v) + 1 == self.rank(w) and self.is_P_edge_aux(v, w) is not None
+
 #####################################################################
 ## Set the rules available from GrowthDiagram.rules.<tab>
 #####################################################################
@@ -4760,6 +4937,7 @@ class Rules:
     Burge = RuleBurge
     Domino = RuleDomino
     LeftCompositions = RuleLeftCompositions
+    RightCompositions = RuleRightCompositions
 
 
 GrowthDiagram.rules = Rules
