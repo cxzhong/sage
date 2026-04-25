@@ -96,7 +96,7 @@ def update_python_sources(self: Rewriter, visitor: AstPython):
         to_append: list[StringNode] = []
         for file in python_files:
             file_name = file.name
-            if file_name in src_list or file_name in ignored_files:
+            if file_name in src_list:
                 continue
             token = Token("string", target.filename, 0, 0, 0, None, file_name)
             to_append += [StringNode(token)]
