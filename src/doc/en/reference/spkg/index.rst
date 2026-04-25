@@ -55,7 +55,6 @@ Features
    sage/features/mip_backends
    sage/features/normaliz
    sage/features/pandoc
-   sage/features/pdf2svg
    sage/features/polymake
    sage/features/rubiks
    sage/features/tdlib
