@@ -965,8 +965,8 @@ class Standalone(SageObject):
           a browser. This option is ignored and automatically set to
           ``False`` if ``filename`` is not ``None``.
 
-        - ``program`` -- string (default: ``'pdftocairo'``); ``'pdftocairo'`` or
-          ``'pdf2svg'``
+        - ``program`` -- string (default: ``'pdftocairo'``); ignored, always
+          uses pdftocairo.
 
         OUTPUT: string, path to svg file
 
@@ -987,10 +987,6 @@ class Standalone(SageObject):
 
             sage: from sage.misc.temporary_file import tmp_filename
             sage: filename = tmp_filename('temp', '.svg')
-            sage: path_to_file = t.svg(filename,            # long time (1s)    # optional - latex pdf2svg
-            ....:                      program='pdf2svg')
-            sage: path_to_file[-4:]                         # long time (fast)  # optional - latex pdf2svg
-            '.svg'
             sage: path_to_file = t.svg(filename,            # long time (1s)    # optional - latex pdftocairo
             ....:                      program='pdftocairo')
             sage: path_to_file[-4:]                         # long time (fast)  # optional - latex pdftocairo
@@ -1001,18 +997,9 @@ class Standalone(SageObject):
         temp_filename, ext = os.path.splitext(temp_filename_pdf)
         temp_filename_svg = temp_filename + '.svg'
 
-        # set the command
-        if program == 'pdftocairo':
-            from sage.features.poppler import pdftocairo
-            pdftocairo().require()
-            cmd = ['pdftocairo', '-svg', temp_filename_pdf, temp_filename_svg]
-        elif program == 'pdf2svg':
-            from sage.features.pdf2svg import pdf2svg
-            pdf2svg().require()
-            cmd = ['pdf2svg', temp_filename_pdf, temp_filename_svg]
-        else:
-            raise ValueError("program(={}) should be 'pdftocairo' or"
-                             " 'pdf2svg'".format(program))
+        from sage.features.poppler import pdftocairo
+        pdftocairo().require()
+        cmd = ['pdftocairo', '-svg', temp_filename_pdf, temp_filename_svg]
 
         # convert to svg
         result = run(cmd, capture_output=True, text=True)
