@@ -527,6 +527,7 @@ from sage.combinat.skew_tableau import SkewTableau
 from sage.combinat.core import Core, Cores
 from sage.combinat.k_tableau import WeakTableau, StrongTableau
 from sage.combinat.shifted_primed_tableau import ShiftedPrimedTableau
+from sage.misc.lazy_attribute import lazy_attribute
 from sage.misc.lazy_import import lazy_import
 from sage.misc.latex import latex
 
@@ -2004,6 +2005,9 @@ class Rule(UniqueRepresentation, SageObject):
 
     - ``r`` -- (default: 1) the parameter in the equation `DU - UD = rI`
 
+    - ``allowed_contents`` -- (default: ``[1,...,r]``) an enumeration
+      of the allowed contents of a cell
+
     - ``has_multiple_edges`` -- boolean (default: ``False``); if the dual
       graded graph has multiple edges and therefore edges are
       triples consisting of two vertices and a label
@@ -2077,10 +2081,28 @@ class Rule(UniqueRepresentation, SageObject):
 
     In particular, this allows to work with dual graded graphs
     without local rules.
+
     """
     has_multiple_edges = False          # override when necessary
     zero_edge = 0                       # override when necessary
     r = 1                               # override when necessary
+
+    @lazy_attribute
+    def allowed_contents(self):         # override when necessary
+        r"""
+        Return an enumeration of the allowed contents, excluding
+        zero.
+
+        By default, this is ``[1,...,r]``.  It is used by the
+        :class:`TestSuite` in :meth:`_test_local_rules`.
+
+        EXAMPLES::
+
+            sage: Domino = GrowthDiagram.rules.Domino()
+            sage: Domino.allowed_contents
+            [1, -1]
+        """
+        return list(range(1, self.r+1))
 
     def normalize_vertex(self, v):      # override when necessary
         r"""
@@ -2280,11 +2302,11 @@ class Rule(UniqueRepresentation, SageObject):
                                      f" yields {g, z, h}")
 
             # 4a. both degenerate, a != 0
-            for a in range(1, r+1):
+            for a in self.allowed_contents:
                 g, z, h = fwd(t, z_edge, t, z_edge, t, a)
-                if not (is_Q(t, g, z) and is_P(t, h, z)):
+                if not (is_P(t, h, z) and is_Q(t, g, z)):
                     raise ValueError(f"forward rule for degenerate edges at {t} "
-                                     f"yields non-edge {t, g, z} or {t, h, z}")
+                                     f"yields non-edge {t, h, z} or {t, g, z}")
 
                 if has_bwd:
                     e2, t2, f2, a2 = bwd(t, g, z, h, t)
@@ -2298,9 +2320,9 @@ class Rule(UniqueRepresentation, SageObject):
             for _, y, e in P_edges:
                 for _, x, f in Q_edges:
                     g, z, h = fwd(y, e, t, f, x, 0)
-                    if not (is_Q(y, g, z) and is_P(x, h, z)):
+                    if not (is_P(x, h, z) and is_Q(y, g, z)):
                         raise ValueError(f"forward rule for {y, e, t, f, x, 0} "
-                                         f"yields non-edge {t, g, z} or {t, h, z}")
+                                         f"yields non-edge {x, h, z} or {y, g, z}")
 
                     if has_bwd:
                         e2, t2, f2, a2 = bwd(y, g, z, h, x)
@@ -2343,12 +2365,12 @@ class Rule(UniqueRepresentation, SageObject):
             for x, _, h in P_edges:
                 for y, _, g in Q_edges:
                     e, t, f, a = bwd(y, g, z, h, x)
-                    if not (((t, f) == (x, z_edge) or is_Q(t, f, x))
-                            and ((t, e) == (y, z_edge) or is_P(t, e, y))):
+                    if not (((t, e) == (y, z_edge) or is_P(t, e, y))
+                            and ((t, f) == (x, z_edge) or is_Q(t, f, x))):
                         raise ValueError(f"backward rule for P-edge {x, h, z} "
                                          f"and Q-edge {y, g, z} yields "
                                          f"non-edge {t, e, y} or {t, f, x}")
-                    if not 0 <= a <= r:
+                    if not (a == 0 or a in self.allowed_contents):
                         raise ValueError(f"backward rule for P-edge {x, h, z} "
                                          f"and Q-edge {y, g, z} yields content {a}")
 
@@ -2923,6 +2945,21 @@ class RuleLLMS(Rule):
         2
         3
 
+    Similarly, for 2-cores::
+
+        sage: LLMS2 = GrowthDiagram.rules.LLMS(2)
+        sage: G = LLMS2([4,1,3,2])
+        sage: G.P_symbol().pp()
+         -1 -2  3  4
+          2 -3  4
+          3  4
+         -4
+        sage: G.Q_symbol().pp()
+          1  2  3  4
+          2  3  4
+          3  4
+          4
+
     TESTS::
 
         sage: LLMS3 = GrowthDiagram.rules.LLMS(3)
@@ -3117,6 +3154,9 @@ class RuleLLMS(Rule):
             sage: LLMS3.forward_rule(Y, -1, T, None, X, 0)
             (None, [3, 1, 1], -2)
 
+            sage: LLMS3.forward_rule(Core([2], 3), 1, Core([1], 3), None, Core([1,1], 3), 0)
+            (None, [3, 1], 2)
+
         if ``x == y != t``::
 
             sage: Y = Core([1], 3); T = Core([], 3); X = Core([1], 3)
@@ -3165,7 +3205,9 @@ class RuleLLMS(Rule):
                 r = res[0]
                 z = y.affine_symmetric_group_simple_action(r)
                 if e % self.k == r:
-                    h = e-1
+                    h = e - 1
+                elif (e + 1) % self.k == r:
+                    h = e + 1
                 else:
                     h = e
             elif x == y != t:
@@ -4649,6 +4691,7 @@ class RuleDomino(Rule):
         ValueError: [1] has smaller rank than [2, 1] but is not covered by it in P
     """
     r = 2
+    allowed_contents = [1, -1]
     zero = _make_partition([])
 
     def normalize_vertex(self, v):
@@ -4852,7 +4895,7 @@ class RuleDomino(Rule):
                 z = union(x, y)
 
             elif len(diff) == 1:
-                z = copy(x)
+                z = x[:]
                 # diff is a single cell
                 k, l = diff.pop()
                 # add (k+1, l+1) to x
@@ -4860,15 +4903,14 @@ class RuleDomino(Rule):
                 if z[k] <= l + 1:
                     z[k] += 1
                     z[k+1] += 1
+                elif len(z) <= k + 1:
+                    z += [2]
                 else:
-                    if len(z) <= k + 1:
-                        z += [2]
-                    else:
-                        z[k+1] += 2
+                    z[k+1] += 2
 
             # diff has size 2, that is x == y
             elif cell1[0] == cell2[0]:
-                z = copy(x)
+                z = x[:]
                 # a horizontal domino - add 2 to row below of gamma
                 if len(z) <= cell1[0] + 1:
                     z += [2]
@@ -4876,7 +4918,7 @@ class RuleDomino(Rule):
                     z[cell1[0]+1] += 2
 
             else:
-                z = copy(x)
+                z = x[:]
                 # a vertical domino - add 2 to column right of gamma
                 # find first row shorter than cell1[1]+1
                 for r, p in enumerate(z):
@@ -5058,7 +5100,6 @@ class RuleCompositions(Rule):
             False
         """
         return self.rank(v) + 1 == self.rank(w) and self.is_Q_edge_aux(v, w) is not None
-
 
 
 class RuleLeftCompositions(RuleCompositions):
