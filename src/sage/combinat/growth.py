@@ -519,8 +519,6 @@ from sage.structure.unique_representation import UniqueRepresentation
 from sage.combinat.words.word import Word
 from sage.combinat.words.words import Words
 from sage.combinat.binary_tree import BinaryTree, BinaryTrees, LabelledBinaryTree
-from sage.combinat.composition import Compositions
-from sage.combinat.cylindric_shapes import CylindricShape, CylindricShapes
 from sage.combinat.partition import _Partitions, Partitions
 from sage.combinat.composition import Composition, Compositions
 from sage.combinat.composition_tableau import CompositionTableau, CompositionTableaux
