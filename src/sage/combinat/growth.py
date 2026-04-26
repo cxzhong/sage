@@ -42,7 +42,7 @@ a so-called 'backward' rule that recovers the integer and `t` given
 
 As an example, the growth rules for the classical RSK correspondence
 are provided by :class:`RuleRSK`.  To produce a growth diagram, pass
-the desired rule and a permutation to :class:`GrowthDiagram`::
+the rule and a permutation to :class:`GrowthDiagram`::
 
     sage: RuleRSK = GrowthDiagram.rules.RSK()
     sage: w = [2,3,6,1,4,5]; G = GrowthDiagram(RuleRSK, w); G
@@ -54,7 +54,7 @@ the desired rule and a permutation to :class:`GrowthDiagram`::
     0  0  1  0  0  0
 
 The forward rule just mentioned assigns 49 partitions to the corners
-of each of the 36 cells of this matrix (i.e., 49 the vertices of a
+of each of the 36 cells of this matrix (i.e., the vertices of a
 `(6+1) \times (6+1)` grid graph), with the exception of the corners
 on the left and top boundary, which are initialized with the empty
 partition. More precisely, for each cell, the
@@ -150,7 +150,7 @@ that we encode as the dictionary::
     sage: P = {(1-1,4-1): 1, (2-1,2-1): 1, (2-1,3-1): 2, (4-1,2-1): 1, (4-1,3-1): 1}
 
 Note that we are subtracting `1` from all entries because of
-zero-based indexing, we obtain::
+zero-based indexing.  We obtain::
 
     sage: GrowthDiagram(RuleRSK, P)
     0  0  0  0
@@ -198,9 +198,9 @@ is a pair in the perfect matching, the entry in column `i-1` and row
     0  0
     0
 
-The partitions labelling the bottom-right corners along the boundary
+The partitions labelling the bottom right corners along the boundary
 opposite of the origin then form a so-called oscillating tableau -
-the remaining partitions along the bottom-right boundary are
+the remaining partitions along the bottom right boundary are
 redundant::
 
     sage: G.out_labels()[1::2]
@@ -236,7 +236,7 @@ oscillating tableau, as given, is::
     sage: o = [[2,1],[2,2],[3,2],[4,2],[4,1],[4,1,1],[3,1,1],[3,1],[3,2],[3,1],[2,1]]
 
 From this, we have to construct the list of labels of the corners
-along the bottom-right boundary.  The labels with odd indices are
+along the bottom right boundary.  The labels with odd indices are
 given by the oscillating tableau, the other labels are obtained by
 taking the smaller of the two neighbouring partitions::
 
@@ -400,8 +400,8 @@ requires additional information (the edge labels as arguments).
 
 Let us thus continue with the example from Section 4.7 of [Fom1995]_
 instead, which defines dual graded graphs with multiple edges on the
-integers.  The color ``self.zero_edge``, which defaults to ``0`` is
-reserved for degenerate edges, but may be abused for the unique edge
+integers.  The color ``self.zero_edge``, which defaults to ``0``, is
+reserved for degenerate edges, but may also be used for the unique edge
 if one of the graphs has no multiple edges.  For greater clarity in
 this example we set it to ``None``::
 
@@ -414,7 +414,7 @@ this example we set it to ``None``::
     ....:     def is_P_edge(self, v, w): return [0] if w == v + 1 else []
     ....:     def is_Q_edge(self, v, w): return list(range(w)) if w == v+1 else []
 
-We verify these are `1` dual at level `5`::
+We verify these are `1`-dual at level `5`::
 
     sage: RulePascal()._check_duality(5)
 
