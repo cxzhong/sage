@@ -305,14 +305,16 @@ class Hypergeometric(BuiltinFunction):
             sage: hypergeometric([2, 3, 4], [4, 1], 1)
             hypergeometric((2, 3, 4), (4, 1), 1)
         """
-        from sage.rings.polynomial.polynomial_element import Polynomial
-        from sage.rings.power_series_ring_element import PowerSeries
-        if isinstance(z, (Polynomial, PowerSeries)):
-            if not z.is_gen():
-                raise NotImplementedError("the argument must be the generator of the polynomial ring")
+        from sage.rings.polynomial.polynomial_ring import PolynomialRing_generic
+        from sage.rings.power_series_ring import PowerSeriesRing_generic
+        from sage.rings.lazy_series_ring import LazySeriesRing
+        if hasattr(z, 'parent'):
             S = z.parent()
-            from sage.functions.hypergeometric_algebraic import HypergeometricFunctions
-            return HypergeometricFunctions(S.base_ring(), S.variable_name())(a, b)
+            if isinstance(S, (PolynomialRing_generic, PowerSeriesRing_generic, LazySeriesRing)):
+                if z != S.gen():
+                    raise NotImplementedError("the argument must be the generator of the polynomial ring")
+                from sage.functions.hypergeometric_algebraic import HypergeometricFunctions
+                return HypergeometricFunctions(S.base_ring(), S.variable_name())(a, b)
         return BuiltinFunction.__call__(self,
                                         SR._force_pyobject(a),
                                         SR._force_pyobject(b),

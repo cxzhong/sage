@@ -844,6 +844,8 @@ class HypergeometricAlgebraic(Element):
         self._compute_coeffs(prec)
         return S(self._coeffs, prec=prec)
 
+    series = power_series
+
     def shift(self, s):
         r"""
         Return this hypergeometric function, where each parameter
@@ -917,19 +919,6 @@ class HypergeometricAlgebraic(Element):
             x + hypergeometric((1/3, 2/3), (1/2,), x)/sin(x)
         """
         return SR(self) / SR(other)
-
-    def denominator(self):
-        r"""
-        Return the smallest common denominator of the parameters.
-
-        EXAMPLES::
-
-            sage: S.<x> = QQ[]
-            sage: f = hypergeometric([1/3, 2/3], [1/2], x)
-            sage: f.denominator()
-            6
-        """
-        return self._parameters.d
 
     def differential_operator(self, var='d'):
         # Differential equation might not be defined in positive characteristic
@@ -1247,7 +1236,7 @@ class HypergeometricAlgebraic_QQ(HypergeometricAlgebraic):
             return True
         if include_infinity and len(self.top()) > len(self.bottom()) + 1:
             return False
-        d = self.denominator()
+        d = self._parameters.d
         for c in range(d):
             if d.gcd(c) == 1:
                 if not self._parameters.parenthesis_criterion(c):
@@ -1272,7 +1261,7 @@ class HypergeometricAlgebraic_QQ(HypergeometricAlgebraic):
         # Do we have an example with exceptional primes?
         if not self._parameters.is_balanced():
             raise NotImplementedError("Only implemented for nFn-1")
-        d = ZZ(self.denominator())
+        d = self._parameters.d
         classes = dict.fromkeys(range(1, len(self.top())+1), Primes(modulus=0))
         for c in range(d):
             if gcd(c, d) == 1:
@@ -2531,7 +2520,6 @@ class HypergeometricFunctions(Parent, UniqueRepresentation):
             return LazyPowerSeriesRing(self.base_ring(), self._name)
         else:
             return PowerSeriesRing(self.base_ring(), self._name, default_prec=default_prec)
-
 
 # Helper functions
 ##################
