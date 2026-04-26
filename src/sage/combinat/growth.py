@@ -2342,7 +2342,7 @@ class RuleLLMS(Rule):
         sage: LLMS3.vertices(4)
         3-Cores of length 4
 
-    Let us check example of Figure 1 in [LS2007]_.  Note that,
+    Let us check the example in Figure 1 in [LS2007]_.  Note that,
     instead of passing the rule to :class:`GrowthDiagram`, we can
     also call the rule to create growth diagrams::
 
@@ -2386,6 +2386,21 @@ class RuleLLMS(Rule):
         1  3  4
         2
         3
+
+    Similarly, for 2-cores::
+
+        sage: LLMS2 = GrowthDiagram.rules.LLMS(2)
+        sage: G = LLMS2([4,1,3,2])
+        sage: G.P_symbol().pp()
+         -1 -2  3  4
+          2 -3  4
+          3  4
+         -4
+        sage: G.Q_symbol().pp()
+          1  2  3  4
+          2  3  4
+          3  4
+          4
 
     TESTS::
 
@@ -4415,12 +4430,12 @@ class RuleLeftCompositions(Rule):
     r"""
     Dual graded graphs for (skew) quasisymmetric Schur functions.
 
-    These were introduced by Vasu Tewari and Stephanie Van
-    Willigenburg in [TW2018]_.
+    These were introduced by Stephanie van Willigenburg in [vW2019]_,
+    cf. [TvW2018]_.  This class implements Theorem 3.15 of [vW2019]_.
 
-    Currently, the backward rule is not implemented.  The forward
-    rule seems to agree with Mason's insertion algorithm from Section
-    6.1 of [HLMW2011]_.
+    Currently, no backward rule is implemented.  The forward rule
+    implemented here seems to agree with Mason's insertion algorithm
+    from Section 6.1 of [HLMvW2011]_.
 
     The vertices of the dual graded graph are
     :class:`~sage.combinat.composition.Compositions`::

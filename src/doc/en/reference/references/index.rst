@@ -3588,10 +3588,10 @@ REFERENCES:
              matroid representations*, Discrete Applied Mathematics
              154 (2006), pp. 1210-1222.
 
-.. [HLMW2011] James Haglund, Kurt Luoto, Sarah Mason, and Stephanie
-              van Willigenburg. *Quasisymmetric Schur functions.*
-              Journal of Combinatorial Theory, Series A 118, no. 2
-              (2011): 463-490. :arxiv:`0810.2489`
+.. [HLMvW2011] James Haglund, Kurt Luoto, Sarah Mason, and Stephanie
+               van Willigenburg. *Quasisymmetric Schur functions.*
+               Journal of Combinatorial Theory, Series A 118, no. 2
+               (2011): 463-490. :arxiv:`0810.2489`
 
 .. [HLNT09] \F. Hivert, J.-G. Luque, J.-C. Novelli, J.-Y. Thibon,
             *The (1-E)-transform in combinatorial Hopf algebras*.
@@ -7021,10 +7021,10 @@ REFERENCES:
 .. [TW1980] \A.D. Thomas and G.V. Wood, Group Tables (Exeter: Shiva
             Publishing, 1980)
 
-.. [TW2018] Vasu Tewari and Stephanie van
-            Willigenburg. *Quasisymmetric and noncommutative skew
-            Pieri rules*.  Advances in Applied Mathematics 100
-            (2018): pp. 101-121. :arxiv:`1512.04614`
+.. [TvW2018] Vasu Tewari and Stephanie van
+             Willigenburg. *Quasisymmetric and noncommutative skew
+             Pieri rules*.  Advances in Applied Mathematics 100
+             (2018): pp. 101-121. :arxiv:`1512.04614`
 
 .. [TY1984] Robert Endre Tarjan, Mihalis Yannakakis. *Simple linear-time
             algorithms to test chordality of graphs, test acyclicity of
@@ -7137,6 +7137,11 @@ REFERENCES:
        ribbon tableaux, and an action of affine permutations*.
        Europe J. Combinatorics. **20** (1999).
        http://wwwmathlabo.univ-poitiers.fr/~maavl/pdf/edgeseqs.pdf
+
+.. [vW2020] Stephanie van Willigenburg, *Dual graphs from
+            noncommutative and quasisymmetric Schur functions.*
+            Proceedings of the American Mathematical Society 148.3
+            (2020): 1063-1078. :arxiv:`1907.13094`
 
 .. _ref-W:
 
