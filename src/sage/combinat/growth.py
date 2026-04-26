@@ -4430,8 +4430,8 @@ class RuleLeftCompositions(Rule):
     r"""
     Dual graded graphs for (skew) quasisymmetric Schur functions.
 
-    These were introduced by Stephanie van Willigenburg in [vW2019]_,
-    cf. [TvW2018]_.  This class implements Theorem 3.15 of [vW2019]_.
+    These were introduced by Stephanie van Willigenburg in [vW2020]_,
+    cf. [TvW2018]_.  This class implements Theorem 3.15 of [vW2020]_.
 
     Currently, no backward rule is implemented.  The forward rule
     implemented here seems to agree with Mason's insertion algorithm
