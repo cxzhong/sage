@@ -1,6 +1,6 @@
-diff '--color=auto' -urN unix.orig/Makefile unix/Makefile
---- unix.orig/Makefile	2025-04-04 18:08:53.437298704 +0300
-+++ unix/Makefile	2025-04-04 18:11:23.444469688 +0300
+diff --git a/unix/Makefile b/unix/Makefile
+--- a/unix/Makefile
++++ b/unix/Makefile
 @@ -23,8 +23,8 @@
  #
  # Name of raytracing library file to create
@@ -23,7 +23,7 @@ diff '--color=auto' -urN unix.orig/Makefile unix/Makefile
 -	${AR} ${ARFLAGS} ${RAYLIB} ${RAYOBJS}
 -	${RANLIB} ${RAYLIB}
 +	${CC} ${LDFLAGS} -shared -Wl,-soname,libtachyon.so.${VERSION} -o ${RAYLIBDIR}/libtachyon.so.${VERSION} ${CFLAGS} -fPIC ${RAYOBJS} ${PNGLIB} -lm -lpthread ${JPEGLIB}
-+	ln -s libtachyon.so.${VERSION} ${RAYLIBDIR}/libtachyon.so
++	ln -sf libtachyon.so.${VERSION} ${RAYLIBDIR}/libtachyon.so
  
  ${OBJDIR}/vol.o : ${SRCDIR}/vol.c ${OBJDEPS}
 -	${CC} ${CFLAGS} -c ${SRCDIR}/vol.c -o ${OBJDIR}/vol.o
