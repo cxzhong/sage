@@ -2953,7 +2953,7 @@ class RuleLLMS(Rule):
         sage: LLMS3.vertices(4)
         3-Cores of length 4
 
-    Let us check the example of Figure 1 in [LS2007]_.  Note that,
+    Let us check the example in Figure 1 in [LS2007]_.  Note that,
     instead of passing the rule to :class:`GrowthDiagram`, we can
     also call the rule to create growth diagrams::
 
@@ -5058,9 +5058,21 @@ class RuleCompositions(Rule):
     r"""
     A base class for growth diagrams on the composition poset.
 
-    These were introduced by Stephanie van Willigenburg in [vW2019]_,
-    cf. [TvW2018]_.  More precisely, this class implements Theorem
-    3.15 of [vW2019]_.
+    These were introduced by Stephanie van Willigenburg in [vW2020]_,
+    cf. [TvW2018]_.
+
+    The vertices of the dual graded graph are
+    :class:`~sage.combinat.composition.Compositions`::
+
+        sage: L = GrowthDiagram.rules.LeftCompositions()
+        sage: L.vertices(3)
+        Compositions of 3
+
+    The saturated chains in the :meth:`Q_graph` are not in the OEIS
+    as of 2026::
+
+        sage: [len(L.Q_graph(n).maximal_chains()) for n in range(1,8)]
+        [1, 1, 2, 6, 19, 69, 285]
     """
     zero = Composition([])
 
@@ -5163,8 +5175,8 @@ class RuleLeftCompositions(RuleCompositions):
     r"""
     Dual graded graphs for (skew) quasisymmetric Schur functions.
 
-    These were introduced by Stephanie van Willigenburg in [vW2019]_,
-    cf. [TvW2018]_.  This class implements Theorem 3.15 of [vW2019]_.
+    These were introduced by Stephanie van Willigenburg in [vW2020]_,
+    cf. [TvW2018]_.  This class implements Theorem 3.15 of [vW2020]_.
 
     Currently, no backward rule is implemented.  The forward rule
     implemented here seems to agree with Mason's insertion algorithm
