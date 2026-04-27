@@ -172,26 +172,31 @@ def _plane_cubic_jacobian_morphism(polynomial, curve, jacobian):
         return None
 
     from sage.schemes.elliptic_curves.constructor import EllipticCurve_from_cubic
-
-    try:
-        cubic_map = EllipticCurve_from_cubic(polynomial, morphism=True)
-        iso = cubic_map.codomain().isomorphism_to(jacobian)
-    except (ArithmeticError, NotImplementedError, TypeError, ValueError):
-        return None
-
     from sage.schemes.elliptic_curves.weierstrass_morphism import baseWI
     from sage.schemes.elliptic_curves.weierstrass_transform import (
         WeierstrassTransformationWithInverse,
     )
 
-    fwd_polys = baseWI.__call__(iso, list(cubic_map.defining_polynomials()))
-    inv_map = cubic_map.inverse()
-    inv_iso_polys = baseWI.__call__(
-        ~iso, list(jacobian.ambient_space().coordinate_ring().gens()))
-    inv_polys = [p(inv_iso_polys) for p in inv_map.defining_polynomials()]
+    try:
+        cubic_map = EllipticCurve_from_cubic(polynomial, morphism=True)
+        iso = cubic_map.codomain().isomorphism_to(jacobian)
+        # ``WeierstrassIsomorphism.__call__`` is overridden to act on curves
+        # and points; we deliberately invoke the underlying ``baseWI.__call__``
+        # so that ``iso`` acts on a list of polynomials via the formal
+        # Weierstrass change of variables (u, r, s, t).
+        fwd_polys = baseWI.__call__(iso, list(cubic_map.defining_polynomials()))
+        inv_map = cubic_map.inverse()
+        inv_iso_polys = baseWI.__call__(
+            ~iso, list(jacobian.ambient_space().coordinate_ring().gens()))
+        inv_polys = [p(inv_iso_polys) for p in inv_map.defining_polynomials()]
 
-    fwd_post = 1 / (jacobian.defining_polynomial()(fwd_polys) / polynomial)
-    inv_post = 1 / (polynomial(inv_polys) / jacobian.defining_polynomial())
+        # Both quotients below are nonzero scalars by a degree/irreducibility
+        # argument, but guard against any unforeseen failure and fall back.
+        fwd_post = 1 / (jacobian.defining_polynomial()(fwd_polys) / polynomial)
+        inv_post = 1 / (polynomial(inv_polys) / jacobian.defining_polynomial())
+    except (ArithmeticError, AttributeError, NotImplementedError,
+            TypeError, ValueError, ZeroDivisionError):
+        return None
 
     return WeierstrassTransformationWithInverse(
         curve, jacobian, fwd_polys, fwd_post, inv_polys, inv_post)
@@ -275,6 +280,18 @@ def Jacobian_of_equation(polynomial, variables=None, curve=None):
         [(0 : 1 : 0), (3 : -9/2 : 1), (3 : 9/2 : 1)]
         sage: [phi.inverse()(phi(P)) for P in Ps] == Ps
         True
+
+    The same isomorphism is returned for an asymmetric cubic, where the
+    post-rescaling is a non-trivial constant::
+
+        sage: R.<a,b,c> = QQ[]
+        sage: g = a^3 + b^3 + 7*c^3
+        sage: hg = Jacobian(g, curve=Curve(g))
+        sage: Eg = hg.codomain()
+        sage: Eg.defining_polynomial()(hg.defining_polynomials()).factor()
+        (1/7) * (a^3 + b^3 + 7*c^3)
+        sage: hg.inverse()(hg(Curve(g)([1,-1,0])))
+        (-1 : 1 : 0)
     """
     from sage.schemes.toric.weierstrass import WeierstrassForm
     f, g = WeierstrassForm(polynomial, variables=variables)
