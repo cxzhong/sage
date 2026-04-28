@@ -118,6 +118,12 @@ extension_data = {
 }
 
 foreach name, pyx : extension_data
+  deps = [py_dep, cysignals, flint, gmp]
+  if name == 'cliquer'
+    deps += cliquer
+  elif name == 'planarity'
+    deps += planarity
+  endif
   py.extension_module(
     name,
     sources: pyx,
@@ -129,7 +135,7 @@ foreach name, pyx : extension_data
       inc_flint,
       inc_rings,
     ],
-    dependencies: [py_dep, cysignals, cliquer, flint, gmp, planarity],
+    dependencies: deps,
   )
 endforeach
 
@@ -153,7 +159,7 @@ foreach name, pyx : extension_data_cpp
       inc_flint,
       inc_rings,
     ],
-    dependencies: [py_dep, cysignals, flint, gmp, planarity],
+    dependencies: [py_dep, cysignals, flint, gmp],
   )
 endforeach
 
