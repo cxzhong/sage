@@ -1668,6 +1668,17 @@ class AlgebraicField(Singleton, AlgebraicField_common, sage.rings.abc.AlgebraicF
         """
         return "\\overline{\\QQ}"
 
+    def _fricas_init_(self) -> str:
+        """
+        Return a string that yields a representation of ``self`` in FriCAS.
+
+        EXAMPLES::
+
+            sage: fricas(QQbar)     # indirect doctest # optional - fricas
+            AlgebraicNumber
+        """
+        return 'AlgebraicNumber'
+
     def _sage_input_(self, sib, coerce):
         r"""
         Produce an expression which will reproduce this value when evaluated.
