@@ -4899,6 +4899,24 @@ class AlgebraicNumber_base(sage.structure.element.FieldElement):
             return rad._maxima_init_()
         raise NotImplementedError('cannot find radical expression')
 
+    def _fricas_init_(self) -> str:
+        r"""
+        Return a string that yields a representation of ``self`` in FriCAS.
+
+        EXAMPLES::
+
+            sage: # optional - fricas
+            sage: R.<x> = QQ[]
+            sage: p = x^3 - 2*x - 5
+            sage: r = p.roots(QQbar)
+            sage: fricas(r[0][0])
+            x
+            sage: fricas(r[0][0]).sage()
+            2.094551481542327?
+        """
+        p = self.minpoly()._fricas_init_()
+        return f"rootOf({p})$AN"
+
 
 class AlgebraicNumber(AlgebraicNumber_base):
     r"""

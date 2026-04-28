@@ -1838,7 +1838,7 @@ class PolynomialRing_commutative(PolynomialRing_generic):
             UnivariatePolynomial(x,FiniteField(3,2))
         """
         v = self.variable_name()
-        return f'UnivariatePolynomial({v}, {self.base_ring()._fricas_init_()})'
+        return f'UnivariatePolynomial({v},{self.base_ring()._fricas_init_()})'
 
     def _roots_univariate_polynomial(self, p, ring=None, multiplicities=True, algorithm=None, degree_bound=None):
         """
