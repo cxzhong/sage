@@ -69,7 +69,7 @@ concurrency:
 env:
   # Adapted from docker.yml
   TOX_ENV:                "docker-${{ github.event.inputs.platform || 'ubuntu-resolute-standard' }}-incremental"
-  BUILD_IMAGE:            "localhost:5000/${{ github.repository }}/sage-${{ github.event.inputs.platform || 'ubuntu-resolute-standard' }}-with-targets:ci"
+  BUILD_IMAGE:            "localhost:5000/${{ github.repository_id }}/sage-${{ github.event.inputs.platform || 'ubuntu-resolute-standard' }}-with-targets:ci"
   FROM_DOCKER_REPOSITORY: "ghcr.io/sagemath/sage/"
   FROM_DOCKER_TARGET:     "with-targets"
   FROM_DOCKER_TAG:        ${{ github.event.inputs.docker_tag || 'dev'}}
@@ -107,11 +107,6 @@ jobs:
       - name: Checkout
         id: checkout
         uses: actions/checkout@v4
-
-      - name: Normalize Docker image name
-        run: |
-          repository_lc="$(echo "$GITHUB_REPOSITORY" | tr '[:upper:]' '[:lower:]')"
-          echo "BUILD_IMAGE=localhost:5000/${repository_lc}/sage-${{ github.event.inputs.platform || 'ubuntu-noble-standard' }}-with-targets:ci" >> "$GITHUB_ENV"
 
       - name: Install test prerequisites
         # From docker.yml
@@ -231,11 +226,6 @@ jobs:
       - name: Checkout
         id: checkout
         uses: actions/checkout@v4
-
-      - name: Normalize Docker image name
-        run: |
-          repository_lc="$(echo "$GITHUB_REPOSITORY" | tr '[:upper:]' '[:lower:]')"
-          echo "BUILD_IMAGE=localhost:5000/${repository_lc}/sage-${{ github.event.inputs.platform || 'ubuntu-noble-standard' }}-with-targets:ci" >> "$GITHUB_ENV"
 
       - name: Install test prerequisites
         # From docker.yml
