@@ -15,7 +15,6 @@ cdef class HiGHSBackend(GenericBackend):
     cdef str prob_name
     cdef dict col_name_var
     cdef dict row_name_var
-    cdef dict row_data_cache
     cdef int numcols
     cdef int numrows
     cdef void _get_col_bounds(self, int col, double* lb, double* ub) except *

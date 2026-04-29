@@ -8,6 +8,9 @@
 cdef extern from "interfaces/highs_c_api.h":
     ctypedef int HighsInt
 
+    # General constants
+    const HighsInt kHighsMaximumStringLength
+
     # Status constants
     const HighsInt kHighsStatusError
     const HighsInt kHighsStatusOk
@@ -176,8 +179,8 @@ cdef extern from "interfaces/highs_c_api.h":
     HighsInt Highs_readModel(void* highs, const char* filename) nogil
 
     # Basis functions
-    HighsInt Highs_setBasic(void* highs, HighsInt* col_status, HighsInt* row_status) nogil
     HighsInt Highs_setBasis(void* highs, const HighsInt* col_status, const HighsInt* row_status) nogil
+    HighsInt Highs_setLogicalBasis(void* highs) nogil
 
     # Delete functions
     HighsInt Highs_deleteRowsByRange(void* highs, HighsInt from_row, HighsInt to_row) nogil
