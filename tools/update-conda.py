@@ -35,7 +35,7 @@ parser.add_argument(
     choices=platforms.keys(),
 )
 options = parser.parse_args()
-pythons = ["3.12", "3.13"]
+pythons = ["3.12", "3.13", "3.14"]
 tags = [""]
 
 
@@ -185,6 +185,7 @@ def get_dependencies(pyproject_toml: Path, python: str, platform: str) -> set[st
         "sagemath_giac",
         "pynormaliz",  # due to https://github.com/sagemath/sage/issues/40214
         "latte-integrale",  # due to https://github.com/sagemath/sage/issues/40216
+        "cibuildwheel",  # fails pip check since it claims to require the PyPI package patchelf which is not available on conda-forge yet (however, it just needs a patchelf which is installed from conda-forge already.)
     }
     if platform in ("linux-aarch64", "osx-arm64"):
         exclude_packages |= {
@@ -194,7 +195,6 @@ def get_dependencies(pyproject_toml: Path, python: str, platform: str) -> set[st
         }
     elif platform == "win-64":
         exclude_packages |= {
-            "4ti2",
             "bc",
             "libbrial",
             "bliss",
@@ -228,7 +228,6 @@ def get_dependencies(pyproject_toml: Path, python: str, platform: str) -> set[st
             "palp",
             "patch",
             "ppl",
-            "primecount",
             "pynormaliz",
             "python-lrcalc",
             "readline",
@@ -275,7 +274,10 @@ def get_dependencies(pyproject_toml: Path, python: str, platform: str) -> set[st
     else:
         all_requirements.add("openblas")
         all_requirements.add("libblas=*=*_openblas")
+    # Issue #41555: meson uses pkg-config to search for cblas whose .pc files are in blas-devel
+    all_requirements.add("blas-devel")
     all_requirements.add("fortran-compiler")
+
     if platform == "win-64":
         all_requirements.add("vs2022_win-64")
         # For mingw:
@@ -304,6 +306,8 @@ def get_dependencies(pyproject_toml: Path, python: str, platform: str) -> set[st
     if platform != "win-64":
         all_requirements.remove("maxima")
         all_requirements.add("maxima < 5.48.0")
+        all_requirements.remove("singular")
+        all_requirements.add("singular ==4.4.1.p5")
 
     return all_requirements
 
