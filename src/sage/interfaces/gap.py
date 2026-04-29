@@ -235,11 +235,6 @@ else:
     gap_cmd = SAGE_GAP_COMMAND
 
 
-if platform.processor() == 'ia64' and os.path.exists('/usr/bin/prctl'):
-    # suppress unaligned access to 0x..., ip=0x... warnings
-    gap_cmd = 'prctl --unaligned=silent ' + gap_cmd
-
-
 def gap_command(use_workspace_cache=True, local=True):
     if use_workspace_cache:
         if local:
