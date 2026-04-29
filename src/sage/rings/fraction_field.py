@@ -501,6 +501,17 @@ class FractionField_generic(ring.Field):
         s = 'FieldOfFractions(%s)' % self.ring()._magma_init_(magma)
         return magma._with_names(s, self.variable_names())
 
+    def _fricas_init_(self) -> str:
+        r"""
+        Return the FriCAS representation of `\QQ`.
+
+        EXAMPLES::
+
+           sage: fricas(FractionField(GF(3)['t']))   #optional - fricas # indirect doctest
+           Fraction(UnivariatePolynomial(t,PrimeField(3)))
+        """
+        return f'Fraction {self._R._fricas_init_()}'
+
     def ring(self):
         """
         Return the ring that this is the fraction field of.
