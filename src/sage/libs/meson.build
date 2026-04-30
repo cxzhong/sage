@@ -81,16 +81,14 @@ braiding = dependency(
 )
 
 # HiGHS optimization solver (used by sage.numerical.backends.highs_backend)
-# The HiGHS headers use relative includes like "lp_data/HighsCallbackStruct.h",
-# so we need the include path to point to the highs subdirectory.
-# The pkg-config includedir variable already points to .../include/highs,
-# so we use it directly.
+# The HiGHS C API headers use relative includes like
+# "lp_data/HighsCallbackStruct.h", so the "highs" subdirectory must be on the
+# include path. The upstream highs.pc exposes this as the 'includedir'
+# variable (typically ${prefix}/include/highs); we read it and add the
+# corresponding -I flag explicitly.
 highs_dep = dependency('highs', required: false, disabler: true)
 if highs_dep.found()
-  highs_includedir = highs_dep.get_variable(
-    pkgconfig: 'includedir',
-    default_value: get_option('prefix') / 'include' / 'highs',
-  )
+  highs_includedir = highs_dep.get_variable(pkgconfig: 'includedir')
   highs = declare_dependency(
     dependencies: [highs_dep],
     compile_args: ['-I' + highs_includedir],
