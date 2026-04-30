@@ -894,6 +894,43 @@ http://fricas.sourceforge.net.
 
         return output
 
+    def _coerce_impl(self, x, use_special=True):
+        r"""
+        Coerce pure Python types via corresponding Sage objects.
+
+        TESTS:
+
+        Check that converting a list of integers does not take forever::
+
+            sage: l = list(range(1000))
+            sage: fricas(l)[-1]
+            999
+        """
+        def _fricas_init_(x):
+            if isinstance(x, bool):
+                return self._true_symbol() if x else self._false_symbol()
+            if isinstance(x, int):
+                return str(x)
+            if isinstance(x, float):
+                from sage.rings.real_double import RDF
+                return RDF(x)._fricas_init_()
+            if isinstance(x, complex):
+                from sage.rings.complex_double import CDF
+                return CDF(x)._fricas_init_()
+            if use_special:
+                try:
+                    return self._fricas_init_()
+                except AttributeError:
+                    pass
+            if isinstance(x, (list, tuple)):
+                X = ','.join(_fricas_init_(v) for v in x)
+                return self.new('%s%s%s' % (self._left_list_delim(), X,
+                                            self._right_list_delim()))
+
+            raise TypeError("unable to coerce element into %s" % self.name())
+
+        return self.new(_fricas_init_(x))
+
     def _function_class(self):
         """
         Return the FriCASExpectFunction class.
