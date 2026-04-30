@@ -123,8 +123,8 @@ jobs:
       fail-fast: false
       matrix:
         version:
-          - '14'
           - '15'
+          - '26'
 
     steps:
       - name: Checkout code
