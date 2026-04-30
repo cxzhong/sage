@@ -421,10 +421,10 @@ cdef class BooleanPolynomialRing(BooleanPolynomialRing_base):
 
         self._zero_element = new_BP(self)
         (<BooleanPolynomial>self._zero_element)._pbpoly = \
-                                 PBBoolePolynomial(0, self._pbring)
+            PBBoolePolynomial(0, self._pbring)
         self._one_element = new_BP(self)
         (<BooleanPolynomial>self._one_element)._pbpoly = \
-                                 PBBoolePolynomial(1, self._pbring)
+            PBBoolePolynomial(1, self._pbring)
 
         self._monom_monoid = BooleanMonomialMonoid(self)
 
@@ -2160,9 +2160,9 @@ class BooleanMonomialMonoid(UniqueRepresentation, Monoid_class):
             else:
                 raise ValueError("cannot convert polynomial %s to %s" % (other, self))
 
-        elif isinstance(other, BooleanMonomial) and \
-             ((<BooleanMonomial>other)._pbmonom.deg() <=
-              <Py_ssize_t>(<BooleanPolynomialRing>self._ring)._pbring.nVariables()):
+        elif (isinstance(other, BooleanMonomial) and
+              ((<BooleanMonomial>other)._pbmonom.deg() <=
+               <Py_ssize_t>(<BooleanPolynomialRing>self._ring)._pbring.nVariables())):
             try:
                 var_mapping = get_var_mapping(self, other)
             except NameError as msg:
@@ -2526,7 +2526,7 @@ cdef class BooleanMonomial(MonoidElement):
            ``rhs`` is smaller than ``self``.
         """
         return new_BS_from_PBSet(self._pbmonom.multiples(rhs._pbmonom),
-                self._ring)
+                                 self._ring)
 
     def reducible_by(self, BooleanMonomial rhs):
         """
@@ -2798,13 +2798,15 @@ cdef inline BooleanMonomial new_BM(parent, BooleanPolynomialRing ring):
     return m
 
 cdef inline BooleanMonomial new_BM_from_PBMonom(parent,
-        BooleanPolynomialRing ring, PBMonom juice):
+                                                BooleanPolynomialRing ring,
+                                                PBMonom juice):
     cdef BooleanMonomial m = new_BM(parent, ring)
     m._pbmonom = juice
     return m
 
 cdef inline BooleanMonomial new_BM_from_PBVar(parent,
-        BooleanPolynomialRing ring, PBVar juice):
+                                              BooleanPolynomialRing ring,
+                                              PBVar juice):
     cdef BooleanMonomial m = new_BM(parent, ring)
     m._pbmonom = PBMonom(juice)
     return m
@@ -3328,7 +3330,7 @@ cdef class BooleanPolynomial(MPolynomial):
         if self._pbpoly.isZero():
             return self._parent._zero_element
         return new_BM_from_PBMonom(self._parent._monom_monoid, self._parent,
-                self._pbpoly.lead())
+                                   self._pbpoly.lead())
 
     def lt(BooleanPolynomial self):
         """
@@ -4192,7 +4194,7 @@ cdef class BooleanPolynomial(MPolynomial):
             return self._parent._zero_element
 
         return new_BM_from_PBMonom(self._parent._monom_monoid, self._parent,
-                                                self._pbpoly.lexLead())
+                                   self._pbpoly.lexLead())
 
     def lex_lead_deg(self):
         """
@@ -4300,7 +4302,7 @@ cdef class BooleanPolynomial(MPolynomial):
             a*b + a + b + z + 1
         """
         return new_BP_from_PBPoly(self._parent,
-                pb_map_every_x_to_x_plus_one(self._pbpoly))
+                                  pb_map_every_x_to_x_plus_one(self._pbpoly))
 
     def lead_divisors(self):
         r"""
@@ -4337,7 +4339,7 @@ cdef class BooleanPolynomial(MPolynomial):
            This function is part of the upstream PolyBoRi interface.
         """
         return new_BM_from_PBMonom(self._parent._monom_monoid, self._parent,
-                self._pbpoly.firstTerm())
+                                   self._pbpoly.firstTerm())
 
     def reducible_by(self, BooleanPolynomial rhs):
         r"""
@@ -4429,7 +4431,7 @@ cdef class BooleanPolynomial(MPolynomial):
             0
         """
         return new_BP_from_PBPoly(self._parent,
-                self._pbpoly.gradedPart(deg))
+                                  self._pbpoly.gradedPart(deg))
 
     def has_constant_part(self):
         r"""
@@ -4530,7 +4532,7 @@ cdef class BooleanPolynomial(MPolynomial):
            This function is part of the upstream PolyBoRi interface.
         """
         return new_BP_from_PBPoly(self._parent,
-                pb_spoly(self._pbpoly, rhs._pbpoly))
+                                  pb_spoly(self._pbpoly, rhs._pbpoly))
 
     def stable_hash(self):
         """
@@ -4774,7 +4776,7 @@ cdef class BooleanPolynomialIterator:
         value = self._iter.dereference()
         self._iter.increment()
         return new_BM_from_PBMonom(self.obj._parent._monom_monoid,
-                self.obj._parent, value)
+                                   self.obj._parent, value)
 
 
 cdef inline BooleanPolynomialIterator new_BPI_from_BooleanPolynomial(BooleanPolynomial f):
@@ -5527,7 +5529,7 @@ cdef class BooleSet:
             a*b*d*e*f
         """
         return new_BM_from_PBMonom(self._ring._monom_monoid, self._ring,
-                                            self._pbset.usedVariables())
+                                   self._pbset.usedVariables())
 
     def n_nodes(self):
         """
@@ -6411,8 +6413,8 @@ cdef class ReductionStrategy:
     def __getitem__(self, Py_ssize_t i):
         if i < 0 or <size_t>i >= deref(self._strat).size():
             raise IndexError
-        return BooleanPolynomialEntry(new_BP_from_PBPoly(self._parent,
-                deref(self._strat)[i].p))
+        return BooleanPolynomialEntry(new_BP_from_PBPoly(
+            self._parent, deref(self._strat)[i].p))
 
 
 cdef class BooleanPolynomialEntry:
@@ -6700,8 +6702,8 @@ cdef class GroebnerStrategy:
             sage: list(gb.faugere_step_dense(V))
             [b + c*e + e + 1, c + d*f + e + f]
         """
-        return new_BPV_from_PBPolyVector(self._parent,
-                deref(self._strat).faugereStepDense(v._vec))
+        return new_BPV_from_PBPolyVector(
+            self._parent, deref(self._strat).faugereStepDense(v._vec))
 
     def minimalize(self):
         """
@@ -6712,7 +6714,7 @@ cdef class GroebnerStrategy:
            Use this function if strat contains a GB.
         """
         return new_BPV_from_PBPolyVector(self._parent,
-                deref(self._strat).minimalize())
+                                         deref(self._strat).minimalize())
 
     def minimalize_and_tail_reduce(self):
         """
@@ -6723,8 +6725,8 @@ cdef class GroebnerStrategy:
 
           Use that if strat contains a GB and you want a reduced GB.
         """
-        return new_BPV_from_PBPolyVector(self._parent,
-                deref(self._strat).minimalizeAndTailReduce())
+        return new_BPV_from_PBPolyVector(
+            self._parent, deref(self._strat).minimalizeAndTailReduce())
 
     def npairs(self):
         return deref(self._strat).npairs()
@@ -6733,16 +6735,16 @@ cdef class GroebnerStrategy:
         return pairs_top_sugar(deref(self._strat))
 
     def some_spolys_in_next_degree(self, n):
-        return new_BPV_from_PBPolyVector(self._parent,
-                someNextDegreeSpolys(deref(self._strat), n))
+        return new_BPV_from_PBPolyVector(
+            self._parent, someNextDegreeSpolys(deref(self._strat), n))
 
     def all_spolys_in_next_degree(self):
-        return new_BPV_from_PBPolyVector(self._parent,
-                nextDegreeSpolys(deref(self._strat)))
+        return new_BPV_from_PBPolyVector(
+            self._parent, nextDegreeSpolys(deref(self._strat)))
 
     def small_spolys_in_next_degree(self, double f, int n):
-        return new_BPV_from_PBPolyVector(self._parent,
-                small_next_degree_spolys(deref(self._strat), f, n))
+        return new_BPV_from_PBPolyVector(
+            self._parent, small_next_degree_spolys(deref(self._strat), f, n))
 
     def ll_reduce_all(self):
         """
@@ -6754,8 +6756,8 @@ cdef class GroebnerStrategy:
         deref(self._strat).llReduceAll()
 
     def next_spoly(self):
-        return new_BP_from_PBPoly(self._parent,
-                deref(self._strat).nextSpoly())
+        return new_BP_from_PBPoly(
+            self._parent, deref(self._strat).nextSpoly())
 
     def all_generators(self):
         """
@@ -6776,7 +6778,7 @@ cdef class GroebnerStrategy:
             [a + b, a + c]
         """
         return new_BPV_from_PBPolyVector(self._parent,
-                deref(self._strat).allGenerators())
+                                         deref(self._strat).allGenerators())
 
     def suggest_plugin_variable(self):
         return deref(self._strat).suggestPluginVariable()
@@ -7042,8 +7044,8 @@ def add_up_polynomials(BooleanPolynomialVector v, BooleanPolynomial init):
 
 
 def nf3(ReductionStrategy s, BooleanPolynomial p, BooleanMonomial m):
-    return new_BP_from_PBPoly(s._parent,
-            pb_nf3(deref(s._strat), p._pbpoly, m._pbmonom))
+    return new_BP_from_PBPoly(
+        s._parent, pb_nf3(deref(s._strat), p._pbpoly, m._pbmonom))
 
 
 def red_tail(ReductionStrategy s, BooleanPolynomial p):
@@ -7087,7 +7089,7 @@ def map_every_x_to_x_plus_one(BooleanPolynomial p):
     """
 
     return new_BP_from_PBPoly(p._parent,
-            pb_map_every_x_to_x_plus_one(p._pbpoly))
+                              pb_map_every_x_to_x_plus_one(p._pbpoly))
 
 
 def zeros(pol, BooleSet s):
@@ -7268,8 +7270,8 @@ def interpolate_smallest_lex(zero, one):
 
 
 def contained_vars(BooleSet m):
-    return new_BS_from_PBSet(pb_contained_variables_cudd_style(m._pbset),
-            m._ring)
+    return new_BS_from_PBSet(
+        pb_contained_variables_cudd_style(m._pbset), m._ring)
 
 
 def mod_var_set(BooleSet a, BooleSet v):
@@ -7397,9 +7399,10 @@ def mod_mon_set(BooleSet a_s, BooleSet v_s):
 
 
 def parallel_reduce(BooleanPolynomialVector inp, GroebnerStrategy strat,
-                                    int average_steps, double delay_f):
-    return new_BPV_from_PBPolyVector(inp._parent,
-        pb_parallel_reduce(inp._vec, deref(strat._strat), average_steps, delay_f))
+                    int average_steps, double delay_f):
+    return new_BPV_from_PBPolyVector(
+        inp._parent, pb_parallel_reduce(inp._vec, deref(strat._strat),
+                                        average_steps, delay_f))
 
 
 def if_then_else(root, a, b):
