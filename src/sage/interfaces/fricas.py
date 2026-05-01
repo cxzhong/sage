@@ -905,6 +905,7 @@ http://fricas.sourceforge.net.
             sage: l = list(range(1000))
             sage: fricas(l)[-1]
             999
+
         Check that lists of SageMath types are converted properly::
 
             sage: fricas([GF(13)(-1)]).typeOf()
