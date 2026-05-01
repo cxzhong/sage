@@ -6157,6 +6157,13 @@ class Partitions(UniqueRepresentation, Parent):
             sage: P = Partitions(5, min_slope=0)
             sage: list(P)
             [[5], [1, 1, 1, 1, 1]]
+
+        Check that :issue:`21268` is fixed::
+
+            sage: P = Partitions(5, min_slope=1)
+            Traceback (most recent call last):
+            ...
+            ValueError: the minimum slope must be nonpositive
         """
         if n is infinity:
             raise ValueError("n cannot be infinite")
