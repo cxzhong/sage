@@ -908,7 +908,7 @@ http://fricas.sourceforge.net.
         Check that lists of SageMath types are converted properly::
 
             sage: fricas([GF(13)(-1)]).typeOf()
-            List(PrimeField(13))    
+            List(PrimeField(13))
         """
         def _fricas_init_(x, use_special):
             if isinstance(x, bool):
@@ -931,7 +931,7 @@ http://fricas.sourceforge.net.
                     pass
             raise TypeError("unable to coerce element into %s" % self.name())
 
-        return self.new(_fricas_init_(x, use_special)
+        return self.new(_fricas_init_(x, use_special))
 
     def _function_class(self):
         """
