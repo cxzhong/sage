@@ -905,8 +905,12 @@ http://fricas.sourceforge.net.
             sage: l = list(range(1000))
             sage: fricas(l)[-1]
             999
+        Check that lists of SageMath types are converted properly::
+
+            sage: fricas([GF(13)(-1)]).typeOf()
+            List(PrimeField(13))    
         """
-        def _fricas_init_(x):
+        def _fricas_init_(x, use_special):
             if isinstance(x, bool):
                 return self._true_symbol() if x else self._false_symbol()
             if isinstance(x, int):
@@ -917,19 +921,17 @@ http://fricas.sourceforge.net.
             if isinstance(x, complex):
                 from sage.rings.complex_double import CDF
                 return CDF(x)._fricas_init_()
+            if isinstance(x, (list, tuple)):
+                X = ','.join(_fricas_init_(v, True) for v in x)
+                return self._left_list_delim() + X + self._right_list_delim()
             if use_special:
                 try:
-                    return self._fricas_init_()
+                    return x._fricas_init_()
                 except AttributeError:
                     pass
-            if isinstance(x, (list, tuple)):
-                X = ','.join(_fricas_init_(v) for v in x)
-                return self.new('%s%s%s' % (self._left_list_delim(), X,
-                                            self._right_list_delim()))
-
             raise TypeError("unable to coerce element into %s" % self.name())
 
-        return self.new(_fricas_init_(x))
+        return self.new(_fricas_init_(x, use_special)
 
     def _function_class(self):
         """
