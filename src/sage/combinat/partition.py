@@ -6264,7 +6264,7 @@ class Partitions(UniqueRepresentation, Parent):
             kwargs['max_slope'] = min(0, kwargs.get('max_slope', 0))
 
             if kwargs.get('min_slope', -float('inf')) > 0:
-                raise ValueError("the minimum slope must be nonnegative")
+                raise ValueError("the minimum slope must be nonpositive")
 
             if 'outer' in kwargs:
                 kwargs['ceiling'] = tuple(kwargs['outer'])
