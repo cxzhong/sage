@@ -2529,8 +2529,12 @@ class AbstractLabelledTree(AbstractTree):
 
            sage: t = BinaryTree([[None, None],[[],None]])
            sage: lt = t.canonical_labelling()
-           sage: lt.as_digraph()
+           sage: d1 = lt.as_digraph(); d1
            Digraph on 4 vertices
+           sage: d2 = lt.as_digraph(immutable=True); d2
+           Digraph on 4 vertices
+           sage: d1.is_isomorphic(d2)
+           True
         """
         from sage.graphs.digraph import DiGraph
         vertices = [self.label()]
