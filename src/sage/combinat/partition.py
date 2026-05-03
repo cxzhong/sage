@@ -6164,6 +6164,26 @@ class Partitions(UniqueRepresentation, Parent):
             Traceback (most recent call last):
             ...
             ValueError: the minimum slope must be nonpositive
+
+            sage: P = Partitions(min_slope=1)
+            Traceback (most recent call last):
+            ...
+            ValueError: the minimum slope must be nonpositive
+
+            sage: P = Partitions(5, min_slope=x^2)
+            Traceback (most recent call last):
+            ...
+            ValueError: the minimum slope must be an integer or coercible to an integer
+
+            sage: P = Partitions(3, min_slope=-1.0)
+            sage: list(P)
+            [[3], [2, 1], [1, 1, 1]]
+            sage: P = Partitions(3, min_slope=0)
+            sage: list(P)
+            [[3], [1, 1, 1]]
+            sage: P = Partitions(3, min_slope=-oo)
+            sage: P
+            Partitions of the integer 3
         """
         if n is infinity:
             raise ValueError("n cannot be infinite")
@@ -6174,6 +6194,18 @@ class Partitions(UniqueRepresentation, Parent):
             del kwargs['min_part']
         if 'max_slope' in kwargs and not kwargs['max_slope']:
             del kwargs['max_slope']
+        if 'min_slope' in kwargs:
+            if kwargs['min_slope'] == -infinity:
+                del kwargs['min_slope']
+            # ensure that min_slope is a nonpositive integer
+            else:
+                try:
+                    min_slope = ZZ(kwargs['min_slope'])
+                except (TypeError, ValueError):
+                    raise ValueError("the minimum slope must be an integer or coercible to an integer")
+                if min_slope > 0:
+                    raise ValueError("the minimum slope must be nonpositive")
+
         # preprocess for UniqueRepresentation
         if 'outer' in kwargs and not isinstance(kwargs['outer'], Partition):
             m = infinity
@@ -6269,9 +6301,6 @@ class Partitions(UniqueRepresentation, Parent):
 
             # max_slope is at most 0, and it is 0 by default
             kwargs['max_slope'] = min(0, kwargs.get('max_slope', 0))
-
-            if kwargs.get('min_slope', -float('inf')) > 0:
-                raise ValueError("the minimum slope must be nonpositive")
 
             if 'outer' in kwargs:
                 kwargs['ceiling'] = tuple(kwargs['outer'])
