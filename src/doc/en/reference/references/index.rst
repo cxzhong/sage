@@ -3051,6 +3051,10 @@ REFERENCES:
              Journal de théorie des nombres de Bordeaux,
              Volume 29 (2017) no. 3, pp. 875-902. :doi:`10.5802/jtnb.1005`
 
+.. [Ges2016] \I. M. Gessel. Lagrange inversion.
+             Journal of Combinatorial Theory, Series A,
+             Volume 144 (2016), pp. 212–249. :doi:`10.1016/j.jcta.2016.06.018`
+
 .. [GG2012] Jim Geelen and Bert Gerards, Characterizing graphic
             matroids by a system of linear equations,
             submitted, 2012. Preprint:
@@ -4024,6 +4028,11 @@ REFERENCES:
              and link polynomials.  Ann. of Math. (2) 126 (1987),
              no. 2, 335--388. :doi:`10.2307/1971403`
              :mathscinet:`MR0908150`
+
+.. [Joh2013] \F. Johansson. A fast algorithm for reversion of power series.
+             arXiv:1108.4772 [cs.SC] (2013).
+             https://arxiv.org/abs/1108.4772
+
 
 .. [Jon2005] \V. Jones, The Jones Polynomial, 2005.
              https://math.berkeley.edu/~vfr/jones.pdf
