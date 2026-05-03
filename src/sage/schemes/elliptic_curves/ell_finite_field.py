@@ -2934,10 +2934,11 @@ def special_supersingular_curve(F, q=None, *, endomorphism=False, maximal_order=
 
     - ``maximal_order`` -- boolean (default: ``False``); when set to ``True``,
       requires that ``endomorphism`` is also set to ``True``, and returns a
-      maximal order in the quaternion algebra `B_{p,\infty}` ramified at `p`
+      maximal order `\mathcal O` in the quaternion algebra `B_{p,\infty}` ramified at `p`
       and `\infty` such that `\vartheta\mapsto\mathbf i` and `\pi\mapsto\mathbf j`,
       where `\pi` is the `p`‑power Frobenius, defines an embedding of the
-      endomorphism ring of the constructed curve into `B_{p,\infty}`.
+      endomorphism ring of the constructed curve into `B_{p,\infty}` whose image
+      equals `\mathcal O`.
 
     EXAMPLES::
 
