@@ -1079,7 +1079,7 @@ class SageInputBuilder:
                     factors[i:i + 1] = []
                 else:
                     i += 1
-            if len(factors) == 0:
+            if not factors:
                 factors.append(SIE_literal_stringrep(self, '1'))
 
         prod = factors[0]
@@ -1125,7 +1125,7 @@ class SageInputBuilder:
                     terms[i:i + 1] = []
                 else:
                     i += 1
-            if len(terms) == 0:
+            if not terms:
                 terms.append(SIE_literal_stringrep(self, '0'))
 
         sum = terms[0]
@@ -1168,14 +1168,13 @@ class SageInputBuilder:
         s = sif.format(e, 0)
 
         locals = self._locals
-        if len(locals):
+        if locals:
             return SageInputAnswer(sif._commands, sif.format(e, 0), locals)
         return SageInputAnswer(sif._commands, sif.format(e, 0))
 
 
-# Python's precedence levels.  Hand-transcribed from section 5.14 of
-# the Python 2 reference manual.  In the Python 3 reference manual
-# this is section 6.16.
+# Python's precedence levels.  Hand-transcribed from section 6.16 of
+# the Python 3 reference manual.
 # See https://docs.python.org/3/reference/expressions.html
 _prec_lambda = 2
 _prec_or = 4
@@ -3584,7 +3583,7 @@ class SageInputAnswer(tuple):
             return tuple.__new__(cls, (cmds, expr, locals))
         return tuple.__new__(cls, (cmds, expr))
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         r"""
         Return a string representation for a :class:`SageInputAnswer`,
         such that if you evaluate this :class:`SageInputAnswer` at the
