@@ -571,13 +571,12 @@ s := Cputime(t);
 
 
 #######################################################################
-# Dense Benchmarks over GF(p), for small p.
+# Dense Benchmarks over GF(p).
 #######################################################################
 
 def report_GF(p=16411, **kwds):
     """
-    Run all the reports for finite field matrix operations, for
-    prime p=16411.
+    Run all the reports for finite field matrix operations.
 
     INPUT:
 
