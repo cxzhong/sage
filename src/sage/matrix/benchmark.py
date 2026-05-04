@@ -18,6 +18,7 @@ The basic command syntax is as follows::
     ======================================================================
 """
 
+import inspect
 import sys
 
 from sage.matrix.constructor import Matrix, random_matrix
@@ -69,7 +70,12 @@ def report(F, title, systems=['sage', 'magma'], **kwds):
     print('\n')
     for f in F:
         print("-"*70)
-        print(f.__doc__.strip())
+        parameter_values = []
+        for param, value in inspect.signature(f).parameters.items():
+            if param == 'system':
+                continue
+            parameter_values.append(f'{param}={kwds.get(param, value.default)}')
+        print(f'{f.__name__}:', ', '.join(parameter_values))
         print(('%15s' * len(systems)) % tuple(systems))
         w = []
         for s in systems:
@@ -575,14 +581,8 @@ def report_GF(p=16411, **kwds):
 
     INPUT:
 
-    - ``p`` -- ignored
+    - ``p`` -- prime number (default: ``16411``)
     - ``**kwds`` -- passed through to :func:`report`
-
-    .. NOTE::
-
-        right now, even though p is an input, it is being ignored!  If
-        you need to check the performance for other primes, you can
-        call individual benchmark functions.
 
     EXAMPLES::
 
@@ -596,8 +596,9 @@ def report_GF(p=16411, **kwds):
         ======================================================================
     """
     F = [rank_GF, rank2_GF, nullspace_GF, charpoly_GF,
-         matrix_multiply_GF, det_GF]
+         matrix_multiply_GF, matrix_add_GF, det_GF]
     title = 'Dense benchmarks over GF with prime %i' % p
+    kwds['p'] = p
     report(F, title, **kwds)
 
 # Nullspace over GF
