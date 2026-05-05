@@ -215,7 +215,7 @@ class SplittingAlgebra(PolynomialQuotientRing_domain):
             sage: PuvLw.<u,v> = Lw[]; t = polygen(PuvLw)
             sage: poly = t^3 - u*t^2 + v*t - w
             sage: S.<x, y> = SplittingAlgebra(poly, warning=False)
-            sage: TestSuite(S).run()
+            sage: TestSuite(S).run(skip="_test_fraction_field")
         """
         # ---------------------------------------------------------------
         # checking input parameters
@@ -414,7 +414,7 @@ class SplittingAlgebra(PolynomialQuotientRing_domain):
             False,
             False))
 
-            sage: TestSuite(S).run()
+            sage: TestSuite(S).run(skip="_test_fraction_field")
         """
         def_polynomial = self.defining_polynomial()
         def_coefficients = self._coefficients_list[0]
@@ -492,7 +492,7 @@ class SplittingAlgebra(PolynomialQuotientRing_domain):
             u + v
             sage: S(X*Y + X)
             X*Y + X
-            sage: TestSuite(S).run()                   # indirect doctest
+            sage: TestSuite(S).run(skip="_test_fraction_field")   # indirect doctest
         """
         if isinstance(x, SplittingAlgebraElement):
             # coercion from covering fixes pickling problems

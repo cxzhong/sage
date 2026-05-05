@@ -1204,9 +1204,10 @@ class PolynomialQuotientRing_generic(QuotientRing_generic):
         if self not in IntegralDomains():
             raise TypeError("self must be an integral domain")
 
-        # frac = self.base_ring().fraction_field()
-        # HERE: changing the base ring to its fraction field is causing issues
-        return self.base().quo(self.modulus(), category=Fields())
+        if not self.modulus().is_irreducible():
+            raise NotImplementedError("cannot determine that the modulus is irreducible")
+        frac = self.base_ring().fraction_field()
+        return self.base().change_ring(frac).quo(self.modulus(), category=Fields())
 
     def random_element(self, degree=None, *args, **kwds):
         """
