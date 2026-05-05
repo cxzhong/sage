@@ -3748,7 +3748,7 @@ class RuleRSK(RulePartitions):
 
     For rectangular fillings, we could also use the (faster)
     implementation provided via :func:`~sage.combinat.rsk.RSK`.
-    Because the of the coordinate conventions in
+    Because of the coordinate conventions in
     :func:`~sage.combinat.rsk.RSK`, we have to transpose matrices::
 
         sage: [G.P_symbol(), G.Q_symbol()] == RSK(m.transpose())
