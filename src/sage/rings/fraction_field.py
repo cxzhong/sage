@@ -178,7 +178,7 @@ class FractionField_generic(ring.Field):
             cat = cat.Infinite()
         elif R in Rings().Finite():
             cat = cat.Finite()
-        Parent.__init__(self, base=R, names=R._names, category=cat)
+        Parent.__init__(self, base=R, names=R._names, normalize=False, category=cat)
 
     def __reduce__(self):
         """
