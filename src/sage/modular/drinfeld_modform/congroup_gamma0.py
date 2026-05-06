@@ -223,7 +223,7 @@ class Gamma0_class(Group, UniqueRepresentation):
         """
         base = level.parent()
         if not (isinstance(level, Polynomial) and base.base_ring() in FiniteFields()):
-            raise TypeError("Base ring must be a polynomial ring over a finite field")
+            raise TypeError("base ring must be a polynomial ring over a finite field")
         level = level.monic()
         return super().__classcall__(cls, base, level)
 
@@ -400,7 +400,7 @@ class Gamma0_class(Group, UniqueRepresentation):
             sage: Gamma0(T^5 - 3*T^4 + 1).genus()
             155
 
-        If N is irreducible, the formula simplifies as follows::
+        If the level `N` is irreducible, the formula simplifies as follows::
 
             sage: def genus_irr(N):
             ....:     q = N.base_ring().cardinality()
@@ -410,11 +410,13 @@ class Gamma0_class(Group, UniqueRepresentation):
             ....:     else:
             ....:          g = (q^d - q) / (q^2 - 1)
             ....:     return g
+
             sage: N = T^6 + T^4 + 4*T^3 + T^2 + 2
             sage: N.is_irreducible()
             True
             sage: Gamma0(N).genus() == genus_irr(N)
             True
+
             sage: N = T^7 + 3*T + 3
             sage: N.is_irreducible()
             True
@@ -440,7 +442,7 @@ class Gamma0_class(Group, UniqueRepresentation):
 
     def ncusps(self):
         r"""
-        Return the number of cusps of ``self`` i.e. the number of cusps of the
+        Return the number of cusps of ``self``, i.e. the number of cusps of the
         Drinfeld modular curve attached to ``self``.
 
         EXAMPLES::
@@ -453,13 +455,17 @@ class Gamma0_class(Group, UniqueRepresentation):
             sage: Gamma0(T^7 - 3*T^4 + 1).ncusps()
             8
 
-        If `N` is irreducible, the number of cusps is `2`. We can check it::
+        If the level `N` is irreducible, the number of cusps is `2`.
+        We check it below::
 
             sage: N = T^6 + T^4 + 4*T^3 + T^2 + 2
             sage: N.is_irreducible()
             True
             sage: Gamma0(N).ncusps() == 2
             True
+
+        ::
+
             sage: N = T^7 + 3*T + 3
             sage: N.is_irreducible()
             True
@@ -492,7 +498,7 @@ class Gamma0_class(Group, UniqueRepresentation):
             900
 
         If the level `N` is irreducible, the index is `1 + q^{\mathrm{deg}(N)}`.
-        We can check it::
+        We check it on an example below::
 
             sage: N = T^4 + 4*T^2 + 4*T + 2
             sage: N.is_irreducible()
