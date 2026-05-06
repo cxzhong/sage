@@ -6494,7 +6494,7 @@ class ConvexRationalPolyhedralCone(IntegralRayCollection, Container, ConvexSet_c
             sage: K.irreducible_factors() == {K}
             True
 
-        We can decompose reducible cones that aren't solid::
+        We can decompose reducible cones that are not solid::
 
             sage: K = Cone([(1,0,0), (0,1,0)])
             sage: expected = {Cone([r]) for r in K.rays()}
