@@ -1202,6 +1202,18 @@ class HypergeometricAlgebraic_QQ(HypergeometricAlgebraic):
             sage: g = hypergeometric([1/3, 2/3, 1/4], [5/4, 1/2], x)
             sage: g.is_algebraic()
             False
+
+        Using `fricas`, we can further compute minimal polynomials::
+
+            sage: fricas.guessAlg(f.power_series(20).list())  # optional - fricas
+            [
+                 n                    3
+              [[x ]f(x): (4 x - 4)f(x)  + 3 f(x) + 1 = 0,
+                                    2         3
+                          4 x   80 x    1792 x       4
+               f(x) = 1 + --- + ----- + ------- + O(x )]
+                           9     243      6561
+              ]
         """
         parameters = self._parameters.remove_positive_integer_differences()
         if any(a in ZZ and a <= 0 for a in parameters.top):
