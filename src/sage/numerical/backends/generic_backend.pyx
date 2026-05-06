@@ -1681,8 +1681,23 @@ def default_mip_solver(solver=None):
         except ImportError:
             raise ValueError("Gurobi is not available. Please refer to the documentation to install it.")
 
-    elif solver == "Glpk" or solver == "Glpk/exact":
-        default_solver = solver
+    elif solver == "Glpk":
+        try:
+            from sage.numerical.backends.glpk_backend import GLPKBackend
+            default_solver = solver
+        except ImportError:
+            raise ValueError(
+                "GLPK is not available. Please refer to the documentation to install it."
+            )
+
+    elif solver == "Glpk/exact":
+        try:
+            from sage.numerical.backends.glpk_exact_backend import GLPKExactBackend
+            default_solver = solver
+        except ImportError:
+            raise ValueError(
+                "GLPK/exact is not available. Please refer to the documentation to install it."
+            )
 
     elif solver == "Highs":
         try:

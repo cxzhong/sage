@@ -1,5 +1,5 @@
 # Cannot be found via pkg-config
-glpk = cc.find_library('glpk', required: not is_windows, disabler: true)
+glpk = cc.find_library('glpk', required: false, disabler: true)
 
 py.install_sources(
   '__init__.py',
@@ -55,13 +55,20 @@ extension_data = {
 }
 
 foreach name, pyx : extension_data
+  deps = [py_dep, cysignals, gmp]
+  if name in ['glpk_backend', 'glpk_exact_backend', 'glpk_graph_backend']
+    deps += [glpk]
+  elif name == 'highs_backend'
+    deps += [highs]
+  endif
+
   py.extension_module(
     name,
     sources: pyx,
     subdir: 'sage/numerical/backends',
     install: true,
     include_directories: [inc_cpython, inc_rings],
-    dependencies: [py_dep, cysignals, glpk, gmp, highs],
+    dependencies: deps,
   )
 endforeach
 
