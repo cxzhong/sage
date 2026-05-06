@@ -691,7 +691,7 @@ class PolynomialQuotientRing_generic(QuotientRing_generic):
         Rpoly = S(self.polynomial_ring())
         Rpoly.set_ring()
         modulus = S(self.modulus()) # should live in Rpoly
-        Rtmp = S(self.polynomial_ring().change_var(self.variable_name()))
+        Rtmp = S(self.polynomial_ring().change_variable_name(self.variable_name()))
         Rtmp.set_ring()
         self.__singular = S("ideal(fetch(%s,%s))" % (Rpoly.name(),modulus.name()),"qring")
         return self.__singular

@@ -1053,7 +1053,7 @@ class PolynomialRing_generic(Ring):
 
         return PolynomialRing(R, names=self.variable_name(), sparse=self.is_sparse())
 
-    def change_var(self, var):
+    def change_variable_name(self, var):
         r"""
         Return the polynomial ring in variable ``var`` over the same base
         ring.
@@ -1062,12 +1062,14 @@ class PolynomialRing_generic(Ring):
 
             sage: R.<x> = ZZ[]; R
             Univariate Polynomial Ring in x over Integer Ring
-            sage: R.change_var('y')
+            sage: R.change_variable_name('y')
             Univariate Polynomial Ring in y over Integer Ring
         """
         from sage.rings.polynomial.polynomial_ring_constructor import PolynomialRing
 
         return PolynomialRing(self.base_ring(), names=var, sparse=self.is_sparse())
+
+    change_var = change_variable_name
 
     def extend_variables(self, added_names, order='degrevlex'):
         r"""
