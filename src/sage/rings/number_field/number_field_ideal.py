@@ -29,13 +29,13 @@ AUTHORS:
 
 SMALL_DISC = 1000000
 
-import sage.misc.latex as latex
+from sage.misc import latex
 
-import sage.rings.rational_field as rational_field
-import sage.rings.integer_ring as integer_ring
+from sage.rings import rational_field
+from sage.rings import integer_ring
 from sage.arith.misc import kronecker as kronecker_symbol
 from sage.arith.misc import GCD as gcd
-import sage.misc.misc as misc
+from sage.misc import misc
 from sage.rings.finite_rings.finite_field_constructor import FiniteField
 
 from sage.rings.ideal import Ideal_generic, Ideal_fractional
@@ -273,7 +273,6 @@ class NumberFieldIdeal(Ideal_generic):
 
         EXAMPLES::
 
-            sage: # needs sage.symbolic
             sage: K.<I>=QQ[i]
             sage: A = K.ideal([5, 2 + I])
             sage: B = K.ideal([13, 5 + 12*I])
@@ -539,8 +538,7 @@ class NumberFieldIdeal(Ideal_generic):
         two_gens = self.gens_two()
         if two_gens[1]:
             return two_gens
-        else:
-            return (two_gens[0],)
+        return (two_gens[0],)
 
     def __pari__(self):
         """
@@ -1782,41 +1780,8 @@ def basis_to_module(B, K):
     return M.span_of_basis(C)
 
 
-def is_NumberFieldIdeal(x):
-    """
-    Return ``True`` if `x` is an ideal of a number field.
-
-    EXAMPLES::
-
-        sage: from sage.rings.number_field.number_field_ideal import is_NumberFieldIdeal
-        sage: is_NumberFieldIdeal(2/3)
-        doctest:warning...
-        DeprecationWarning: The function is_NumberFieldIdeal is deprecated;
-        use 'isinstance(..., NumberFieldIdeal)' instead.
-        See https://github.com/sagemath/sage/issues/38124 for details.
-        False
-        sage: is_NumberFieldIdeal(ideal(5))
-        False
-
-        sage: x = polygen(ZZ)
-        sage: k.<a> = NumberField(x^2 + 2)
-        sage: I = k.ideal([a + 1]); I
-        Fractional ideal (a + 1)
-        sage: is_NumberFieldIdeal(I)
-        True
-        sage: Z = k.ideal(0); Z
-        Ideal (0) of Number Field in a with defining polynomial x^2 + 2
-        sage: is_NumberFieldIdeal(Z)
-        True
-    """
-    from sage.misc.superseded import deprecation
-    deprecation(38124,
-                "The function is_NumberFieldIdeal is deprecated; "
-                "use 'isinstance(..., NumberFieldIdeal)' instead.")
-    return isinstance(x, NumberFieldIdeal)
-
-
-class NumberFieldFractionalIdeal(MultiplicativeGroupElement, NumberFieldIdeal, Ideal_fractional):
+class NumberFieldFractionalIdeal(MultiplicativeGroupElement, NumberFieldIdeal,
+                                 Ideal_fractional):
     r"""
     A fractional ideal in a number field.
 
@@ -2471,7 +2436,7 @@ class NumberFieldFractionalIdeal(MultiplicativeGroupElement, NumberFieldIdeal, I
         self._num_ideal = self * self.denominator()
         return self._num_ideal
 
-    def is_coprime(self, other):
+    def is_coprime(self, other) -> bool:
         """
         Return ``True`` if this ideal is coprime to ``other``, else ``False``.
 
@@ -2524,8 +2489,7 @@ class NumberFieldFractionalIdeal(MultiplicativeGroupElement, NumberFieldIdeal, I
         if self.is_integral() and other.is_integral():
             if gcd(ZZ(self.absolute_norm()), ZZ(other.absolute_norm())) == 1:
                 return True
-            else:
-                return self+other == one
+            return self+other == one
         # This special case is necessary since the zero ideal is not a
         # fractional ideal!
         if other.absolute_norm() == 0:
@@ -3306,39 +3270,6 @@ class NumberFieldFractionalIdeal(MultiplicativeGroupElement, NumberFieldIdeal, I
         """
         bid = self._pari_bid_()
         return ZZ(self.number_field().pari_bnf().bnrclassno(bid))
-
-
-def is_NumberFieldFractionalIdeal(x):
-    """
-    Return ``True`` if `x` is a fractional ideal of a number field.
-
-    EXAMPLES::
-
-        sage: from sage.rings.number_field.number_field_ideal import is_NumberFieldFractionalIdeal
-        sage: is_NumberFieldFractionalIdeal(2/3)
-        doctest:warning...
-        DeprecationWarning: The function is_NumberFieldFractionalIdeal is deprecated;
-        use 'isinstance(..., NumberFieldFractionalIdeal)' instead.
-        See https://github.com/sagemath/sage/issues/38124 for details.
-        False
-        sage: is_NumberFieldFractionalIdeal(ideal(5))
-        False
-        sage: x = polygen(ZZ)
-        sage: k.<a> = NumberField(x^2 + 2)
-        sage: I = k.ideal([a + 1]); I
-        Fractional ideal (a + 1)
-        sage: is_NumberFieldFractionalIdeal(I)
-        True
-        sage: Z = k.ideal(0); Z
-        Ideal (0) of Number Field in a with defining polynomial x^2 + 2
-        sage: is_NumberFieldFractionalIdeal(Z)
-        False
-    """
-    from sage.misc.superseded import deprecation
-    deprecation(38124,
-                "The function is_NumberFieldFractionalIdeal is deprecated; "
-                "use 'isinstance(..., NumberFieldFractionalIdeal)' instead.")
-    return isinstance(x, NumberFieldFractionalIdeal)
 
 
 class QuotientMap:
