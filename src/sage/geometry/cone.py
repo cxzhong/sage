@@ -5900,7 +5900,6 @@ class ConvexRationalPolyhedralCone(IntegralRayCollection, Container, ConvexSet_c
             N(0, 0, 1, 0, 0, 0, 0, 0, 0),
             N(0, 0, 0, 0, 0, 1, 0, 0, 0)
             in 9-d lattice N
-
         """
         # These tensor products contain generators for the dual cone of
         # the cross-positive operators.
@@ -6163,7 +6162,7 @@ class ConvexRationalPolyhedralCone(IntegralRayCollection, Container, ConvexSet_c
 
         # Convert its rays from long vectors back to matrices.
         MS = MatrixSpace(self.lattice().base_field(), self.lattice_dim())
-        return [ MS(v.list()) for v in cp_cone ]
+        return [MS(v.list()) for v in cp_cone]
 
     def Z_operators_gens(self):
         r"""
@@ -6594,7 +6593,6 @@ class ConvexRationalPolyhedralCone(IntegralRayCollection, Container, ConvexSet_c
             sage: K = cones.trivial(4)
             sage: K.irreducible_factors() == {K}
             True
-
         """
         if not self.is_strictly_convex():
             raise ValueError("cone must be strictly convex (AKA pointed) for"
@@ -6627,10 +6625,10 @@ class ConvexRationalPolyhedralCone(IntegralRayCollection, Container, ConvexSet_c
         # represent rays of self, the W-coordinates have been
         # renumbered by pivots().
         vertices = list(range(self.nrays()))
-        edges = [ (i, pivots[j])
-                  for i in vertices
-                  for j in W.coordinate_vector(self.ray(i)).nonzero_positions()
-                  if pivots[j] != i ]
+        edges = [(i, pivots[j])
+                 for i in vertices
+                 for j in W.coordinate_vector(self.ray(i)).nonzero_positions()
+                 if pivots[j] != i]
         from sage.graphs.graph import Graph
         G = Graph([vertices, edges], format='vertices_and_edges')
 
@@ -6639,7 +6637,7 @@ class ConvexRationalPolyhedralCone(IntegralRayCollection, Container, ConvexSet_c
             # Special case where we don't want to pointlessly return an
             # equivalent but unequal copy of the input cone.
             return {self}
-        return { Cone(self.rays(c)) for c in G.connected_components() }
+        return {Cone(self.rays(c)) for c in G.connected_components()}
 
     def is_reducible(self):
         r"""
@@ -6707,7 +6705,6 @@ class ConvexRationalPolyhedralCone(IntegralRayCollection, Container, ConvexSet_c
             sage: d = K._cross_positive_operators_dual().dim()
             sage: K.is_reducible() == (d < K.dim()**2 - 1)
             True
-
         """
         return len(self.irreducible_factors()) > 1
 
