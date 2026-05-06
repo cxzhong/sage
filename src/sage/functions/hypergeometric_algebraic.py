@@ -263,7 +263,7 @@ class HypergeometricAlgebraic(Element):
         self._scalar = scalar
         self._parameters = parameters
         self._coeffs = [scalar]
-        self._coeffs_enriched = [[scalar, 0]]
+        self._coeffs_enriched = [[QQ(1), 0]]
         self._char = char
 
     def __hash__(self):
@@ -673,10 +673,19 @@ class HypergeometricAlgebraic(Element):
             sage: f._compute_coeffs(3)
             sage: f._coeffs
             [1, 4/9, 80/243]
+
+        ::
+
+            sage: R.<y> = GF(13)[]
+            sage: S.<x> = R[]
+            sage: f = y * hypergeometric([1/12, 1/6], [1/3], x)
+            sage: f.power_series(3)
+            y + 6*y*x + O(x^3)
         """
         start = len(self._coeffs) - 1
         c, z = self._coeffs_enriched[-1]
         R = self.base_ring()
+        scalar = self._scalar
         for i in range(start, prec - 1):
             for a in self._parameters.top:
                 if a + i == 0:
@@ -693,7 +702,7 @@ class HypergeometricAlgebraic(Element):
             elif z > 0:
                 self._coeffs.append(R.zero())
             else:
-                self._coeffs.append(R(c))
+                self._coeffs.append(scalar * R(c))
             self._coeffs_enriched.append([c, z])
 
     def __getitem__(self, n):
@@ -1766,7 +1775,7 @@ class HypergeometricAlgebraic_GFp(HypergeometricAlgebraic):
         INPUT:
 
         - ``parent`` -- the parent of this function, which has to be
-          defined over the p-adics
+          defined over a finite field
 
         - ``arg1``, ``arg2`` -- arguments defining this hypergeometric
           function, they can be:
@@ -1800,7 +1809,7 @@ class HypergeometricAlgebraic_GFp(HypergeometricAlgebraic):
         """
         HypergeometricAlgebraic.__init__(self, parent, arg1, arg2, scalar, check)
         self._p = p = self.base_ring().cardinality()
-        self._coeffs_enriched = [(Qp(p, 1)(self._scalar), 0)]
+        self._coeffs_enriched = [(Qp(p, 1).one(), 0)]
 
     # def __call__(self, x):
     #     return self.polynomial()(x)
@@ -2035,12 +2044,13 @@ class HypergeometricAlgebraic_GFp(HypergeometricAlgebraic):
             sage: g.section(2)
             0
         """
-        if self._scalar == 0:
+        scalar = self._scalar
+        if scalar == 0:
             return self
         H = self.parent()
         p = self._p
         self._compute_coeffs(r+1)
-        hr, z = self._coeffs_enriched[r]
+        hr, z = scalar * self._coeffs_enriched[r]
         if z > 0:
             return H.zero()
         parameters = self._parameters.shift(r).dwork_image(p)
