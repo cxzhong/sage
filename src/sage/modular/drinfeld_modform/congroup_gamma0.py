@@ -46,6 +46,26 @@ class Gamma0Element(MultiplicativeGroupElement):
             sage: G = Gamma0(T^4 + 2*T + 3)
             sage: g = G.an_element()
             sage: TestSuite(g).run()
+
+        ::
+
+            sage: G([1, 0, T^4 + 2*T + 3, 1])
+            [            1             0]
+            [T^4 + 2*T + 3             1]
+
+        ::
+
+            sage: G([1, T, T^4 + 2*T + 3, 1])
+            Traceback (most recent call last):
+            ...
+            ValueError: not in Gamma0(T^4 + 2*T + 3)
+
+        ::
+
+            sage: G([1, 0, T, 1])
+            Traceback (most recent call last):
+            ...
+            ValueError: not in Gamma0(T^4 + 2*T + 3)
         """
         MultiplicativeGroupElement.__init__(self, parent)
         MS = parent.matrix_space()

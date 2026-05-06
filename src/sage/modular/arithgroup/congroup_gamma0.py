@@ -38,6 +38,15 @@ def Gamma0_constructor(N):
         True
         sage: G is Gamma0(51)
         True
+
+    The construction also works when `N` is a polynomial over a finite field
+    (see :mod:`sage.modular.drinfeld_modform.congroup_gamma0`)::
+
+        sage: A.<T> = GF(5)[]
+        sage: G = Gamma0(T^4 + 2*T + 3)
+        sage: G
+        Congruence Subgroup Gamma0(T^4 + 2*T + 3)
+
     """
     from sage.modular.arithgroup.all import SL2Z
     if isinstance(N, Polynomial):
