@@ -289,8 +289,11 @@ from __future__ import annotations
 from collections import defaultdict
 from copy import copy
 from itertools import product
+import weakref
 
 from sage.misc.cachefunc import cached_method
+from sage.misc.classcall_metaclass import ClasscallMetaclass, typecall
+from sage.misc.fast_methods import WithEqualityById
 from sage.misc.lazy_attribute import lazy_attribute
 from sage.misc.misc_c import prod
 from sage.categories.category import Category
@@ -298,7 +301,6 @@ from sage.categories.sets_cat import Sets
 from sage.categories.finite_enumerated_sets import FiniteEnumeratedSets
 from sage.categories.posets import Posets
 from sage.categories.finite_posets import FinitePosets
-from sage.misc.weak_dict import WeakValueDictionary
 from sage.structure.unique_representation import UniqueRepresentation
 from sage.structure.parent import Parent
 from sage.rings.integer import Integer
@@ -623,12 +625,11 @@ def Poset(data=None, element_labels=None, cover_relations=False, linear_extensio
             sage: P.an_element().parent()
             Integer Ring
 
-    .. rubric:: Unique representation
+    .. rubric:: Construction cache
 
-    As most parents, :class:`Poset` have unique representation (see
-    :class:`UniqueRepresentation`). Namely if two posets are created
-    from two equal data, then they are not only equal but actually
-    identical::
+    The constructor caches finite posets.  Namely if two posets are
+    created from two equal data, then they are not only equal but
+    actually identical::
 
         sage: data1 = [[1,2],[3],[3]]
         sage: data2 = [[1,2],[3],[3]]
@@ -638,6 +639,11 @@ def Poset(data=None, element_labels=None, cover_relations=False, linear_extensio
         True
         sage: P1 is P2
         True
+
+    The cache holds only weak references, so this identity is guaranteed
+    only while at least one reference to the poset is alive.  Once all
+    references are dropped, the cached entry is discarded and a fresh
+    construction yields a new (but equal) object.
 
     In situations where this behaviour is not desired, one can use the
     ``key`` option::
@@ -649,9 +655,8 @@ def Poset(data=None, element_labels=None, cover_relations=False, linear_extensio
         sage: P1 == P2
         False
 
-    ``key`` can be any hashable value and is passed down to
-    :class:`UniqueRepresentation`. It is otherwise ignored by the
-    poset constructor.
+    ``key`` can be any hashable value and is included in the cache key.
+    It is otherwise ignored by the poset constructor.
 
     TESTS::
 
@@ -781,7 +786,7 @@ def Poset(data=None, element_labels=None, cover_relations=False, linear_extensio
     return FinitePoset(D, elements=elements, category=category, facade=facade, key=key)
 
 
-class FinitePoset(UniqueRepresentation, Parent):
+class FinitePoset(WithEqualityById, Parent, metaclass=ClasscallMetaclass):
     r"""
     A (finite) `n`-element poset constructed from a directed acyclic graph.
 
@@ -906,8 +911,8 @@ class FinitePoset(UniqueRepresentation, Parent):
 
     TESTS:
 
-    Equality is derived from :class:`UniqueRepresentation`. We check that this
-    gives consistent results::
+    Equality is by identity.  The constructor cache ensures that equal
+    construction data still give the same object::
 
         sage: P = Poset([[1,2],[3],[3]])
         sage: P == P
@@ -953,11 +958,118 @@ class FinitePoset(UniqueRepresentation, Parent):
     _lin_ext_type = LinearExtensionsOfPoset
     _desc = 'Finite poset'
 
-    # Custom cache using WeakValueDictionary with integer-labeled
-    # HasseDiagram keys.  This avoids a memory leak where element labels
-    # that reference back to the poset keep it alive via
-    # UniqueRepresentation's cache key (see :issue:`14356`).
-    _cache = WeakValueDictionary()
+    # This cache uses reference-free fingerprint keys to choose a bucket,
+    # then validates exact equality before reusing a cached instance.  The
+    # cache dict itself is strong, but its values are short lists of
+    # ``weakref.ref`` to the cached posets, with finalizers that prune dead
+    # entries.  Labels or ``key`` values which reference the poset therefore
+    # do not keep it alive through the cache (see :issue:`14356`).
+    _cache = {}
+
+    @staticmethod
+    def _fingerprint(obj):
+        """
+        Return a cache fingerprint for ``obj`` without keeping ``obj`` alive.
+        """
+        try:
+            return hash(obj)
+        except TypeError:
+            return id(obj)
+
+    @staticmethod
+    def _normalized_elements(elements):
+        """
+        Return elements with the same integer normalization as ``__init__``.
+        """
+        return tuple(Integer(i) if isinstance(i, int) else i
+                     for i in elements)
+
+    @classmethod
+    def _cache_key(cls, hasse_diagram, elements, category, facade, key):
+        """
+        Return a cache key that does not strongly reference labels or ``key``.
+        """
+        hd_fp = cls._fingerprint(hasse_diagram)
+        if elements is None:
+            elements_fp = None
+        else:
+            elements_fp = (len(elements),
+                           tuple(cls._fingerprint(e) for e in elements))
+        key_fp = None if key is None else cls._fingerprint(key)
+        return (cls, hd_fp, elements_fp, category, facade, key_fp)
+
+    @classmethod
+    def _cache_match(cls, cached, hasse_diagram, elements, key):
+        """
+        Return whether ``cached`` was constructed from these exact arguments.
+
+        The graph comparison is done directly against the cached
+        :class:`HasseDiagram` (which is a :class:`DiGraph`) so that no fresh
+        :class:`HasseDiagram` needs to be constructed on every cache lookup.
+        """
+        try:
+            if cached._key != key:
+                return False
+            if cached._with_linear_extension != (elements is not None):
+                return False
+            if elements is None:
+                cached_hasse_diagram = cached._hasse_diagram.relabel(
+                    dict(enumerate(cached._elements)), inplace=False)
+                return cached_hasse_diagram == hasse_diagram
+
+            normalized_elements = cls._normalized_elements(elements)
+            if cached._elements != normalized_elements:
+                return False
+            relabel = {element: i
+                       for i, element in enumerate(normalized_elements)}
+            relabeled = hasse_diagram.relabel(relabel, inplace=False)
+            return cached._hasse_diagram == relabeled
+        except (AttributeError, TypeError, ValueError):
+            return False
+
+    @classmethod
+    def _cache_hit(cls, cache_key, hasse_diagram, elements, key):
+        """
+        Return a matching cached poset, pruning dead entries in the bucket.
+        """
+        bucket = cls._cache.get(cache_key)
+        if bucket is None:
+            return None
+
+        live = []
+        match = None
+        for ref in bucket:
+            cached = ref()
+            if cached is None:
+                continue
+            live.append(ref)
+            if match is None and cls._cache_match(cached, hasse_diagram,
+                                                  elements, key):
+                match = cached
+
+        if not live:
+            cls._cache.pop(cache_key, None)
+        elif len(live) != len(bucket):
+            cls._cache[cache_key] = live
+        return match
+
+    @classmethod
+    def _cache_store(cls, cache_key, poset):
+        """
+        Store ``poset`` in the weak cache under ``cache_key``.
+        """
+        def remove(ref, cache=cls._cache, key=cache_key):
+            bucket = cache.get(key)
+            if bucket is None:
+                return
+            try:
+                bucket.remove(ref)
+            except ValueError:
+                return
+            if not bucket:
+                cache.pop(key, None)
+
+        cls._cache.setdefault(cache_key, []).append(weakref.ref(poset, remove))
 
     # The parsing of the construction data (like a list of cover relations)
     #   into a :class:`DiGraph` is done in :func:`Poset`.
@@ -1007,6 +1119,36 @@ class FinitePoset(UniqueRepresentation, Parent):
             sage: _ = gc.collect()
             sage: w() is None
             True
+
+        Same check when only ``key`` references the poset's owner
+        (default integer labels, no ``element_labels``)::
+
+            sage: foo = Foo()
+            sage: foo.poset = Poset(DiGraph({0: [1, 2], 1: [3], 2: [3]}),
+            ....:                   key=foo)
+            sage: w = weakref.ref(foo.poset)
+            sage: del foo
+            sage: _ = gc.collect()
+            sage: w() is None
+            True
+
+        Identity is preserved while a reference is alive, but a fresh
+        construction after the poset has been garbage collected yields
+        a new (equal) object::
+
+            sage: data = [[1, 2], [3], [3]]
+            sage: P = Poset(data)
+            sage: Poset(data) is P
+            True
+            sage: import weakref, gc
+            sage: w = weakref.ref(P)
+            sage: del P
+            sage: _ = gc.collect()
+            sage: w() is None
+            True
+            sage: Q = Poset(data)
+            sage: Q == Poset(data)
+            True
         """
         assert isinstance(hasse_diagram, (FinitePoset, DiGraph))
         if isinstance(hasse_diagram, FinitePoset):
@@ -1035,53 +1177,16 @@ class FinitePoset(UniqueRepresentation, Parent):
             category = category._without_axiom("Facade")
         category = Category.join([FinitePosets().or_subcategory(category), FiniteEnumeratedSets()])
 
-        # Build a reference-free cache key from the hash of the labeled
-        # hasse_diagram.  Using hashes (integers) avoids holding strong
-        # references to element objects in the cache key, which prevents
-        # a memory leak when element labels reference the poset itself
-        # (see :issue:`14356`).
-        try:
-            _hd_hash = hash(hasse_diagram)
-        except TypeError:
-            _hd_hash = id(hasse_diagram)
-        if elements is None:
-            _elts_hash = 0
-        else:
-            try:
-                _elts_hash = hash(elements)
-            except TypeError:
-                _elts_hash = hash(tuple(id(e) for e in elements))
-
-        cache_key = (cls, _hd_hash, _elts_hash,
-                     elements is not None, category, facade, key)
-
-        cached = cls._cache.get(cache_key)
+        cache_key = cls._cache_key(hasse_diagram, elements, category,
+                                   facade, key)
+        cached = cls._cache_hit(cache_key, hasse_diagram, elements, key)
         if cached is not None:
-            # Validate the cached instance against the incoming data
-            # to guard against hash collisions.  Two structurally-
-            # isomorphic posets whose vertex labels have pairwise equal
-            # hashes but different parents (e.g. root lattice of C2 vs.
-            # coroot lattice of B2) will collide in the hash-based key.
-            # Reconstruct the labeled vertex list from the cached instance
-            # and compare with the incoming hasse_diagram's vertices.
-            try:
-                cached_verts = set(cached._hasse_diagram.relabel(
-                    dict(enumerate(cached._elements)), inplace=False).vertices())
-                incoming_verts = set(hasse_diagram.vertices())
-                if cached_verts == incoming_verts:
-                    return cached
-            except Exception:
-                return cached
+            return cached
 
         # Create the instance directly via typecall (equivalent to
-        # type.__call__), bypassing both CachedRepresentation's
-        # weak_cached_function cache and WithPicklingByInitArgs's
-        # _reduction attribute.  Both would store the full arguments
-        # — including element labels — as strong references and
-        # thereby prevent garbage collection when labels reference
-        # the poset (see :issue:`14356`).  Pickling is handled by
-        # the __reduce__ override below.
-        from sage.misc.classcall_metaclass import typecall
+        # type.__call__), bypassing caches which would store the full
+        # constructor arguments, including element labels, as strong
+        # references.  Pickling is handled by the __reduce__ override below.
         result = typecall(
             cls, hasse_diagram=hasse_diagram, elements=elements,
             category=category, facade=facade, key=key)
@@ -1090,7 +1195,7 @@ class FinitePoset(UniqueRepresentation, Parent):
         # reconstruct through the same __classcall__ entry point.
         result._reduction_cls = cls
 
-        cls._cache[cache_key] = result
+        cls._cache_store(cache_key, result)
         return result
 
     @classmethod
@@ -1116,10 +1221,8 @@ class FinitePoset(UniqueRepresentation, Parent):
         """
         Return pickling data for this poset.
 
-        This overrides :meth:`WithPicklingByInitArgs.__reduce__`
-        because ``__classcall__`` no longer stores ``_reduction``
-        (to avoid the memory leak described in :issue:`14356`).
-        The constructor arguments are recomputed here at pickle time.
+        The constructor arguments are recomputed here at pickle time instead
+        of being stored as strong references when the poset is created.
 
         TESTS::
 
@@ -1146,6 +1249,76 @@ class FinitePoset(UniqueRepresentation, Parent):
         if d:
             return (unreduce, reduction, d)
         return (unreduce, reduction)
+
+    def __getstate__(self):
+        """
+        Return the state to pickle for this poset.
+
+        Only cached methods that opt into ``do_pickle=True`` are preserved;
+        all other state is rebuilt by :meth:`__classcall__` / :meth:`__init__`
+        when the pickle is loaded.  This keeps the pickle stream small and
+        avoids carrying strong references to element labels that could
+        defeat the leak fix from :issue:`14356`.
+
+        TESTS::
+
+            sage: P = Poset({0: [1, 2], 1: [3], 2: [3]})
+            sage: P.__getstate__()
+            {}
+            sage: loads(dumps(P)) is P
+            True
+
+        Cached methods that opt into ``do_pickle=True`` are preserved
+        across pickling.  We simulate one by stashing a
+        :class:`~sage.misc.cachefunc.CachedFunction` directly into the
+        instance dictionary::
+
+            sage: from sage.misc.cachefunc import cached_function
+            sage: @cached_function(do_pickle=True)
+            ....: def f(x):
+            ....:     return x
+            sage: P.cached = f
+            sage: state = P.__getstate__()
+            sage: list(state) == ['cached']
+            True
+            sage: state['cached'] is f
+            True
+            sage: del P.cached
+        """
+        from sage.misc.cachefunc import CachedFunction
+        return {key: value for key, value in self.__dict__.items()
+                if isinstance(value, CachedFunction)
+                and value.is_pickled_with_cache()}
+
+    def __setstate__(self, d):
+        """
+        Restore the pickled state of this poset.
+
+        See :meth:`__getstate__` for what is preserved across pickling.
+        """
+        self.__dict__.update(d)
+
+    def __copy__(self):
+        """
+        Return ``self`` as a semantic copy.
+
+        Finite posets are immutable parents identified by identity, so
+        ``copy(P) is P``::
+
+            sage: from copy import copy, deepcopy
+            sage: P = Poset({0: [1, 2], 1: [3], 2: [3]})
+            sage: copy(P) is P
+            True
+            sage: deepcopy(P) is P
+            True
+        """
+        return self
+
+    def __deepcopy__(self, memo):
+        """
+        Return ``self`` as a semantic deep copy.  See :meth:`__copy__`.
+        """
+        return self
 
     def __init__(self, hasse_diagram, elements, category, facade, key) -> None:
         r"""
