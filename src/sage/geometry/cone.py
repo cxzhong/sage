@@ -6639,7 +6639,7 @@ class ConvexRationalPolyhedralCone(IntegralRayCollection, Container, ConvexSet_c
             return {self}
         return {Cone(self.rays(c)) for c in G.connected_components()}
 
-    def is_reducible(self):
+    def is_reducible(self) -> bool:
         r"""
         Return whether or not this cone is reducible.
 
