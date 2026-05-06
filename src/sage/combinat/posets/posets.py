@@ -1003,9 +1003,12 @@ class FinitePoset(WithEqualityById, Parent, metaclass=ClasscallMetaclass):
         """
         Return whether ``cached`` was constructed from these exact arguments.
 
-        The graph comparison is done directly against the cached
-        :class:`HasseDiagram` (which is a :class:`DiGraph`) so that no fresh
-        :class:`HasseDiagram` needs to be constructed on every cache lookup.
+        For the ``elements is None`` branch we compare against
+        :attr:`_labeled_hasse_diagram` (a lazy attribute on ``cached``)
+        instead of relabeling on every lookup.  For the
+        ``elements is not None`` branch we relabel the *incoming* graph to
+        integer vertices once and compare against the cached internal
+        :class:`HasseDiagram` directly.
         """
         try:
             if cached._key != key:
@@ -1013,9 +1016,7 @@ class FinitePoset(WithEqualityById, Parent, metaclass=ClasscallMetaclass):
             if cached._with_linear_extension != (elements is not None):
                 return False
             if elements is None:
-                cached_hasse_diagram = cached._hasse_diagram.relabel(
-                    dict(enumerate(cached._elements)), inplace=False)
-                return cached_hasse_diagram == hasse_diagram
+                return cached._labeled_hasse_diagram == hasse_diagram
 
             normalized_elements = cls._normalized_elements(elements)
             if cached._elements != normalized_elements:
@@ -1157,6 +1158,17 @@ class FinitePoset(WithEqualityById, Parent, metaclass=ClasscallMetaclass):
                 category = poset.category()
             if facade is None:
                 facade = poset in Sets().Facade()
+            # Fast path: when the input is already a compatible
+            # ``FinitePoset`` of the right class, avoid relabeling and
+            # re-constructing it.
+            if (isinstance(poset, cls)
+                    and key == poset._key
+                    and category == poset.category()
+                    and facade == poset._is_facade
+                    and poset._with_linear_extension == (elements is not None)
+                    and (elements is None
+                         or tuple(elements) == poset._elements)):
+                return poset
             if elements is None:
                 relabel = dict(enumerate(poset._elements))
             else:
@@ -1392,6 +1404,26 @@ class FinitePoset(WithEqualityById, Parent, metaclass=ClasscallMetaclass):
         self._element_to_vertex_dict = rdict
         self._is_facade = facade
         self._key = key
+
+    @lazy_attribute
+    def _labeled_hasse_diagram(self):
+        """
+        The Hasse diagram relabeled with the original element labels.
+
+        This is the value that the constructor receives as ``hasse_diagram``
+        in the ``elements is None`` path; it is cached lazily so that the
+        :meth:`_cache_match` lookup does not need to relabel on every hit.
+
+        TESTS::
+
+            sage: P = Poset(DiGraph({'a': ['b'], 'b': ['c']}))
+            sage: P._labeled_hasse_diagram
+            Hasse diagram of a poset containing 3 elements
+            sage: sorted(P._labeled_hasse_diagram.vertices())
+            ['a', 'b', 'c']
+        """
+        return self._hasse_diagram.relabel(
+            dict(enumerate(self._elements)), inplace=False)
 
     @lazy_attribute
     def _list(self):
