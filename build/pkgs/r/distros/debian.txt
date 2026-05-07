@@ -1,3 +1,2 @@
 r-base
-# 29471
-r-cran-lattice
+r-base-dev
