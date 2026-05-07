@@ -443,7 +443,7 @@ class Gamma0_class(Group, UniqueRepresentation):
 
         REFERENCE:
 
-        [Gek2001]_
+        [Gek2001]_, Theorem 8.1
         """
         q = self._q
         L = self._level_factorized
@@ -492,7 +492,7 @@ class Gamma0_class(Group, UniqueRepresentation):
 
         REFERENCE:
 
-        [Gek2001]_
+        [Gek2001]_, Proposition 6.7
         """
         q = self._q
         L = self._level_factorized
