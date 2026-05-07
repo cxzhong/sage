@@ -89,6 +89,7 @@ braiding = dependency(
 highs_dep = dependency(
   'highs',
   version: '>=1.12.0',
+  method: 'pkg-config',
   required: false,
 )
 if not highs_dep.found()
