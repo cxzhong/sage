@@ -90,16 +90,23 @@ highs_dep = dependency(
   'highs',
   version: '>=1.12.0',
   required: true,
-  disabler: true,
+  fallback: ['highs', 'highs_dep'],
+  default_options: [
+    'do_install=false',
+    'highsint64=false',
+    'with_pybind11=false',
+    'with_tests=false',
+  ],
 )
-if highs_dep.found()
-  highs_includedir = highs_dep.get_variable(pkgconfig: 'prefix') / 'include' / 'highs'
+highs_prefix = highs_dep.get_variable(pkgconfig: 'prefix', default_value: '')
+if highs_prefix != ''
+  highs_includedir = highs_prefix / 'include' / 'highs'
   highs = declare_dependency(
     dependencies: [highs_dep],
     compile_args: ['-I' + highs_includedir],
   )
 else
-  highs = disabler()
+  highs = highs_dep
 endif
 gc = dependency(
   ['bdw-gc-threaded', 'bdw-gc'],
