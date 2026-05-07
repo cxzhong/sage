@@ -59,6 +59,7 @@ Features
    sage/features/pdf2svg
    sage/features/polymake
    sage/features/rubiks
+   sage/features/sirocco
    sage/features/tdlib
    sage/features/topcom
 
