@@ -89,15 +89,20 @@ braiding = dependency(
 highs_dep = dependency(
   'highs',
   version: '>=1.12.0',
-  required: true,
-  fallback: ['highs', 'highs_dep'],
-  default_options: [
-    'do_install=false',
-    'highsint64=false',
-    'with_pybind11=false',
-    'with_tests=false',
-  ],
+  required: false,
 )
+if not highs_dep.found()
+  highs_proj = subproject(
+    'highs',
+    default_options: [
+      'do_install=false',
+      'highsint64=false',
+      'with_pybind11=false',
+      'with_tests=false',
+    ],
+  )
+  highs_dep = highs_proj.get_variable('highs_dep')
+endif
 highs_prefix = highs_dep.get_variable(pkgconfig: 'prefix', default_value: '')
 if highs_prefix != ''
   highs_includedir = highs_prefix / 'include' / 'highs'
