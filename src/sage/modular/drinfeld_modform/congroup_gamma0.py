@@ -1,5 +1,8 @@
 r"""
-Congruence subgroups `\Gamma_0(N)` of `\mathrm{GL}_{2}(\mathbb{F}_{q}[T])`
+Congruence subgroups `\Gamma_0(N)` of `\mathrm{GL}_{2}(\mathbb{F}_{q}[T])`.
+
+By definition, it is the subgroup of matrices whose bottom left coefficient
+is divislble by `N`.
 
 AUTHORS:
 
@@ -26,6 +29,7 @@ from sage.categories.pushout import pushout
 from sage.groups.group import Group
 from sage.matrix.matrix_space import MatrixSpace
 from sage.misc.misc_c import prod
+from sage.rings.integer_ring import ZZ
 from sage.rings.polynomial.polynomial_element import Polynomial
 from sage.structure.element import MultiplicativeGroupElement
 from sage.structure.richcmp import richcmp
@@ -82,7 +86,7 @@ class Gamma0Element(MultiplicativeGroupElement):
 
     def __repr__(self):
         r"""
-        Return the string representation of the element ``self``.
+        Return the string representation of the element this element.
 
         EXAMPLES::
 
@@ -96,7 +100,7 @@ class Gamma0Element(MultiplicativeGroupElement):
 
     def _richcmp_(self, other, op):
         r"""
-        Compare ``self`` and ``other`` for the operator ``op``.
+        Compare this element with ``other`` for the operator ``op``.
 
         EXAMPLES::
 
@@ -112,7 +116,7 @@ class Gamma0Element(MultiplicativeGroupElement):
 
     def __reduce__(self):
         r"""
-        Return data defining the element ``self`` (for pickling).
+        Return data defining this element (for pickling).
 
         EXAMPLES::
 
@@ -146,7 +150,7 @@ class Gamma0Element(MultiplicativeGroupElement):
 
     def _mul_(self, other):
         r"""
-        Return the product of the element ``self`` with ``other``.
+        Return the product of this element with ``other``.
 
         EXAMPLES::
 
@@ -162,7 +166,7 @@ class Gamma0Element(MultiplicativeGroupElement):
 
     def __invert__(self):
         r"""
-        Return the inverse of the element ``self``.
+        Return the inverse of this element.
 
         EXAMPLES::
 
@@ -177,8 +181,8 @@ class Gamma0Element(MultiplicativeGroupElement):
 
     def level(self):
         r"""
-        Return the level of the congruence subgroup in which the element
-        ``self`` lives.
+        Return the level of the congruence subgroup in which this
+        element lives.
 
         EXAMPLES::
 
@@ -220,10 +224,19 @@ class Gamma0_class(Group, UniqueRepresentation):
             sage: G2 = Gamma0(T + 1)
             sage: G is G2
             False
+
+        ::
+
+            sage: Gamma0(A(0))
+            Traceback (most recent call last):
+            ...
+            ValueError: level must be nonzero
         """
         base = level.parent()
         if not (isinstance(level, Polynomial) and base.base_ring() in FiniteFields()):
             raise TypeError("base ring must be a polynomial ring over a finite field")
+        if level == 0:
+            raise ValueError("level must be nonzero")
         level = level.monic()
         return super().__classcall__(cls, base, level)
 
@@ -257,7 +270,7 @@ class Gamma0_class(Group, UniqueRepresentation):
 
     def __reduce__(self):
         r"""
-        Return data defining the element ``self`` (for pickling).
+        Return data defining this parent (for pickling).
 
         EXAMPLES::
 
@@ -271,7 +284,7 @@ class Gamma0_class(Group, UniqueRepresentation):
 
     def _repr_(self):
         r"""
-        Return the string representation of ``self``.
+        Return the string representation of this congruence subgroup.
 
         EXAMPLES::
 
@@ -323,7 +336,7 @@ class Gamma0_class(Group, UniqueRepresentation):
 
     def base_ring(self):
         r"""
-        Return the base ring of ``self``.
+        Return the base ring of this congruence subgroup.
 
         EXAMPLES::
 
@@ -335,7 +348,7 @@ class Gamma0_class(Group, UniqueRepresentation):
 
     def level(self):
         r"""
-        Return the level of ``self``.
+        Return the level of this congruence subgroup.
 
         EXAMPLES::
 
@@ -348,7 +361,7 @@ class Gamma0_class(Group, UniqueRepresentation):
     @lazy_attribute
     def _level_factorized(self):
         r"""
-        Return the factorization of the level of ``self``.
+        Return the factorization of the level of this congruence subgroup.
 
         EXAMPLES::
 
@@ -360,7 +373,7 @@ class Gamma0_class(Group, UniqueRepresentation):
 
     def _an_element_(self):
         r"""
-        Return an element of ``self``.
+        Return an element of this congruence subgroup.
 
         EXAMPLES::
 
@@ -374,7 +387,7 @@ class Gamma0_class(Group, UniqueRepresentation):
 
     def matrix_space(self):
         r"""
-        Return the matrix space of ``self``.
+        Return the matrix space of this congruence subgroup.
 
         EXAMPLES::
 
@@ -387,8 +400,8 @@ class Gamma0_class(Group, UniqueRepresentation):
 
     def genus(self):
         r""""
-        Return the genus of ``self``, i.e. the genus of the Drinfeld modular
-        curve attached to ``self``.
+        Return the genus of this congruence subgroup, i.e. the genus of
+        the attached Drinfeld modular curve.
 
         EXAMPLES::
 
@@ -423,6 +436,11 @@ class Gamma0_class(Group, UniqueRepresentation):
             sage: Gamma0(N).genus() == genus_irr(N)
             True
 
+        TESTS::
+
+            sage: Gamma0(A(1)).genus()
+            0
+
         REFERENCE:
 
         [Gek2001]_
@@ -437,13 +455,13 @@ class Gamma0_class(Group, UniqueRepresentation):
             kappa *= q**(d * (mult // 2)) + q**(d * ((mult-1) // 2))
             if d % 2 == 1:
                 r = 0
-        g = 1 + (epsilon - (q+1)*kappa - 2**(s-1) * (r*q*(q-1) + (q+1)*(q-2))) / (q**2 - 1)
-        return g
+        g = 1 + (epsilon - (q+1)*kappa - 2**(s-1) * (r*q*(q-1) + (q+1)*(q-2))) // (q**2 - 1)
+        return ZZ(g)
 
     def ncusps(self):
         r"""
-        Return the number of cusps of ``self``, i.e. the number of cusps of the
-        Drinfeld modular curve attached to ``self``.
+        Return the number of cusps of this congruence subgroup, i.e. the
+        number of cusps of the attached Drinfeld modular curve.
 
         EXAMPLES::
 
@@ -480,16 +498,16 @@ class Gamma0_class(Group, UniqueRepresentation):
         L = self._level_factorized
         s = len(L)
         kappa = 1
-        for P, r in L:
+        for P, mult in L:
             d = P.degree()
-            kappa *= q**(d * (r // 2)) + q**(d * ((r-1) // 2))
+            kappa *= q**(d * (mult // 2)) + q**(d * ((mult-1) // 2))
         h = 2**s + (kappa - 2**s) / (q - 1)
         return h
 
     def index(self):
         r"""
-        Return the index of the congruence subgroup ``self`` as a subgroup of
-        `\mathrm{GL}_{2}(A)`, where `A` is the base ring of ``self``.
+        Return the index of this congruence subgroup as a subgroup of
+        `\mathrm{GL}_{2}(A)` (where `A` is the base ring).
 
         EXAMPLES::
 
@@ -556,7 +574,7 @@ class InclusionIntoMatrixSpace(Map):
 
     def _richcmp_(self, other, op):
         r"""
-        Compare ``self`` and ``other`` for the operator ``op``.
+        Compare this map with ``other`` for the operator ``op``.
 
         EXAMPLES::
 
