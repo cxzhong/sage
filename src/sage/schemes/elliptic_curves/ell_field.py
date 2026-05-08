@@ -3134,6 +3134,20 @@ class EllipticCurve_field(ell_generic.EllipticCurve_generic, ProjectivePlaneCurv
             sage: 2 * P
             (38 : 125*z2 + 1 : 1)
 
+        There is also a projective version that avoids inversions in the base field::
+
+            sage: E = EllipticCurve(GF(127), [6, 7])
+            sage: xP = seq((117, 7), E.base_field())
+            sage: xQ = seq((98, 11), E.base_field())
+            sage: P = E.lift_x(xP[0] / xP[1]); P
+            (53 : 55 : 1)
+            sage: xR = E.xDBL(xP, proj=True); xR
+            (100, 88)
+            sage: xR[0] / xR[1]
+            30
+            sage: 2 * P
+            (30 : 3 : 1)
+
         .. TODO::
 
             This method could, but does currently not, implement a specialized faster
@@ -3149,6 +3163,19 @@ class EllipticCurve_field(ell_generic.EllipticCurve_generic, ProjectivePlaneCurv
             sage: xP = P.x() if P else oo
             sage: xR = (2*P).x() if 2*P else oo
             sage: E.xDBL(xP) == xR
+            True
+
+        Projectively::
+
+            sage: F = GF((random_prime(100, lbound=5), randrange(1,7)))
+            sage: E = choice(EllipticCurve(j=F.random_element()).twists()).short_weierstrass_model()
+            sage: P = E.random_point()
+            sage: Q = E.random_point()
+            sage: PQ = P - Q
+            sage: xP = P[::2] if P else (1,0)
+            sage: xR = (2*P)[::2] if 2*P else (1,0)
+            sage: xS = E.xDBL(xP, proj=True)
+            sage: xR[0] * xS[1] == xS[0] * xR[1]
             True
         """
         if any(self.a_invariants()[:-2]):
@@ -3243,6 +3270,24 @@ class EllipticCurve_field(ell_generic.EllipticCurve_generic, ProjectivePlaneCurv
             sage: P + Q
             (87 : z2 + 63 : 1)
 
+        There is also a projective version that avoids inversions in the base field::
+
+            sage: E = EllipticCurve(GF(127), [6, 7])
+            sage: xP = seq((117, 7), E.base_field())
+            sage: xQ = seq((98, 11), E.base_field())
+            sage: P = E.lift_x(xP[0] / xP[1]); P
+            (53 : 55 : 1)
+            sage: Q = E.lift_x(xQ[0] / xQ[1]); Q
+            (32 : 57 : 1)
+            sage: xPQ = (42 * (P - Q).x(), 42); xPQ
+            (80, 42)
+            sage: xR = E.xADD(xP, xQ, xPQ, proj=True); xR
+            (19, 24)
+            sage: xR[0] / xR[1]
+            59
+            sage: P + Q
+            (59 : 0 : 1)
+
         .. TODO::
 
             This method could, but does currently not, implement a specialized faster
@@ -3262,6 +3307,21 @@ class EllipticCurve_field(ell_generic.EllipticCurve_generic, ProjectivePlaneCurv
             sage: xPQ = PQ.x() if PQ else oo
             sage: xR = (P + Q).x() if P + Q else oo
             sage: E.xADD(xP, xQ, xPQ) == xR
+            True
+
+        Projectively::
+
+            sage: F = GF((random_prime(100, lbound=5), randrange(1,7)))
+            sage: E = choice(EllipticCurve(j=F.random_element()).twists()).short_weierstrass_model()
+            sage: P = E.random_point()
+            sage: Q = E.random_point()
+            sage: PQ = P - Q
+            sage: xP = P[::2] if P else (1,0)
+            sage: xQ = Q[::2] if Q else (1,0)
+            sage: xPQ = PQ[::2] if PQ else (1,0)
+            sage: xR = (P + Q)[::2] if P + Q else (1,0)
+            sage: xS = E.xADD(xP, xQ, xPQ, proj=True)
+            sage: xR[0] * xS[1] == xS[0] * xR[1]
             True
         """
         if any(self.a_invariants()[:-2]):
@@ -3376,6 +3436,19 @@ class EllipticCurve_field(ell_generic.EllipticCurve_generic, ProjectivePlaneCurv
             sage: 42 * P
             (44 : 59*z2 + 34 : 1)
 
+        There is also a projective version that avoids inversions in the base field::
+
+            sage: E = EllipticCurve(GF(127), [6, 7])
+            sage: xP = seq((117, 7), E.base_field())
+            sage: P = E.lift_x(xP[0] / xP[1]); P
+            (53 : 55 : 1)
+            sage: xR = E.xMUL(7, xP, proj=True); xR
+            (116, 83)
+            sage: xR[0] / xR[1]
+            32
+            sage: 7 * P
+            (32 : 70 : 1)
+
         TESTS:
 
         Random testing::
@@ -3387,6 +3460,18 @@ class EllipticCurve_field(ell_generic.EllipticCurve_generic, ProjectivePlaneCurv
             sage: n = randrange(-2^99, 2^99)
             sage: xR = (n * P).x() if n * P else oo
             sage: E.xMUL(n, xP) == xR
+            True
+
+        Projectively::
+
+            sage: F = GF((random_prime(100, lbound=5), randrange(1,7)))
+            sage: E = choice(EllipticCurve(j=F.random_element()).twists()).short_weierstrass_model()
+            sage: P = E.random_point()
+            sage: xP = P[::2] if P else (1,0)
+            sage: n = randrange(-2^99, 2^99)
+            sage: xR = (n * P)[::2] if n * P else (1,0)
+            sage: xS = E.xMUL(n, xP, proj=True)
+            sage: xR[0] * xS[1] == xS[0] * xR[1]
             True
         """
         n = ZZ(n).abs()
