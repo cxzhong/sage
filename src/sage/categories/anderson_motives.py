@@ -384,7 +384,7 @@ class AndersonMotives(OreModules):
             Return the underlying `A`-field of this Anderson motive.
 
             This is an instance of the class
-            :class:`sage.rings.ring_extension.RingExtension`.
+            :class:`sage.rings.ring_extension.RingExtension_generic`.
 
             EXAMPLES::
 

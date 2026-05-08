@@ -147,29 +147,36 @@ while returning different objects (see Rubric *Getters to context objects*).
 This is because contrary to Drinfeld modules, Anderson motives are implemented as
 modules (more precisely, as Ore modules).
 
-- :meth:`~AndersonMotive.A_field`: see Rubric *Getters to context objects* in class
+- :meth:`~sage.categories.anderson_motives.AndersonMotives.ParentMethods.A_field`:
+  see Rubric *Getters to context objects* in class
   :class:`~sage.rings.function_field.drinfeld_modules.drinfeld_module.DrinfeldModule`.
 
-- :meth:`~AndersonMotive.base`: the polynomial ring `K[T]`; this is because we implement
-  Anderson motives as modules over the ring `K[T]`
+- meth:`~sage.categories.anderson_motives.AndersonMotives.ParentMethods.base`:
+  the polynomial ring `K[T]`; this is because we implement Anderson motives as
+  modules over the ring `K[T]`
 
-- :meth:`~AndersonMotive.base_field`: the fraction field of the :meth:`~AndersonMotive.base`, *i.e.* `K(T)`
+- meth:`~sage.categories.anderson_motives.AndersonMotives.ParentMethods.base_field`:
+  the fraction field of the
+  meth:`~sage.categories.anderson_motives.AndersonMotives.ParentMethods.base`, *i.e.* `K(T)`
 
-- :meth:`~AndersonMotive.base_ring`: a reference to :meth:`~AndersonMotive.base`.
+- meth:`~sage.categories.anderson_motives.AndersonMotives.ParentMethods.base_ring`:
+  a reference to meth:`~sage.categories.anderson_motives.AndersonMotives.ParentMethods.base`.
 
-- :meth:`~AndersonMotive.function_ring`: see Rubric *Getters to context objects* in class
+- meth:`~sage.categories.anderson_motives.AndersonMotives.ParentMethods.function_ring`:
+  see Rubric *Getters to context objects* in class
   :class:`~sage.rings.function_field.drinfeld_modules.drinfeld_module.DrinfeldModule`.
 
-- :meth:`~AndersonMotive.ore_polring`: the Ore polynomial ring `K[T]\{\tau\}`; in particular,
-  the :meth:`~AndersonMotive.ore_polring` for the class :class:`~AndersonMotive` is strictly
-  larger than the
+- meth:`~sage.categories.anderson_motives.AndersonMotives.ParentMethods.ore_polring`:
+  the Ore polynomial ring `K[T]\{\tau\}`; in particular,
+  the meth:`~sage.categories.anderson_motives.AndersonMotives.ParentMethods.ore_polring`
+  for the class :class:`~AndersonMotive` is strictly larger than the
   :meth:`~sage.rings.function_field.drinfeld_modules.drinfeld_module.DrinfeldModule.ore_polring`
   for the class
   :class:`~sage.rings.function_field.drinfeld_modules.drinfeld_module.DrinfeldModule`.
 
-- :meth:`~AndersonMotive.ore_ring`: the same Ore polynomial ring, but in the variable `x`; this
-  method is inherited from the class
-  :class:`sage.modules.ore_module.OreModule`.
+- meth:`~sage.categories.anderson_motives.AndersonMotives.ParentMethods.ore_ring`:
+  the same Ore polynomial ring, but in the variable `x`; this method is inherited
+  from the class :class:`sage.modules.ore_module.OreModule`.
 
 .. RUBRIC:: Morphisms between Anderson motives
 
