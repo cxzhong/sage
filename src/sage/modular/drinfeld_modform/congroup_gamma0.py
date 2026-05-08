@@ -501,8 +501,8 @@ class Gamma0_drinfeld(Group, UniqueRepresentation):
         for P, mult in L:
             d = P.degree()
             kappa *= q**(d * (mult // 2)) + q**(d * ((mult-1) // 2))
-        h = 2**s + (kappa - 2**s) / (q - 1)
-        return h
+        h = 2**s + (kappa - 2**s) // (q - 1)
+        return ZZ(h)
 
     def index(self):
         r"""
@@ -528,7 +528,7 @@ class Gamma0_drinfeld(Group, UniqueRepresentation):
         q = self._q
         ind = q ** self._level.degree()
         ind *= prod(1 + q**(-P.degree()) for P, _ in self._level_factorized)
-        return ind
+        return ZZ(ind)
 
 
 class InclusionIntoMatrixSpace(Map):
