@@ -229,8 +229,8 @@ class RationalField(Singleton, number_field_base.NumberField):
             sage: QQ.is_field()
             True
         """
-        from sage.categories.basic import QuotientFields
         from sage.categories.number_fields import NumberFields
+        from sage.categories.quotient_fields import QuotientFields
         Parent.__init__(self, base=self,
                         category=[QuotientFields().Metric(),
                                   NumberFields()])

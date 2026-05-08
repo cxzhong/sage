@@ -151,14 +151,6 @@ from sage.misc.fpickle import pickle_function, unpickle_function
 
 from sage.symbolic.symbols import symbol_table, register_symbol
 
-try:
-    from sage.symbolic.expression import (
-        call_registered_function, find_registered_function, register_or_update_function,
-        get_sfunction_from_hash, get_sfunction_from_serial as get_sfunction_from_serial
-    )
-except ImportError:
-    register_or_update_function = None
-
 cdef object SR = None, PolynomialRing_commutative = None, MPolynomialRing_polydict_domain = None
 
 # List of functions which ginac allows us to define custom behavior for.
@@ -243,10 +235,9 @@ cdef class Function(SageObject):
 
         symbol_table['functions'][self._name] = self
 
-        if register_or_update_function:  # Symbolic subsystem present
-            if not self._is_registered():
-                self._register_function()
-            register_symbol(self, self._conversions)
+        if not self._is_registered():
+            self._register_function()
+        register_symbol(self, self._conversions)
 
     cdef _is_registered(self):
         """
