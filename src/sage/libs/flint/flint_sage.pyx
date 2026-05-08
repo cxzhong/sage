@@ -32,6 +32,7 @@ from .acb_hypgeom cimport *
 from .acb_mat cimport *
 from .acb_modular cimport *
 from .acb_poly cimport *
+from .acb_theta cimport *
 from .acf cimport *
 from .aprcl cimport *
 from .arb cimport *

@@ -53,6 +53,7 @@
 #include <flint/acb_mat.h>
 #include <flint/acb_modular.h>
 #include <flint/acb_poly.h>
+#include <flint/acb_theta.h>
 #include <flint/acf.h>
 #include <flint/aprcl.h>
 #include <flint/arb.h>
