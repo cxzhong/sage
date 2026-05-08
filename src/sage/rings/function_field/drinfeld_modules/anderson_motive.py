@@ -503,6 +503,10 @@ class AndersonMotive_general(OreModule):
             sage: N = phi.anderson_motive(dual=True)
             sage: N.hodge_pink_weights()
             [-1, 0, 0]
+
+        REFERENCES:
+
+        For definition and relevance of this notion, we refer to [HJ2020]_.
         """
         S = self._tau.smith_form(transformation=False)
         return [-self._twist + S[i,i].degree() for i in range(self.rank())]
