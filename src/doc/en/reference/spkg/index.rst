@@ -35,6 +35,7 @@ Features
    sage/features/pkg_systems
    sage/features/bliss
    sage/features/brial
+   sage/features/coxeter3
    sage/features/csdp
    sage/features/databases
    sage/features/dvipng
@@ -59,6 +60,7 @@ Features
    sage/features/polymake
    sage/features/rankwidth
    sage/features/rubiks
+   sage/features/sirocco
    sage/features/tdlib
    sage/features/topcom
 
