@@ -537,10 +537,15 @@ def shortened_00_11_binary_Golay_code_graph(immutable=False):
     return G
 
 
-def shortened_000_111_extended_binary_Golay_code_graph():
+def shortened_000_111_extended_binary_Golay_code_graph(immutable=False):
     r"""
     Return a distance-regular graph with intersection array
     `[21, 20, 16, 9, 2, 1; 1, 2, 3, 16, 20, 21]`.
+
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES::
 
@@ -580,25 +585,29 @@ def shortened_000_111_extended_binary_Golay_code_graph():
 
     with as_file(ppath) as p:
         with lzma.open(p) as f:
-            vs_and_es = load(f, fix_imports=False)
+            vertices, edges = load(f, fix_imports=False)
+
+    if len(vertices) != 2048 or len(edges) != 21504:
+        raise ValueError("incorrect number of loaded vertices and edges")
 
     # Vertices/edges are pickled as tuples of ints, but should be
     # vectors with entries in GF(2).
     V = VectorSpace(GF(2), 21)
-    for i in range(2048):
-        # vertex i
-        vs_and_es[0][i] = V(vs_and_es[0][i])
-        vs_and_es[0][i].set_immutable()
-    for i in range(21504):
-        # edge i = (v1, v2, l)
-        vs_and_es[1][i][0] = V(vs_and_es[1][i][0])  # v1
-        vs_and_es[1][i][0].set_immutable()
-        vs_and_es[1][i][1] = V(vs_and_es[1][i][1])  # v2
-        vs_and_es[1][i][1].set_immutable()
+    for i, u in enumerate(vertices):
+        u = V(u)
+        u.set_immutable()
+        vertices[i] = u
+    for i, (v1, v2, label) in enumerate(edges):
+        # edge i = (v1, v2, label)
+        v1 = V(v1)
+        v1.set_immutable()
+        v2 = V(v2)
+        v2.set_immutable()
+        edges[i] = (v1, v2, label)
 
-    G = Graph(vs_and_es, format='vertices_and_edges')
-    G.name("Shortened 000 111 extended binary Golay code")
-    return G
+    return Graph([vertices, edges], format="vertices_and_edges",
+                 name = "Shortened 000 111 extended binary Golay code",
+                 immutable=immutable)
 
 
 def vanLintSchrijverGraph(immutable=False):
@@ -634,12 +643,17 @@ def vanLintSchrijverGraph(immutable=False):
     return H
 
 
-def LeonardGraph():
+def LeonardGraph(immutable=False):
     r"""
     Return the Leonard graph.
 
     The graph is distance-regular with intersection array
     `[12, 11, 10, 7; 1, 2, 5, 12]`.
+
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES::
 
@@ -665,11 +679,10 @@ def LeonardGraph():
     blocks = [frozenset(cl) for cl in D.cliques_maximum()]
 
     edges = [(p, b) for b in blocks for p in b]
-    G = Graph(edges, format='list_of_edges')
-    return G
+    return Graph(edges, format='list_of_edges', immutable=immutable)
 
 
-def UstimenkoGraph(const int m, const int q):
+def UstimenkoGraph(const int m, const int q, immutable=False):
     r"""
     Return the Ustimenko graph with parameters `(m, q)`.
 
@@ -681,6 +694,9 @@ def UstimenkoGraph(const int m, const int q):
     INPUT:
 
     - ``m``, ``q`` -- integers; `q` must be a prime power and `m > 1`
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES::
 
@@ -710,19 +726,19 @@ def UstimenkoGraph(const int m, const int q):
 
     edgesToAdd = []
     for v in G:
-        for w in G.neighbor_iterator(v):
-            for u in G.neighbor_iterator(w):
-                sig_check()
-                if u != v and not G.has_edge(u, v):
-                    # then u,v are at distance 2
-                    edgesToAdd.append((u, v))
+        # Search for vertices at distance 2
+        for u, d in G.breadth_first_search(v, distance=2, report_distance=True):
+            if d == 2 and u < v:
+                # Add an edge between u and v at distance 2 and
+                # avoid adding both (u, v) and (v, u)
+                edgesToAdd.append((u, v))
 
     G.add_edges(edgesToAdd)
     G.name(f"Ustimenko graph ({m}, {q})")
-    return G
+    return G.copy(immutable=True) if immutable else G
 
 
-def BilinearFormsGraph(const int d, const int e, const int q):
+def BilinearFormsGraph(const int d, const int e, const int q, immutable=False):
     r"""
     Return a bilinear forms graph with the given parameters.
 
@@ -736,7 +752,11 @@ def BilinearFormsGraph(const int d, const int e, const int q):
     INPUT:
 
     - ``d``, ``e`` -- integers; dimension of the matrices
+
     - ``q`` -- integer; a prime power
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES::
 
@@ -808,12 +828,11 @@ def BilinearFormsGraph(const int d, const int e, const int q):
 
             edges.append((intM1, intM3))
 
-    G = Graph(edges, format='list_of_edges')
-    G.name("Bilinear forms graphs over F_%d with parameters (%d, %d)" % (q, d, e))
-    return G
+    return Graph(edges, format='list_of_edges', immutable=immutable,
+                 name=f"Bilinear forms graphs over F_{q} with parameters ({d}, {e})")
 
 
-def AlternatingFormsGraph(const int n, const int q):
+def AlternatingFormsGraph(const int n, const int q, immutable=False):
     r"""
     Return the alternating forms graph with the given parameters.
 
@@ -827,7 +846,11 @@ def AlternatingFormsGraph(const int n, const int q):
     INPUT:
 
     - ``n`` -- integer
+
     - ``q`` -- a prime power
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES::
 
@@ -905,9 +928,8 @@ def AlternatingFormsGraph(const int n, const int q):
             t3 = tuple([t1[i] + m2[i] for i in range(size)])
             edges.append((t1, t3))
 
-    G = Graph(edges, format='list_of_edges')
-    G.name("Alternating forms graph on (F_%d)^%d" % (q, n))
-    return G
+    return Graph(edges, format='list_of_edges', immutable=immutable,
+                 name=f"Alternating forms graph on (F_{q})^{n}")
 
 
 def HermitianFormsGraph(const int n, const int r, immutable=False):
