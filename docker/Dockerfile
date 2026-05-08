@@ -87,7 +87,6 @@ RUN ln -s "$SAGE_ROOT/sage" /usr/bin/sage
 RUN ln -s /usr/bin/sage /usr/bin/sagemath
 # Sage needs the fortran libraries at run-time because we do not build gfortran
 # with Sage but use the system's.
-# Sage's virtual environment uses the system Python executable at run-time.
 # We need gcc/g++ to allow compilation of cython at run-time from the notebook.
 # We also install sudo for the sage user, see below.
 RUN apt-get -qq update \
@@ -233,7 +232,7 @@ ARG SAGE_ROOT=/home/sage/sage
 COPY --chown=sage:sage --from=make-release $SAGE_ROOT/ $SAGE_ROOT/
 # set path in bashrc to start gap, gp, maxima, ... this does not
 # affect Sage (see https://github.com/sagemath/sage/pull/38049)
-RUN echo "export PATH=$SAGE_ROOT/local/bin:$PATH" >> ~/.bashrc
+RUN echo 'export PATH='"$SAGE_ROOT"'/local/bin:$PATH' >> ~/.bashrc
 
 COPY ./docker/entrypoint.sh /usr/local/bin/sage-entrypoint
 WORKDIR $HOME
