@@ -791,17 +791,17 @@ class IntegralRayCollection(SageObject, Hashable, Iterable):
         self._rays = PointCollection(rays, lattice)
         self._lattice = lattice
 
-    def __richcmp__(self, right, op):
+    def __richcmp__(self, other, op):
         r"""
-        Compare ``self`` and ``right``.
+        Compare ``self`` and ``other``.
 
         INPUT:
 
-        - ``right`` -- anything
+        - ``other`` -- anything
 
         OUTPUT: boolean
 
-        There is equality if ``right`` is of the same type as
+        There is equality if ``other`` is of the same type as
         ``self``, they have the same ambient lattices, and their
         rays are the same and listed in the same order.
 
@@ -819,14 +819,14 @@ class IntegralRayCollection(SageObject, Hashable, Iterable):
             sage: c2 is c3
             False
         """
-        if type(self) is not type(right):
+        if type(self) is not type(other):
             return NotImplemented
 
         # We probably do need to have explicit comparison of lattices here
         # since if one of the collections does not live in a toric lattice,
         # comparison of rays may miss the difference.
         return richcmp((self.lattice(), self.rays()),
-                       (right.lattice(), right.rays()), op)
+                       (other.lattice(), other.rays()), op)
 
     def __hash__(self):
         r"""
@@ -1878,17 +1878,17 @@ class ConvexRationalPolyhedralCone(IntegralRayCollection, Container, ConvexSet_c
         rc = super().__neg__()
         return ConvexRationalPolyhedralCone(rc.rays(), rc.lattice())
 
-    def __richcmp__(self, right, op):
+    def __richcmp__(self, other, op):
         r"""
-        Compare ``self`` and ``right``.
+        Compare ``self`` and ``other``.
 
         INPUT:
 
-        - ``right`` -- anything
+        - ``other`` -- anything
 
         OUTPUT: boolean
 
-        There is equality if ``self`` and ``right`` are cones of any
+        There is equality if ``self`` and ``other`` are cones of any
         kind in the same lattice with the same rays listed in the
         same order.
 
@@ -1906,10 +1906,10 @@ class ConvexRationalPolyhedralCone(IntegralRayCollection, Container, ConvexSet_c
             sage: c2 is c3
             False
         """
-        if isinstance(right, sage.geometry.abc.ConvexRationalPolyhedralCone):
-            # We don't care about particular type of right in this case
+        if isinstance(other, sage.geometry.abc.ConvexRationalPolyhedralCone):
+            # We don't care about particular type of other in this case
             return richcmp((self.lattice(), self.rays()),
-                           (right.lattice(), right.rays()), op)
+                           (other.lattice(), other.rays()), op)
         return NotImplemented
 
     def _latex_(self):

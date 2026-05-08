@@ -1254,17 +1254,17 @@ class RationalPolyhedralFan(IntegralRayCollection, Callable, Container):
             return self
         return self.cones(dim, codim)
 
-    def __richcmp__(self, right, op):
+    def __richcmp__(self, other, op):
         r"""
-        Compare ``self`` and ``right``.
+        Compare ``self`` and ``other``.
 
         INPUT:
 
-        - ``right`` -- anything
+        - ``other`` -- anything
 
         OUTPUT: boolean
 
-        There is equality if ``right`` is also a fan, their rays are
+        There is equality if ``other`` is also a fan, their rays are
         the same and stored in the same order, and their generating
         cones are the same and stored in the same order.
 
@@ -1288,11 +1288,11 @@ class RationalPolyhedralFan(IntegralRayCollection, Callable, Container):
             sage: f2 is f3
             False
         """
-        if isinstance(right, RationalPolyhedralFan):
+        if isinstance(other, RationalPolyhedralFan):
             return richcmp([self.rays(), self.virtual_rays(),
                             self.generating_cones()],
-                           [right.rays(), right.virtual_rays(),
-                            right.generating_cones()], op)
+                           [other.rays(), other.virtual_rays(),
+                            other.generating_cones()], op)
         return NotImplemented
 
     def __contains__(self, cone) -> bool:

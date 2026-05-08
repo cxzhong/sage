@@ -3512,9 +3512,9 @@ class QuaternionFractionalIdeal_rational(QuaternionFractionalIdeal):
         """
         return self.gens()
 
-    def _richcmp_(self, right, op):
+    def _richcmp_(self, other, op):
         r"""
-        Compare this fractional quaternion ideal to ``right``.
+        Compare this fractional quaternion ideal to ``other``.
 
         EXAMPLES::
 
@@ -3563,7 +3563,7 @@ class QuaternionFractionalIdeal_rational(QuaternionFractionalIdeal):
             sage: O >= O
             True
         """
-        return self.free_module().__richcmp__(right.free_module(), op)
+        return self.free_module().__richcmp__(other.free_module(), op)
 
     def __hash__(self) -> int:
         r"""
