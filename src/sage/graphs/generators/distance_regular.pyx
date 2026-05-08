@@ -1426,13 +1426,16 @@ def graph_from_GQ_spread(const int s, const int t, immutable=False):
     return Graph(edges, format='list_of_edges', immutable=immutable)
 
 
-def GeneralisedDodecagonGraph(const int s, const int t):
+def GeneralisedDodecagonGraph(const int s, const int t, immutable=False):
     r"""
     Return the point-graph of a generalised dodecagon of order `(s,t)`.
 
     INPUT:
 
     - ``s``, ``t`` -- integers; order of the generalised dodecagon
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES::
 
@@ -1505,7 +1508,7 @@ def GeneralisedDodecagonGraph(const int s, const int t):
 
     if q == 1:  # order (1, 1)
         from sage.graphs.generators.basic import CycleGraph
-        return CycleGraph(12)
+        return CycleGraph(12, immutable=immutable)
 
     if not is_prime_power(q):
         raise ValueError(
@@ -1522,25 +1525,26 @@ def GeneralisedDodecagonGraph(const int s, const int t):
                 sig_check()
                 edges.append((p, l))
 
-        G = Graph(edges, format='list_of_edges')
-        G.name("Generalised dodecagon of order (1, %d)" % q)
-        return G
+        return Graph(edges, format='list_of_edges', immutable=immutable,
+                     name=f"Generalised dodecagon of order (1, {q})")
 
-    else:  # orderType == 1
-        # dual
-        H = GeneralisedDodecagonGraph(t, s)
-        G = _line_graph_generalised_polygon(H)
-        G.name("Generalised dodecagon of order (%s, %d)" % (s, t))
-        return G
+    # orderType == 1
+    # dual
+    H = GeneralisedDodecagonGraph(t, s)
+    name = f"Generalised dodecagon of order ({s}, {t})"
+    return _line_graph_generalised_polygon(H, immutable=immutable, name=name)
 
 
-def GeneralisedOctagonGraph(const int s, const int t):
+def GeneralisedOctagonGraph(const int s, const int t, immutable=False):
     r"""
     Return the point-graph of a generalised octagon of order `(s,t)`.
 
     INPUT:
 
     - ``s``, ``t`` -- integers; order of the generalised octagon
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES::
 
@@ -1604,7 +1608,7 @@ def GeneralisedOctagonGraph(const int s, const int t):
 
     if q == 1:  # order (1, 1)
         from sage.graphs.generators.basic import CycleGraph
-        return CycleGraph(8)
+        return CycleGraph(8, immutable=immutable)
 
     if not is_prime_power(q):
         raise ValueError(f"No generalised octagon of order ({s}, {t}) is known")
@@ -1623,34 +1627,34 @@ def GeneralisedOctagonGraph(const int s, const int t):
                 sig_check()
                 edges.append((p, l))
 
-        G = Graph(edges, format='list_of_edges')
-        G.name("Generalised octagon of order (1, %d)" % q)
-        return G
+        return Graph(edges, format='list_of_edges', immutable=immutable,
+                     name=f"Generalised octagon of order (1, {q})")
 
-    elif orderType == 1:
+    if orderType == 1:
         # dual
         H = GeneralisedOctagonGraph(t, s)
-        G = _line_graph_generalised_polygon(H)
-        G.name("Generalised octagon of order(%d, %d)" % (s, t))
-        return G
-    else:
-        if q == 2:
-            group = libgap.AtlasGroup("2F4(2)", libgap.NrMovedPoints, 1755)
-            G = Graph(libgap.Orbit(group, [1, 73], libgap.OnSets),
-                      format='list_of_edges')
-            G.name("Generalised octagon of order (2, 4)")
-            return G
-        else:
-            raise NotImplementedError("Graph would be too big")
+        name = f"Generalised octagon of order({s}, {t})"
+        return _line_graph_generalised_polygon(H, immutable=immutable, name=name)
+
+    if q == 2:
+        group = libgap.AtlasGroup("2F4(2)", libgap.NrMovedPoints, 1755)
+        return Graph(libgap.Orbit(group, [1, 73], libgap.OnSets),
+                     format='list_of_edges', immutable=immutable,
+                     name=f"Generalised octagon of order (2, 4)")
+
+    raise NotImplementedError("Graph would be too big")
 
 
-def GeneralisedHexagonGraph(const int s, const int t):
+def GeneralisedHexagonGraph(const int s, const int t, immutable=False):
     r"""
     Return the point-graph of a generalised hexagon of order `(s,t)`.
 
     INPUT:
 
     - ``s``, ``t`` -- integers; order of the generalised hexagon
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES::
 
@@ -1716,7 +1720,7 @@ def GeneralisedHexagonGraph(const int s, const int t):
 
     if q == 1:  # order (1, 1)
         from sage.graphs.generators.basic import CycleGraph
-        return CycleGraph(6)
+        return CycleGraph(6, immutable=immutable)
 
     if not is_prime_power(q):
         raise ValueError(f"No generalised hexagon of order ({s}, {t}) is known")
@@ -1731,63 +1735,56 @@ def GeneralisedHexagonGraph(const int s, const int t):
                 sig_check()
                 edges.append((p, tuple(l)))
 
-        G = Graph(edges, format='list_of_edges')
-        G.name("Generalised hexagon of order (1, %d)" % q)
-        return G
+        return Graph(edges, format='list_of_edges', immutable=immutable,
+                     name=f"Generalised hexagon of order (1, {q})")
 
-    elif orderType == 1:
+    if orderType == 1:
         # dual graph
         H = GeneralisedHexagonGraph(t, s)
-        G = _line_graph_generalised_polygon(H)
-        G.name("Generalised hexagon of order(%d, %d)" % (s, t))
-        return G
+        name = f"Generalised hexagon of order({s}, {t})"
+        return _line_graph_generalised_polygon(H, immutable=immutable, name=name)
 
-    elif orderType == 2:
+    if orderType == 2:
         # we use the group G2(q)
         # if q == 2, then G2(2) is isomorphic to U3(3).2
         if q == 2:
             group = libgap.AtlasGroup("U3(3).2", libgap.NrMovedPoints, 63)
-            G = Graph(libgap.Orbit(group, [1, 19], libgap.OnSets),
-                      format='list_of_edges')
-            G.name("Generalised hexagon of order (%d, %d)" % (q, q))
-            return G
+            return Graph(libgap.Orbit(group, [1, 19], libgap.OnSets),
+                         format='list_of_edges', immutable=immutable,
+                         name=f"Generalised hexagon of order ({q}, {q})")
 
-        elif q == 3:  # we don't have permutation representation; so we build it
+        if q == 3:  # we don't have permutation representation; so we build it
             matrixRep = libgap.AtlasGroup("G2(3)", libgap.Position, 7)
             e1 = vector(GF(3), [1, 0, 0, 0, 0, 0, 0])
             orb = libgap.Orbit(matrixRep, e1, libgap.OnLines)
             group = libgap.Action(matrixRep, orb, libgap.OnLines)
 
             # now group is our permutation representation
-            G = Graph(libgap.Orbit(group, [1, 52], libgap.OnSets),
-                      format='list_of_edges')
-            G.name("Generalised hexagon of order (%d, %d)" % (q, q))
-            return G
+            return Graph(libgap.Orbit(group, [1, 52], libgap.OnSets),
+                         format='list_of_edges', immutable=immutable,
+                         name=f"Generalised hexagon of order ({q}, {q})")
 
-        elif q <= 5:
+        if q <= 5:
             n = 1365 if q == 4 else 3906
             p = 43 if q == 4 else 185
             group = libgap.AtlasGroup("G2(%d)" % q, libgap.NrMovedPoints, n)
 
-            G = Graph(libgap.Orbit(group, [1, p], libgap.OnSets),
-                      format='list_of_edges')
-            G.name("Generalised hexagon of order (%d, %d)" % (q, q))
-            return G
+            return Graph(libgap.Orbit(group, [1, p], libgap.OnSets),
+                         format='list_of_edges', immutable=immutable,
+                         name=f"Generalised hexagon of order ({q}, {q})")
 
-        else:
-            raise NotImplementedError("Graph would be too big")
+        raise NotImplementedError("Graph would be too big")
 
-    elif orderType == 3:
+    if orderType == 3:
         if q > 3:
             raise NotImplementedError("Graph would be too big")
 
         movedPoints = 819 if q == 2 else 26572
         group = libgap.AtlasGroup("3D4(%d)" % q, libgap.NrMovedPoints, movedPoints)
 
-        G = Graph(libgap.Orbit(group, [1, 2], libgap.OnSets),
-                  format='list_of_edges')
-        G.name("Generalised hexagon of order (%d, %d)" % (q, q**3))
-        return G
+        return Graph(libgap.Orbit(group, [1, 2], libgap.OnSets),
+                     format='list_of_edges', immutable=immutable,
+                     name=f"Generalised hexagon of order ({q}, {q**3})")
 
 
 def _extract_lines(G):
@@ -1862,7 +1859,7 @@ def _extract_lines(G):
     return lines
 
 
-def _line_graph_generalised_polygon(H):
+def _line_graph_generalised_polygon(H, immutable=False, name=None):
     r"""
     Return the line-graph of the generalised polygon whose point-graph is `H`.
 
@@ -1875,7 +1872,13 @@ def _line_graph_generalised_polygon(H):
 
     - ``H`` -- a graph
 
-    EXAMPLES::
+     - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
+
+    - ``name`` -- string (default: ``None``); used as the name of the returned
+      graph when set
+
+   EXAMPLES::
 
         sage: from sage.graphs.generators.distance_regular import (
         ....:     _line_graph_generalised_polygon)
@@ -1910,7 +1913,7 @@ def _line_graph_generalised_polygon(H):
             sig_check()
             edges.append((l1, l2))
 
-    return Graph(edges, format='list_of_edges')
+    return Graph(edges, format='list_of_edges', immutable=immutable, name=name)
 
 
 def _intersection_array_from_graph(G):
