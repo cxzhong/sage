@@ -5,6 +5,7 @@ AUTHORS:
 
 - Chris Berg, Jeff Ferreira (2012-9): initial version
 """
+from collections import Counter
 from sage.sets.disjoint_union_enumerated_sets import DisjointUnionEnumeratedSets
 from sage.sets.non_negative_integers import NonNegativeIntegers
 from sage.sets.family import Family
@@ -195,12 +196,8 @@ class CompositionTableau(CombinatorialElement, metaclass=ClasscallMetaclass):
 
             sage: CompositionTableau([[1],[3,2],[4,4]]).weight()
             [1, 1, 1, 2, 0]
-
         """
-        w = {i: 0 for i in range(1, self.size() + 1)}
-        for row in self:
-            for i in row:
-                w[i] += 1
+        w = Counter(i for row in self for i in row)
         return IntegerVectors()([w[i] for i in range(1, self.size() + 1)])
 
     def descent_set(self):

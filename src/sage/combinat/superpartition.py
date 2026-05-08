@@ -327,7 +327,6 @@ class SuperPartition(ClonableArray,
             [2, 1, 0, 3, 3]
             sage: SuperPartition([[2,1,0],[3,3]]).to_composition().parent()
             Compositions of nonnegative integers
-
         """
         return Composition(self[0] + self[1])
 

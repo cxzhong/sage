@@ -84,6 +84,7 @@ For display options, see :meth:`Tableaux.options`.
 #                  https://www.gnu.org/licenses/
 # ****************************************************************************
 from itertools import repeat
+from collections import Counter
 
 import sage.misc.prandom as random
 
@@ -6968,20 +6969,12 @@ class SemistandardTableaux_shape_weight(SemistandardTableaux_shape):
         """
         if x not in SemistandardTableaux_shape(self.shape, self.max_entry):
             return False
-        n = sum(self.shape)
 
-        if n == 0 == len(x):
+        if not self.shape and not x:
             return True
 
-        content = {}
-        for row in x:
-            for i in row:
-                content[i] = content.get(i, 0) + 1
-        content_list = [0] * int(max(content))
-
-        for key, c in content.items():
-            content_list[key - 1] = c
-
+        content = Counter(i for row in x for i in row)
+        content_list = [content[i] for i in range(1, max(content) + 1)]
         return content_list == list(self.weight)
 
     def cardinality(self):
