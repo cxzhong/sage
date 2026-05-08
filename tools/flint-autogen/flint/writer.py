@@ -61,9 +61,6 @@ def write_flint_cython_headers(output_dir, documentation=False):
         if prefix == 'machine_vectors' or prefix == 'fft_small':
             print('Warning: ignoring machine_vectors and fft_small because architecture dependent')
             continue
-        if prefix == 'acb_theta':
-            print('Warning: ignoring acb_theta because not in stable release')
-            continue
 
         header_list.append(prefix + '.h')
         pxd_list.append(prefix + '.pxd')
