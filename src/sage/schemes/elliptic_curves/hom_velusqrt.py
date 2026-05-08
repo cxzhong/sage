@@ -1320,17 +1320,25 @@ class EllipticCurveHom_velusqrt(EllipticCurveHom):
         pt = (~self._pre_iso)(self._P)
         return AdditiveAbelianGroupWrapper(pt.parent(), [pt], [self._degree])
 
-    def xEVAL(self, xP):
+    def xEVAL(self, xP, *, proj=False):
         r"""
         Return the `x`-coordinate of `\varphi(P)` given the `x`-coordinate of `P`.
 
         INPUT:
 
-        - ``xP`` -- `x`-coordinate of a point `P` on the domain of this isogeny
+        - ``xP`` -- `x`-coordinate of a point `P` on the domain of this isogeny,
+          or :const:`~sage.rings.infinity.Infinity`; alternatively (if ``proj``
+          is set to ``True``) this value should be a tuple `(X,Z)` representing
+          the `x`-coordinate `X/Z`.
+
+        - ``proj`` -- boolean (default: ``False``); if set, the inputs and output
+          will be given as a tuple `(X,Z)` representing the `x`-coordinate `X/Z`.
 
         OUTPUT:
 
-        `x`-coordinate of `\varphi(P)`, or :const:`~sage.rings.infinity.Infinity`
+        `x`-coordinate of `\varphi(P)`, or :const:`~sage.rings.infinity.Infinity`;
+        alternatively (if ``proj`` is set to ``True``), a tuple `(X,Y)` representing
+        the `x`-coordinate `X/Z`.
 
         EXAMPLES::
 
@@ -1350,13 +1358,24 @@ class EllipticCurveHom_velusqrt(EllipticCurveHom):
             +Infinity
         """
         from sage.rings.infinity import Infinity as oo
+        if proj:
+            #TODO This implementation currently does everything in affine coordinates.
+            # It would not be very difficult to properly support projective coordinates
+            # as well; mainly this would require some minor adjustments in ._raw_eval().
+            xP = xP[0] / xP[1] if xP[1] else oo
+            R = self.codomain().base_ring()
+            inf = R.one(), R.zero()
+        else:
+            inf = oo
         xP = self._pre_iso.xEVAL(xP)
         if xP == oo:
-            return oo
+            return inf
         xP = self._raw_eval(xP)
         if xP == ():
-            return oo
+            return inf
         xP = self._post_iso.xEVAL(xP)
+        if proj:
+            return xP, R.one()
         return xP
 
 

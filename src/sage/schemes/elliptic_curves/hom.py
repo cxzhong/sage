@@ -1852,17 +1852,25 @@ class EllipticCurveHom(Morphism):
             return R.one()
         return alpha.minpoly()
 
-    def xEVAL(self, xP):
+    def xEVAL(self, xP, *, proj=False):
         r"""
         Return the `x`-coordinate of `\varphi(P)` given the `x`-coordinate of `P`.
 
         INPUT:
 
-        - ``xP`` -- `x`-coordinate of a point `P` on the domain of this isogeny
+        - ``xP`` -- `x`-coordinate of a point `P` on the domain of this isogeny,
+          or :const:`~sage.rings.infinity.Infinity`; alternatively (if ``proj``
+          is set to ``True``) this value should be a tuple `(X,Z)` representing
+          the `x`-coordinate `X/Z`.
+
+        - ``proj`` -- boolean (default: ``False``); if set, the inputs and output
+          will be given as a tuple `(X,Z)` representing the `x`-coordinate `X/Z`.
 
         OUTPUT:
 
-        `x`-coordinate of `\varphi(P)`, or :const:`~sage.rings.infinity.Infinity`
+        `x`-coordinate of `\varphi(P)`, or :const:`~sage.rings.infinity.Infinity`;
+        alternatively (if ``proj`` is set to ``True``), a tuple `(X,Y)` representing
+        the `x`-coordinate `X/Z`.
 
         EXAMPLES:
 
@@ -1947,13 +1955,30 @@ class EllipticCurveHom(Morphism):
             a specialized implementation could be (much) faster.
         """
         from sage.rings.infinity import Infinity as oo
-        if xP == oo:
+        if proj:
+            if not xP[1]:
+                return xP
+        elif xP == oo:
             return oo
         xmap = self.x_rational_map()
-        d = xmap.denominator()(xP)
-        if not d:
+        n = xmap.numerator()
+        d = xmap.denominator()
+        if proj:
+            m = max(n.degree(), d.degree())
+            x,z = n.parent().base_ring()['x,z'].gens()
+            n = n(x=x).homogenize('z') * z**(m - n.degree())
+            d = d(x=x).homogenize('z') * z**(m - d.degree())
+            dx = d(xP[0], xP[1])
+        else:
+            dx = d(xP)
+        if not dx:
+            if proj:
+                return d.parent().one(), dx
             return oo
-        return xmap.numerator()(xP) / d
+        nx = n(xP[0], xP[1]) if proj else n(xP)
+        if proj:
+            return nx, dx
+        return nx / dx
 
 
 def compare_via_evaluation(left, right):

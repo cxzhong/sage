@@ -559,18 +559,26 @@ class EllipticCurveHom_scalar(EllipticCurveHom):
             result._rational_maps = tuple(f(*w) if f is not None else None for f in self._rational_maps)
         return result
 
-    def xEVAL(self, xP):
+    def xEVAL(self, xP, *, proj=False):
         r"""
         Return the `x`-coordinate of `[m]P` given the `x`-coordinate of `P`,
         where this morphism equals `[m]`.
 
         INPUT:
 
-        - ``xP`` -- `x`-coordinate of a point `P` on the domain of this isogeny
+        - ``xP`` -- `x`-coordinate of a point `P` on the domain of this isogeny,
+          or :const:`~sage.rings.infinity.Infinity`; alternatively (if ``proj``
+          is set to ``True``) this value should be a tuple `(X,Z)` representing
+          the `x`-coordinate `X/Z`.
+
+        - ``proj`` -- boolean (default: ``False``); if set, the inputs and output
+          will be given as a tuple `(X,Z)` representing the `x`-coordinate `X/Z`.
 
         OUTPUT:
 
-        `x`-coordinate of `\varphi(P)`, or :const:`~sage.rings.infinity.Infinity`
+        `x`-coordinate of `\varphi(P)`, or :const:`~sage.rings.infinity.Infinity`;
+        alternatively (if ``proj`` is set to ``True``), a tuple `(X,Y)` representing
+        the `x`-coordinate `X/Z`.
 
         EXAMPLES::
 
@@ -585,4 +593,4 @@ class EllipticCurveHom_scalar(EllipticCurveHom):
             sage: phi.xEVAL(oo)
             +Infinity
         """
-        return self._domain.xMUL(self._m, xP)
+        return self._domain.xMUL(self._m, xP, proj=proj)

@@ -689,7 +689,7 @@ class EllipticCurveHom_sum(EllipticCurveHom):
         Q = self._eval(P)
         return order_from_multiple(Q, p**m)
 
-    def xEVAL(self, xP):
+    def xEVAL(self, xP, *, proj=False):
         r"""
         For other :class:`EllipticCurveHom` implementations, the method of this name
         returns the `x`-coordinate of `\varphi(P)` given the `x`-coordinate of `P`.
@@ -702,11 +702,19 @@ class EllipticCurveHom_sum(EllipticCurveHom):
 
         INPUT:
 
-        - ``xP`` -- `x`-coordinate of a point `P` on the domain of this isogeny
+        - ``xP`` -- `x`-coordinate of a point `P` on the domain of this isogeny,
+          or :const:`~sage.rings.infinity.Infinity`; alternatively (if ``proj``
+          is set to ``True``) this value should be a tuple `(X,Z)` representing
+          the `x`-coordinate `X/Z`.
+
+        - ``proj`` -- boolean (default: ``False``); if set, the inputs and output
+          will be given as a tuple `(X,Z)` representing the `x`-coordinate `X/Z`.
 
         OUTPUT:
 
-        `x`-coordinate of `\varphi(P)`, or :const:`~sage.rings.infinity.Infinity`
+        `x`-coordinate of `\varphi(P)`, or :const:`~sage.rings.infinity.Infinity`;
+        alternatively (if ``proj`` is set to ``True``), a tuple `(X,Y)` representing
+        the `x`-coordinate `X/Z`.
 
         EXAMPLES:
 
