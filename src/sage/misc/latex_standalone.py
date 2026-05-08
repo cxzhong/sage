@@ -705,7 +705,7 @@ class Standalone(SageObject):
 
         # running pdflatex or lualatex
         cmd = [program, '-interaction=nonstopmode', temp_filename_tex]
-        result = run(cmd, cwd=base, capture_output=True, text=True)
+        result = run(cmd, cwd=base, capture_output=True, text=True, check=False)
 
         # If a problem with the tex source occurs, provide the log
         if result.returncode != 0:
@@ -829,7 +829,7 @@ class Standalone(SageObject):
 
         # running pdflatex or lualatex
         cmd = [program, '-interaction=nonstopmode', temp_filename_tex]
-        result = run(cmd, cwd=base, capture_output=True, text=True)
+        result = run(cmd, cwd=base, capture_output=True, text=True, check=False)
 
         # If a problem with the tex source occurs, provide the log
         if result.returncode != 0:
@@ -916,7 +916,7 @@ class Standalone(SageObject):
         cmd = ['convert', '-density',
                '{0}x{0}'.format(density), '-trim', temp_filename_pdf,
                temp_filename_png]
-        result = run(cmd, capture_output=True, text=True)
+        result = run(cmd, capture_output=True, text=True, check=False)
 
         # If a problem occurs, provide the log
         if result.returncode != 0:
@@ -1015,7 +1015,7 @@ class Standalone(SageObject):
                              " 'pdf2svg'".format(program))
 
         # convert to svg
-        result = run(cmd, capture_output=True, text=True)
+        result = run(cmd, capture_output=True, text=True, check=False)
 
         # If a problem occurs, provide the log
         if result.returncode != 0:
@@ -1129,7 +1129,7 @@ class Standalone(SageObject):
                              " 'dvips'".format(program))
 
         # convert to eps
-        result = run(cmd, capture_output=True, text=True)
+        result = run(cmd, capture_output=True, text=True, check=False)
 
         # If a problem occurs, provide the log
         if result.returncode != 0:
