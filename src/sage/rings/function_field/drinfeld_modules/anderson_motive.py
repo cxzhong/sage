@@ -62,6 +62,12 @@ varying between `0` and `r-1` where `r` is the rank::
     sage: M(tau^2)
     (0, 0, 1)
 
+.. NOTE::
+
+    We warn the use that the syntax `M(1)` fails because the
+    argument is not in `K\{\tau\}`, and no automatic coercion
+    is performed here.
+
 Higher powers of `\tau` can be rewritten as linear combinations
 (over `K[T]`!) of those three ones::
 
