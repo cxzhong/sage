@@ -84,6 +84,7 @@ For display options, see :meth:`Tableaux.options`.
 #                  https://www.gnu.org/licenses/
 # ****************************************************************************
 from itertools import repeat
+from collections import Counter
 
 import sage.misc.prandom as random
 
@@ -6053,9 +6054,9 @@ class SemistandardTableaux(Tableaux):
                 raise ValueError("shape must be a (skew) partition")
 
         if mu is not None:
-            if mu not in Compositions() and mu not in _Partitions:
-                raise ValueError("mu must be a composition")
-            mu = Composition(mu)
+            if mu not in IntegerVectors() and mu not in Compositions() and mu not in _Partitions:
+                raise ValueError("mu must be an integer vector with non-negative entries")
+            mu = IntegerVectors()(mu)
 
         is_inf = max_entry is PlusInfinity()
 
@@ -6400,10 +6401,10 @@ class SemistandardTableaux_size_inf(SemistandardTableaux):
                     for k in range(1, self.size+1):
                         for c in integer_vectors_nk_fast_iter(self.size - k, i-1):
                             c.append(k)
-                            for sst in SemistandardTableaux_shape_weight(part, Composition(c)):
+                            for sst in SemistandardTableaux_shape_weight(part, IntegerVectors()(c)):
                                 yield self.element_class(self, sst)
                 else:
-                    for sst in SemistandardTableaux_shape_weight(part, Composition([self.size])):
+                    for sst in SemistandardTableaux_shape_weight(part, IntegerVectors()([self.size])):
                         yield self.element_class(self, sst)
             i += 1
 
@@ -6499,10 +6500,10 @@ class SemistandardTableaux_shape_inf(SemistandardTableaux):
                 for k in range(1, n+1):
                     for c in integer_vectors_nk_fast_iter(n - k, i-1):
                         c.append(k)
-                        for sst in SemistandardTableaux_shape_weight(self.shape, Composition(c)):
+                        for sst in SemistandardTableaux_shape_weight(self.shape, IntegerVectors()(c)):
                             yield self.element_class(self, sst)
             else:
-                for sst in SemistandardTableaux_shape_weight(self.shape, Composition([n])):
+                for sst in SemistandardTableaux_shape_weight(self.shape, IntegerVectors()([n])):
                     yield self.element_class(self, sst)
             i += 1
 
@@ -6781,7 +6782,7 @@ class SemistandardTableaux_shape(SemistandardTableaux):
             True
         """
         for c in integer_vectors_nk_fast_iter(sum(self.shape), self.max_entry):
-            for sst in SemistandardTableaux_shape_weight(self.shape, Composition(c)):
+            for sst in SemistandardTableaux_shape_weight(self.shape, IntegerVectors()(c)):
                 yield self.element_class(self, sst)
 
     def __contains__(self, x):
@@ -6917,7 +6918,7 @@ class SemistandardTableaux_shape(SemistandardTableaux):
         if algorithm == 'sum':
             c = 0
             for comp in integer_vectors_nk_fast_iter(sum(self.shape), self.max_entry):
-                c += SemistandardTableaux_shape_weight(self.shape, Composition(comp)).cardinality()
+                c += SemistandardTableaux_shape_weight(self.shape, IntegerVectors()(comp)).cardinality()
             return c
         raise ValueError("unknown algorithm {}".format(algorithm))
 
@@ -6968,21 +6969,13 @@ class SemistandardTableaux_shape_weight(SemistandardTableaux_shape):
         """
         if x not in SemistandardTableaux_shape(self.shape, self.max_entry):
             return False
-        n = sum(self.shape)
 
-        if n == 0 and len(x) == 0:
+        if not self.shape and not x:
             return True
 
-        content = {}
-        for row in x:
-            for i in row:
-                content[i] = content.get(i, 0) + 1
-        content_list = [0] * int(max(content))
-
-        for key, c in content.items():
-            content_list[key - 1] = c
-
-        return content_list == self.weight
+        content = Counter(i for row in x for i in row)
+        content_list = [content[i] for i in range(1, max(content) + 1)]
+        return content_list == list(self.weight)
 
     def cardinality(self):
         """
