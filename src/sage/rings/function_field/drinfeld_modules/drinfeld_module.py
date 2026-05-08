@@ -295,36 +295,36 @@ class DrinfeldModule(Parent, UniqueRepresentation):
     For the convenience of the reader, we hereby list the methods that can be
     used to retrieve them.
 
-    - :meth:`~sage.categories.anderson_motives.DrinfeldModules.ParentMethods.base`:
+    - :meth:`~sage.categories.drinfeld_modules.DrinfeldModules.ParentMethods.base`:
       the base field `K` of the Drinfeld module, a *field* object, with no
       extra structure
 
-    - :meth:`~sage.categories.anderson_motives.DrinfeldModules.ParentMethods.base_morphism`:
+    - :meth:`~sage.categories.drinfeld_modules.DrinfeldModules.ParentMethods.base_morphism`:
       the base morphism `\gamma: \GF{q}[T] \to K` of the category of the
       Drinfeld module
 
-    - :meth:`~sage.categories.anderson_motives.DrinfeldModules.ParentMethods.A_field`:
+    - :meth:`~sage.categories.drinfeld_modules.DrinfeldModules.ParentMethods.A_field`:
       the base field `K`
-      (:meth:`~sage.categories.anderson_motives.DrinfeldModules.ParentMethods.base` or
-      :meth:`~sage.categories.anderson_motives.DrinfeldModules.ParentMethods.base_ring`)
+      (:meth:`~sage.categories.drinfeld_modules.DrinfeldModules.ParentMethods.base` or
+      :meth:`~sage.categories.drinfeld_modules.DrinfeldModules.ParentMethods.base_ring`)
       of the Drinfeld module seen as an `\GF{q}[T]`-algebra, defined by `\gamma`
-      (:meth:`~sage.categories.anderson_motives.DrinfeldModules.ParentMethods.base_morphism`);
+      (:meth:`~sage.categories.drinfeld_modules.DrinfeldModules.ParentMethods.base_morphism`);
       this is *ring extension* object::
 
         sage: phi.A_field() is phi.base().over(phi.base_morphism())
         True
 
-    - :meth:`~sage.categories.anderson_motives.DrinfeldModules.ParentMethods.base_over_constants_field`:
+    - :meth:`~sage.categories.drinfeld_modules.DrinfeldModules.ParentMethods.base_over_constants_field`:
       the field `K` seen as an extension of `\GF{q}`, independently of `\gamma`;
       this is a *ring extension* object
 
-    - :meth:`~sage.categories.anderson_motives.DrinfeldModules.ParentMethods.base_ring`:
-      an alias to :meth:`~sage.categories.anderson_motives.DrinfeldModules.ParentMethods.base`
+    - :meth:`~sage.categories.drinfeld_modules.DrinfeldModules.ParentMethods.base_ring`:
+      an alias to :meth:`~sage.categories.drinfeld_modules.DrinfeldModules.ParentMethods.base`
 
-    - :meth:`~sage.categories.anderson_motives.DrinfeldModules.ParentMethods.function_ring`:
+    - :meth:`~sage.categories.drinfeld_modules.DrinfeldModules.ParentMethods.function_ring`:
       the polynomial ring `\GF{q}[T]`
 
-    - :meth:`~sage.categories.anderson_motives.DrinfeldModules.ParentMethods.ore_polring`:
+    - :meth:`~sage.categories.drinfeld_modules.DrinfeldModules.ParentMethods.ore_polring`:
       the Ore polynomial ring `K\{\tau\}`
 
     .. RUBRIC:: Morphisms and isogenies
