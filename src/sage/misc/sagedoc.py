@@ -28,7 +28,9 @@ see :issue:`12849`::
 
 Check that sphinx is not imported at Sage start-up::
 
-    sage: os.system("sage -c \"if 'sphinx' in sys.modules: sys.exit(1)\"")
+    sage: # long time
+    sage: cmd = 'if "sphinx" in sys.modules: sys.exit(1)'
+    sage: os.system(f"python3 -m sage.cli -c '{cmd}'")
     0
 """
 # ****************************************************************************
