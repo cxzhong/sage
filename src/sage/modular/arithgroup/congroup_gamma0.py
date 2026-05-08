@@ -46,7 +46,6 @@ def Gamma0_constructor(N):
         sage: G = Gamma0(T^4 + 2*T + 3)
         sage: G
         Congruence Subgroup Gamma0(T^4 + 2*T + 3)
-
     """
     from sage.modular.arithgroup.all import SL2Z
     if isinstance(N, Polynomial):
@@ -102,7 +101,6 @@ class Gamma0_class(GammaH_class):
          Modular Symbols space of dimension 18 for Gamma_0(100)
           of weight 2 with sign 1 over Rational Field
     """
-
     def __init__(self, level) -> None:
         r"""
         The congruence subgroup `\Gamma_0(N)`.
