@@ -243,7 +243,7 @@ class AndersonMotives(OreModules):
             Ore Polynomial Ring in τ over Univariate Polynomial Ring in T
             over Finite Field in z of size 5^12 twisted by T |--> T, with map of base ring
         """
-        return self._category._ore_polring
+        return self._ore_polring
 
     def divisor(self):
         r"""
