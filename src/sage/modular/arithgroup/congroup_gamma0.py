@@ -50,7 +50,7 @@ def Gamma0_constructor(N):
     """
     from sage.modular.arithgroup.all import SL2Z
     if isinstance(N, Polynomial):
-        from sage.modular.drinfeld_modform.congroup_gamma0 import Gamma0_class as Gamma0_drinfeld
+        from sage.modular.drinfeld_modform.congroup_gamma0 import Gamma0_drinfeld
         return Gamma0_drinfeld(N)
     if N == 1:
         return SL2Z

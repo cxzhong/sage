@@ -195,7 +195,7 @@ class Gamma0Element(MultiplicativeGroupElement):
         return self.parent().level()
 
 
-class Gamma0_class(Group, UniqueRepresentation):
+class Gamma0_drinfeld(Group, UniqueRepresentation):
     r"""
     A congruence subgroup.
     """
@@ -280,7 +280,7 @@ class Gamma0_class(Group, UniqueRepresentation):
             sage: loads(dumps(G)) is G
             True
         """
-        return Gamma0_class, (self._level,)
+        return Gamma0_drinfeld, (self._level,)
 
     def _repr_(self):
         r"""
@@ -308,7 +308,7 @@ class Gamma0_class(Group, UniqueRepresentation):
             sage: H.has_coerce_map_from(G)  # indirect doctest
             True
         """
-        if isinstance(other, Gamma0_class):
+        if isinstance(other, Gamma0_drinfeld):
             return other.level() % self.level() == 0
 
     def _pushout_(self, other):
@@ -328,11 +328,11 @@ class Gamma0_class(Group, UniqueRepresentation):
             sage: P.base_ring()
             Univariate Polynomial Ring in T over Finite Field in z6 of size 5^6
         """
-        if isinstance(other, Gamma0_class):
+        if isinstance(other, Gamma0_drinfeld):
             base = pushout(self.base_ring(), other.base_ring())
             if base is not None:
                 N = base(self.level()).gcd(base(other.level()))
-                return Gamma0_class(N)
+                return Gamma0_drinfeld(N)
 
     def base_ring(self):
         r"""
