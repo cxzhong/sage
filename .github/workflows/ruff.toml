@@ -8,7 +8,6 @@ extend-ignore = [
   "E742",    # 2 failures
   "PLC3002", # 3 failures
   "PLE0302", # 3 failures
-  "PLR0124", # 7 failures
   "PLW1508", # 8 failures
   "PLR5501", # 375 failures, should be easy to autofix
   "PLC0206", # 39

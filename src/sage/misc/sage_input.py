@@ -483,10 +483,10 @@ class SageInputBuilder:
             # floats could often have prettier output,
             # but I think they're rare enough in Sage that it's not
             # worth the effort.
-            from math import inf
+            from math import inf, isnan
             if x == inf:
                 return self.name('float')(self.name('infinity'))
-            if x != x:
+            if isnan(x):
                 return self.name('float')(self.name('NaN'))
             if x == -inf:
                 return -self.name('float')(self.name('infinity'))
@@ -3488,7 +3488,7 @@ def verify_same(a, b):
         # If this case occurs, then a and b do not compare equal to
         # itself. In that case, we compare the string representations of
         # a and b.
-        if not (a == a) and not (b == b):
+        if not (a == a) and not (b == b):  # noqa: PLR0124
             if repr(a) == repr(b):
                 return  # Good!
         raise AssertionError("Expected %r == %r" % (a, b))
