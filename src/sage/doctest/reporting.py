@@ -495,7 +495,7 @@ class DocTestReporter(SageObject):
             stats = self.stats
             basename = source.basename
             baseline = self.controller.source_baseline(source)
-            cmd = self.report_head(source)
+            self.report_head(source)
             try:
                 ntests, result_dict = results
             except (TypeError, ValueError):

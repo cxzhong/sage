@@ -393,7 +393,6 @@ class GhLabelSynchronizer:
         """
         if self._author is not None:
             return self._author
-        data = self.view('author')
         self._author = self.view('author')['login']
         info('Author of %s: %s' % (self._issue, self._author))
         return self._author

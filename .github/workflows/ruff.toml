@@ -13,7 +13,6 @@ extend-ignore = [
   "PLC0206", # 39
   "PLR1704", # 56 failures
   "PLW0642", # 61 failures
-  "F841",    # 61 failures
   "C420",    # 69 failures
   "C405",    # 75 failures
   "PLW0603", # 94 failures
