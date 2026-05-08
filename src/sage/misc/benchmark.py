@@ -1,11 +1,24 @@
 "Benchmarks"
 
+from typing import Literal, overload
+
 from sage.misc.misc import cputime
 
 from sage.all import *
 
+# Type alias for a single benchmark result
+BenchmarkResult = tuple[int, float, str]
 
-def benchmark(n=-1):
+
+@overload
+def benchmark(n: list[int]) -> tuple[list[BenchmarkResult], float]: ...
+@overload
+def benchmark(n: int = ...) -> BenchmarkResult: ...
+@overload
+def benchmark(n: Literal[-1]) -> tuple[list[BenchmarkResult], float]: ...
+
+
+def benchmark(n: list[int] | int = -1) -> tuple[list[BenchmarkResult], float] | BenchmarkResult:
     """
     Run a well-chosen range of Sage commands and record the time it
     takes for each to run.
@@ -79,7 +92,7 @@ def benchmark(n=-1):
     return v, cputime(t)
 
 
-def bench0():
+def bench0() -> tuple[str, float]:
     """
     Run a benchmark.
 
@@ -99,7 +112,7 @@ def bench0():
     return (desc, cputime(t))
 
 
-def bench1():
+def bench1() -> tuple[str, float]:
     """
     Run a benchmark.
 
@@ -116,7 +129,7 @@ def bench1():
     return (desc, cputime(t))
 
 
-def bench2():
+def bench2() -> tuple[str, float]:
     """
     Run a benchmark.
 
@@ -132,7 +145,7 @@ def bench2():
     return (desc, cputime(t))
 
 
-def bench3():
+def bench3() -> tuple[str, float]:
     """
     Run a benchmark.
 
@@ -148,7 +161,7 @@ def bench3():
     return (desc, cputime(t))
 
 
-def bench4():
+def bench4() -> tuple[str, float]:
     """
     Run a benchmark.
 
@@ -166,7 +179,7 @@ def bench4():
     return (desc, cputime(t))
 
 
-def bench5():
+def bench5() -> tuple[str, float]:
     """
     Run a benchmark.
 
@@ -184,7 +197,7 @@ def bench5():
     return (desc, cputime(t))
 
 
-def bench6():
+def bench6() -> tuple[str, float]:
     """
     Run a benchmark.
 
@@ -202,7 +215,7 @@ def bench6():
     return (desc, cputime(t))
 
 
-def bench7():
+def bench7() -> tuple[str, float]:
     """
     Run a benchmark.
 
