@@ -51,7 +51,7 @@ if gap_exe.found()
 endif
 ecm_bin = find_program(
   ['ecm', 'gmp-ecm'],
-  required: not is_windows,
+  required: false,
   disabler: true,
 )
 conf_data.set('SAGE_ECMBIN', ecm_bin.full_path())
