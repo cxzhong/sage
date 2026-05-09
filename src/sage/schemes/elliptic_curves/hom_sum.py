@@ -731,5 +731,9 @@ class EllipticCurveHom_sum(EllipticCurveHom):
             Traceback (most recent call last):
             ...
             NotImplementedError: x-only evaluation not implemented for sums of isogenies (it would require taking a square root anyway)
+            sage: phi.xEVAL((42, 1), proj=True)
+            Traceback (most recent call last):
+            ...
+            NotImplementedError: x-only evaluation not implemented for sums of isogenies (it would require taking a square root anyway)
         """
         raise NotImplementedError('x-only evaluation not implemented for sums of isogenies (it would require taking a square root anyway)')

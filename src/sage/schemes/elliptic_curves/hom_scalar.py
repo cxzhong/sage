@@ -592,5 +592,14 @@ class EllipticCurveHom_scalar(EllipticCurveHom):
             +Infinity
             sage: phi.xEVAL(oo)
             +Infinity
+
+        Projectively::
+
+            sage: phi.xEVAL((210, 5), proj=True)
+            (112721781618011304620679249440085222783, 63670757948168934832761807482864762548)
+            sage: E.scalar_multiplication(2^127).xEVAL((210, 5), proj=True)
+            (88560166162945505017519763556469875524, 0)
+            sage: phi.xEVAL((1, 0), proj=True)
+            (1, 0)
         """
         return self._domain.xMUL(self._m, xP, proj=proj)

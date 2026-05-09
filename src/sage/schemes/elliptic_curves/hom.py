@@ -1885,6 +1885,14 @@ class EllipticCurveHom(Morphism):
             sage: iso.xEVAL(oo)
             +Infinity
 
+        Projectively::
+
+            sage: xP = seq((16, 10), E.base_field())
+            sage: iso.xEVAL(xP, proj=True)
+            (19, 10)
+            sage: iso.xEVAL((1, 0), proj=True)
+            (1, 0)
+
         Example for :class:`EllipticCurveIsogeny` (Vélu)::
 
             sage: E = EllipticCurve(GF(101^2), [1, 1, 1, 1, 1])
@@ -1899,6 +1907,17 @@ class EllipticCurveHom(Morphism):
             +Infinity
             sage: phi.xEVAL(oo)
             +Infinity
+
+        Projectively::
+
+            sage: xP = seq((16, 10), E.base_field())
+            sage: phi.xEVAL(xP, proj=True)
+            (48, 50)
+            sage: xK2 = (2*K)[0]*5, (2*K)[2]*5
+            sage: phi.xEVAL(xK2, proj=True)
+            (1, 0)
+            sage: phi.xEVAL((1, 0), proj=True)
+            (1, 0)
 
         Example for :class:`EllipticCurveIsogeny` (Kohel)::
 
@@ -1915,6 +1934,17 @@ class EllipticCurveHom(Morphism):
             sage: psi.xEVAL(oo)
             +Infinity
 
+        Projectively::
+
+            sage: xP = seq((16, 10), E.base_field())
+            sage: psi.xEVAL(xP, proj=True)
+            (48, 50)
+            sage: xK2 = (2*K)[0]*5, (2*K)[2]*5
+            sage: psi.xEVAL(xK2, proj=True)
+            (1, 0)
+            sage: psi.xEVAL((1, 0), proj=True)
+            (1, 0)
+
         Example for :class:`EllipticCurveHom_frobenius`::
 
             sage: pi = E.frobenius_isogeny(); pi
@@ -1929,6 +1959,14 @@ class EllipticCurveHom(Morphism):
             100*z2 + 3
             sage: pi.xEVAL(oo)
             +Infinity
+
+        Projectively::
+
+            sage: xP = (3*z2 - 2, z2)
+            sage: pi.xEVAL(xP, proj=True)
+            (98*z2 + 10, 100*z2 + 4)
+            sage: pi.xEVAL((1, 0), proj=True)
+            (1, 0)
 
         Example for :class:`EllipticCurveHom_fractional`::
 
@@ -1948,6 +1986,14 @@ class EllipticCurveHom(Morphism):
             100*z2 + 1
             sage: chi.xEVAL(oo)
             +Infinity
+
+        Projectively::
+
+            sage: xP = (3*z2 - 2, z2)
+            sage: chi.xEVAL(xP, proj=True)
+            (64*z2 + 54, 84*z2 + 88)
+            sage: chi.xEVAL((1, 0), proj=True)
+            (1, 0)
 
         .. TODO ::
 

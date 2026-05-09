@@ -1356,6 +1356,17 @@ class EllipticCurveHom_velusqrt(EllipticCurveHom):
             +Infinity
             sage: phi.xEVAL(oo)
             +Infinity
+
+        Projectively::
+
+            sage: xP = seq((16, 10), E.base_field())
+            sage: phi.xEVAL(xP, proj=True)
+            (96, 1)
+            sage: xK = K[0]*5, K[2]*5
+            sage: phi.xEVAL(xK, proj=True)
+            (1, 0)
+            sage: phi.xEVAL((1, 0), proj=True)
+            (1, 0)
         """
         from sage.rings.infinity import Infinity as oo
         if proj:

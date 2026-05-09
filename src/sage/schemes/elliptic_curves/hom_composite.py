@@ -1117,6 +1117,17 @@ class EllipticCurveHom_composite(EllipticCurveHom):
             +Infinity
             sage: phi.xEVAL(oo)
             +Infinity
+
+        Projectively::
+
+            sage: xP = seq((420, 10), E.base_field())
+            sage: phi.xEVAL(xP, proj=True)
+            (90035703993267090112493393657965727906, 4918494759669739394657653301510642888)
+            sage: xK = seq((230, 10), E.base_field())
+            sage: phi.xEVAL(xK, proj=True)
+            (1, 0)
+            sage: phi.xEVAL((1, 0), proj=True)
+            (1, 0)
         """
         for phi in self.factors():
             xP = phi.xEVAL(xP, proj=proj)
