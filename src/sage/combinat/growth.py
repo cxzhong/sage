@@ -1903,7 +1903,6 @@ class GrowthDiagram(SageObject):
 
         # Target size inside a 1x1 cell (in ems, consistent with x=..., y=...):
         target_em = 0.80
-        default_scale = 0.33  # fallback if measurement degenerates
 
         tikz = []
         tikz.append("\\begingroup")
