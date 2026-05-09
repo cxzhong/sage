@@ -104,7 +104,7 @@ class AndersonMotives(OreModules):
         self._divisor = AK.gen() - self._constant_coefficient
         twisting_morphism = category.ore_polring().twisting_morphism()
         twisting_morphism = AK.hom([AK.gen()], base_map=twisting_morphism)
-        self._ore_polring = OrePolynomialRing(AK, twisting_morphism, names=self._ore_variable_name)
+        self._ore_polring = OrePolynomialRing(AK, twisting_morphism, names=self._ore_variable_name, polcast=False)
         super().__init__(self._ore_polring)
 
     def _repr_(self):
