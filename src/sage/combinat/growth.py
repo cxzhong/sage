@@ -5412,8 +5412,8 @@ class RuleRightCompositions(RuleCompositions):
     r"""
     Dual graded graphs for (skew) quasisymmetric Schur functions.
 
-    These were introduced by Stephanie van Willigenburg in [vW2019]_,
-    cf. [TvW2018]_.  This class implements Theorem 3.3 of [vW2019]_.
+    These were introduced by Stephanie van Willigenburg in [vW2020]_,
+    cf. [TvW2018]_.  This class implements Theorem 3.3 of [vW2020]_.
 
     TESTS::
 
