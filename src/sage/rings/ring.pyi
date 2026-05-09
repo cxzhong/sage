@@ -35,35 +35,27 @@ class Ring(ParentWithGens):
 
 class CommutativeRing(Ring):
     _default_category: Category = _CommutativeRings
+    def __init__(self, *args, **kwds) -> None: ...
 
-    def __init__(
-        self,
-        base_ring: Parent[Any] | object,
-        names: NameSpec = None,
-        normalize: bool = True,
-        category: Category | None = None,
-    ) -> None: ...
-    def fraction_field(self) -> Ring: ...
-
-class IntegralDomain(CommutativeRing):
+class IntegralDomain(Ring):
     _default_category: Category
     def __init__(self, *args, **kwds) -> None: ...
 
-class NoetherianRing(CommutativeRing):
+class NoetherianRing(Ring):
     _default_category: Category
     def __init__(self, *args, **kwds) -> None: ...
 
-class DedekindDomain(CommutativeRing):
+class DedekindDomain(Ring):
     _default_category: Category
     def __init__(self, *args, **kwds) -> None: ...
 
-class PrincipalIdealDomain(CommutativeRing):
+class PrincipalIdealDomain(Ring):
     _default_category: Category
     def __init__(self, *args, **kwds) -> None: ...
 
 def _is_Field(x: object) -> bool: ...
 
-class Field(CommutativeRing):
+class Field(Ring):
     _default_category: Category = _Fields
 
 class Algebra(Ring):
@@ -71,9 +63,7 @@ class Algebra(Ring):
         self, base_ring: Parent[Any] | object, *args: object, **kwds: object
     ) -> None: ...
 
-class CommutativeAlgebra(CommutativeRing):
+class CommutativeAlgebra(Ring):
     def __init__(
         self, base_ring: Parent[Any] | object, *args: object, **kwds: object
     ) -> None: ...
-
-def is_Ring(x: object) -> bool: ...
