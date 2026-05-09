@@ -2500,7 +2500,7 @@ class AbstractLabelledTree(AbstractTree):
             return TR.leaf()
         return TR._element_constructor_([i.shape() for i in self])
 
-    def as_digraph(self):
+    def as_digraph(self, immutable=False):
         """
         Return a directed graph version of ``self``.
 
@@ -2509,6 +2509,11 @@ class AbstractLabelledTree(AbstractTree):
             At this time, the output makes sense only if ``self`` is a
             labelled binary tree with no repeated labels and no ``None``
             labels.
+
+        INPUT:
+
+        - ``immutable`` -- boolean (default: ``False``); whether to return an
+          immutable or a mutable graph
 
         EXAMPLES::
 
@@ -2519,17 +2524,29 @@ class AbstractLabelledTree(AbstractTree):
 
            sage: t = BinaryTree([[None, None],[[],None]])
            sage: lt = t.canonical_labelling()
-           sage: lt.as_digraph()
+           sage: d1 = lt.as_digraph(); d1
            Digraph on 4 vertices
+           sage: d2 = lt.as_digraph(immutable=True); d2
+           Digraph on 4 vertices
+           sage: d1.is_isomorphic(d2)
+           True
         """
         from sage.graphs.digraph import DiGraph
-        resu = {self.label():
-                [t.label() for t in self if not t.is_empty()]}
-        resu = DiGraph(resu, format='dict_of_lists')
-        for t in self:
-            if not t.is_empty():
-                resu = resu.union(t.as_digraph())
-        return resu
+        vertices = [self.label()]
+        edges = []
+        stack = [self]
+        while stack:
+            lt = stack.pop()
+            u = lt.label()
+            for t in lt:
+                if not t.is_empty():
+                    v = t.label()
+                    vertices.append(v)
+                    edges.append((u, v))
+                    stack.append(t)
+
+        return DiGraph([vertices, edges], format="vertices_and_edges",
+                       immutable=immutable)
 
 
 class AbstractLabelledClonableTree(AbstractLabelledTree,
