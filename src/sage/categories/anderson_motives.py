@@ -415,6 +415,8 @@ class AndersonMotives(OreModules):
             """
             return self._category.base()
 
+        base_ring = base
+
         def characteristic(self):
             r"""
             Return the characteristic of the underlying `A`-field.
