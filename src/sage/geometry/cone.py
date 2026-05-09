@@ -3501,7 +3501,7 @@ class ConvexRationalPolyhedralCone(IntegralRayCollection, Container, ConvexSet_c
             sage: K = random_cone(strictly_convex=False,
             ....:                 min_ambient_dim=8,
             ....:                 max_ambient_dim=12,
-            ....:                 min_rays=4, max_rays=10)
+            ....:                 min_rays=4, max_rays=15)
             sage: V = K.lattice().vector_space()
             sage: L = [V(l) for l in K.lines()]
             sage: all( L[i].inner_product(L[j]).is_zero()
