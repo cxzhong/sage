@@ -102,7 +102,7 @@ This is to test a deprecation::
     sage: F = Niets()
     ...:
     DeprecationWarning: use the category CommutativeRings
-    See https://github.com/sagemath/sage/issues/xxxxx for details.
+    See https://github.com/sagemath/sage/issues/42153 for details.
     sage: F.category()
     Category of commutative rings
 """
@@ -497,7 +497,7 @@ cdef class CommutativeRing(Ring):
     _default_category = _CommutativeRings
 
     def __init__(self, *args, **kwds):
-        deprecation(xxxxx, "use the category CommutativeRing")
+        deprecation(42153, "use the category CommutativeRing")
         super().__init__(*args, **kwds)
 
 
