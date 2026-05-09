@@ -491,13 +491,10 @@ cdef class Ring(ParentWithGens):
 
 
 cdef class CommutativeRing(Ring):
-    """
-    Generic commutative ring.
-    """
     _default_category = _CommutativeRings
 
     def __init__(self, *args, **kwds):
-        deprecation(42153, "use the category CommutativeRing")
+        deprecation(42153, "use the category CommutativeRings")
         super().__init__(*args, **kwds)
 
 
