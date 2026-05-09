@@ -279,10 +279,11 @@ class HypergeometricAlgebraic(Element):
         """
         return hash((self.base_ring(), self._parameters, self._scalar))
 
-    def __eq__(self, other):
+    @coerce_binop
+    def is_equal_symbolically(self, other):
         r"""
-        Return ``True`` if the parameters defining the hypergeometric
-        series ``self`` and ``other`` are the same; ``False`` otherwise.
+        Return whether if the parameters defining the hypergeometric
+        series ``self`` and ``other`` are the same.
 
         INPUT:
 
@@ -295,13 +296,13 @@ class HypergeometricAlgebraic(Element):
             sage: S.<x> = QQ[]
             sage: f = hypergeometric([1/12, 1/6], [1/3], x)
             sage: g = hypergeometric([1/6, 1/12], [1/3], x)
-            sage: f == g
+            sage: f.is_equal_symbolically(g)
             True
 
         ::
 
             sage: h = hypergeometric([1/12, 1/4], [1/2], x)
-            sage: g == h
+            sage: g.is_equal_symbolically(h)
             False
 
         We emphasize that two hypergeometric functions are considered
@@ -320,12 +321,83 @@ class HypergeometricAlgebraic(Element):
 
         .. SEEALSO::
 
-            :meth:`~HypergeometricAlgebraic_GFp.is_equal_as_series`
+            :meth:`is_equal_as_series`
         """
-        return (isinstance(other, HypergeometricAlgebraic)
-            and self.base_ring() is other.base_ring()
-            and self._parameters == other._parameters
-            and self._scalar == other._scalar)
+        return self._parameters == other._parameters and self._scalar == other._scalar
+
+    @coerce_binop
+    def is_equal_as_series(self, other):
+        r"""
+        Return whether ``self`` and ``other`` define the same series.
+
+        INPUT:
+
+        - ``other`` -- an hypergeometric function over the same base
+
+        EXAMPLES::
+
+            sage: S.<x> = GF(13)[]
+            sage: f = hypergeometric([1/12, 1/6], [1/3], x)
+            sage: g = hypergeometric([1/12, 1/4], [1/2], x)
+            sage: f.is_equal_as_series(g)
+            True
+
+        Note that this method is not implemented over all bases::
+
+            sage: S.<x> = Integers(169)[]
+            sage: f = hypergeometric([1/12, 1/6], [1/3], x)
+            sage: g = hypergeometric([1/12, 1/4], [1/2], x)
+            sage: f.is_equal_as_series(g)
+            Traceback (most recent call last):
+            ...
+            NotImplementedError: equality as series is not implemented over Ring of integers modulo 169
+
+        .. SEEALSO::
+
+            :meth:`is_equal_symbolically`
+        """
+        if self._scalar != other._scalar:
+            return False
+        char = self.parent()._char
+        if char == 0:
+            return self.is_equal_symbolically(other)
+        if char.is_prime():
+            H = self.parent().change_ring(FiniteField(char))
+            hs = H(self._parameters)
+            ho = H(other._parameters)
+            return hs.is_equal_as_series(ho)
+        raise NotImplementedError("equality as series is not implemented over %s" % self.base_ring())
+
+    def __eq__(self, other):
+        r"""
+        Return whether ``self`` is equal to ``other`` according to the
+        equality convention defined in the parent.
+
+        INPUT:
+
+        - ``other`` -- an hypergeometric function
+
+        TESTS::
+
+            sage: A.<y> = GF(13)[]
+            sage: S.<x> = A[]
+            sage: f = y * hypergeometric([1/12, 1/6], [1/3], x)
+            sage: g = y * hypergeometric([1/12, 1/4], [1/2], x)
+            sage: f == g  # symbolic equality
+            False
+
+        ::
+
+            sage: ff = y * hypergeometric([1/12, 1/6], [1/3], x, symbolic_equality=False)
+            sage: gg = y * hypergeometric([1/12, 1/4], [1/2], x, symbolic_equality=False)
+            sage: ff == gg  # equality as series
+            True
+        """
+        if not isinstance(other, HypergeometricAlgebraic):
+            return False
+        if self.parent()._symbolic_equality and other.parent()._symbolic_equality:
+            return self.is_equal_symbolically(other)
+        return self.is_equal_as_series(other)
 
     def _repr_(self):
         r"""
@@ -1897,11 +1969,13 @@ class HypergeometricAlgebraic_GFp(HypergeometricAlgebraic):
             sage: f == g
             False
         """
-        if self == other:
+        if self.is_equal_symbolically(other):
             return True
+        if self._scalar != other._scalar:
+            return False
         H = self.parent()
         p = self._p
-        queued = [(self, other)]
+        queued = [(self._parameters, other._parameters)]
         checked = {}
         index = 0
         while index < len(queued):
@@ -1910,10 +1984,8 @@ class HypergeometricAlgebraic_GFp(HypergeometricAlgebraic):
             if (left, right) in checked or (right, left) in checked:
                 continue
             checked[(left, right)] = True
-            lpa = left._parameters
-            rpa = right._parameters
             criticals = [(1 - pa) % p
-                         for pa in lpa.top + lpa.bottom + rpa.top + rpa.bottom
+                         for pa in left.top + left.bottom + right.top + right.bottom
                          if pa.denominator() % p]
             criticals.sort()
             criticals.append(p)
@@ -1922,21 +1994,21 @@ class HypergeometricAlgebraic_GFp(HypergeometricAlgebraic):
                 ej = criticals[i+1]
                 if ei == ej:
                     continue
-                ldpa = lpa.shift(ei).dwork_image(p).reduce(p)
-                _, lpos, _ = ldpa.valuation_position(p)
-                rdpa = rpa.shift(ei).dwork_image(p).reduce(p)
-                _, rpos, _ = rdpa.valuation_position(p)
+                ld = left.shift(ei).dwork_image(p).reduce(p)
+                _, lpos, _ = ld.valuation_position(p)
+                rd = right.shift(ei).dwork_image(p).reduce(p)
+                _, rpos, _ = rd.valuation_position(p)
                 if lpos is None or rpos is None:
                     if lpos != rpos:
                         return False
                     continue
-                if left[ei + lpos*p] == 0 and right[ei + rpos*p] == 0:
+                lh = H(left)
+                rh = H(right)
+                if lh[ei + lpos*p] == 0 and rh[ei + rpos*p] == 0:
                     continue
-                if lpos != rpos or any(left[r + lpos*p] != right[r + rpos*p] for r in range(ei, ej)):
+                if lpos != rpos or any(lh[r + lpos*p] != rh[r + rpos*p] for r in range(ei, ej)):
                     return False
-                lsec = H(ldpa.shift(lpos))
-                rsec = H(rdpa.shift(rpos))
-                queued.append((lsec, rsec))
+                queued.append((ld.shift(lpos), rd.shift(rpos)))
         return True
 
     def is_algebraic(self):
@@ -2294,7 +2366,23 @@ class HypergeometricFunctions(Parent, UniqueRepresentation):
     r"""
     Hypergeometric functions over a base ring.
     """
-    def __init__(self, base, name, category=None):
+    def __classcall__(cls, base, name, symbolic_equality=True):
+        r"""
+        Normalize parameters and call the init function.
+
+        TESTS::
+
+            sage: S.<x> = QQ[]
+            sage: H1 = hypergeometric([], [], x, symbolic_equality=False).parent()
+            sage: H2 = hypergeometric([], [], x, symbolic_equality=None).parent()
+            sage: H1 is H2
+            True
+        """
+        symbolic_equality = bool(symbolic_equality)
+        name = normalize_names(1, name)[0]
+        return super().__classcall__(cls, base, name, symbolic_equality)
+
+    def __init__(self, base, name, symbolic_equality, category=None):
         r"""
         Initialize this set of hypergeometric functions.
 
@@ -2304,7 +2392,17 @@ class HypergeometricFunctions(Parent, UniqueRepresentation):
 
         - ``name`` -- a string, the name of the variable
 
+        - ``symbolic_equality`` -- a boolean (default: ``True``); if
+          ``True``, equality of elements in this parents are checked
+          by comparing parameters; if ``False``, it is checked by
+          comparing series
+
         - ``category`` -- a category (default: ``None``)
+
+        .. NOTE::
+
+            The option ``symbolic_equality=False`` is much slower
+            and not implemented over all bases.
 
         TESTS::
 
@@ -2312,9 +2410,10 @@ class HypergeometricFunctions(Parent, UniqueRepresentation):
             sage: H = hypergeometric([], [], x).parent()
             sage: TestSuite(H).run()
         """
-        self._name = normalize_names(1, name)[0]
-        self._latex_name = latex_variable_name(self._name)
+        self._name = name
+        self._latex_name = latex_variable_name(name)
         self._char = char = base.characteristic()
+        self._symbolic_equality = symbolic_equality
         if char == 0:
             base = pushout(base, QQ)
         if base in FiniteFields() and base.is_prime_field():
@@ -2388,10 +2487,21 @@ class HypergeometricFunctions(Parent, UniqueRepresentation):
             False
             sage: HT.has_coerce_map_from(HS)  # indirect doctest
             True
+
+        ::
+
+            sage: HS2 = hypergeometric([], [], x, symbolic_equality=False).parent()
+            sage: HS.has_coerce_map_from(HS2)
+            False
+            sage: HS2.has_coerce_map_from(HS)
+            True
         """
         if (isinstance(other, HypergeometricFunctions)
         and self.base_ring().has_coerce_map_from(other.base_ring())):
-            return True
+            if self._symbolic_equality:
+                return True
+            else:
+                return other._symbolic_equality
 
     def _pushout_(self, other):
         r"""
@@ -2411,11 +2521,18 @@ class HypergeometricFunctions(Parent, UniqueRepresentation):
             sage: HT = hypergeometric([], [], x).parent()
             sage: pushout(HT, HS) is HT
             True
+
+        ::
+
+            sage: HS2 = hypergeometric([], [], x, symbolic_equality=False).parent()
+            sage: pushout(HS, HS2) is HS2
+            True
         """
         if isinstance(other, HypergeometricFunctions) and self._name == other._name:
             base = pushout(self.base_ring(), other.base_ring())
             if base is not None:
-                return HypergeometricFunctions(base, self._name)
+                symbolic_equality = self._symbolic_equality and other._symbolic_equality
+                return HypergeometricFunctions(base, self._name, symbolic_equality)
         if SR.has_coerce_map_from(other):
             return SR
 
@@ -2461,6 +2578,26 @@ class HypergeometricFunctions(Parent, UniqueRepresentation):
         """
         return self._latex_name
 
+    def symbolic_equality(self):
+        r"""
+        Return whether or not the equality in the parent is checked
+        symbolically.
+
+        EXAMPLES::
+
+            sage: S.<x> = GF(5)[]
+            sage: f = hypergeometric([1/2, 1/3], [1], x)
+            sage: f.parent().symbolic_equality()
+            True
+
+        ::
+
+            sage: g = hypergeometric([1/2, 1/3], [1], x, symbolic_equality=False)
+            sage: g.parent().symbolic_equality()
+            False
+        """
+        return self._symbolic_equality
+
     def change_ring(self, R):
         r"""
         Return the parent for hypergeometric functions in the same
@@ -2479,7 +2616,7 @@ class HypergeometricFunctions(Parent, UniqueRepresentation):
             sage: H.change_ring(GF(5))
             Hypergeometric functions in x over Finite Field of size 5
         """
-        return HypergeometricFunctions(R, self._name)
+        return HypergeometricFunctions(R, self._name, self._symbolic_equality)
 
     def change_variable_name(self, name):
         r"""
@@ -2499,7 +2636,7 @@ class HypergeometricFunctions(Parent, UniqueRepresentation):
             sage: H.change_variable_name('y')
             Hypergeometric functions in y over Rational Field
         """
-        return HypergeometricFunctions(self._base, name)
+        return HypergeometricFunctions(self._base, name, self._symbolic_equality)
 
     def polynomial_ring(self):
         r"""

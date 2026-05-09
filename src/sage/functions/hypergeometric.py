@@ -300,6 +300,25 @@ class Hypergeometric(BuiltinFunction):
         if ``z`` is 0. For other simplifications use the
         ``simplify_hypergeometric`` method.
 
+        When `x` is a generator of a polynomial ring or a power series
+        ring, an algebraic (by contrast with symbolic) object is returned,
+        for which a different set of method is available.
+
+            sage: S.<x> = QQ[]
+            sage: h = hypergeometric([1/2, 1/2], [1], x)
+            sage: h
+            hypergeometric((1/2, 1/2), (1,), x)
+            sage: h.is_algebraic()
+            False
+
+        Besides, in this case, the additional boolean argument `symbolic_equality`
+        (default: ``True``) determines whether equality should be checked
+        symbolically (that is, equality of parameters) or algebraically
+        (that is, equality of underlying series).
+
+        We refer to :mod:`sage.functions.hypergeometric_algebraic` for a
+        detailed presentation of the available functionalities.
+
         TESTS::
 
             sage: hypergeometric([2, 3, 4], [4, 1], 1)
@@ -314,7 +333,7 @@ class Hypergeometric(BuiltinFunction):
                 if z != S.gen():
                     raise NotImplementedError("the argument must be the generator of the polynomial ring")
                 from sage.functions.hypergeometric_algebraic import HypergeometricFunctions
-                return HypergeometricFunctions(S.base_ring(), S.variable_name())(a, b)
+                return HypergeometricFunctions(S.base_ring(), S.variable_name(), **kwargs)(a, b)
         return BuiltinFunction.__call__(self,
                                         SR._force_pyobject(a),
                                         SR._force_pyobject(b),
