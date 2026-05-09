@@ -92,7 +92,20 @@ highs_dep = dependency(
   method: 'pkg-config',
   required: false,
 )
-if not highs_dep.found()
+if highs_dep.found()
+  highs_header = 'interfaces/highs_c_api.h'
+  if cc.has_header(highs_header, dependencies: highs_dep)
+    highs = highs_dep
+  else
+    highs_prefix = highs_dep.get_variable(pkgconfig: 'prefix', default_value: '')
+    highs_includedir = highs_prefix / 'include' / 'highs'
+    highs = declare_dependency(
+      dependencies: [highs_dep],
+      compile_args: ['-I' + highs_includedir],
+    )
+    cc.has_header(highs_header, dependencies: highs, required: true)
+  endif
+else
   highs_proj = subproject(
     'highs',
     default_options: [
@@ -102,20 +115,7 @@ if not highs_dep.found()
       'with_tests=false',
     ],
   )
-  highs_dep = highs_proj.get_variable('highs_dep')
-endif
-
-highs_header = 'interfaces/highs_c_api.h'
-if cc.has_header(highs_header, dependencies: highs_dep)
-  highs = highs_dep
-else
-  highs_prefix = highs_dep.get_variable(pkgconfig: 'prefix', default_value: '')
-  highs_includedir = highs_prefix / 'include' / 'highs'
-  highs = declare_dependency(
-    dependencies: [highs_dep],
-    compile_args: ['-I' + highs_includedir],
-  )
-  cc.has_header(highs_header, dependencies: highs, required: true)
+  highs = highs_proj.get_variable('highs_dep')
 endif
 gc = dependency(
   ['bdw-gc-threaded', 'bdw-gc'],
