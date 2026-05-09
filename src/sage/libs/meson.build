@@ -83,9 +83,9 @@ braiding = dependency(
 # HiGHS optimization solver (used by sage.numerical.backends.highs_backend)
 # The HiGHS C API headers use relative includes like
 # "lp_data/HighsCallbackStruct.h", so the "highs" subdirectory must be on the
-# include path. This should come from highs.pc's Cflags automatically, but some
-# Debian/Ubuntu packages have a broken includedir such as /usr/usr/include/highs.
-# Reconstruct it from the correct pkg-config prefix.
+# include path. This should come from highs.pc's Cflags automatically. Some
+# Debian/Ubuntu packages have a broken includedir such as /usr/usr/include/highs,
+# so fall back to reconstructing it from the correct pkg-config prefix.
 highs_dep = dependency(
   'highs',
   version: '>=1.12.0',
@@ -104,15 +104,18 @@ if not highs_dep.found()
   )
   highs_dep = highs_proj.get_variable('highs_dep')
 endif
-highs_prefix = highs_dep.get_variable(pkgconfig: 'prefix', default_value: '')
-if highs_prefix != ''
+
+highs_header = 'interfaces/highs_c_api.h'
+if cc.has_header(highs_header, dependencies: highs_dep)
+  highs = highs_dep
+else
+  highs_prefix = highs_dep.get_variable(pkgconfig: 'prefix', default_value: '')
   highs_includedir = highs_prefix / 'include' / 'highs'
   highs = declare_dependency(
     dependencies: [highs_dep],
     compile_args: ['-I' + highs_includedir],
   )
-else
-  highs = highs_dep
+  cc.has_header(highs_header, dependencies: highs, required: true)
 endif
 gc = dependency(
   ['bdw-gc-threaded', 'bdw-gc'],
