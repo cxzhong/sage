@@ -32,13 +32,19 @@ from __future__ import annotations
 
 import argparse
 import ast
+import io
 import sys
+from contextlib import redirect_stderr
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 from Cython.Compiler.CythonScope import create_cython_scope
-from Cython.Compiler.Errors import CompileError, init_thread
+from Cython.Compiler.Errors import (
+    CompileError,
+    init_thread,
+    open_listing_file,
+)
 from Cython.Compiler.ExprNodes import (
     AddNode,
     AttributeNode,
@@ -48,6 +54,7 @@ from Cython.Compiler.ExprNodes import (
     FloatNode,
     GeneralCallNode,
     ImportNode,
+    IndexNode,
     IntBinopNode,
     IntNode,
     ListNode,
@@ -58,6 +65,7 @@ from Cython.Compiler.ExprNodes import (
     SimpleCallNode,
     TupleNode,
     TypecastNode,
+    UnaryMinusNode,
     UnaryPlusNode,
     UnicodeNode,
 )
@@ -110,6 +118,7 @@ class DefaultValue:
             isinstance(node, PowNode)
             or isinstance(node, AddNode)
             or isinstance(node, UnaryPlusNode)
+            or isinstance(node, UnaryMinusNode)
         ):
             return cls("...")  # not handled in detail
         if (
@@ -129,6 +138,8 @@ class DefaultValue:
         if isinstance(node, SetNode):
             return cls("...")  # not handled in detail
         if isinstance(node, AttributeNode):
+            return cls("...")  # not handled in detail
+        if isinstance(node, IndexNode):
             return cls("...")  # not handled in detail
         if isinstance(node, NameNode):
             return cls(node.name)
@@ -189,6 +200,14 @@ class AttributeSymbol(Symbol):
     default: DefaultValue | None
 
 
+@dataclass(frozen=True, slots=True)
+class WriteResult:
+    """Result of attempting to generate a stub file."""
+
+    path: Path
+    written: bool
+
+
 def _iter_child_nodes(node: Node) -> Iterator[Node]:
     """Yield child nodes using Cython's ``child_attrs`` metadata."""
 
@@ -208,8 +227,17 @@ def _iter_child_nodes(node: Node) -> Iterator[Node]:
 def _build_context(source: Path) -> Context:
     """Create a Cython compilation context for the given source file."""
 
+    src_root = next(
+        (
+            parent
+            for parent in source.resolve().parents
+            if parent.name == "src" and (parent / "sage").is_dir()
+        ),
+        Path.cwd() / "src",
+    )
     options = CompilationOptions(
-        defaults=default_options, include_path=[str(source.parent)]
+        defaults=default_options,
+        include_path=[str(source.parent), str(src_root)],
     )
     return Context.from_options(options)
 
@@ -221,21 +249,31 @@ def parse_cython_module(source: Path) -> ModuleNode:
     init_thread()
     module_name = ctx.extract_module_name(str(source), None)
     scope = create_cython_scope(ctx)
-    parsed = ctx.parse(
-        source_desc=FileSourceDescriptor(str(source)),
-        pxd=source.suffix == ".pxd",
-        scope=scope,
-        full_module_name=module_name,
-    )
-    parsed.scope = scope
-    return parsed
+    errors = io.StringIO()
+    try:
+        with redirect_stderr(errors):
+            open_listing_file(path=None, echo_to_stderr=True)
+            parsed = ctx.parse(
+                source_desc=FileSourceDescriptor(str(source)),
+                pxd=source.suffix == ".pxd",
+                scope=scope,
+                full_module_name=module_name,
+            )
+            parsed.scope = scope
+            return parsed
+    except CompileError as e:
+        print(f"Error parsing {source}:", file=sys.stderr)
+        details = errors.getvalue().strip()
+        if details:
+            print(details, file=sys.stderr)
+        elif str(e):
+            print(e, file=sys.stderr)
+        raise
 
 
 def _is_public_name(name: str) -> bool:
-    """Filter out private helpers (leading double underscore)."""
-    if name == "__init__":
-        return True
-    return not name.startswith("__")
+    """Filter out private helpers (leading double underscore) but allow special methods like __xyz__."""
+    return not name.startswith("__") or name.endswith("__")
 
 
 def _params_from_def(node: DefNode) -> tuple[Param, ...]:
@@ -409,16 +447,21 @@ def render_stub(symbols: set[Symbol], source: Path) -> str:
     return "\n".join(lines)
 
 
-def write_stub(source: Path, output_dir: Path | None) -> Path:
+def write_stub(
+    source: Path, output_dir: Path | None, *, force: bool = False
+) -> WriteResult:
     """Generate and write the stub for the given Cython source file."""
+
+    target_dir = output_dir if output_dir is not None else source.parent
+    target = target_dir / f"{source.stem}.pyi"
+    if target.exists() and not force:
+        return WriteResult(target, written=False)
 
     module = parse_cython_module(source)
     symbols = _collect_public_symbols(module)
-    target_dir = output_dir if output_dir is not None else source.parent
     target_dir.mkdir(parents=True, exist_ok=True)
-    target = target_dir / f"{source.stem}.pyi"
     target.write_text(render_stub(symbols, source), encoding="utf-8")
-    return target
+    return WriteResult(target, written=True)
 
 
 def _params_from_stub_func(node: ast.AST) -> tuple[Param, ...]:
@@ -645,8 +688,13 @@ def _parse_args(argv: Sequence[str]) -> argparse.Namespace:
         help="Directory for generated/checked .pyi files (defaults to alongside source)",
     )
 
-    sub.add_parser(
+    write_parser = sub.add_parser(
         "write", parents=[common], help="Generate .pyi stubs from Cython sources"
+    )
+    write_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Overwrite existing .pyi files",
     )
     sub.add_parser(
         "check",
@@ -664,10 +712,18 @@ def main(argv: Sequence[str] | None = None) -> int:
     sources = _iter_source_paths(args.sources)
 
     if args.command == "write":
+        ok = True
         for src in sources:
-            target = write_stub(src, args.output_dir)
-            print(f"Wrote {target}")
-        return 0
+            try:
+                result = write_stub(src, args.output_dir, force=args.force)
+            except CompileError:
+                ok = False
+                continue
+            if result.written:
+                print(f"Wrote {result.path}")
+            else:
+                print(f"Skipped existing {result.path}")
+        return 0 if ok else 1
 
     if args.command == "check":
         ok = True
