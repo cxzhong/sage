@@ -568,6 +568,7 @@ from sage.categories.commutative_algebras import CommutativeAlgebras
 from sage.categories.fields import Fields
 _Fields = Fields()
 
+
 cdef class Field(Ring):
     """
     Generic field
@@ -577,7 +578,10 @@ cdef class Field(Ring):
         sage: QQ.is_noetherian()
         True
     """
-    _default_category = _Fields
+    def __init__(self, *args, **kwds):
+        if 'category' not in kwds:
+            kwds['category'] = _Fields
+        super().__init__(*args, **kwds)
 
 
 cdef class Algebra(Ring):
