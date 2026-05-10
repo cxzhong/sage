@@ -51,6 +51,7 @@ class PrincipalIdealDomain(Ring):
 def _is_Field(x: object) -> bool: ...
 
 class Field(Ring):
+    pass
 
 class Algebra(Ring):
     def __init__(
