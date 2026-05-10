@@ -2618,7 +2618,7 @@ def isogenies_prime_degree_general(E, l, minimal_models=True):
         # cheaply by a single distinct-degree step:
         # ``gcd(psi_l, x^(q^((l-1)/2)) - x)`` is the product of all
         # irreducible factors of ``psi_l`` whose degree divides ``(l-1)/2``.
-        # Factoring this (much smaller) polynomial is fast.
+        # In odd characteristic, factoring this smaller polynomial is fast.
         R = psi_l.parent()
         x = R.gen()
         q = K.cardinality()
@@ -2634,10 +2634,19 @@ def isogenies_prime_degree_general(E, l, minimal_models=True):
         for _ in range(half):
             h = pow(h, q, g)
         big = g.gcd(h - x)
-        if big.degree() > 0:
-            factors = [f for f, _ in big.factor() if f.degree().divides(half)]
-        else:
+        if K.characteristic() == 2:
+            # Avoid PARI's binary-field factorization, which can hit a slow
+            # path here.  Since ``big`` is squarefree and already contains
+            # only factors of degrees dividing ``half``, repeated extraction
+            # of such irreducible factors gives exactly the required list.
             factors = []
+            while big.degree() > 0:
+                f = big.any_irreducible_factor(assume_squarefree=True, ext_degree=half)
+                factors.append(f)
+                big //= f
+            factors.sort(key=lambda f: (f.degree(), [str(c) for c in f.list()]))
+        else:
+            factors = [f for f, _ in big.factor() if f.degree().divides(half)]
     else:
         factors = [h for h, _ in psi_l.factor() if h.degree().divides(l // 2)]
 
