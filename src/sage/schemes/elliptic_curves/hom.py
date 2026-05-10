@@ -618,6 +618,17 @@ class EllipticCurveHom(Morphism):
             Additive abelian group isomorphic to Z/7
               embedded in Abelian group of points on Elliptic Curve defined by y^2 + x*y = x^3 + 1
                 over Finite Field in t of size 2^42
+
+        When the `y`-coordinates require a second extension after splitting
+        the kernel polynomial, all accumulated and remaining `x`-coordinates
+        are mapped to the larger field::
+
+            sage: E = EllipticCurve(QQ, [0, 0, 0, 0, 2])
+            sage: x = polygen(QQ)
+            sage: phi = E.isogeny(x)
+            sage: G = (phi.dual() * phi).kernel_subgroup(extend=True, algorithm='kerpoly')
+            sage: G.invariants()
+            (3, 3)
         """
         from sage.groups.additive_abelian.additive_abelian_wrapper import AdditiveAbelianGroupWrapper
 
@@ -713,7 +724,8 @@ class EllipticCurveHom(Morphism):
         K, to_K = f.splitting_field('u', map=True)
         EE = E.change_ring(to_K)
 
-        for x in f.change_ring(to_K).roots(multiplicities=False):
+        roots = f.change_ring(to_K).roots(multiplicities=False)
+        for i, x in enumerate(roots):
             h = EE.defining_polynomial()(x=x, z=1).univariate_polynomial()
             try:
                 y = h.any_root()
@@ -721,6 +733,8 @@ class EllipticCurveHom(Morphism):
                 L, to_L = h.splitting_field('v', map=True)
                 EE = EE.change_ring(to_L)
                 pts = [EE([to_L(c) for c in P]) for P in pts]
+                roots[i:] = [to_L(r) for r in roots[i:]]
+                x = roots[i]
                 K, to_K = L, to_L * to_K
                 y = h.change_ring(to_L).any_root()
             pts.append(EE(x, y))
