@@ -1161,7 +1161,7 @@ def is_RSHCD(int v, int k, int l, int mu):
 
         sage: from sage.graphs.strongly_regular_db import is_RSHCD
         sage: t = is_RSHCD(64,27,10,12); t                                              # needs sage.combinat sage.modules
-        [<built-in function SRG_from_RSHCD>, 64, 27, 10, 12]
+        [<cyfunction SRG_from_RSHCD at ...>, 64, 27, 10, 12]
         sage: g = t[0](*t[1:]); g                                                       # needs sage.combinat sage.modules
         Graph on 64 vertices
         sage: g.is_strongly_regular(parameters=True)                                    # needs sage.combinat sage.modules
@@ -2500,7 +2500,7 @@ def strongly_regular_from_two_intersection_set(M):
                          for qq in K if not qq == K.zero()])
     g.relabel()
     e = QQ((1,k))
-    qq = g.num_verts()**e
+    qq = g.n_vertices()**e
     g.name('two-intersection set in PG('+str(k)+','+str(qq)+')')
     return g
 

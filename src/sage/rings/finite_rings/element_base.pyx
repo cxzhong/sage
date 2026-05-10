@@ -170,9 +170,9 @@ cdef class FiniteRingElement(CommutativeRingElement):
         Return a canonical associate.
 
         Implemented here because not all finite field elements inherit from FieldElement.
-        
+
         EXAMPLES::
-        
+
             sage: GF(7)(1).canonical_associate()
             (1, 1)
             sage: GF(7)(3).canonical_associate()
@@ -723,7 +723,7 @@ cdef class FinitePolyExtElement(FiniteRingElement):
             sage: S(0).multiplicative_order()
             Traceback (most recent call last):
             ...
-            ArithmeticError: Multiplicative order of 0 not defined.
+            ArithmeticError: multiplicative order of 0 not defined
         """
         if self.is_zero():
             raise ArithmeticError("Multiplicative order of 0 not defined.")
