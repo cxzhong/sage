@@ -569,7 +569,7 @@ class EllipticCurveHom(Morphism):
             sage: (chi * phi).kernel_subgroup(extend=True)
             Additive abelian group isomorphic to Z/25
               embedded in Abelian group of points on Elliptic Curve defined by y^2 = x^3 + x
-                over Finite Field in t of size 419^10
+                over Finite Field in u of size 419^10
 
         ::
 
@@ -614,17 +614,11 @@ class EllipticCurveHom(Morphism):
             sage: E = EllipticCurve(GF(2), [1,0,0,0,1])
             sage: x = polygen(GF(2))
             sage: phi = E.isogeny(x^3 + x^2 + 1)
-            sage: phi.kernel_subgroup(extend=True)
+            sage: phi.kernel_subgroup(extend=True, algorithm='structure')
             Additive abelian group isomorphic to Z/7
               embedded in Abelian group of points on Elliptic Curve defined by y^2 + x*y = x^3 + 1
                 over Finite Field in t of size 2^42
         """
-        if algorithm is None:
-            if self.domain().base_ring().is_finite():
-                algorithm = 'structure'
-            else:
-                algorithm = 'kerpoly'
-
         from sage.groups.additive_abelian.additive_abelian_wrapper import AdditiveAbelianGroupWrapper
 
         #TODO: a specialized implementation for EllipticCurveHom_composite might be beneficial
@@ -638,6 +632,19 @@ class EllipticCurveHom(Morphism):
         if self.separable_degree().is_one():
             # purely inseparable
             return AdditiveAbelianGroupWrapper(self.domain().point_homset(), [], [])
+
+        if algorithm is None:
+            if not self.domain().base_ring().is_finite():
+                algorithm = 'kerpoly'
+            elif extend and self.is_separable():
+                # Over a finite field, ``structure`` requires the full
+                # ``n``-torsion field, which can be much larger than the
+                # splitting field of the kernel polynomial.  Factoring the
+                # kernel polynomial directly gives a (typically much) smaller
+                # extension for separable maps.
+                algorithm = 'kerpoly'
+            else:
+                algorithm = 'structure'
 
         if algorithm == 'structure':
             n = self.separable_degree()
@@ -686,15 +693,13 @@ class EllipticCurveHom(Morphism):
         if algorithm != 'kerpoly':
             raise ValueError(f"invalid algorithm {algorithm}")
 
+        E = self.domain()
         f = self.kernel_polynomial()
-
-        if part:
-            f = f.gcd(E.division_polynomial(part))
 
         pts = []
 
         if not extend:
-            for x in self.kernel_polynomial().roots(multiplicities=False):
+            for x in f.roots(multiplicities=False):
                 try:
                     pts.append(E.lift_x(x))
                 except ValueError:
@@ -704,11 +709,6 @@ class EllipticCurveHom(Morphism):
                 if A.order() == self.separable_degree():
                     return A
             raise ValueError('kernel subgroup has no generating points over the base field')
-
-        E = self.domain()
-        f = self.kernel_polynomial()
-
-        from sage.rings.polynomial.polynomial_ring import polygen
 
         K, to_K = f.splitting_field('u', map=True)
         EE = E.change_ring(to_K)
@@ -720,7 +720,7 @@ class EllipticCurveHom(Morphism):
             except ValueError:
                 L, to_L = h.splitting_field('v', map=True)
                 EE = EE.change_ring(to_L)
-                pts = list(map(to_L, pts))
+                pts = [EE([to_L(c) for c in P]) for P in pts]
                 K, to_K = L, to_L * to_K
                 y = h.change_ring(to_L).any_root()
             pts.append(EE(x, y))

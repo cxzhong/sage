@@ -2587,6 +2587,18 @@ def isogenies_prime_degree_general(E, l, minimal_models=True):
         ....:  for phi in E.isogenies_prime_degree(37)]
         [(0, 0, 0, 840*i + 1081, 0),
          (0, 0, 0, -840*i + 1081, 0)]
+
+    Over a finite field, factoring the full `l`-division polynomial via PARI
+    can hit a slow path; we use a distinct-degree shortcut instead. The
+    following example used to hang for several minutes::
+
+        sage: F.<a> = GF(8)
+        sage: E = EllipticCurve(F, [1, 0, 0, 0, a^2 + a])
+        sage: isos = E.isogenies_prime_degree(19)
+        sage: len(isos)
+        2
+        sage: all(phi.degree() == 19 for phi in isos)
+        True
     """
     if not l.is_prime():
         raise ValueError(f"{l} is not prime")
@@ -2597,7 +2609,37 @@ def isogenies_prime_degree_general(E, l, minimal_models=True):
 
     psi_l = E.division_polynomial(l)
 
-    factors = [h for h,_ in psi_l.factor() if h.degree().divides(l//2)]
+    K = E.base_ring()
+    if K.is_finite():
+        # Over a finite field, factoring ``psi_l`` directly can be very slow
+        # (PARI's generic factor over `GF(q)` has worst-case behaviour for
+        # division polynomials). Only the factors whose
+        # degree divides ``(l-1)/2`` matter, and they can be obtained
+        # cheaply by a single distinct-degree step:
+        # ``gcd(psi_l, x^(q^((l-1)/2)) - x)`` is the product of all
+        # irreducible factors of ``psi_l`` whose degree divides ``(l-1)/2``.
+        # Factoring this (much smaller) polynomial is fast.
+        R = psi_l.parent()
+        x = R.gen()
+        q = K.cardinality()
+        half = l // 2
+        # Remove repeated factors when possible. If the derivative vanishes
+        # identically (as can happen in characteristic ``l``), the gcd below
+        # with ``x^(q^half) - x`` still removes multiplicities, since that
+        # polynomial is squarefree.
+        dpsi = psi_l.derivative()
+        g = psi_l if dpsi.is_zero() else psi_l // psi_l.gcd(dpsi)
+        # Compute ``x^(q^half) mod g`` by repeated Frobenius.
+        h = x
+        for _ in range(half):
+            h = pow(h, q, g)
+        big = g.gcd(h - x)
+        if big.degree() > 0:
+            factors = [f for f, _ in big.factor() if f.degree().divides(half)]
+        else:
+            factors = []
+    else:
+        factors = [h for h, _ in psi_l.factor() if h.degree().divides(l // 2)]
 
     kernels = []  # will store all kernel polynomials found
 
