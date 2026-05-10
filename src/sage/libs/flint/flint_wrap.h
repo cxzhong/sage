@@ -44,6 +44,7 @@
 #define slong mp_limb_signed_t
 #endif
 
+#if __FLINT_RELEASE >= __FLINT_RELEASE_NUM(3,0,0)
 #include <flint/acb.h>
 #include <flint/acb_calc.h>
 #include <flint/acb_dft.h>
@@ -53,7 +54,6 @@
 #include <flint/acb_mat.h>
 #include <flint/acb_modular.h>
 #include <flint/acb_poly.h>
-#include <flint/acb_theta.h>
 #include <flint/acf.h>
 #include <flint/aprcl.h>
 #include <flint/arb.h>
@@ -99,7 +99,6 @@
 #include <flint/fmpz_mod_mat.h>
 #include <flint/fmpz_mod_mpoly.h>
 #include <flint/fmpz_mod_mpoly_factor.h>
-#include <flint/fmpz_mod_mpoly_q.h>
 #include <flint/fmpz_mod_poly.h>
 #include <flint/fmpz_mod_poly_factor.h>
 #include <flint/fmpz_mod_vec.h>
@@ -140,9 +139,7 @@
 #include <flint/gr_generic.h>
 #include <flint/gr_mat.h>
 #include <flint/gr_mpoly.h>
-#include <flint/gr_ore_poly.h>
 #include <flint/gr_poly.h>
-#include <flint/gr_series.h>
 #include <flint/gr_special.h>
 #include <flint/gr_vec.h>
 #include <flint/hypgeom.h>
@@ -150,11 +147,9 @@
 #include <flint/longlong.h>
 #include <flint/mag.h>
 #include <flint/mpn_extras.h>
-#include <flint/mpn_mod.h>
 #include <flint/mpoly.h>
 #include <flint/nf.h>
 #include <flint/nf_elem.h>
-#include <flint/nfloat.h>
 #include <flint/nmod.h>
 #include <flint/nmod_mat.h>
 #include <flint/nmod_mpoly.h>
@@ -174,9 +169,24 @@
 #include <flint/qfb.h>
 #include <flint/qqbar.h>
 #include <flint/qsieve.h>
-#include <flint/radix.h>
 #include <flint/thread_pool.h>
 #include <flint/ulong_extras.h>
+#endif
+#if __FLINT_RELEASE >= __FLINT_RELEASE_NUM(3,1,0)
+#include <flint/acb_theta.h>
+#endif
+#if __FLINT_RELEASE >= __FLINT_RELEASE_NUM(3,2,0)
+#include <flint/mpn_mod.h>
+#include <flint/nfloat.h>
+#endif
+#if __FLINT_RELEASE >= __FLINT_RELEASE_NUM(3,4,0)
+#include <flint/fmpz_mod_mpoly_q.h>
+#include <flint/gr_series.h>
+#endif
+#if __FLINT_RELEASE >= __FLINT_RELEASE_NUM(3,5,0)
+#include <flint/gr_ore_poly.h>
+#include <flint/radix.h>
+#endif
 
 #undef ulong
 #undef slong
