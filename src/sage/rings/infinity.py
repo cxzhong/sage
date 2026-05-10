@@ -989,7 +989,8 @@ class InfinityRing_class(Singleton, Ring):
             sage: InfinityRing == UnsignedInfinityRing
             False
         """
-        Ring.__init__(self, self, names=('oo',), normalize=False)
+        Ring.__init__(self, self, names=('oo',),
+                      normalize=False, category=Rings().Commutative())
 
     def fraction_field(self):
         """

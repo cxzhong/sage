@@ -99,7 +99,7 @@ This is to test a deprecation::
     sage: from sage.rings.ring import CommutativeRing
     sage: class Niets(CommutativeRing):
     ....:     pass
-    sage: F = Niets()
+    sage: F = Niets(ZZ)
     ...:
     DeprecationWarning: use the category CommutativeRings
     See https://github.com/sagemath/sage/issues/42153 for details.
@@ -241,7 +241,7 @@ cdef class Ring(ParentWithGens):
         sage: QQ.cardinality()
         +Infinity
      """
-    def __init__(self, base, names=None, normalize=True, category=None):
+    def __init__(self, base=None, names=None, normalize=True, category=None):
         """
         Initialize ``self``.
 
@@ -260,6 +260,8 @@ cdef class Ring(ParentWithGens):
         #
         # This is a low-level class. For performance, we trust that the category
         # is fine, if it is provided. If it isn't, we use the category of rings.
+        if base is None:
+            raise TypeError('a ring must have a base ring')
         if category is None:
             category = check_default_category(_Rings, category)
         Parent.__init__(self, base=base, names=names, normalize=normalize,
@@ -491,41 +493,41 @@ cdef class Ring(ParentWithGens):
 
 
 cdef class CommutativeRing(Ring):
-    _default_category = _CommutativeRings
-
     def __init__(self, *args, **kwds):
+        if "category" not in kwds:
+            kwds["category"] = _CommutativeRings
         deprecation(42153, "use the category CommutativeRings")
         super().__init__(*args, **kwds)
 
 
 cdef class IntegralDomain(Ring):
-    _default_category = IntegralDomains()
-
     def __init__(self, *args, **kwds):
+        if "category" not in kwds:
+            kwds["category"] = IntegralDomains()
         deprecation(39227, "use the category IntegralDomains")
         super().__init__(*args, **kwds)
 
 
 cdef class NoetherianRing(Ring):
-    _default_category = NoetherianRings()
-
     def __init__(self, *args, **kwds):
+        if "category" not in kwds:
+            kwds["category"] = NoetherianRings()
         deprecation(37234, "use the category NoetherianRings")
         super().__init__(*args, **kwds)
 
 
 cdef class DedekindDomain(Ring):
-    _default_category = DedekindDomains()
-
     def __init__(self, *args, **kwds):
+        if "category" not in kwds:
+            kwds["category"] = DedekindDomains()
         deprecation(37234, "use the category DedekindDomains")
         super().__init__(*args, **kwds)
 
 
 cdef class PrincipalIdealDomain(Ring):
-    _default_category = PrincipalIdealDomains()
-
     def __init__(self, *args, **kwds):
+        if "category" not in kwds:
+            kwds["category"] = PrincipalIdealDomains()
         deprecation(37719, "use the category PrincipalIdealDomains")
         super().__init__(*args, **kwds)
 
@@ -588,6 +590,7 @@ cdef class Algebra(Ring):
 
 cdef class CommutativeAlgebra(Ring):
     def __init__(self, base_ring, *args, **kwds):
-        self._default_category = CommutativeAlgebras(base_ring)
+        if "category" not in kwds:
+            kwds["category"] = CommutativeAlgebras(base_ring)
         deprecation(37999, "use the category CommutativeAlgebras")
         super().__init__(base_ring, *args, **kwds)
