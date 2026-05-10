@@ -34,29 +34,23 @@ class Ring(ParentWithGens):
     def order(self) -> int: ...
 
 class CommutativeRing(Ring):
-    _default_category: Category = _CommutativeRings
     def __init__(self, *args, **kwds) -> None: ...
 
 class IntegralDomain(Ring):
-    _default_category: Category
     def __init__(self, *args, **kwds) -> None: ...
 
 class NoetherianRing(Ring):
-    _default_category: Category
     def __init__(self, *args, **kwds) -> None: ...
 
 class DedekindDomain(Ring):
-    _default_category: Category
     def __init__(self, *args, **kwds) -> None: ...
 
 class PrincipalIdealDomain(Ring):
-    _default_category: Category
     def __init__(self, *args, **kwds) -> None: ...
 
 def _is_Field(x: object) -> bool: ...
 
 class Field(Ring):
-    _default_category: Category = _Fields
 
 class Algebra(Ring):
     def __init__(

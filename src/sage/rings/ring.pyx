@@ -241,7 +241,7 @@ cdef class Ring(ParentWithGens):
         sage: QQ.cardinality()
         +Infinity
      """
-    def __init__(self, base=None, names=None, normalize=True, category=None):
+    def __init__(self, base, names=None, normalize=True, category=None):
         """
         Initialize ``self``.
 
