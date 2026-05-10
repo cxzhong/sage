@@ -11,10 +11,28 @@ Write flint header files.
 #                  http://www.gnu.org/licenses/
 #*****************************************************************************
 
+from collections import defaultdict
 import os
 import shutil
 from .env import AUTOGEN_DIR, FLINT_GIT_DIR, FLINT_DOC_DIR, FLINT_INCLUDE_DIR
 from .reader import extract_functions
+
+
+def file_flint_version(repo, filename):
+    r"""
+    Return the flint version in which the given ``filename`` has been introduced.
+
+    This uses git tags on ``git`` to determine the version.
+    """
+    # locate flint version in which {header_file} has been introduced
+    # via git tags
+    sha1 = repo.git.log(f"{filename}", format="%H", diff_filter="A")
+    tag = repo.git.name_rev("--tags", "--name-only", "--exclude=*alpha*", "--exclude=*rc*", "--exclude=rm", f"{sha1}")
+    assert "~" in tag
+    if not tag.startswith("v"):
+        print(filename, tag)
+    tag = tag[:tag.find("~")]
+    return tag
 
 
 def write_flint_cython_headers(output_dir, documentation=False):
@@ -34,7 +52,7 @@ def write_flint_cython_headers(output_dir, documentation=False):
     commit = repo.head.commit
     print(f"Generating cython headers from {commit}")
 
-    header_list = []
+    header_list = defaultdict(list)  # flint version -> list of headers
     pxd_list = []
     for filename in os.listdir(FLINT_DOC_DIR):
         if not filename.endswith('.rst'):
@@ -62,7 +80,9 @@ def write_flint_cython_headers(output_dir, documentation=False):
             print('Warning: ignoring machine_vectors and fft_small because architecture dependent')
             continue
 
-        header_list.append(prefix + '.h')
+        header_file = prefix + '.h'
+        header_list[file_flint_version(repo, "src/" + header_file)].append(header_file)
+
         pxd_list.append(prefix + '.pxd')
 
         output = open(os.path.join(output_dir, prefix + '.pxd'), 'w')
@@ -105,15 +125,23 @@ def write_flint_cython_headers(output_dir, documentation=False):
     for extra_header in ['nmod_types.h']:
         if extra_header in header_list:
             print('Warning: {} already in HEADER_LIST'.format(extra_header))
-        header_list.append(extra_header)
+        header_list[file_flint_version(repo, "src/" + extra_header)].append(extra_header)
 
-    header_list.sort()
+    for version in header_list:
+        header_list[version].sort()
     pxd_list.sort()
 
     with open(os.path.join(AUTOGEN_DIR, 'templates', 'flint_wrap.h.template')) as f:
         text = f.read()
     with open(os.path.join(output_dir, 'flint_wrap.h'), 'w') as output:
-        output.write(text.format(HEADER_LIST='\n'.join('#include <flint/{}>'.format(header) for header in header_list)))
+        HEADER_LIST = []
+        for version in sorted(header_list):
+            assert version.startswith("v"), version
+            major, minor, patch = version[1:].split(".")
+            HEADER_LIST.append(f"#if __FLINT_RELEASE >= __FLINT_RELEASE_NUM({major},{minor},{patch})")
+            HEADER_LIST.extend(f"#include <flint/{header_file}>" for header_file in header_list[version])
+            HEADER_LIST.append(f"#endif")
+        output.write(text.format(HEADER_LIST='\n'.join(HEADER_LIST)))
 
     with open(os.path.join(AUTOGEN_DIR, 'templates', 'types.pxd.template')) as f:
         text = f.read()
