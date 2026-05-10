@@ -9,7 +9,6 @@ from libc.math cimport sqrt, ceil
 from sage.rings.power_series_ring_element cimport PowerSeries
 from sage.structure.element cimport Element
 from sage.rings.infinity import infinity
-from sage.misc.superseded import deprecation_cython
 
 try:
     from cypari2.handle_error import PariError
@@ -921,7 +920,11 @@ cdef class PowerSeries_poly(PowerSeries):
 
     def revert(self, precision=None):
         r"""
-        Return the reversion of `f`, i.e., the series `g` such that `g(f(x)) = x`.
+        Return the reversion of this power series.
+
+        The reversion of a power series `f` is the power series `g` such
+        that `g(f(x)) = x`.  This exists if and only if the valuation
+        of ``self`` is exactly 1 and the coefficient of `x` is a unit.
 
         Given an optional argument ``precision``, return the reversion with given
         precision (note that the reversion can have precision at most
@@ -929,12 +932,11 @@ cdef class PowerSeries_poly(PowerSeries):
         ``precision`` is not given, then the precision of the reversion defaults
         to the default precision of ``f.parent()``.
 
-        Note that this is only possible if the valuation of ``self`` is exactly
-        1.
+        The method `compositional_inverse` is an alias of `revert`.
 
         ALGORITHM:
 
-        We use F. Johasson's Algorithm 1 of [Joh2013]_ with a modified Lagrange
+        We use F. Johansson's Algorithm 1 of [Joh2013]_ with a modified Lagrange
         Inversion formula from [Ges2016]_ (formula 2.1.2) to avoid division by
         zero in positive characteristic.
 
@@ -998,6 +1000,16 @@ cdef class PowerSeries_poly(PowerSeries):
             sage: b(a)
             t + O(t^6)
 
+            sage: k.<a> = GF(3**5)
+            sage: R.<t> = PowerSeriesRing(k)
+            sage: f = (a^3 + a^2 + a + 2)*t + (2*a^4 + a^3)*t^3 + (a^2 + 2*a + 1)*t^4 + a^3*t^5 + O(t^6)
+            sage: g = f.revert(); g
+            (a^4 + 2*a^3 + 2*a + 2)*t + (a^3 + 2*a^2 + 1)*t^3 + (2*a^4 + a^3 + a + 1)*t^4 + (2*a^4 + 2*a^2 + a + 2)*t^5 + O(t^6)
+            sage: f(g)
+            t + O(t^6)
+            sage: g(f)
+            t + O(t^6)
+
         The optional argument ``precision`` sets the precision of the output::
 
             sage: R.<x> = PowerSeriesRing(QQ)
@@ -1036,6 +1048,12 @@ cdef class PowerSeries_poly(PowerSeries):
             pi*x
             sage: ser.revert()                                                         # needs sage.symbolic
             1/pi*x + O(x^20)
+
+            sage: k.<a> = GF(2)
+            sage: R.<t> = PowerSeriesRing(k)
+            sage: f = O(t)
+            sage: g = f.revert(); g
+            O(t^1)
         """
         if self.valuation() != 1:
             raise ValueError("Series must have valuation one for reversion.")
@@ -1049,7 +1067,7 @@ cdef class PowerSeries_poly(PowerSeries):
 
         out_prec = f.prec()
 
-        # trivial result when precision is one
+        # edge case when precision is one
         if out_prec <= 1:
             out_parent = f.parent()
             g = out_parent(0).add_bigoh(1)
@@ -1073,8 +1091,8 @@ cdef class PowerSeries_poly(PowerSeries):
         # faster to use polynomials and lists of coefficients
         t = out_parent.gen()
         R = t/f
-        R_prime = R.derivative()
-        C = t * (1 - t*R_prime/R)
+        R_deriv = R.derivative()
+        C = t * (1 - t*R_deriv/R)
         C_poly = C.polynomial()
         R_poly = R.polynomial()
 
@@ -1090,8 +1108,8 @@ cdef class PowerSeries_poly(PowerSeries):
             coeffs[i] = C_poly_list[i]
         
         # giant step
-        R_i = 1
         v = (R**m).lift_to_precision(n).polynomial()
+        R_i = v.parent().one()
         for i in range(m,n,m):
             R_i *= v
             R_i_list = R_i.truncate(n).padded_list(n)
@@ -1109,11 +1127,42 @@ cdef class PowerSeries_poly(PowerSeries):
                 coeffs[i+j] = s
         
         g = out_parent(coeffs, prec = n)
-
         return PowerSeries_poly(out_parent, g, out_prec, check=False)
     
     def reverse(self, precision=None):
+        """
+        Return the reverse of `f`, i.e., the series `g` such that `g(f(x)) = x`.
+
+        Given an optional argument ``precision``, return the reverse with given
+        precision (note that the reverse can have precision at most
+        ``f.prec()``).  If `f` has infinite precision, and the argument
+        ``precision`` is not given, then the precision of the reverse defaults
+        to the default precision of ``f.parent()``.
+
+        Note that this is only possible if the valuation of ``self`` is exactly
+        1.
+
+        EXAMPLES::
+
+            sage: R.<x> = PowerSeriesRing(QQ)
+            sage: f = 2*x + 3*x^2 - x^4 + O(x^5)
+            sage: g = f.reverse(); g
+            doctest:warning...
+            DeprecationWarning: reverse is deprecated; use revert instead
+            See https://github.com/sagemath/sage/issues/40576 for details.
+            1/2*x - 3/8*x^2 + 9/16*x^3 - 131/128*x^4 + O(x^5)
+            sage: f(g)
+            x + O(x^5)
+            sage: g(f)
+            x + O(x^5)
+
+        """
+        from sage.misc.superseded import deprecation_cython
         deprecation_cython(40576, 'reverse is deprecated; use revert instead')
+
+        f = self
+        g = f.revert(precision)
+        return g 
 
     compositional_inverse = revert
 

@@ -78,7 +78,6 @@ from sage.rings.power_series_ring_element cimport PowerSeries
 from sage.structure.element cimport Element
 from sage.structure.parent cimport Parent
 from sage.rings.infinity import infinity
-from sage.misc.superseded import deprecation_cython
 
 
 cdef PowerSeries_pari construct_from_pari(parent, pari_gen g):
@@ -837,7 +836,7 @@ cdef class PowerSeries_pari(PowerSeries):
 
     def revert(self, precision=None):
         r"""
-        Return the revert of ``self``.
+        Return the reversion of this power series.
 
         The reversion of a power series `f` is the power series `g` such
         that `g(f(x)) = x`.  This exists if and only if the valuation
@@ -848,6 +847,12 @@ cdef class PowerSeries_pari(PowerSeries):
         precision and the argument ``precision`` is not given, then
         the reversion is returned with the default precision of
         ``f.parent()``.
+
+        The method `compositional_inverse` is an alias of `revert`.
+
+        ..WARNING::
+            
+            This implementation can only handle some rings of positive characteristic.
 
         EXAMPLES::
 
@@ -910,6 +915,23 @@ cdef class PowerSeries_pari(PowerSeries):
             sage: (x - x^2).revert(precision=3)
             x + x^2 + O(x^3)
 
+        We can handle some rings of positive characteristic::
+
+            sage: R.<t> = PowerSeriesRing(GF(5),implementation='pari')
+            sage: f = t + t^2 + t^3 + O(t^4)
+            sage: g = f.revert(); g
+            t + 4*t^2 + t^3 + O(t^4)
+            sage: f(g) == g(f) == t
+            True
+
+            sage: k.<a> = GF(3**2)
+            sage: R.<t> = PowerSeriesRing(k,implementation='pari')
+            sage: f = a*t + (1-a)*t^2 + (1+a)*t^3 + O(t^4)
+            sage: f.revert()
+            Traceback (most recent call last):
+            ...
+            PariError: impossible inverse in Fl_inv: Mod(0, 3)
+            
         TESTS::
 
             sage: R.<x> = PowerSeriesRing(QQ, implementation='pari')
@@ -930,7 +952,40 @@ cdef class PowerSeries_pari(PowerSeries):
             f = self
         return PowerSeries_pari(self._parent, f.g.serreverse(), precision)
 
-        def reverse(self, precision=None):
-            deprecation_cython(40576, 'reverse is deprecated; use revert instead')
+    def reverse(self, precision=None):
+        r"""
+        Return the reverse of ``self``.
+
+        The reverse of a power series `f` is the power series `g` such
+        that `g(f(x)) = x`.  This exists if and only if the valuation
+        of ``self`` is exactly 1 and the coefficient of `x` is a unit.
+
+        If the optional argument ``precision`` is given, the reverse
+        is returned with this precision.  If ``f`` has infinite
+        precision and the argument ``precision`` is not given, then
+        the reverse is returned with the default precision of
+        ``f.parent()``.
+
+        EXAMPLES::
+
+            sage: R.<x> = PowerSeriesRing(QQ, implementation='pari')
+            sage: f = 2*x + 3*x^2 - x^4 + O(x^5)
+            sage: g = f.reverse(); g
+            doctest:warning...
+            DeprecationWarning: reverse is deprecated; use revert instead
+            See https://github.com/sagemath/sage/issues/40576 for details.
+            1/2*x - 3/8*x^2 + 9/16*x^3 - 131/128*x^4 + O(x^5)
+            sage: f(g)
+            x + O(x^5)
+            sage: g(f)
+            x + O(x^5)
+
+        """
+        from sage.misc.superseded import deprecation_cython
+        deprecation_cython(40576, 'reverse is deprecated; use revert instead')
+        
+        f = self
+        g = f.revert(precision)
+        return g
 
         compositional_inverse = revert

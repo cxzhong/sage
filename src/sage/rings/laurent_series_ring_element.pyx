@@ -76,7 +76,6 @@ from sage.rings.power_series_ring_element cimport PowerSeries
 from sage.structure.element cimport Element, AlgebraElement
 from sage.structure.richcmp cimport richcmp_not_equal, rich_to_bool
 from sage.misc.derivative import multi_derivative
-from sage.misc.superseded import deprecation_cython
 
 def is_LaurentSeries(x):
     from sage.misc.superseded import deprecation_cython
@@ -1510,18 +1509,22 @@ cdef class LaurentSeries(AlgebraElement):
 
     def revert(self, precision=None):
         """
-        Return the reversion of f, i.e., the series g such that g(f(x)) = x.
+        Return the reversion of this Laurent series.
+
+        The reversion of a Laurent series `f` is the Laurent series `g` such
+        that `g(f(x)) = x`.  This exists if and only if the valuation
+        of ``self`` is exactly 1 and the coefficient of `x` is a unit.
+
         Given an optional argument ``precision``, return the reversion with given
         precision (note that the reversion can have precision at most
         ``f.prec()``).  If ``f`` has infinite precision, and the argument
         ``precision`` is not given, then the precision of the reversion defaults
         to the default precision of ``f.parent()``.
 
-        Note that this is only possible if the valuation of ``self`` is exactly
-        1.
+        The method `compositional_inverse` is an alias of `revert`.
 
         The implementation depends on the underlying power series element
-        implementing a revert method.
+        implementing a `revert` method.
 
         EXAMPLES::
 
@@ -1591,6 +1594,16 @@ cdef class LaurentSeries(AlgebraElement):
             sage: b(a)
             t + O(t^6)
 
+            sage: k.<a> = GF(5**3)
+            sage: R.<t> = LaurentSeriesRing(k)
+            sage: f = (3*a^2 + 3)*t + (a^2 + 3*a + 3)*t^5 + (4*a^2 + 4*a + 4)*t^6 + (4*a^2 + 4*a + 2)*t^7 + O(t^8)
+            sage: g = f.revert(); g
+            (3*a^2 + 3*a + 1)*t + (2*a^2 + a + 2)*t^5 + (4*a^2 + 3*a)*t^6 + (2*a + 4)*t^7 + O(t^8)
+            sage: f(g)
+            t + O(t^8)
+            sage: g(f)
+            t + O(t^8)
+
         The optional argument ``precision`` sets the precision of the output::
 
             sage: R.<x> = LaurentSeriesRing(QQ)
@@ -1639,7 +1652,42 @@ cdef class LaurentSeries(AlgebraElement):
             return P(rev)
 
     def reverse(self, precision=None):
+        """
+        Return the reverse of ``self``, i.e., the series ``g`` such that
+        ``g(self(x)) = x``. Given an optional argument ``precision``, return
+        the reverse with given precision (note that the reverse can have
+        precision at most ``self.prec()``).  If ``self`` has infinite
+        precision, and the argument ``precision`` is not given, then the
+        precision of the reverse defaults to the default precision of
+        ``self.parent()``.
+
+        Note that this is only possible if the valuation of ``self`` is exactly
+        1.
+
+        The implementation depends on the underlying power series element
+        implementing a reverse method.
+
+        EXAMPLES::
+
+            sage: R.<x> = Frac(QQ[['x']])
+            sage: f = 2*x + 3*x^2 - x^4 + O(x^5)
+            sage: g = f.reverse(); g
+            doctest:warning...
+            DeprecationWarning: reverse is deprecated; use revert instead
+            See https://github.com/sagemath/sage/issues/40576 for details.
+            1/2*x - 3/8*x^2 + 9/16*x^3 - 131/128*x^4 + O(x^5)
+            sage: f(g)
+            x + O(x^5)
+            sage: g(f)
+            x + O(x^5)
+
+        """
+        from sage.misc.superseded import deprecation_cython
         deprecation_cython(40576, 'reverse is deprecated; use revert instead')
+
+        f = self
+        g = f.revert(precision)
+        return g
 
     compositional_inverse = revert
 
