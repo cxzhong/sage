@@ -2221,9 +2221,9 @@ class BruhatTitsQuotient(SageObject, UniqueRepresentation):
         v = A.invariants()
         a = ZZp(v[0])
         b = ZZp(v[1])
-        if (A.base_ring() != QQ):
+        if A.base_ring() != QQ:
             raise ValueError("must be rational quaternion algebra")
-        if (A.discriminant() % self._p == 0):
+        if not A.discriminant() % self._p:
             raise ValueError("p (=%s) must be an unramified prime" % self._p)
         M = MatrixSpace(QQp, 2)
 
@@ -2273,15 +2273,15 @@ class BruhatTitsQuotient(SageObject, UniqueRepresentation):
                             best_pair = (u, v)
 
             if best_pair is None:
-                raise ValueError("No linearly independent pair found")
+                raise ValueError("no linearly independent pair found")
 
             return column_matrix(best_pair)
 
-        m =select_best_basis(mat)
+        m = select_best_basis(mat)
 
         # Normalize m so that it lies in GL_2(Z_p)
         min_val = min(x.valuation() for x in m.list())
-        m = (self._p ** (-min_val)) * m
+        m = (self._p**(-min_val)) * m
 
         # Conjugate to ensure the image of the maximal order lies in M_2(Z_p)
         g = self._BT.vertex(m)
