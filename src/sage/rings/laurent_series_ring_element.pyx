@@ -1677,9 +1677,7 @@ cdef class LaurentSeries(AlgebraElement):
         from sage.misc.superseded import deprecation_cython
         deprecation_cython(40576, 'reverse is deprecated; use revert instead')
 
-        f = self
-        g = f.revert(precision)
-        return g
+        return self.revert(precision)
 
     compositional_inverse = revert
 
