@@ -3,12 +3,11 @@ Graphs defined by systems of equations
 
 This module implements a class of bipartite graphs defined by triangular
 systems of equations, popularized by Lazebnik, Ustimenko, and Woldar. More
-precisely, let :math:`R` be a finite commutative ring. The graph has point
-part :math:`P = R^n` and line part :math:`L = R^n`. For
-:math:`2 \leq i \leq n`, let :math:`f_i` be a polynomial function in
-:math:`2i - 2` variables. A point
-:math:`(p_1, p_2, \ldots, p_n)` is adjacent to a line
-:math:`(l_1, l_2, \ldots, l_n)` if
+precisely, let `R` be a finite commutative ring. The graph has point
+part `P = R^n` and line part `L = R^n`. For `2 \leq i \leq n`, let
+`f_i` be a polynomial function in `2i - 2` variables. A point
+`(p_1, p_2, \ldots, p_n)` is adjacent to a line
+`(l_1, l_2, \ldots, l_n)` if
 
 .. MATH::
 
@@ -16,8 +15,9 @@ part :math:`P = R^n` and line part :math:`L = R^n`. For
     \qquad 2 \leq i \leq n.
 
 The class :class:`LUWGraphDescriptor` stores a validated set of equations
-which define the graph. This lets users experiment with
-large examples without paying the cost of building the full graph. Currently, the descriptor-returning constructors are
+which define the graph. This lets users experiment with large examples
+without paying the cost of building the full graph. Currently, the
+descriptor-returning constructors are
 :func:`define_luw_graph`, :func:`define_Akq`, :func:`define_Dkq`, and
 :func:`define_WengerGraph`. The graph-returning constructors :func:`Akq`,
 :func:`Dkq`, :func:`LUWGraph`, and :func:`WengerGraph` are exposed through
@@ -56,7 +56,6 @@ AUTHORS:
 #                  https://www.gnu.org/licenses/
 # ****************************************************************************
 
-from dataclasses import dataclass
 from itertools import product
 from math import prod
 from warnings import warn
@@ -68,13 +67,12 @@ from sage.rings.integer_ring import ZZ
 from sage.rings.polynomial.polynomial_ring_constructor import PolynomialRing
 
 
-@dataclass(frozen=True, init=False)
 class LUWGraphDescriptor:
     r"""
     A validated algebraic description of a bipartite graph.
 
     The graph itself is built from the stored equations and coordinate
-    sets.
+    sets. See [LW2026]_ for a survey of these graphs.
 
     EXAMPLES::
 
@@ -87,18 +85,30 @@ class LUWGraphDescriptor:
         50
         sage: D.size()
         125
-    """
 
-    ring: object
-    _equations: tuple
-    name: str
-    point_coordinate_sets: tuple
-    line_coordinate_sets: tuple
+    REFERENCES:
+
+    - [LW2026]_
+    """
 
     def __init__(self, ring, equations, name,
                  point_coordinate_sets, line_coordinate_sets):
         r"""
         Initialize ``self``.
+
+        INPUT:
+
+        - ``ring`` -- finite commutative ring
+
+        - ``equations`` -- tuple of validated defining polynomials
+
+        - ``name`` -- string; name of the algebraic descriptor
+
+        - ``point_coordinate_sets`` -- tuple of allowed coordinate sets on the
+          point side
+
+        - ``line_coordinate_sets`` -- tuple of allowed coordinate sets on the
+          line side
 
         TESTS::
 
@@ -109,11 +119,11 @@ class LUWGraphDescriptor:
             sage: "_equations" in str(inspect.signature(LUWGraphDescriptor))
             False
         """
-        object.__setattr__(self, "ring", ring)
-        object.__setattr__(self, "_equations", tuple(equations))
-        object.__setattr__(self, "name", name)
-        object.__setattr__(self, "point_coordinate_sets", point_coordinate_sets)
-        object.__setattr__(self, "line_coordinate_sets", line_coordinate_sets)
+        self.ring = ring
+        self._equations = tuple(equations)
+        self.name = name
+        self.point_coordinate_sets = point_coordinate_sets
+        self.line_coordinate_sets = line_coordinate_sets
 
     def dimension(self):
         r"""
@@ -233,17 +243,7 @@ class LUWGraphDescriptor:
             sage: define_luw_graph(F, [p1*l1]).size()
             27
         """
-        if all(values is self.ring for values in self.line_coordinate_sets[1:]):
-            return self.point_count() * len(self.line_first_coordinates())
-
-        return sum(
-            1
-            for point in _point_tuples(self)
-            for first_line_value in self.line_first_coordinates()
-            if _vertex_is_allowed(
-                self, _complete_line_from_point(self, point, first_line_value)
-            )
-        )
+        return self.point_count() * len(self.line_first_coordinates())
 
     def adjacency_matrix(self, vertices=None):
         r"""
@@ -251,7 +251,8 @@ class LUWGraphDescriptor:
 
         INPUT:
 
-        - ``vertices`` -- list or ``None`` (default: ``None``); vertex order
+        - ``vertices`` -- list, tuple, or ``None`` (default: ``None``); vertex
+          order
 
         When ``vertices`` is ``None``, the vertex order agrees with Sage's
         default graph adjacency-matrix order, namely sorted vertex labels.
@@ -275,12 +276,8 @@ class LUWGraphDescriptor:
             ....:     D.graph().adjacency_matrix(vertices=vertices)
             True
         """
-        point_vertices = tuple(
-            ("P", point) for point in _point_tuples(self)
-        )
-        line_vertices = tuple(
-            ("L", line) for line in _line_tuples(self)
-        )
+        point_vertices = tuple(("P", point) for point in _point_tuples(self))
+        line_vertices = tuple(("L", line) for line in _line_tuples(self))
         all_vertices = point_vertices + line_vertices
 
         if vertices is None:
@@ -324,9 +321,14 @@ class LUWGraphDescriptor:
         """
         return self._equations
 
-    def graph(self):
+    def graph(self, immutable=False):
         r"""
         Build the full graph corresponding to ``self``.
+
+        INPUT:
+
+        - ``immutable`` -- boolean (default: ``False``); whether to return an
+          immutable or a mutable graph
 
         EXAMPLES::
 
@@ -334,24 +336,21 @@ class LUWGraphDescriptor:
             sage: G = define_WengerGraph(2, 3).graph()
             sage: G.order(), G.size()
             (54, 81)
+            sage: define_WengerGraph(2, 3).graph(immutable=True).is_immutable()
+            True
         """
         graph = Graph(multiedges=False, loops=False)
         graph.name(self.name)
 
         for point in _point_tuples(self):
-            graph.add_vertex(("P", point))
-
-        for line in _line_tuples(self):
-            graph.add_vertex(("L", line))
-
-        for point in _point_tuples(self):
             point_vertex = ("P", point)
             for first_line_value in self.line_first_coordinates():
-                line_vertex = _complete_line_from_point(self, point, first_line_value)
-                if _vertex_is_allowed(self, line_vertex):
-                    graph.add_edge(point_vertex, line_vertex)
+                graph.add_edge(
+                    point_vertex,
+                    _complete_line_from_point(self, point, first_line_value),
+                )
 
-        graph._luw_graph_metadata = {
+        metadata = {
             "definition": self,
             "ring": self.ring,
             "dimension": self.dimension(),
@@ -359,13 +358,26 @@ class LUWGraphDescriptor:
             "point_coordinate_sets": self.point_coordinate_sets,
             "line_coordinate_sets": self.line_coordinate_sets,
         }
+        if immutable:
+            graph = graph.copy(immutable=True)
+        graph._luw_graph_metadata = metadata
         return graph
 
-    def ball(self, start_vertex, depth):
+    def ball(self, start_vertex, depth, immutable=False):
         r"""
         Build the ball of radius ``depth`` around ``start_vertex``.
 
         The construction stops early if a new layer adds no vertices.
+
+        INPUT:
+
+        - ``start_vertex`` -- pair ``(side, coordinates)`` where ``side`` is
+          either ``"P"`` or ``"L"``
+
+        - ``depth`` -- nonnegative integer; radius of the ball
+
+        - ``immutable`` -- boolean (default: ``False``); whether to return an
+          immutable or a mutable graph
 
         EXAMPLES::
 
@@ -377,6 +389,8 @@ class LUWGraphDescriptor:
             sage: B = D.ball(("P", (0, 0)), 1)
             sage: B.order(), B.size()
             (4, 3)
+            sage: D.ball(("P", (0, 0)), 1, immutable=True).is_immutable()
+            True
             sage: D = define_luw_graph(F, [p1*l1], A=[0], B=[0])
             sage: B = D.ball(("P", (0, 0)), 5)
             sage: B.order(), B._luw_graph_ball_metadata["component_recovered"]
@@ -387,9 +401,9 @@ class LUWGraphDescriptor:
 
         start_vertex = _normalize_vertex(self, start_vertex)
 
-        ball = Graph(multiedges=False, loops=False)
-        ball.name(f"Ball of radius {depth} in {self.name}")
-        ball.add_vertex(start_vertex)
+        ball_graph = Graph(multiedges=False, loops=False)
+        ball_graph.name(f"Ball of radius {depth} in {self.name}")
+        ball_graph.add_vertex(start_vertex)
 
         distances = {start_vertex: 0}
         frontier = {start_vertex}
@@ -397,22 +411,21 @@ class LUWGraphDescriptor:
         component_recovered = False
 
         for current_depth in range(depth):
-            previous_order = len(distances)
             next_frontier = set()
             for vertex in frontier:
                 for neighbor in self.neighbors(vertex):
-                    ball.add_edge(vertex, neighbor)
+                    ball_graph.add_edge(vertex, neighbor)
                     if neighbor not in distances:
                         distances[neighbor] = current_depth + 1
                         next_frontier.add(neighbor)
 
             reached_depth = current_depth + 1
-            if len(distances) == previous_order:
+            if not next_frontier:
                 component_recovered = True
                 break
             frontier = next_frontier
 
-        ball._luw_graph_ball_metadata = {
+        metadata = {
             "definition": self,
             "ring": self.ring,
             "dimension": self.dimension(),
@@ -424,12 +437,20 @@ class LUWGraphDescriptor:
             "reached_depth": reached_depth,
             "component_recovered": component_recovered,
         }
-        ball._luw_graph_distances = distances
-        return ball
+        if immutable:
+            ball_graph = ball_graph.copy(immutable=True)
+        ball_graph._luw_graph_ball_metadata = metadata
+        ball_graph._luw_graph_distances = distances
+        return ball_graph
 
     def neighbors(self, vertex):
         r"""
         Return the neighbors of ``vertex`` without building the full graph.
+
+        INPUT:
+
+        - ``vertex`` -- pair ``(side, coordinates)`` where ``side`` is either
+          ``"P"`` or ``"L"``
 
         EXAMPLES::
 
@@ -444,34 +465,17 @@ class LUWGraphDescriptor:
             sage: G = D.graph()
             sage: set(D.neighbors(v)) == set(G.neighbors(v))
             True
-
-        Restricted coordinate sets are respected::
-
-            sage: D = define_luw_graph(F, [p1*l1], line_coordinate_sets=(F, [0]))
-            sage: D.order(), D.size()
-            (12, 9)
-            sage: G = D.graph()
-            sage: G.order(), G.size()
-            (12, 9)
-            sage: D.neighbors(("P", (1, 1)))
-            (('L', (1, 0)),)
-            sage: D.adjacency_matrix() == G.adjacency_matrix()
-            True
         """
         side, coords = _normalize_vertex(self, vertex)
 
         if side == "P":
-            candidates = (
+            return tuple(
                 _complete_line_from_point(self, coords, first_line_value)
                 for first_line_value in self.line_first_coordinates()
             )
-        else:
-            candidates = (
-                _complete_point_from_line(self, coords, first_point_value)
-                for first_point_value in self.point_first_coordinates()
-            )
         return tuple(
-            vertex for vertex in candidates if _vertex_is_allowed(self, vertex)
+            _complete_point_from_line(self, coords, first_point_value)
+            for first_point_value in self.point_first_coordinates()
         )
 
     def lift(self, new_functions, name=None):
@@ -480,7 +484,7 @@ class LUWGraphDescriptor:
 
         INPUT:
 
-        - ``new_functions`` -- iterable of Sage polynomials
+        - ``new_functions`` -- iterable of Sage polynomials to append
 
         - ``name`` -- string (default: ``None``); name of the new definition
 
@@ -515,7 +519,7 @@ class LUWGraphDescriptor:
 
         INPUT:
 
-        - ``x`` -- positive integer
+        - ``x`` -- positive integer; number of final equations to remove
 
         - ``name`` -- string (default: ``None``); name of the new definition
 
@@ -616,9 +620,7 @@ def _canonicalize_defining_polynomial(base_ring, polynomial, canonical_ring):
             name = source_names[source_index]
             if name not in target_indices:
                 expected = ", ".join(canonical_ring.variable_names())
-                raise ValueError(
-                    f"unknown variable {name}; expected variables named {expected}"
-                )
+                raise ValueError(f"unknown variable {name}; expected variables named {expected}")
             used_source_indices.add(source_index)
             target_exponents[target_indices[name]] += exponent
 
@@ -656,9 +658,7 @@ def _validate_defining_polynomial(polynomial, available_values):
     ring = polynomial.parent()
     used_indices = [ring.gens().index(variable) for variable in polynomial.variables()]
     if used_indices and max(used_indices) >= available_values:
-        raise ValueError(
-            "a defining polynomial uses a variable that is not available yet"
-        )
+        raise ValueError("a defining polynomial uses a variable that is not available yet")
 
 
 def _normalize_coordinate_subset(base_ring, values):
@@ -673,7 +673,7 @@ def _normalize_coordinate_subset(base_ring, values):
         sage: luw._normalize_coordinate_subset(GF(3), None)
         Finite Field of size 3
     """
-    if values is None or values is base_ring:
+    if values is None or values == base_ring:
         return base_ring
 
     try:
@@ -692,55 +692,25 @@ def _normalize_coordinate_subset(base_ring, values):
 def _normalize_coordinate_sets(base_ring, dimension, first_values=None,
                                coordinate_sets=None):
     r"""
-    Normalize all allowed coordinate sets on one side of the graph.
+    Normalize the allowed first coordinates on one side of the graph.
 
     EXAMPLES::
 
         sage: from sage.graphs.generators import luw_graphs as luw
         sage: luw._normalize_coordinate_sets(GF(3), 2, [0, 1])
         ((0, 1), Finite Field of size 3)
-        sage: luw._normalize_coordinate_sets(GF(3), 2, coordinate_sets=([1], [2]))
-        ((1,), (2,))
+        sage: luw._normalize_coordinate_sets(GF(3), 2)
+        (Finite Field of size 3, Finite Field of size 3)
     """
-    if coordinate_sets is None:
-        return (_normalize_coordinate_subset(base_ring, first_values),) + (
-            base_ring,
-        ) * (dimension - 1)
-
-    coordinate_sets = tuple(
-        _normalize_coordinate_subset(base_ring, values)
-        for values in coordinate_sets
-    )
-    if len(coordinate_sets) != dimension:
-        raise ValueError("give one coordinate set for each coordinate")
-    if first_values is not None:
-        coordinate_sets = (
-            _normalize_coordinate_subset(base_ring, first_values),
-        ) + coordinate_sets[1:]
-    return coordinate_sets
+    if coordinate_sets is not None:
+        first_values = tuple(coordinate_sets)[0]
+    first_set = _normalize_coordinate_subset(base_ring, first_values)
+    return (first_set,) + (base_ring,) * (dimension - 1)
 
 
-def _vertex_in_coordinate_sets(coords, coordinate_sets):
+def _normalize_vertex(luw_graph, vertex):
     r"""
-    Return whether ``coords`` lies in the corresponding allowed sets.
-
-    EXAMPLES::
-
-        sage: from sage.graphs.generators import luw_graphs as luw
-        sage: luw._vertex_in_coordinate_sets((0, 1), ((0, 2), (1,)))
-        True
-        sage: luw._vertex_in_coordinate_sets((0, 0), ((0, 2), (1,)))
-        False
-    """
-    return all(
-        coord in allowed_values
-        for coord, allowed_values in zip(coords, coordinate_sets)
-    )
-
-
-def _vertex_is_allowed(luw_graph, vertex):
-    r"""
-    Return whether ``vertex`` lies in the stored coordinate sets.
+    Normalize a user-given vertex and check that it lies in the domain.
 
     EXAMPLES::
 
@@ -748,24 +718,29 @@ def _vertex_is_allowed(luw_graph, vertex):
         sage: F = GF(3)
         sage: R = PolynomialRing(F, names=("p1", "l1"))
         sage: p1, l1 = R.gens()
-        sage: D = luw.define_luw_graph(F, [p1*l1], B=[0])
-        sage: luw._vertex_is_allowed(D, ("L", (0, 0)))
-        True
-        sage: luw._vertex_is_allowed(D, ("L", (1, 0)))
-        False
+        sage: D = luw.define_luw_graph(F, [p1*l1], A=[0, 1])
+        sage: luw._normalize_vertex(D, ("P", (1, 2)))
+        ('P', (1, 2))
     """
     side, coords = vertex
-    coordinate_sets = (
-        luw_graph.point_coordinate_sets if side == "P"
-        else luw_graph.line_coordinate_sets
-    )
-    return _vertex_in_coordinate_sets(coords, coordinate_sets)
+    coords = tuple(luw_graph.ring(value) for value in coords)
+    if side not in ("P", "L") or len(coords) != luw_graph.dimension():
+        raise ValueError('the vertex must have side "P" or "L" and the right number of '
+                         "coordinates")
+
+    first_coordinates = (luw_graph.point_first_coordinates() if side == "P"
+                         else luw_graph.line_first_coordinates())
+    if coords[0] not in first_coordinates:
+        raise ValueError("the first coordinate is not in the allowed set for this side")
+    return side, coords
 
 
 def define_luw_graph(ring, equations, name=None, A=None, B=None,
                      point_coordinate_sets=None, line_coordinate_sets=None):
     r"""
     Return a validated algebraic descriptor for an LUW graph.
+
+    The general construction is surveyed in [LW2026]_.
 
     INPUT:
 
@@ -827,6 +802,10 @@ def define_luw_graph(ring, equations, name=None, A=None, B=None,
         Traceback (most recent call last):
         ...
         ValueError: unknown variable p2; expected variables named p1, l1
+
+    REFERENCES:
+
+    - [LW2026]_
     """
     if not hasattr(ring, "is_finite") or not ring.is_finite():
         raise ValueError("the ring must be finite")
@@ -839,10 +818,8 @@ def define_luw_graph(ring, equations, name=None, A=None, B=None,
 
     dimension = len(equations) + 1
     canonical_ring = _canonical_polynomial_ring(ring, dimension)
-    equations = tuple(
-        _canonicalize_defining_polynomial(ring, polynomial, canonical_ring)
-        for polynomial in equations
-    )
+    equations = tuple(_canonicalize_defining_polynomial(ring, polynomial, canonical_ring)
+                      for polynomial in equations)
 
     for index, polynomial in enumerate(equations, start=2):
         _validate_defining_polynomial(polynomial, available_values=2 * (index - 1))
@@ -864,11 +841,13 @@ def define_luw_graph(ring, equations, name=None, A=None, B=None,
 
 
 def LUWGraph(ring, equations, name=None, A=None, B=None,
-             point_coordinate_sets=None, line_coordinate_sets=None):
+             point_coordinate_sets=None, line_coordinate_sets=None,
+             immutable=False):
     r"""
     Build a graph directly from a given set of equations.
 
     This is the graph-returning constructor used by ``graphs.LUWGraph``.
+    The construction is surveyed in [LW2026]_.
 
     INPUT:
 
@@ -890,6 +869,9 @@ def LUWGraph(ring, equations, name=None, A=None, B=None,
     - ``line_coordinate_sets`` -- iterable of coordinate sets or ``None``
       (default: ``None``)
 
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
+
     OUTPUT:
 
     A Sage :class:`~sage.graphs.graph.Graph`.
@@ -902,6 +884,10 @@ def LUWGraph(ring, equations, name=None, A=None, B=None,
         sage: G = graphs.LUWGraph(F, [p1*l1, p1*l2, p3*l1])
         sage: G.order(), G.size()
         (162, 243)
+
+    REFERENCES:
+
+    - [LW2026]_
     """
     return define_luw_graph(
         ring,
@@ -911,7 +897,7 @@ def LUWGraph(ring, equations, name=None, A=None, B=None,
         B=B,
         point_coordinate_sets=point_coordinate_sets,
         line_coordinate_sets=line_coordinate_sets,
-    ).graph()
+    ).graph(immutable=immutable)
 
 
 def _evaluate_defining_polynomial(polynomial, previous_values):
@@ -955,11 +941,14 @@ def _complete_line_from_point(luw_graph, point, first_line_value):
         sage: luw._complete_line_from_point(D, (2, 1), 2)
         ('L', (2, 0))
     """
+    ring = luw_graph.ring
     line = [first_line_value]
-    for fn in luw_graph.equations():
-        previous_values = tuple(value for pair in zip(point, line) for value in pair)
+    previous_values = [point[0], first_line_value]
+    for index, fn in enumerate(luw_graph._equations, start=1):
         right_side = _evaluate_defining_polynomial(fn, previous_values)
-        line.append(luw_graph.ring(right_side - point[len(line)]))
+        next_value = ring(right_side - point[index])
+        line.append(next_value)
+        previous_values.extend([point[index], next_value])
     return "L", tuple(line)
 
 
@@ -977,11 +966,14 @@ def _complete_point_from_line(luw_graph, line, first_point_value):
         sage: luw._complete_point_from_line(D, (2, 1), 2)
         ('P', (2, 0))
     """
+    ring = luw_graph.ring
     point = [first_point_value]
-    for fn in luw_graph.equations():
-        previous_values = tuple(value for pair in zip(point, line) for value in pair)
+    previous_values = [first_point_value, line[0]]
+    for index, fn in enumerate(luw_graph._equations, start=1):
         right_side = _evaluate_defining_polynomial(fn, previous_values)
-        point.append(luw_graph.ring(right_side - line[len(point)]))
+        next_value = ring(right_side - line[index])
+        point.append(next_value)
+        previous_values.extend([next_value, line[index]])
     return "P", tuple(point)
 
 
@@ -1021,38 +1013,6 @@ def _line_tuples(luw_graph):
     yield from product(*luw_graph.line_coordinate_sets)
 
 
-def _normalize_vertex(luw_graph, vertex):
-    r"""
-    Normalize a user-given vertex and check that it lies in the domain.
-
-    EXAMPLES::
-
-        sage: from sage.graphs.generators import luw_graphs as luw
-        sage: F = GF(3)
-        sage: R = PolynomialRing(F, names=("p1", "l1"))
-        sage: p1, l1 = R.gens()
-        sage: D = luw.define_luw_graph(F, [p1*l1], A=[0, 1])
-        sage: luw._normalize_vertex(D, ("P", (1, 2)))
-        ('P', (1, 2))
-    """
-    side, coords = vertex
-    coords = tuple(luw_graph.ring(value) for value in coords)
-    if side not in ("P", "L") or len(coords) != luw_graph.dimension():
-        raise ValueError(
-            'the vertex must have side "P" or "L" and the right number of '
-            "coordinates"
-        )
-
-    coordinate_sets = (
-        luw_graph.point_coordinate_sets if side == "P" else luw_graph.line_coordinate_sets
-    )
-    if not _vertex_in_coordinate_sets(coords, coordinate_sets):
-        raise ValueError(
-            "the vertex coordinates are not in the allowed sets for this side"
-        )
-    return side, coords
-
-
 def _coordinate_polynomial_ring(ring, dimension):
     r"""
     Return indexed point and line generators in the canonical ring.
@@ -1070,9 +1030,21 @@ def _coordinate_polynomial_ring(ring, dimension):
     return point_vars, line_vars
 
 
-def Akq(k, q, A=None, B=None):
+def Akq(k, q, A=None, B=None, immutable=False):
     r"""
-    Return the graph `A(k, q)`.
+    Return the graph `A(k, q)` described in [LW2026]_.
+
+    The point set and line set are `\GF{q}^k`. A point `(p_1, \ldots, p_k)`
+    is adjacent to a line `(l_1, \ldots, l_k)` if
+
+    .. MATH::
+
+        p_i + l_i =
+        \begin{cases}
+        p_{i-1} l_1, & i \text{ even},\\
+        p_1 l_{i-1}, & i \text{ odd},
+        \end{cases}
+        \qquad 2 \leq i \leq k.
 
     INPUT:
 
@@ -1085,6 +1057,9 @@ def Akq(k, q, A=None, B=None):
 
     - ``B`` -- iterable, single value, or ``None`` (default: ``None``);
       allowed first coordinates on the line side
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     OUTPUT:
 
@@ -1093,8 +1068,8 @@ def Akq(k, q, A=None, B=None):
     EXAMPLES::
 
         sage: G = graphs.Akq(5, 3)
-        sage: G.order(), G.size()
-        (486, 729)
+        sage: G.order(), G.size(), G.girth()
+        (486, 729, 12)
 
     TESTS::
 
@@ -1102,13 +1077,40 @@ def Akq(k, q, A=None, B=None):
         Traceback (most recent call last):
         ...
         ValueError: k must be at least 2
+
+    REFERENCES:
+
+    - [LW2026]_
     """
-    return define_Akq(k, q, A=A, B=B).graph()
+    return define_Akq(k, q, A=A, B=B).graph(immutable=immutable)
 
 
-def Dkq(k, q, A=None, B=None):
+def Dkq(k, q, A=None, B=None, immutable=False):
     r"""
-    Return the graph `D(k, q)`.
+    Return the graph `D(k, q)` described in [LW2026]_.
+
+    The point set and line set are `\GF{q}^k`. A point `(p_1, \ldots, p_k)`
+    is adjacent to a line `(l_1, \ldots, l_k)` if
+
+    .. MATH::
+
+        p_2 + l_2 = p_1 l_1,
+
+    and, when `k \geq 3`,
+
+    .. MATH::
+
+        p_3 + l_3 = p_1 l_2.
+
+    For `4 \leq i \leq k`, the remaining equations are
+
+    .. MATH::
+
+        p_i + l_i =
+        \begin{cases}
+        p_{i-2} l_1, & i \equiv 0, 1 \pmod 4,\\
+        p_1 l_{i-2}, & i \equiv 2, 3 \pmod 4.
+        \end{cases}
 
     INPUT:
 
@@ -1122,6 +1124,9 @@ def Dkq(k, q, A=None, B=None):
     - ``B`` -- iterable, single value, or ``None`` (default: ``None``);
       allowed first coordinates on the line side
 
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
+
     OUTPUT:
 
     A Sage :class:`~sage.graphs.graph.Graph`.
@@ -1129,8 +1134,8 @@ def Dkq(k, q, A=None, B=None):
     EXAMPLES::
 
         sage: G = graphs.Dkq(5, 3)
-        sage: G.order(), G.size()
-        (486, 729)
+        sage: G.order(), G.size(), G.girth()
+        (486, 729, 12)
 
     TESTS::
 
@@ -1138,13 +1143,26 @@ def Dkq(k, q, A=None, B=None):
         Traceback (most recent call last):
         ...
         ValueError: k must be at least 2
+
+    REFERENCES:
+
+    - [LW2026]_
     """
-    return define_Dkq(k, q, A=A, B=B).graph()
+    return define_Dkq(k, q, A=A, B=B).graph(immutable=immutable)
 
 
-def WengerGraph(m, q, A=None, B=None):
+def WengerGraph(m, q, A=None, B=None, immutable=False):
     r"""
-    Return the Wenger graph `W_m(q)`.
+    Return the Wenger graph `W_m(q)` described in [LW2026]_.
+
+    The point set and line set are `\GF{q}^{m+1}`. A point
+    `(p_1, \ldots, p_{m+1})` is adjacent to a line
+    `(l_1, \ldots, l_{m+1})` if
+
+    .. MATH::
+
+        p_{i+1} + l_{i+1} = p_1 l_i,
+        \qquad 1 \leq i \leq m.
 
     INPUT:
 
@@ -1157,6 +1175,9 @@ def WengerGraph(m, q, A=None, B=None):
 
     - ``B`` -- iterable, single value, or ``None`` (default: ``None``);
       allowed first coordinates on the line side
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     OUTPUT:
 
@@ -1177,13 +1198,29 @@ def WengerGraph(m, q, A=None, B=None):
         sage: graphs.WengerGraph(3, 3).order()
         doctest:...: UserWarning: WengerGraph(m, q) is disconnected when m > q - 1.
         162
+
+    REFERENCES:
+
+    - [LW2026]_
     """
-    return define_WengerGraph(m, q, A=A, B=B).graph()
+    return define_WengerGraph(m, q, A=A, B=B).graph(immutable=immutable)
 
 
 def define_Akq(k, q, A=None, B=None):
     r"""
-    Return a descriptor for the graph `A(k, q)`.
+    Return a descriptor for the graph `A(k, q)` described in [LW2026]_.
+
+    The point set and line set are `\GF{q}^k`. A point `(p_1, \ldots, p_k)`
+    is adjacent to a line `(l_1, \ldots, l_k)` if
+
+    .. MATH::
+
+        p_i + l_i =
+        \begin{cases}
+        p_{i-1} l_1, & i \text{ even},\\
+        p_1 l_{i-1}, & i \text{ odd},
+        \end{cases}
+        \qquad 2 \leq i \leq k.
 
     INPUT:
 
@@ -1209,6 +1246,10 @@ def define_Akq(k, q, A=None, B=None):
         (5, 486, 729)
         sage: D.graph().order()
         486
+
+    REFERENCES:
+
+    - [LW2026]_
     """
     k = ZZ(k)
     if k < 2:
@@ -1222,14 +1263,36 @@ def define_Akq(k, q, A=None, B=None):
         else point_vars[1] * line_vars[i - 1]
         for i in range(2, k + 1)
     ]
-    return define_luw_graph(
-        field, equations, name=f"A{k}{field.order()}", A=A, B=B
-    )
+    return define_luw_graph(field, equations, name=f"A{k}{field.order()}",
+                            A=A, B=B)
 
 
 def define_Dkq(k, q, A=None, B=None):
     r"""
-    Return a descriptor for the graph `D(k, q)`.
+    Return a descriptor for the graph `D(k, q)` described in [LW2026]_.
+
+    The point set and line set are `\GF{q}^k`. A point `(p_1, \ldots, p_k)`
+    is adjacent to a line `(l_1, \ldots, l_k)` if
+
+    .. MATH::
+
+        p_2 + l_2 = p_1 l_1,
+
+    and, when `k \geq 3`,
+
+    .. MATH::
+
+        p_3 + l_3 = p_1 l_2.
+
+    For `4 \leq i \leq k`, the remaining equations are
+
+    .. MATH::
+
+        p_i + l_i =
+        \begin{cases}
+        p_{i-2} l_1, & i \equiv 0, 1 \pmod 4,\\
+        p_1 l_{i-2}, & i \equiv 2, 3 \pmod 4.
+        \end{cases}
 
     INPUT:
 
@@ -1255,6 +1318,10 @@ def define_Dkq(k, q, A=None, B=None):
         (5, 486, 729)
         sage: D.graph().size()
         729
+
+    REFERENCES:
+
+    - [LW2026]_
     """
     k = ZZ(k)
     if k < 2:
@@ -1270,14 +1337,22 @@ def define_Dkq(k, q, A=None, B=None):
             equations.append(point_vars[i - 2] * line_vars[1])
         else:
             equations.append(point_vars[1] * line_vars[i - 2])
-    return define_luw_graph(
-        field, equations, name=f"D{k}{field.order()}", A=A, B=B
-    )
+    return define_luw_graph(field, equations, name=f"D{k}{field.order()}",
+                            A=A, B=B)
 
 
 def define_WengerGraph(m, q, A=None, B=None):
     r"""
-    Return a descriptor for the Wenger graph `W_m(q)`.
+    Return a descriptor for the Wenger graph `W_m(q)` described in [LW2026]_.
+
+    The point set and line set are `\GF{q}^{m+1}`. A point
+    `(p_1, \ldots, p_{m+1})` is adjacent to a line
+    `(l_1, \ldots, l_{m+1})` if
+
+    .. MATH::
+
+        p_{i+1} + l_{i+1} = p_1 l_i,
+        \qquad 1 \leq i \leq m.
 
     INPUT:
 
@@ -1303,6 +1378,10 @@ def define_WengerGraph(m, q, A=None, B=None):
         (3, 54, 81)
         sage: D.graph().order()
         54
+
+    REFERENCES:
+
+    - [LW2026]_
     """
     m = ZZ(m)
     if m < 1:
@@ -1317,16 +1396,3 @@ def define_WengerGraph(m, q, A=None, B=None):
     point_vars, line_vars = _coordinate_polynomial_ring(field, m + 1)
     equations = [point_vars[1] * line_vars[i] for i in range(1, m + 1)]
     return define_luw_graph(field, equations, name=f"W_{m}({q})", A=A, B=B)
-
-
-__all__ = [
-    "Akq",
-    "Dkq",
-    "LUWGraph",
-    "LUWGraphDescriptor",
-    "WengerGraph",
-    "define_Akq",
-    "define_Dkq",
-    "define_WengerGraph",
-    "define_luw_graph",
-]
