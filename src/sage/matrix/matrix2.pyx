@@ -17187,8 +17187,8 @@ cdef class Matrix(Matrix1):
         EXAMPLES::
 
             sage: x = polygen(ZZ, 'x')
-            sage: L.<a> = NumberField(x^3 - 2)                                          # needs sage.rings.number_field
-            sage: OL = L.ring_of_integers()                                             # needs sage.rings.number_field
+            sage: L.<a> = NumberField(x^3 - 2)
+            sage: OL = L.ring_of_integers()
 
         We check some degenerate cases::
 
@@ -17210,13 +17210,13 @@ cdef class Matrix(Matrix1):
 
         A 2x2 matrix::
 
-            sage: m = matrix(OL, 2, 2, [1, 0, a, 2])                                    # needs sage.rings.number_field
-            sage: r,s,p = m._echelon_form_PID(); (r,s,p)                                # needs sage.rings.number_field
+            sage: m = matrix(OL, 2, 2, [1, 0, a, 2])
+            sage: r,s,p = m._echelon_form_PID(); (r,s,p)
             (
             [ 1  0]  [1 0]
             [-a  1], [0 2], [0, 1]
             )
-            sage: r * m == s and r.det() == 1                                           # needs sage.rings.number_field
+            sage: r * m == s and r.det() == 1
             True
 
         A larger example::
