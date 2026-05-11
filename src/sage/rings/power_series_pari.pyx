@@ -848,7 +848,7 @@ cdef class PowerSeries_pari(PowerSeries):
         the reversion is returned with the default precision of
         ``f.parent()``.
 
-        The method `compositional_inverse` is an alias of `revert`.
+        The method ``compositional_inverse`` is an alias of ``revert``.
 
         ..WARNING::
             

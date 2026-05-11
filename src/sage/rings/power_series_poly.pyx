@@ -932,7 +932,7 @@ cdef class PowerSeries_poly(PowerSeries):
         ``precision`` is not given, then the precision of the reversion defaults
         to the default precision of ``f.parent()``.
 
-        The method `compositional_inverse` is an alias of `revert`.
+        The method ``compositional_inverse`` is an alias of ``revert``.
 
         ALGORITHM:
 

@@ -1521,10 +1521,10 @@ cdef class LaurentSeries(AlgebraElement):
         ``precision`` is not given, then the precision of the reversion defaults
         to the default precision of ``f.parent()``.
 
-        The method `compositional_inverse` is an alias of `revert`.
+        The method ``compositional_inverse`` is an alias of ``revert``.
 
         The implementation depends on the underlying power series element
-        implementing a `revert` method.
+        implementing a ``revert`` method.
 
         EXAMPLES::
 
