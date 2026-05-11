@@ -2197,7 +2197,7 @@ class BruhatTitsQuotient(SageObject, UniqueRepresentation):
 
             sage: X = BruhatTitsQuotient(7, 5*17*13)
             sage: X.genus_no_formula()
-            385 
+            385
         """
         assert not self._use_magma
         if prec <= self._prec:
