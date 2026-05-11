@@ -339,18 +339,17 @@ class LUWGraphDescriptor:
             sage: define_WengerGraph(2, 3).graph(immutable=True).is_immutable()
             True
         """
-        graph = Graph(multiedges=False, loops=False)
-        graph.name(self.name)
+        def edges():
+            for point in _point_tuples(self):
+                point_vertex = ("P", point)
+                for first_line_value in self.line_first_coordinates():
+                    yield (point_vertex,
+                           _complete_line_from_point(self, point,
+                                                     first_line_value))
 
-        for point in _point_tuples(self):
-            point_vertex = ("P", point)
-            for first_line_value in self.line_first_coordinates():
-                graph.add_edge(
-                    point_vertex,
-                    _complete_line_from_point(self, point, first_line_value),
-                )
-
-        metadata = {
+        G = Graph(edges(), format="list_of_edges",
+                  name=self.name, immutable=immutable)
+        G._luw_graph_metadata = {
             "definition": self,
             "ring": self.ring,
             "dimension": self.dimension(),
@@ -358,10 +357,7 @@ class LUWGraphDescriptor:
             "point_coordinate_sets": self.point_coordinate_sets,
             "line_coordinate_sets": self.line_coordinate_sets,
         }
-        if immutable:
-            graph = graph.copy(immutable=True)
-        graph._luw_graph_metadata = metadata
-        return graph
+        return G
 
     def ball(self, start_vertex, depth, immutable=False):
         r"""
@@ -401,10 +397,7 @@ class LUWGraphDescriptor:
 
         start_vertex = _normalize_vertex(self, start_vertex)
 
-        ball_graph = Graph(multiedges=False, loops=False)
-        ball_graph.name(f"Ball of radius {depth} in {self.name}")
-        ball_graph.add_vertex(start_vertex)
-
+        edges = []
         distances = {start_vertex: 0}
         frontier = {start_vertex}
         reached_depth = 0
@@ -414,7 +407,7 @@ class LUWGraphDescriptor:
             next_frontier = set()
             for vertex in frontier:
                 for neighbor in self.neighbors(vertex):
-                    ball_graph.add_edge(vertex, neighbor)
+                    edges.append((vertex, neighbor))
                     if neighbor not in distances:
                         distances[neighbor] = current_depth + 1
                         next_frontier.add(neighbor)
@@ -425,7 +418,10 @@ class LUWGraphDescriptor:
                 break
             frontier = next_frontier
 
-        metadata = {
+        G = Graph([distances, edges], format="vertices_and_edges",
+                  name=f"Ball of radius {depth} in {self.name}",
+                  immutable=immutable)
+        G._luw_graph_ball_metadata = {
             "definition": self,
             "ring": self.ring,
             "dimension": self.dimension(),
@@ -437,11 +433,8 @@ class LUWGraphDescriptor:
             "reached_depth": reached_depth,
             "component_recovered": component_recovered,
         }
-        if immutable:
-            ball_graph = ball_graph.copy(immutable=True)
-        ball_graph._luw_graph_ball_metadata = metadata
-        ball_graph._luw_graph_distances = distances
-        return ball_graph
+        G._luw_graph_distances = distances
+        return G
 
     def neighbors(self, vertex):
         r"""
