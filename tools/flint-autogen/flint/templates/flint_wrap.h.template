@@ -50,7 +50,6 @@
 #include <flint/mpfr_vec.h>
 #endif
 
-#include <flint/NTL-interface.h>
 #include <flint/acb.h>
 #include <flint/acb_calc.h>
 #include <flint/acb_dft.h>
@@ -95,7 +94,6 @@
 #include <flint/fexpr.h>
 #include <flint/fexpr_builtin.h>
 #include <flint/fft.h>
-#include <flint/fft_small.h>
 #include <flint/flint.h>
 #include <flint/fmpq.h>
 #include <flint/fmpq_mat.h>
@@ -113,7 +111,6 @@
 #include <flint/fmpz_mod_mat.h>
 #include <flint/fmpz_mod_mpoly.h>
 #include <flint/fmpz_mod_mpoly_factor.h>
-#include <flint/fmpz_mod_mpoly_q.h>
 #include <flint/fmpz_mod_poly.h>
 #include <flint/fmpz_mod_poly_factor.h>
 #include <flint/fmpz_mod_types.h>
@@ -157,14 +154,12 @@
 #include <flint/fq_zech_poly_factor.h>
 #include <flint/fq_zech_types.h>
 #include <flint/fq_zech_vec.h>
-#include <flint/gettimeofday.h>
 #include <flint/gmpcompat.h>
 #include <flint/gr.h>
 #include <flint/gr_generic.h>
 #include <flint/gr_mat.h>
 #include <flint/gr_mpoly.h>
 #include <flint/gr_poly.h>
-#include <flint/gr_series.h>
 #include <flint/gr_special.h>
 #include <flint/gr_types.h>
 #include <flint/gr_vec.h>
@@ -173,7 +168,6 @@
 #include <flint/long_extras.h>
 #include <flint/longlong.h>
 #include <flint/mag.h>
-#include <flint/mpn_extras.h>
 #include <flint/mpn_mod.h>
 #include <flint/mpoly.h>
 #include <flint/mpoly_types.h>
@@ -197,15 +191,19 @@
 #include <flint/padic_types.h>
 #include <flint/partitions.h>
 #include <flint/perm.h>
-#include <flint/profiler.h>
 #include <flint/qadic.h>
 #include <flint/qfb.h>
 #include <flint/qqbar.h>
 #include <flint/qsieve.h>
+#include <flint/thread_pool.h>
 #include <flint/thread_support.h>
 #include <flint/ulong_extras.h>
 
-#if __FINT_VERSION >= __FLINT_RELEASE_NUM(3,5,0)
+#if __FLINT_RELEASE >= __FLINT_RELEASE_NUM(3,4,0)
+#include <flint/fmpz_mod_mpoly_q.h>
+#include <flint/gr_series.h>
+#endif
+#if __FLINT_RELEASE >= __FLINT_RELEASE_NUM(3,5,0)
 #include <flint/gr_ore_poly.h>
 #include <flint/radix.h>
 #endif
