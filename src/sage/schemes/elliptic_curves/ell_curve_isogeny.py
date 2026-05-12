@@ -49,8 +49,9 @@ The most useful methods that apply to isogenies are:
 
 .. WARNING::
 
-    This class only implements separable isogenies. When using Kohel's
-    algorithm, only cyclic isogenies can be computed (except for `[2]`).
+    This class only implements separable isogenies. The direct Kohel
+    implementation handles odd-degree kernel polynomials and kernel
+    polynomials contained in the 2-torsion.
 
     Working with other kinds of isogenies may be possible using other
     child classes of :class:`EllipticCurveHom`.
@@ -421,6 +422,11 @@ def compute_codomain_kohel(E, kernel):
         sage: compute_codomain_kohel(E, x^3 + 7*x^2 + 15*x + 12)
         Elliptic Curve defined by y^2 + x*y + 3*y = x^3 + 2*x^2 + 3*x + 15
          over Finite Field of size 19
+        sage: F = GF(419)
+        sage: E = EllipticCurve(F, [1, 0])
+        sage: R.<x> = F[]
+        sage: compute_codomain_kohel(E, x^3 - 25*x^2 + x)
+        Elliptic Curve defined by y^2 = x^3 + 141*x + 269 over Finite Field of size 419
 
     ALGORITHM:
 
@@ -443,7 +449,9 @@ def compute_codomain_kohel(E, kernel):
         psi_quo = psi//psi_2tor
 
         if psi_quo.degree() != 0:
-            raise NotImplementedError("Kohel's algorithm currently only supports cyclic isogenies (except for [2])")
+            phi_even = EllipticCurveIsogeny(E, psi_2tor.monic())
+            psi_odd = _pushforward_kernel_polynomial(phi_even, psi_quo)
+            return compute_codomain_kohel(phi_even.codomain(), psi_odd)
 
         n = psi_2tor.degree()
 
@@ -521,6 +529,139 @@ def two_torsion_part(E, psi):
     return psi.gcd(psi_2)
 
 
+def _pushforward_kernel_polynomial(phi, psi):
+    r"""
+    Return the kernel polynomial obtained by pushing ``psi`` through ``phi``.
+
+    INPUT:
+
+    - ``phi`` -- an elliptic-curve isogeny
+
+    - ``psi`` -- a univariate polynomial over the base field of the domain
+      of ``phi``
+
+    OUTPUT: polynomial over the base field of the codomain of ``phi``
+
+    EXAMPLES::
+
+        sage: from sage.schemes.elliptic_curves.ell_curve_isogeny import _pushforward_kernel_polynomial
+        sage: F = GF(419)
+        sage: E = EllipticCurve(F, [1, 0])
+        sage: R.<x> = F[]
+        sage: phi = E.isogeny(x)
+        sage: _pushforward_kernel_polynomial(phi, x^2 - 25*x + 1)
+        x + 394
+
+    TESTS:
+
+    The image polynomial gives the second step in the factored isogeny
+    associated to the kernel polynomial from :issue:`42023`::
+
+        sage: psi = x^3 - 25*x^2 + x
+        sage: psi_odd = _pushforward_kernel_polynomial(phi, psi // x)
+        sage: (phi.codomain().isogeny(psi_odd) * phi).kernel_polynomial()
+        x^3 + 394*x^2 + x
+    """
+    domain_polynomial_ring = psi.parent()
+    base_field = phi.domain().base_ring()
+
+    x_map = phi.x_rational_map()
+    numerator = domain_polynomial_ring(x_map.numerator())
+    denominator = domain_polynomial_ring(x_map.denominator())
+
+    elimination_ring = PolynomialRing(base_field, ('x_', 'X_'))
+    domain_variable, image_variable = elimination_ring.gens()
+    resultant = elimination_ring(psi(domain_variable)).resultant(
+        elimination_ring(numerator(domain_variable)
+                         - image_variable * denominator(domain_variable)),
+        domain_variable)
+
+    image_polynomial = domain_polynomial_ring([
+        resultant.monomial_coefficient(image_variable**exponent)
+        for exponent in range(resultant.degree(image_variable) + 1)
+    ])
+    return image_polynomial.radical().monic()
+
+
+def _factored_isogeny_from_kernel_polynomial(E, kernel_polynomial,
+                                             codomain=None, model=None,
+                                             check=True):
+    r"""
+    Construct a factored isogeny from a mixed even-degree kernel polynomial.
+
+    This handles the case where the direct Kohel implementation can compute
+    the even part and the odd quotient, but not both in a single step.
+
+    EXAMPLES::
+
+        sage: from sage.schemes.elliptic_curves.ell_curve_isogeny import _factored_isogeny_from_kernel_polynomial
+        sage: F = GF(419)
+        sage: E = EllipticCurve(F, [1, 0])
+        sage: R.<x> = F[]
+        sage: phi = _factored_isogeny_from_kernel_polynomial(E, x^3 - 25*x^2 + x)
+        sage: [f.degree() for f in phi.factors()]
+        [2, 3]
+        sage: phi.codomain()
+        Elliptic Curve defined by y^2 = x^3 + 141*x + 269 over Finite Field of size 419
+
+    TESTS:
+
+    Check that a mixed polynomial is not accepted when the factored
+    isogeny would have a different kernel polynomial::
+
+        sage: E.isogeny((x^3 + x) * (x^2 - 25*x + 1))
+        Traceback (most recent call last):
+        ...
+        ValueError: given kernel polynomial does not define the kernel of the factored isogeny
+    """
+    polynomial_ring = PolynomialRing(E.base_ring(), 'x')
+
+    try:
+        psi = polynomial_ring(kernel_polynomial)
+    except TypeError:
+        raise NotImplementedError from None
+
+    if psi.leading_coefficient() != 1:
+        raise ValueError("given kernel polynomial is not monic")
+
+    psi_even = two_torsion_part(E, psi).monic()
+    if psi_even.degree() == 0:
+        raise NotImplementedError
+
+    psi_odd_preimage = psi // psi_even
+    if psi_odd_preimage.degree() == 0:
+        raise NotImplementedError
+
+    phi_even = EllipticCurveIsogeny(E, psi_even, check=check)
+    psi_odd = _pushforward_kernel_polynomial(phi_even, psi_odd_preimage)
+    phi_odd = EllipticCurveIsogeny(phi_even.codomain(), psi_odd, check=check)
+
+    factors = [phi_even, phi_odd]
+
+    if model is not None:
+        if codomain is not None:
+            raise ValueError("cannot specify a codomain curve and model name simultaneously")
+        from sage.schemes.elliptic_curves.ell_field import compute_model
+        codomain = compute_model(factors[-1].codomain(), model)
+
+    if codomain is not None:
+        if not isinstance(codomain, EllipticCurve_generic):
+            raise ValueError(f'not an elliptic curve: {codomain}')
+        isomorphism = factors[-1].codomain().isomorphism_to(codomain)
+        if hasattr(factors[-1], '_set_post_isomorphism'):
+            factors[-1]._set_post_isomorphism(isomorphism)
+        else:
+            factors.append(isomorphism)
+
+    from sage.schemes.elliptic_curves.hom_composite import EllipticCurveHom_composite
+    factored_isogeny = EllipticCurveHom_composite.from_factors(factors)
+
+    if check and factored_isogeny.kernel_polynomial() != psi:
+        raise ValueError("given kernel polynomial does not define the kernel of the factored isogeny")
+
+    return factored_isogeny
+
+
 class EllipticCurveIsogeny(EllipticCurveHom):
     r"""
     This class implements separable isogenies of elliptic curves.
@@ -537,8 +678,8 @@ class EllipticCurveIsogeny(EllipticCurveHom):
       isogenies.  This algorithm is selected by giving as the
       ``kernel`` parameter a monic polynomial (or a coefficient list)
       which will define the kernel of the isogeny.
-      Kohel's algorithm is currently only implemented for cyclic
-      isogenies, with the exception of `[2]`.
+      The direct Kohel implementation handles odd-degree kernel
+      polynomials and kernel polynomials contained in the 2-torsion.
 
     INPUT:
 
@@ -2212,7 +2353,7 @@ class EllipticCurveIsogeny(EllipticCurveHom):
             psi_quo = psi//psi_G
 
             if psi_quo.degree() != 0:
-                raise NotImplementedError("Kohel's algorithm currently only supports cyclic isogenies (except for [2])")
+                raise NotImplementedError("the direct Kohel implementation does not support mixed even-degree kernel polynomials")
 
             phi, omega, v, w, _, d = self.__init_even_kernel_polynomial(E, psi_G)
 

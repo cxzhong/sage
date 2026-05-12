@@ -25,7 +25,9 @@ from sage.schemes.elliptic_curves.ell_point import EllipticCurvePoint_field
 from sage.schemes.curves.projective_curve import ProjectivePlaneCurve_field
 
 from .constructor import EllipticCurve
-from .ell_curve_isogeny import EllipticCurveIsogeny, isogeny_codomain_from_kernel
+from .ell_curve_isogeny import (EllipticCurveIsogeny,
+                                _factored_isogeny_from_kernel_polynomial,
+                                isogeny_codomain_from_kernel)
 from . import ell_generic
 
 
@@ -1572,8 +1574,10 @@ class EllipticCurve_field(ell_generic.EllipticCurve_generic, ProjectivePlaneCurv
           isogenies.  This algorithm is selected by giving as the
           ``kernel`` parameter a monic polynomial (or a coefficient list
           in little endian) which will define the kernel of the isogeny.
-          Kohel's algorithm is currently only implemented for cyclic
-          isogenies, with the exception of `[2]`.
+          The direct implementation handles odd-degree kernel polynomials
+          and kernel polynomials contained in the 2-torsion; mixed
+          even-degree kernel polynomials are decomposed into factored
+          isogenies.
 
         - √élu Algorithm (see
           :mod:`~sage.schemes.elliptic_curves.hom_velusqrt`):
@@ -1752,6 +1756,20 @@ class EllipticCurve_field(ell_generic.EllipticCurve_generic, ProjectivePlaneCurv
               From: Elliptic Curve defined by y^2 + x*y = x^3 + x + 2 over Finite Field of size 31
               To:   Elliptic Curve defined by y^2 + x*y = x^3 + 2*x + 26 over Finite Field of size 31
 
+        Mixed even-degree kernel polynomials are decomposed without
+        constructing kernel points (:issue:`42023`)::
+
+            sage: F = GF(419)
+            sage: E = EllipticCurve(F, [1, 0])
+            sage: R.<x> = F[]
+            sage: phi = E.isogeny(x^3 - 25*x^2 + x)
+            sage: [f.degree() for f in phi.factors()]
+            [2, 3]
+            sage: phi.codomain()
+            Elliptic Curve defined by y^2 = x^3 + 141*x + 269 over Finite Field of size 419
+            sage: phi.kernel_polynomial()
+            x^3 + 394*x^2 + x
+
         Multiple ways to set the ``velu_sqrt_bound``::
 
             sage: E = EllipticCurve_from_j(GF(97)(42))
@@ -1875,6 +1893,14 @@ class EllipticCurve_field(ell_generic.EllipticCurve_generic, ProjectivePlaneCurv
                     return EllipticCurveHom_composite(self, kernel, codomain=codomain, model=model, velu_sqrt_bound=velu_sqrt_bound)
         try:
             return EllipticCurveIsogeny(self, kernel, codomain, degree, model, check=check)
+        except NotImplementedError as err:
+            try:
+                return _factored_isogeny_from_kernel_polynomial(self, kernel,
+                                                               codomain=codomain,
+                                                               model=model,
+                                                               check=check)
+            except NotImplementedError:
+                raise err
         except AttributeError as e:
             raise RuntimeError("Unable to construct isogeny: %s" % e)
 
