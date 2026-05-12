@@ -1894,6 +1894,8 @@ class EllipticCurve_field(ell_generic.EllipticCurve_generic, ProjectivePlaneCurv
         try:
             return EllipticCurveIsogeny(self, kernel, codomain, degree, model, check=check)
         except NotImplementedError as err:
+            if kernel is None:
+                raise err
             try:
                 return _factored_isogeny_from_kernel_polynomial(self, kernel,
                                                                codomain=codomain,
