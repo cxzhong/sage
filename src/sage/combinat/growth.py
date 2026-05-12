@@ -5427,7 +5427,6 @@ class RuleRightCompositions(RuleCompositions):
 
         `u_i(v) = a_i d_{[i-1]}(v)` appends `i` after removing a box
         from the rightmost occurrences of `i-1, i-2, \dots, 1`.
-
         """
         if not w:
             return None
