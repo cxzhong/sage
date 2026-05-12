@@ -244,7 +244,6 @@ class Extractor:
             self.add_declaration()
             if self.functions:
                 self.update_section()
-            section = line
             self.i += 2
         elif not line:
             self.i += 1
