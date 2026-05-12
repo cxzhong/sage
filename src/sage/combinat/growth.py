@@ -475,7 +475,7 @@ follows::
     ....:     def is_Q_edge(self, v, w): return list(range(w)) if w == v+1 else []
     ....:     def backward_rule(self, y, g, z, h, x):
     ....:         if g is None:
-    ....:             return (0, x, None, 0)
+    ....:             return (h, x, None, 0)
     ....:         if h is None:
     ....:             return (None, y, g, 0)
     ....:         if g == 0:
@@ -2157,6 +2157,31 @@ class Rule(UniqueRepresentation, SageObject):
         r"""
         Test trivial properties of local rules for the first few
         levels.
+
+        TESTS::
+
+            sage: from sage.combinat.growth import Rule
+            sage: class RulePascal(Rule):
+            ....:     zero = 0
+            ....:     has_multiple_edges = True
+            ....:     zero_edge = None
+            ....:     def rank(self, v): return v
+            ....:     def vertices(self, n): return [n]
+            ....:     def is_P_edge(self, v, w): return [0] if w == v + 1 else []
+            ....:     def is_Q_edge(self, v, w): return list(range(w)) if w == v+1 else []
+            ....:     def backward_rule(self, y, g, z, h, x):
+            ....:         if g is None:
+            ....:             return (h, x, None, 0)
+            ....:         if h is None:
+            ....:             return (None, y, g, 0)
+            ....:         if g == 0:
+            ....:             return (None, y, None, 1)
+            ....:         else:
+            ....:             return (0, x-1, g-1, 0)
+
+            sage: RulePascal()._test_local_rules()
+            doctest:...: UserWarning: RulePascal has no forward rule implemented,
+            skipping these tests.
         """
         for n in range(N+1):
             self._check_local_rules(n)
@@ -2164,6 +2189,24 @@ class Rule(UniqueRepresentation, SageObject):
     def _test_duality(self, N=5, **options):
         r"""
         Test `r`-duality for the first few levels.
+
+        TESTS::
+
+            sage: from sage.combinat.growth import Rule
+            sage: class RuleWrong(Rule):
+            ....:     def vertices(self, n): return Partitions(n)
+            ....:     def rank(self, v): return v.size()
+            ....:     def is_Q_edge(self, v, w):
+            ....:         return (v, w) in [([1],[2]), ([2],[3])]
+            ....:     def is_P_edge(self, v, w):
+            ....:         return (v, w) in [([1],[2]), ([1],[1,1]), ([2],[3])]
+
+            sage: RuleWrong()._test_duality()
+            Traceback (most recent call last):
+            ...
+            ValueError: D U - U D differs from 1 I for vertex []:
+            D U = []
+            U D + 1 I = [[]]
         """
         for n in range(N+1):
             self._check_duality(n)
@@ -2236,6 +2279,12 @@ class Rule(UniqueRepresentation, SageObject):
         Return the vertices at level `n` as a list.
 
         This method should only be used in testsuite methods.
+
+        TESTS::
+
+            sage: Shifted = GrowthDiagram.rules.ShiftedShapes()
+            sage: v = Shifted._vertices(3); v
+            [[3], [2, 1]]
         """
         return list(self.vertices(n))
 
@@ -2244,6 +2293,12 @@ class Rule(UniqueRepresentation, SageObject):
         Return the edges in `P` from `t` as a list.
 
         This method should only be used in testsuite methods.
+
+        TESTS::
+
+            sage: Shifted = GrowthDiagram.rules.ShiftedShapes()
+            sage: Shifted._P_out_edges(Partition([2, 1]))
+            [([2, 1], [3, 1], 0)]
         """
         V = self._vertices(self.rank(t) + 1)
         if self.has_multiple_edges:
@@ -2255,6 +2310,12 @@ class Rule(UniqueRepresentation, SageObject):
         Return the edges in `P` to `t` as a list.
 
         This method should only be used in testsuite methods.
+
+        TESTS::
+
+            sage: Shifted = GrowthDiagram.rules.ShiftedShapes()
+            sage: Shifted._P_in_edges(Partition([2,1]))
+            [([2], [2, 1], 0)]
         """
         V = self._vertices(self.rank(t) - 1)
         if self.has_multiple_edges:
@@ -2266,6 +2327,12 @@ class Rule(UniqueRepresentation, SageObject):
         Return the edges in `Q` from `t` as a list.
 
         This method should only be used in testsuite methods.
+
+        TESTS::
+
+            sage: Shifted = GrowthDiagram.rules.ShiftedShapes()
+            sage: Shifted._Q_out_edges(Partition([2, 1]))
+            [([2, 1], [3, 1], 2), ([2, 1], [3, 1], 3)]
         """
         V = self._vertices(self.rank(t) + 1)
         if self.has_multiple_edges:
@@ -2277,6 +2344,12 @@ class Rule(UniqueRepresentation, SageObject):
         Return the edges in `Q` to `t` as a list.
 
         This method should only be used in testsuite methods.
+
+        TESTS::
+
+            sage: Shifted = GrowthDiagram.rules.ShiftedShapes()
+            sage: Shifted._Q_in_edges(Partition([2,1]))
+            [([2], [2, 1], 1)]
         """
         V = self._vertices(self.rank(t) - 1)
         if self.has_multiple_edges:
@@ -2288,6 +2361,29 @@ class Rule(UniqueRepresentation, SageObject):
         Raise an error if the local rules at level ``n`` do not
         satisfy Fomin's Definitions 3.4.3 and 3.4.4., or are not
         inverse to each other.
+
+        TESTS::
+
+            sage: from sage.combinat.growth import Rule
+            sage: class RulePascal(Rule):
+            ....:     zero = 0
+            ....:     has_multiple_edges = True
+            ....:     zero_edge = None
+            ....:     def rank(self, v): return v
+            ....:     def vertices(self, n): return [n]
+            ....:     def is_P_edge(self, v, w): return [0] if w == v + 1 else []
+            ....:     def is_Q_edge(self, v, w): return list(range(w)) if w == v+1 else []
+            ....:     def backward_rule(self, y, g, z, h, x):
+            ....:         if g is None:
+            ....:             return (h, x, None, 0)
+            ....:         if h is None:
+            ....:             return (None, y, g, 0)
+            ....:         if g == 0:
+            ....:             return (None, y, None, 1)
+            ....:         else:
+            ....:             return (0, x-1, g-1, 0)
+
+            sage: RulePascal()._check_local_rules(2)
         """
         from warnings import warn
         has_fwd = hasattr(self, "forward_rule")
@@ -2400,7 +2496,7 @@ class Rule(UniqueRepresentation, SageObject):
                 e, t, f, a = bwd(z, z_edge, z, z_edge, z)
                 if (e, t, f, a) != (z_edge, z, z_edge, 0):
                     raise ValueError(f"backward rule for degenerate edges at {z} "
-                                     f"yields {e, t, f, a}")
+                                     f"yields {e, t, f, a} instead of {z_edge, z, z_edge, 0}")
 
                 # 2. P-edge + degenerate Q
                 for x, _, h in P_edges:
@@ -5112,7 +5208,7 @@ class RuleCompositions(Rule):
         """
         return Compositions(n)
 
-    def is_Q_edge_aux(self, v, w):
+    def _is_Q_edge_aux(self, v, w):
         r"""
         Return `i` if `v = d_i(w)`, ``None`` otherwise.
 
@@ -5122,13 +5218,13 @@ class RuleCompositions(Rule):
         EXAMPLES::
 
             sage: L = GrowthDiagram.rules.LeftCompositions()
-            sage: L.is_Q_edge_aux([1],[1,1])
+            sage: L._is_Q_edge_aux([1],[1,1])
             1
-            sage: L.is_Q_edge_aux([1],[2])
+            sage: L._is_Q_edge_aux([1],[2])
             2
-            sage: L.is_Q_edge_aux([1,1,1],[1,2,1])
+            sage: L._is_Q_edge_aux([1,1,1],[1,2,1])
             2
-            sage: L.is_Q_edge_aux([1],[4])
+            sage: L._is_Q_edge_aux([1],[4])
         """
         # find difference between v and w:
         #    v = ... l_{j-1} x l_{j+1} ...
@@ -5156,9 +5252,16 @@ class RuleCompositions(Rule):
         ``(v, w)`` is an edge if any right most occurrence of a
         letter in ``w`` can be decreased by one to obtain ``v``.
 
-        TESTS::
+        Compare with Example 3.2 of [vW2020]_::
 
             sage: L = GrowthDiagram.rules.LeftCompositions()
+            sage: L._Q_in_edges(Composition([2,1,3]))  # indirect doctest
+            [([1, 1, 3], [2, 1, 3], 0),
+             ([2, 1, 2], [2, 1, 3], 0),
+             ([2, 3], [2, 1, 3], 0)]
+
+        TESTS::
+
             sage: L.is_Q_edge(L.zero, Composition([1]))
             True
 
@@ -5168,7 +5271,7 @@ class RuleCompositions(Rule):
             sage: L.is_Q_edge(Composition([1,2]), Composition([2,2]))
             False
         """
-        return self.rank(v) + 1 == self.rank(w) and self.is_Q_edge_aux(v, w) is not None
+        return self.rank(v) + 1 == self.rank(w) and self._is_Q_edge_aux(v, w) is not None
 
 
 class RuleLeftCompositions(RuleCompositions):
@@ -5226,7 +5329,7 @@ class RuleLeftCompositions(RuleCompositions):
         sage: len(set([tuple(G.out_labels()) for G in l.values()]))
         24
     """
-    def is_P_edge_aux(self, v, w):
+    def _is_P_edge_aux(self, v, w):
         r"""
         Return `i` if `w = t_i(v)`, ``None`` otherwise.
 
@@ -5237,13 +5340,13 @@ class RuleLeftCompositions(RuleCompositions):
         EXAMPLES::
 
             sage: L = GrowthDiagram.rules.LeftCompositions()
-            sage: L.is_P_edge_aux([1],[1,1])
+            sage: L._is_P_edge_aux([1],[1,1])
             1
-            sage: L.is_P_edge_aux([1],[2])
+            sage: L._is_P_edge_aux([1],[2])
             2
-            sage: L.is_P_edge_aux([1,1,1],[1,2,1])
+            sage: L._is_P_edge_aux([1,1,1],[1,2,1])
 
-            sage: L.is_P_edge_aux([3,2,3,1,2],[3,3,3,1,2])
+            sage: L._is_P_edge_aux([3,2,3,1,2],[3,3,3,1,2])
             3
         """
         # find difference between v and w:
@@ -5282,7 +5385,7 @@ class RuleLeftCompositions(RuleCompositions):
             sage: L.is_P_edge(Composition([2]), Composition([2,1]))
             False
         """
-        return self.rank(v) + 1 == self.rank(w) and self.is_P_edge_aux(v, w) is not None
+        return self.rank(v) + 1 == self.rank(w) and self._is_P_edge_aux(v, w) is not None
 
     def P_symbol(self, P_chain):
         """
@@ -5400,7 +5503,7 @@ class RuleLeftCompositions(RuleCompositions):
                     if e != f:
                         return Composition(t_operator(x_sorted[i+1]+1, x))
                 raise ValueError(f"y={y}, t={t}, x={x}")
-            i = self.is_P_edge_aux(t, y)
+            i = self._is_P_edge_aux(t, y)
             return Composition(t_operator(i, x))
         assert y == t == x
         if not y:
@@ -5418,15 +5521,29 @@ class RuleRightCompositions(RuleCompositions):
     TESTS::
 
         sage: L = GrowthDiagram.rules.RightCompositions()
-        sage: [L._check_duality(n) for n in range(6)]
-        [None, None, None, None, None, None]
+        sage: TestSuite(L).run()
+        doctest:...: UserWarning: RuleRightCompositions has no forward rule
+        implemented, skipping these tests.
+        doctest:...: UserWarning: RuleRightCompositions has no backward rule
+        implemented, skipping these tests.
     """
-    def is_P_edge_aux(self, v, w):
+    def _is_P_edge_aux(self, v, w):
         r"""
         Return `i` if `w = u_i(v)`, ``None`` otherwise.
 
         `u_i(v) = a_i d_{[i-1]}(v)` appends `i` after removing a box
         from the rightmost occurrences of `i-1, i-2, \dots, 1`.
+
+        TESTS:
+
+        Compare with Example 3.1 of [vW2020]_::
+
+            sage: L = GrowthDiagram.rules.RightCompositions()
+            sage: L._P_out_edges(Composition([2,1,3]))  # indirect doctest
+            [([2, 1, 3], [1, 3, 3], 0),
+             ([2, 1, 3], [2, 1, 3, 1], 0),
+             ([2, 1, 3], [2, 1, 4], 0),
+             ([2, 1, 3], [2, 3, 2], 0)]
         """
         if not w:
             return None
@@ -5454,7 +5571,21 @@ class RuleRightCompositions(RuleCompositions):
         return None
 
     def is_P_edge(self, v, w):
-        return self.rank(v) + 1 == self.rank(w) and self.is_P_edge_aux(v, w) is not None
+        r"""
+        Return whether ``(v, w)`` is a `P`-edge of ``self``.
+
+        EXAMPLES:
+
+        Compare with Example 3.1 of [vW2020]_::
+
+            sage: L = GrowthDiagram.rules.RightCompositions()
+            sage: L._P_out_edges(Composition([2,1,3]))  # indirect doctest
+            [([2, 1, 3], [1, 3, 3], 0),
+             ([2, 1, 3], [2, 1, 3, 1], 0),
+             ([2, 1, 3], [2, 1, 4], 0),
+             ([2, 1, 3], [2, 3, 2], 0)]
+        """
+        return self.rank(v) + 1 == self.rank(w) and self._is_P_edge_aux(v, w) is not None
 
 
 #####################################################################
