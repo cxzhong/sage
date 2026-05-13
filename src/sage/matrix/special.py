@@ -3442,7 +3442,7 @@ def random_diagonalizable_matrix(parent, eigenvalues=None, dimensions=None):
 
     EXAMPLES:
 
-    A diagonalizable matrix, size 5. ::
+    A diagonalizable matrix, size 5::
 
         sage: from sage.matrix.constructor import random_diagonalizable_matrix
         sage: matrix_space = sage.matrix.matrix_space.MatrixSpace(QQ, 5)
@@ -3456,9 +3456,9 @@ def random_diagonalizable_matrix(parent, eigenvalues=None, dimensions=None):
 
     A diagonalizable matrix with eigenvalues and dimensions designated,
     with a check that if eigenvectors were calculated by hand
-    entries would all be integers. ::
+    entries would all be integers::
 
-        sage: eigenvalues = [ZZ.random_element() for _ in range(3)]
+        sage: eigenvalues = [-12, 4, 6]
         sage: B = random_matrix(QQ, 6, algorithm='diagonalizable',
         ....:                   eigenvalues=eigenvalues, dimensions=[2,3,1])
         sage: all(x in ZZ for x in (B-(-12*identity_matrix(6))).rref().list())
@@ -3471,6 +3471,15 @@ def random_diagonalizable_matrix(parent, eigenvalues=None, dimensions=None):
         sage: S = B.right_eigenmatrix()[1]
         sage: eigenvalues2 = (S.inverse()*B*S).diagonal()
         sage: all(e in eigenvalues for e in eigenvalues2)
+        True
+
+    Repeated eigenvalues are merged into a single eigenspace::
+
+        sage: B = random_matrix(QQ, 6, algorithm='diagonalizable',
+        ....:                   eigenvalues=[-5, 4, 4], dimensions=[2, 3, 1])
+        sage: (B - 4*identity_matrix(6)).right_kernel().dimension()
+        4
+        sage: all(x in ZZ for x in (B - 4*identity_matrix(6)).rref().list())
         True
 
     Matrices over finite fields are also supported::
@@ -3488,7 +3497,7 @@ def random_diagonalizable_matrix(parent, eigenvalues=None, dimensions=None):
 
     TESTS:
 
-    Eigenvalues must all be elements of the ring. ::
+    Eigenvalues must all be elements of the ring::
 
         sage: random_matrix(QQ, 3, algorithm='diagonalizable',                          # needs sage.symbolic
         ....:               eigenvalues=[2+I, 2-I, 2], dimensions=[1,1,1])
@@ -3496,49 +3505,49 @@ def random_diagonalizable_matrix(parent, eigenvalues=None, dimensions=None):
         ...
         TypeError: eigenvalues must be elements of the corresponding ring.
 
-    Diagonal matrices must be square. ::
+    Diagonal matrices must be square::
 
         sage: random_matrix(QQ, 5, 7, algorithm='diagonalizable', eigenvalues=[-5,2,-3], dimensions=[1,1,3])
         Traceback (most recent call last):
         ...
         TypeError: a diagonalizable matrix must be square.
 
-    A list of eigenvalues must be accompanied with a list of dimensions. ::
+    A list of eigenvalues must be accompanied with a list of dimensions::
 
         sage: random_matrix(QQ,10,algorithm='diagonalizable',eigenvalues=[4,8])
         Traceback (most recent call last):
         ...
         ValueError: the list of eigenvalues must have a list of dimensions corresponding to each eigenvalue.
 
-    A list of dimensions must be accompanied with a list of eigenvalues. ::
+    A list of dimensions must be accompanied with a list of eigenvalues::
 
         sage: random_matrix(QQ, 10,algorithm='diagonalizable',dimensions=[2,2,4,2])
         Traceback (most recent call last):
         ...
         ValueError: the list of dimensions must have a list of corresponding eigenvalues.
 
-    The sum of the eigenvalue dimensions must equal the size of the matrix. ::
+    The sum of the eigenvalue dimensions must equal the size of the matrix::
 
         sage: random_matrix(QQ,12,algorithm='diagonalizable',eigenvalues=[4,2,6,-1],dimensions=[2,3,5,1])
         Traceback (most recent call last):
         ...
         ValueError: the size of the matrix must equal the sum of the dimensions.
 
-    Each eigenspace dimension must be at least 1. ::
+    Each eigenspace dimension must be at least 1::
 
         sage: random_matrix(QQ,9,algorithm='diagonalizable',eigenvalues=[-15,22,8,-4,90,12],dimensions=[4,2,2,4,-3,0])
         Traceback (most recent call last):
         ...
         ValueError: eigenspaces must have a dimension of at least 1.
 
-    Each eigenvalue must have a corresponding eigenspace dimension. ::
+    Each eigenvalue must have a corresponding eigenspace dimension::
 
         sage: random_matrix(QQ,12,algorithm='diagonalizable',eigenvalues=[4,2,6,-1],dimensions=[4,3,5])
         Traceback (most recent call last):
         ...
         ValueError: each eigenvalue must have a corresponding dimension and each dimension a corresponding eigenvalue.
 
-    Each dimension must have an eigenvalue paired to it. ::
+    Each dimension must have an eigenvalue paired to it::
 
         sage: random_matrix(QQ,12,algorithm='diagonalizable',eigenvalues=[4,2,6],dimensions=[2,3,5,2])
         Traceback (most recent call last):
@@ -3591,6 +3600,17 @@ def random_diagonalizable_matrix(parent, eigenvalues=None, dimensions=None):
         raise ValueError("eigenspaces must have a dimension of at least 1.")
     if len(eigenvalues) != len(dimensions):
         raise ValueError("each eigenvalue must have a corresponding dimension and each dimension a corresponding eigenvalue.")
+    eigenvalue_dimensions = []
+    for eigenvalue, dimension in zip(eigenvalues, dimensions):
+        eigenvalue = ring(eigenvalue)
+        for i, (value, old_dimension) in enumerate(eigenvalue_dimensions):
+            if eigenvalue == value:
+                eigenvalue_dimensions[i] = (value, old_dimension + dimension)
+                break
+        else:
+            eigenvalue_dimensions.append((eigenvalue, dimension))
+    eigenvalues = [x[0] for x in eigenvalue_dimensions]
+    dimensions = [x[1] for x in eigenvalue_dimensions]
     # sort the dimensions in order of increasing size, and sort the eigenvalues list in an identical fashion, to maintain corresponding values.
     dimensions_sort = sorted(zip(dimensions, eigenvalues))
     dimensions = [x[0] for x in dimensions_sort]
