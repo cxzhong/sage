@@ -218,6 +218,47 @@ class Submodule_free_ambient(Module_free_ambient):
             sage: G._groebner_basis_contains(F.1)
             False
 
+        Nonzero submodules over univariate polynomial rings that are
+        not PIDs (e.g. ``ZZ[x]``) are decided correctly, including the
+        distinction between the ``ZZ[x]``-span and the ``QQ(x)``-span::
+
+            sage: R.<x> = ZZ[]
+            sage: F = FreeModule(R, 2)
+            sage: G = F.submodule([vector(R, [x, 1]), vector(R, [1, x])])
+            sage: G._groebner_basis_contains(vector(R, [x, 1]))
+            True
+            sage: G._groebner_basis_contains((x + 2) * vector(R, [x, 1])
+            ....:                            + (x - 3) * vector(R, [1, x]))
+            True
+            sage: G._groebner_basis_contains(vector(R, [2*x, 2]))
+            True
+            sage: G._groebner_basis_contains(vector(R, [1, 0]))
+            False
+
+        Nonzero submodules over multivariate polynomial rings over
+        ``ZZ`` are also supported by Singular's module Gröbner-basis
+        machinery; integer-linear-combination membership is decided
+        correctly::
+
+            sage: R.<x, y> = ZZ[]
+            sage: F = FreeModule(R, 2)
+            sage: G = F.submodule([vector(R, [x, y]), vector(R, [y, x])])
+            sage: G._groebner_basis_contains(vector(R, [x, y]))
+            True
+            sage: G._groebner_basis_contains(vector(R, [2*x, 2*y]))
+            True
+            sage: G._groebner_basis_contains(vector(R, [x + y, x + y]))
+            True
+            sage: G._groebner_basis_contains((3*x + y) * vector(R, [x, y])
+            ....:                            + (x - 5) * vector(R, [y, x]))
+            True
+            sage: G._groebner_basis_contains(vector(R, [1, 1]))
+            False
+            sage: G._groebner_basis_contains(vector(R, [x, 0]))
+            False
+            sage: G._groebner_basis_contains(vector(R, [1, 0]))
+            False
+
         Over inexact rings, only the zero submodule is checked
         (Singular cannot compute Gröbner bases over inexact coefficient
         rings); other cases raise :class:`NotImplementedError`::
