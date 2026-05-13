@@ -275,6 +275,24 @@ class Submodule_free_ambient(Module_free_ambient):
             Traceback (most recent call last):
             ...
             NotImplementedError: Gröbner basis membership test is not implemented for modules over ...
+
+        Even queries that are mathematically true (such as ``v in <v>``)
+        cannot be decided over inexact coefficient rings, and correctly
+        raise :class:`NotImplementedError` instead of returning a
+        possibly wrong answer::
+
+            sage: R.<x, y> = CC[]
+            sage: F = FreeModule(R, 2)
+            sage: G = F.submodule([F([1, 0]), F([0, 1])])
+            sage: G._groebner_basis_contains(F([1, 0]))
+            Traceback (most recent call last):
+            ...
+            NotImplementedError: Gröbner basis membership test is not implemented for modules over ...
+            sage: G2 = F.submodule([vector(R, [x, y])])
+            sage: G2._groebner_basis_contains(vector(R, [x, y]))
+            Traceback (most recent call last):
+            ...
+            NotImplementedError: Gröbner basis membership test is not implemented for modules over ...
         """
         from sage.libs.singular.function import singular_function
         from sage.libs.singular.option import opt_verb
