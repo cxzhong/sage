@@ -1011,7 +1011,11 @@ class Module_free_ambient(Module):
                         raise ArithmeticError
             except ArithmeticError:
                 raise TypeError("element {!r} is not in free module".format(x))
-            # Additional membership check (e.g., submodule membership)
+        if check:
+            # Additional membership check (e.g., submodule membership).
+            # This must run even over inexact coordinate rings, because
+            # otherwise a submodule could silently accept vectors that are
+            # not in its span (see :issue:`40301`).
             self._check_element_membership(x)
         return self.element_class(self, x, coerce, copy)
 
@@ -1667,7 +1671,8 @@ class Module_free_ambient(Module):
         if not other.gens():
             # other is the zero module
             return False
-        if self.ambient_module().is_submodule(other):
+        ambient = self.ambient_module()
+        if ambient is not self and ambient.is_submodule(other):
             return True
 
         raise NotImplementedError("could not determine containment")
