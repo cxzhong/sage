@@ -1672,7 +1672,6 @@ cdef class LaurentSeries(AlgebraElement):
             x + O(x^5)
             sage: g(f)
             x + O(x^5)
-
         """
         from sage.misc.superseded import deprecation_cython
         deprecation_cython(40576, 'reverse is deprecated; use revert instead')
