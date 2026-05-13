@@ -3358,11 +3358,46 @@ class EllipticCurveIsogeny(EllipticCurveHom):
         return phi_hat
 
     def _dual_prime_to_characteristic(self):
-        """
+        r"""
         Return the dual of this isogeny when its degree is prime to the
         characteristic.
 
-        For internal use only.
+        ALGORITHM:
+
+        If `\varphi: E \to E'` has degree `d` prime to the characteristic,
+        then `E[d]` is reduced and `\ker(\hat\varphi) = \varphi(E[d])`.
+        The quotient of the `d`-division polynomial by the kernel
+        polynomial of `\varphi` gives the `x`-coordinates of the points of
+        `E[d] \setminus \ker(\varphi)`.  Pushing these coordinates through
+        `\varphi` gives the kernel polynomial of the dual, up to the final
+        post-isomorphism correction.
+
+        EXAMPLES:
+
+        The computed isogeny has the defining property of the dual in
+        characteristic `2`::
+
+            sage: F.<a> = GF(2^2)
+            sage: E = EllipticCurve(F, [0, 0, a, 0, 0])
+            sage: phi = E.isogeny(E(0, a))
+            sage: phihat = phi._dual_prime_to_characteristic()
+            sage: phihat * phi == E.scalar_multiplication(phi.degree())
+            True
+            sage: phi * phihat == phi.codomain().scalar_multiplication(phi.degree())
+            True
+
+        It also works for even degree prime-to-characteristic isogenies
+        in characteristic `3`::
+
+            sage: E = EllipticCurve(GF(3), [1, 2, 0, 1, 0])
+            sage: phi = E.isogeny(E(2, 0))
+            sage: phi.degree()
+            4
+            sage: phihat = phi._dual_prime_to_characteristic()
+            sage: phihat * phi == E.scalar_multiplication(phi.degree())
+            True
+            sage: phi * phihat == phi.codomain().scalar_multiplication(phi.degree())
+            True
         """
         d = self._degree
         division_polynomial = self.__poly_ring(
