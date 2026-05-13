@@ -129,8 +129,8 @@ cdef class LaurentSeries(AlgebraElement):
         elif isinstance(f, LaurentPolynomial_univariate):
             f = f(parent.gen())
         elif isinstance(f, dict):
-            ## Sanitize input to make sure all exponents are nonnegative,
-            ## adjusting n to match.
+            # Sanitize input to make sure all exponents are nonnegative,
+            # adjusting n to match.
             n1 = min(f.keys())
             if n1 < 0:
                 f = {e - n1: c for e, c in f.items()}
@@ -138,9 +138,9 @@ cdef class LaurentSeries(AlgebraElement):
             f = parent._power_series_ring(f)
         elif not isinstance(f, PowerSeries):
             f = parent._power_series_ring(f)
-        ## now this is a power series, over a different ring ...
-        ## requires that power series rings with same vars over the
-        ## same parent are unique.
+        # now this is a power series, over a different ring ...
+        # requires that power series rings with same vars over the
+        # same parent are unique.
         elif parent is not f.parent():
             f = parent._power_series_ring(f)
 
@@ -308,7 +308,9 @@ cdef class LaurentSeries(AlgebraElement):
             NotImplementedError
         """
         x = im_gens[0]
-        return codomain(self.__u._im_gens_(codomain, im_gens, base_map=base_map) * x**self.__n)
+        return codomain(
+            self.__u._im_gens_(codomain, im_gens, base_map=base_map) * x**self.__n
+        )
 
     cdef _normalize(self):
         r"""
@@ -361,14 +363,14 @@ cdef class LaurentSeries(AlgebraElement):
                 s += "%s%s" % (x, var)
                 first = False
         s = s.replace(" + -", " - ")
-        s = s.replace(" 1*"," ")
+        s = s.replace(" 1*", " ")
         s = s.replace(" -1*", " -")
         if self.prec() == 0:
             bigoh = "O(1)"
         elif self.prec() == 1:
             bigoh = "O(%s)" % self._parent.variable_name()
         else:
-            bigoh = "O(%s^%s)" % (self._parent.variable_name(),self.prec())
+            bigoh = "O(%s^%s)" % (self._parent.variable_name(), self.prec())
         if self.prec() != infinity:
             if s == " ":
                 return bigoh
@@ -473,7 +475,9 @@ cdef class LaurentSeries(AlgebraElement):
             if x != '0':
                 if not first:
                     s += " + "
-                if not atomic_repr and e > 0 and (x[1:].find("+") != -1 or x[1:].find("-") != -1):
+                if (not atomic_repr and e > 0 and
+                        (x[1:].find("+") != -1 or
+                            x[1:].find("-") != -1)):
                     x = "\\left(%s\\right)" % x
                 if e == 1:
                     var = "|%s" % X
@@ -483,16 +487,16 @@ cdef class LaurentSeries(AlgebraElement):
                     var = "|%s^{%s}" % (X, e)
                 if e >= 0:
                     s += "%s%s" % (x, var)
-                else: # negative e
+                else:  # negative e
                     if e == -1:
                         s += "\\frac{%s}{%s}" % (x, X)
                     else:
                         s += "\\frac{%s}{%s^{%s}}" % (x, X, -e)
                 first = False
         s = s.replace(" + -", " - ")
-        s = s.replace(" 1|"," ")
+        s = s.replace(" 1|", " ")
         s = s.replace(" -1|", " -")
-        s = s.replace("|","")
+        s = s.replace("|", "")
         pr = self.prec()
         if pr != infinity:
             if pr == 0:
@@ -660,7 +664,7 @@ cdef class LaurentSeries(AlgebraElement):
         """
         zero = self._parent.base_ring().zero()
         v = self.valuation()
-        return [i+v for i,val in enumerate(self.list()) if val != zero]
+        return [i+v for i, val in enumerate(self.list()) if val != zero]
 
     def laurent_polynomial(self):
         """
@@ -701,7 +705,11 @@ cdef class LaurentSeries(AlgebraElement):
         if absprec is not None and absprec <= self.precision_absolute():
             return self
 
-        exact = self._parent(0) if self.is_zero() else self._parent(self.list()) << self.__n
+        exact = (
+            self._parent(0)
+            if self.is_zero()
+            else self._parent(self.list()) << self.__n
+        )
         if absprec is None:
             return exact
         else:
@@ -742,11 +750,11 @@ cdef class LaurentSeries(AlgebraElement):
         j = i - self.__n
         if j >= 0:
             self.__u._unsafe_mutate(j, value)
-        else: # off to the left
+        else:  # off to the left
             if value != 0:
                 self.__n = self.__n + j
                 R = self._parent.base_ring()
-                coeffs = [value] + [R(0) for _ in range(1,-j)] + self.__u.list()
+                coeffs = [value] + [R(0) for _ in range(1, -j)] + self.__u.list()
                 self.__u = self.__u._parent(coeffs)
         self._normalize()
 
@@ -1123,7 +1131,11 @@ cdef class LaurentSeries(AlgebraElement):
         if n <= self.__n:
             return self._parent.zero()
         else:
-            return type(self)(self._parent, self.__u.truncate_powerseries(n - self.__n), self.__n)
+            return type(self)(
+                self._parent,
+                self.__u.truncate_powerseries(n - self.__n),
+                self.__n
+            )
 
     def truncate_neg(self, long n):
         r"""
@@ -1153,7 +1165,8 @@ cdef class LaurentSeries(AlgebraElement):
 
         Check that :issue:`39842` is fixed::
 
-            sage: f = LaurentSeriesRing(QQ, "t")(LaurentPolynomialRing(QQ, "t")([1, 2, 3]))
+            sage: L = LaurentPolynomialRing(QQ, "t")([1, 2, 3])
+            sage: f = LaurentSeriesRing(QQ, "t")(L)
             sage: f
             1 + 2*t + 3*t^2
             sage: f.truncate_neg(1)
@@ -1553,7 +1566,8 @@ cdef class LaurentSeries(AlgebraElement):
             sage: B.<s> = LaurentSeriesRing(A)
             sage: f = (1 - 3*t + 4*t^3 + O(t^4))*s + (2 + t + t^2 + O(t^3))*s^2 + O(s^3)
             sage: g = f.revert(); g
-            (1 + 3*t + 9*t^2 + 23*t^3 + O(t^4))*s + (-2 - 19*t - 118*t^2 + O(t^3))*s^2 + O(s^3)
+            (1 + 3*t + 9*t^2 + 23*t^3 + O(t^4))*s
+             + (-2 - 19*t - 118*t^2 + O(t^3))*s^2 + O(s^3)
             sage: f(g) == g(f) == s
             True
 
@@ -1588,9 +1602,11 @@ cdef class LaurentSeries(AlgebraElement):
 
             sage: k.<a> = GF(5**3)
             sage: R.<t> = LaurentSeriesRing(k)
-            sage: f = (3*a^2 + 3)*t + (a^2 + 3*a + 3)*t^5 + (4*a^2 + 4*a + 4)*t^6 + (4*a^2 + 4*a + 2)*t^7 + O(t^8)
+            sage: f = (3*a^2 + 3)*t + (a^2 + 3*a + 3)*t^5 +\
+            ....: (4*a^2 + 4*a + 4)*t^6 + (4*a^2 + 4*a + 2)*t^7 + O(t^8)
             sage: g = f.revert(); g
-            (3*a^2 + 3*a + 1)*t + (2*a^2 + a + 2)*t^5 + (4*a^2 + 3*a)*t^6 + (2*a + 4)*t^7 + O(t^8)
+            (3*a^2 + 3*a + 1)*t + (2*a^2 + a + 2)*t^5
+             + (4*a^2 + 3*a)*t^6 + (2*a + 4)*t^7 + O(t^8)
             sage: f(g)
             t + O(t^8)
             sage: g(f)
@@ -1675,7 +1691,6 @@ cdef class LaurentSeries(AlgebraElement):
         """
         from sage.misc.superseded import deprecation_cython
         deprecation_cython(40576, 'reverse is deprecated; use revert instead')
-
         return self.revert(precision)
 
     compositional_inverse = revert
@@ -1885,17 +1900,23 @@ cdef class LaurentSeries(AlgebraElement):
         cdef long i, n = self.__n
         a = self.__u.list()
         if self[-1] != 0:
-            raise ArithmeticError("The integral of is not a Laurent series, since t^-1 has nonzero coefficient.")
+            raise ArithmeticError(
+                "The integral of is not a Laurent series, "
+                "since t^-1 has nonzero coefficient."
+            )
 
         if n < 0:
-            v = [a[i]/(n+i+1) for i in range(min(-1-n,len(a)))] + [0]
+            v = [a[i]/(n+i+1) for i in range(min(-1-n, len(a)))] + [0]
         else:
             v = []
-        v += [a[i]/(n+i+1) for i in range(max(-n,0), len(a))]
+        v += [a[i]/(n+i+1) for i in range(max(-n, 0), len(a))]
         try:
             u = self._parent._power_series_ring(v, self.__u.prec())
         except TypeError:
-            raise ArithmeticError("Coefficients of integral cannot be coerced into the base ring")
+            raise ArithmeticError(
+                "Coefficients of integral cannot "
+                "be coerced into the base ring"
+            )
         return type(self)(self._parent, u, n+1)
 
     def nth_root(self, long n, prec=None):
@@ -2061,9 +2082,12 @@ cdef class LaurentSeries(AlgebraElement):
             """
         if len(kwds) >= 1:
             name = self.parent().variable_name()
-            if name in kwds: # a keyword specifies the Laurent series generator
+            if name in kwds:  # a keyword specifies the Laurent series generator
                 if x:
-                    raise ValueError("must not specify %s keyword and positional argument" % name)
+                    raise ValueError(
+                        "must not specify %s keyword and "
+                        "positional argument" % name
+                    )
                 a = self(kwds[name])
                 del kwds[name]
                 try:

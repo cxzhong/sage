@@ -851,7 +851,7 @@ cdef class PowerSeries_pari(PowerSeries):
         The method ``compositional_inverse`` is an alias of ``revert``.
 
         ..WARNING::
-            
+
             This implementation can only handle some rings of positive characteristic.
 
         EXAMPLES::
@@ -889,7 +889,8 @@ cdef class PowerSeries_pari(PowerSeries):
             sage: B.<x> = PowerSeriesRing(A, implementation='pari')
             sage: f = (1 - 3*t + 4*t^3 + O(t^4))*x + (2 + t + t^2 + O(t^3))*x^2 + O(x^3)
             sage: g = f.revert(); g
-            (1 + 3*t + 9*t^2 + 23*t^3 + O(t^4))*x + (-2 - 19*t - 118*t^2 + O(t^3))*x^2 + O(x^3)
+            (1 + 3*t + 9*t^2 + 23*t^3 + O(t^4))*x
+             + (-2 - 19*t - 118*t^2 + O(t^3))*x^2 + O(x^3)
 
         The optional argument ``precision`` sets the precision of the output::
 
@@ -931,7 +932,7 @@ cdef class PowerSeries_pari(PowerSeries):
             Traceback (most recent call last):
             ...
             PariError: impossible inverse in Fl_inv: Mod(0, 3)
-            
+
         TESTS::
 
             sage: R.<x> = PowerSeriesRing(QQ, implementation='pari')
@@ -979,11 +980,9 @@ cdef class PowerSeries_pari(PowerSeries):
             x + O(x^5)
             sage: g(f)
             x + O(x^5)
-
         """
         from sage.misc.superseded import deprecation_cython
         deprecation_cython(40576, 'reverse is deprecated; use revert instead')
-        
         return self.revert(precision)
 
         compositional_inverse = revert

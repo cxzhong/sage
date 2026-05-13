@@ -70,7 +70,7 @@ cdef class PowerSeries_poly(PowerSeries):
         else:
             if f:
                 f = R(f, check=check)
-            else: # None is supposed to yield zero
+            else:  # None is supposed to yield zero
                 f = R(None)
 
         self.__f = f
@@ -292,9 +292,12 @@ cdef class PowerSeries_poly(PowerSeries):
 
         if len(kwds) >= 1:
             name = P.variable_name()
-            if name in kwds: # a keyword specifies the power series generator
+            if name in kwds:  # a keyword specifies the power series generator
                 if x:
-                    raise ValueError("must not specify %s keyword and positional argument" % name)
+                    raise ValueError(
+                        "must not specify %s keyword and "
+                        "positional argument" % name
+                    )
                 a = self(kwds[name])
                 del kwds[name]
                 try:
@@ -490,7 +493,7 @@ cdef class PowerSeries_poly(PowerSeries):
             -t - 17/5*t^3 - 2*t^4 + O(t^5)
         """
         return PowerSeries_poly(self._parent, -self.__f,
-                                         self._prec, check=False)
+                                self._prec, check=False)
 
     cpdef _add_(self, right_m):
         """
@@ -611,7 +614,9 @@ cdef class PowerSeries_poly(PowerSeries):
             O(t^0)
         """
         if n:
-            return PowerSeries_poly(self._parent, self.__f >> n, max(0,self._prec - n))
+            return PowerSeries_poly(self._parent,
+                                    self.__f >> n,
+                                    max(0, self._prec - n))
         else:
             return self
 
@@ -631,7 +636,9 @@ cdef class PowerSeries_poly(PowerSeries):
             sage: 1/(1+q + O(q**2))
             1 - q + O(q^2)
             sage: 1/(1+q)
-            1 - q + q^2 - q^3 + q^4 - q^5 + q^6 - q^7 + q^8 - q^9 + q^10 - q^11 + q^12 - q^13 + q^14 - q^15 + q^16 - q^17 + q^18 - q^19 + O(q^20)
+            1 - q + q^2 - q^3 + q^4 - q^5 + q^6 - q^7 + q^8
+             - q^9 + q^10 - q^11 + q^12 - q^13 + q^14 - q^15
+             + q^16 - q^17 + q^18 - q^19 + O(q^20)
             sage: prec = R.default_prec(); prec
             20
             sage: 1/(1+q) + O(q^5)
@@ -672,7 +679,8 @@ cdef class PowerSeries_poly(PowerSeries):
             sage: R.<t> = PowerSeriesRing(QQ, sparse=True)
             sage: u = 17 + 3*t^2 + 19*t^10 + O(t^12)
             sage: v = ~u; v
-            1/17 - 3/289*t^2 + 9/4913*t^4 - 27/83521*t^6 + 81/1419857*t^8 - 1587142/24137569*t^10 + O(t^12)
+            1/17 - 3/289*t^2 + 9/4913*t^4 - 27/83521*t^6 +
+            81/1419857*t^8 - 1587142/24137569*t^10 + O(t^12)
             sage: u*v
             1 + O(t^12)
 
@@ -867,7 +875,7 @@ cdef class PowerSeries_poly(PowerSeries):
             try:
                 # call _derivative() recursively on coefficients
                 return PowerSeries_poly(self._parent, self.__f._derivative(var),
-                                    self.prec(), check=False)
+                                        self.prec(), check=False)
             except AttributeError:
                 raise ValueError('cannot differentiate with respect to {}'.format(var))
 
@@ -1002,9 +1010,12 @@ cdef class PowerSeries_poly(PowerSeries):
 
             sage: k.<a> = GF(3**5)
             sage: R.<t> = PowerSeriesRing(k)
-            sage: f = (a^3 + a^2 + a + 2)*t + (2*a^4 + a^3)*t^3 + (a^2 + 2*a + 1)*t^4 + a^3*t^5 + O(t^6)
+            sage: f = (a^3 + a^2 + a + 2)*t + (2*a^4 + a^3)*t^3 \
+            ....: + (a^2 + 2*a + 1)*t^4 + a^3*t^5 + O(t^6)
             sage: g = f.revert(); g
-            (a^4 + 2*a^3 + 2*a + 2)*t + (a^3 + 2*a^2 + 1)*t^3 + (2*a^4 + a^3 + a + 1)*t^4 + (2*a^4 + 2*a^2 + a + 2)*t^5 + O(t^6)
+            (a^4 + 2*a^3 + 2*a + 2)*t + (a^3 + 2*a^2 + 1)*t^3
+             + (2*a^4 + a^3 + a + 1)*t^4
+             + (2*a^4 + 2*a^2 + a + 2)*t^5 + O(t^6)
             sage: f(g)
             t + O(t^6)
             sage: g(f)
@@ -1079,7 +1090,10 @@ cdef class PowerSeries_poly(PowerSeries):
             try:
                 f = f.change_ring(f.base_ring().fraction_field())
             except TypeError:
-                raise TypeError("Leading coefficient must be a unit, or base ring must have a fraction field.")
+                raise TypeError(
+                    "Leading coefficient must be a unit, or base ring "
+                    "must have a fraction field."
+                )
 
         # set output parent after possibly passing to fraction field
         out_parent = f.parent()
@@ -1101,34 +1115,34 @@ cdef class PowerSeries_poly(PowerSeries):
         cdef list C_list = C_poly.padded_list(n)
         cdef list factors = []
         cdef list R_i_list
-        for i in range(1,m):
+        for i in range(1, m):
             C_poly *= R_poly
             C_poly_list = C_poly.truncate(n).padded_list(n)
             factors.append(C_poly_list)
             coeffs[i] = C_poly_list[i]
-        
+
         # giant step
         v = (R**m).lift_to_precision(n).polynomial()
         R_i = v.parent().one()
-        for i in range(m,n,m):
+        for i in range(m, n, m):
             R_i *= v
             R_i_list = R_i.truncate(n).padded_list(n)
             s = 0
             for j in range(i+1):
-                s += C_list[j]*R_i_list[i-j]
+                s += C_list[j] * R_i_list[i-j]
             coeffs[i] = s
-            for j in range(1,m):
+            for j in range(1, m):
                 if i + j >= n:
                     break
                 h = factors[j-1]
                 s = 0
                 for k in range(i+j+1):
-                    s += h[k]*R_i_list[i+j-k]
+                    s += h[k] * R_i_list[i+j-k]
                 coeffs[i+j] = s
-        
-        g = out_parent(coeffs, prec = n)
+
+        g = out_parent(coeffs, prec=n)
         return PowerSeries_poly(out_parent, g, out_prec, check=False)
-    
+
     def reverse(self, precision=None):
         """
         Return the reverse of `f`, i.e., the series `g` such that `g(f(x)) = x`.
@@ -1155,12 +1169,10 @@ cdef class PowerSeries_poly(PowerSeries):
             x + O(x^5)
             sage: g(f)
             x + O(x^5)
-
         """
         from sage.misc.superseded import deprecation_cython
         deprecation_cython(40576, 'reverse is deprecated; use revert instead')
-
-        return self.revert(precision) 
+        return self.revert(precision)
 
     compositional_inverse = revert
 

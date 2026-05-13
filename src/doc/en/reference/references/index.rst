@@ -4033,7 +4033,6 @@ REFERENCES:
              arXiv:1108.4772 [cs.SC] (2013).
              https://arxiv.org/abs/1108.4772
 
-
 .. [Jon2005] \V. Jones, The Jones Polynomial, 2005.
              https://math.berkeley.edu/~vfr/jones.pdf
 
