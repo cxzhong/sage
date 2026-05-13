@@ -114,11 +114,6 @@ def write_flint_cython_headers(output_dir, documentation=False):
     header_list.sort()
     pxd_list.sort()
 
-    with open(os.path.join(AUTOGEN_DIR, 'templates', 'flint_wrap.h.template')) as f:
-        text = f.read()
-    with open(os.path.join(output_dir, 'flint_wrap.h'), 'w') as output:
-        output.write(text)
-
     with open(os.path.join(AUTOGEN_DIR, 'templates', 'types.pxd.template')) as f:
         text = f.read()
     with open(os.path.join(output_dir, 'types.pxd'), 'w') as output:
