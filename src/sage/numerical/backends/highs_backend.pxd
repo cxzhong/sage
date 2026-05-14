@@ -28,5 +28,5 @@ cdef class HiGHSBackend(GenericBackend):
     cpdef set_row_stat(self, int i, int stat)
     cpdef set_col_stat(self, int j, int stat)
     cpdef int warm_up(self) noexcept
-    cpdef int add_variable_with_type(self, int vtype, lower_bound=*, upper_bound=*, 
+    cpdef int add_variable_with_type(self, int vtype, lower_bound=*, upper_bound=*,
                                      obj=*, name=*) except -1
