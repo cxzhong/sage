@@ -772,6 +772,14 @@ def Poset(data=None, element_labels=None, cover_relations=False, linear_extensio
     return FinitePoset(D, elements=elements, category=category, facade=facade, key=key)
 
 
+def _unpickle_finite_poset(cls, hasse_diagram, elements, category, facade):
+    """
+    Reconstruct a finite poset from pickled constructor data.
+    """
+    return cls(hasse_diagram=hasse_diagram, elements=elements,
+               category=category, facade=facade)
+
+
 class FinitePoset(Parent, metaclass=ClasscallMetaclass):
     r"""
     A (finite) `n`-element poset constructed from a directed acyclic graph.
@@ -1146,19 +1154,16 @@ class FinitePoset(Parent, metaclass=ClasscallMetaclass):
             sage: Q._is_facade
             False
         """
-        from sage.structure.unique_representation import unreduce
         hd = self._hasse_diagram.relabel(
             dict(enumerate(self._elements)), inplace=False)
         hd = hd.copy(immutable=True)
         elements = self._elements if self._with_linear_extension else None
-        reduction = (getattr(self, '_reduction_cls', self.__class__), (),
-                     dict(hasse_diagram=hd, elements=elements,
-                          category=self.category(),
-                          facade=self._is_facade))
+        reduction = (getattr(self, '_reduction_cls', self.__class__), hd,
+                     elements, self.category(), self._is_facade)
         d = self.__getstate__()
         if d:
-            return (unreduce, reduction, d)
-        return (unreduce, reduction)
+            return (_unpickle_finite_poset, reduction, d)
+        return (_unpickle_finite_poset, reduction)
 
     def __getstate__(self):
         """
