@@ -494,7 +494,7 @@ class LinearExtensionsOfPoset(UniqueRepresentation, Parent):
     """
 
     @staticmethod
-    def __classcall_private__(cls, poset, facade=False):
+    def __classcall_private__(cls, poset, facade=False, _poset_cache_id=None):
         r"""
         Straighten arguments before unique representation.
 
@@ -508,9 +508,12 @@ class LinearExtensionsOfPoset(UniqueRepresentation, Parent):
             sage: L is LinearExtensionsOfPoset(P,facade=False)
             True
         """
-        return super().__classcall__(cls, poset, facade=facade)
+        if _poset_cache_id is None:
+            _poset_cache_id = id(poset)
+        return super().__classcall__(cls, poset, facade=facade,
+                                     _poset_cache_id=_poset_cache_id)
 
-    def __init__(self, poset, facade) -> None:
+    def __init__(self, poset, facade, _poset_cache_id=None) -> None:
         """
         TESTS::
 

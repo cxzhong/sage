@@ -289,11 +289,9 @@ from __future__ import annotations
 from collections import defaultdict
 from copy import copy
 from itertools import product
-import weakref
 
 from sage.misc.cachefunc import cached_method
 from sage.misc.classcall_metaclass import ClasscallMetaclass, typecall
-from sage.misc.fast_methods import WithEqualityById
 from sage.misc.lazy_attribute import lazy_attribute
 from sage.misc.misc_c import prod
 from sage.categories.category import Category
@@ -398,6 +396,9 @@ def Poset(data=None, element_labels=None, cover_relations=False, linear_extensio
         of ``facade = True``, unless the opposite can be deduced from the
         context (i.e. for instance if a :meth:`Poset` is built from another
         :meth:`Poset`, itself built with ``facade = False``)
+
+    - ``key`` -- ignored; accepted for backward compatibility with the
+      former unique-representation constructor
 
     OUTPUT:
 
@@ -625,11 +626,11 @@ def Poset(data=None, element_labels=None, cover_relations=False, linear_extensio
             sage: P.an_element().parent()
             Integer Ring
 
-    .. rubric:: Construction cache
+    .. rubric:: Identity
 
-    The constructor caches finite posets. Namely if two posets are
-    created from two equal data, then they are not only equal but
-    actually identical::
+    Finite posets are compared by their labeled order relation. The
+    constructor does not cache posets by their construction data, so two
+    posets created from the same data are equal but distinct parents::
 
         sage: data1 = [[1,2],[3],[3]]
         sage: data2 = [[1,2],[3],[3]]
@@ -638,25 +639,10 @@ def Poset(data=None, element_labels=None, cover_relations=False, linear_extensio
         sage: P1 == P2
         True
         sage: P1 is P2
-        True
-
-    The cache holds only weak references, so this identity is guaranteed
-    only while at least one reference to the poset is alive. Once all
-    references are dropped, the cached entry is discarded and a fresh
-    construction yields a new (but equal) object.
-
-    In situations where this behaviour is not desired, one can use the
-    ``key`` option::
-
-        sage: P1 = Poset(data1, key = "foo")
-        sage: P2 = Poset(data2, key = "bar")
-        sage: P1 is P2
-        False
-        sage: P1 == P2
         False
 
-    ``key`` can be any hashable value and is included in the cache key.
-    It is otherwise ignored by the poset constructor.
+    The ``key`` option is accepted for backward compatibility. It is
+    otherwise ignored by the poset constructor.
 
     TESTS::
 
@@ -786,7 +772,7 @@ def Poset(data=None, element_labels=None, cover_relations=False, linear_extensio
     return FinitePoset(D, elements=elements, category=category, facade=facade, key=key)
 
 
-class FinitePoset(WithEqualityById, Parent, metaclass=ClasscallMetaclass):
+class FinitePoset(Parent, metaclass=ClasscallMetaclass):
     r"""
     A (finite) `n`-element poset constructed from a directed acyclic graph.
 
@@ -824,7 +810,8 @@ class FinitePoset(WithEqualityById, Parent, metaclass=ClasscallMetaclass):
         :class:`~sage.combinat.posets.posets.FinitePoset`, itself built with
         ``facade = False``)
 
-    - ``key`` -- any hashable value (default: ``None``)
+    - ``key`` -- ignored; accepted for backward compatibility with the
+      former unique-representation constructor
 
     EXAMPLES::
 
@@ -875,8 +862,10 @@ class FinitePoset(WithEqualityById, Parent, metaclass=ClasscallMetaclass):
         Category of facade finite enumerated posets
         sage: parent(PQ[0]) is str
         True
-        sage: PQ is Q
+        sage: PQ == Q
         True
+        sage: PQ is Q
+        False
 
     Changing a facade poset to a non facade poset::
 
@@ -911,12 +900,16 @@ class FinitePoset(WithEqualityById, Parent, metaclass=ClasscallMetaclass):
 
     TESTS:
 
-    Equality is by identity. The constructor cache ensures that equal
-    construction data still give the same object::
+    Equality compares the underlying labeled posets, but independent
+    constructions from the same data give distinct parents::
 
         sage: P = Poset([[1,2],[3],[3]])
         sage: P == P
         True
+        sage: Poset([[1,2],[3],[3]]) == P
+        True
+        sage: Poset([[1,2],[3],[3]]) is P
+        False
         sage: Q = Poset([[1,2],[],[1]])
         sage: Q == P
         False
@@ -958,119 +951,51 @@ class FinitePoset(WithEqualityById, Parent, metaclass=ClasscallMetaclass):
     _lin_ext_type = LinearExtensionsOfPoset
     _desc = 'Finite poset'
 
-    # This cache uses reference-free fingerprint keys to choose a bucket,
-    # then validates exact equality before reusing a cached instance.  The
-    # cache dict itself is strong, but its values are short lists of
-    # ``weakref.ref`` to the cached posets, with finalizers that prune dead
-    # entries. Labels or ``key`` values which reference the poset therefore
-    # do not keep it alive through the cache (see :issue:`14356`).
-    _cache = {}
+    def _comparison_key(self):
+        """
+        Return structural data used for equality and hashing.
 
-    @staticmethod
-    def _fingerprint(obj):
+        The data is expressed in terms of the original element labels rather
+        than the internal integer labels.  A distinguished linear extension is
+        part of the structure when present.
         """
-        Return a cache fingerprint for ``obj`` without keeping ``obj`` alive.
-        """
-        try:
-            return hash(obj)
-        except TypeError:
-            return id(obj)
+        covers = frozenset((self._elements[i], self._elements[j])
+                           for i, j in self._hasse_diagram.cover_relations_iterator())
+        return (self._with_linear_extension, self._elements, covers)
 
-    @staticmethod
-    def _normalized_elements(elements):
+    def __eq__(self, other):
         """
-        Return elements with the same integer normalization as ``__init__``.
-        """
-        return tuple(Integer(i) if isinstance(i, int) else i
-                     for i in elements)
+        Return whether ``self`` and ``other`` define the same labeled poset.
 
-    @classmethod
-    def _cache_key(cls, hasse_diagram, elements, category, facade, key):
-        """
-        Return a cache key that does not strongly reference labels or ``key``.
-        """
-        hd_fp = cls._fingerprint(hasse_diagram)
-        if elements is None:
-            elements_fp = None
-        else:
-            elements_fp = (len(elements),
-                           tuple(cls._fingerprint(e) for e in elements))
-        key_fp = None if key is None else cls._fingerprint(key)
-        return (cls, hd_fp, elements_fp, category, facade, key_fp)
+        Equal posets need not be identical parents::
 
-    @classmethod
-    def _cache_match(cls, cached, hasse_diagram, elements, key):
+            sage: P = Poset([[1, 2], [3], [3]])
+            sage: Q = Poset([[1, 2], [3], [3]])
+            sage: P == Q
+            True
+            sage: P is Q
+            False
         """
-        Return whether ``cached`` was constructed from these exact arguments.
+        if self is other:
+            return True
+        if not isinstance(other, FinitePoset):
+            return NotImplemented
+        return self._comparison_key() == other._comparison_key()
 
-        For the ``elements is None`` branch we compare against
-        :attr:`_labeled_hasse_diagram` (a lazy attribute on ``cached``)
-        instead of relabeling on every lookup. For the
-        ``elements is not None`` branch we relabel the *incoming* graph to
-        integer vertices once and compare against the cached internal
-        :class:`HasseDiagram` directly.
+    def __ne__(self, other):
         """
-        try:
-            if cached._key != key:
-                return False
-            if cached._with_linear_extension != (elements is not None):
-                return False
-            if elements is None:
-                return cached._labeled_hasse_diagram == hasse_diagram
-
-            normalized_elements = cls._normalized_elements(elements)
-            if cached._elements != normalized_elements:
-                return False
-            relabel = {element: i
-                       for i, element in enumerate(normalized_elements)}
-            relabeled = hasse_diagram.relabel(relabel, inplace=False)
-            return cached._hasse_diagram == relabeled
-        except (AttributeError, TypeError, ValueError):
-            return False
-
-    @classmethod
-    def _cache_hit(cls, cache_key, hasse_diagram, elements, key):
+        Return whether ``self`` and ``other`` define different labeled posets.
         """
-        Return a matching cached poset, pruning dead entries in the bucket.
+        equality = self.__eq__(other)
+        if equality is NotImplemented:
+            return NotImplemented
+        return not equality
+
+    def __hash__(self):
         """
-        bucket = cls._cache.get(cache_key)
-        if bucket is None:
-            return None
-
-        live = []
-        match = None
-        for ref in bucket:
-            cached = ref()
-            if cached is None:
-                continue
-            live.append(ref)
-            if match is None and cls._cache_match(cached, hasse_diagram,
-                                                  elements, key):
-                match = cached
-
-        if not live:
-            cls._cache.pop(cache_key, None)
-        elif len(live) != len(bucket):
-            cls._cache[cache_key] = live
-        return match
-
-    @classmethod
-    def _cache_store(cls, cache_key, poset):
+        Return a hash compatible with structural equality.
         """
-        Store ``poset`` in the weak cache under ``cache_key``.
-        """
-        def remove(ref, cache=cls._cache, key=cache_key):
-            bucket = cache.get(key)
-            if bucket is None:
-                return
-            try:
-                bucket.remove(ref)
-            except ValueError:
-                return
-            if not bucket:
-                cache.pop(key, None)
-
-        cls._cache.setdefault(cache_key, []).append(weakref.ref(poset, remove))
+        return hash(self._comparison_key())
 
     # The parsing of the construction data (like a list of cover relations)
     #   into a :class:`DiGraph` is done in :func:`Poset`.
@@ -1087,7 +1012,7 @@ class FinitePoset(WithEqualityById, Parent, metaclass=ClasscallMetaclass):
           or ``None`` if no such default linear extension is wanted
         - ``category`` -- (optional) a subcategory of :class:`FinitePosets`
         - ``facade`` -- (optional) boolean if this is a facade parent or not
-        - ``key`` -- (optional) a key value
+        - ``key`` -- ignored; accepted for backward compatibility
 
         TESTS::
 
@@ -1133,14 +1058,13 @@ class FinitePoset(WithEqualityById, Parent, metaclass=ClasscallMetaclass):
             sage: w() is None
             True
 
-        Identity is preserved while a reference is alive, but a fresh
-        construction after the poset has been garbage collected yields
-        a new (equal) object::
+        Independent constructions from the same data give distinct
+        parents::
 
             sage: data = [[1, 2], [3], [3]]
             sage: P = Poset(data)
             sage: Poset(data) is P
-            True
+            False
             sage: import weakref, gc
             sage: w = weakref.ref(P)
             sage: del P
@@ -1162,7 +1086,6 @@ class FinitePoset(WithEqualityById, Parent, metaclass=ClasscallMetaclass):
             # ``FinitePoset`` of the right class, avoid relabeling and
             # re-constructing it.
             if (isinstance(poset, cls)
-                    and key == poset._key
                     and category == poset.category()
                     and facade == poset._is_facade
                     and poset._with_linear_extension == (elements is not None)
@@ -1189,16 +1112,10 @@ class FinitePoset(WithEqualityById, Parent, metaclass=ClasscallMetaclass):
             category = category._without_axiom("Facade")
         category = Category.join([FinitePosets().or_subcategory(category), FiniteEnumeratedSets()])
 
-        cache_key = cls._cache_key(hasse_diagram, elements, category,
-                                   facade, key)
-        cached = cls._cache_hit(cache_key, hasse_diagram, elements, key)
-        if cached is not None:
-            return cached
-
         # Create the instance directly via typecall (equivalent to
-        # type.__call__), bypassing caches which would store the full
-        # constructor arguments, including element labels, as strong
-        # references. Pickling is handled by the __reduce__ override below.
+        # type.__call__). Pickling is handled by the __reduce__ override
+        # below, which recomputes construction data when needed instead of
+        # storing element labels in the instance.
         result = typecall(
             cls, hasse_diagram=hasse_diagram, elements=elements,
             category=category, facade=facade, key=key)
@@ -1206,28 +1123,7 @@ class FinitePoset(WithEqualityById, Parent, metaclass=ClasscallMetaclass):
         # FinitePoset_with_category) so that __reduce__ can
         # reconstruct through the same __classcall__ entry point.
         result._reduction_cls = cls
-
-        cls._cache_store(cache_key, result)
         return result
-
-    @classmethod
-    def _clear_cache_(cls):
-        """
-        Remove all cached instances of this class.
-
-        EXAMPLES::
-
-            sage: P = Poset({0: [1]})
-            sage: Q = Poset({0: [1]})
-            sage: P is Q
-            True
-            sage: from sage.combinat.posets.posets import FinitePoset
-            sage: FinitePoset._clear_cache_()
-            sage: R = Poset({0: [1]})
-            sage: P is R
-            False
-        """
-        cls._cache.clear()
 
     def __reduce__(self):
         """
@@ -1245,6 +1141,8 @@ class FinitePoset(WithEqualityById, Parent, metaclass=ClasscallMetaclass):
             sage: Q = loads(dumps(P))
             sage: Q == P
             True
+            sage: Q.cover_relations() == P.cover_relations()
+            True
             sage: Q._is_facade
             False
         """
@@ -1253,10 +1151,10 @@ class FinitePoset(WithEqualityById, Parent, metaclass=ClasscallMetaclass):
             dict(enumerate(self._elements)), inplace=False)
         hd = hd.copy(immutable=True)
         elements = self._elements if self._with_linear_extension else None
-        reduction = (self._reduction_cls, (),
+        reduction = (getattr(self, '_reduction_cls', self.__class__), (),
                      dict(hasse_diagram=hd, elements=elements,
                           category=self.category(),
-                          facade=self._is_facade, key=self._key))
+                          facade=self._is_facade))
         d = self.__getstate__()
         if d:
             return (unreduce, reduction, d)
@@ -1278,7 +1176,7 @@ class FinitePoset(WithEqualityById, Parent, metaclass=ClasscallMetaclass):
             sage: P.__getstate__()
             {}
             sage: loads(dumps(P)) is P
-            True
+            False
 
         Cached methods that opt into ``do_pickle=True`` are preserved
         across pickling. We simulate one by stashing a
@@ -1403,27 +1301,6 @@ class FinitePoset(WithEqualityById, Parent, metaclass=ClasscallMetaclass):
                                            data_structure='static_sparse')
         self._element_to_vertex_dict = rdict
         self._is_facade = facade
-        self._key = key
-
-    @lazy_attribute
-    def _labeled_hasse_diagram(self):
-        """
-        The Hasse diagram relabeled with the original element labels.
-
-        This is the value that the constructor receives as ``hasse_diagram``
-        in the ``elements is None`` path; it is cached lazily so that the
-        :meth:`_cache_match` lookup does not need to relabel on every hit.
-
-        TESTS::
-
-            sage: P = Poset(DiGraph({'a': ['b'], 'b': ['c']}))
-            sage: P._labeled_hasse_diagram
-            Hasse diagram of a poset containing 3 elements
-            sage: sorted(P._labeled_hasse_diagram.vertices())
-            ['a', 'b', 'c']
-        """
-        return self._hasse_diagram.relabel(
-            dict(enumerate(self._elements)), inplace=False)
 
     @lazy_attribute
     def _list(self):
@@ -1495,8 +1372,10 @@ class FinitePoset(WithEqualityById, Parent, metaclass=ClasscallMetaclass):
             sage: all(P._vertex_to_element(P._element_to_vertex(x)) is x for x in P)
             True
         """
-        if isinstance(element, self.element_class) and element.parent() is self:
+        if isinstance(element, PosetElement) and element.parent() is self:
             return element.vertex
+        if isinstance(element, PosetElement) and element.parent() == self:
+            element = element.element
 
         try:
             return self._element_to_vertex_dict[element]
@@ -1647,6 +1526,8 @@ class FinitePoset(WithEqualityById, Parent, metaclass=ClasscallMetaclass):
             sage: all(P(x) is x for x in P)
             True
         """
+        if isinstance(element, PosetElement) and element.parent() == self:
+            element = element.element
         try:
             return self._list[self._element_to_vertex_dict[element]]
         except KeyError:

@@ -363,6 +363,24 @@ class AnalyticType(FiniteLatticePoset):
             cls._singleton_instance = instance
         return instance
 
+    def __reduce__(self):
+        r"""
+        Return pickling data for the singleton instance.
+
+        TESTS::
+
+            sage: from sage.modular.modform_hecketriangle.analytic_type import AnalyticType
+            sage: AT = AnalyticType()
+            sage: loads(dumps(AT)) is AT
+            True
+            sage: el = AT(["quasi", "weak"])
+            sage: loads(dumps(el)) == el
+            True
+            sage: loads(dumps(el)).parent() is AT
+            True
+        """
+        return (AnalyticType, ())
+
     def __init__(self):
         r"""
         Container for all possible analytic types of forms and/or spaces.
