@@ -918,7 +918,7 @@ cdef class PowerSeries_pari(PowerSeries):
 
         We can handle some rings of positive characteristic::
 
-            sage: R.<t> = PowerSeriesRing(GF(5),implementation='pari')
+            sage: R.<t> = PowerSeriesRing(GF(5), implementation='pari')
             sage: f = t + t^2 + t^3 + O(t^4)
             sage: g = f.revert(); g
             t + 4*t^2 + t^3 + O(t^4)
