@@ -953,6 +953,8 @@ cdef class PowerSeries_pari(PowerSeries):
             f = self
         return PowerSeries_pari(self._parent, f.g.serreverse(), precision)
 
+    compositional_inverse = revert
+
     def reverse(self, precision=None):
         r"""
         Return the reverse of ``self``.
@@ -984,5 +986,3 @@ cdef class PowerSeries_pari(PowerSeries):
         from sage.misc.superseded import deprecation_cython
         deprecation_cython(40576, 'reverse is deprecated; use revert instead')
         return self.revert(precision)
-
-        compositional_inverse = revert
