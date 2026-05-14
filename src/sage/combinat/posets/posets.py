@@ -627,7 +627,7 @@ def Poset(data=None, element_labels=None, cover_relations=False, linear_extensio
 
     .. rubric:: Construction cache
 
-    The constructor caches finite posets.  Namely if two posets are
+    The constructor caches finite posets. Namely if two posets are
     created from two equal data, then they are not only equal but
     actually identical::
 
@@ -641,7 +641,7 @@ def Poset(data=None, element_labels=None, cover_relations=False, linear_extensio
         True
 
     The cache holds only weak references, so this identity is guaranteed
-    only while at least one reference to the poset is alive.  Once all
+    only while at least one reference to the poset is alive. Once all
     references are dropped, the cached entry is discarded and a fresh
     construction yields a new (but equal) object.
 
@@ -911,7 +911,7 @@ class FinitePoset(WithEqualityById, Parent, metaclass=ClasscallMetaclass):
 
     TESTS:
 
-    Equality is by identity.  The constructor cache ensures that equal
+    Equality is by identity. The constructor cache ensures that equal
     construction data still give the same object::
 
         sage: P = Poset([[1,2],[3],[3]])
@@ -962,7 +962,7 @@ class FinitePoset(WithEqualityById, Parent, metaclass=ClasscallMetaclass):
     # then validates exact equality before reusing a cached instance.  The
     # cache dict itself is strong, but its values are short lists of
     # ``weakref.ref`` to the cached posets, with finalizers that prune dead
-    # entries.  Labels or ``key`` values which reference the poset therefore
+    # entries. Labels or ``key`` values which reference the poset therefore
     # do not keep it alive through the cache (see :issue:`14356`).
     _cache = {}
 
@@ -1005,7 +1005,7 @@ class FinitePoset(WithEqualityById, Parent, metaclass=ClasscallMetaclass):
 
         For the ``elements is None`` branch we compare against
         :attr:`_labeled_hasse_diagram` (a lazy attribute on ``cached``)
-        instead of relabeling on every lookup.  For the
+        instead of relabeling on every lookup. For the
         ``elements is not None`` branch we relabel the *incoming* graph to
         integer vertices once and compare against the cached internal
         :class:`HasseDiagram` directly.
@@ -1198,7 +1198,7 @@ class FinitePoset(WithEqualityById, Parent, metaclass=ClasscallMetaclass):
         # Create the instance directly via typecall (equivalent to
         # type.__call__), bypassing caches which would store the full
         # constructor arguments, including element labels, as strong
-        # references.  Pickling is handled by the __reduce__ override below.
+        # references. Pickling is handled by the __reduce__ override below.
         result = typecall(
             cls, hasse_diagram=hasse_diagram, elements=elements,
             category=category, facade=facade, key=key)
@@ -1268,7 +1268,7 @@ class FinitePoset(WithEqualityById, Parent, metaclass=ClasscallMetaclass):
 
         Only cached methods that opt into ``do_pickle=True`` are preserved;
         all other state is rebuilt by :meth:`__classcall__` / :meth:`__init__`
-        when the pickle is loaded.  This keeps the pickle stream small and
+        when the pickle is loaded. This keeps the pickle stream small and
         avoids carrying strong references to element labels that could
         defeat the leak fix from :issue:`14356`.
 
@@ -1281,7 +1281,7 @@ class FinitePoset(WithEqualityById, Parent, metaclass=ClasscallMetaclass):
             True
 
         Cached methods that opt into ``do_pickle=True`` are preserved
-        across pickling.  We simulate one by stashing a
+        across pickling. We simulate one by stashing a
         :class:`~sage.misc.cachefunc.CachedFunction` directly into the
         instance dictionary::
 
