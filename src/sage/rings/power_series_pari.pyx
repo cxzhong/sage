@@ -926,7 +926,7 @@ cdef class PowerSeries_pari(PowerSeries):
             True
 
             sage: k.<a> = GF(3**2)
-            sage: R.<t> = PowerSeriesRing(k,implementation='pari')
+            sage: R.<t> = PowerSeriesRing(k, implementation='pari')
             sage: f = a*t + (1-a)*t^2 + (1+a)*t^3 + O(t^4)
             sage: f.revert()
             Traceback (most recent call last):
