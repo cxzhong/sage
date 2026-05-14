@@ -7,6 +7,7 @@ elements. For general information about GAP, you should read the
 """
 # ****************************************************************************
 #       Copyright (C) 2012 Volker Braun <vbraun.name@gmail.com>
+#                     2026 Vincent Delecroix <20100.delecroix@gmail.com>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -2203,6 +2204,33 @@ cdef class GapElement_Rational(GapElement):
         sage: type(r)
         <class 'sage.libs.gap.element.GapElement_Rational'>
     """
+    def __hash__(self):
+        r"""
+        TESTS::
+
+            sage: all(hash(libgap(x)) == hash(x) for x in [1/2, -1/3, 2^1024/3^352])
+            True
+        """
+        cdef int snum, sden
+        cdef mpz_t znum, zden
+        cdef Py_hash_t n, d
+        cdef GapElement_Integer num = libgap.NumeratorRat(self)
+        cdef GapElement_Integer den = libgap.DenominatorRat(self)
+
+        if num.is_C_int():
+            n = GAP_ValueInt(num.value)
+        else:
+            snum = num.mpz_ro(znum)
+            n = snum * mpz_pythonhash(znum)
+
+        if den.is_C_int():
+            d = GAP_ValueInt(den.value)
+        else:
+            sden = den.mpz_ro(zden)
+            d = sden * mpz_pythonhash(zden)
+
+        return n + (d - 1) * <Py_hash_t>(7461864723258187525)
+
     def _rational_(self):
         r"""
         EXAMPLES::
