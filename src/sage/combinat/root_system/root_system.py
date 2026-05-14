@@ -296,6 +296,21 @@ class RootSystem(UniqueRepresentation, SageObject):
 
         sage: hash(r1)  # random
         42
+
+    Check that creating many temporary root systems does not keep all of them
+    alive through the cache for the dual root systems::
+
+        sage: import gc
+        sage: RootSystem._clear_cache_()
+        sage: _ = gc.collect()
+        sage: before = sum(isinstance(x, RootSystem) for x in gc.get_objects())
+        sage: for n in range(5, 220):
+        ....:     _ = RootSystem(['A', n])
+        sage: _ = gc.collect()
+        sage: after = sum(isinstance(x, RootSystem) for x in gc.get_objects())
+        sage: after - before < 200
+        True
+        sage: RootSystem._clear_cache_()
     """
 
     @staticmethod
@@ -311,8 +326,18 @@ class RootSystem(UniqueRepresentation, SageObject):
             True
             sage: RootSystem(["B",3], as_dual_of=None) is RootSystem("B3")
             True
+            sage: R = RootSystem(["B",3])
+            sage: R.dual is RootSystem(["C",3], as_dual_of=R)
+            True
+            sage: RootSystem(["B",3]).dual is RootSystem(["C",3])
+            False
         """
-        return super().__classcall__(cls, CartanType(cartan_type), as_dual_of)
+        cartan_type = CartanType(cartan_type)
+        if as_dual_of is not None:
+            if isinstance(as_dual_of, RootSystem):
+                as_dual_of = as_dual_of.cartan_type()
+            as_dual_of = CartanType(as_dual_of)
+        return super().__classcall__(cls, cartan_type, as_dual_of)
 
     def __init__(self, cartan_type, as_dual_of=None):
         """
@@ -325,19 +350,43 @@ class RootSystem(UniqueRepresentation, SageObject):
         self._cartan_type = CartanType(cartan_type)
 
         # Duality
-        # The root system can be defined as dual of another root system. This will
-        # only affects the pretty printing
+        # The root system can be defined as dual of another root system. This
+        # controls the dual-side names and pretty printing.
         if as_dual_of is None:
             self.dual_side = False
-            # still fails for CartanType G2xA1
-            try:
-                self.dual = RootSystem(self._cartan_type.dual(),
-                                       as_dual_of=self)
-            except Exception:
-                pass
+            self._dual_side_of = None
         else:
             self.dual_side = True
-            self.dual = as_dual_of
+            self._dual_side_of = CartanType(as_dual_of)
+
+    @property
+    def dual(self):
+        r"""
+        Return the dual root system.
+
+        EXAMPLES::
+
+            sage: R = RootSystem(['B', 3])
+            sage: R.dual
+            Dual of root system of type ['B', 3]
+            sage: R.dual.dual is R
+            True
+
+        The dual root system is not stored as a strong reference. This avoids
+        keeping temporary root systems alive through the ``UniqueRepresentation``
+        cache for their duals::
+
+            sage: R = RootSystem(['B', 3])
+            sage: R.dual is RootSystem(['C', 3], as_dual_of=R.cartan_type())
+            True
+        """
+        if self.dual_side:
+            return RootSystem(self._dual_side_of)
+        try:
+            return RootSystem(self._cartan_type.dual(),
+                              as_dual_of=self._cartan_type)
+        except Exception as err:
+            raise AttributeError("dual root system is not available") from err
 
     def _test_root_lattice_realizations(self, **options):
         """
@@ -374,7 +423,7 @@ class RootSystem(UniqueRepresentation, SageObject):
             Dual of root system of type ['B', 3]
         """
         if self.dual_side:
-            return "Dual of root system of type %s" % self.dual.cartan_type()
+            return "Dual of root system of type %s" % self._dual_side_of
         return "Root system of type %s" % self.cartan_type()
 
     def cartan_type(self):
