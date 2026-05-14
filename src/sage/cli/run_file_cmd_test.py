@@ -4,6 +4,9 @@ from unittest.mock import patch
 import sys
 
 
+SAGE_CLI = ["python3", "-m", "sage.cli"]
+
+
 def test_run_file_cmd(capsys, tmp_path):
     file = tmp_path / "test.sage"
     file.write_text("print(3^33)")
@@ -16,7 +19,7 @@ def test_run_file_cmd(capsys, tmp_path):
 
 
 def test_run_file_cmd_with_args(capsys, tmp_path):
-    with patch.object(sys, 'argv', ["sage", "test.sage", "1", "1"]):
+    with patch.object(sys, 'argv', [*SAGE_CLI, "test.sage", "1", "1"]):
         file = tmp_path / "test.sage"
         file.write_text("import sys; print(int(sys.argv[1]) + int(sys.argv[2]))")
         options = CliOptions(file=[str(file)], script_args=["1", "1"])
@@ -29,7 +32,7 @@ def test_run_file_cmd_with_args(capsys, tmp_path):
 
 def test_run_file_cmd_argv_matches_python(capsys, tmp_path):
     """``sys.argv`` inside a script must look like ``[script, *args]``."""
-    with patch.object(sys, 'argv', ["sage", "test.sage", "-y", "7"]):
+    with patch.object(sys, 'argv', [*SAGE_CLI, "test.sage", "-y", "7"]):
         file = tmp_path / "test.sage"
         file.write_text("import sys; print(sys.argv)")
         options = CliOptions(file=[str(file)], script_args=["-y", "7"])
