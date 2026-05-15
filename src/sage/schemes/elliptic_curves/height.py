@@ -174,10 +174,9 @@ class UnionOfIntervals:
         """
         if not isinstance(left, UnionOfIntervals):
             left, right = right, left
-        elif not isinstance(right, UnionOfIntervals):
+        if not isinstance(right, UnionOfIntervals):
             return UnionOfIntervals([right + e for e in left._endpoints])
-        else:
-            return left.union([left, right])
+        return left.union([left, right])
 
     def __mul__(left, right):
         r"""
