@@ -969,7 +969,13 @@ class FinitePoset(Parent, metaclass=ClasscallMetaclass):
         """
         covers = frozenset((self._elements[i], self._elements[j])
                            for i, j in self._hasse_diagram.cover_relations_iterator())
-        return (self._with_linear_extension, self._elements, covers)
+        if self._with_linear_extension:
+            elements = self._elements
+        else:
+            # Without a distinguished linear extension, ``_elements`` is an
+            # internal topological sort and its order is not part of the poset.
+            elements = frozenset(self._elements)
+        return (self._with_linear_extension, elements, covers)
 
     def __eq__(self, other):
         """
