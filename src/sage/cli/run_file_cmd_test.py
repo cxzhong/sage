@@ -1,10 +1,29 @@
+import argparse
+import sys
+from unittest.mock import patch
+
 from sage.cli.run_file_cmd import RunFileCmd
 from sage.cli.options import CliOptions
-from unittest.mock import patch
-import sys
 
 
-SAGE_CLI = ["python3", "-m", "sage.cli"]
+def _parser():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-q", "--quiet", action="store_true", default=False)
+    RunFileCmd.extend_parser(parser)
+    return parser
+
+
+def test_run_file_parser_forwards_arguments_after_file():
+    args = _parser().parse_args(["-q", "test.sage", "42", "-y", "7", "--quiet"])
+
+    assert args.quiet is True
+    assert args.file == ["test.sage", "42", "-y", "7", "--quiet"]
+
+
+def test_run_file_parser_handles_explicit_terminator():
+    args = _parser().parse_args(["--", "-test.sage", "-y"])
+
+    assert args.file == ["-test.sage", "-y"]
 
 
 def test_run_file_cmd(capsys, tmp_path):
@@ -19,10 +38,10 @@ def test_run_file_cmd(capsys, tmp_path):
 
 
 def test_run_file_cmd_with_args(capsys, tmp_path):
-    with patch.object(sys, 'argv', [*SAGE_CLI, "test.sage", "1", "1"]):
+    with patch.object(sys, 'argv', ["python3", "test.sage", "1", "1"]):
         file = tmp_path / "test.sage"
         file.write_text("import sys; print(int(sys.argv[1]) + int(sys.argv[2]))")
-        options = CliOptions(file=[str(file)], script_args=["1", "1"])
+        options = CliOptions(file=[str(file), "1", "1"])
         run_file_cmd = RunFileCmd(options)
 
         run_file_cmd.run()
@@ -32,10 +51,10 @@ def test_run_file_cmd_with_args(capsys, tmp_path):
 
 def test_run_file_cmd_argv_matches_python(capsys, tmp_path):
     """``sys.argv`` inside a script must look like ``[script, *args]``."""
-    with patch.object(sys, 'argv', [*SAGE_CLI, "test.sage", "-y", "7"]):
+    with patch.object(sys, 'argv', ["python3", "test.sage", "-y", "7"]):
         file = tmp_path / "test.sage"
         file.write_text("import sys; print(sys.argv)")
-        options = CliOptions(file=[str(file)], script_args=["-y", "7"])
+        options = CliOptions(file=[str(file), "-y", "7"])
         RunFileCmd(options).run()
         captured = capsys.readouterr()
         assert captured.out == f"[{str(file)!r}, '-y', '7']\n"
