@@ -9,6 +9,13 @@ from sage.misc.temporary_file import tmp_filename
 from sage.all import sage_globals
 
 
+class _RunFileArgs(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        if values and values[0] == "--":
+            values = values[1:]
+        setattr(namespace, self.dest, values)
+
+
 class RunFileCmd:
     @staticmethod
     def extend_parser(parser: argparse.ArgumentParser):
@@ -25,7 +32,8 @@ class RunFileCmd:
         """
         parser.add_argument(
             "file",
-            nargs="*",
+            nargs=argparse.REMAINDER,
+            action=_RunFileArgs,
             help="execute the given file as sage code",
         )
 
@@ -37,10 +45,9 @@ class RunFileCmd:
         # Rebuild ``sys.argv`` so that the executed script sees the same
         # arguments it would receive under plain Python:
         # ``sys.argv == [<script>, *script_args]``.  ``script_args`` is the
-        # tail of the original command line that was split off from Sage's
-        # own arguments by ``sage.cli._split_input_args`` (see issue #41908).
+        # tail captured by the run-file parser after the script filename.
         script = options.file[0] if options.file else sys.argv[0]
-        forwarded = list(options.script_args or [])
+        forwarded = list(options.file[1:] if options.file else [])
         sys.argv = [script, *forwarded]
 
     def run(self) -> int:

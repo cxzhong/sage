@@ -24,6 +24,3 @@ class CliOptions:
 
     """The file to execute."""
     file: list[str] | None = None
-
-    """Arguments to forward to the executed script (after the script filename)."""
-    script_args: list[str] | None = None
