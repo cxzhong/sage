@@ -112,7 +112,7 @@ def pip_remote_version(pkg, pypi_url=DEFAULT_PYPI, ignore_URLError=False):
         f = urlopen(url, context=default_context())
         text = f.read()
         f.close()
-    except URLError as exc:
+    except URLError:
         if ignore_URLError:
             import warnings
             warnings.warn("failed to fetch the version of pkg={!r} at {}".format(pkg, url))
