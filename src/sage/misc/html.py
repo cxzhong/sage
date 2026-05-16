@@ -297,6 +297,12 @@ class MathJax:
             sage: from sage.misc.html import MathJax
             sage: MathJax().eval(IntegerModRing(6))
             <html>\[\newcommand{\ZZ}{\Bold{Z}}\newcommand{\Bold}[1]{\mathbf{#1}}\ZZ/6\ZZ\]</html>
+            sage: MathJax().eval(['\\'], mode='display_left')
+            <html>\(\displaystyle \left[\verb|\|\right]\)</html>
+            sage: MathJax().eval(['{'], mode='display_left')
+            <html>\(\displaystyle \left[\mathtt{\{}\right]\)</html>
+            sage: MathJax().eval(['{}'], mode='display_left')
+            <html>\(\displaystyle \left[\mathtt{\{}\mathtt{\}}\right]\)</html>
         """
         # Get a regular LaTeX representation of x
         x = latex(x, combine_all=combine_all)
@@ -310,15 +316,19 @@ class MathJax:
                 continue    # Nothing to do with the head part
             n = 1
             for closing, c in enumerate(part):
-                if c == "{" and part[closing - 1] != "\\":
+                backslashes = 0
+                j = closing - 1
+                while j >= 0 and part[j] == "\\":
+                    backslashes += 1
+                    j -= 1
+                escaped = bool(backslashes % 2)
+                if c == "{" and not escaped:
                     n += 1
-                if c == "}" and part[closing - 1] != "\\":
+                if c == "}" and not escaped:
                     n -= 1
-                if n == -1:
+                if n == 0:
                     break
-            # part should end in "}}", so omit the last two characters
-            # from y
-            y = part[:closing-1]
+            y = part[:closing]
             for delimiter in r"""|"'`#%&,.:;?!@_~^+-/\=<>()[]{}0123456789E""":
                 if delimiter not in y:
                     break
@@ -331,6 +341,35 @@ class MathJax:
             for c in r"#$%&\^_{}~":
                 char_wrapper = r"{\char`\%s}" % c
                 y = y.replace(char_wrapper, c)
+
+            def wrap_verb(s):
+                r"""
+                Wrap ``s`` in ``\verb`` blocks for MathJax.
+
+                MathJax leaves ``\verb`` expressions containing an unbalanced
+                opening brace unrendered, so emit literal braces using
+                ``\mathtt`` and use ``\verb`` for the remaining text.
+                """
+                pieces = []
+                chars = []
+
+                def flush():
+                    if chars:
+                        pieces.append(wrapper % "".join(chars))
+                        chars.clear()
+
+                for c in s:
+                    if c == "{":
+                        flush()
+                        pieces.append(r"\mathtt{\{}")
+                    elif c == "}":
+                        flush()
+                        pieces.append(r"\mathtt{\}}")
+                    else:
+                        chars.append(c)
+                flush()
+                return "".join(pieces)
+
             subparts = []
             nspaces = 0
             for subpart in y.split(" "):
@@ -340,8 +379,12 @@ class MathJax:
                 if nspaces > 0:
                     subparts.append(wrapper % (" " * nspaces))
                 nspaces = 1
-                subparts.append(wrapper % subpart)
-            subparts.append(part[closing + 1:])
+                subparts.append(wrap_verb(subpart))
+            # Skip the closing brace of the surrounding \text{...}.
+            suffix_start = closing + 1
+            if suffix_start < len(part) and part[suffix_start] == "}":
+                suffix_start += 1
+            subparts.append(part[suffix_start:])
             parts[i] = "".join(subparts)
 
         from sage.misc.latex_macros import sage_latex_macros
