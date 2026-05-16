@@ -590,7 +590,7 @@ def _connected_mutation_type(dg):
     # first test for finite types B and C: if there are two exceptional labels, they must belong to an oriented triangle and the vertex between must be a leaf
     # first test for affine type C: if there are two exceptional labels, they must belong to leaves
     # first test for affine type B: if there are two exceptional labels, they must be...
-    if len(exc_labels) == 2:
+    elif len(exc_labels) == 2:
         label1, label2 = exc_labels
         if label1[1] == label2[0]:
             pass
@@ -660,10 +660,15 @@ def _connected_mutation_type(dg):
                             return _check_special_BC_cases(dg, n, ['CD'], [1], ['A'])
                         if label1 == (1, -2) and label2 == (2, -1):
                             return _check_special_BC_cases(dg, n, ['BD'], [1], ['A'])
+                    else:
+                        return _false_return()
+                else:
+                    return _false_return()
+            else:
+                return _false_return()
+        elif not dict_in_out[v][0] == 1 or not dict_in_out[v][1] == 1:
             return _false_return()
-        if not dict_in_out[v][0] == 1 or not dict_in_out[v][1] == 1:
-            return _false_return()
-        if dg.has_edge(v2, v1, 1):
+        elif dg.has_edge(v2, v1, 1):
             nr_same_neighbors = len(set(dg.neighbors_out(v1)).intersection(dg.neighbors_in(v2)))
             nr_other_neighbors = len(set(dg.neighbors_out(v2)).intersection(dg.neighbors_in(v1)))
             nr_contained_cycles = len([cycle for cycle, is_oriented in _all_induced_cycles_iter(dg) if v1 in flatten(cycle) and v2 in flatten(cycle)])
@@ -704,7 +709,7 @@ def _connected_mutation_type(dg):
                     return _check_special_BC_cases(dg, n, ['BD'], [None], ['D'])
                 return mt_tmp
             return _false_return()
-        if dict_in_out[v1][2] == 1 and dict_in_out[v2][2] == 1:
+        elif dict_in_out[v1][2] == 1 and dict_in_out[v2][2] == 1:
             if label1 == (1, -2) and label2 == (1, -2):
                 return _check_special_BC_cases(dg, n, ['BC'], [1], ['A'])
             if label1 == (2, -1) and label2 == (2, -1):
@@ -714,7 +719,7 @@ def _connected_mutation_type(dg):
             if label1 == (2, -1) and label2 == (1, -2):
                 return _check_special_BC_cases(dg, n, ['BB'], [1], ['A'])
             return _false_return()
-        if dict_in_out[v][0] == dict_in_out[v][1] == 1 and dict_in_out[v1][0] == dict_in_out[v1][1] == 1 and dict_in_out[v2][0] == dict_in_out[v2][1] == 1:
+        elif dict_in_out[v][0] == dict_in_out[v][1] == 1 and dict_in_out[v1][0] == dict_in_out[v1][1] == 1 and dict_in_out[v2][0] == dict_in_out[v2][1] == 1:
             _reset_dg(dg, vertices, dict_in_out, [v])
             if n == 4 and (label1, label2) == ((2, -1), (1, -2)):
                 return _check_special_BC_cases(dg, n, ['CD'], [1], ['A'])
@@ -725,11 +730,12 @@ def _connected_mutation_type(dg):
             if n > 4 and (label1, label2) == ((1, -2), (2, -1)):
                 return _check_special_BC_cases(dg, n, ['BD'], [1], ['D'])
             return _false_return()
-        return _false_return()
+        else:
+            return _false_return()
 
     # second tests for finite types B and C: if there is only one exceptional label, it must belong to a leaf
     # also tests for affine type B: this exceptional label must belong to a leaf of a type D quiver
-    if len(exc_labels) == 1:
+    elif len(exc_labels) == 1:
         label = exc_labels[0]
         v_out = label[0]
         v_in = label[1]
