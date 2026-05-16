@@ -300,9 +300,9 @@ class MathJax:
             sage: MathJax().eval(['\\'], mode='display_left')
             <html>\(\displaystyle \left[\verb|\|\right]\)</html>
             sage: MathJax().eval(['{'], mode='display_left')
-            <html>\(\displaystyle \left[\mathtt{\{}\right]\)</html>
+            <html>\(\displaystyle \left[\{\right]\)</html>
             sage: MathJax().eval(['{}'], mode='display_left')
-            <html>\(\displaystyle \left[\mathtt{\{}\mathtt{\}}\right]\)</html>
+            <html>\(\displaystyle \left[\{\}\right]\)</html>
         """
         # Get a regular LaTeX representation of x
         x = latex(x, combine_all=combine_all)
@@ -347,8 +347,8 @@ class MathJax:
                 Wrap ``s`` in ``\verb`` blocks for MathJax.
 
                 MathJax leaves ``\verb`` expressions containing an unbalanced
-                opening brace unrendered, so emit literal braces using
-                ``\mathtt`` and use ``\verb`` for the remaining text.
+                opening brace unrendered, so emit literal braces as ``\{``
+                and ``\}`` and use ``\verb`` for the remaining text.
                 """
                 pieces = []
                 chars = []
@@ -361,10 +361,10 @@ class MathJax:
                 for c in s:
                     if c == "{":
                         flush()
-                        pieces.append(r"\mathtt{\{}")
+                        pieces.append(r"\{")
                     elif c == "}":
                         flush()
-                        pieces.append(r"\mathtt{\}}")
+                        pieces.append(r"\}")
                     else:
                         chars.append(c)
                 flush()
