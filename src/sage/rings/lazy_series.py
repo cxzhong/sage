@@ -5805,11 +5805,27 @@ class LazyPowerSeries(LazyCauchyProductSeries):
         P = self.parent()
         if P._arity != 1:
             raise ValueError("arity must be equal to 1")
-        coeff_stream = self._coeff_stream
-        if isinstance(coeff_stream, Stream_zero):
+        left = self._coeff_stream
+        if isinstance(left, Stream_zero):
             return self
-        coeff_stream = Stream_hadamard_mul(coeff_stream, other._coeff_stream,
-                                           P.is_sparse())
+        right = other._coeff_stream
+        if isinstance(right, Stream_zero):
+            return other
+        if isinstance(left, Stream_exact) and isinstance(right, Stream_exact):
+            approximate_order = max(left.order(), right.order())
+            degree = max(left._degree, right._degree)
+            initial_coefficients = [left[i] * right[i]
+                                    for i in range(approximate_order, degree)]
+            constant = left._constant * right._constant
+            if not any(initial_coefficients) and not constant:
+                return P.zero()
+            coeff_stream = Stream_exact(initial_coefficients,
+                                        constant=constant,
+                                        degree=degree,
+                                        order=approximate_order)
+            return P.element_class(P, coeff_stream)
+
+        coeff_stream = Stream_hadamard_mul(left, right, P.is_sparse())
         return P.element_class(P, coeff_stream)
 
     def egf_to_ogf(self):
