@@ -308,8 +308,8 @@ def pretty_print(*args, **kwds):
         ....:     _ = dm.switch_backend(old_backend)
         <html>\(\displaystyle \left[\verb|a|\right]\)</html>
         <html>\(\displaystyle \left[\verb|\|\right]\)</html>
-        <html>\(\displaystyle \left[\mathtt{\{}\right]\)</html>
-        <html>\(\displaystyle \left[\mathtt{\{}\mathtt{\}}\right]\)</html>
+        <html>\(\displaystyle \left[\{\right]\)</html>
+        <html>\(\displaystyle \left[\{\}\right]\)</html>
 
     ::
 
