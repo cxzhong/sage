@@ -2815,7 +2815,7 @@ class Stream_hadamard_mul(Stream_binary):
             sage: [h[i] for i in range(5)]
             [0, -9, 0, 0, 0]
         """
-        # this is not the true order, because we may have cancellation
+        # this is not the true order, unless we have an integral domain
         return max(self._left._approximate_order, self._right._approximate_order)
 
     def get_coefficient(self, n):
