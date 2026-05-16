@@ -242,7 +242,7 @@ from sage.data_structures.stream import (
     Stream_add,
     Stream_cauchy_mul,
     Stream_cauchy_mul_commutative,
-    Stream_Hadamard,
+    Stream_hadamard_mul,
     Stream_sub,
     Stream_compose,
     Stream_cauchy_compose,
@@ -5808,8 +5808,8 @@ class LazyPowerSeries(LazyCauchyProductSeries):
         coeff_stream = self._coeff_stream
         if isinstance(coeff_stream, Stream_zero):
             return self
-        coeff_stream = Stream_Hadamard(coeff_stream, other._coeff_stream,
-                                       P.is_sparse())
+        coeff_stream = Stream_hadamard_mul(coeff_stream, other._coeff_stream,
+                                           P.is_sparse())
         return P.element_class(P, coeff_stream)
 
     def egf_to_ogf(self):
@@ -5839,8 +5839,8 @@ class LazyPowerSeries(LazyCauchyProductSeries):
         if isinstance(coeff_stream, Stream_zero):
             return self
         s_factorial = Stream_function(factorial, P._sparse, 0)
-        coeff_stream = Stream_Hadamard(coeff_stream, s_factorial,
-                                       P.is_sparse())
+        coeff_stream = Stream_hadamard_mul(coeff_stream, s_factorial,
+                                           P.is_sparse())
         return P.element_class(P, coeff_stream)
 
     def ogf_to_egf(self):
@@ -5870,8 +5870,8 @@ class LazyPowerSeries(LazyCauchyProductSeries):
         if isinstance(coeff_stream, Stream_zero):
             return self
         s_factorial = Stream_function(lambda n: ~factorial(n), P._sparse, 0)
-        coeff_stream = Stream_Hadamard(coeff_stream, s_factorial,
-                                       P.is_sparse())
+        coeff_stream = Stream_hadamard_mul(coeff_stream, s_factorial,
+                                           P.is_sparse())
         return P.element_class(P, coeff_stream)
 
     def derivative(self, *args):

@@ -2780,7 +2780,7 @@ class Stream_sub(Stream_binary):
         return self._left[n] - self._right[n]
 
 
-class Stream_Hadamard(Stream_binary):
+class Stream_hadamard_mul(Stream_binary):
     """
     Operator for Hadamard product of two coefficient streams.
 
@@ -2792,10 +2792,10 @@ class Stream_Hadamard(Stream_binary):
 
     EXAMPLES::
 
-        sage: from sage.data_structures.stream import (Stream_Hadamard, Stream_function)
+        sage: from sage.data_structures.stream import (Stream_hadamard_mul, Stream_function)
         sage: f = Stream_function(lambda n: n, True, 0)
         sage: g = Stream_function(lambda n: n+1, True, 0)
-        sage: h = Stream_Hadamard(f, g, True)
+        sage: h = Stream_hadamard_mul(f, g, True)
         sage: [h[i] for i in range(10)]
         [0, 2, 6, 12, 20, 30, 42, 56, 72, 90]
     """
@@ -2806,10 +2806,10 @@ class Stream_Hadamard(Stream_binary):
 
         EXAMPLES::
 
-            sage: from sage.data_structures.stream import Stream_exact, Stream_function, Stream_Hadamard
+            sage: from sage.data_structures.stream import Stream_exact, Stream_function, Stream_hadamard_mul
             sage: f = Stream_exact([0,3])
             sage: g = Stream_function(lambda n: -3*n, True, 1)
-            sage: h = Stream_Hadamard(f, g, True)
+            sage: h = Stream_hadamard_mul(f, g, True)
             sage: h._approximate_order
             1
             sage: [h[i] for i in range(5)]
@@ -2828,10 +2828,10 @@ class Stream_Hadamard(Stream_binary):
 
         EXAMPLES::
 
-            sage: from sage.data_structures.stream import (Stream_function, Stream_Hadamard)
+            sage: from sage.data_structures.stream import (Stream_function, Stream_hadamard_mul)
             sage: f = Stream_function(lambda n: n, True, 0)
             sage: g = Stream_function(lambda n: n^2, True, 0)
-            sage: h = Stream_Hadamard(f, g, True)
+            sage: h = Stream_hadamard_mul(f, g, True)
             sage: h.get_coefficient(5)
             125
             sage: [h.get_coefficient(i) for i in range(10)]
