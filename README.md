@@ -455,7 +455,7 @@ in the Installation Guide.
 SageMath Docker images
 ----------------------
 
-[![Docker Status](https://img.shields.io/docker/v/sagemath/sagemath)](https://hub.docker.com/r/sagemath/sagemath)
+[![Docker Status](https://img.shields.io/docker/v/sagemath/sagemath?style=for-the-badge&logo=docker)](https://hub.docker.com/r/sagemath/sagemath)
 
 SageMath is available on Docker Hub and can be downloaded by:
 
