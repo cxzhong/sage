@@ -2,6 +2,7 @@ import argparse
 import sys
 from unittest.mock import patch
 
+from sage.cli import main
 from sage.cli.run_file_cmd import RunFileCmd
 from sage.cli.options import CliOptions
 
@@ -24,6 +25,29 @@ def test_run_file_parser_handles_explicit_terminator():
     args = _parser().parse_args(["--", "-test.sage", "-y"])
 
     assert args.file == ["-test.sage", "-y"]
+
+
+def test_main_forwards_script_arguments(capsys, tmp_path):
+    """Regression test for #40871 and #41908."""
+    file = tmp_path / "test.sage"
+    file.write_text(
+        "import argparse\n"
+        "import sys\n"
+        "parser = argparse.ArgumentParser()\n"
+        "parser.add_argument('x', type=ZZ)\n"
+        "parser.add_argument('-y', '--why', type=ZZ)\n"
+        "parser.add_argument('-c', '--command')\n"
+        "args = parser.parse_args()\n"
+        "print(sys.argv[1:])\n"
+        "print(args.x + args.why)\n"
+        "print(args.command)\n"
+    )
+
+    with patch.object(sys, 'argv', ["sage", "-q", str(file), "42", "-y", "7", "-c", "script-c"]):
+        assert main() == 0
+
+    captured = capsys.readouterr()
+    assert captured.out == "['42', '-y', '7', '-c', 'script-c']\n49\nscript-c\n"
 
 
 def test_run_file_cmd(capsys, tmp_path):
