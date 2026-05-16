@@ -10,6 +10,8 @@ from sage.all import sage_globals
 
 
 class _RunFileArgs(argparse.Action):
+    """Collect the script filename and all following arguments."""
+
     def __call__(self, parser, namespace, values, option_string=None):
         if values and values[0] == "--":
             values = values[1:]
