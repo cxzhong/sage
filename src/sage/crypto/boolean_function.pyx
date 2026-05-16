@@ -854,7 +854,7 @@ cdef class BooleanFunction(SageObject):
 
         TESTS:
 
-        Check if :trac:`28001` is fixed::
+        Check if :issue:`28001` is fixed::
 
             sage: from sage.crypto.boolean_function import BooleanFunction
             sage: f = [False, False, True, False, False, True, False, False]
