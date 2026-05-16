@@ -1513,7 +1513,7 @@ cdef class LaurentSeries(AlgebraElement):
         return type(self)(self._parent, self.__u.__copy__(), self.__n)
 
     def revert(self, precision=None):
-        """
+        r"""
         Return the reversion of this Laurent series.
 
         The reversion of a Laurent series `f` is the Laurent series `g` such
@@ -1602,8 +1602,8 @@ cdef class LaurentSeries(AlgebraElement):
 
             sage: k.<a> = GF(5**3)
             sage: R.<t> = LaurentSeriesRing(k)
-            sage: f = (3*a^2 + 3)*t + (a^2 + 3*a + 3)*t^5 +\
-            ....: (4*a^2 + 4*a + 4)*t^6 + (4*a^2 + 4*a + 2)*t^7 + O(t^8)
+            sage: f = (3*a^2 + 3)*t + (a^2 + 3*a + 3)*t^5 \
+            ....: + (4*a^2 + 4*a + 4)*t^6 + (4*a^2 + 4*a + 2)*t^7 + O(t^8)
             sage: g = f.revert(); g
             (3*a^2 + 3*a + 1)*t + (2*a^2 + a + 2)*t^5
              + (4*a^2 + 3*a)*t^6 + (2*a + 4)*t^7 + O(t^8)
