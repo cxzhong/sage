@@ -36,6 +36,7 @@ def R4():
 elements = ( "R1", "R2", "R3", "R4" )
 
 
+@pytest.mark.long
 @pytest.mark.parametrize("e", elements)
 def test_padic_lattice_element(e, request):
     r"""
