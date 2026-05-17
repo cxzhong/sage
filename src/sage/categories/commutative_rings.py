@@ -107,12 +107,6 @@ class CommutativeRings(CategoryWithAxiom):
 
             TESTS::
 
-                sage: R = CommutativeRing(ZZ)
-                sage: R.krull_dimension()
-                Traceback (most recent call last):
-                ...
-                NotImplementedError
-
                 sage: R = GF(9).galois_group().algebra(QQ)
                 sage: R.krull_dimension()
                 Traceback (most recent call last):
