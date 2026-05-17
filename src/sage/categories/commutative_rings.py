@@ -601,6 +601,7 @@ class CommutativeRings(CategoryWithAxiom):
 
             import sage.rings.fraction_field
             return sage.rings.fraction_field.FractionField_generic(self)
+
         def extension(self, poly, name=None, names=None, **kwds):
             """
             Algebraically extend ``self`` by taking the quotient
@@ -847,7 +848,7 @@ class CommutativeRings(CategoryWithAxiom):
             from sage.rings.polynomial.polynomial_ring_constructor import PolynomialRing
             PY = PolynomialRing(P, 'y')
             y = PY.gen()
-            sq_rt = PY.quotient(y**2-self, names=name)(y)
+            sq_rt = PY.quotient(y**2 - self, names=name)(y)
             if all:
                 if P.characteristic() == 2:
                     return [sq_rt]
