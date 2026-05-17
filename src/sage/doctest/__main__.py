@@ -200,7 +200,20 @@ def main():
     err = DC.run()
 
     exit_code_pytest = 0
-    pytest_options = []
+
+    # Never run "long long" tests via sage -t (or python -m
+    # sage.doctest) to avoid catching users by surprise with
+    # tests that run for several minutes.
+    pytest_markers = "not longlong"
+    if not args.long:
+        # Multiple "-m" flags cannot be combined,
+        #
+        #   https://github.com/pytest-dev/pytest/issues/7229
+        #
+        # so we construct one big compound statement instead.
+        pytest_markers += " and not long"
+    pytest_options = ["-m", pytest_markers]
+
     if args.verbose:
         pytest_options.append("-v")
 
