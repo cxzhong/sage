@@ -419,9 +419,9 @@ class TabloidModule(SymmetricGroupRepresentation, CombinatorialFreeModule):
     A *tabloid* is an :class:`OrderedSetPartition` whose underlying set
     is `\{1, \ldots, n\}`. The symmetric group acts by permuting the
     entries of the set. Hence, this is a representation of the symmetric
-    group defined over any field. This is a left representation, so an
-    entry `i` is sent to `g^{-1}(i)` in Sage's permutation multiplication
-    convention.
+    group defined over any field. This is a left representation, so the
+    permutation applied to the entries depends on the multiplication
+    convention of the defining symmetric group algebra.
 
     EXAMPLES::
 
@@ -609,12 +609,31 @@ class TabloidModule(SymmetricGroupRepresentation, CombinatorialFreeModule):
             [5, 1, 2, 3, 4]
             sage: TM._symmetric_group_action(osp, g)
             [{2, 5}, {1, 4}, {3}]
+
+            sage: from sage.combinat.permutation import Permutations
+            sage: Permutations.options.mult = 'r2l'
+            sage: TM._symmetric_group_action(osp, g)
+            [{3, 5}, {2, 4}, {1}]
+            sage: Permutations.options.mult = 'l2r'
         """
         P = self._indices
-        # Sage permutations multiply from left to right; using the inverse
-        # gives a left action on tabloids.
-        g = ~self._symgp(g)
+        g = self._left_action_permutation(g)
         return P.element_class(P, [[g(val) for val in row] for row in osp], check=False)
+
+    def _left_action_permutation(self, g):
+        r"""
+        Return the permutation applied to entries for the left action of ``g``.
+
+        The classical :class:`~sage.combinat.permutation.Permutations`
+        parent has a user-settable multiplication convention. When it is
+        set to ``'r2l'``, the direct action on entries is already a left
+        action; otherwise we use the inverse.
+        """
+        g = self._symgp(g)
+        options = getattr(self._semigroup, "options", None)
+        if options is not None and options.mult == 'r2l':
+            return g
+        return ~g
 
     def specht_module(self):
         r"""
@@ -686,6 +705,16 @@ class TabloidModule(SymmetricGroupRepresentation, CombinatorialFreeModule):
                 sage: d = SGA(Permutation([2,3,1,4,5]))
                 sage: c * (d * a) == (c*d) * a
                 True
+                sage: from sage.combinat.permutation import Permutations
+                sage: Permutations.options.mult = 'r2l'
+                sage: SGA = SymmetricGroupAlgebra(QQ, 5)
+                sage: SM = SGA.tabloid_module([2,2,1])
+                sage: a = SM([{2,1}, {3,4}, {5}])
+                sage: c = SGA(Permutation([2,3,4,1,5]))
+                sage: d = SGA(Permutation([2,3,1,4,5]))
+                sage: c * (d * a) == (c*d) * a
+                True
+                sage: Permutations.options.mult = 'l2r'
                 sage: G = SymmetricGroup(5)
                 sage: SG = G.algebra(QQ)
                 sage: SM = SG.tabloid_module([2,2,1])
