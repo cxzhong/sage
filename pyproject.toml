@@ -91,6 +91,7 @@ extra = [
   'sage_numerical_backends_coin',
   'symengine >= 0.6.1', # Only used in tests
 ]
+test = ["pytest-xdist"]
 #giac = ['sagemath_giac'] # Not yet available on PyPI (https://github.com/sagemath/sagemath-giac/issues/3)
 
 [project.readme]
@@ -248,7 +249,7 @@ docs = [
   "sphinx-inline-tabs",
 ]
 lint = ["flake8-rst-docstrings", "pycodestyle", "relint", "ruff"]
-test = ["coverage", "pytest", "pytest-xdist"]
+test = ["coverage", "pytest"]
 
 [tool.ruff]
 # https://docs.astral.sh/ruff/configuration
