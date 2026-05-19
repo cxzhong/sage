@@ -214,6 +214,14 @@ def main():
         pytest_markers += " and not long"
     pytest_options = ["-m", pytest_markers]
 
+    if args.warn_long > 0:
+        # Show all test durations...
+        pytest_options.append("--durations=0")
+
+        # But then limit the list to the ones that exceed the
+        # warn-long limit.
+        pytest_options.append(f"--durations-min={args.warn_long}")
+
     if args.verbose:
         pytest_options.append("-v")
 
