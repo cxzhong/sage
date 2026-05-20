@@ -1309,7 +1309,7 @@ class ToricDivisor_generic(Divisor_generic):
                            for i, ray in enumerate(fan.rays())]
 
         simplicial_faces = []
-        for cone in flatten(fan.cones()):
+        for cone in fan:
             simplicial_faces.append([i for i in cone.ambient_ray_indices()
                                      if ray_is_negative[i]])
         return SimplicialComplex(simplicial_faces)
