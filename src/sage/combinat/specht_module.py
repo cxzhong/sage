@@ -28,6 +28,7 @@ from sage.categories.modules_with_basis import ModulesWithBasis
 from sage.combinat.diagram import Diagram
 from sage.combinat.free_module import CombinatorialFreeModule
 from sage.combinat.partition import _Partitions
+from sage.combinat.permutation import Permutations
 from sage.matrix.constructor import matrix
 from sage.misc.cachefunc import cached_method
 from sage.misc.latex import latex
@@ -610,30 +611,16 @@ class TabloidModule(SymmetricGroupRepresentation, CombinatorialFreeModule):
             sage: TM._symmetric_group_action(osp, g)
             [{2, 5}, {1, 4}, {3}]
 
-            sage: from sage.combinat.permutation import Permutations
             sage: Permutations.options.mult = 'r2l'
             sage: TM._symmetric_group_action(osp, g)
             [{3, 5}, {2, 4}, {1}]
             sage: Permutations.options.mult = 'l2r'
         """
         P = self._indices
-        g = self._left_action_permutation(g)
-        return P.element_class(P, [[g(val) for val in row] for row in osp], check=False)
-
-    def _left_action_permutation(self, g):
-        r"""
-        Return the permutation applied to entries for the left action of ``g``.
-
-        The classical :class:`~sage.combinat.permutation.Permutations`
-        parent has a user-settable multiplication convention. When it is
-        set to ``'r2l'``, the direct action on entries is already a left
-        action; otherwise we use the inverse.
-        """
         g = self._symgp(g)
-        options = getattr(self._semigroup, "options", None)
-        if options is not None and options.mult == 'r2l':
-            return g
-        return ~g
+        if not isinstance(self._semigroup, Permutations) or self._semigroup.options.mult != 'r2l':
+            g = ~g
+        return P.element_class(P, [[g(val) for val in row] for row in osp], check=False)
 
     def specht_module(self):
         r"""
@@ -705,13 +692,13 @@ class TabloidModule(SymmetricGroupRepresentation, CombinatorialFreeModule):
                 sage: d = SGA(Permutation([2,3,1,4,5]))
                 sage: c * (d * a) == (c*d) * a
                 True
-                sage: from sage.combinat.permutation import Permutations
                 sage: Permutations.options.mult = 'r2l'
                 sage: SGA = SymmetricGroupAlgebra(QQ, 5)
                 sage: SM = SGA.tabloid_module([2,2,1])
                 sage: a = SM([{2,1}, {3,4}, {5}])
-                sage: c = SGA(Permutation([2,3,4,1,5]))
-                sage: d = SGA(Permutation([2,3,1,4,5]))
+                sage: G = SGA.group()
+                sage: c = SGA(G([2,3,4,1,5]))
+                sage: d = SGA(G([2,3,1,4,5]))
                 sage: c * (d * a) == (c*d) * a
                 True
                 sage: Permutations.options.mult = 'l2r'
