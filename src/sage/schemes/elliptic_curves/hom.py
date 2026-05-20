@@ -1852,25 +1852,20 @@ class EllipticCurveHom(Morphism):
             return R.one()
         return alpha.minpoly()
 
-    def xEVAL(self, xP, *, proj=False):
+    def xEVAL(self, xP):
         r"""
         Return the `x`-coordinate of `\varphi(P)` given the `x`-coordinate of `P`.
 
         INPUT:
 
         - ``xP`` -- `x`-coordinate of a point `P` on the domain of this isogeny,
-          or :const:`~sage.rings.infinity.Infinity`; alternatively (if ``proj``
-          is set to ``True``) this value should be a tuple `(X,Z)` representing
-          the `x`-coordinate `X/Z`.
-
-        - ``proj`` -- boolean (default: ``False``); if set, the inputs and output
-          will be given as a tuple `(X,Z)` representing the `x`-coordinate `X/Z`.
+          or :const:`~sage.rings.infinity.Infinity`; alternatively, a tuple `(X,Z)`
+          representing the `x`-coordinate `X/Z`.
 
         OUTPUT:
 
         `x`-coordinate of `\varphi(P)`, or :const:`~sage.rings.infinity.Infinity`;
-        alternatively (if ``proj`` is set to ``True``), a tuple `(X,Y)` representing
-        the `x`-coordinate `X/Z`.
+        alternatively, a tuple `(X,Y)` representing the `x`-coordinate `X/Z`.
 
         EXAMPLES:
 
@@ -1888,9 +1883,9 @@ class EllipticCurveHom(Morphism):
         Projectively::
 
             sage: xP = seq((16, 10), E.base_field())
-            sage: iso.xEVAL(xP, proj=True)
+            sage: iso.xEVAL(xP)
             (19, 10)
-            sage: iso.xEVAL((1, 0), proj=True)
+            sage: iso.xEVAL((1, 0))
             (1, 0)
 
         Example for :class:`EllipticCurveIsogeny` (Vélu)::
@@ -1911,12 +1906,12 @@ class EllipticCurveHom(Morphism):
         Projectively::
 
             sage: xP = seq((16, 10), E.base_field())
-            sage: phi.xEVAL(xP, proj=True)
+            sage: phi.xEVAL(xP)
             (48, 50)
             sage: xK2 = (2*K)[0]*5, (2*K)[2]*5
-            sage: phi.xEVAL(xK2, proj=True)
+            sage: phi.xEVAL(xK2)
             (1, 0)
-            sage: phi.xEVAL((1, 0), proj=True)
+            sage: phi.xEVAL((1, 0))
             (1, 0)
 
         Example for :class:`EllipticCurveIsogeny` (Kohel)::
@@ -1937,12 +1932,12 @@ class EllipticCurveHom(Morphism):
         Projectively::
 
             sage: xP = seq((16, 10), E.base_field())
-            sage: psi.xEVAL(xP, proj=True)
+            sage: psi.xEVAL(xP)
             (48, 50)
             sage: xK2 = (2*K)[0]*5, (2*K)[2]*5
-            sage: psi.xEVAL(xK2, proj=True)
+            sage: psi.xEVAL(xK2)
             (1, 0)
-            sage: psi.xEVAL((1, 0), proj=True)
+            sage: psi.xEVAL((1, 0))
             (1, 0)
 
         Example for :class:`EllipticCurveHom_frobenius`::
@@ -1963,9 +1958,9 @@ class EllipticCurveHom(Morphism):
         Projectively::
 
             sage: xP = (3*z2 - 2, z2)
-            sage: pi.xEVAL(xP, proj=True)
+            sage: pi.xEVAL(xP)
             (98*z2 + 10, 100*z2 + 4)
-            sage: pi.xEVAL((1, 0), proj=True)
+            sage: pi.xEVAL((1, 0))
             (1, 0)
 
         Example for :class:`EllipticCurveHom_fractional`::
@@ -1990,9 +1985,9 @@ class EllipticCurveHom(Morphism):
         Projectively::
 
             sage: xP = (3*z2 - 2, z2)
-            sage: chi.xEVAL(xP, proj=True)
+            sage: chi.xEVAL(xP)
             (64*z2 + 54, 84*z2 + 88)
-            sage: chi.xEVAL((1, 0), proj=True)
+            sage: chi.xEVAL((1, 0))
             (1, 0)
 
         .. TODO ::
@@ -2001,6 +1996,7 @@ class EllipticCurveHom(Morphism):
             a specialized implementation could be (much) faster.
         """
         from sage.rings.infinity import Infinity as oo
+        proj = isinstance(xP, (tuple, list))
         if proj:
             if not xP[1]:
                 return xP

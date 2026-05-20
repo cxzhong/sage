@@ -3087,23 +3087,19 @@ class EllipticCurve_field(ell_generic.EllipticCurve_generic, ProjectivePlaneCurv
 
         return self.frobenius() not in ZZ
 
-    def xDBL(self, xP, *, proj=False):
+    def xDBL(self, xP):
         r"""
         Return the `x`-coordinate of `[2]P` given the `x`-coordinate of `P`.
 
         INPUT:
 
         - ``xP`` -- `x`-coordinate of a point `P` on this curve, or :const:`~sage.rings.infinity.Infinity`;
-          alternatively (if ``proj`` is set to ``True``) this value should be a tuple `(X,Z)` representing
-          the `x`-coordinate `X/Z`.
-
-        - ``proj`` -- boolean (default: ``False``); if set, the inputs and output will be given
-          as a tuple `(X,Z)` representing the `x`-coordinate `X/Z`.
+          alternatively, a tuple `(X,Z)` representing the `x`-coordinate `X/Z`.
 
         OUTPUT:
 
-        `x`-coordinate of `[2]P`, or :const:`~sage.rings.infinity.Infinity`; alternatively
-        (if ``proj`` is set to ``True``), a tuple `(X,Y)` representing the `x`-coordinate `X/Z`.
+        `x`-coordinate of `[2]P`, or :const:`~sage.rings.infinity.Infinity`; alternatively,
+        a tuple `(X,Y)` representing the `x`-coordinate `X/Z`.
 
         .. NOTE::
 
@@ -3141,7 +3137,7 @@ class EllipticCurve_field(ell_generic.EllipticCurve_generic, ProjectivePlaneCurv
             sage: xQ = seq((98, 11), E.base_field())
             sage: P = E.lift_x(xP[0] / xP[1]); P
             (53 : 55 : 1)
-            sage: xR = E.xDBL(xP, proj=True); xR
+            sage: xR = E.xDBL(xP); xR
             (100, 88)
             sage: xR[0] / xR[1]
             30
@@ -3174,29 +3170,32 @@ class EllipticCurve_field(ell_generic.EllipticCurve_generic, ProjectivePlaneCurv
             sage: PQ = P - Q
             sage: xP = P[::2] if P else (1,0)
             sage: xR = (2*P)[::2] if 2*P else (1,0)
-            sage: xS = E.xDBL(xP, proj=True)
+            sage: xS = E.xDBL(xP)
             sage: xR[0] * xS[1] == xS[0] * xR[1]
             True
         """
         if any(self.a_invariants()[:-2]):
             raise NotImplementedError('only implemented for short Weierstrass curves')
 
-        X = (lambda pt: pt[0] if proj else 1 if pt == oo else pt)
-        Z = (lambda pt: pt[1] if proj else int(pt != oo))
+        proj = isinstance(xP, (tuple, list))
+        if proj:
+            XP, ZP = xP
+        else:
+            XP, ZP = ((xP, 1) if xP != oo else (1, 0))
 
-        if not Z(xP):
+        if not ZP:
             return xP
 
         a, b = self.a_invariants()[-2:]
 
         # https://hyperelliptic.org/EFD/g1p/auto-code/shortw/xz/doubling/dbl-2002-it-2.op3
-        T1 = X(xP)**2
-        T2 = Z(xP)**2
+        T1 = XP**2
+        T2 = ZP**2
         T3 = a * T2
         T4 = T1 - T3
         T5 = T4**2
         T6 = b * T2
-        T7 = X(xP) * Z(xP)
+        T7 = XP * ZP
         T8 = T6 * T7
         T9 = 8 * T8
         X3 = T5 - T9
@@ -3213,7 +3212,7 @@ class EllipticCurve_field(ell_generic.EllipticCurve_generic, ProjectivePlaneCurv
             return oo
         return X3 / Z3
 
-    def xADD(self, xP, xQ, xPQ, *, proj=False):
+    def xADD(self, xP, xQ, xPQ):
         r"""
         Return the `x`-coordinate of `P + Q` given the `x`-coordinates of `P`, `Q`, and `P - Q`.
 
@@ -3222,16 +3221,13 @@ class EllipticCurve_field(ell_generic.EllipticCurve_generic, ProjectivePlaneCurv
         INPUT:
 
         - ``xP``, ``xQ``, ``xPQ`` -- `x`-coordinates of points `P`, `Q`, and `P-Q` on this curve,
-          or :const:`~sage.rings.infinity.Infinity`; alternatively (if ``proj`` is set to ``True``)
-          each of these values should be a tuple `(X,Z)` representing the `x`-coordinate `X/Z`.
-
-        - ``proj`` -- boolean (default: ``False``); if set, the inputs and output will be given
-          as a tuple `(X,Z)` representing the `x`-coordinate `X/Z`.
+          or :const:`~sage.rings.infinity.Infinity`; alternatively, each of these values should
+          be a tuple `(X,Z)` representing the `x`-coordinate `X/Z`.
 
         OUTPUT:
 
-        `x`-coordinate of `P + Q`, or :const:`~sage.rings.infinity.Infinity`; alternatively
-        (if ``proj`` is set to ``True``), a tuple `(X,Y)` representing the `x`-coordinate `X/Z`.
+        `x`-coordinate of `P + Q`, or :const:`~sage.rings.infinity.Infinity`; alternatively,
+        a tuple `(X,Y)` representing the `x`-coordinate `X/Z`.
 
         .. NOTE::
 
@@ -3281,7 +3277,7 @@ class EllipticCurve_field(ell_generic.EllipticCurve_generic, ProjectivePlaneCurv
             (32 : 57 : 1)
             sage: xPQ = (42 * (P - Q).x(), 42); xPQ
             (80, 42)
-            sage: xR = E.xADD(xP, xQ, xPQ, proj=True); xR
+            sage: xR = E.xADD(xP, xQ, xPQ); xR
             (19, 24)
             sage: xR[0] / xR[1]
             59
@@ -3320,31 +3316,40 @@ class EllipticCurve_field(ell_generic.EllipticCurve_generic, ProjectivePlaneCurv
             sage: xQ = Q[::2] if Q else (1,0)
             sage: xPQ = PQ[::2] if PQ else (1,0)
             sage: xR = (P + Q)[::2] if P + Q else (1,0)
-            sage: xS = E.xADD(xP, xQ, xPQ, proj=True)
+            sage: xS = E.xADD(xP, xQ, xPQ)
             sage: xR[0] * xS[1] == xS[0] * xR[1]
             True
         """
         if any(self.a_invariants()[:-2]):
             raise NotImplementedError('only implemented for short Weierstrass curves')
 
-        X = (lambda pt: pt[0] if proj else 1 if pt == oo else pt)
-        Z = (lambda pt: pt[1] if proj else int(pt != oo))
+        proj = isinstance(xP, (tuple, list))
+        if proj != isinstance(xQ, (tuple, list)) or proj != isinstance(xPQ, (tuple, list)):
+            raise ValueError('given x-coordinates must either all be affine or all be projective')
+        if proj:
+            XP, ZP = xP
+            XQ, ZQ = xQ
+            XPQ, ZPQ = xPQ
+        else:
+            XP, ZP = ((xP, 1) if xP != oo else (1, 0))
+            XQ, ZQ = ((xQ, 1) if xQ != oo else (1, 0))
+            XPQ, ZPQ = ((xPQ, 1) if xPQ != oo else (1, 0))
 
-        if not Z(xPQ):
-            return self.xDBL(xP, proj=proj)
-        if not Z(xP):
+        if not ZPQ:
+            return self.xDBL(xP)
+        if not ZP:
             return xQ
-        if not Z(xQ):
+        if not ZQ:
             return xP
 
         a, b = self.a_invariants()[-2:]
 
-        if X(xPQ):
+        if XPQ:
             # https://hyperelliptic.org/EFD/g1p/auto-code/shortw/xz/diffadd/dadd-2002-it-3.op3
-            T1 = X(xP) * X(xQ)
-            T2 = Z(xP) * Z(xQ)
-            T3 = X(xP) * Z(xQ)
-            T4 = Z(xP) * X(xQ)
+            T1 = XP * XQ
+            T2 = ZP * ZQ
+            T3 = XP * ZQ
+            T4 = ZP * XQ
             T5 = a * T2
             T6 = T1 - T5
             T7 = T6**2
@@ -3354,16 +3359,16 @@ class EllipticCurve_field(ell_generic.EllipticCurve_generic, ProjectivePlaneCurv
             T10 = T3 + T4
             T11 = T9 * T10
             T12 = T7 - T11
-            X5 = Z(xPQ) * T12
+            X5 = ZPQ * T12
             T13 = T3 - T4
             T14 = T13**2
-            Z5 = X(xPQ) * T14
+            Z5 = XPQ * T14
         else:
             # https://hyperelliptic.org/EFD/g1p/auto-code/shortw/xz/diffadd/dadd-2002-it-4.op3
-            T1 = X(xP) * X(xQ)
-            T2 = Z(xP) * Z(xQ)
-            T3 = X(xP) * Z(xQ)
-            T4 = X(xQ) * Z(xP)
+            T1 = XP * XQ
+            T2 = ZP * ZQ
+            T3 = XP * ZQ
+            T4 = XQ * ZP
             T5 = T3 + T4
             T6 = a * T2
             T7 = T1 + T6
@@ -3376,10 +3381,10 @@ class EllipticCurve_field(ell_generic.EllipticCurve_generic, ProjectivePlaneCurv
             T13 = T9 + T12
             T14 = T3 - T4
             T15 = T14**2
-            T16 = Z(xPQ) * T13
-            T17 = X(xPQ) * T15
+            T16 = ZPQ * T13
+            T17 = XPQ * T15
             X5 = T16 - T17
-            Z5 = Z(xPQ) * T15
+            Z5 = ZPQ * T15
 
         if proj:
             return X5, Z5
@@ -3387,7 +3392,7 @@ class EllipticCurve_field(ell_generic.EllipticCurve_generic, ProjectivePlaneCurv
             return oo
         return X5/Z5
 
-    def xMUL(self, n, xP, *, proj=False):
+    def xMUL(self, n, xP):
         r"""
         Return the `x`-coordinate of `[n]P` given an integer `n` and the `x`-coordinate of `P`.
 
@@ -3396,16 +3401,12 @@ class EllipticCurve_field(ell_generic.EllipticCurve_generic, ProjectivePlaneCurv
         - ``n`` -- integer
 
         - ``xP`` -- `x`-coordinate of a point `P` on this curve, or :const:`~sage.rings.infinity.Infinity`;
-          alternatively (if ``proj`` is set to ``True``) this value should be a tuple `(X,Z)` representing
-          the `x`-coordinate `X/Z`.
-
-        - ``proj`` -- boolean (default: ``False``); if set, the inputs and output will be given
-          as a tuple `(X,Z)` representing the `x`-coordinate `X/Z`.
+          alternatively, a tuple `(X,Z)` representing the `x`-coordinate `X/Z`.
 
         OUTPUT:
 
-        `x`-coordinate of `[n]P`, or :const:`~sage.rings.infinity.Infinity`; alternatively
-        (if ``proj`` is set to ``True``), a tuple `(X,Y)` representing the `x`-coordinate `X/Z`.
+        `x`-coordinate of `[n]P`, or :const:`~sage.rings.infinity.Infinity`; alternatively,
+        a tuple `(X,Y)` representing the `x`-coordinate `X/Z`.
 
         .. NOTE::
 
@@ -3442,7 +3443,7 @@ class EllipticCurve_field(ell_generic.EllipticCurve_generic, ProjectivePlaneCurv
             sage: xP = seq((117, 7), E.base_field())
             sage: P = E.lift_x(xP[0] / xP[1]); P
             (53 : 55 : 1)
-            sage: xR = E.xMUL(7, xP, proj=True); xR
+            sage: xR = E.xMUL(7, xP); xR
             (116, 83)
             sage: xR[0] / xR[1]
             32
@@ -3470,25 +3471,26 @@ class EllipticCurve_field(ell_generic.EllipticCurve_generic, ProjectivePlaneCurv
             sage: xP = P[::2] if P else (1,0)
             sage: n = randrange(-2^99, 2^99)
             sage: xR = (n * P)[::2] if n * P else (1,0)
-            sage: xS = E.xMUL(n, xP, proj=True)
+            sage: xS = E.xMUL(n, xP)
             sage: xR[0] * xS[1] == xS[0] * xR[1]
             True
         """
         n = ZZ(n).abs()
+        proj = isinstance(xP, (tuple, list))
         if not n:
             if proj:
                 return xP[0].parent().zero(), xP[1].parent().one()
             return oo
         if n.is_one():
             return xP
-        R0, R1, diff = xP, self.xDBL(xP, proj=proj), xP
+        R0, R1, diff = xP, self.xDBL(xP), xP
         for bit in reversed(n.digits(2)[:-1]):
-            R0R1 = self.xADD(R0, R1, diff, proj=proj)
-            diff = self.xADD(R0, R1, R0R1, proj=proj)
+            R0R1 = self.xADD(R0, R1, diff)
+            diff = self.xADD(R0, R1, R0R1)
             if bit:
-                R0, R1 = R0R1, self.xDBL(R1, proj=proj)
+                R0, R1 = R0R1, self.xDBL(R1)
             else:
-                R0, R1 = self.xDBL(R0, proj=proj), R0R1
+                R0, R1 = self.xDBL(R0), R0R1
         return R0
 
 

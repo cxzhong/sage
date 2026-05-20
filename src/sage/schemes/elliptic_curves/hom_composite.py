@@ -1081,25 +1081,20 @@ class EllipticCurveHom_composite(EllipticCurveHom):
             f = phi.push_subgroup(f)
         return f
 
-    def xEVAL(self, xP, *, proj=False):
+    def xEVAL(self, xP):
         r"""
         Return the `x`-coordinate of `\varphi(P)` given the `x`-coordinate of `P`.
 
         INPUT:
 
         - ``xP`` -- `x`-coordinate of a point `P` on the domain of this isogeny,
-          or :const:`~sage.rings.infinity.Infinity`; alternatively (if ``proj``
-          is set to ``True``) this value should be a tuple `(X,Z)` representing
-          the `x`-coordinate `X/Z`.
-
-        - ``proj`` -- boolean (default: ``False``); if set, the inputs and output
-          will be given as a tuple `(X,Z)` representing the `x`-coordinate `X/Z`.
+          or :const:`~sage.rings.infinity.Infinity`; alternatively, a tuple `(X,Z)`
+          representing the `x`-coordinate `X/Z`.
 
         OUTPUT:
 
         `x`-coordinate of `\varphi(P)`, or :const:`~sage.rings.infinity.Infinity`;
-        alternatively (if ``proj`` is set to ``True``), a tuple `(X,Y)` representing
-        the `x`-coordinate `X/Z`.
+        alternatively, a tuple `(X,Y)` representing the `x`-coordinate `X/Z`.
 
         EXAMPLES::
 
@@ -1121,14 +1116,14 @@ class EllipticCurveHom_composite(EllipticCurveHom):
         Projectively::
 
             sage: xP = seq((420, 10), E.base_field())
-            sage: phi.xEVAL(xP, proj=True)
+            sage: phi.xEVAL(xP)
             (90035703993267090112493393657965727906, 4918494759669739394657653301510642888)
             sage: xK = seq((230, 10), E.base_field())
-            sage: phi.xEVAL(xK, proj=True)
+            sage: phi.xEVAL(xK)
             (1, 0)
-            sage: phi.xEVAL((1, 0), proj=True)
+            sage: phi.xEVAL((1, 0))
             (1, 0)
         """
         for phi in self.factors():
-            xP = phi.xEVAL(xP, proj=proj)
+            xP = phi.xEVAL(xP)
         return xP

@@ -1320,25 +1320,20 @@ class EllipticCurveHom_velusqrt(EllipticCurveHom):
         pt = (~self._pre_iso)(self._P)
         return AdditiveAbelianGroupWrapper(pt.parent(), [pt], [self._degree])
 
-    def xEVAL(self, xP, *, proj=False):
+    def xEVAL(self, xP):
         r"""
         Return the `x`-coordinate of `\varphi(P)` given the `x`-coordinate of `P`.
 
         INPUT:
 
         - ``xP`` -- `x`-coordinate of a point `P` on the domain of this isogeny,
-          or :const:`~sage.rings.infinity.Infinity`; alternatively (if ``proj``
-          is set to ``True``) this value should be a tuple `(X,Z)` representing
-          the `x`-coordinate `X/Z`.
-
-        - ``proj`` -- boolean (default: ``False``); if set, the inputs and output
-          will be given as a tuple `(X,Z)` representing the `x`-coordinate `X/Z`.
+          or :const:`~sage.rings.infinity.Infinity`; alternatively, a tuple `(X,Z)`
+          representing the `x`-coordinate `X/Z`.
 
         OUTPUT:
 
         `x`-coordinate of `\varphi(P)`, or :const:`~sage.rings.infinity.Infinity`;
-        alternatively (if ``proj`` is set to ``True``), a tuple `(X,Y)` representing
-        the `x`-coordinate `X/Z`.
+        alternatively, a tuple `(X,Y)` representing the `x`-coordinate `X/Z`.
 
         EXAMPLES::
 
@@ -1360,15 +1355,16 @@ class EllipticCurveHom_velusqrt(EllipticCurveHom):
         Projectively::
 
             sage: xP = seq((16, 10), E.base_field())
-            sage: phi.xEVAL(xP, proj=True)
+            sage: phi.xEVAL(xP)
             (96, 1)
             sage: xK = K[0]*5, K[2]*5
-            sage: phi.xEVAL(xK, proj=True)
+            sage: phi.xEVAL(xK)
             (1, 0)
-            sage: phi.xEVAL((1, 0), proj=True)
+            sage: phi.xEVAL((1, 0))
             (1, 0)
         """
         from sage.rings.infinity import Infinity as oo
+        proj = isinstance(xP, (tuple, list))
         if proj:
             #TODO This implementation currently does everything in affine coordinates.
             # It would not be very difficult to properly support projective coordinates
