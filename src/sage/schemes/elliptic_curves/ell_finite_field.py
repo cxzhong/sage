@@ -3165,6 +3165,16 @@ def special_supersingular_curve(F, q=None, *, endomorphism=False, maximal_order=
         sage: pi * endo == -endo * pi
         True
 
+    The fast construction of the isogeny to the quadratic twist may fail
+    for composite `q`; in that case we fall back to enumerating isogenies::
+
+        sage: F.<t> = GF((263, 6))
+        sage: E, endo = special_supersingular_curve(F, 12, endomorphism=True)
+        sage: endo.domain() is endo.codomain() is E
+        True
+        sage: endo.degree(), endo.trace()
+        (12, 0)
+
     Also try it when `q` is given and ``maximal_order`` is requested::
 
         sage: while True:
@@ -3255,7 +3265,7 @@ def special_supersingular_curve(F, q=None, *, endomorphism=False, maximal_order=
         iso = E.isomorphism(F(-q).sqrt(), is_codomain=True)
         try:
             endo = iso * E.isogeny(None, iso.domain(), degree=q)
-        except NotImplementedError:
+        except (NotImplementedError, ValueError):
             endos = (iso*phi for phi in E.isogenies_degree(q)
                              for iso in phi.codomain().isomorphisms(E))
             endo = next(endo for endo in endos if endo.trace().is_zero())
