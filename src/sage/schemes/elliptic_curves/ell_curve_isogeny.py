@@ -3209,6 +3209,12 @@ def compute_isogeny_bmss(E1, E2, l):
 
     ALGORITHM: [BMSS2006]_, algorithm *fastElkies'*.
 
+    .. NOTE::
+
+        This implementation uses the odd-degree shortcut described in
+        [BMSS2006]_, where the denominator is a square. For even degrees,
+        it falls back to :func:`compute_isogeny_stark`.
+
     EXAMPLES::
 
         sage: from sage.schemes.elliptic_curves.ell_curve_isogeny import compute_isogeny_bmss
@@ -3294,6 +3300,10 @@ def compute_isogeny_bmss(E1, E2, l):
     char = E1.base_ring().characteristic()
     if char != 0 and char < 4*l + 4:
         raise ValueError('characteristic must be at least 4*degree+4')
+    if l % 2 == 0:
+        # The reconstruction below uses the odd-degree shortcut from
+        # [BMSS2006], where the denominator D(x) is a square g(x)^2.
+        return compute_isogeny_stark(E1, E2, l)
     Rx, x = E1.base_ring()["x"].objgen()
     # Compute C = 1/(1 + Ax^4 + Bx^6) mod x^4l
     A, B = E1.a4(), E1.a6()
@@ -3332,21 +3342,15 @@ def compute_isogeny_bmss(E1, E2, l):
     U = T._mul_trunc_(T, 2 * l).inverse_series_trunc(2 * l)
     _, Q = Rx(U).rational_reconstruction(x ** (2 * l), l, l)
     Q = Q.add_bigoh((l + 1) // 2)
-    if not Q.is_square():
-        if True:  #XXX stopgap for #42043; to be fixed properly eventually
-            return compute_isogeny_stark(E1, E2, l)
-        raise ValueError(f"the two curves are not linked by a cyclic normalized isogeny of degree {l}")
-    Q = Q.sqrt()
-    ker = Rx(Q).reverse(degree=l//2)
+    if Q.is_square():
+        ker = Rx(Q.sqrt()).reverse(degree=l//2).monic().radical()
+        subgroup_degree = 2 * ker.degree() + 1 - two_torsion_part(E1, ker).degree()
+        if (subgroup_degree == l
+            and E1.division_polynomial(l, x=Rx.quotient(ker).gen()) == 0
+            and E1.isogeny_codomain(ker).is_isomorphic(E2)):
+            return ker
 
-    ker = ker.monic().radical()
-
-    if True:  #XXX stopgap for #42043; to be fixed properly eventually
-        if (E1.division_polynomial(l, x=Rx.quotient(ker).gen())
-            or not E1.isogeny_codomain(ker).is_isomorphic(E2)):
-            return compute_isogeny_stark(E1, E2, l)
-
-    return ker
+    return compute_isogeny_stark(E1, E2, l)
 
 
 def compute_isogeny_stark(E1, E2, ell):
@@ -3562,6 +3566,16 @@ def compute_isogeny_kernel_polynomial(E1, E2, ell, algorithm=None):
         sage: E2 = EllipticCurve(GF(5), [1,4])
         sage: compute_isogeny_kernel_polynomial(E1, E2, 11)
         x^5 + 4*x^4 + 4*x^2 + 3*x + 4
+
+    Check that an even-degree case for which the odd-degree BMSS
+    shortcut does not apply falls back correctly (see :issue:`42212`)::
+
+        sage: from sage.schemes.elliptic_curves.ell_curve_isogeny import compute_isogeny_kernel_polynomial
+        sage: K.<u> = GF((263, 6))
+        sage: E1 = EllipticCurve(K, [0, 1])
+        sage: E2 = E1.isomorphism(K(-12).sqrt(), is_codomain=True).domain()
+        sage: compute_isogeny_kernel_polynomial(E1, E2, 12)
+        x^7 + 256*x^4 + 255*x
 
     ...even for long Weierstraß curves::
 
