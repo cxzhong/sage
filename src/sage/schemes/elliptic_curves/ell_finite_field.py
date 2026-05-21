@@ -3265,7 +3265,7 @@ def special_supersingular_curve(F, q=None, *, endomorphism=False, maximal_order=
         iso = E.isomorphism(F(-q).sqrt(), is_codomain=True)
         try:
             endo = iso * E.isogeny(None, iso.domain(), degree=q)
-        except (NotImplementedError, ValueError):
+        except NotImplementedError:
             endos = (iso*phi for phi in E.isogenies_degree(q)
                              for iso in phi.codomain().isomorphisms(E))
             endo = next(endo for endo in endos if endo.trace().is_zero())
