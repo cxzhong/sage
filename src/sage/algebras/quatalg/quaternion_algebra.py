@@ -49,6 +49,7 @@ Pickling test::
 # (at your option) any later version.
 #                  https://www.gnu.org/licenses/
 # ****************************************************************************
+from itertools import islice
 from operator import itemgetter
 
 from sage.algebras.quatalg import quaternion_algebra_cython
@@ -3641,7 +3642,7 @@ class QuaternionFractionalIdeal_rational(QuaternionFractionalIdeal):
         I = denom * self
         N = ZZ(I.norm())
         Q = I.quadratic_form()
-        for v in (ZZ**4).iter_up_to_sign(include_zero=False):
+        for v in islice((ZZ**4).iter_up_to_sign(), 1, None):
             if N.gcd(Q(v)) == 1:
                 break
         else:

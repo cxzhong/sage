@@ -2592,19 +2592,14 @@ class FreeModule_generic(Module_free_ambient):
                 v[n] = zero
                 n += 1
 
-    def iter_up_to_sign(self, include_zero=True):
+    def iter_up_to_sign(self):
         r"""
         Return an iterator over the elements of ``self`` up to sign.
 
         This yields one representative from each pair `\{v, -v\}`,
         choosing the smaller one with respect to the module element ordering.
         The order of the representatives is inherited from the usual iterator
-        for ``self``.
-
-        INPUT:
-
-        - ``include_zero`` -- boolean (default: ``True``); whether to include
-          the zero element
+        for ``self``; in particular, the zero element is returned first.
 
         EXAMPLES::
 
@@ -2612,7 +2607,11 @@ class FreeModule_generic(Module_free_ambient):
             sage: [next(it) for _ in range(10)]
             [(0, 0), (-1, 0), (0, -1), (-1, 1), (-1, -1),
              (-2, 0), (0, -2), (-2, 1), (-2, -1), (-1, 2)]
-            sage: it = (ZZ^2).iter_up_to_sign(include_zero=False)
+
+        To skip the zero element, skip the first element of the iterator::
+
+            sage: from itertools import islice
+            sage: it = islice((ZZ^2).iter_up_to_sign(), 1, None)
             sage: [next(it) for _ in range(5)]
             [(-1, 0), (0, -1), (-1, 1), (-1, -1), (-2, 0)]
 
@@ -2625,6 +2624,8 @@ class FreeModule_generic(Module_free_ambient):
         TESTS::
 
             sage: V = ZZ^3
+            sage: next(V.iter_up_to_sign()) == V.zero()
+            True
             sage: it = V.iter_up_to_sign()
             sage: vs = [next(it) for _ in range(1000)]
             sage: _ = [v.set_immutable() for v in vs]
@@ -2635,12 +2636,10 @@ class FreeModule_generic(Module_free_ambient):
 
             sage: list((ZZ^0).iter_up_to_sign())
             [()]
-            sage: list((ZZ^0).iter_up_to_sign(include_zero=False))
+            sage: list(islice((ZZ^0).iter_up_to_sign(), 1, None))
             []
         """
         for v in self:
-            if not include_zero and v.is_zero():
-                continue
             if -v < v:
                 continue
             yield v
