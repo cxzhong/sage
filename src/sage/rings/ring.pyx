@@ -132,7 +132,7 @@ from sage.categories.noetherian_rings import NoetherianRings
 _Rings = Rings()
 _CommutativeRings = CommutativeRings()
 
-cdef class Ring(ParentWithGens):
+cdef class Ring(Parent):
     """
     Generic ring class.
 
@@ -266,6 +266,17 @@ cdef class Ring(ParentWithGens):
             category = check_default_category(_Rings, category)
         Parent.__init__(self, base=base, names=names, normalize=normalize,
                         category=category)
+
+    def gens(self):
+        """
+        Return a tuple whose entries are the generators for this
+        object, in order.
+        """
+        cdef int i
+        if self._gens is not None:
+            return self._gens
+        self._gens = tuple(self.gen(i) for i in range(self.ngens()))
+        return self._gens
 
     def __iter__(self):
         r"""
