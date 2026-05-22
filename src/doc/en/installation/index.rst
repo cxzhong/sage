@@ -74,7 +74,7 @@ options below to find instructions for your operating system.
     version of SageMath is only available on a newer version of the
     distribution, consider upgrading your distribution.
 
-    Alternatively, an independent project provides a `SageMath AppImage <https://github.com/3-manifolds/sage_appimage>`.
+    Alternatively, the 3-manifolds project provides a `SageMath AppImage <https://github.com/3-manifolds/sage_appimage>`.
     It provides a self-contained binary distribution of SageMath that should be able to run on a wide variety of Linux
     systems. Beware that it is not packaged with Cython, so building certain sagemath programs or installing certain
     optional packages is not possible.
