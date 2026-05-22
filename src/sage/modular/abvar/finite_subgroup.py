@@ -832,8 +832,7 @@ class FiniteSubgroup(Module):
         """
         M = self.lattice().coordinate_module(self.abelian_variety().lattice())
         E = M.basis_matrix().change_ring(ZZ).elementary_divisors()
-        invs = Sequence([Integer(x) for x in E if x != 1])
-        invs.sort()
+        invs = Sequence(sorted(Integer(x) for x in E if x != 1))
         invs.set_immutable()
         return invs
 
