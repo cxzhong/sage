@@ -18,6 +18,8 @@ SAGE_SPKG_CONFIGURE([openblas], [dnl CHECK
     PKG_CHECK_MODULES([OPENBLAS], [openblas >= ]SAGE_OPENBLAS_MIN_VERSION [openblas < ]SAGE_OPENBLAS_LT_VERSION, [dnl Have openblas.pc
       LIBS="$OPENBLAS_LIBS $LIBS"
       CFLAGS="$OPENBLAS_CFLAGS $CFLAGS"
+      OPENBLAS_VERSION=`$PKG_CONFIG --modversion openblas 2>/dev/null`
+      AS_IF([test x"$OPENBLAS_VERSION" = x], [OPENBLAS_VERSION=]SAGE_OPENBLAS_MIN_VERSION)
       PKG_CHECK_VAR([OPENBLASPCDIR], [openblas], [pcfiledir], [dnl
         sage_install_blas_pc=yes
         AC_CHECK_FUNC([cblas_dgemm], [dnl openblas works as cblas
@@ -57,7 +59,32 @@ SAGE_SPKG_CONFIGURE([openblas], [dnl CHECK
       ])
       AS_IF([test x$sage_spkg_install_openblas != xyes], [dnl
         AC_SUBST([SAGE_SYSTEM_FACADE_PC_FILES])
-        AC_SUBST([SAGE_OPENBLAS_PC_COMMAND], ["\$(LN) -sf \"$OPENBLASPCDIR/openblas.pc\" \"\$(@)\""])
+        AS_CASE([$host],
+          [*-*-darwin*], [dnl
+            dnl Homebrew OpenBLAS on macOS can publish OpenMP compile flags in
+            dnl openblas.pc.  BLAS consumers do not need these flags, and they
+            dnl break packages that use Apple clang but do not enable OpenMP.
+            SAGE_OPENBLAS_CFLAGS=
+            sage_openblas_deferred_xpreprocessor=no
+            for sage_openblas_cflag in $OPENBLAS_CFLAGS; do
+              AS_IF([test x$sage_openblas_deferred_xpreprocessor = xyes], [
+                sage_openblas_deferred_xpreprocessor=no
+                AS_IF([test x"$sage_openblas_cflag" = x-fopenmp], [continue])
+                AS_VAR_APPEND([SAGE_OPENBLAS_CFLAGS], [" -Xpreprocessor"])
+              ])
+              AS_CASE([$sage_openblas_cflag],
+                [-Xpreprocessor], [sage_openblas_deferred_xpreprocessor=yes],
+                [-Xpreprocessor=-fopenmp|-Wp,-fopenmp|-fopenmp|-fopenmp=*], [],
+                [AS_VAR_APPEND([SAGE_OPENBLAS_CFLAGS], [" $sage_openblas_cflag"])])
+            done
+            AS_IF([test x$sage_openblas_deferred_xpreprocessor = xyes],
+                  [AS_VAR_APPEND([SAGE_OPENBLAS_CFLAGS], [" -Xpreprocessor"])])
+            PKG_CHECK_VAR([OPENBLAS_PREFIX], [openblas], [prefix])
+            PKG_CHECK_VAR([OPENBLAS_LIBDIR], [openblas], [libdir])
+            PKG_CHECK_VAR([OPENBLAS_INCLUDEDIR], [openblas], [includedir])
+            AC_SUBST([SAGE_OPENBLAS_PC_COMMAND], ["(pc_name=\`basename \"\$(@)\" .pc\`; echo \"prefix=$OPENBLAS_PREFIX\"; echo \"libdir=$OPENBLAS_LIBDIR\"; echo \"includedir=$OPENBLAS_INCLUDEDIR\"; echo \"Name: \$pc_name\"; echo \"Description: OpenBLAS BLAS/LAPACK facade for SageMath\"; echo \"Version: $OPENBLAS_VERSION\"; echo \"Cflags: $SAGE_OPENBLAS_CFLAGS\"; echo \"Libs: $OPENBLAS_LIBS\") > \"\$(@)\""])
+          ],
+          [AC_SUBST([SAGE_OPENBLAS_PC_COMMAND], ["\$(LN) -sf \"$OPENBLASPCDIR/openblas.pc\" \"\$(@)\""])])
         m4_foreach([blaslibnam], [blas, cblas, lapack], [dnl
           AS_IF([test x$sage_install_]blaslibnam[_pc = xyes], [dnl
              AS_VAR_APPEND([SAGE_SYSTEM_FACADE_PC_FILES], [" \$(SAGE_PKGCONFIG)/]blaslibnam[.pc"])

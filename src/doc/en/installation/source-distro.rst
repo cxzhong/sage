@@ -253,6 +253,10 @@ Sage, run ::
 command like this to your shell profile if you want the settings to
 persist between shell sessions.
 
+On macOS 13.3 or newer, the classical ``./configure && make`` build uses
+Apple's Accelerate BLAS/LAPACK by default. To force Sage to use OpenBLAS
+instead, configure with ``--with-darwin-accelerate=no``.
+
 If you wish to do Sage development, we recommend that you additionally
 install the following:
 

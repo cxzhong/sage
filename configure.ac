@@ -341,21 +341,51 @@ m4_pushdef([SAGE_BOOTSTRAP_URL],[See https://doc.sagemath.org/html/en/reference/
     ], [AC_MSG_ERROR([could not find bzlib.h - the header of libbz2 library. $SAGE_PREREQ_URL])
    ])
 
-# choose BLAS/LAPACK on Darwin
+# Choose BLAS/LAPACK on Darwin.  Accelerate is reliable enough on
+# macOS 13.3 and newer, and avoids Homebrew OpenBLAS OpenMP flags that
+# Apple clang cannot use directly.
 AC_ARG_WITH([darwin-accelerate],
-            [AS_HELP_STRING([--with-darwin-accelerate={no (default)},yes}],
-                            [use Darwin (macOS) Accelerate BLAS/LAPACK])],
+            [AS_HELP_STRING([--with-darwin-accelerate={auto (default),yes,no}],
+                            [use Darwin (macOS) Accelerate BLAS/LAPACK; auto enables it on macOS 13.3 or newer])],
             [SAGE_DARWIN_ACCELERATE="$withval"],
-            [SAGE_DARWIN_ACCELERATE="no"])
+            [SAGE_DARWIN_ACCELERATE="auto"])
 AC_SUBST([SAGE_DARWIN_ACCELERATE])
 
 SAGE_DARWIN_PKG_CONFIG_PATH=
 case $host in
     *-*-darwin*)
-   AS_IF([test x$SAGE_DARWIN_ACCELERATE = xyes],
-    [SAGE_DARWIN_PKG_CONFIG_PATH=`pwd`"/build/platform/darwin/accelerate/pkgconfig:"])
+      AS_CASE([$SAGE_DARWIN_ACCELERATE],
+        [yes|no], [],
+        [auto], [
+          sage_darwin_version=${host_os#darwin}
+          sage_darwin_major=${sage_darwin_version%%.*}
+          sage_darwin_minor=${sage_darwin_version#*.}
+          sage_darwin_minor=${sage_darwin_minor%%.*}
+          AS_IF([test x"$sage_darwin_minor" = x"$sage_darwin_version"],
+                [sage_darwin_minor=0])
+          case $sage_darwin_major,$sage_darwin_minor in
+            *[[!0-9]]*,*|*,*[[!0-9]]*)
+              SAGE_DARWIN_ACCELERATE=no
+              ;;
+            *)
+              AS_IF([test "$sage_darwin_major" -gt 22 \
+                     || { test "$sage_darwin_major" -eq 22 && test "$sage_darwin_minor" -ge 4; }],
+                    [SAGE_DARWIN_ACCELERATE=yes],
+                    [SAGE_DARWIN_ACCELERATE=no])
+              ;;
+          esac
+        ],
+        [AC_MSG_ERROR([--with-darwin-accelerate must be yes, no, or auto])])
+      AS_IF([test x$SAGE_DARWIN_ACCELERATE = xyes],
+        [SAGE_DARWIN_PKG_CONFIG_PATH=`pwd`"/build/platform/darwin/accelerate/pkgconfig:"])
     ;;
     *)
+      AS_CASE([$SAGE_DARWIN_ACCELERATE],
+        [yes], [AC_MSG_ERROR([--with-darwin-accelerate is only supported on Darwin/macOS])],
+        [auto], [SAGE_DARWIN_ACCELERATE=no],
+        [no], [],
+        [AC_MSG_ERROR([--with-darwin-accelerate must be yes, no, or auto])])
+      ;;
 esac
 
 # Check for zlib
