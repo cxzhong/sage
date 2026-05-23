@@ -313,7 +313,7 @@ class Hypergeometric(BuiltinFunction):
             False
 
         Besides, in this case, the additional optional boolean argument
-        `symbolic_equality` (default: ``True``) determines whether equality
+        ``symbolic_equality`` (default: ``True``) determines whether equality
         should be checked symbolically (that is, equality of parameters) or
         algebraically (that is, equality of series).
 
