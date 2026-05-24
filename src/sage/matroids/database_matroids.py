@@ -1659,7 +1659,8 @@ def ExtendedTernaryGolayCode(groundset='abcdefghijkl'):
         Extended Ternary Golay Code: Ternary matroid of rank 6 on 12 elements,
         type 6+
         sage: C = LinearCode(M.representation())
-        sage: C.is_permutation_equivalent(codes.GolayCode(GF(3)))
+        sage: G = codes.GolayCode(GF(3))
+        sage: C.canonical_representative('linear')[0] == G.canonical_representative('linear')[0]
         True
         sage: M.is_valid()
         True
@@ -1704,12 +1705,12 @@ def ExtendedTernaryGolayCode(groundset='abcdefghijkl'):
     [Oxl2011]_, p. 658.
     """
     A = Matrix(GF(3), [
-        [1, 0, 0, 0, 0, 0, 1, 1, 1, 2, 2, 0],
-        [0, 1, 0, 0, 0, 0, 1, 1, 2, 1, 0, 2],
-        [0, 0, 1, 0, 0, 0, 1, 2, 1, 0, 1, 2],
-        [0, 0, 0, 1, 0, 0, 1, 2, 0, 1, 2, 1],
-        [0, 0, 0, 0, 1, 0, 1, 0, 2, 2, 1, 1],
-        [0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 1, 1]
+        [1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1],
+        [0, 1, 0, 0, 0, 0, 1, 0, 1, 2, 2, 1],
+        [0, 0, 1, 0, 0, 0, 1, 1, 0, 1, 2, 2],
+        [0, 0, 0, 1, 0, 0, 1, 2, 1, 0, 1, 2],
+        [0, 0, 0, 0, 1, 0, 1, 2, 2, 1, 0, 1],
+        [0, 0, 0, 0, 0, 1, 1, 1, 2, 2, 1, 0]
     ])
     M = TernaryMatroid(A, groundset)
     M = _rename_and_relabel(M, "Extended Ternary Golay Code")
