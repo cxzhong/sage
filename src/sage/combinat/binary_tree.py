@@ -4315,7 +4315,9 @@ class BinaryTrees_size(BinaryTrees):
             sage: S([])
             [., .]
 
-        TESTS::
+        TESTS:
+
+        Check that checking is disabled with ``check=False``::
 
             sage: S = BinaryTrees(0)
             sage: S([], check=False)   # indirect doctest
