@@ -71,7 +71,7 @@ from sage.misc.persist import register_unpickle_override
 from sage.misc.repr import repr_lincomb
 from sage.modules.module import Module
 from sage.structure.element import ModuleElement
-from sage.structure.richcmp import richcmp
+from sage.structure.richcmp import op_EQ, op_GE, op_GT, op_LE, op_LT, op_NE
 from sage.rings.integer_ring import ZZ
 from sage.structure.parent import Parent
 from sage.structure.coerce_actions import LeftModuleAction, RightModuleAction
@@ -96,9 +96,9 @@ class FormalSum(ModuleElement):
 
         .. WARNING::
 
-            Setting ``reduce`` to ``False`` can cause issues when comparing
-            equal sums where terms are not combined in the same way (e.g.
-            `2x + 3x` and `4x + 1x` will compare as not equal).
+            Setting ``reduce`` to ``False`` can cause methods that inspect
+            raw terms, such as iteration and representation, to reflect
+            unreduced data.
 
         EXAMPLES::
 
@@ -244,10 +244,43 @@ class FormalSum(ModuleElement):
             True
             sage: b == a
             True
+            sage: f1 = FormalSum([(1, 'a'), (2, 'b')])
+            sage: f2 = FormalSum([(3, 'a')])
+            sage: f2 > f1
+            False
+            sage: f2 - f1 > 0
+            False
+            sage: FormalSum([(3, 'a'), (2, 'b')]) > f1
+            True
         """
-        self_data = [(c, x) for (x, c) in sorted(self._data, key=str)]
-        other_data = [(c, x) for (x, c) in sorted(other._data, key=str)]
-        return richcmp(self_data, other_data, op)
+        zero = self.parent().base_ring().zero()
+
+        def coefficients(formal_sum):
+            data = {}
+            for c, x in formal_sum._data:
+                data[x] = data.get(x, zero) + c
+            return {x: c for x, c in data.items() if c}
+
+        self_data = coefficients(self)
+        other_data = coefficients(other)
+
+        if op == op_EQ:
+            return self_data == other_data
+        if op == op_NE:
+            return self_data != other_data
+
+        support = set(self_data) | set(other_data)
+        if op == op_LE:
+            return all(self_data.get(x, zero) <= other_data.get(x, zero) for x in support)
+        if op == op_GE:
+            return all(self_data.get(x, zero) >= other_data.get(x, zero) for x in support)
+        if op == op_LT:
+            return (self_data != other_data
+                    and all(self_data.get(x, zero) <= other_data.get(x, zero) for x in support))
+        if op == op_GT:
+            return (self_data != other_data
+                    and all(self_data.get(x, zero) >= other_data.get(x, zero) for x in support))
+        raise ValueError(f"unknown comparison operator {op}")
 
     def _neg_(self):
         """

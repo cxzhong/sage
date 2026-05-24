@@ -67,7 +67,7 @@ from sage.rings.integer import Integer
 from sage.rings.integer_ring import IntegerRing
 from sage.structure.element import ModuleElement
 from sage.structure.parent import Parent
-from sage.structure.richcmp import richcmp
+from sage.structure.richcmp import op_EQ, op_GE, op_GT, op_LE, op_LT, op_NE
 from sage.structure.unique_representation import UniqueRepresentation
 
 from .place import FunctionFieldPlace, PlaceSet
@@ -276,8 +276,8 @@ class FunctionFieldDivisor(ModuleElement):
         """
         Compare the divisor and the other divisor with respect to the operator.
 
-        Divisors are compared lexicographically, viewed as lists of pairs of
-        place and multiplicity.
+        Divisors are partially ordered by effectivity: ``self <= other`` if
+        and only if ``other - self`` is effective.
 
         INPUT:
 
@@ -291,27 +291,48 @@ class FunctionFieldDivisor(ModuleElement):
             sage: L.<y> = K.extension(Y^3 +x^3*Y + x)
             sage: pls1 = L.places()
             sage: D1 = pls1[0] + pls1[1]
-            sage: D2 = pls1[1] + 2*pls1[2]
-            sage: (D1 < D2) == (not D2 < D1)
+            sage: D2 = pls1[0] + 2*pls1[1]
+            sage: D1 < D2
             True
+            sage: D2 < D1
+            False
+            sage: pls1[0].divisor() < pls1[1].divisor()
+            False
+            sage: pls1[1].divisor() < pls1[0].divisor()
+            False
             sage: D1 + D2 == D2 + D1
             True
+            sage: p = pls1[0]
+            sage: 0 >= -p
+            True
+            sage: 0 >= -p.divisor()
+            True
         """
-        s = sorted(self._data)
-        o = sorted(other._data)
-        while s and o:
-            skey = s[-1]
-            okey = o[-1]
-            if skey == okey:
-                svalue = self._data[skey]
-                ovalue = other._data[okey]
-                if svalue == ovalue:
-                    s.pop()
-                    o.pop()
-                    continue
-                return richcmp(svalue, ovalue, op)
-            return richcmp(skey, okey, op)
-        return richcmp(len(s), len(o), op)
+        data = self._data
+        other_data = other._data
+
+        if op == op_EQ:
+            return data == other_data
+        if op == op_NE:
+            return data != other_data
+
+        support = set(data) | set(other_data)
+        zero = Integer(0)
+        if op == op_LE:
+            return all(data.get(place, zero) <= other_data.get(place, zero)
+                       for place in support)
+        if op == op_GE:
+            return all(data.get(place, zero) >= other_data.get(place, zero)
+                       for place in support)
+        if op == op_LT:
+            return (data != other_data
+                    and all(data.get(place, zero) <= other_data.get(place, zero)
+                            for place in support))
+        if op == op_GT:
+            return (data != other_data
+                    and all(data.get(place, zero) >= other_data.get(place, zero)
+                            for place in support))
+        raise ValueError(f"unknown comparison operator {op}")
 
     def _neg_(self) -> Self:
         """
