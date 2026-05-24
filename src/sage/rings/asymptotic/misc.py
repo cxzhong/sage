@@ -750,9 +750,13 @@ def strip_symbolic(expression):
         sage: strip_symbolic(pi); _.parent()
         pi
         Symbolic Ring
+        sage: strip_symbolic(QQbar(sqrt(2))**2); _.parent()
+        2
+        Integer Ring
     """
     from sage.structure.element import parent, Element
     from sage.symbolic.ring import SymbolicRing
+    from sage.rings.integer_ring import ZZ
 
     P = parent(expression)
     if isinstance(P, SymbolicRing):
@@ -762,6 +766,9 @@ def strip_symbolic(expression):
                 return stripped
         except TypeError:
             pass
+    # to handle QQbar
+    if expression in ZZ:
+        expression = ZZ(expression)
     return expression
 
 
