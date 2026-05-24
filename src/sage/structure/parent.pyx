@@ -89,7 +89,7 @@ This came up in some subtle bug once::
     sage: gp(2) + gap(3)                                                                # needs sage.libs.gap sage.libs.pari
     5
 
-Tests from parent_old::
+Old tests::
 
     sage: V = VectorSpace(GF(2,'a'), 2)
     sage: V.list()
@@ -100,7 +100,6 @@ Tests from parent_old::
     [Dirichlet character modulo 3 of conductor 1 mapping 2 |--> 1,
      Dirichlet character modulo 3 of conductor 3 mapping 2 |--> -1]
 
-    sage: # needs sage.rings.finite_rings
     sage: K = GF(7^6,'a')
     sage: K.list()[:10]
     [0, 1, 2, 3, 4, 5, 6, a, a + 1, a + 2]
