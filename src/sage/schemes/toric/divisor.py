@@ -1308,10 +1308,8 @@ class ToricDivisor_generic(Divisor_generic):
         ray_is_negative = [m * ray + self.coefficient(i) < 0
                            for i, ray in enumerate(fan.rays())]
 
-        simplicial_faces = []
-        for cone in fan:
-            simplicial_faces.append([i for i in cone.ambient_ray_indices()
-                                     if ray_is_negative[i]])
+        simplicial_faces = [[i for i in cone.ambient_ray_indices()
+                             if ray_is_negative[i]] for cone in fan]
         return SimplicialComplex(simplicial_faces)
 
     def _sheaf_cohomology(self, cplx):
