@@ -453,8 +453,8 @@ class Sandpile(DiGraph):
             dict                     -- A dictionary of dictionaries representing a directed graph.
             genus                    -- The genus: (# non-loop edges) - (# vertices) + 1.
             groebner                 -- Return a Groebner basis for the homogeneous toppling ideal.
-            group_generators         -- A minimal list of generators for the sandpile group.
-            group_gens               -- A minimal list of generators for the sandpile group.
+            group_generators         -- A minimal tuple of generators for the sandpile group.
+            group_gens               -- A minimal tuple of generators for the sandpile group.
             group_order              -- The size of the sandpile group.
             h_vector                 -- The number of superstable configurations in each degree.
             help                     -- List of Sandpile-specific methods (not inherited from ...Graph...).
