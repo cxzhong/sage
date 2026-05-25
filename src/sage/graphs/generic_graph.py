@@ -7504,7 +7504,7 @@ class GenericGraph(GenericGraph_pyx):
             sage: Graph().edge_disjoint_spanning_trees(0, algorithm='foo')
             Traceback (most recent call last):
             ...
-            ValueError: algorithm must be None, "Rosking-Tarjan" or "MILP" for undirected graphs
+            ValueError: algorithm must be None, "Roskind-Tarjan" or "MILP" for undirected graphs
             sage: DiGraph().edge_disjoint_spanning_trees(0, algorithm=None)
             []
             sage: DiGraph().edge_disjoint_spanning_trees(0, algorithm='MILP')
@@ -7527,7 +7527,7 @@ class GenericGraph(GenericGraph_pyx):
             from sage.graphs.spanning_tree import edge_disjoint_spanning_trees
             return edge_disjoint_spanning_trees(self, k)
         elif algorithm != "MILP":
-            raise ValueError('algorithm must be None, "Rosking-Tarjan" or "MILP" '
+            raise ValueError('algorithm must be None, "Roskind-Tarjan" or "MILP" '
                              'for undirected graphs')
 
         G = self
