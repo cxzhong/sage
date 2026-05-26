@@ -949,7 +949,11 @@ class FreeAlgebra_generic(CombinatorialFreeModule):
         commutative = not relations
 
         base_ring = self.base_ring()
-        polynomial_ring = PolynomialRing(base_ring, self.gens())
+        # Match the user's target ``order`` here so that ``G_AlgFactory``
+        # does not later need to ``change_ring`` ``dmat`` across an order
+        # mismatch -- doing so triggers an intermittent Singular segfault
+        # in ``nc_CallPlural``/``mp_Copy`` (:issue:`29528`).
+        polynomial_ring = PolynomialRing(base_ring, self.gens(), order=order)
         n = self.__ngens
         cmat = Matrix(base_ring, n)
         dmat = Matrix(polynomial_ring, n)
