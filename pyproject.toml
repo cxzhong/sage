@@ -434,6 +434,9 @@ select = [
   "PLW2101",
   "PLW2901",
   "PLW3301",
+
+  # flake8-return - https://docs.astral.sh/ruff/rules/#flake8-return-ret
+  "RET505",
 ]
 
 [tool.ruff.lint.per-file-ignores]
