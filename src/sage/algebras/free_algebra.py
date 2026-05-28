@@ -906,9 +906,14 @@ class FreeAlgebra_generic(CombinatorialFreeModule):
 
         Each ``relations`` entry has the form ``v1*v2: c*v2*v1 + d`` where
         ``v1``, ``v2`` are distinct generators with ``v1 > v2``, ``c`` is an
-        element of the base ring, and ``d`` is a commutative polynomial in
-        the generators. Pairs of generators not listed in ``relations`` are
-        assumed to commute.
+        element of the base ring, and ``d`` is the remainder, written as a
+        linear combination of ordered/PBW monomials. Equivalently, ``d`` is
+        the part that is passed to Singular as a polynomial in the
+        commutative polynomial ring that encodes those monomials. For a valid
+        `G`-algebra, either ``d`` is zero or its leading monomial is smaller
+        than ``v2*v1`` in the chosen term order, so the relation reduces the
+        product ``v1*v2`` toward normal form. Pairs of generators not listed
+        in ``relations`` are assumed to commute.
 
         If ``check`` is ``True`` (the default), Singular verifies the
         non-degeneracy conditions of the resulting `G`-algebra at construction
