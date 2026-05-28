@@ -269,7 +269,7 @@ class FormalSum(ModuleElement):
         if op == op_NE:
             return self_data != other_data
 
-        support = set(self_data) | set(other_data)
+        support = self_data.keys() | other_data.keys()
         if op == op_LE:
             return all(self_data.get(x, zero) <= other_data.get(x, zero) for x in support)
         if op == op_GE:
