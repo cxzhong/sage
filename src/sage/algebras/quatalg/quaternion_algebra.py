@@ -3616,6 +3616,17 @@ class QuaternionFractionalIdeal_rational(QuaternionFractionalIdeal):
             sage: assert I == O1*N + O1*a
             sage: assert I == N*O2 + a*O2
 
+        The second generator is nonzero even when the ideal has norm one::
+
+            sage: I = O1.unit_ideal()
+            sage: N,a = I.gens_two()
+            sage: N
+            1
+            sage: a.is_zero()
+            False
+            sage: assert I == O1*N + O1*a
+            sage: assert I == N*O1 + a*O1
+
         ::
 
             sage: s = choice((-1,+1)) * ZZ(randrange(1,100)) / randrange(1,100)
@@ -3630,9 +3641,8 @@ class QuaternionFractionalIdeal_rational(QuaternionFractionalIdeal):
         I = denom * self
         N = ZZ(I.norm())
         Q = I.quadratic_form()
-        for v in ZZ**4:
-            if -v < v:  # enumerate up to sign  #TODO this should be a method of free modules
-                continue
+        from itertools import islice
+        for v in islice((ZZ**4).iter_up_to_sign(), 1, None):
             if N.gcd(Q(v)) == 1:
                 break
         else:
