@@ -239,7 +239,7 @@ class FunctionFieldIdeal(Element):
         """
         return self * ~other
 
-    def gens_reduced(self):
+    def gens_reduced(self) -> tuple:
         r"""
         Return reduced generators.
 
@@ -263,12 +263,14 @@ class FunctionFieldIdeal(Element):
         gens = self.gens()
         if len(gens) == 1:
             return gens
+
+        # this is probably terribly slow
         candidate_gensets = [genset for genset in powerset(gens)
                              if self.parent()(genset) == self]
         candidate_gensets.sort(key=lambda item: (len(item),
                                                  len(repr(item)),
                                                  item))
-        return candidate_gensets[0]
+        return tuple(candidate_gensets[0])
 
     def ring(self):
         """
