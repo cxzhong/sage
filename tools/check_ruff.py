@@ -7,8 +7,8 @@ import re
 import subprocess
 import tomllib
 
-# These are not relevant for Sage
-EXCLUDE_PREFIXES = ['AIR', 'FAST']
+# These are not currently relevant for Sage
+EXCLUDE_PREFIXES = ['AIR', 'ASYNC', 'DJ', 'FAST', 'PD', 'T20']
 
 
 def get_ruff_config() -> tuple[list[str], list[str]]:
@@ -25,7 +25,7 @@ def get_ruff_config() -> tuple[list[str], list[str]]:
     # We also check against the ruff config, because we can't easily check if a rule code belongs to a rule prefix.
     # The ruff config outputs all enabled rules with their full codes.
     ruff_config = subprocess.run(
-        ['ruff', 'check', '--show-settings'],
+        ['ruff', 'check', '--show-settings', '--silent'],
         check=True,
         text=True,
         stdout=subprocess.PIPE,
@@ -75,13 +75,13 @@ def check_prefixes(args):
         else:
             failed_prefixes.append(prefix)
 
+    print(f'The following {len(failed_prefixes)} rule prefixes have failures:')
+    print(failed_prefixes)
+    print()
     print(
         f'The following {len(passed_prefixes)} rule prefixes pass on the entire codebase:'
     )
     print(passed_prefixes)
-    print()
-    print(f'The following {len(failed_prefixes)} rule prefixes have failures:')
-    print(failed_prefixes)
 
 
 def check_rules(args):
@@ -124,11 +124,11 @@ def check_rules(args):
                 if rule['code'] == code:
                     print(rule)
 
-    print(f'The following {len(passed_rules)} rules pass on the entire codebase:')
-    print(passed_rules)
-    print()
     print(f'The following {len(failed_rules)} rules have failures:')
     print(failed_rules)
+    print()
+    print(f'The following {len(passed_rules)} rules pass on the entire codebase:')
+    print(passed_rules)
 
 
 if __name__ == '__main__':
@@ -151,12 +151,12 @@ if __name__ == '__main__':
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     rule_parser.add_argument(
-        '--only_fixable',
+        '--only-fixable',
         action='store_true',
         help='Only check rules that are always fixable.',
     )
     rule_parser.add_argument(
-        '--allow_preview', action='store_true', help='Check rules that in preview mode.'
+        '--allow-preview', action='store_true', help='Check rules that in preview mode.'
     )
     rule_parser.set_defaults(func=check_rules)
 
