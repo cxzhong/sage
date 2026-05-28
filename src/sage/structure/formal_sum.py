@@ -79,6 +79,55 @@ from sage.categories.action import PrecomposedAction
 from sage.structure.unique_representation import UniqueRepresentation
 
 
+def _compare_formal_sums(self_data, other_data, zero, op) -> bool:
+    r"""
+    Compare two formal sums given by their coefficient dictionaries.
+
+    Formal sums are partially ordered coefficientwise: ``self_data`` is at most
+    ``other_data`` if and only if every coefficient of ``self_data`` is at most
+    the corresponding coefficient of ``other_data``, where terms missing from a
+    dictionary are taken to have coefficient ``zero``.
+
+    INPUT:
+
+    - ``self_data``, ``other_data`` -- dictionaries mapping terms to their
+      (nonzero) coefficients
+
+    - ``zero`` -- the zero of the coefficient ring; used as the coefficient of
+      terms absent from one of the dictionaries
+
+    - ``op`` -- a comparison operator (see :mod:`sage.structure.richcmp`)
+
+    EXAMPLES::
+
+        sage: from sage.structure.formal_sum import _compare_formal_sums
+        sage: from sage.structure.richcmp import op_EQ, op_LE, op_LT
+        sage: _compare_formal_sums({'a': 1, 'b': 2}, {'a': 3, 'b': 2}, 0, op_LT)
+        True
+        sage: _compare_formal_sums({'a': 3}, {'a': 3}, 0, op_LE)
+        True
+        sage: _compare_formal_sums({'a': 1}, {'b': 1}, 0, op_EQ)
+        False
+    """
+    if op == op_EQ:
+        return self_data == other_data
+    if op == op_NE:
+        return self_data != other_data
+
+    support = self_data.keys() | other_data.keys()
+    if op == op_LE:
+        return all(self_data.get(x, zero) <= other_data.get(x, zero) for x in support)
+    if op == op_GE:
+        return all(self_data.get(x, zero) >= other_data.get(x, zero) for x in support)
+    if op == op_LT:
+        return (self_data != other_data
+                and all(self_data.get(x, zero) <= other_data.get(x, zero) for x in support))
+    if op == op_GT:
+        return (self_data != other_data
+                and all(self_data.get(x, zero) >= other_data.get(x, zero) for x in support))
+    raise ValueError(f"unknown comparison operator {op}")
+
+
 class FormalSum(ModuleElement):
     """
     A formal sum over a ring.
@@ -212,7 +261,7 @@ class FormalSum(ModuleElement):
         # sage.misc.misc.repr_lincomb and use instead:
         # return repr_lincomb([[t,c] for c,t in self], is_latex=True)
 
-    def _richcmp_(self, other, op):
+    def _richcmp_(self, other, op) -> bool:
         """
         Compare ``self`` and ``other``.
 
@@ -261,26 +310,7 @@ class FormalSum(ModuleElement):
                 data[x] = data.get(x, zero) + c
             return {x: c for x, c in data.items() if c}
 
-        self_data = coefficients(self)
-        other_data = coefficients(other)
-
-        if op == op_EQ:
-            return self_data == other_data
-        if op == op_NE:
-            return self_data != other_data
-
-        support = self_data.keys() | other_data.keys()
-        if op == op_LE:
-            return all(self_data.get(x, zero) <= other_data.get(x, zero) for x in support)
-        if op == op_GE:
-            return all(self_data.get(x, zero) >= other_data.get(x, zero) for x in support)
-        if op == op_LT:
-            return (self_data != other_data
-                    and all(self_data.get(x, zero) <= other_data.get(x, zero) for x in support))
-        if op == op_GT:
-            return (self_data != other_data
-                    and all(self_data.get(x, zero) >= other_data.get(x, zero) for x in support))
-        raise ValueError(f"unknown comparison operator {op}")
+        return _compare_formal_sums(coefficients(self), coefficients(other), zero, op)
 
     def _neg_(self):
         """

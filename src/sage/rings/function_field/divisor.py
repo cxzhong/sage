@@ -66,8 +66,8 @@ from sage.rings.function_field import riemann_roch
 from sage.rings.integer import Integer
 from sage.rings.integer_ring import IntegerRing
 from sage.structure.element import ModuleElement
+from sage.structure.formal_sum import _compare_formal_sums
 from sage.structure.parent import Parent
-from sage.structure.richcmp import op_EQ, op_GE, op_GT, op_LE, op_LT, op_NE
 from sage.structure.unique_representation import UniqueRepresentation
 
 from .place import FunctionFieldPlace, PlaceSet
@@ -272,7 +272,7 @@ class FunctionFieldDivisor(ModuleElement):
         """
         return self._format(latex, '', '')
 
-    def _richcmp_(self, other, op):
+    def _richcmp_(self, other, op) -> bool:
         """
         Compare the divisor and the other divisor with respect to the operator.
 
@@ -313,31 +313,7 @@ class FunctionFieldDivisor(ModuleElement):
             sage: 0 >= -p.divisor()
             True
         """
-        data = self._data
-        other_data = other._data
-
-        if op == op_EQ:
-            return data == other_data
-        if op == op_NE:
-            return data != other_data
-
-        support = data.keys() | other_data.keys()
-        zero = Integer(0)
-        if op == op_LE:
-            return all(data.get(place, zero) <= other_data.get(place, zero)
-                       for place in support)
-        if op == op_GE:
-            return all(data.get(place, zero) >= other_data.get(place, zero)
-                       for place in support)
-        if op == op_LT:
-            return (data != other_data
-                    and all(data.get(place, zero) <= other_data.get(place, zero)
-                            for place in support))
-        if op == op_GT:
-            return (data != other_data
-                    and all(data.get(place, zero) >= other_data.get(place, zero)
-                            for place in support))
-        raise ValueError(f"unknown comparison operator {op}")
+        return _compare_formal_sums(self._data, other._data, Integer(0), op)
 
     def _neg_(self) -> Self:
         """
