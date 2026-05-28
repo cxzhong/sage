@@ -285,7 +285,9 @@ class FunctionFieldDivisor(ModuleElement):
 
         - ``op`` -- comparison operator
 
-        EXAMPLES::
+        EXAMPLES:
+        
+        We can compare divisors with a partial order ::
 
             sage: K.<x> = FunctionField(GF(4)); _.<Y> = K[]
             sage: L.<y> = K.extension(Y^3 +x^3*Y + x)
@@ -302,6 +304,9 @@ class FunctionFieldDivisor(ModuleElement):
             False
             sage: D1 + D2 == D2 + D1
             True
+
+        Make sure that :issue:`39356` is fixed ::
+
             sage: p = pls1[0]
             sage: 0 >= -p
             True
@@ -316,7 +321,7 @@ class FunctionFieldDivisor(ModuleElement):
         if op == op_NE:
             return data != other_data
 
-        support = set(data) | set(other_data)
+        support = data.keys() | other_data.keys()
         zero = Integer(0)
         if op == op_LE:
             return all(data.get(place, zero) <= other_data.get(place, zero)
