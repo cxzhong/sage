@@ -3059,8 +3059,9 @@ REFERENCES:
 
 .. [Gek1991] \E.-U. Gekeler. On finite Drinfeld modules. Journal of
              algebra, 1(141):187-203, 1991.
-             
-.. [Gek2001] \E.-U. Gekeler. Invariants of some algebraic curves related to 
+
+
+.. [Gek2001] \E.-U. Gekeler. Invariants of some algebraic curves related to
               Drinfeld modular curves. Journal of Number Theory 90, No. 1, 166-183, 2001.
 
 .. [Gek2008] \E.-U. Gekeler. Frobenius Distributions of Drinfeld Modules over
@@ -3480,6 +3481,11 @@ REFERENCES:
 
 .. [Haj2000] \M. Hajiaghayi, *Consecutive Ones Property*, 2000.
              https://web.archive.org/web/20040401033532/http://www-math.mit.edu/~hajiagha/pp11.ps
+
+.. [HJ2020]  U. Hartl and A.-K. Juschka, 
+             *Pink’s theory of Hodge structures and the Hodge conjecture over function fields*,
+             in *`t`-motives: Hodge structures, transcendence and other motivic aspects*
+             EMS Ser. Congr. Rep. (2020), 31-182
 
 .. [HAM1985] Hoffman, Alan J., Anthonius Wilhelmus Johannes Kolen, and Michel Sakarovitch.
              *Totally-balanced and greedy matrices*.
