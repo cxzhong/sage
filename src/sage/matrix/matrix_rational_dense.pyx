@@ -2223,7 +2223,7 @@ cdef class Matrix_rational_dense(Matrix_dense):
 #          v = V.random_element()
 #          num_iterates = max([squarefree_degree - g.degree() for g in G]) + 1
 
-#          S = [ ]
+#          S = []
 
 #          F.sort()
 #          for i in range(len(F)):
