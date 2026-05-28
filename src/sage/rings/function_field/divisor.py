@@ -286,7 +286,7 @@ class FunctionFieldDivisor(ModuleElement):
         - ``op`` -- comparison operator
 
         EXAMPLES:
-        
+
         We can compare divisors with a partial order ::
 
             sage: K.<x> = FunctionField(GF(4)); _.<Y> = K[]
