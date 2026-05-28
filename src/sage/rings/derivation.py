@@ -1802,7 +1802,9 @@ class RingDerivationWithoutTwist_function(RingDerivationWithoutTwist):
         domain = parent.domain()
         codomain = parent.codomain()
         defining_morphism = parent.defining_morphism()
-        if isinstance(domain, FractionField_generic):
+        if self._base_derivation == 0:
+            res = codomain.zero()
+        elif isinstance(domain, FractionField_generic):
             num = x.numerator()
             den = x.denominator()
             u = defining_morphism(num)
