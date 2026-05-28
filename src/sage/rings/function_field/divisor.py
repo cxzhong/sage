@@ -287,7 +287,7 @@ class FunctionFieldDivisor(ModuleElement):
 
         EXAMPLES:
 
-        We can compare divisors with a partial order ::
+        We can compare divisors with a partial order::
 
             sage: K.<x> = FunctionField(GF(4)); _.<Y> = K[]
             sage: L.<y> = K.extension(Y^3 +x^3*Y + x)
@@ -305,7 +305,7 @@ class FunctionFieldDivisor(ModuleElement):
             sage: D1 + D2 == D2 + D1
             True
 
-        Make sure that :issue:`39356` is fixed ::
+        Make sure that :issue:`39356` is fixed::
 
             sage: p = pls1[0]
             sage: 0 >= -p
