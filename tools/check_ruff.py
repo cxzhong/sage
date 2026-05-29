@@ -156,7 +156,9 @@ if __name__ == '__main__':
         help='Only check rules that are always fixable.',
     )
     rule_parser.add_argument(
-        '--allow-preview', action='store_true', help='Check rules that in preview mode.'
+        '--allow-preview',
+        action='store_true',
+        help='Check rules that are in preview mode.',
     )
     rule_parser.set_defaults(func=check_rules)
 
