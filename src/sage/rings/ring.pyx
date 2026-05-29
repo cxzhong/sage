@@ -266,6 +266,17 @@ cdef class Ring(Parent):
         """
         Return a tuple whose entries are the generators for this
         object, in order.
+
+        EXAMPLES::
+
+           sage: ZZ.gens()
+           (1,)
+
+           sage: ZZ["y"].gens()
+           (y,)
+
+           sage: InfinitePolynomialRing(QQ, "a").gens()
+           (a_*,)
         """
         cdef int i
         if self._gens is not None:
