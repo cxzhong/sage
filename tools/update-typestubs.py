@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Copyright (C) 2026 Tobias Diez
+# This file is dual-licensed under GPLv2+ and Apache-2.0 so it can be
+# upstreamed to Cython if desired.
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
