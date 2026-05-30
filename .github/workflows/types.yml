@@ -48,6 +48,9 @@ jobs:
 
         # No need to build sagelib; pyright only needs the libraries from which sagelib imports
 
+      - name: Static code check with ty
+        run: ty check --output-format=github
+
       - name: Static code check with pyright
         uses: jakebailey/pyright-action@v2.3.3
         with:
