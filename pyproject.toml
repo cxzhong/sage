@@ -246,6 +246,65 @@ docs = [
 lint = ["flake8-rst-docstrings", "pycodestyle", "relint", "ruff"]
 test = ["coverage", "pytest", "pytest-xdist"]
 
+[tool.ty]
+[tool.ty.rules]
+# Existing failures
+# TODO: Fix those, and then remove the "ignore" rules below.
+# Obtained via ty check --output-format=concise 2>&1 | tee /tmp/ty-check.log; awk 'match($0,/(error)\[([^]]+)\]/,m){c[m[2]]++} END{for (k in c) printf "%7d %s\n", c[k], k}' /tmp/ty-check.log | sort -nr
+
+# 5187 unresolved-import
+# 3821 unresolved-attribute
+# 2394 unresolved-reference
+# 2312 call-non-callable
+# 2296 missing-argument
+# 699 invalid-method-override
+# 454 invalid-argument-type
+# 450 invalid-assignment
+# 397 not-subscriptable
+# 376 unsupported-operator
+# 254 no-matching-overload
+# 239 unknown-argument
+# 182 not-iterable
+# 155 too-many-positional-arguments
+# 84 invalid-return-type
+# 43 parameter-already-assigned
+# 32 inconsistent-mro
+# 12 invalid-type-form
+# 7 index-out-of-bounds
+# 5 invalid-attribute-access
+# 4 invalid-type-arguments
+# 1 invalid-total-ordering
+# 1 invalid-raise
+# 1 invalid-parameter-default
+# 1 invalid-overload
+# 1 conflicting-declarations
+"call-non-callable" = "ignore"
+"conflicting-declarations" = "ignore"
+"inconsistent-mro" = "ignore"
+"index-out-of-bounds" = "ignore"
+"invalid-argument-type" = "ignore"
+"invalid-assignment" = "ignore"
+"invalid-attribute-access" = "ignore"
+"invalid-method-override" = "ignore"
+"invalid-overload" = "ignore"
+"invalid-parameter-default" = "ignore"
+"invalid-raise" = "ignore"
+"invalid-return-type" = "ignore"
+"invalid-total-ordering" = "ignore"
+"invalid-type-arguments" = "ignore"
+"invalid-type-form" = "ignore"
+"missing-argument" = "ignore"
+"no-matching-overload" = "ignore"
+"not-iterable" = "ignore"
+"not-subscriptable" = "ignore"
+"parameter-already-assigned" = "ignore"
+"too-many-positional-arguments" = "ignore"
+"unknown-argument" = "ignore"
+"unresolved-attribute" = "ignore"
+"unresolved-import" = "ignore"
+"unresolved-reference" = "ignore"
+"unsupported-operator" = "ignore"
+
 [tool.ruff]
 # https://docs.astral.sh/ruff/configuration
 
