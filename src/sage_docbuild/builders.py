@@ -430,6 +430,45 @@ class ReferenceBuilder():
         self.name = name
         self.options = options
 
+    def __getattr__(self, format):
+        """
+        Return a function that builds the reference manual in the given output
+        ``format`` (such as ``html``, ``inventory``, ``latex`` or ``pdf``).
+
+        Unlike a :class:`DocBuilder`, the reference manual is not produced by a
+        single Sphinx run but by orchestrating several sub-builders (see
+        :meth:`_wrapper`). The per-format entry points expected by the
+        ``sage --docbuild`` command (see :mod:`sage_docbuild.__main__`) are
+        therefore generated here on demand.
+
+        TESTS:
+
+        Each output format is exposed as a callable, see :issue:`42235`::
+
+            sage: from sage_docbuild.builders import ReferenceBuilder
+            sage: from sage_docbuild.build_options import BuildOptions
+            sage: builder = ReferenceBuilder('reference', BuildOptions())
+            sage: callable(builder.html)  # indirect doctest
+            True
+            sage: builder.html.func.__name__
+            '_wrapper'
+            sage: builder.inventory.args
+            ('inventory',)
+
+        Private and special attributes are not affected, so that ``hasattr``
+        probes, copying and pickling keep working as expected::
+
+            sage: builder._does_not_exist
+            Traceback (most recent call last):
+            ...
+            AttributeError: 'ReferenceBuilder' object has no attribute '_does_not_exist'
+        """
+        if format.startswith('_'):
+            raise AttributeError(
+                f"{type(self).__name__!r} object has no attribute {format!r}")
+        from functools import partial
+        return partial(self._wrapper, format)
+
     def _output_dir(self, type: Literal['html', 'latex', 'pdf']) -> Path:
         """
         Return the directory where the output of type ``type`` is stored.
