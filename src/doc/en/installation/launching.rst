@@ -195,13 +195,15 @@ SageMath, the kernel is already available. Otherwise, assuming that the command
 
 .. code-block:: console
 
-    $ sage --jupyter-kernel install --user --portable
+    $ sage --jupyter-kernel install --user
 
-This installs a kernel spec into your per-user Jupyter directory. Thanks to
-``--portable``, the spec records the absolute path to Sage's Python
-interpreter and adds Sage's ``bin`` directories to ``PATH``, so it works even
-when the Jupyter server runs in a different environment, for example a
-system-wide JupyterLab or a JupyterHub deployment.
+This installs a kernel spec into your per-user Jupyter directory. By default the
+spec is *portable*: it records the absolute path to Sage's Python interpreter
+and adds Sage's ``bin`` directories to ``PATH``, so it works even when the
+Jupyter server runs in a different environment, for example a system-wide
+JupyterLab or a JupyterHub deployment. (Pass ``--no-portable`` to instead write
+a spec that uses a bare ``python3``, which only works when the Jupyter server
+itself runs inside Sage's environment.)
 
 The portable kernel spec is portable between Jupyter environments, but it is
 not relocatable: it contains absolute paths to this SageMath installation. If
