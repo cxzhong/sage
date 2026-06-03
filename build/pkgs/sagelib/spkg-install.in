@@ -70,7 +70,11 @@ if [ "$SAGE_EDITABLE" = yes ]; then
     # rather than "jupyter kernelspec install <dir>" because the latter would
     # copy the whole meson build tree (gigabytes); the command below writes
     # only kernel.json plus symlinked resources.  See Issue #40605.
-    python3 -m sage.repl.ipython_kernel.install install --sys-prefix
+    # --no-portable keeps the in-venv 'python3' argv, matching the wheel
+    # (data_files) kernel.json.in; the in-venv jupyter resolves it to this
+    # interpreter.  The portable spec (the command default) is meant for an
+    # explicit install into a *different* environment's Jupyter.
+    python3 -m sage.repl.ipython_kernel.install install --sys-prefix --no-portable
 else
     # Now implied: "$SAGE_WHEELS" = yes
     # We should remove the egg-link that may have been installed previously.

@@ -463,14 +463,15 @@ def main(argv=None):
 
     EXAMPLES:
 
-    Installing a portable kernel spec into a given prefix writes a
-    ``kernel.json`` that uses the absolute path to this Python interpreter and
-    carries an ``env`` entry putting the Sage ``bin`` directory on ``PATH``::
+    Installing a kernel spec into a given prefix writes a ``kernel.json`` that,
+    by default (``--portable``), uses the absolute path to this Python
+    interpreter and carries an ``env`` entry putting the Sage ``bin`` directory
+    on ``PATH``::
 
         sage: from sage.repl.ipython_kernel.install import main
         sage: import json, os, sys
         sage: prefix = tmp_dir()
-        sage: main(['install', '--prefix', prefix, '--portable'])
+        sage: main(['install', '--prefix', prefix])
         sage: kernel_json = os.path.join(prefix, 'share', 'jupyter',
         ....:                            'kernels', 'sagemath', 'kernel.json')
         sage: with open(kernel_json) as f:
@@ -482,10 +483,11 @@ def main(argv=None):
         sage: 'PATH' in spec['env']
         True
 
-    Without ``--portable`` the in-venv spec (using ``python3``) is written::
+    With ``--no-portable`` the in-venv spec (using ``python3``) is written
+    instead::
 
         sage: prefix = tmp_dir()
-        sage: main(['install', '--prefix', prefix])
+        sage: main(['install', '--prefix', prefix, '--no-portable'])
         sage: kernel_json = os.path.join(prefix, 'share', 'jupyter',
         ....:                            'kernels', 'sagemath', 'kernel.json')
         sage: with open(kernel_json) as f:
@@ -524,10 +526,13 @@ def main(argv=None):
         '--prefix', default=None,
         help='install into PREFIX/share/jupyter')
     install.add_argument(
-        '--portable', action='store_true',
+        '--portable', action=argparse.BooleanOptionalAction, default=True,
         help="generate a spec with an absolute interpreter path and PATH / "
              "library-path environment entries so that it works from a "
-             "Jupyter server outside Sage's virtual environment")
+             "Jupyter server outside Sage's virtual environment (the default). "
+             "Use --no-portable to write a spec that uses a bare 'python3', "
+             "which only works when the Jupyter server itself runs inside "
+             "Sage's environment")
     args = parser.parse_args(argv)
 
     if args.command == 'install':
