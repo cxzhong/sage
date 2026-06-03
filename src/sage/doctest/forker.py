@@ -1874,7 +1874,7 @@ class DocTestDispatcher(SageObject):
 
         job_client = None
         # Using gnumake_tokenpool leads to doctest failures when
-        # testing in parallel. See #38116 and #41497.
+        # testing in parallel. See #38116 and #42293.
         if sys.platform != "darwin":
             try:
                 from gnumake_tokenpool import JobClient, NoJobServer
