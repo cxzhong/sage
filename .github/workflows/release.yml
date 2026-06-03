@@ -107,7 +107,6 @@ jobs:
           name: dist
 
       - uses: pypa/gh-action-pypi-publish@release/v1
-        # Uses PyPI trusted publishing (OIDC); no API token required.
         with:
           skip-existing: true
           verbose: true
@@ -266,7 +265,6 @@ jobs:
           merge-multiple: true
 
       - uses: pypa/gh-action-pypi-publish@release/v1
-        # Uses PyPI trusted publishing (OIDC); no API token required.
         with:
           packages-dir: wheelhouse/
           skip-existing: true
