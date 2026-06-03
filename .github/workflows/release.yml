@@ -76,9 +76,7 @@ jobs:
 
     runs-on: ubuntu-latest
     permissions:
-      # Read access to check out the repository
       contents: read
-      # Needed for PyPI trusted publishing (OIDC token exchange)
       id-token: write
     env:
       CAN_DEPLOY: ${{ github.event_name != 'pull_request' }}
@@ -255,9 +253,7 @@ jobs:
     needs: build_wheels
     runs-on: ubuntu-latest
     permissions:
-      # Read access to the repository
       contents: read
-      # Needed for PyPI trusted publishing (OIDC token exchange)
       id-token: write
     env:
       CAN_DEPLOY: ${{ github.event_name != 'pull_request' }}
