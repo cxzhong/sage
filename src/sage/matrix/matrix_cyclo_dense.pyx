@@ -666,7 +666,7 @@ cdef class Matrix_cyclo_dense(Matrix_dense):
             sage: (2^63-1).isqrt() # limit on mod_int
             3037000499
             sage: 2^64 - 1 # largest modulus for Matrix_modn_dense_flint
-            9223372036854775808
+            18446744073709551615
             sage: p % 37
             1
         """
@@ -1609,9 +1609,6 @@ cdef class Matrix_cyclo_dense(Matrix_dense):
             sage: K.<z> = CyclotomicField(3)
             sage: w = matrix(K, 2, 3, [0, -z/5, -2/3, -2*z + 2, 2*z, z])
             sage: A, B = w._reduction_matrix(7)
-            doctest:warning...
-            DeprecationWarning: Use the _reduction_matrix method on the base field
-            See https://trac.sagemath.org/31548 for details.
             sage: A
             [1 4]
             [1 2]

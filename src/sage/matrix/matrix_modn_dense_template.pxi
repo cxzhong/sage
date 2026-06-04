@@ -1641,7 +1641,7 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
 
         - ``var`` -- the variable name for the polynomial ring
 
-        - ``proof`` -- boolean, whether to check that the answer computed by using a minimal polynomial is correct.  If not specificied, uses the linear alegbra default proof state.  Note that if the modulus is composite and divisible by small primes the probability of an incorrect result is substantial.  The result is not cached when proof is ``False``, so this function can be called multiple times to get a desired level of certainty.
+        - ``proof`` -- boolean, whether to check that the answer computed by using a minimal polynomial is correct.  If not specified, uses the linear algebra default proof state.  Note that if the modulus is composite and divisible by small primes the probability of an incorrect result is substantial.  The result is not cached when proof is ``False``, so this function can be called multiple times to get a desired level of certainty.
 
         EXAMPLES::
 

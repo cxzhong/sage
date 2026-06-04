@@ -3174,8 +3174,12 @@ cdef class Matrix(Matrix1):
         """
         if self.nrows() == self.ncols() and self.base_ring().is_exact():
             tester = self._tester(**options)
-            # At least check that the minimal polynomial kills the matrix
+            # Check that the minimal polynomial kills the matrix
             tester.assertTrue(self.minpoly().subs(x=self).is_zero())
+            # Check that the minimal polynomial divides the characteristic polynomial.
+            # This is a necessary but not sufficient condition for the minimal polynomial
+            # to be minimal.
+            tester.assertTrue(self.minpoly().divides(self.charpoly()))
 
     def charpoly(self, var='x', algorithm=None):
         r"""

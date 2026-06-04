@@ -150,7 +150,7 @@ cdef class MatrixMatrixAction(MatrixMulAction):
         [2*x 3*x]
         [4*x 5*x]
 
-    As part of :trac:`31548` it is now possible to multiply matrices with different implementations::
+    As part of :issue:`31548` it is now possible to multiply matrices with different implementations::
 
         sage: M = MatrixSpace(Zmod(5), 2, implementation="flint")
         sage: N = MatrixSpace(Zmod(5), 2, implementation="linbox-double")

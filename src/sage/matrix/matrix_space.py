@@ -153,31 +153,33 @@ def get_matrix_class(R, nrows, ncols, sparse, implementation):
         ValueError: 'linbox-double' matrices can only deal with order < 94906266
 
         sage: type(matrix(SR, 2, 2, 0))
-        <type 'sage.matrix.matrix_symbolic_dense.Matrix_symbolic_dense'>
+        <class 'sage.matrix.matrix_symbolic_dense.Matrix_symbolic_dense'>
         sage: type(matrix(GF(7), 2, range(4)))
         <class 'sage.matrix.matrix_modn_dense_flint.Matrix_modn_dense_flint'>
         sage: type(matrix(GF(7), 101))
-        <type 'sage.matrix.matrix_modn_dense_float.Matrix_modn_dense_float'>
+        <class 'sage.matrix.matrix_modn_dense_float.Matrix_modn_dense_float'>
         sage: type(matrix(GF(16007), 101))
-        <type 'sage.matrix.matrix_modn_dense_double.Matrix_modn_dense_double'>
+        <class 'sage.matrix.matrix_modn_dense_double.Matrix_modn_dense_double'>
         sage: type(matrix(CBF, 2, range(4)))
-        <type 'sage.matrix.matrix_complex_ball_dense.Matrix_complex_ball_dense'>
+        <class 'sage.matrix.matrix_complex_ball_dense.Matrix_complex_ball_dense'>
         sage: type(matrix(GF(2), 2, range(4)))
-        <type 'sage.matrix.matrix_mod2_dense.Matrix_mod2_dense'>
+        <class 'sage.matrix.matrix_mod2_dense.Matrix_mod2_dense'>
         sage: type(matrix(GF(64,'z'), 2, range(4)))
-        <type 'sage.matrix.matrix_gf2e_dense.Matrix_gf2e_dense'>
+        <class 'sage.matrix.matrix_gf2e_dense.Matrix_gf2e_dense'>
         sage: type(matrix(GF(125,'z'), 2, range(4)))     # optional: meataxe
-        <type 'sage.matrix.matrix_gfpn_dense.Matrix_gfpn_dense'>
+        <class 'sage.matrix.matrix_gfpn_dense.Matrix_gfpn_dense'>
         sage: type(matrix(SR, 2, 2, 0))                                                 # needs sage.symbolic
         <class 'sage.matrix.matrix_symbolic_dense.Matrix_symbolic_dense'>
         sage: type(matrix(SR, 2, 2, 0, sparse=True))                                    # needs sage.symbolic
         <class 'sage.matrix.matrix_symbolic_sparse.Matrix_symbolic_sparse'>
-        sage: type(matrix(GF(7), 2, range(4)))                                          # needs sage.libs.linbox
+        sage: type(matrix(GF(7), 2, range(4), implementation='linbox'))                 # needs sage.libs.linbox
         <class 'sage.matrix.matrix_modn_dense_float.Matrix_modn_dense_float'>
-        sage: type(matrix(GF(16007), 2, range(4)))                                      # needs sage.libs.linbox
+        sage: type(matrix(GF(16007), 2, range(4), implementation='linbox'))             # needs sage.libs.linbox
         <class 'sage.matrix.matrix_modn_dense_double.Matrix_modn_dense_double'>
         sage: type(matrix(CBF, 2, range(4)))                                            # needs sage.libs.flint
         <class 'sage.matrix.matrix_complex_ball_dense.Matrix_complex_ball_dense'>
+        sage: type(matrix(GF(17), 2, range(4)))                                         # needs sage.libs.flint
+        <class 'sage.matrix.matrix_modn_dense_flint.Matrix_modn_dense_flint'>
         sage: type(matrix(GF(2), 2, range(4)))                                          # needs sage.libs.m4ri
         <class 'sage.matrix.matrix_mod2_dense.Matrix_mod2_dense'>
         sage: type(matrix(GF(64, 'z'), 2, range(4)))                                    # needs sage.libs.m4ri sage.rings.finite_rings
