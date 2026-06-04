@@ -591,7 +591,7 @@ cdef class Matrix(Matrix1):
             sage: A.solve_right(B)
             Traceback (most recent call last):
             ...
-            ValueError: matrix equation has no solution
+            ValueError: matrix equation has no solutions
             sage: A = Matrix(Zmod(128), 2, 3, [23,11,22,4,1,0])
             sage: B = Matrix(Zmod(128), 2, 1, [1,0])
             sage: v = A.solve_right(B); A * v == B

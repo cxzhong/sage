@@ -58,7 +58,7 @@ from sage.libs.flint.fmpq_mat cimport fmpq_mat_entry_num, fmpq_mat_entry_den, fm
 
 from sage.matrix.args cimport MatrixArgs_init
 from sage.matrix.constructor import matrix
-from sage.matrix.matrix_space import MatrixSpace
+from sage.matrix.matrix_space import MatrixSpace, get_matrix_class
 from sage.matrix.matrix cimport Matrix
 from sage.matrix import matrix_dense
 from sage.matrix.matrix_integer_dense cimport _lift_crt
@@ -656,7 +656,7 @@ cdef class Matrix_cyclo_dense(Matrix_dense):
             1
 
         If the size of matrix is smaller, we can use a larger prime since the
-        default implementation, FLINT, supports up to 2^63.  However, we still
+        default implementation, FLINT, supports up to `2^{64} - 1`.  However, we still
         have to remain below the limit imposed by Sage's multimodular code,
         which requires being able to multiply within a long without overflow::
 
@@ -665,7 +665,7 @@ cdef class Matrix_cyclo_dense(Matrix_dense):
             3037000331
             sage: (2^63-1).isqrt() # limit on mod_int
             3037000499
-            sage: 2^63 # largest modulus for Matrix_modn_dense_flint
+            sage: 2^64 - 1 # largest modulus for Matrix_modn_dense_flint
             9223372036854775808
             sage: p % 37
             1
@@ -673,9 +673,9 @@ cdef class Matrix_cyclo_dense(Matrix_dense):
         K = self._base_ring
         p = K.previous_split_prime(MAX_MODULUS, exclude)
         # Figure out whether we're using FLINT or linbox; if FLINT then we can increase the prime
-        from sage.matrix.matrix_space import _modN_matrix_class
         from sage.matrix.matrix_modn_dense_flint import Matrix_modn_dense_flint
-        if _modN_matrix_class(p, self._nrows, self._ncols) is Matrix_modn_dense_flint:
+        from sage.rings.finite_rings.integer_mod_ring import Zmod
+        if get_matrix_class(Zmod(p), self._nrows, self._ncols, False, None) is Matrix_modn_dense_flint:
             p = K.previous_split_prime(MAX_MODULUS_multi_modular, exclude)
         return p
 

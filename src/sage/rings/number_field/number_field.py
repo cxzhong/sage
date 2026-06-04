@@ -88,7 +88,7 @@ import sage.rings.real_double
 import sage.rings.real_lazy
 import sage.rings.real_mpfr
 import sage.structure.coerce_exceptions
-from sage.arith.misc import euler_phi, factor, gcd, next_prime
+from sage.arith.misc import euler_phi, factor, gcd, next_prime, previous_prime
 from sage.categories.homset import Hom
 from sage.categories.number_fields import NumberFields
 from sage.categories.sets_cat import Sets
@@ -11838,9 +11838,9 @@ class NumberField_cyclotomic(NumberField_absolute, sage.rings.abc.NumberField_cy
         """
         n = self._n()
         if n == 1:
-            return arith.previous_prime(p)
+            return previous_prime(p)
         while True:
-            p = arith.previous_prime(p)
+            p = previous_prime(p)
             if p % n == 1 and (exclude is None or all(d % p != 0 for d in exclude)):
                 return p
 

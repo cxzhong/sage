@@ -257,20 +257,19 @@ def get_matrix_class(R, nrows, ncols, sparse, implementation):
                 # 2 for right_kernel
                 # 250 for multiplication
                 try:
-                    from . import matrix_modn_dense_double, matrix_modn_dense_float, matrix_modn_dense_flint
+                    from . import matrix_modn_dense_double, matrix_modn_dense_float, matrix_modn_dense_flint, matrix_mod2_dense
                 except ImportError:
                     pass
-                if R.order() > matrix_modn_dense_flint.MAX_MODULUS:
-                    return matrix_generic_dense.Matrix_generic_dense
-                elif R.order() == 2:
-                    return matrix_mod2_dense.Matrix_mod2_dense
-                if max(nrows, ncols) <= 100:
+                if R.order() <= matrix_modn_dense_flint.MAX_MODULUS:
+                    if R.order() == 2:
+                        return matrix_mod2_dense.Matrix_mod2_dense
+                    if max(nrows, ncols) <= 100:
+                        return matrix_modn_dense_flint.Matrix_modn_dense_flint
+                    if R.order() < matrix_modn_dense_float.MAX_MODULUS:
+                        return matrix_modn_dense_float.Matrix_modn_dense_float
+                    if R.order() < matrix_modn_dense_double.MAX_MODULUS:
+                        return matrix_modn_dense_double.Matrix_modn_dense_double
                     return matrix_modn_dense_flint.Matrix_modn_dense_flint
-                if R.order() < matrix_modn_dense_float.MAX_MODULUS:
-                    return matrix_modn_dense_float.Matrix_modn_dense_float
-                if R.order() < matrix_modn_dense_double.MAX_MODULUS:
-                    return matrix_modn_dense_double.Matrix_modn_dense_double
-                return matrix_modn_dense_flint.Matrix_modn_dense_flint
 
 
             if isinstance(R, sage.rings.abc.NumberField_cyclotomic):
