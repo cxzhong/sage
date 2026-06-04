@@ -1878,13 +1878,11 @@ class DocTestDispatcher(SageObject):
         if sys.platform != "darwin":
             try:
                 from gnumake_tokenpool import JobClient, NoJobServer
+                job_client = JobClient(use_cysignals=True)
             except ImportError:
                 pass
-            else:
-                try:
-                    job_client = JobClient(use_cysignals=True)
-                except NoJobServer:
-                    pass
+            except NoJobServer:
+                pass
 
         source_iter = iter(self.controller.sources)
 
