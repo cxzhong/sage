@@ -915,36 +915,6 @@ class sage__rings__padics(JoinFeature):
                              type='standard')
 
 
-class sage__rings__real_double(PythonModule):
-    r"""
-    A :class:`~sage.features.Feature` describing the presence of :mod:`sage.rings.real_double`.
-
-    EXAMPLES:
-
-    The Real Double Field is basically always available, and no ``# optional/needs`` tag is needed::
-
-        sage: RDF.characteristic()
-        0
-
-    The feature exists for use in doctests of Python modules that are shipped by the
-    most fundamental distributions.
-
-    TESTS::
-
-        sage: from sage.features.sagemath import sage__rings__real_double
-        sage: sage__rings__real_double().is_present()                                   # needs sage.rings.real_double
-        FeatureTestResult('sage.rings.real_double', True)
-    """
-    def __init__(self):
-        r"""
-        TESTS::
-
-            sage: from sage.features.sagemath import sage__rings__real_double
-            sage: isinstance(sage__rings__real_double(), sage__rings__real_double)
-            True
-        """
-        PythonModule.__init__(self, 'sage.rings.real_double', type='standard')
-
 
 class sage__rings__real_mpfr(JoinFeature):
     r"""
@@ -1121,7 +1091,6 @@ def all_features():
         sage__rings__function_field(),
         sage__rings__number_field(),
         sage__rings__padics(),
-        sage__rings__real_double(),
         sage__rings__real_mpfr(),
         sage__sat(),
         sage__schemes(),
