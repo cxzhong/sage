@@ -594,11 +594,13 @@ cdef class Matrix(Matrix1):
             ValueError: matrix equation has no solutions
             sage: A = Matrix(Zmod(128), 2, 3, [23,11,22,4,1,0])
             sage: B = Matrix(Zmod(128), 2, 1, [1,0])
-            sage: v = A.solve_right(B); A * v == B
-            True
+            sage: A.solve_right(B)
+            [  5]
+            [108]
+            [127]
             sage: B = B.column(0)
-            sage: v = A.solve_right(B); A * v == B
-            True
+            sage: A.solve_right(B)
+            (5, 108, 127)
             sage: A = Matrix(Zmod(15), 3,4, range(12))
             sage: B = Matrix(Zmod(15), 3,3, range(3,12))
             sage: X = A.solve_right(B)
