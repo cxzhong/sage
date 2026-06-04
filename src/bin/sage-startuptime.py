@@ -1,4 +1,4 @@
-#!/usr/bin/env sage-python
+#!/usr/bin/env python3
 
 ########################################################################
 # Originally based on a script by Andrew Dalke:
@@ -15,9 +15,6 @@
 #
 #                  https://www.gnu.org/licenses/
 ########################################################################
-
-from __future__ import print_function
-
 import sys
 import os
 import time
@@ -38,10 +35,7 @@ parent = None
 index_to_parent = dict()
 all_modules = dict()
 
-if sys.version_info[0] == 2:
-    DEFAULT_LEVEL = -1
-else:
-    DEFAULT_LEVEL = 0
+DEFAULT_LEVEL = 0
 
 
 def new_import(name, globals={}, locals={}, fromlist=[], level=DEFAULT_LEVEL):
@@ -50,7 +44,7 @@ def new_import(name, globals={}, locals={}, fromlist=[], level=DEFAULT_LEVEL):
 
     Note that ``name`` is not unique, it can be `sage.foo.bar` or `bar`.
     """
-    global all_modules, import_counter, parent, direct_children_time
+    global import_counter, parent, direct_children_time
     old_direct_children_time = direct_children_time
     direct_children_time = 0
     old_parent = parent
@@ -110,24 +104,24 @@ fmt_number = '{0:>' + str(width) + '.3f} {1:>' + str(width) + '.3f} {2:>' + str(
 
 
 def print_table(module_list, limit):
-    global fmt_header, fmt_number
     print(fmt_header.format('exclude/ms', 'include/ms', '#parents', 'module name'))
     for t, module, data in module_list[-limit:]:
         print(fmt_number.format(1000 * t, 1000 * data['cumulative_time'],
                                 len(data['parents']), module.__name__))
+
 
 def guess_module_name(src):
     module = []
     src, ext = os.path.splitext(src)
     while src and src != '/':
         head, tail = os.path.split(os.path.abspath(src))
-        if (tail == 'src'
-            or any(os.path.exists(os.path.join(head, tail, f))
-                   for f in ('setup.py', 'pyproject.toml'))):
+        if (tail == 'src' or any(os.path.exists(os.path.join(head, tail, f))
+                                 for f in ('setup.py', 'pyproject.toml'))):
             return '.'.join(module)
         module.insert(0, tail)
         src = head
     return None
+
 
 if not have_cmdline_args:
     print('== Slowest module imports (excluding / including children) ==')
@@ -135,7 +129,6 @@ if not have_cmdline_args:
     print('Total time (sum over exclusive time): {:.3f}ms'.format(1000 * sum(data[0] for data in module_by_speed)))
     print('Use sage -startuptime <module_name|file_name>... to get more details about specific modules.')
 else:
-    from sage.env import SAGE_SRC
     for module_arg in cmdline_args:
         matching_modules = [m for m in all_modules if m.__name__ == module_arg]
         if not matching_modules:

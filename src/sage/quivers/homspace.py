@@ -17,9 +17,11 @@ Quiver Homspace
 #
 #                  https://www.gnu.org/licenses/
 # ****************************************************************************
+from __future__ import annotations
+
 from sage.categories.homset import Homset
-from sage.quivers.morphism import QuiverRepHom
 from sage.misc.cachefunc import cached_method
+from sage.quivers.morphism import QuiverRepHom
 
 
 class QuiverHomSpace(Homset):
@@ -44,7 +46,7 @@ class QuiverHomSpace(Homset):
     .. NOTE::
 
         The quivers of the domain and codomain must be equal or a
-        ``ValueError`` is raised.
+        :exc:`ValueError` is raised.
 
     EXAMPLES::
 
@@ -53,8 +55,8 @@ class QuiverHomSpace(Homset):
         sage: H.dimension()
         2
         sage: H.gens()
-        [Homomorphism of representations of Multi-digraph on 2 vertices,
-         Homomorphism of representations of Multi-digraph on 2 vertices]
+        (Homomorphism of representations of Multi-digraph on 2 vertices,
+         Homomorphism of representations of Multi-digraph on 2 vertices)
     """
     Element = QuiverRepHom
 
@@ -121,7 +123,7 @@ class QuiverHomSpace(Homset):
         # variable located at (0, 0) in the matrix assigned to the
         # ith vertex. (So varstart[0] will be 0.)
         eqs = 0
-        verts = domain._quiver.vertices()
+        verts = domain._quiver.vertices(sort=True)
         varstart = [0] * (len(verts) + 1)
 
         # First assign to varstart the dimension of the matrix assigned to the
@@ -199,10 +201,10 @@ class QuiverHomSpace(Homset):
 
     def _coerce_map_from_(self, other):
         r"""
-        A coercion exists if and only if ``other``` is also a
-        QuiverHomSpace and there is a coercion from the domain of ``self``
-        to the domain of ``other`` and from the codomain of ``other`` to
-        the codomain of ``self```.
+        A coercion exists if and only if ``other`` is also a
+        :class:`QuiverHomSpace` and there is a coercion from the
+        domain of ``self`` to the domain of ``other`` and from the
+        codomain of ``other`` to the codomain of ``self``.
 
         EXAMPLES::
 
@@ -221,9 +223,7 @@ class QuiverHomSpace(Homset):
             return False
         if not other._domain.has_coerce_map_from(self._domain):
             return False
-        if not self._codomain.has_coerce_map_from(other._codomain):
-            return False
-        return True
+        return self._codomain.has_coerce_map_from(other._codomain)
 
     def __call__(self, *data, **kwds):
         r"""
@@ -271,9 +271,7 @@ class QuiverHomSpace(Homset):
         default call method of :class:`~sage.categories.homset.Homset`
         is called instead.
 
-        OUTPUT:
-
-        - :class:`QuiverRepHom`
+        OUTPUT: :class:`QuiverRepHom`
 
         EXAMPLES::
 
@@ -332,7 +330,7 @@ class QuiverHomSpace(Homset):
             True
         """
         if kwds or len(data) > 1:
-            return super(Homset, self).__call__(*data, **kwds)
+            return super().__call__(*data, **kwds)
 
         if not data:
             return self.natural_map()
@@ -343,7 +341,7 @@ class QuiverHomSpace(Homset):
         try:
             return self.element_class(self._domain, self._codomain, data0)
         except (TypeError, ValueError):
-            return super(QuiverHomSpace, self).__call__(*data, **kwds)
+            return super().__call__(*data, **kwds)
 
     def _repr_(self):
         """
@@ -382,9 +380,7 @@ class QuiverHomSpace(Homset):
         """
         Return the identity map.
 
-        OUTPUT:
-
-        - :class:`QuiverRepHom`
+        OUTPUT: :class:`QuiverRepHom`
 
         EXAMPLES::
 
@@ -426,9 +422,7 @@ class QuiverHomSpace(Homset):
         """
         Return the quiver of the representations.
 
-        OUTPUT:
-
-        - :class:`DiGraph`, the quiver of the representations
+        OUTPUT: :class:`DiGraph`; the quiver of the representations
 
         EXAMPLES::
 
@@ -443,9 +437,7 @@ class QuiverHomSpace(Homset):
         """
         Return the domain of the hom space.
 
-        OUTPUT:
-
-        - :class:`QuiverRep`, the domain of the Hom space
+        OUTPUT: :class:`QuiverRep`; the domain of the Hom space
 
         EXAMPLES::
 
@@ -461,9 +453,7 @@ class QuiverHomSpace(Homset):
         """
         Return the codomain of the hom space.
 
-        OUTPUT:
-
-        - :class:`QuiverRep`, the codomain of the Hom space
+        OUTPUT: :class:`QuiverRep`; the codomain of the Hom space
 
         EXAMPLES::
 
@@ -486,9 +476,7 @@ class QuiverHomSpace(Homset):
         """
         Return the dimension of the hom space.
 
-        OUTPUT:
-
-        - integer, the dimension
+        OUTPUT: integer; the dimension
 
         EXAMPLES::
 
@@ -499,25 +487,23 @@ class QuiverHomSpace(Homset):
         """
         return self._space.dimension()
 
-    def gens(self):
+    def gens(self) -> tuple:
         """
-        Return a list of generators of the hom space (as a `k`-vector
+        Return a tuple of generators of the hom space (as a `k`-vector
         space).
 
-        OUTPUT:
-
-        - list of :class:`QuiverRepHom` objects, the generators
+        OUTPUT: tuple of :class:`QuiverRepHom` objects; the generators
 
         EXAMPLES::
 
             sage: Q = DiGraph({1:{2:['a', 'b']}}).path_semigroup()
             sage: H = Q.S(QQ, 2).Hom(Q.P(QQ, 1))
             sage: H.gens()
-            [Homomorphism of representations of Multi-digraph on 2 vertices,
-             Homomorphism of representations of Multi-digraph on 2 vertices]
+            (Homomorphism of representations of Multi-digraph on 2 vertices,
+             Homomorphism of representations of Multi-digraph on 2 vertices)
         """
-        return [self.element_class(self._domain, self._codomain, f)
-                for f in self._space.gens()]
+        return tuple([self.element_class(self._domain, self._codomain, f)
+                      for f in self._space.gens()])
 
     def coordinates(self, hom):
         """
@@ -576,16 +562,14 @@ class QuiverHomSpace(Homset):
 
         INPUT:
 
-        - ``basis`` - bool. If ``False``, then only the module is
+        - ``basis`` -- boolean; if ``False``, then only the module is
           returned.  If ``True``, then a tuple is returned.  The first
           element is the QuiverRep and the second element is a
           dictionary which associates to each vertex a list.  The
           elements of this list are the homomorphisms which correspond to
           the basis elements of that vertex in the module.
 
-        OUTPUT:
-
-        - :class:`QuiverRep` or tuple
+        OUTPUT: :class:`QuiverRep` or tuple
 
         .. WARNING::
 
@@ -648,5 +632,4 @@ class QuiverHomSpace(Homset):
                 basis_dict[v] = [self.element_class(self._domain, self._codomain, vec)
                                  for vec in spaces[v].gens()]
             return (QuiverRep(self._base, self._semigroup.reverse(), spaces, maps), basis_dict)
-        else:
-            return QuiverRep(self._base, self._semigroup.reverse(), spaces, maps)
+        return QuiverRep(self._base, self._semigroup.reverse(), spaces, maps)

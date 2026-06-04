@@ -1,4 +1,3 @@
-# -*- encoding: utf-8 -*-
 r"""
 Output Buffer
 
@@ -17,7 +16,7 @@ EXAMPLES::
     sage: buf = OutputBuffer('this is the buffer content');  buf
     buffer containing 26 bytes
     sage: buf.get().decode('ascii')
-    u'this is the buffer content'
+    'this is the buffer content'
     sage: type(buf.get()) is bytes
     True
 """
@@ -39,7 +38,7 @@ class OutputBuffer(SageObject):
 
     def __init__(self, data):
         """
-        Data stored either in memory or as a file
+        Data stored either in memory or as a file.
 
         This class is an abstraction for "files", in that they can
         either be defined by a bytes array (Python 3) or string
@@ -47,7 +46,7 @@ class OutputBuffer(SageObject):
 
         INPUT:
 
-        - ``data`` -- bytes. The data that is stored in the buffer.
+        - ``data`` -- bytes; the data that is stored in the buffer
 
         EXAMPLES::
 
@@ -87,12 +86,10 @@ class OutputBuffer(SageObject):
 
         INPUT:
 
-        - ``filename`` -- string. The filename under which the data is
-          stored.
+        - ``filename`` -- string; the filename under which the data is
+          stored
 
-        OUTPUT:
-
-        String containing the buffer data.
+        OUTPUT: string containing the buffer data
 
         EXAMPLES::
 
@@ -117,11 +114,11 @@ class OutputBuffer(SageObject):
     @classmethod
     def _chmod_readonly(cls, filename):
         """
-        Make file readonly
+        Make file readonly.
 
         INPUT:
 
-        - ``filename`` -- string. Name of an already-existing file.
+        - ``filename`` -- string; name of an already-existing file
 
         EXAMPLES::
 
@@ -134,24 +131,26 @@ class OutputBuffer(SageObject):
             sage: stat.S_IMODE(os.stat(tmp).st_mode) & (stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH)
             0
         """
-        from sage.env import SAGE_EXTCODE
+        from sage.env import SAGE_SRC
         filename = os.path.abspath(filename)
-        if filename.startswith(os.path.abspath(SAGE_EXTCODE)):
+        if filename.startswith(os.path.abspath(SAGE_SRC)):
             # Do not change permissions on the sample rich output
             # files, as it will cause trouble when upgrading Sage
             return
         import stat
         mode = os.stat(filename).st_mode
         mode = stat.S_IMODE(mode) & ~(stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH)
-        os.chmod(filename, mode)
+        # The file may already be read only for that user
+        try:
+            os.chmod(filename, mode)
+        except PermissionError:
+            pass
 
     def _repr_(self):
         """
-        Return a string representation
+        Return a string representation.
 
-        OUTPUT:
-
-        String
+        OUTPUT: string
 
         EXAMPLES::
 
@@ -163,20 +162,18 @@ class OutputBuffer(SageObject):
 
     def get(self):
         """
-        Return the buffer content
+        Return the buffer content.
 
-        OUTPUT:
-
-        Bytes. A string in Python 2.x.
+        OUTPUT: bytes; string in Python 2.x
 
         EXAMPLES::
 
             sage: from sage.repl.rich_output.buffer import OutputBuffer
             sage: c = OutputBuffer('test1234').get(); c.decode('ascii')
-            u'test1234'
+            'test1234'
             sage: type(c) is bytes
             True
-            sage: c = OutputBuffer(u'été').get()
+            sage: c = OutputBuffer('été').get()
             sage: type(c) is bytes
             True
         """
@@ -187,20 +184,20 @@ class OutputBuffer(SageObject):
 
     def get_unicode(self):
         """
-        Return the buffer content as string
+        Return the buffer content as string.
 
         OUTPUT:
 
-        String. Unicode in Python 2.x. Raises a ``UnicodeEncodeError``
+        String. Unicode in Python 2.x. Raises a :exc:`UnicodeEncodeError`
         if the data is not valid utf-8.
 
         EXAMPLES::
 
             sage: from sage.repl.rich_output.buffer import OutputBuffer
             sage: OutputBuffer('test1234').get().decode('ascii')
-            u'test1234'
+            'test1234'
             sage: OutputBuffer('test1234').get_unicode()
-            u'test1234'
+            'test1234'
         """
         return self.get().decode('utf-8')
 
@@ -215,9 +212,7 @@ class OutputBuffer(SageObject):
         ``OutputBuffer.get`` on Python 2 and ``OutputBuffer.get_unicode`` on
         Python 3.  This is useful in some cases for cross-compatible code.
 
-        OUTPUT:
-
-        A ``str`` object.
+        OUTPUT: a ``str`` object
 
         EXAMPLES::
 
@@ -226,11 +221,10 @@ class OutputBuffer(SageObject):
             'test1234'
             sage: type(c) is str
             True
-            sage: c = OutputBuffer(u'été').get_str()
+            sage: c = OutputBuffer('été').get_str()
             sage: type(c) is str
             True
         """
-
         return self.get_unicode()
 
     def filename(self, ext=None):
@@ -239,7 +233,7 @@ class OutputBuffer(SageObject):
 
         INPUT:
 
-        - ``ext`` -- string. The file extension.
+        - ``ext`` -- string; the file extension
 
         OUTPUT:
 
@@ -298,7 +292,7 @@ class OutputBuffer(SageObject):
 
         INPUT:
 
-        - ``filename`` -- string. The file name to save under.
+        - ``filename`` -- string; the file name to save under
 
         EXAMPLES::
 

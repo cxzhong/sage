@@ -12,9 +12,11 @@ from libcpp.pair cimport pair
 from sage.libs.ntl.types cimport ZZ_c
 
 
-# NOTE: eclib includes have specific dependencies and must be included
-# in a specific order. So we start by listing all relevant include files
-# in the correct order.
+# NOTE: eclib used to have specific dependencies, so that they had to
+# be included in a specific order. Although this is no longer the
+# case, we start by listing all relevant include files in the correct
+# order.
+
 cdef extern from "eclib/vector.h": pass
 cdef extern from "eclib/xmod.h": pass
 cdef extern from "eclib/svector.h": pass
@@ -53,7 +55,6 @@ cdef extern from "eclib/matrix.h":
     cdef cppclass mat:
         mat()
         mat(mat m)
-        scalar* get_entries()
         scalar sub(long, long)
         long nrows()
         long ncols()
@@ -65,7 +66,6 @@ cdef extern from "eclib/smatrix.h":
     cdef cppclass smat:
         smat()
         smat(smat m)
-        scalar* get_entries()
         scalar sub(long, long)
         long nrows()
         long ncols()

@@ -1,14 +1,14 @@
-# distutils: libraries = ARB_LIBRARY
+# distutils: libraries = flint
 r"""
-Arbitrary precision complex ball matrices using Arb
+Arbitrary precision complex ball matrices
 
 AUTHORS:
 
 - Clemens Heuberger (2014-10-25): Initial version.
 
-This is a rudimentary binding to the `Arb library
-<http://arblib.org>`_; it may be useful to refer to its
-documentation for more details.
+This is an incomplete interface to the `acb_mat module
+<https://flintlib.org/doc/acb_mat.html>`_ of FLINT; it may be useful to refer
+to its documentation for more details.
 
 TESTS::
 
@@ -18,9 +18,12 @@ TESTS::
     sage: pol(mat)
     [8.000000000000000 11.00000000000000]
     [22.00000000000000 41.00000000000000]
-"""
 
-#*****************************************************************************
+    sage: mat = matrix(ComplexBallField(20), 2, 2, list(range(4)))*i/3                  # needs sage.symbolic
+    sage: loads(dumps(mat)).identical(mat)                                              # needs sage.symbolic
+    True
+"""
+# ****************************************************************************
 #       Copyright (C) 2014 Clemens Heuberger <clemens.heuberger@aau.at>
 #
 # This program is free software: you can redistribute it and/or modify
@@ -28,19 +31,16 @@ TESTS::
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
 #                  http://www.gnu.org/licenses/
-#*****************************************************************************
-
+# ****************************************************************************
 from cpython.object cimport Py_EQ, Py_NE
 from cysignals.signals cimport sig_on, sig_str, sig_off
 
 from sage.arith.power cimport generic_power_pos
-from sage.libs.arb.acb cimport *
-from sage.libs.arb.acb_mat cimport *
+from sage.libs.flint.acb cimport *
+from sage.libs.flint.acb_mat cimport *
 from sage.libs.gmp.mpz cimport mpz_fits_ulong_p, mpz_get_ui
 from sage.matrix.constructor import matrix
-from sage.matrix.matrix_generic_sparse cimport Matrix_generic_sparse
-from .args cimport SparseEntry, MatrixArgs_init
-from sage.rings.complex_interval_field import ComplexIntervalField_class, ComplexIntervalField
+from sage.matrix.args cimport SparseEntry, MatrixArgs_init
 from sage.rings.complex_interval cimport ComplexIntervalFieldElement
 from sage.rings.complex_arb cimport (
     ComplexBall,
@@ -48,16 +48,15 @@ from sage.rings.complex_arb cimport (
     acb_to_ComplexIntervalFieldElement)
 from sage.rings.integer cimport Integer
 from sage.rings.polynomial.polynomial_complex_arb cimport Polynomial_complex_arb
-from sage.structure.element cimport Element, RingElement, Matrix
+from sage.structure.element cimport Element, Matrix
 from sage.structure.parent cimport Parent
 from sage.structure.sequence import Sequence
 
 from sage.misc.superseded import experimental
-from sage.rings.integer_ring import ZZ
 from sage.rings.polynomial import polynomial_ring_constructor
 
 
-cdef void matrix_to_acb_mat(acb_mat_t target, source):
+cdef void matrix_to_acb_mat(acb_mat_t target, source) noexcept:
     """
     Convert a matrix containing :class:`ComplexIntervalFieldElement` to an ``acb_mat_t``.
 
@@ -71,7 +70,7 @@ cdef void matrix_to_acb_mat(acb_mat_t target, source):
 
     None.
     """
-    cdef unsigned long nrows, ncols, r, c, precision
+    cdef unsigned long nrows, ncols, r, c
 
     nrows = acb_mat_nrows(target)
     ncols = acb_mat_ncols(target)
@@ -88,8 +87,7 @@ cdef ComplexIntervalFieldElement _to_CIF(acb_t source, ComplexIntervalFieldEleme
         result, source)
     return result
 
-cdef Matrix_generic_dense acb_mat_to_matrix(
-    acb_mat_t source, Parent CIF):
+cdef Matrix_generic_dense acb_mat_to_matrix(acb_mat_t source, Parent CIF):
     """
     Convert an ``acb_mat_t`` to a matrix containing :class:`ComplexIntervalFieldElement`.
 
@@ -97,7 +95,7 @@ cdef Matrix_generic_dense acb_mat_to_matrix(
 
     - ``source`` -- an ``acb_mat_t``
 
-    - ``precision`` -- a positive integer.
+    - ``precision`` -- positive integer
 
     OUTPUT:
 
@@ -116,13 +114,13 @@ cdef Matrix_generic_dense acb_mat_to_matrix(
                     for c in range(ncols)]
                    for r in range(nrows)])
 
-cdef inline long prec(Matrix_complex_ball_dense mat):
+cdef inline long prec(Matrix_complex_ball_dense mat) noexcept:
     return mat._base_ring._prec
 
 cdef class Matrix_complex_ball_dense(Matrix_dense):
     """
     Matrix over a complex ball field. Implemented using the
-    ``acb_mat`` type of the Arb library.
+    ``acb_mat`` type of the FLINT library.
 
     EXAMPLES::
 
@@ -143,9 +141,9 @@ cdef class Matrix_complex_ball_dense(Matrix_dense):
             sage: a = Matrix_complex_ball_dense.__new__( # indirect doctest
             ....:     Matrix_complex_ball_dense, Mat(CBF, 2), 0, 0, 0)
             sage: type(a)
-            <type 'sage.matrix.matrix_complex_ball_dense.Matrix_complex_ball_dense'>
+            <class 'sage.matrix.matrix_complex_ball_dense.Matrix_complex_ball_dense'>
         """
-        sig_str("Arb exception")
+        sig_str("FLINT exception")
         acb_mat_init(self.value, self._nrows, self._ncols)
         sig_off()
 
@@ -183,7 +181,7 @@ cdef class Matrix_complex_ball_dense(Matrix_dense):
 
         - ``copy`` -- ignored (for backwards compatibility)
 
-        - ``coerce`` -- if False, assume without checking that the
+        - ``coerce`` -- if ``False``, assume without checking that the
           entries lie in the base ring
 
         EXAMPLES:
@@ -266,7 +264,7 @@ cdef class Matrix_complex_ball_dense(Matrix_dense):
 
         - ``j`` -- column
 
-        - ``x`` -- must be ComplexBall! The value to set self[i,j] to.
+        - ``x`` -- must be ComplexBall! The value to set ``self[i,j]`` to.
 
         EXAMPLES::
 
@@ -308,6 +306,53 @@ cdef class Matrix_complex_ball_dense(Matrix_dense):
         z._parent = self._base_ring
         acb_set(z.value, acb_mat_entry(self.value, i, j))
         return z
+
+    cdef copy_from_unsafe(self, Py_ssize_t iDst, Py_ssize_t jDst, src, Py_ssize_t iSrc, Py_ssize_t jSrc):
+        """
+        Copy the ``(iSrc, jSrc)`` entry of ``src`` into the ``(iDst, jDst)``
+        entry of ``self``.
+
+        .. warning::
+
+           This is very unsafe; it assumes ``iSrc``, ``jSrc``, ``iDst`` and
+           ``jDst`` are in the right range, and that ``src`` is a
+           Matrix_complex_ball_dense with the same base ring as ``self``.
+
+        INPUT:
+
+        - ``iDst`` - the row to be copied to in ``self``.
+        - ``jDst`` - the column to be copied to in ``self``.
+        - ``src`` - the matrix to copy from. Should be a
+                    Matrix_complex_ball_dense with the same base ring as
+                    ``self``.
+        - ``iSrc``  - the row to be copied from in ``src``.
+        - ``jSrc`` - the column to be copied from in ``src``.
+
+        TESTS::
+
+            sage: m = MatrixSpace(CBF,3,4)(range(12))
+            sage: m
+            [                0 1.000000000000000 2.000000000000000 3.000000000000000]
+            [4.000000000000000 5.000000000000000 6.000000000000000 7.000000000000000]
+            [8.000000000000000 9.000000000000000 10.00000000000000 11.00000000000000]
+            sage: m.transpose()
+            [                0 4.000000000000000 8.000000000000000]
+            [1.000000000000000 5.000000000000000 9.000000000000000]
+            [2.000000000000000 6.000000000000000 10.00000000000000]
+            [3.000000000000000 7.000000000000000 11.00000000000000]
+            sage: m.matrix_from_rows([0,2])
+            [                0 1.000000000000000 2.000000000000000 3.000000000000000]
+            [8.000000000000000 9.000000000000000 10.00000000000000 11.00000000000000]
+            sage: m.matrix_from_columns([1,3])
+            [1.000000000000000 3.000000000000000]
+            [5.000000000000000 7.000000000000000]
+            [9.000000000000000 11.00000000000000]
+            sage: m.matrix_from_rows_and_columns([1,2],[0,3])
+            [4.000000000000000 7.000000000000000]
+            [8.000000000000000 11.00000000000000]
+        """
+        cdef Matrix_complex_ball_dense _src = <Matrix_complex_ball_dense> src
+        acb_set(acb_mat_entry(self.value, iDst, jDst), acb_mat_entry(_src.value, iSrc, jSrc))
 
     cpdef _richcmp_(left, right, int op):
         r"""
@@ -547,18 +592,69 @@ cdef class Matrix_complex_ball_dense(Matrix_dense):
         else:
             raise ZeroDivisionError("unable to compute the inverse, is the matrix singular?")
 
+    def transpose(self):
+        r"""
+        Return the transpose of ``self``.
+
+        EXAMPLES::
+
+            sage: m = matrix(CBF, 2, 3, [1, 2, 3, 4, 5, 6])
+            sage: m.transpose()
+            [1.000000000000000 4.000000000000000]
+            [2.000000000000000 5.000000000000000]
+            [3.000000000000000 6.000000000000000]
+            sage: m.transpose().parent()
+            Full MatrixSpace of 3 by 2 dense matrices over Complex ball field with 53 bits of precision
+
+        TESTS::
+
+            sage: m = matrix(CBF,2,3,range(6))
+            sage: m.subdivide([1],[2])
+            sage: m
+            [                0 1.000000000000000|2.000000000000000]
+            [-----------------------------------+-----------------]
+            [3.000000000000000 4.000000000000000|5.000000000000000]
+            sage: m.transpose()
+            [                0|3.000000000000000]
+            [1.000000000000000|4.000000000000000]
+            [-----------------+-----------------]
+            [2.000000000000000|5.000000000000000]
+
+            sage: m = matrix(CBF,0,2)
+            sage: m.subdivide([],[1])
+            sage: m.subdivisions()
+            ([], [1])
+            sage: m.transpose().subdivisions()
+            ([1], [])
+
+            sage: m = matrix(CBF,2,0)
+            sage: m.subdivide([1],[])
+            sage: m.subdivisions()
+            ([1], [])
+            sage: m.transpose().subdivisions()
+            ([], [1])
+        """
+        cdef Py_ssize_t nc = self._ncols
+        cdef Py_ssize_t nr = self._nrows
+        cdef Matrix_complex_ball_dense trans = self._new(nc, nr)
+        acb_mat_transpose(trans.value, self.value)
+        if self._subdivisions is not None:
+            row_divs, col_divs = self.subdivisions()
+            trans.subdivide(col_divs, row_divs)
+        return trans
+
     def _solve_right_nonsingular_square(self, Matrix_complex_ball_dense rhs, check_rank=None):
         r"""
         TESTS::
 
-            sage: matrix(CBF, [[1/2, 1/3], [1, 1]]) \ vector([-1, 1])
+            sage: matrix(CBF, [[1/2, 1/3], [1, 1]]).solve_right(vector([-1, 1]))
             ([-8.00000000000000 +/- ...], [9.00000000000000 +/- ...])
-            sage: matrix(CBF, 2, 2, 0) \ vector([-1, 1])
+            sage: matrix(CBF, 2, 2, 0).solve_right(vector([-1, 1]))
             Traceback (most recent call last):
             ...
             ValueError: unable to invert this matrix
             sage: b = CBF(0, RBF(0, rad=.1r))
-            sage: matrix(CBF, [[1, 1], [0, b]]) \ vector([-1, 1])
+            sage: matrix(CBF, [[1, 1], [0, b]]).solve_right(vector([-1, 1]))
             Traceback (most recent call last):
             ...
             ValueError: unable to invert this matrix
@@ -632,7 +728,7 @@ cdef class Matrix_complex_ball_dense(Matrix_dense):
 
         TESTS::
 
-            sage: mat.charpoly(algorithm="hessenberg")
+            sage: mat.charpoly(algorithm='hessenberg')
             x^5 + ([-1.8 +/- 0.04...])*x^4 + ([0.3 +/- 0.08...])*x^3
             + ([+/- 0.0...])*x^2 + ([+/- ...e-4])*x + [+/- ...e-6]
             sage: mat.charpoly('y')
@@ -646,11 +742,11 @@ cdef class Matrix_complex_ball_dense(Matrix_dense):
         Pol = polynomial_ring_constructor._single_variate(self.base_ring(), var)
         cdef Polynomial_complex_arb res = Polynomial_complex_arb(Pol)
         sig_on()
-        acb_mat_charpoly(res.__poly, self.value, prec(self))
+        acb_mat_charpoly(res._poly, self.value, prec(self))
         sig_off()
         return res
 
-    @experimental(trac_number=30393)
+    @experimental(issue_number=30393)
     def eigenvalues(self, other=None, *, extend=None):
         r"""
         (Experimental.) Compute rigorous enclosures of the eigenvalues of this matrix.
@@ -677,7 +773,7 @@ cdef class Matrix_complex_ball_dense(Matrix_dense):
         There is currently no guarantee that the algorithm converges as the
         working precision is increased.
 
-        See the `Arb documentation <http://arblib.org/acb_mat.html#c.acb_mat_eig_multiple>`__
+        See the `FLINT documentation <https://flintlib.org/doc/acb_mat.html#c.acb_mat_eig_multiple>`__
         for more information.
 
         EXAMPLES::
@@ -726,7 +822,7 @@ cdef class Matrix_complex_ball_dense(Matrix_dense):
             _acb_vec_clear(eigval_approx, n)
         return Sequence(res)
 
-    @experimental(trac_number=30393)
+    @experimental(issue_number=30393)
     def eigenvectors_right_approx(self, other=None, *, extend=None):
         r"""
         (Experimental.) Compute *non-rigorous* approximations of the
@@ -746,13 +842,13 @@ cdef class Matrix_complex_ball_dense(Matrix_dense):
 
         No guarantees are made about the accuracy of the output.
 
-        See the `Arb documentation <http://arblib.org/acb_mat.html#c.acb_mat_approx_eig_qr>`__
+        See the `FLINT documentation <https://flintlib.org/doc/acb_mat.html#c.acb_mat_approx_eig_qr>`__
         for more information.
 
         EXAMPLES::
 
             sage: from sage.matrix.benchmark import hilbert_matrix
-            sage: mat = hilbert_matrix(3).change_ring(CBF) 
+            sage: mat = hilbert_matrix(3).change_ring(CBF)
             sage: eigval, eigvec, _ = mat.eigenvectors_right_approx()[0]
             doctest:...: FutureWarning: This class/method/function is marked as experimental.
             ...
@@ -780,9 +876,9 @@ cdef class Matrix_complex_ball_dense(Matrix_dense):
             eigval = _acb_vec_to_list(_eigval, n, self._parent._base)
         finally:
             _acb_vec_clear(_eigval, n)
-        return [(l, [v], 1) for l, v in zip(eigval, eigvec.columns())]
+        return [(val, [vec], 1) for val, vec in zip(eigval, eigvec.columns())]
 
-    @experimental(trac_number=30393)
+    @experimental(issue_number=30393)
     def eigenvectors_right(self, other=None, *, extend=None):
         r"""
         (Experimental.) Compute rigorous enclosures of the eigenvalues and
@@ -804,13 +900,13 @@ cdef class Matrix_complex_ball_dense(Matrix_dense):
         Additionally, there is currently no guarantee that the algorithm
         converges as the working precision is increased.
 
-        See the `Arb documentation <http://arblib.org/acb_mat.html#c.acb_mat_eig_simple>`__
+        See the `FLINT documentation <https://flintlib.org/doc/acb_mat.html#c.acb_mat_eig_simple>`__
         for more information.
 
         EXAMPLES::
 
             sage: from sage.matrix.benchmark import hilbert_matrix
-            sage: mat = hilbert_matrix(3).change_ring(CBF) 
+            sage: mat = hilbert_matrix(3).change_ring(CBF)
             sage: eigval, eigvec, _ = mat.eigenvectors_right()[0]
             doctest:...: FutureWarning: This class/method/function is marked as experimental.
             ...
@@ -843,7 +939,83 @@ cdef class Matrix_complex_ball_dense(Matrix_dense):
             acb_mat_clear(eigvec_approx)
             _acb_vec_clear(_eigval, n)
             _acb_vec_clear(eigval_approx, n)
-        return [(l, [v], 1) for l, v in zip(eigval, eigvec.columns())]
+        return [(val, [vec], 1) for val, vec in zip(eigval, eigvec.columns())]
+
+    def eigenvectors_left_approx(self, other=None, *, extend=None):
+        r"""
+        (Experimental.) Compute *non-rigorous* approximations of the
+        left eigenvalues and eigenvectors of this matrix.
+
+        INPUT:
+
+        - ``self`` -- an `n \times n` matrix
+        - ``other`` -- unsupported (generalized eigenvalue problem), should be ``None``
+        - ``extend`` -- ignored
+
+        OUTPUT:
+
+        A list of triples of the form ``(eigenvalue, [eigenvector], 1)``. The
+        eigenvalue and the entries of the eigenvector are complex balls with
+        zero radius.
+
+        No guarantees are made about the accuracy of the output.
+
+        See the `FLINT documentation <https://flintlib.org/doc/acb_mat.html#c.acb_mat_approx_eig_qr>`__
+        for more information.
+
+        EXAMPLES::
+
+            sage: mat = matrix(CBF, 3, [2, 3, 5, 7, 11, 13, 17, 19, 23])
+            sage: eigval, eigvec, _ = mat.eigenvectors_left_approx()[0]
+            sage: eigval
+            [1.1052996349... +/- ...]
+            sage: eigvec[0]
+            ([0.69817246751...], [-0.67419514369...], [0.240865343781...])
+            sage: eigvec[0] * (mat - eigval)
+            ([+/- ...], [+/- ...], [+/- ...])
+
+        .. SEEALSO:: :meth:`eigenvectors_left`
+        """
+        return self.transpose().eigenvectors_right_approx(other=None, extend=extend)
+
+    def eigenvectors_left(self, other=None, *, extend=True):
+        r"""
+        (Experimental.) Compute rigorous enclosures of the eigenvalues and
+        left eigenvectors of this matrix.
+
+        INPUT:
+
+        - ``self`` -- an `n \times n` matrix
+        - ``other`` -- unsupported (generalized eigenvalue problem), should be ``None``
+        - ``extend`` -- ignored
+
+        OUTPUT:
+
+        A list of triples of the form ``(eigenvalue, [eigenvector], 1)``.
+
+        Unlike :meth:`eigenvalues` and :meth:`eigenvectors_left_approx`, this
+        method currently fails in the presence of multiple eigenvalues.
+
+        Additionally, there is currently no guarantee that the algorithm
+        converges as the working precision is increased.
+
+        See the `FLINT documentation <https://flintlib.org/doc/acb_mat.html#c.acb_mat_eig_simple>`__
+        for more information.
+
+        EXAMPLES::
+
+            sage: mat = matrix(CBF, 3, [2, 3, 5, 7, 11, 13, 17, 19, 23])
+            sage: eigval, eigvec, _ = mat.eigenvectors_left()[0]
+            sage: eigval
+            [1.1052996349...] + [+/- ...]*I
+            sage: eigvec[0]
+            ([0.69817246751...] + [+/- ...]*I, [-0.67419514369...] + [+/- ...]*I, [0.240865343781...] + [+/- ...]*I)
+            sage: eigvec[0] * (mat - eigval)
+            ([+/- ...] + [+/- ...]*I, [+/- ...] + [+/- ...]*I, [+/- ...] + [+/- ...]*I)
+
+        .. SEEALSO:: :meth:`eigenvectors_right`, :meth:`eigenvalues`, :meth:`eigenvectors_left_approx`
+        """
+        return self.transpose().eigenvectors_right(other=other, extend=extend)
 
     def exp(self):
         r"""
@@ -851,7 +1023,7 @@ cdef class Matrix_complex_ball_dense(Matrix_dense):
 
         EXAMPLES::
 
-            sage: matrix(CBF, [[i*pi, 1], [0, i*pi]]).exp()
+            sage: matrix(CBF, [[i*pi, 1], [0, i*pi]]).exp()                             # needs sage.symbolic
             [[-1.00000000000000 +/- ...e-16] + [+/- ...e-16]*I [-1.00000000000000 +/- ...e-16] + [+/- ...e-16]*I]
             [                                                0 [-1.00000000000000 +/- ...e-16] + [+/- ...e-16]*I]
             sage: matrix(CBF, [[1/2, 1/3]]).exp()

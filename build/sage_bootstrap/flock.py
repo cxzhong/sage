@@ -1,4 +1,4 @@
-#!/usr/bin/env sage-bootstrap-python
+#!/usr/bin/env python3
 # vim: set filetype=python:
 """
 This script runs the given command under a file lock (similar to the flock
@@ -8,13 +8,15 @@ command on some systems).
 # This is originally motivated by pip, but has since been generalized.  We
 # should avoid running pip while uninstalling a package because that is prone
 # to race conditions. This script runs pip under a lock.  For details, see
-# https://trac.sagemath.org/ticket/21672
+# https://github.com/sagemath/sage/issues/21672
 
 import fcntl
 import os
-import pipes
 import sys
 import argparse
+
+from sage_bootstrap.compat import quote
+
 
 class FileType(argparse.FileType):
     """
@@ -36,7 +38,7 @@ class FileType(argparse.FileType):
             except OSError as exc:
                 if not os.path.isdir(dirname):
                     raise argparse.ArgumentTypeError(
-                            "can't create '{0}': {1}".format(dirname, exc))
+                        "can't create '{0}': {1}".format(dirname, exc))
 
         return super(FileType, self).__call__(string)
 
@@ -81,7 +83,6 @@ def run(argv=None):
     else:
         locktype = fcntl.LOCK_EX
 
-
     lock = args.lock
     command = args.command
 
@@ -105,7 +106,7 @@ def run(argv=None):
             kind = "exclusive"
 
         sys.stderr.write("Waiting for {0} lock to run {1} ... ".format(
-            kind, ' '.join(pipes.quote(arg) for arg in command)))
+            kind, ' '.join(quote(arg) for arg in command)))
         fcntl.flock(lock, locktype)
         sys.stderr.write("ok\n")
 

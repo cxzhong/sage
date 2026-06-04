@@ -116,7 +116,7 @@ class CartanTypeFolded(UniqueRepresentation, SageObject):
 
         sage: fct = CartanType(['C',4,1]).as_folding(); fct
         ['C', 4, 1] as a folding of ['A', 7, 1]
-        sage: fct.scaling_factors()
+        sage: fct.scaling_factors()                                                     # needs sage.graphs
         Finite family {0: 2, 1: 1, 2: 1, 3: 1, 4: 2}
         sage: fct.folding_orbit()
         Finite family {0: (0,), 1: (1, 7), 2: (2, 6), 3: (3, 5), 4: (4,)}
@@ -126,7 +126,7 @@ class CartanTypeFolded(UniqueRepresentation, SageObject):
 
         sage: fct = CartanType(['A',4,1]).as_folding(); fct
         ['A', 4, 1] as a folding of ['A', 4, 1]
-        sage: fct.scaling_factors()
+        sage: fct.scaling_factors()                                                     # needs sage.graphs
         Finite family {0: 1, 1: 1, 2: 1, 3: 1, 4: 1}
         sage: fct.folding_orbit()
         Finite family {0: (0,), 1: (1,), 2: (2,), 3: (3,), 4: (4,)}
@@ -178,13 +178,13 @@ class CartanTypeFolded(UniqueRepresentation, SageObject):
         virtual = CartanType(virtual)
         if isinstance(orbit, dict):
             i_set = cartan_type.index_set()
-            orb = [None]*len(i_set)
-            for k,v in orbit.items():
+            orb = [None] * len(i_set)
+            for k, v in orbit.items():
                 orb[i_set.index(k)] = tuple(v)
             orbit = tuple(orb)
         else:
             orbit = tuple(map(tuple, orbit))
-        return super(CartanTypeFolded, cls).__classcall__(cls, cartan_type, virtual, orbit)
+        return super().__classcall__(cls, cartan_type, virtual, orbit)
 
     def __init__(self, cartan_type, folding_of, orbit):
         """
@@ -270,6 +270,7 @@ class CartanTypeFolded(UniqueRepresentation, SageObject):
 
         EXAMPLES::
 
+            sage: # needs sage.graphs
             sage: fct = CartanType(['C', 4, 1]).as_folding()
             sage: fct.scaling_factors()
             Finite family {0: 2, 1: 1, 2: 1, 3: 1, 4: 2}
@@ -284,16 +285,16 @@ class CartanTypeFolded(UniqueRepresentation, SageObject):
         """
         if self._cartan_type.is_finite():
             L = self._cartan_type.root_system().ambient_space()
+
             def f(i):
                 root = L.simple_root(i)
                 coroot = L.simple_coroot(i)
                 return root.leading_coefficient() / coroot.leading_coefficient()
             index_set = self._cartan_type.index_set()
             min_f = min(f(j) for j in index_set)
-            return Family(dict( (i, int(f(i) / min_f)) for i in index_set ))
-        elif self._cartan_type.is_affine():
+            return Family({i: int(f(i) / min_f) for i in index_set})
+        if self._cartan_type.is_affine():
             c = self._cartan_type.translation_factors()
             cmax = max(c)
-            return Family(dict( (i, int(cmax / c[i]))
-                                for i in self._cartan_type.index_set() ))
-
+            return Family({i: int(cmax / c[i])
+                           for i in self._cartan_type.index_set()})

@@ -124,10 +124,15 @@ Sage provides various highlevel functions which make working with Boolean polyno
 construct a very small-scale AES system of equations and pass it to a SAT solver::
 
     sage: sr = mq.SR(1,1,1,4,gf2=True,polybori=True)
-    sage: F,s = sr.polynomial_system()
-    sage: from sage.sat.boolean_polynomials import solve as solve_sat # optional - cryptominisat
-    sage: s = solve_sat(F)                                            # optional - cryptominisat
-    sage: F.subs(s[0])                                                # optional - cryptominisat
+    sage: while True:
+    ....:     try:
+    ....:         F,s = sr.polynomial_system()
+    ....:         break
+    ....:     except ZeroDivisionError:
+    ....:         pass
+    sage: from sage.sat.boolean_polynomials import solve as solve_sat # optional - pycryptosat
+    sage: s = solve_sat(F)                                            # optional - pycryptosat
+    sage: F.subs(s[0])                                                # optional - pycryptosat
     Polynomial Sequence with 36 Polynomials in 0 Variables
 
 Details on Specific Highlevel Interfaces
@@ -142,10 +147,10 @@ REFERENCES:
 
 .. [RS] http://reasoning.cs.ucla.edu/rsat/
 
-.. [GL] http://www.lri.fr/~simon/?page=glucose
+.. [GL] https://www.labri.fr/perso/lsimon/research/glucose/
 
 .. [CMS] http://www.msoos.org
 
-.. [SG09] http://www.satcompetition.org/2009/format-benchmarks2009.html
+.. [SG09] https://web.archive.org/web/20090305015900/http://www.satcompetition.org/2009/format-benchmarks2009.html
 
 .. include:: ../footer.txt

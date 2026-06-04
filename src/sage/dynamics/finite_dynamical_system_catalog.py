@@ -5,7 +5,7 @@ This module contains constructors for several specific discrete
 dynamical systems.
 These are accessible through
 :mod:`sage.dynamics.finite_dynamical_system_catalog. <sage.dynamics.finite_dynamical_system_catalog>`
-or just through `finite_dynamical_systems.`
+or just through ``finite_dynamical_systems.``
 (type either of these in Sage and hit ``tab`` for a list).
 
 AUTHORS:
@@ -27,6 +27,7 @@ Functions
 from sage.dynamics.finite_dynamical_system import DiscreteDynamicalSystem, \
         FiniteDynamicalSystem, InvertibleDiscreteDynamicalSystem, \
         InvertibleFiniteDynamicalSystem
+
 
 def permutation(pi, invertible=True):
     r"""
@@ -64,6 +65,7 @@ def permutation(pi, invertible=True):
     X = range(1, n+1)
     return InvertibleFiniteDynamicalSystem(X, pi, inverse=pi.inverse(), create_tuple=True)
 
+
 def one_line(xs):
     r"""
     Return the finite discrete dynamical system
@@ -83,11 +85,13 @@ def one_line(xs):
         [2]
     """
     n = len(xs)
-    X = range(1, n+1)
+    X = range(1, n + 1)
     xs2 = tuple(xs)
+
     def pi(i):
         return xs2[i - 1]
     return FiniteDynamicalSystem(X, pi, create_tuple=True)
+
 
 def bitstring_rotation(n, ones=None):
     r"""
@@ -145,6 +149,7 @@ def bitstring_rotation(n, ones=None):
         phi = lambda x: x[1:] + (x[0],)
         psi = lambda x: (x[-1],) + x[:-1]
     return InvertibleFiniteDynamicalSystem(X, phi, inverse=psi)
+
 
 def striker_sweep(E, predicate, elements, lazy=False):
     r"""
@@ -231,12 +236,14 @@ def striker_sweep(E, predicate, elements, lazy=False):
     from sage.combinat.subset import Subsets
     from sage.sets.set import Set
     X = [F for F in Subsets(E) if predicate(F)]
+
     def phi(F):
         for e in elements:
             G = F.symmetric_difference(Set([e]))
             if predicate(G):
                 F = G
         return F
+
     def psi(F):
         for e in reversed(elements):
             G = F.symmetric_difference(Set([e]))
@@ -244,6 +251,7 @@ def striker_sweep(E, predicate, elements, lazy=False):
                 F = G
         return F
     return InvertibleFiniteDynamicalSystem(X, phi, inverse=psi)
+
 
 def syt_promotion(lam):
     r"""
@@ -266,10 +274,12 @@ def syt_promotion(lam):
         True
     """
     from sage.combinat.partition import Partition
-    lam = Partition(lam)
     from sage.combinat.tableau import StandardTableaux
+    lam = Partition(lam)
     X = StandardTableaux(lam)
-    return InvertibleFiniteDynamicalSystem(X, lambda T : T.promotion(), inverse=lambda T : T.promotion_inverse())
+    return InvertibleFiniteDynamicalSystem(X, lambda T: T.promotion(),
+                                           inverse=lambda T: T.promotion_inverse())
+
 
 def order_ideal_rowmotion(P):
     r"""
@@ -299,13 +309,43 @@ def order_ideal_rowmotion(P):
     # Using P.order_ideals_lattice() instead causes intransparency issues:
     # sage can't always do P.rowmotion(I) when I is in P.order_ideals_lattice().
     # Bug in P.order_ideals_lattice() when P is facade?
-    phi = lambda I : P.rowmotion(I)
-    def psi(I): # inverse of rowmotion
+    phi = P.rowmotion
+
+    def psi(I):  # inverse of rowmotion
         result = I
         for i in P.linear_extension():
             result = P.order_ideal_toggle(result, i)
         return result
     return InvertibleFiniteDynamicalSystem(X, phi, inverse=psi)
+
+
+def semidistributive_rowmotion(L):
+    r"""
+    Return the invertible finite discrete dynamical system
+    consisting of the elements of the semidistributive lattice ``L``,
+    evolving according to (semidistributive) rowmotion.
+
+    EXAMPLES::
+
+        sage: L = posets.TamariLattice(3)
+        sage: row = finite_dynamical_systems.semidistributive_rowmotion(L)
+        sage: all(L.rowmotion_semidistributive(a) == row.evolution()(a) for a in L)
+        True
+    """
+    H = L._hasse_diagram
+    meet_irr = [u for u in H if sum(1 for _ in H.upper_covers_iterator(u)) == 1]
+    join_irr = [u for u in H if sum(1 for _ in H.lower_covers_iterator(u)) == 1]
+    kappa_dual = {L._vertex_to_element(u): L._vertex_to_element(H.kappa_dual(u))
+                  for u in meet_irr}
+    row0 = {a: L.join(kappa_dual[e] for e in L.canonical_meetands(a))
+            for a in L}
+
+    kappa = {L._vertex_to_element(u): L._vertex_to_element(H.kappa(u))
+             for u in join_irr}
+    row1 = {a: L.meet(kappa[e] for e in L.canonical_joinands(a))
+            for a in L}
+    return InvertibleFiniteDynamicalSystem(L, lambda a: row0[a], inverse=lambda a: row1[a])
+
 
 def bulgarian_solitaire(n):
     r"""
@@ -357,11 +397,12 @@ def bulgarian_solitaire(n):
         sage: BS(8).is_homomesic(lambda lam: lam[-1])
         False
     """
-    from sage.combinat.partition import Partition, Partitions
+    from sage.combinat.partition import Partitions, _Partitions
     X = Partitions(n)
+
     def phi(lam):
         mu = [p - 1 for p in lam if p > 0]
         nu = sorted(mu + [len(lam)], reverse=True)
-        return Partition(nu)
-    return FiniteDynamicalSystem(X, phi)
+        return _Partitions(nu)
 
+    return FiniteDynamicalSystem(X, phi)

@@ -11,4 +11,4 @@ cdef class Matrix_modn_dense_flint(Matrix_dense):
 
     cdef Matrix_modn_dense_flint _new(self, Py_ssize_t nrows, Py_ssize_t ncols)
     cpdef _shift_mod(self, mp_limb_t modulus, mp_limb_t shift=*, bint mul=*, bint domod=*)
-    cdef int _copy_row_to_mod_int_array(self, mod_int *to, Py_ssize_t i)
+    cdef int _copy_row_to_mod_int_array(self, mod_int *to, Py_ssize_t i) noexcept

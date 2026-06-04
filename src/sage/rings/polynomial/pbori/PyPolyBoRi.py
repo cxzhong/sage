@@ -60,17 +60,26 @@ AUTHOR:
         sage: r = r.clone(names=["z17", "z7"])
         sage: [r.variable(idx) for idx in range(3)]
         [z17, z7, x2]
-        sage: r = r.clone(names="abcde")
+        sage: r = r.clone(names='abcde')
         sage: [r.variable(idx) for idx in range(6)]
         [a, b, c, d, e, y2]
 """
 
-from sage.rings.polynomial.pbori.pbori import *
-
 import weakref
 
+from sage.rings.polynomial.pbori.pbori import (
+    BooleanPolynomialRing,
+    BooleanPolynomialVector,
+    TermOrder_from_pb_order,
+    add_up_polynomials,
+)
 
-OrderCode = type('OrderCode', (object,), order_dict)
+# The following imports are necessary to make these objects available for backward compatibility
+from sage.rings.polynomial.pbori.pbori import Monomial as Monomial  # noqa: PLC0414
+from sage.rings.polynomial.pbori.pbori import OrderCode as OrderCode  # noqa: PLC0414
+from sage.rings.polynomial.pbori.pbori import Polynomial as Polynomial  # noqa: PLC0414
+from sage.rings.polynomial.pbori.pbori import Variable as Variable  # noqa: PLC0414
+from sage.rings.polynomial.pbori.pbori import gauss_on_polys as _gauss_on_polys
 
 
 def Ring(n, order='lp', names=None, blocks=None):
@@ -91,17 +100,13 @@ def WeakRingRef(ring):
     return weakref.weakref(ring)
 
 
-Monomial = MonomialFactory()
-Polynomial = PolynomialFactory()
-Variable = VariableFactory()
-
-
 _add_up_polynomials = add_up_polynomials
 
 
 def add_up_polynomials(polys, init):
     r"""
-    Adds up the polynomials in polys (which should be a BoolePolynomialVector or a sequence of ???
+    Add up the polynomials in polys (which should be a
+    ``BoolePolynomialVector`` or a sequence of ???
     """
     if not isinstance(polys, BoolePolynomialVector):
         vec = BoolePolynomialVector
@@ -110,9 +115,6 @@ def add_up_polynomials(polys, init):
         polys = vec
 
     return _add_up_polynomials(polys, init)
-
-
-_gauss_on_polys = gauss_on_polys
 
 
 def gauss_on_polys(l):

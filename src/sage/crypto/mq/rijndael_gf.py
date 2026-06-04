@@ -1,3 +1,4 @@
+# sage.doctest: needs sage.modules sage.rings.finite_rings
 r"""
 Rijndael-GF
 
@@ -46,7 +47,7 @@ AUTHORS:
 
 - Thomas Gagne (2015-06): initial version
 
-EXAMPLES
+EXAMPLES:
 
 We build Rijndael-GF with a block length of 4 and a key length of 6::
 
@@ -80,7 +81,7 @@ We can also use binary strings as input and output. ::
 '3902dc1925dc116a8409850b1dfb9732'. We can use this example to demonstrate
 the correctness of this implementation::
 
-    sage: rgf = RijndaelGF(4, 4) # change dimensions for this example
+    sage: rgf = RijndaelGF(4, 4)  # change dimensions for this example
     sage: plain = '3243f6a8885a308d313198a2e0370734'
     sage: key = '2b7e151628aed2a6abf7158809cf4f3c'
     sage: expected_ciphertext = '3925841d02dc09fbdc118597196a0b32'
@@ -119,7 +120,7 @@ such::
 
     sage: mc_pc = rgf.mix_columns_poly_constr()
     sage: mc_pc(1, 2)
-    a02 + (x)*a12 + (x + 1)*a22 + a32
+    a02 + x*a12 + (x + 1)*a22 + a32
     sage: mc_pc(2, 3, algorithm='decrypt')
     (x^3 + x^2 + 1)*a03 + (x^3 + 1)*a13 + (x^3 + x^2 + x)*a23 + (x^3 + x + 1)*a33
 
@@ -160,8 +161,7 @@ transformation, evaluate this polynomial for a particular input block, then
 finally perform the inversion step after the affine transformation polynomial
 has been evaluated. ::
 
-    sage: inv_affine = sb_pc(1, 2, algorithm='decrypt',
-    ....: no_inversion=True)
+    sage: inv_affine = sb_pc(1, 2, algorithm='decrypt', no_inversion=True)
     sage: state = rgf._hex_to_GF('ff87968431d86a51645151fa773ad009')
     sage: evaluated = inv_affine(state.list())
     sage: result = evaluated * -1
@@ -252,7 +252,7 @@ keywords of its ``__call__`` method when ``apply_poly`` invokes it by passing
 ``apply_poly`` a dictionary mapping keywords to their values. ::
 
     sage: rgf.apply_poly(rgf.state_vrs, rgf.add_round_key_poly_constr(),
-    ....: poly_constr_attr={'round' : 5})
+    ....: poly_constr_attr={'round': 5})
     [a00 + k500 a01 + k501 a02 + k502 a03 + k503]
     [a10 + k510 a11 + k511 a12 + k512 a13 + k513]
     [a20 + k520 a21 + k521 a22 + k522 a23 + k523]
@@ -269,12 +269,13 @@ will have the arguments of ``__call__(row, col, algorithm='encrypt')`` and
 when passed an index ``i,j`` will return `g(f(A))_{i,j}` in terms of the
 entries of `A`. ::
 
+    sage: # needs sage.libs.gap
     sage: rcpc = rgf.compose(rgf.shift_rows_poly_constr(),
-    ....: rgf.mix_columns_poly_constr())
-    sage: rcpc
-    A polynomial constructor of a round component of Rijndael-GF block cipher with block length 4, key length 6, and 12 rounds.
+    ....:                    rgf.mix_columns_poly_constr()); rcpc
+    A polynomial constructor of a round component of Rijndael-GF block cipher
+     with block length 4, key length 6, and 12 rounds.
     sage: rcpc(2, 1)
-    a01 + a12 + (x)*a23 + (x + 1)*a30
+    a01 + a12 + x*a23 + (x + 1)*a30
     <BLANKLINE>
     sage: state = rgf._hex_to_GF('afb73eeb1cd1b85162280f27fb20d585')
     sage: result = rgf.apply_poly(state, rcpc)
@@ -284,7 +285,7 @@ entries of `A`. ::
     True
     <BLANKLINE>
     sage: rcpc = rgf.compose(rgf.mix_columns_poly_constr(),
-    ....: rgf.shift_rows_poly_constr())
+    ....:                    rgf.shift_rows_poly_constr())
     sage: result = rgf.apply_poly(state, rcpc, algorithm='decrypt')
     sage: new_state = rgf.mix_columns(state, algorithm='decrypt')
     sage: new_state = rgf.shift_rows(new_state, algorithm='decrypt')
@@ -301,9 +302,8 @@ representing `g(A)_{i,j}` for a round component function `g`. Given this,
 ``compose`` will return a polynomial representing `g(f(A))_{i,j}` in terms
 of the entries of `A`. ::
 
-    sage: poly = rgf.mix_columns_poly_constr()(0, 3)
-    sage: poly
-    (x)*a03 + (x + 1)*a13 + a23 + a33
+    sage: poly = rgf.mix_columns_poly_constr()(0, 3); poly
+    x*a03 + (x + 1)*a13 + a23 + a33
     sage: rgf.compose(rgf.sub_bytes_poly_constr(), poly)
     (x^3 + x)*a03^254 +
     (x^3 + x^2 + x + 1)*a13^254 +
@@ -325,7 +325,7 @@ of the entries of `A`. ::
     (x^2 + x + 1)*a13^239 +
     (x^7 + x^6 + x^5 + x^4 + x^2)*a23^239 +
     (x^7 + x^6 + x^5 + x^4 + x^2)*a33^239 +
-    (x)*a03^223 +
+    x*a03^223 +
     (x + 1)*a13^223 +
     a23^223 +
     a33^223 +
@@ -347,16 +347,18 @@ if both arguments are ``Round_Component_Poly_Constr`` objects, since the
 returned ``Round_Component_Poly_Constr`` object's ``__call__`` method must have
 its own ``algorithm`` keyword defaulted to 'encrypt'. ::
 
+    sage: # needs sage.libs.gap
     sage: poly = rgf.shift_rows_poly_constr()(2, 1)
     sage: rgf.compose(rgf.mix_columns_poly_constr(), poly, algorithm='decrypt')
     (x^3 + x^2 + 1)*a03 + (x^3 + 1)*a13 + (x^3 + x^2 + x)*a23 + (x^3 + x + 1)*a33
     <BLANKLINE>
     sage: state = rgf._hex_to_GF('80121e0776fd1d8a8d8c31bc965d1fee')
     sage: with_decrypt = rgf.compose(rgf.sub_bytes_poly_constr(),
-    ....: rgf.shift_rows_poly_constr(), algorithm='decrypt')
+    ....:                            rgf.shift_rows_poly_constr(),
+    ....:                            algorithm='decrypt')
     sage: result_wd = rgf.apply_poly(state, with_decrypt)
     sage: no_decrypt = rgf.compose(rgf.sub_bytes_poly_constr(),
-    ....: rgf.shift_rows_poly_constr())
+    ....:                          rgf.shift_rows_poly_constr())
     sage: result_nd = rgf.apply_poly(state, no_decrypt)
     sage: result_wd == result_nd
     True
@@ -365,10 +367,10 @@ We can also pass keyword dictionaries of ``f_attr`` and ``g_attr`` to
 ``compose`` to make ``f`` and ``g`` use those keywords during polynomial
 creation. ::
 
-    sage: rcpc = rgf.compose(rgf.add_round_key_poly_constr(),
-    ....: rgf.add_round_key_poly_constr(),
-    ....: f_attr={'round' : 4}, g_attr={'round' : 7})
-    sage: rcpc(1, 2)
+    sage: rcpc = rgf.compose(rgf.add_round_key_poly_constr(),                           # needs sage.libs.gap
+    ....:                    rgf.add_round_key_poly_constr(),
+    ....:                    f_attr={'round': 4}, g_attr={'round': 7})
+    sage: rcpc(1, 2)                                                                    # needs sage.libs.gap
     a12 + k412 + k712
 
 In addition to building polynomial representations of state matrices, we can
@@ -424,7 +426,8 @@ Since ``expand_key_poly`` is not actually a
 
 from sage.matrix.constructor import matrix
 from sage.matrix.constructor import column_matrix
-from sage.structure.element import Matrix
+from sage.structure.element import Element, Matrix
+from sage.rings.finite_rings.finite_field_base import FiniteField as FiniteField_base
 from sage.rings.finite_rings.finite_field_constructor import FiniteField
 from sage.structure.sage_object import SageObject
 from sage.rings.polynomial.polynomial_ring_constructor import PolynomialRing
@@ -439,16 +442,16 @@ class RijndaelGF(SageObject):
 
         INPUT:
 
-        - ``Nb`` -- The block length of this instantiation. Must be between 4
-          and 8.
+        - ``Nb`` -- the block length of this instantiation. Must be between 4
+          and 8
 
-        - ``Nk`` -- The key length of this instantiation. Must be between 4 and 8.
+        - ``Nk`` -- the key length of this instantiation. Must be between 4 and 8
 
-        - ``state_chr`` -- The variable name for polynomials representing
-          elements from state matrices.
+        - ``state_chr`` -- the variable name for polynomials representing
+          elements from state matrices
 
-        - ``key_chr`` -- The variable name for polynomials representing
-          elements of the key schedule.
+        - ``key_chr`` -- the variable name for polynomials representing
+          elements of the key schedule
 
         EXAMPLES::
 
@@ -462,7 +465,7 @@ class RijndaelGF(SageObject):
 
             sage: rgf = RijndaelGF(4, 6, state_chr='myChr')
             sage: rgf.mix_columns_poly_constr()(3, 2)
-            (x + 1)*myChr02 + myChr12 + myChr22 + (x)*myChr32
+            (x + 1)*myChr02 + myChr12 + myChr22 + x*myChr32
 
         We can also alter the name of variables in polynomials representing
         elements from round keys by changing ``key_chr``. ::
@@ -515,7 +518,7 @@ class RijndaelGF(SageObject):
         self._all_PR = PolynomialRing(self._F, len(state_names + subkey_names),
                                       state_names + subkey_names)
         self.state_vrs = matrix(4, self._Nb, self._state_PR.gens())
-        fNb =  4 * self._Nb
+        fNb = 4 * self._Nb
         self.subkey_vrs_list = list(self._all_PR.gens()[fNb:])
         self.subkey_vrs = [matrix(4, self._Nb,
                            self.subkey_vrs_list[fNb * i: fNb * (i + 1)])
@@ -572,19 +575,17 @@ class RijndaelGF(SageObject):
 
         INPUT:
 
-        - ``text`` -- A plaintext to encrypt or a ciphertext to decrypt.
+        - ``text`` -- a plaintext to encrypt or a ciphertext to decrypt
 
-        - ``key`` -- The key to encrypt/decrypt ``text`` with.
+        - ``key`` -- the key to encrypt/decrypt ``text`` with
 
-        - ``algorithm`` -- Whether to encrypt or decrypt ``text``. Flag for
-          encryption is "encrypt", flag for decryption is "decrypt".
+        - ``algorithm`` -- whether to encrypt or decrypt ``text``. Flag for
+          encryption is "encrypt", flag for decryption is "decrypt"
 
-        - ``format`` -- The format of ``text`` and ``key``, either "hex" or
+        - ``format`` -- the format of ``text`` and ``key``, either "hex" or
           "binary"
 
-        OUTPUT:
-
-        - The encrypted or decrypted message ``text`` with key ``key``.
+        OUTPUT: the encrypted or decrypted message ``text`` with key ``key``
 
         EXAMPLES::
 
@@ -609,11 +610,10 @@ class RijndaelGF(SageObject):
 
         if algorithm == 'encrypt':
             return self.encrypt(text, key, format)
-        elif algorithm == 'decrypt':
+        if algorithm == 'decrypt':
             return self.decrypt(text, key, format)
-        else:
-            raise ValueError(("keyword 'algorithm' must be either 'encrypt' "
-                             "or 'decrypt'"))
+        raise ValueError("keyword 'algorithm' must be either 'encrypt' "
+                         "or 'decrypt'")
 
     def __repr__(self):
         r"""
@@ -676,11 +676,11 @@ class RijndaelGF(SageObject):
 
         INPUT:
 
-        - ``H`` -- A hex string where every two hex characters correspond to a
+        - ``H`` -- a hex string where every two hex characters correspond to a
           single element in `\GF{2^8}`
 
-        - ``matrix`` -- (default: ``True``) Return a list if ``False``;
-          return a state matrix if ``True``.
+        - ``matrix`` -- boolean (default: ``True``); return a list if ``False``.
+          Return a state matrix if ``True``
 
         OUTPUT:
 
@@ -716,8 +716,7 @@ class RijndaelGF(SageObject):
         result = [hx_to_gf(h) for h in hexes]
         if matrix:
             return column_matrix(len(result) // 4, 4, result)
-        else:
-            return result
+        return result
 
     def _GF_to_hex(self, GF):
         r"""
@@ -725,7 +724,7 @@ class RijndaelGF(SageObject):
 
         INPUT:
 
-        - ``GF`` -- Either a state matrix over `\GF{2^8}`, a list of elements
+        - ``GF`` -- either a state matrix over `\GF{2^8}`, a list of elements
           from `\GF{2^8}`, or a single element from `\GF{2^8}`
 
         OUTPUT:
@@ -757,10 +756,9 @@ class RijndaelGF(SageObject):
             sage: rgf._GF_to_hex(output)
             'e142cd5fcd9d6d94a3340793034391b5'
         """
-        from sage.rings.finite_rings.element_base import is_FiniteFieldElement
         if not isinstance(GF, Matrix) and \
            not isinstance(GF, list) and \
-           not is_FiniteFieldElement(GF):
+           not (isinstance(GF, Element) and isinstance(GF.parent(), FiniteField_base)):
             msg = ("keyword 'GF' must be a matrix over {0}, a list of "
                    "elements from {0}, or a single element from {0}")
             raise TypeError(msg.format(self._F))
@@ -773,19 +771,18 @@ class RijndaelGF(SageObject):
                 raise TypeError(msg.format(self._F))
             return ''.join([self._GF_to_hex(el)
                             for col in GF.columns() for el in col])
-        elif isinstance(GF, list):
+        if isinstance(GF, list):
             if not all(g.parent().is_field() and g.parent().is_finite() and
                        g.parent().order() == 2**8 for g in GF):
                 msg = "The elements of keyword 'GF' must all be from {0}"
                 raise TypeError(msg.format(self._F))
             return ''.join([self._GF_to_hex(el) for el in GF])
-        else:
-            if not GF.parent().is_field() or \
-               not GF.parent().is_finite() or \
-               not GF.parent().order() == 2**8:
-                msg = "keyword 'GF' must be in"
-                raise TypeError(msg.format(self._F))
-            return hex(GF.integer_representation())[2:].zfill(2)
+        if not GF.parent().is_field() or \
+           not GF.parent().is_finite() or \
+           not GF.parent().order() == 2**8:
+            msg = "keyword 'GF' must be in"
+            raise TypeError(msg.format(self._F))
+        return hex(GF.to_integer())[2:].zfill(2)
 
     def _bin_to_GF(self, B, matrix=True):
         r"""
@@ -793,11 +790,11 @@ class RijndaelGF(SageObject):
 
         INPUT:
 
-        - ``B`` -- A binary string where every eight bits correspond to a
+        - ``B`` -- a binary string where every eight bits correspond to a
           single element in `\GF{2^8}`
 
-        - ``matrix`` -- (default: ``True``) Return a list if ``False``.
-          Return a state matrix over `\GF{2^8}` if ``True``.
+        - ``matrix`` -- boolean (default: ``True``); return a list if ``False``.
+          Return a state matrix over `\GF{2^8}` if ``True``
 
         OUTPUT:
 
@@ -844,8 +841,7 @@ class RijndaelGF(SageObject):
         result = [bn_to_gf(b) for b in bins]
         if matrix:
             return column_matrix(len(result) // 4, 4, result)
-        else:
-            return result
+        return result
 
     def _GF_to_bin(self, GF):
         r"""
@@ -853,7 +849,7 @@ class RijndaelGF(SageObject):
 
         INPUT:
 
-        - ``GF`` -- Either a state matrix over `\GF{2^8}`, a list of elements
+        - ``GF`` -- either a state matrix over `\GF{2^8}`, a list of elements
           from `\GF{2^8}`, or a single element from `\GF{2^8}`
 
         OUTPUT:
@@ -883,10 +879,9 @@ class RijndaelGF(SageObject):
             sage: rgf._GF_to_bin(output)
             '11011000000111111111100000011011110110000001111111111000000110111101100000011111111110000001101111011000000111111111100000011011'
         """
-        from sage.rings.finite_rings.element_base import is_FiniteFieldElement
         if not isinstance(GF, Matrix) and \
            not isinstance(GF, list) and \
-           not is_FiniteFieldElement(GF):
+           not (isinstance(GF, Element) and isinstance(GF.parent(), FiniteField_base)):
             msg = ("keyword 'GF' must be a matrix over {0}, a list of "
                    "elements from {0}, or a single element from {0}")
             raise TypeError(msg.format(self))
@@ -899,19 +894,18 @@ class RijndaelGF(SageObject):
                 raise TypeError(msg.format(self._F))
             return ''.join([self._GF_to_bin(el)
                             for col in GF.columns() for el in col])
-        elif isinstance(GF, list):
+        if isinstance(GF, list):
             if not all(g.parent().is_field() and g.parent().is_finite() and
                        g.parent().order() == 2**8 for g in GF):
                 msg = "The elements of keyword 'GF' must all be from {0}"
                 raise TypeError(msg.format(self._F))
             return ''.join([self._GF_to_bin(el) for el in GF])
-        else:
-            if not GF.parent().is_field() or \
-               not GF.parent().is_finite() or \
-               not GF.parent().order() == 2**8:
-                msg = "keyword 'GF' must be in"
-                raise TypeError(msg.format(self._F))
-            return bin(GF.integer_representation())[2:].zfill(8)
+        if not GF.parent().is_field() or \
+           not GF.parent().is_finite() or \
+           not GF.parent().order() == 2**8:
+            msg = "keyword 'GF' must be in"
+            raise TypeError(msg.format(self._F))
+        return bin(GF.to_integer())[2:].zfill(8)
 
     def encrypt(self, plain, key, format='hex'):
         r"""
@@ -919,16 +913,14 @@ class RijndaelGF(SageObject):
 
         INPUT:
 
-        - ``plain`` -- The plaintext to be encrypted.
+        - ``plain`` -- the plaintext to be encrypted
 
-        - ``key`` -- The key to encrypt ``plain`` with.
+        - ``key`` -- the key to encrypt ``plain`` with
 
-        - ``format`` -- (default: ``hex``) The string format of ``key`` and
-          ``plain``, either "hex" or "binary".
+        - ``format`` -- (default: ``hex``) the string format of ``key`` and
+          ``plain``, either "hex" or "binary"
 
-        OUTPUT:
-
-        - A string of the plaintext ``plain`` encrypted with the key ``key``.
+        OUTPUT: string of the plaintext ``plain`` encrypted with the key ``key``
 
         EXAMPLES::
 
@@ -984,8 +976,8 @@ class RijndaelGF(SageObject):
             key_state = self._bin_to_GF(key)
             roundKeys = self.expand_key(key_state)
         else:
-            raise ValueError(("'format' keyword must be either 'hex' or "
-                             "'binary'"))
+            raise ValueError("'format' keyword must be either 'hex' or "
+                             "'binary'")
 
         state = self.add_round_key(state, roundKeys[0])
         for r in range(self._Nr-1):
@@ -999,8 +991,7 @@ class RijndaelGF(SageObject):
 
         if format == 'hex':
             return self._GF_to_hex(state)
-        else:
-            return self._GF_to_bin(state)
+        return self._GF_to_bin(state)
 
     def decrypt(self, ciphertext, key, format='hex'):
         r"""
@@ -1008,19 +999,19 @@ class RijndaelGF(SageObject):
 
         INPUT:
 
-        - ``ciphertext`` -- The ciphertext to be decrypted.
+        - ``ciphertext`` -- the ciphertext to be decrypted
 
-        - ``key`` -- The key to decrypt ``ciphertext`` with.
+        - ``key`` -- the key to decrypt ``ciphertext`` with
 
-        - ``format`` -- (default: ``hex``) The string format that both
-          ``ciphertext`` and ``key`` must be in, either "hex" or "binary".
+        - ``format`` -- (default: ``hex``) the string format that both
+          ``ciphertext`` and ``key`` must be in, either "hex" or "binary"
 
         OUTPUT:
 
         - A string in the format ``format`` of ``ciphertext`` decrypted with
           key ``key``.
 
-        EXAMPLES ::
+        EXAMPLES::
 
             sage: from sage.crypto.mq.rijndael_gf import RijndaelGF
             sage: rgf = RijndaelGF(4, 4)
@@ -1060,8 +1051,8 @@ class RijndaelGF(SageObject):
         elif format == 'binary':
             if not isinstance(ciphertext, str) or \
                any(c not in '01' for c in ciphertext):
-                raise TypeError(("'ciphertext' keyword must be a binary "
-                                 "string"))
+                raise TypeError("'ciphertext' keyword must be a binary "
+                                 "string")
             if len(ciphertext) != 32 * self._Nb:
                 msg = "'ciphertext' keyword's length must be {0}, not {1}"
                 raise ValueError(msg.format(32 * self._Nb, len(ciphertext)))
@@ -1075,8 +1066,8 @@ class RijndaelGF(SageObject):
             key_state = self._bin_to_GF(key)
             roundKeys = self.expand_key(key_state)
         else:
-            raise ValueError(("'format' keyword must be either \'hex\' or "
-                             "'binary'"))
+            raise ValueError("'format' keyword must be either \'hex\' or "
+                             "'binary'")
 
         state = self.add_round_key(state, roundKeys[self._Nr])
         state = self.shift_rows(state, algorithm='decrypt')
@@ -1090,8 +1081,7 @@ class RijndaelGF(SageObject):
 
         if format == 'hex':
             return self._GF_to_hex(state)
-        else:
-            return self._GF_to_bin(state)
+        return self._GF_to_bin(state)
 
     def _check_valid_PRmatrix(self, PRm, keyword):
         r"""
@@ -1099,13 +1089,13 @@ class RijndaelGF(SageObject):
 
         INPUT:
 
-        - ``PRm`` -- If ``PRm`` is a `4 \times Nb` matrix with entries from
+        - ``PRm`` -- if ``PRm`` is a `4 \times Nb` matrix with entries from
           the multivariate PolynomialRing ``_all_PR``, this method does nothing
           `\GF{2^8}`, this method does nothing. Otherwise, this method raises
           an error. Note that a matrix of elements from `\GF{2^8}` is regarded
           as a matrix with entries from ``_all_PR`` and will pass this test.
 
-        - ``keyword`` -- The name of the keyword ``PRm`` from where this
+        - ``keyword`` -- the name of the keyword ``PRm`` from where this
           method was called, for the potential error message. For example, if
           called from ``sub_bytes``, ``keyword`` would be "state".
 
@@ -1119,14 +1109,16 @@ class RijndaelGF(SageObject):
             sage: rgf._check_valid_PRmatrix(5, 'state')
             Traceback (most recent call last):
             ...
-            TypeError: keyword 'state' must be a 4 x 4 matrix with entries from a multivariate PolynomialRing over Finite Field in x of size 2^8
+            TypeError: keyword 'state' must be a 4 x 4 matrix with entries from
+            a multivariate PolynomialRing over Finite Field in x of size 2^8
             <BLANKLINE>
             sage: entries = [rgf._F.random_element() for i in range(24)]
             sage: wrong_dimensions = matrix(4, 6, entries)
             sage: rgf._check_valid_PRmatrix(wrong_dimensions, 'state')
             Traceback (most recent call last):
             ...
-            TypeError: keyword 'state' must be a 4 x 4 matrix with entries from a multivariate PolynomialRing over Finite Field in x of size 2^8
+            TypeError: keyword 'state' must be a 4 x 4 matrix with entries from
+            a multivariate PolynomialRing over Finite Field in x of size 2^8
             <BLANKLINE>
             sage: F.<a> = GF(3^4)
             sage: entries = [F.random_element() for i in range(16)]
@@ -1134,23 +1126,24 @@ class RijndaelGF(SageObject):
             sage: rgf._check_valid_PRmatrix(wrong_base, 'state')
             Traceback (most recent call last):
             ...
-            TypeError: keyword 'state' must be a 4 x 4 matrix with entries from a multivariate PolynomialRing over Finite Field in x of size 2^8
+            TypeError: keyword 'state' must be a 4 x 4 matrix with entries from
+            a multivariate PolynomialRing over Finite Field in x of size 2^8
         """
         from sage.rings.polynomial.multi_polynomial_ring_base import \
             MPolynomialRing_base
         msg = ("keyword '{0}' must be a {1} x {2} matrix with entries from a "
                "multivariate PolynomialRing over {3}")
         msg = msg.format(keyword, 4, self._Nb, self._F)
-        if (not isinstance(PRm, Matrix) or \
-            not (PRm.base_ring().is_field() and \
-                PRm.base_ring().is_finite() and \
-                PRm.base_ring().order() == 256 and \
-                PRm.dimensions() == (4, self._Nb))) and \
-           (not isinstance(PRm, Matrix) or \
-            not isinstance(PRm.base_ring(), MPolynomialRing_base) or \
-            not (PRm.base_ring().base_ring().is_field() and \
-                 PRm.base_ring().base_ring().is_finite() and \
-                 PRm.base_ring().base_ring().order() == 256) or \
+        if (not isinstance(PRm, Matrix) or
+            not (PRm.base_ring().is_field() and
+                 PRm.base_ring().is_finite() and
+                 PRm.base_ring().order() == 256 and
+                 PRm.dimensions() == (4, self._Nb))) and \
+           (not isinstance(PRm, Matrix) or
+            not isinstance(PRm.base_ring(), MPolynomialRing_base) or
+            not (PRm.base_ring().base_ring().is_field() and
+                 PRm.base_ring().base_ring().is_finite() and
+                 PRm.base_ring().base_ring().order() == 256) or
                 not PRm.dimensions() == (4, self._Nb)):
             raise TypeError(msg)
 
@@ -1160,8 +1153,8 @@ class RijndaelGF(SageObject):
 
         INPUT:
 
-        - ``key`` -- The key to build a key schedule from. Must be a matrix
-          over `\GF{2^8}` of dimensions `4 \times N_k`.
+        - ``key`` -- the key to build a key schedule from. Must be a matrix
+          over `\GF{2^8}` of dimensions `4 \times N_k`
 
         OUTPUT:
 
@@ -1184,8 +1177,8 @@ class RijndaelGF(SageObject):
         msg = "keyword '{0}' must be a {1} x {2} matrix over GF({3})"
         msg = msg.format(key, 4, self._Nk, self._F.order())
         if not isinstance(key, Matrix) or \
-           not (key.base_ring().is_field() and \
-                key.base_ring().is_finite() and \
+           not (key.base_ring().is_field() and
+                key.base_ring().is_finite() and
                 key.base_ring().order() == self._F.order()) or \
            not key.dimensions() == (4, self._Nk):
             raise TypeError(msg)
@@ -1228,11 +1221,11 @@ class RijndaelGF(SageObject):
 
         INPUT:
 
-        - ``row`` -- The row position of the element represented by this
-          polynomial.
+        - ``row`` -- the row position of the element represented by this
+          polynomial
 
-        - ``col`` -- The column position of the element represented by this
-          polynomial.
+        - ``col`` -- the column position of the element represented by this
+          polynomial
 
         OUTPUT:
 
@@ -1266,7 +1259,8 @@ class RijndaelGF(SageObject):
             sage: rgf.compose(rgf.sub_bytes_poly_constr(), rgf.expand_key_poly)
             Traceback (most recent call last):
             ...
-            TypeError: keyword 'g' must be a Round_Component_Poly_Constr or a polynomial over Finite Field in x of size 2^8
+            TypeError: keyword 'g' must be a Round_Component_Poly_Constr or
+            a polynomial over Finite Field in x of size 2^8
             <BLANKLINE>
             sage: state = rgf._hex_to_GF('00000000000000000000000000000000')
             sage: rgf.apply_poly(state, rgf.expand_key_poly)
@@ -1286,30 +1280,28 @@ class RijndaelGF(SageObject):
         key_col = round * self._Nb + col
         if key_col < self._Nk:
             return self.key_vrs[row, key_col]
-        else:
-            if key_col % self._Nk == 0 or \
-               (self._Nk > 6 and col % self._Nk == 4):
-                # Apply non-linear transformation to key_col - 1
-                recur_r = int((key_col - 1)/self._Nb)
-                recur_j = (key_col - 1) - (recur_r * self._Nb)
-                non_linear = self.expand_key_poly((row+1) % 4,
-                                                  recur_j, recur_r)
-                non_linear = self._srd(non_linear)
-                non_linear += self._F.gen() ** (int(key_col / self._Nk) - 1)
-                # Identify key_col - Nk
-                recur_r = int((key_col - self._Nk)/self._Nb)
-                recur_j = (key_col - self._Nk) - (recur_r * self._Nb)
-                return self.expand_key_poly(row, recur_j, recur_r) + non_linear
-            else:
-                # Identify key_col - Nk
-                recur_r = int((key_col - self._Nk)/self._Nb)
-                recur_j = (key_col - self._Nk) - (recur_r * self._Nb)
-                result = self.expand_key_poly(row, recur_j, recur_r)
-                # Identify key_col - 1
-                recur_r = int((key_col- 1)/self._Nb)
-                recur_j = (key_col - 1) - (recur_r * self._Nb)
-                return result + \
-                       self.expand_key_poly(row, recur_j, recur_r)
+        if key_col % self._Nk == 0 or \
+           (self._Nk > 6 and col % self._Nk == 4):
+            # Apply non-linear transformation to key_col - 1
+            recur_r = int((key_col - 1)/self._Nb)
+            recur_j = (key_col - 1) - (recur_r * self._Nb)
+            non_linear = self.expand_key_poly((row+1) % 4,
+                                              recur_j, recur_r)
+            non_linear = self._srd(non_linear)
+            non_linear += self._F.gen() ** (int(key_col / self._Nk) - 1)
+            # Identify key_col - Nk
+            recur_r = int((key_col - self._Nk)/self._Nb)
+            recur_j = (key_col - self._Nk) - (recur_r * self._Nb)
+            return self.expand_key_poly(row, recur_j, recur_r) + non_linear
+        # Identify key_col - Nk
+        recur_r = int((key_col - self._Nk)/self._Nb)
+        recur_j = (key_col - self._Nk) - (recur_r * self._Nb)
+        result = self.expand_key_poly(row, recur_j, recur_r)
+        # Identify key_col - 1
+        recur_r = int((key_col - 1)/self._Nb)
+        recur_j = (key_col - 1) - (recur_r * self._Nb)
+        return result + \
+               self.expand_key_poly(row, recur_j, recur_r)
 
     def apply_poly(self, state, poly_constr, algorithm='encrypt', keys=None,
                    poly_constr_attr=None):
@@ -1318,24 +1310,24 @@ class RijndaelGF(SageObject):
 
         INPUT:
 
-        - ``state`` -- The state matrix over `\GF{2^8}` to which
-          ``poly_method`` is applied to.
+        - ``state`` -- the state matrix over `\GF{2^8}` to which
+          ``poly_method`` is applied to
 
-        - ``poly_constr`` -- The ``Round_Component_Poly_Constr`` object to
-          build polynomials during evaluation.
+        - ``poly_constr`` -- the ``Round_Component_Poly_Constr`` object to
+          build polynomials during evaluation
 
-        - ``algorithm`` -- (default: "encrypt") Passed directly to
-          ``rcpc`` to select encryption or decryption. The
-          encryption flag is "encrypt" and the decrypt flag is "decrypt".
+        - ``algorithm`` -- (default: ``'encrypt'``) passed directly to
+          ``rcpc`` to select encryption or decryption; the
+          encryption flag is "encrypt" and the decrypt flag is "decrypt"
 
-        - ``keys`` -- (default: None) An array of `N_r` subkey matrices to
+        - ``keys`` -- (default: ``None``) an array of `N_r` subkey matrices to
           replace any key variables in any polynomials returned by
           ``poly_method``. Must be identical to the format returned by
           ``expand_key``. If any polynomials have key variables and ``keys``
           is not supplied, the key variables will remain as-is.
 
-        - ``poly_constr_attr`` -- (default:None) A dictionary of keyword
-          attributes to pass to ``rcpc`` when it is called.
+        - ``poly_constr_attr`` -- (default: ``None``) a dictionary of keyword
+          attributes to pass to ``rcpc`` when it is called
 
         OUTPUT:
 
@@ -1359,7 +1351,7 @@ class RijndaelGF(SageObject):
 
             sage: state = rgf._hex_to_GF('4915598f55e5d7a0daca94fa1f0a63f7')
             sage: apply_poly_result = rgf.apply_poly(state,
-            ....: rgf.sub_bytes_poly_constr())
+            ....:                                    rgf.sub_bytes_poly_constr())
             sage: direct_result = rgf.sub_bytes(state)
             sage: direct_result == apply_poly_result
             True
@@ -1374,7 +1366,8 @@ class RijndaelGF(SageObject):
             sage: key = rgf._hex_to_GF('54d990a16ba09ab596bbf40ea111702f')
             sage: keys = rgf.expand_key(key)
             sage: result = rgf.apply_poly(state,
-            ....: rgf.add_round_key_poly_constr(), keys=keys)
+            ....:                         rgf.add_round_key_poly_constr(),
+            ....:                         keys=keys)
             sage: result == rgf.add_round_key(state, key)
             True
             <BLANKLINE>
@@ -1386,8 +1379,8 @@ class RijndaelGF(SageObject):
         dictionary ``poly_constr_attr`` mapping keywords to their values. ::
 
             sage: rgf.apply_poly(rgf.state_vrs,
-            ....: rgf.add_round_key_poly_constr(),
-            ....: poly_constr_attr={'round' : 5})
+            ....:                rgf.add_round_key_poly_constr(),
+            ....:                poly_constr_attr={'round': 5})
             [a00 + k500 a01 + k501 a02 + k502 a03 + k503]
             [a10 + k510 a11 + k511 a12 + k512 a13 + k513]
             [a20 + k520 a21 + k521 a22 + k522 a23 + k523]
@@ -1397,12 +1390,12 @@ class RijndaelGF(SageObject):
         if not isinstance(poly_constr, RijndaelGF.Round_Component_Poly_Constr):
             msg = "keyword 'poly_constr' must be a Round_Component_Poly_Constr"
             raise TypeError(msg)
-        if keys is not None and (not isinstance(keys, list) or \
-           len(keys) != self._Nr + 1 or \
-           not all(isinstance(k, Matrix) for k in keys) or \
-           not all(k.dimensions() == (4, self._Nb) for k in keys) or \
+        if keys is not None and (not isinstance(keys, list) or
+           len(keys) != self._Nr + 1 or
+           not all(isinstance(k, Matrix) for k in keys) or
+           not all(k.dimensions() == (4, self._Nb) for k in keys) or
            not all(k.base_ring().is_finite() and k.base_ring().is_field()
-                   and k.base_ring().order() == 256 for k in keys) ):
+                   and k.base_ring().order() == 256 for k in keys)):
             msg = ("keys must be a length {0} array of 4 by {1} matrices"
                    " over {2}")
             raise TypeError(msg.format(self._Nr, self._Nb, self._F))
@@ -1442,25 +1435,25 @@ class RijndaelGF(SageObject):
 
         INPUT:
 
-        - ``f`` -- A ``Round_Component_Poly_Constr`` object corresponding to
-          a round component function `f`.
+        - ``f`` -- a ``Round_Component_Poly_Constr`` object corresponding to
+          a round component function `f`
 
-        - ``g`` -- A ``Round_Component_Poly_Constr`` object corresponding to
+        - ``g`` -- a ``Round_Component_Poly_Constr`` object corresponding to
           a round component function `g` or a polynomial output of this
           object's ``__call__`` method.
 
-        - ``algorithm`` -- (default: "encrypt") Whether ``f`` and ``g``
+        - ``algorithm`` -- (default: ``'encrypt'``) whether ``f`` and ``g``
           should use their encryption transformations or their decryption
           transformations. Does nothing if ``g`` is a
           ``Round_Component_Poly_Constr`` object. The encryption flag is
           "encrypt" and the decryption flag is "decrypt".
 
-        - ``f_attr`` -- (default: None) A dictionary of keyword attributes to
-          pass to ``f`` when it is called.
+        - ``f_attr`` -- (default: ``None``) a dictionary of keyword attributes to
+          pass to ``f`` when it is called
 
-        - ``g_attr`` -- (default: None) A dictionary of keyword attributes to
-          pass to ``g`` when it is called. Does nothing if ``g`` is a
-          polynomial.
+        - ``g_attr`` -- (default: ``None``) a dictionary of keyword attributes to
+          pass to ``g`` when it is called; does nothing if ``g`` is a
+          polynomial
 
         OUTPUT:
 
@@ -1473,7 +1466,7 @@ class RijndaelGF(SageObject):
           then ``compose`` returns `g(f(A))_{i,j}`, where `A` is an
           arbitrary input state matrix.
 
-        EXAMPLES
+        EXAMPLES:
 
         This function allows us to determine the polynomial representations
         of entries across multiple round functions. For example, if we
@@ -1483,10 +1476,10 @@ class RijndaelGF(SageObject):
             sage: from sage.crypto.mq.rijndael_gf import RijndaelGF
             sage: rgf = RijndaelGF(4, 4)
             sage: mcp = rgf.mix_columns_poly_constr()(1, 3); mcp
-            a03 + (x)*a13 + (x + 1)*a23 + a33
+            a03 + x*a13 + (x + 1)*a23 + a33
             sage: result = rgf.compose(rgf.shift_rows_poly_constr(), mcp)
             sage: result
-            a03 + (x)*a10 + (x + 1)*a21 + a32
+            a03 + x*a10 + (x + 1)*a21 + a32
 
         We can test the correctness of this::
 
@@ -1500,17 +1493,17 @@ class RijndaelGF(SageObject):
         ``Round_Component_Poly_Constr`` object corresponding to the composition
         of multiple round functions as such::
 
-            sage: fn = rgf.compose(rgf.shift_rows_poly_constr(),
-            ....: rgf.mix_columns_poly_constr())
-            sage: fn(1, 3)
-            a03 + (x)*a10 + (x + 1)*a21 + a32
+            sage: fn = rgf.compose(rgf.shift_rows_poly_constr(),                        # needs sage.libs.gap
+            ....:                  rgf.mix_columns_poly_constr())
+            sage: fn(1, 3)                                                              # needs sage.libs.gap
+            a03 + x*a10 + (x + 1)*a21 + a32
 
         If we use ``compose`` to make a new ``Round_Component_Poly_Constr``
         object, we can use that object as input to ``apply_poly`` and
         ``compose``::
 
             sage: state = rgf._hex_to_GF('36400926f9336d2d9fb59d23c42c3950')
-            sage: result = rgf.apply_poly(state, fn)
+            sage: result = rgf.apply_poly(state, fn)                                    # needs sage.libs.gap
             sage: rgf._GF_to_hex(result)
             'f4bcd45432e554d075f1d6c51dd03b3c'
             <BLANKLINE>
@@ -1521,7 +1514,7 @@ class RijndaelGF(SageObject):
 
         ::
 
-            sage: fn2 = rgf.compose(rgf.sub_bytes_poly_constr(), fn)
+            sage: fn2 = rgf.compose(rgf.sub_bytes_poly_constr(), fn)                    # needs sage.libs.gap
 
         If the second argument is a polynomial, then the value of ``algorithm``
         is passed directly to the first argument `f` during evaluation.
@@ -1529,29 +1522,30 @@ class RijndaelGF(SageObject):
         object, changing ``algorithm`` does nothing since the returned object
         has its own ``algorithm='encrypt'`` keyword. ::
 
-            sage: f = rgf.compose(rgf.sub_bytes_poly_constr(),
-            ....: rgf.mix_columns_poly_constr(), algorithm='decrypt')
-            sage: g = rgf.compose(rgf.sub_bytes_poly_constr(),
-            ....: rgf.mix_columns_poly_constr())
-            sage: all(f(i,j) == g(i,j) for i in range(4) for j in range(4))
+            sage: f = rgf.compose(rgf.sub_bytes_poly_constr(),                          # needs sage.libs.gap
+            ....:                 rgf.mix_columns_poly_constr(),
+            ....:                 algorithm='decrypt')
+            sage: g = rgf.compose(rgf.sub_bytes_poly_constr(),                          # needs sage.libs.gap
+            ....:                 rgf.mix_columns_poly_constr())
+            sage: all(f(i,j) == g(i,j) for i in range(4) for j in range(4))             # needs sage.libs.gap
             True
 
         We can change the keyword attributes of the ``__call__`` methods of
         ``f`` and ``g`` by passing dictionaries ``f_attr`` and ``g_attr`` to
         ``compose``. ::
 
-            sage: fn = rgf.compose(rgf.add_round_key_poly_constr(),
-            ....: rgf.add_round_key_poly_constr(),
-            ....: f_attr={'round' : 4}, g_attr={'round' : 7})
-            sage: fn(1, 2)
+            sage: fn = rgf.compose(rgf.add_round_key_poly_constr(),                     # needs sage.libs.gap
+            ....:                  rgf.add_round_key_poly_constr(),
+            ....:                  f_attr={'round': 4}, g_attr={'round': 7})
+            sage: fn(1, 2)                                                              # needs sage.libs.gap
             a12 + k412 + k712
         """
         if not isinstance(f, RijndaelGF.Round_Component_Poly_Constr):
             msg = "keyword 'f' must be a Round_Component_Poly_Constr"
             raise TypeError(msg)
-        from sage.rings.polynomial.multi_polynomial import is_MPolynomial
+        from sage.rings.polynomial.multi_polynomial import MPolynomial
         if not isinstance(g, RijndaelGF.Round_Component_Poly_Constr) and \
-           not is_MPolynomial(g):
+           not isinstance(g, MPolynomial):
             msg = ("keyword 'g' must be a Round_Component_Poly_Constr or a "
                    "polynomial over {0}")
             raise TypeError(msg.format(self._F))
@@ -1569,16 +1563,14 @@ class RijndaelGF(SageObject):
                           for i in range(4) for j in range(self._Nb)]
             if g in self._state_PR:
                 return g(f_vals)
-            else:
-                return g(f_vals + self.subkey_vrs_list)
+            return g(f_vals + self.subkey_vrs_list)
+        if isinstance(g_attr, dict):
+            lm = lambda i, j, alg='encrypt': \
+            self.compose(f, g(i, j, alg, **g_attr), alg, f_attr, g_attr)
         else:
-            if isinstance(g_attr, dict):
-                lm = lambda i, j, alg='encrypt' : \
-                self.compose(f, g(i, j, alg, **g_attr), alg, f_attr, g_attr)
-            else:
-                lm = lambda i, j, alg='encrypt' : \
-                     self.compose(f, g(i, j, alg), alg, f_attr, g_attr)
-            return RijndaelGF.Round_Component_Poly_Constr(lm, self)
+            lm = lambda i, j, alg='encrypt': \
+                 self.compose(f, g(i, j, alg), alg, f_attr, g_attr)
+        return RijndaelGF.Round_Component_Poly_Constr(lm, self)
 
     def add_round_key_poly_constr(self):
         r"""
@@ -1591,7 +1583,8 @@ class RijndaelGF(SageObject):
             sage: rgf = RijndaelGF(4, 4)
             sage: ark_pc = rgf.add_round_key_poly_constr()
             sage: ark_pc
-            A polynomial constructor for the function 'Add Round Key' of Rijndael-GF block cipher with block length 4, key length 4, and 10 rounds.
+            A polynomial constructor for the function 'Add Round Key' of Rijndael-GF
+            block cipher with block length 4, key length 4, and 10 rounds.
             sage: ark_pc(0, 1)
             a01 + k001
 
@@ -1617,7 +1610,7 @@ class RijndaelGF(SageObject):
         value. ::
 
             sage: rgf.apply_poly(rgf.state_vrs, ark_pc,
-            ....: poly_constr_attr={'round' : 6})
+            ....:                poly_constr_attr={'round': 6})
             [a00 + k600 a01 + k601 a02 + k602 a03 + k603]
             [a10 + k610 a11 + k611 a12 + k612 a13 + k613]
             [a20 + k620 a21 + k621 a22 + k622 a23 + k623]
@@ -1625,9 +1618,9 @@ class RijndaelGF(SageObject):
 
         ::
 
-            sage: rcpc = rgf.compose(ark_pc, ark_pc,
-            ....: f_attr={'round' : 3}, g_attr={'round' : 5})
-            sage: rcpc(3, 1)
+            sage: rcpc = rgf.compose(ark_pc, ark_pc,                                    # needs sage.libs.gap
+            ....:                    f_attr={'round': 3}, g_attr={'round': 5})
+            sage: rcpc(3, 1)                                                            # needs sage.libs.gap
             a31 + k331 + k531
         """
         return self._add_round_key_rcpc
@@ -1638,18 +1631,18 @@ class RijndaelGF(SageObject):
 
         INPUT:
 
-        - ``row`` -- The row number of the entry represented by this method's
-          output.
+        - ``row`` -- the row number of the entry represented by this method's
+          output
 
-        - ``col`` -- The column number of the entry represented by this
-          method's output.
+        - ``col`` -- the column number of the entry represented by this
+          method's output
 
-        - ``algorithm`` -- (default: "encrypt") Whether to return the
-          polynomial as an encryption or as a decryption. The encryption flag
-          is "encrypt" and the decryption  flag is "decrypt".
+        - ``algorithm`` -- (default: ``'encrypt'``) whether to return the
+          polynomial as an encryption or as a decryption; the encryption flag
+          is "encrypt" and the decryption  flag is "decrypt"
 
-        - ``round`` -- (default: 0) The round number of the entry represented
-          by this method's output.
+        - ``round`` -- (default: 0) the round number of the entry represented
+          by this method's output
 
         OUTPUT:
 
@@ -1667,10 +1660,8 @@ class RijndaelGF(SageObject):
         As expected, since the encryption and decryption transformations are
         identical, changing ``algorithm`` has no effect.
 
-            sage: with_encrypt = rgf._add_round_key_pc(3, 2,
-            ....: 'encrypt')
-            sage: with_decrypt = rgf._add_round_key_pc(3, 2,
-            ....: 'decrypt')
+            sage: with_encrypt = rgf._add_round_key_pc(3, 2, 'encrypt')
+            sage: with_decrypt = rgf._add_round_key_pc(3, 2, 'decrypt')
             sage: with_encrypt == with_decrypt
             True
         """
@@ -1687,9 +1678,9 @@ class RijndaelGF(SageObject):
 
         INPUT:
 
-        - ``state`` -- The state matrix to have ``round_key`` added to.
+        - ``state`` -- the state matrix to have ``round_key`` added to
 
-        - ``round_key`` -- The round key to add to ``state``.
+        - ``round_key`` -- the round key to add to ``state``
 
         OUTPUT:
 
@@ -1723,9 +1714,9 @@ class RijndaelGF(SageObject):
 
             sage: from sage.crypto.mq.rijndael_gf import RijndaelGF
             sage: rgf = RijndaelGF(4, 4)
-            sage: sb_pc = rgf.sub_bytes_poly_constr()
-            sage: sb_pc
-            A polynomial constructor for the function 'SubBytes' of Rijndael-GF block cipher with block length 4, key length 4, and 10 rounds.
+            sage: sb_pc = rgf.sub_bytes_poly_constr(); sb_pc
+            A polynomial constructor for the function 'SubBytes' of Rijndael-GF
+            block cipher with block length 4, key length 4, and 10 rounds.
             sage: sb_pc(2, 3)
             (x^2 + 1)*a23^254 +
             (x^3 + 1)*a23^253 +
@@ -1773,17 +1764,17 @@ class RijndaelGF(SageObject):
         When passing the returned object to ``apply_poly`` and ``compose``, we
         can make those methods change the keyword ``no_inversion`` of this
         object's ``__call__`` method by passing the dictionary
-        ``{'no_inversion' : True}`` to them. ::
+        ``{'no_inversion': True}`` to them. ::
 
             sage: result = rgf.apply_poly(state, sb_pc,
-            ....: poly_constr_attr={'no_inversion' : True})
+            ....:                         poly_constr_attr={'no_inversion': True})
             sage: rgf._GF_to_hex(result)
             '961c72894526f746aa85fc920adcc719'
 
         ::
 
-            sage: rcpc = rgf.compose(sb_pc, rgf.shift_rows_poly_constr(),
-            ....: f_attr={'no_inversion' : True})
+            sage: rcpc = rgf.compose(sb_pc, rgf.shift_rows_poly_constr(),               # needs sage.libs.gap
+            ....:                    f_attr={'no_inversion': True})
 
         Note that if we set ``algorithm='decrypt'`` for ``apply_poly``, it
         will perform the necessary performance enhancement described above
@@ -1798,20 +1789,20 @@ class RijndaelGF(SageObject):
 
         INPUT:
 
-        - ``row`` -- The row number of the entry represented by this method's
-          output.
+        - ``row`` -- the row number of the entry represented by this method's
+          output
 
-        - ``col`` -- The column number of the entry represented by this
-          method's output.
+        - ``col`` -- the column number of the entry represented by this
+          method's output
 
-        - ``algorithm`` -- (default: "encrypt") Whether to return the
+        - ``algorithm`` -- (default: ``'encrypt'``) whether to return the
           polynomial as an encryption or as a decryption. The encryption flag
           is "encrypt" and the decryption  flag is "decrypt".
 
-        - ``no_inversion`` -- (default: ``False``) Don't perform the inversion
-          step, only perform the affine transformation. Primarily intended
-          to increase performance during decryption, as is shown in the
-          below example.
+        - ``no_inversion`` -- boolean (default: ``False``); don't perform the
+          inversion step, only perform the affine transformation. Primarily
+          intended to increase performance during decryption, as is shown in
+          the below example.
 
         OUTPUT:
 
@@ -1848,7 +1839,7 @@ class RijndaelGF(SageObject):
         calculated. ::
 
             sage: poly = rgf._sub_bytes_pc(0, 0,
-            ....: algorithm='decrypt', no_inversion=True)
+            ....:                          algorithm='decrypt', no_inversion=True)
             sage: state = rgf._hex_to_GF('b415f8016858552e4bb6124c5f998a4c')
             sage: poly(state.list()) ^ -1
             x^7 + x^6 + x^2 + x
@@ -1859,21 +1850,18 @@ class RijndaelGF(SageObject):
             if no_inversion:
                 return sum([coeffs[i] * (var**(2**i))
                             for i in range(8)]) + self._F("x^6 + x^5 + x + 1")
-            else:
-                return sum([coeffs[i] * (var**(255 - 2**i))
-                            for i in range(8)]) + self._F("x^6 + x^5 + x + 1")
-        elif algorithm == 'decrypt':
+            return sum([coeffs[i] * (var**(255 - 2**i))
+                        for i in range(8)]) + self._F("x^6 + x^5 + x + 1")
+        if algorithm == 'decrypt':
             var = self.state_vrs[row, col]
             coeffs = self._sb_D_coeffs
-            result = (sum([coeffs[i] * var**(2**i) for i in range(8)]) + \
-                        self._F("x^2 + 1"))
+            result = (sum([coeffs[i] * var**(2**i) for i in range(8)]) +
+                      self._F("x^2 + 1"))
             if no_inversion:
                 return result
-            else:
-                return result ** 254
-        else:
-            raise ValueError(("keyword 'algorithm' must be either 'encrypt' "
-                             "or 'decrypt'"))
+            return result ** 254
+        raise ValueError("keyword 'algorithm' must be either 'encrypt' "
+                         "or 'decrypt'")
 
     def _srd(self, el, algorithm='encrypt'):
         r"""
@@ -1881,17 +1869,15 @@ class RijndaelGF(SageObject):
 
         INPUT:
 
-        - ``el`` -- An element of `\GF{2^8}`.
+        - ``el`` -- an element of `\GF{2^8}`
 
-        - ``algorithm`` -- (default: "encrypt") Whether to perform the
+        - ``algorithm`` -- (default: ``'encrypt'``) whether to perform the
           encryption transformation or the decryption transformation.
           The encryption flag is "encrypt" and the decryption flag is
           "decrypt".
 
-        OUTPUT:
-
-        - The result of the application of the non-linear transformation
-          SubBytes to ``el``.
+        OUTPUT: the result of the application of the non-linear transformation
+        SubBytes to ``el``.
 
         EXAMPLES::
 
@@ -1905,13 +1891,12 @@ class RijndaelGF(SageObject):
             p = self._sub_bytes_rcpc(0, 0, algorithm)
             state = [el] + [self._F.zero()]*((4 * self._Nb)-1)
             return p(state)
-        elif algorithm == 'decrypt':
+        if algorithm == 'decrypt':
             p = self._sub_bytes_rcpc(0, 0, algorithm, no_inversion=True)
             state = [el] + [self._F.zero()]*((4 * self._Nb)-1)
             return p(state) ** 254
-        else:
-            raise ValueError(("keyword 'algorithm' must be either 'encrypt' "
-                             "or 'decrypt'"))
+        raise ValueError("keyword 'algorithm' must be either 'encrypt' "
+                         "or 'decrypt'")
 
     def sub_bytes(self, state, algorithm='encrypt'):
         r"""
@@ -1919,16 +1904,14 @@ class RijndaelGF(SageObject):
 
         INPUT:
 
-        - ``state`` -- The state matrix to apply SubBytes to.
+        - ``state`` -- the state matrix to apply SubBytes to
 
-        - ``algorithm`` -- (default: "encrypt") Whether to apply the
+        - ``algorithm`` -- (default: ``'encrypt'``) whether to apply the
           encryption step of SubBytes or its decryption inverse. The encryption
           flag is "encrypt" and the decryption flag is "decrypt".
 
-        OUTPUT:
-
-        - The state matrix over `\GF{2^8}` where SubBytes has been applied
-          to every entry of ``state``.
+        OUTPUT: the state matrix over `\GF{2^8}` where SubBytes has been
+        applied to every entry of ``state``
 
         EXAMPLES::
 
@@ -1956,9 +1939,10 @@ class RijndaelGF(SageObject):
             sage: rgf = RijndaelGF(4, 4)
             sage: mc_pc = rgf.mix_columns_poly_constr()
             sage: mc_pc
-            A polynomial constructor for the function 'Mix Columns' of Rijndael-GF block cipher with block length 4, key length 4, and 10 rounds.
+            A polynomial constructor for the function 'Mix Columns' of Rijndael-GF
+            block cipher with block length 4, key length 4, and 10 rounds.
             sage: mc_pc(1, 2)
-            a02 + (x)*a12 + (x + 1)*a22 + a32
+            a02 + x*a12 + (x + 1)*a22 + a32
             sage: mc_pc(1, 0, algorithm='decrypt')
             (x^3 + 1)*a00 + (x^3 + x^2 + x)*a10 + (x^3 + x + 1)*a20 + (x^3 + x^2 + 1)*a30
 
@@ -1973,28 +1957,26 @@ class RijndaelGF(SageObject):
 
         INPUT:
 
-        - ``row`` -- The row number of the entry represented by this method's
-          output.
+        - ``row`` -- the row number of the entry represented by this method's
+          output
 
-        - ``col`` -- The column number of the entry represented by this
-          method's output.
+        - ``col`` -- the column number of the entry represented by this
+          method's output
 
-        - ``algorithm`` -- (default: "encrypt") Whether to perform the
-          encryption transformation or the decryption transformation. The
-          encryption flag is "encrypt" and the decryption flag is "decrypt".
+        - ``algorithm`` -- (default: ``'encrypt'``) whether to perform the
+          encryption transformation or the decryption transformation; the
+          encryption flag is "encrypt" and the decryption flag is "decrypt"
 
-        OUTPUT:
-
-        - A polynomial in terms of entries of the input state matrix which
-          represents the ``row,col`` th entry of the output matrix after
-          MixColumns has been applied to it.
+        OUTPUT: a polynomial in terms of entries of the input state matrix
+        which represents the ``row,col`` th entry of the output matrix after
+        MixColumns has been applied to it
 
         EXAMPLES::
 
             sage: from sage.crypto.mq.rijndael_gf import RijndaelGF
             sage: rgf = RijndaelGF(4, 4)
             sage: rgf._mix_columns_pc(3, 1)
-            (x + 1)*a01 + a11 + a21 + (x)*a31
+            (x + 1)*a01 + a11 + a21 + x*a31
 
         We can use this to calculate individual entries of a state matrix after
         the decryption version of MixColumns has been applied to it as such::
@@ -2013,8 +1995,8 @@ class RijndaelGF(SageObject):
         elif algorithm == 'decrypt':
             coeffs = self._mixcols_D
         else:
-            raise ValueError(("keyword 'algorithm' must be either 'encrypt' "
-                             "or 'decrypt'"))
+            raise ValueError("keyword 'algorithm' must be either 'encrypt' "
+                             "or 'decrypt'")
         return sum([coeffs[row,k] * self.state_vrs[k,col] for k in range(4)])
 
     def mix_columns(self, state, algorithm='encrypt'):
@@ -2023,16 +2005,14 @@ class RijndaelGF(SageObject):
 
         INPUT:
 
-        - ``state`` -- The state matrix to apply MixColumns to.
+        - ``state`` -- the state matrix to apply MixColumns to
 
-        - ``algorithm`` -- (default: "encrypt") Whether to perform the
-          encryption version of MixColumns, or its decryption inverse. The
-          encryption flag is "encrypt" and the decryption flag is "decrypt".
+        - ``algorithm`` -- (default: ``'encrypt'``) whether to perform the
+          encryption version of MixColumns, or its decryption inverse; the
+          encryption flag is "encrypt" and the decryption flag is "decrypt"
 
-        OUTPUT:
-
-        - The state matrix over `\GF{2^8}` which is the result of applying
-          MixColumns to ``state``.
+        OUTPUT: the state matrix over `\GF{2^8}` which is the result of
+        applying MixColumns to ``state``
 
         EXAMPLES::
 
@@ -2075,21 +2055,19 @@ class RijndaelGF(SageObject):
 
         INPUT:
 
-        - ``row`` -- The row number of the entry represented by this method's
-          output.
+        - ``row`` -- the row number of the entry represented by this method's
+          output
 
-        - ``col`` -- The column number of the entry represented by this
-          method's output.
+        - ``col`` -- the column number of the entry represented by this
+          method's output
 
-        - ``algorithm`` -- (default: "encrypt") Whether to perform ShiftRows'
+        - ``algorithm`` -- (default: ``'encrypt'``) whether to perform ShiftRows'
           encryption step or its decryption inverse. The encryption flag is
           "encrypt" and the decryption flag is "decrypt".
 
-        OUTPUT:
-
-        - A polynomial in terms of entries of the input state matrix which
-          represents the ``row,col`` th entry of the output matrix after
-          ShiftRows has been applied to it.
+        OUTPUT: a polynomial in terms of entries of the input state matrix
+        which represents the ``row,col`` th entry of the output matrix after
+        ShiftRows has been applied to it
 
         EXAMPLES::
 
@@ -2116,8 +2094,8 @@ class RijndaelGF(SageObject):
         elif algorithm == 'decrypt':
             offs = self._shiftrows_offsets_D
         else:
-            raise ValueError(("keyword 'algorithm' must be either 'encrypt' "
-                             "or 'decrypt'"))
+            raise ValueError("keyword 'algorithm' must be either 'encrypt' "
+                             "or 'decrypt'")
         return self.state_vrs[row, (col + offs[4 - self._Nb][row]) % 4]
 
     def shift_rows(self, state, algorithm='encrypt'):
@@ -2126,17 +2104,15 @@ class RijndaelGF(SageObject):
 
         INPUT:
 
-        - ``state`` -- A state matrix over `\GF{2^8}` to which ShiftRows is
-          applied to.
+        - ``state`` -- a state matrix over `\GF{2^8}` to which ShiftRows is
+          applied to
 
-        - ``algorithm`` -- (default: "encrypt") Whether to perform the
-          encryption version of ShiftRows or its decryption inverse. The
-          encryption flag is "encrypt" and the decryption flag is "decrypt".
+        - ``algorithm`` -- (default: ``'encrypt'``) whether to perform the
+          encryption version of ShiftRows or its decryption inverse; the
+          encryption flag is "encrypt" and the decryption flag is "decrypt"
 
-        OUTPUT:
-
-        - A state matrix over `\GF{2^8}` which is the application of ShiftRows
-          to ``state``.
+        OUTPUT: a state matrix over `\GF{2^8}` which is the application of
+        ShiftRows to ``state``
 
         EXAMPLES::
 
@@ -2162,7 +2138,7 @@ class RijndaelGF(SageObject):
 
             INPUT:
 
-            - ``polynomial_constr`` -- A function which takes an index
+            - ``polynomial_constr`` -- a function which takes an index
               ``row,col`` and returns a polynomial representing the ``row,col``
               th entry of a matrix after a specific round component function
               has been applied to it. This polynomial must be in terms of
@@ -2172,22 +2148,23 @@ class RijndaelGF(SageObject):
               algorithm='encrypt', **kwargs)`` and  must be able to be called
               as ``polynomial_constr(row, col)``.
 
-            - ``rgf`` -- The RijndaelGF object whose state entries are
-              represented by polynomials returned from ``polynomial_constr``.
+            - ``rgf`` -- the RijndaelGF object whose state entries are
+              represented by polynomials returned from ``polynomial_constr``
 
-            - ``round_component_name`` -- The name of the round component
-              function this object corresponds to as a string. Used solely
-              for display purposes.
+            - ``round_component_name`` -- the name of the round component
+              function this object corresponds to as a string; used solely
+              for display purposes
 
             EXAMPLES::
 
-                sage: from sage.crypto.mq.rijndael_gf import \
-                ....: RijndaelGF
+                sage: from sage.crypto.mq.rijndael_gf import RijndaelGF
                 sage: rgf = RijndaelGF(4, 4)
                 sage: rcpc = RijndaelGF.Round_Component_Poly_Constr(
-                ....: rgf._shift_rows_pc, rgf, "Shift Rows")
+                ....:            rgf._shift_rows_pc, rgf, "Shift Rows")
                 sage: rcpc
-                A polynomial constructor for the function 'Shift Rows' of Rijndael-GF block cipher with block length 4, key length 4, and 10 rounds.
+                A polynomial constructor for the function 'Shift Rows' of
+                Rijndael-GF block cipher with block length 4, key length 4,
+                and 10 rounds.
 
             If `\phi` is the round component function to which this object
             corresponds to, then ``__call__(i,j)`` `= \phi(A)_{i,j}`, where
@@ -2195,9 +2172,9 @@ class RijndaelGF(SageObject):
             by ``__call__(i,j)`` will be in terms of the entries of `A`. ::
 
                 sage: rcpc = RijndaelGF.Round_Component_Poly_Constr(
-                ....: rgf._mix_columns_pc, rgf, "Mix Columns")
+                ....:            rgf._mix_columns_pc, rgf, "Mix Columns")
                 sage: poly = rcpc(1, 2); poly
-                a02 + (x)*a12 + (x + 1)*a22 + a32
+                a02 + x*a12 + (x + 1)*a22 + a32
                 sage: state = rgf._hex_to_GF('d1876c0f79c4300ab45594add66ff41f')
                 sage: result = rgf.mix_columns(state)
                 sage: result[1,2] == poly(state.list())
@@ -2210,7 +2187,7 @@ class RijndaelGF(SageObject):
             ``Round_Component_Poly_Constr`` object will act similarly. ::
 
                 sage: all(rgf._mix_columns_pc(i, j) == rcpc(i, j)
-                ....: for i in range(4) for j in range(4))
+                ....:     for i in range(4) for j in range(4))
                 True
 
             Since all keyword arguments of ``polynomial_constr`` must have a
@@ -2225,8 +2202,8 @@ class RijndaelGF(SageObject):
             ``compose``. ::
 
                 sage: rgf.apply_poly(rgf.state_vrs,
-                ....: rgf.add_round_key_poly_constr(),
-                ....: poly_constr_attr={'round' : 9})
+                ....:                rgf.add_round_key_poly_constr(),
+                ....:                poly_constr_attr={'round': 9})
                 [a00 + k900 a01 + k901 a02 + k902 a03 + k903]
                 [a10 + k910 a11 + k911 a12 + k912 a13 + k913]
                 [a20 + k920 a21 + k921 a22 + k922 a23 + k923]
@@ -2234,10 +2211,10 @@ class RijndaelGF(SageObject):
 
             ::
 
-                sage: fn = rgf.compose(rgf.add_round_key_poly_constr(),
-                ....: rgf.add_round_key_poly_constr(),
-                ....: f_attr={'round' : 3}, g_attr={'round' : 7})
-                sage: fn(2, 3)
+                sage: fn = rgf.compose(rgf.add_round_key_poly_constr(),                 # needs sage.libs.gap
+                ....:                  rgf.add_round_key_poly_constr(),
+                ....:                  f_attr={'round': 3}, g_attr={'round': 7})
+                sage: fn(2, 3)                                                          # needs sage.libs.gap
                 a23 + k323 + k723
 
             Because all ``Round_Component_Poly_Constr`` objects are callable
@@ -2246,9 +2223,9 @@ class RijndaelGF(SageObject):
             keywords, however, must be checked in ``polynomial_constr``. ::
 
                 sage: def my_poly_constr(row, col, algorithm='encrypt'):
-                ....:     return x * rgf._F.one() # example body with no checks
+                ....:     return x * rgf._F.one()  # example body with no checks
                 sage: rcpc = RijndaelGF.Round_Component_Poly_Constr(
-                ....: my_poly_constr, rgf, "My Poly Constr")
+                ....:            my_poly_constr, rgf, "My Poly Constr")
                 sage: rcpc(-1, 2)
                 Traceback (most recent call last):
                 ...
@@ -2285,16 +2262,16 @@ class RijndaelGF(SageObject):
 
             INPUT:
 
-            - ``row`` -- The row number to pass to ``polynomial_constr``.
+            - ``row`` -- the row number to pass to ``polynomial_constr``
 
-            - ``col`` -- The column number to pass to ``polynomial_constr``.
+            - ``col`` -- the column number to pass to ``polynomial_constr``
 
-            - ``algorithm`` -- (default: 'encrypt') The algorithm keyword
-              to pass to ``polynomial_constr``.
+            - ``algorithm`` -- (default: ``'encrypt'``) the algorithm keyword
+              to pass to ``polynomial_constr``
 
-            - ``**kwargs`` -- Keyword arguments to pass to
+            - ``**kwargs`` -- keyword arguments to pass to
               ``polynomial_constr``. Keyword arguments will vary depending
-              on ``polynomial_constr``.
+              on ``polynomial_constr``
 
             OUTPUT:
 
@@ -2304,22 +2281,21 @@ class RijndaelGF(SageObject):
 
             EXAMPLES::
 
-                sage: from sage.crypto.mq.rijndael_gf import \
-                ....: RijndaelGF
+                sage: from sage.crypto.mq.rijndael_gf import RijndaelGF
                 sage: rgf = RijndaelGF(4, 4)
                 sage: rcpc = RijndaelGF.Round_Component_Poly_Constr(
-                ....: rgf._shift_rows_pc, rgf, "Shift Rows")
+                ....:            rgf._shift_rows_pc, rgf, "Shift Rows")
                 sage: rcpc(1, 2)
                 a13
                 sage: all(rcpc(i, j) == rgf._shift_rows_pc(i, j)
-                ....: for i in range(4) for j in range(4))
+                ....:     for i in range(4) for j in range(4))
                 True
             """
             if row not in range(4):
                 raise ValueError("keyword 'row' must be in range 0 - 3")
             if col not in range(self._Nb):
                 msg = "keyword 'col' must be in range 0 - {0}"
-                raise ValueError(msg.format(self._Nb-1))
+                raise ValueError(msg.format(self._Nb - 1))
             if algorithm not in ['encrypt', 'decrypt']:
                 msg = ("keyword 'algorithm' must be either 'encrypt' or "
                        "'decrypt'")
@@ -2333,19 +2309,20 @@ class RijndaelGF(SageObject):
 
             EXAMPLES::
 
-                sage: from sage.crypto.mq.rijndael_gf import \
-                ....: RijndaelGF
+                sage: from sage.crypto.mq.rijndael_gf import RijndaelGF
                 sage: rgf = RijndaelGF(4, 4)
                 sage: RijndaelGF.Round_Component_Poly_Constr(
-                ....: rgf._shift_rows_pc, rgf, "Shift Rows")
-                A polynomial constructor for the function 'Shift Rows' of Rijndael-GF block cipher with block length 4, key length 4, and 10 rounds.
+                ....:     rgf._shift_rows_pc, rgf, "Shift Rows")
+                A polynomial constructor for the function 'Shift Rows' of
+                Rijndael-GF block cipher with block length 4, key length 4,
+                and 10 rounds.
                 sage: RijndaelGF.Round_Component_Poly_Constr(
-                ....: rgf._shift_rows_pc, rgf)
-                A polynomial constructor of a round component of Rijndael-GF block cipher with block length 4, key length 4, and 10 rounds.
+                ....:     rgf._shift_rows_pc, rgf)
+                A polynomial constructor of a round component of Rijndael-GF
+                block cipher with block length 4, key length 4, and 10 rounds.
             """
             if self._rc_name is None:
                 msg = "A polynomial constructor of a round component of {0}"
                 return msg.format(self._rgf_name)
-            else:
-                msg = "A polynomial constructor for the function '{0}' of {1}"
-                return msg.format(self._rc_name, self._rgf_name)
+            msg = "A polynomial constructor for the function '{0}' of {1}"
+            return msg.format(self._rc_name, self._rgf_name)

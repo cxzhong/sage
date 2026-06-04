@@ -1,5 +1,5 @@
 r"""
-Frieze Patterns
+Frieze patterns
 
 This implements the original frieze patterns due to Conway and Coxeter.
 Such a frieze pattern is considered as a sequence of nonnegative
@@ -25,7 +25,8 @@ from sage.structure.parent import Parent
 from sage.categories.sets_cat import Sets
 from sage.combinat.path_tableaux.path_tableau import PathTableau, PathTableaux, CylindricalDiagram
 from sage.categories.fields import Fields
-from sage.rings.all import QQ, ZZ
+from sage.rings.integer_ring import ZZ
+from sage.rings.rational_field import QQ
 
 
 class FriezePattern(PathTableau, metaclass=InheritComparisonClasscallMetaclass):
@@ -83,8 +84,10 @@ class FriezePattern(PathTableau, metaclass=InheritComparisonClasscallMetaclass):
 
     This constructs the examples from [HJ18]_::
 
-        sage: K.<sqrt3> = NumberField(x^2-3)
-        sage: t = path_tableaux.FriezePattern([1,sqrt3,2,sqrt3,1,1], field=K)
+        sage: # needs sage.rings.number_field
+        sage: x = polygen(ZZ, 'x')
+        sage: K.<sqrt3> = NumberField(x^2 - 3)
+        sage: t = path_tableaux.FriezePattern([1, sqrt3, 2, sqrt3, 1, 1], field=K)
         sage: path_tableaux.CylindricalDiagram(t)
         [        0,         1,     sqrt3,         2,     sqrt3,         1,         1,         0]
         [         ,         0,         1,     sqrt3,         2,     sqrt3, sqrt3 + 1,         1,         0]
@@ -94,11 +97,12 @@ class FriezePattern(PathTableau, metaclass=InheritComparisonClasscallMetaclass):
         [         ,          ,          ,          ,          ,         0,         1,         1,     sqrt3,         2,     sqrt3,         1,         0]
         [         ,          ,          ,          ,          ,          ,         0,         1, sqrt3 + 1, sqrt3 + 2, sqrt3 + 2, sqrt3 + 1,         1,         0]
         [         ,          ,          ,          ,          ,          ,          ,         0,         1,     sqrt3,         2,     sqrt3,         1,         1,         0]
-
         sage: TestSuite(t).run()
 
-        sage: K.<sqrt2> = NumberField(x^2-2)
-        sage: t = path_tableaux.FriezePattern([1,sqrt2,1,sqrt2,3,2*sqrt2,5,3*sqrt2,1], field=K)
+        sage: # needs sage.rings.number_field
+        sage: K.<sqrt2> = NumberField(x^2 - 2)
+        sage: t = path_tableaux.FriezePattern([1, sqrt2, 1, sqrt2, 3, 2*sqrt2, 5, 3*sqrt2, 1],
+        ....:                                 field=K)
         sage: path_tableaux.CylindricalDiagram(t)
         [      0,       1,   sqrt2,       1,   sqrt2,       3, 2*sqrt2,       5, 3*sqrt2,       1,       0]
         [       ,       0,       1,   sqrt2,       3, 5*sqrt2,       7, 9*sqrt2,      11, 2*sqrt2,       1,       0]
@@ -111,7 +115,6 @@ class FriezePattern(PathTableau, metaclass=InheritComparisonClasscallMetaclass):
         [       ,        ,        ,        ,        ,        ,        ,        ,       0,       1, 3*sqrt2,      11, 8*sqrt2,       5, 2*sqrt2,       3,   sqrt2,       1,       0]
         [       ,        ,        ,        ,        ,        ,        ,        ,        ,       0,       1, 2*sqrt2,       3,   sqrt2,       1,   sqrt2,       1,   sqrt2,       1,       0]
         [       ,        ,        ,        ,        ,        ,        ,        ,        ,        ,       0,       1,   sqrt2,       1,   sqrt2,       3, 2*sqrt2,       5, 3*sqrt2,       1,       0]
-
         sage: TestSuite(t).run()
     """
     @staticmethod
@@ -131,18 +134,19 @@ class FriezePattern(PathTableau, metaclass=InheritComparisonClasscallMetaclass):
             ...
             ValueError: invalid input 2
 
-            sage: K.<sqrt3> = NumberField(x^2-3)
-            sage: t = path_tableaux.FriezePattern([1,sqrt3,2,sqrt3,1,1])
+            sage: x = polygen(ZZ, 'x')
+            sage: K.<sqrt3> = NumberField(x^2 - 3)                                      # needs sage.rings.number_field
+            sage: t = path_tableaux.FriezePattern([1,sqrt3,2,sqrt3,1,1])                # needs sage.rings.number_field
             Traceback (most recent call last):
             ...
             ValueError: [1, sqrt3, 2, sqrt3, 1, 1] is not a sequence in the field Rational Field
 
-            sage: path_tableaux.FriezePattern([1,2,1,2,3,1],field=Integers())
+            sage: path_tableaux.FriezePattern([1,2,1,2,3,1], field=Integers())
             Traceback (most recent call last):
             ...
             ValueError: Integer Ring must be a field
         """
-        if field not in Fields:
+        if field not in Fields():
             raise ValueError(f"{field} must be a field")
 
         if isinstance(fp, (list, tuple)):
@@ -249,8 +253,7 @@ class FriezePattern(PathTableau, metaclass=InheritComparisonClasscallMetaclass):
         """
         if self[1] == 1 and self[-2] == 1:
             return len(self)
-        else:
-            return None
+        return None
 
     def is_positive(self):
         r"""
@@ -273,8 +276,9 @@ class FriezePattern(PathTableau, metaclass=InheritComparisonClasscallMetaclass):
             sage: path_tableaux.FriezePattern([1,-3,4,5,1]).is_positive()
             False
 
-            sage: K.<sqrt3> = NumberField(x^2-3)
-            sage: path_tableaux.FriezePattern([1,sqrt3,1],K).is_positive()
+            sage: x = polygen(ZZ, 'x')
+            sage: K.<sqrt3> = NumberField(x^2 - 3)                                      # needs sage.rings.number_field
+            sage: path_tableaux.FriezePattern([1,sqrt3,1], K).is_positive()             # needs sage.rings.number_field
             True
         """
         return all(a > 0 for a in self[1:-1])
@@ -294,7 +298,8 @@ class FriezePattern(PathTableau, metaclass=InheritComparisonClasscallMetaclass):
         """
         n = len(self)
         cd = CylindricalDiagram(self).diagram
-        return all(all(k in ZZ for k in a[i+1:n+i-2]) for i, a in enumerate(cd))
+        return all(k in ZZ for i, a in enumerate(cd)
+                   for k in a[i + 1:n + i - 2])
 
     def triangulation(self):
         r"""
@@ -310,14 +315,17 @@ class FriezePattern(PathTableau, metaclass=InheritComparisonClasscallMetaclass):
 
         EXAMPLES::
 
-            sage: path_tableaux.FriezePattern([1,2,7,5,3,7,4,1]).triangulation()
+            sage: path_tableaux.FriezePattern([1,2,7,5,3,7,4,1]).triangulation()        # needs sage.plot sage.symbolic
             Graphics object consisting of 25 graphics primitives
 
-            sage: path_tableaux.FriezePattern([1,2,1/7,5,3]).triangulation()
+            sage: path_tableaux.FriezePattern([1,2,1/7,5,3]).triangulation()            # needs sage.plot sage.symbolic
             Graphics object consisting of 12 graphics primitives
 
-            sage: K.<sqrt2> = NumberField(x^2-2)
-            sage: path_tableaux.FriezePattern([1,sqrt2,1,sqrt2,3,2*sqrt2,5,3*sqrt2,1], field=K).triangulation()
+
+            sage: x = polygen(ZZ, 'x')
+            sage: K.<sqrt2> = NumberField(x^2 - 2)                                      # needs sage.rings.number_field
+            sage: path_tableaux.FriezePattern([1,sqrt2,1,sqrt2,3,2*sqrt2,5,3*sqrt2,1],  # needs sage.plot sage.rings.number_field sage.symbolic
+            ....:                             field=K).triangulation()
             Graphics object consisting of 24 graphics primitives
         """
         n = len(self)-1
@@ -326,7 +334,7 @@ class FriezePattern(PathTableau, metaclass=InheritComparisonClasscallMetaclass):
         from sage.plot.line import line
         from sage.plot.text import text
         from sage.functions.trig import sin, cos
-        from sage.all import pi
+        from sage.symbolic.constants import pi
         G = Graphics()
         G.set_aspect_ratio(1.0)
 
@@ -354,9 +362,9 @@ class FriezePattern(PathTableau, metaclass=InheritComparisonClasscallMetaclass):
 
         The option ``model`` must be one of
 
-        * ``'UHP'`` - (default) for the upper half plane model
-        * ``'PD'`` - for the Poincare disk model
-        * ``'KM'`` - for the Klein model
+        * ``'UHP'`` -- (default) for the upper half plane model
+        * ``'PD'`` -- for the Poincare disk model
+        * ``'KM'`` -- for the Klein model
 
         The hyperboloid model is not an option as this does not implement
         boundary points.
@@ -369,13 +377,12 @@ class FriezePattern(PathTableau, metaclass=InheritComparisonClasscallMetaclass):
 
         EXAMPLES::
 
+            sage: # needs sage.plot sage.symbolic
             sage: t = path_tableaux.FriezePattern([1,2,7,5,3,7,4,1])
             sage: t.plot()
             Graphics object consisting of 18 graphics primitives
-
             sage: t.plot(model='UHP')
             Graphics object consisting of 18 graphics primitives
-
             sage: t.plot(model='PD')
             Traceback (most recent call last):
             ...
@@ -404,24 +411,25 @@ class FriezePattern(PathTableau, metaclass=InheritComparisonClasscallMetaclass):
 
     def change_ring(self, R):
         r"""
-        Return ``self`` as a frieze pattern with coefficients in ``R``
-        assuming there is a canonical coerce map from the base ring of ``self``
+        Return ``self`` as a frieze pattern with coefficients in ``R``.
+
+        This assumes that there is a canonical coerce map from the base ring of ``self``
         to ``R``.
 
         EXAMPLES::
 
-            sage: path_tableaux.FriezePattern([1,2,7,5,3,7,4,1]).change_ring(RealField())
-            [0.000000000000000, 1.00000000000000, ... 4.00000000000000, 1.00000000000000, 0.000000000000000]
-
-            sage: path_tableaux.FriezePattern([1,2,7,5,3,7,4,1]).change_ring(GF(7))
+            sage: fp = path_tableaux.FriezePattern([1,2,7,5,3,7,4,1])
+            sage: fp.change_ring(RealField())                                           # needs sage.rings.real_mpfr
+            [0.000000000000000, 1.00000000000000, ...
+             4.00000000000000, 1.00000000000000, 0.000000000000000]
+            sage: fp.change_ring(GF(7))
             Traceback (most recent call last):
             ...
             TypeError: no base extension defined
         """
         if R.has_coerce_map_from(self.parent().base_ring()):
             return FriezePattern(list(self), field=R)
-        else:
-            raise TypeError("no base extension defined")
+        raise TypeError("no base extension defined")
 
 
 class FriezePatterns(PathTableaux):
@@ -439,6 +447,7 @@ class FriezePatterns(PathTableaux):
         [ , 1, 2, 1]
         [ ,  , 1, 1, 1]
     """
+
     def __init__(self, field):
         r"""
         Initialize ``self``.

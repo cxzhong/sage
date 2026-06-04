@@ -1,5 +1,8 @@
+"""
+Interactive display of quivers
+"""
 import ipywidgets as widgets
-from sage.misc.all import latex
+from sage.misc.latex import latex
 from sage.repl.rich_output.pretty_print import pretty_print
 from IPython.display import clear_output
 
@@ -10,24 +13,24 @@ def cluster_interact(self, fig_size=1, circular=True, kind='seed'):
 
     Only in *Jupyter notebook mode*.
 
-    Not to be called directly. Use the interact methods
-    of ClusterSeed and ClusterQuiver instead.
+    Not to be called directly. Use the :meth:`interact` methods
+    of :class:`ClusterSeed` and :class:`ClusterQuiver` instead.
 
     INPUT:
 
     - ``fig_size`` -- (default: 1) factor by which the size of the
-      plot is multiplied.
+      plot is multiplied
 
-    - ``circular`` -- (default: ``True``) if ``True``, the circular plot
-      is chosen, otherwise >>spring<< is used.
+    - ``circular`` -- boolean (default: ``True``); if ``True``, the circular
+      plot is chosen, otherwise >>spring<< is used
 
-    - ``kind`` -- either ``"seed"`` (default) or ``"quiver"``
+    - ``kind`` -- either ``'seed'`` (default) or ``'quiver'``
 
     TESTS::
 
-        sage: S = ClusterSeed(['A',4])
-        sage: S.interact()   # indirect doctest
-        VBox(children=...
+        sage: S = ClusterSeed(['A',4])                                                  # needs sage.graphs sage.modules
+        sage: S.interact()   # indirect doctest                                         # needs sage.graphs sage.modules sage.symbolic
+        ...VBox(children=...
     """
     if kind not in ['seed', 'quiver']:
         raise ValueError('kind must be "seed" or "quiver"')
@@ -45,8 +48,8 @@ def cluster_interact(self, fig_size=1, circular=True, kind='seed'):
                                          description="Show last mutation vertex")
 
     mut_buttons = widgets.ToggleButtons(options=list(range(self._n)),
-                                       style={'button_width':'initial'},
-                                       description='Mutate at: ')
+                                        style={'button_width': 'initial'},
+                                        description='Mutate at: ')
 
     which_plot = widgets.Dropdown(options=['circular', 'spring'],
                                   value='circular' if circular else "spring",
@@ -107,7 +110,7 @@ def cluster_interact(self, fig_size=1, circular=True, kind='seed'):
     show_lastmutation.observe(refresh, 'value')
     which_plot.observe(refresh, 'value')
 
-    mut_buttons.on_displayed(refresh)
+    mut_buttons.on_widget_constructed(refresh)
 
     if kind == 'seed':
         top = widgets.HBox([show_seq, show_vars])

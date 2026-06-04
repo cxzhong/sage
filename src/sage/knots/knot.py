@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+# sage.doctest: needs sage.graphs sage.groups
 r"""
 Knots
 
@@ -30,6 +30,8 @@ from sage.misc.inherit_comparison import InheritComparisonClasscallMetaclass
 from sage.categories.monoids import Monoids
 
 # We need Link to be first in the MRO in order to use its equality, hash, etc.
+
+
 class Knot(Link, Element, metaclass=InheritComparisonClasscallMetaclass):
     r"""
     A knot.
@@ -47,7 +49,7 @@ class Knot(Link, Element, metaclass=InheritComparisonClasscallMetaclass):
     INPUT:
 
     - ``data`` -- see :class:`Link` for the allowable inputs
-    - ``check`` -- optional, default ``True``. If ``True``, make sure
+    - ``check`` -- boolean (default: ``True``); if ``True``, make sure
       that the data define a knot, not a link
 
     EXAMPLES:
@@ -74,6 +76,8 @@ class Knot(Link, Element, metaclass=InheritComparisonClasscallMetaclass):
         31
         sage: K.signature()
         -2
+        sage: K.colored_jones_polynomial(2)  # long time
+        q^-1 - 2 + 4*q - 5*q^2 + 6*q^3 - 5*q^4 + 4*q^5 - 3*q^6 + q^7
 
     REFERENCES:
 
@@ -146,14 +150,6 @@ class Knot(Link, Element, metaclass=InheritComparisonClasscallMetaclass):
         """
         Return unicode art for the knot.
 
-        INPUT:
-
-        - a knot
-
-        OUTPUT:
-
-        - unicode art for the knot
-
         EXAMPLES::
 
             sage: W = Knots()
@@ -206,14 +202,14 @@ class Knot(Link, Element, metaclass=InheritComparisonClasscallMetaclass):
                 x, y, xx, yy = xx, yy, x, y
             if y < b:
                 if xx < a:
-                    M[a][b] = u"╯"
+                    M[a][b] = "╯"
                 else:
-                    M[a][b] = u"╮"
+                    M[a][b] = "╮"
             else:
                 if xx < a:
-                    M[a][b] = u"╰"
+                    M[a][b] = "╰"
                 else:
-                    M[a][b] = u"╭"
+                    M[a][b] = "╭"
 
         for ab, cd in graphe.edge_iterator(labels=False):
             a, b = ab
@@ -221,21 +217,21 @@ class Knot(Link, Element, metaclass=InheritComparisonClasscallMetaclass):
             if a == c:
                 b, d = sorted((b, d))
                 for i in range(b + 1, d):
-                    M[a][i] = u"─"
+                    M[a][i] = "─"
             else:
                 a, c = sorted((a, c))
                 for i in range(a + 1, c):
-                    M[i][b] = u"│"
+                    M[i][b] = "│"
 
         if style == 0:
-            H = u"┿"
-            V = u"╂"
+            H = "┿"
+            V = "╂"
         elif style == 1:
-            H = u"━"
-            V = u"┃"
+            H = "━"
+            V = "┃"
         elif style == 2:
-            H = u"─"
-            V = u"│"
+            H = "─"
+            V = "│"
 
         for x, y in hori:
             M[x][y] = H
@@ -270,10 +266,12 @@ class Knot(Link, Element, metaclass=InheritComparisonClasscallMetaclass):
             sage: K = Knot([[1,5,2,4],[5,3,6,2],[3,1,4,6]])
             sage: K.dt_code()
             [4, 6, 2]
+
             sage: B = BraidGroup(4)
             sage: K = Knot(B([1, 2, 1, 2]))
             sage: K.dt_code()
             [4, -6, 8, -2]
+
             sage: K = Knot([[[1, -2, 3, -4, 5, -1, 2, -3, 4, -5]],
             ....:          [1, 1, 1, 1, 1]])
             sage: K.dt_code()
@@ -294,7 +292,7 @@ class Knot(Link, Element, metaclass=InheritComparisonClasscallMetaclass):
                     crossing = i
                     break
             if not string_found:
-                for i in range(0, crossing):
+                for i in range(crossing):
                     if abs(b[i]) == string or abs(b[i]) == string - 1:
                         string_found = True
                         crossing = i
@@ -349,6 +347,44 @@ class Knot(Link, Element, metaclass=InheritComparisonClasscallMetaclass):
             return 0
         return 1
 
+    def colored_jones_polynomial(self, N, variab=None, try_inverse=True):
+        r"""
+        Return the colored Jones polynomial of the trace closure of the braid.
+
+        INPUT:
+
+        - ``N`` -- integer; the number of colors
+        - ``variab`` -- (default: `q`) the variable in the resulting
+          Laurent polynomial
+        - ``try_inverse`` -- boolean (default: ``True``); if ``True``,
+          attempt a faster calculation by using the inverse of the braid
+
+        ALGORITHM:
+
+        The algorithm used is described in [HL2018]_ for the corresponding
+        braid representation. We follow their notation, but work in a
+        suitable free algebra over a Laurent polynomial ring in one
+        variable to simplify bookkeeping.
+
+        EXAMPLES::
+
+            sage: W = Knots()
+            sage: K = W.from_dowker_code([-4,-6,-2])
+            sage: K.colored_jones_polynomial(2)
+            -q^-4 + q^-3 + q^-1
+            sage: K.colored_jones_polynomial(2, 't')
+            -t^-4 + t^-3 + t^-1
+            sage: R.<t> = LaurentPolynomialRing(ZZ)
+            sage: K.colored_jones_polynomial(2, -t)
+            -t^-4 - t^-3 - t^-1
+
+            sage: R.<t> = ZZ[]
+            sage: K.colored_jones_polynomial(2, t+1)
+            (t^3 + 3*t^2 + 4*t + 1)/(t^4 + 4*t^3 + 6*t^2 + 4*t + 1)
+        """
+        return self.braid().colored_jones_polynomial(N=N, variab=variab,
+                                                     try_inverse=try_inverse)
+
     def connected_sum(self, other):
         r"""
         Return the oriented connected sum of ``self`` and ``other``.
@@ -362,9 +398,7 @@ class Knot(Link, Element, metaclass=InheritComparisonClasscallMetaclass):
 
         - ``other`` -- a knot
 
-        OUTPUT:
-
-        A knot equivalent to the connected sum of ``self`` and ``other``.
+        OUTPUT: a knot equivalent to the connected sum of ``self`` and ``other``
 
         EXAMPLES::
 
@@ -386,9 +420,9 @@ class Knot(Link, Element, metaclass=InheritComparisonClasscallMetaclass):
         ::
 
             sage: rev_trefoil = Knot(B([-1,-1,-1]))
-            sage: K = trefoil.connected_sum(rev_trefoil); K
+            sage: K2 = trefoil.connected_sum(rev_trefoil); K2
             Knot represented by 6 crossings
-            sage: K.braid()
+            sage: K2.braid()
             s0^3*s1^-1*s0^-3*s1
 
         .. PLOT::
@@ -397,8 +431,19 @@ class Knot(Link, Element, metaclass=InheritComparisonClasscallMetaclass):
             B = BraidGroup(2)
             t = Knot(B([1,1,1]))
             tr = Knot(B([-1,-1,-1]))
-            K = t.connected_sum(tr)
-            sphinx_plot(K.plot())
+            K2 = t.connected_sum(tr)
+            sphinx_plot(K2.plot())
+
+        Observe that both knots have according ``dowker_notation`` (showing that
+        the constructing from DT-code may not be unique for non prime knots, see
+        :meth:`from_dowker_code`)::
+
+            sage: K.dowker_notation()
+            [(4, 1), (2, 5), (6, 3), (10, 7), (8, 11), (12, 9)]
+            sage: K2.dowker_notation()
+            [(4, 1), (2, 5), (6, 3), (7, 10), (11, 8), (9, 12)]
+            sage: K.homfly_polynomial() == K2.homfly_polynomial()  # needs libhomfly
+            False
 
         TESTS::
 
@@ -492,11 +537,9 @@ class Knots(Singleton, Parent):
 
         INPUT:
 
-        - a signed Gauss code
+        - ``gauss`` -- a signed Gauss code
 
-        OUTPUT:
-
-        - a knot
+        OUTPUT: a knot
 
         EXAMPLES::
 
@@ -528,11 +571,19 @@ class Knots(Singleton, Parent):
 
         INPUT:
 
-        a list of signed even numbers, the Dowker-Thistlethwaite code of a knot
+        - ``code`` -- list of signed even numbers; the Dowker-Thistlethwaite
+          code of a knot
 
-        OUTPUT:
+        OUTPUT: a knot
 
-        a knot
+        .. WARNING::
+
+            In general the Dowker-Thistlethwaite code does not describe a knot
+            uniquely. It is not only insensitive on mirror images, but may also
+            mix up non prime knots. For example ``[4, 6, 2, 10, 12, 8]`` describes
+            the connected sum of two trefoil knots, as well as the connected sum
+            of a trefoil with its mirror (see the corresponding example in the
+            documentation of :meth:`connected_sum`).
 
         EXAMPLES::
 
@@ -571,11 +622,9 @@ class Knots(Singleton, Parent):
         INPUT:
 
         - ``n`` -- the crossing number
-        - ``k`` -- a positive integer
+        - ``k`` -- positive integer
 
-        OUTPUT:
-
-        the knot `K_{n,k}` in the Rolfsen table
+        OUTPUT: the knot `K_{n,k}` in the Rolfsen table
 
         EXAMPLES::
 
@@ -619,12 +668,13 @@ class Knots(Singleton, Parent):
         """
         if n > 10:
             raise ValueError('more than 10 crossings, not in the knot table')
-        from sage.groups.braid import BraidGroup
         if (n, k) in small_knots_table:
             m, word = small_knots_table[(n, k)]
+
+            from sage.groups.braid import BraidGroup
+
             G = BraidGroup(m)
             return Knot(G(word))
-        else:
-            raise ValueError('not found in the knot table')
+        raise ValueError('not found in the knot table')
 
     Element = Knot

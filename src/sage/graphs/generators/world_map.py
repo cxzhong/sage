@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 r"""
 Graphs from the World Map
 
@@ -6,19 +5,19 @@ The methods defined here appear in :mod:`sage.graphs.graph_generators`.
 """
 
 # ****************************************************************************
-#
 #           Copyright (C) 2006 Robert L. Miller <rlmillster@gmail.com>
 #                              and Emily A. Kirkman
 #           Copyright (C) 2009 Michael C. Yurko <myurko@gmail.com>
 #
 # Distributed  under  the  terms  of  the  GNU  General  Public  License (GPL)
-#                         http://www.gnu.org/licenses/
+#                         https://www.gnu.org/licenses/
 # ****************************************************************************
 
 # import from Sage library
 from sage.graphs.graph import Graph
 
-def AfricaMap(continental=False, year=2018):
+
+def AfricaMap(continental=False, year=2018, immutable=False):
     """
     Return African states as a graph of common border.
 
@@ -31,7 +30,10 @@ def AfricaMap(continental=False, year=2018):
     - ``continental`` -- boolean (default: ``False``); whether to only return
       states in the continental Africa or all African states
 
-    - ``year`` -- integer (default: ``2018``); reserved for future use
+    - ``year`` -- integer (default: 2018); reserved for future use
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES::
 
@@ -45,10 +47,12 @@ def AfricaMap(continental=False, year=2018):
         48
         sage: 'Madagaskar' in cont_Africa
         False
+        sage: cont_Africa.is_connected()
+        True
 
     TESTS::
 
-        sage: Africa.plot()  # long time
+        sage: Africa.plot()                     # long time                             # needs sage.plot
         Graphics object consisting of 159 graphics primitives
     """
     if year != 2018:
@@ -61,7 +65,7 @@ def AfricaMap(continental=False, year=2018):
      'Botswana': ['Namibia', 'South Africa', 'Zimbabwe'],
      'Burkina Faso': ['Ghana', 'Ivory Coast', 'Mali', 'Niger', 'Togo'],
      'Cameroon': ['Central Africa', 'Chad', 'Equatorial Guinea', 'Gabon',
-                      'Nigeria'],
+                  'Nigeria'],
      'Central Africa': ['Chad', 'South Sudan', 'Sudan'],
      'Chad': ['Libya', 'Niger', 'Nigeria', 'Sudan'],
      'Republic of the Congo': ['Gabon', 'Cameroon', 'Central Africa', 'Angola',
@@ -90,20 +94,19 @@ def AfricaMap(continental=False, year=2018):
      }
 
     no_land_border = ['Cape Verde', 'Seychelles', 'Mauritius',
-                      u'São Tomé and Príncipe', 'Madagascar', 'Comoros']
-
-    G = Graph(common_border, format='dict_of_lists')
+                      'São Tomé and Príncipe', 'Madagascar', 'Comoros']
 
     if continental:
-        G = G.subgraph(G.connected_component_containing_vertex('Central Africa'))
-        G.name(new="Continental Africa Map")
+        name = "Continental Africa Map"
     else:
-        G.add_vertices(no_land_border)
-        G.name(new="Africa Map")
+        common_border.update((c, []) for c in no_land_border)
+        name = "Africa Map"
 
-    return G
+    return Graph(common_border, format='dict_of_lists',
+                 name=name, immutable=immutable)
 
-def EuropeMap(continental=False, year=2018):
+
+def EuropeMap(continental=False, year=2018, immutable=False):
     """
     Return European states as a graph of common border.
 
@@ -116,7 +119,10 @@ def EuropeMap(continental=False, year=2018):
     - ``continental`` -- boolean (default: ``False``); whether to only return
       states in the continental Europe or all European states
 
-    - ``year`` -- integer (default: ``2018``); reserved for future use
+    - ``year`` -- integer (default: 2018); reserved for future use
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES::
 
@@ -130,33 +136,40 @@ def EuropeMap(continental=False, year=2018):
         40
         sage: 'Iceland' in cont_Europe
         False
+        sage: cont_Europe.is_connected()
+        True
+        sage: cont_Europe.is_immutable()
+        False
+        sage: cont_Europe = graphs.EuropeMap(continental=True, immutable=True)
+        sage: cont_Europe.is_immutable()
+        True
     """
     if year != 2018:
         raise ValueError("currently only year 2018 is implemented")
 
     common_border = {
      'Austria': ['Czech Republic', 'Germany', 'Liechtenstein', 'Slovenia',
-                     'Switzerland'],
+                 'Switzerland'],
      'Belarus': ['Latvia', 'Lithuania', 'Poland', 'Russia', 'Ukraine'],
      'Belgium': ['France', 'Germany', 'Luxembourg', 'Netherlands'],
      'Croatia': ['Bosnia and Herzegovina', 'Hungary', 'Montenegro', 'Serbia',
-                     'Slovenia'],
+                 'Slovenia'],
      'France': ['Andorra', 'Germany', 'Italy', 'Luxembourg', 'Monaco',
-                    'Switzerland'],
+                'Switzerland'],
      'Germany': ['Czech Republic', 'Denmark', 'Luxembourg', 'Netherlands',
-                     'Switzerland'],
+                 'Switzerland'],
      'Greece': ['Albania', 'Bulgaria', 'Macedonia'],
      'Hungary': ['Austria', 'Romania', 'Serbia', 'Slovakia', 'Slovenia',
-                     'Ukraine'],
+                 'Ukraine'],
      'Ireland': ['United Kingdom'],
      'Italy': ['Austria', 'San Marino', 'Slovenia', 'Switzerland',
-                   'Vatican City'],
+               'Vatican City'],
      'Latvia': ['Estonia', 'Lithuania', 'Russia'],
      'Macedonia': ['Albania', 'Bulgaria', 'Serbia'],
      'Montenegro': ['Albania', 'Bosnia and Herzegovina', 'Serbia'],
      'Norway': ['Finland', 'Russia', 'Sweden'],
      'Poland': ['Czech Republic', 'Germany', 'Lithuania', 'Russia', 'Slovakia',
-                    'Ukraine'],
+                'Ukraine'],
      'Romania': ['Bulgaria', 'Moldova', 'Serbia', 'Ukraine'],
      'Russia': ['Estonia', 'Finland', 'Lithuania', 'Ukraine'],
      'Serbia': ['Bosnia and Herzegovina', 'Bulgaria'],
@@ -168,18 +181,19 @@ def EuropeMap(continental=False, year=2018):
     }
     no_land_border = ['Iceland', 'Malta']
 
-    G = Graph(common_border, format='dict_of_lists')
-
     if continental:
-        G = G.subgraph(G.connected_component_containing_vertex('Austria'))
-        G.name(new="Continental Europe Map")
+        G = Graph(common_border, format='dict_of_lists',
+                  name="Continental Europe Map", immutable=immutable)
+        G = G.subgraph(G.connected_component_containing_vertex('Austria', sort=False))
     else:
-        G.add_vertices(no_land_border)
-        G.name(new="Europe Map")
+        common_border.update((c, []) for c in no_land_border)
+        G = Graph(common_border, format='dict_of_lists',
+                  name="Europe Map", immutable=immutable)
 
     return G
 
-def USAMap(continental=False):
+
+def USAMap(continental=False, immutable=False):
     """
     Return states of USA as a graph of common border.
 
@@ -191,6 +205,9 @@ def USAMap(continental=False):
 
     - ``continental`` -- boolean (default: ``False``); whether to exclude Alaska
       and Hawaii
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES:
 
@@ -208,71 +225,74 @@ def USAMap(continental=False):
         11
     """
     states = {
-    "Alabama": ["Florida", "Georgia", "Mississippi", "Tennessee"],
-    "Arizona": ["California", "Colorado", "Nevada", "New Mexico", "Utah"],
-    "Arkansas": ["Louisiana", "Mississippi", "Missouri", "Oklahoma",
+        "Alabama": ["Florida", "Georgia", "Mississippi", "Tennessee"],
+        "Arizona": ["California", "Colorado", "Nevada", "New Mexico", "Utah"],
+        "Arkansas": ["Louisiana", "Mississippi", "Missouri", "Oklahoma",
                      "Tennessee", "Texas"],
-    "California": ["Arizona", "Nevada", "Oregon"],
-    "Colorado": ["Arizona", "Kansas", "Nebraska", "New Mexico", "Oklahoma",
+        "California": ["Arizona", "Nevada", "Oregon"],
+        "Colorado": ["Arizona", "Kansas", "Nebraska", "New Mexico", "Oklahoma",
                      "Utah", "Wyoming"],
-    "Connecticut": ["Massachusetts", "New York", "Rhode Island"],
-    "Delaware": ["Maryland", "New Jersey", "Pennsylvania"],
-    "Florida": ["Alabama", "Georgia"],
-    "Georgia": ["Alabama", "Florida", "North Carolina", "South Carolina",
+        "Connecticut": ["Massachusetts", "New York", "Rhode Island"],
+        "Delaware": ["Maryland", "New Jersey", "Pennsylvania"],
+        "Florida": ["Alabama", "Georgia"],
+        "Georgia": ["Alabama", "Florida", "North Carolina", "South Carolina",
                     "Tennessee"],
-    "Idaho": ["Montana", "Nevada", "Oregon", "Utah", "Washington", "Wyoming"],
-    "Illinois": ["Indiana", "Iowa", "Michigan", "Kentucky", "Missouri",
+        "Idaho": ["Montana", "Nevada", "Oregon", "Utah", "Washington",
+                  "Wyoming"],
+        "Illinois": ["Indiana", "Iowa", "Michigan", "Kentucky", "Missouri",
                      "Wisconsin"],
-    "Indiana": ["Illinois", "Kentucky", "Michigan", "Ohio"],
-    "Iowa": ["Illinois", "Minnesota", "Missouri", "Nebraska", "South Dakota",
-                 "Wisconsin"],
-    "Kansas": ["Colorado", "Missouri", "Nebraska", "Oklahoma"],
-    "Kentucky": ["Illinois", "Indiana", "Missouri", "Ohio", "Tennessee",
+        "Indiana": ["Illinois", "Kentucky", "Michigan", "Ohio"],
+        "Iowa": ["Illinois", "Minnesota", "Missouri", "Nebraska",
+                 "South Dakota", "Wisconsin"],
+        "Kansas": ["Colorado", "Missouri", "Nebraska", "Oklahoma"],
+        "Kentucky": ["Illinois", "Indiana", "Missouri", "Ohio", "Tennessee",
                      "Virginia", "West Virginia"],
-    "Louisiana": ["Arkansas", "Mississippi", "Texas"],
-    "Maine": ["New Hampshire"],
-    "Maryland": ["Delaware", "Pennsylvania", "Virginia", "West Virginia"],
-    "Massachusetts": ["Connecticut", "New Hampshire", "New York",
+        "Louisiana": ["Arkansas", "Mississippi", "Texas"],
+        "Maine": ["New Hampshire"],
+        "Maryland": ["Delaware", "Pennsylvania", "Virginia", "West Virginia"],
+        "Massachusetts": ["Connecticut", "New Hampshire", "New York",
                           "Rhode Island", "Vermont"],
-    "Michigan": ["Illinois", "Indiana", "Ohio", "Wisconsin"],
-    "Minnesota": ["Iowa", "North Dakota", "South Dakota", "Wisconsin"],
-    "Mississippi": ["Alabama", "Arkansas", "Louisiana", "Tennessee"],
-    "Missouri": ["Arkansas", "Illinois", "Iowa", "Kansas", "Kentucky",
-                    "Nebraska", "Oklahoma", "Tennessee"],
-    "Montana": ["Idaho", "North Dakota", "South Dakota", "Wyoming"],
-    "Nebraska": ["Colorado", "Iowa", "Kansas", "Missouri", "South Dakota",
+        "Michigan": ["Illinois", "Indiana", "Ohio", "Wisconsin"],
+        "Minnesota": ["Iowa", "North Dakota", "South Dakota", "Wisconsin"],
+        "Mississippi": ["Alabama", "Arkansas", "Louisiana", "Tennessee"],
+        "Missouri": ["Arkansas", "Illinois", "Iowa", "Kansas", "Kentucky",
+                     "Nebraska", "Oklahoma", "Tennessee"],
+        "Montana": ["Idaho", "North Dakota", "South Dakota", "Wyoming"],
+        "Nebraska": ["Colorado", "Iowa", "Kansas", "Missouri", "South Dakota",
                      "Wyoming"],
-    "Nevada": ["Arizona", "California", "Idaho", "Oregon", "Utah"],
-    "New Hampshire": ["Maine", "Massachusetts", "Vermont"],
-    "New Jersey": ["Delaware", "New York", "Pennsylvania"],
-    "New Mexico": ["Arizona", "Colorado", "Oklahoma", "Texas", "Utah"],
-    "New York": ["Connecticut", "Massachusetts", "New Jersey",
+        "Nevada": ["Arizona", "California", "Idaho", "Oregon", "Utah"],
+        "New Hampshire": ["Maine", "Massachusetts", "Vermont"],
+        "New Jersey": ["Delaware", "New York", "Pennsylvania"],
+        "New Mexico": ["Arizona", "Colorado", "Oklahoma", "Texas", "Utah"],
+        "New York": ["Connecticut", "Massachusetts", "New Jersey",
                      "Pennsylvania", "Vermont"],
-    "North Carolina": ["Georgia", "South Carolina", "Tennessee", "Virginia"],
-    "North Dakota": ["Minnesota", "Montana", "South Dakota"],
-    "Ohio": ["Indiana", "Kentucky", "Michigan", "Pennsylvania",
+        "North Carolina": ["Georgia", "South Carolina", "Tennessee",
+                           "Virginia"],
+        "North Dakota": ["Minnesota", "Montana", "South Dakota"],
+        "Ohio": ["Indiana", "Kentucky", "Michigan", "Pennsylvania",
                  "West Virginia"],
-    "Oklahoma": ["Arkansas", "Colorado", "Kansas", "Missouri",
+        "Oklahoma": ["Arkansas", "Colorado", "Kansas", "Missouri",
                      "New Mexico", "Texas"],
-    "Oregon": ["California", "Idaho", "Nevada", "Washington"],
-    "Pennsylvania": ["Delaware", "Maryland", "New Jersey", "New York",
+        "Oregon": ["California", "Idaho", "Nevada", "Washington"],
+        "Pennsylvania": ["Delaware", "Maryland", "New Jersey", "New York",
                          "Ohio", "West Virginia"],
-    "Rhode Island": ["Connecticut", "Massachusetts"],
-    "South Carolina": ["Georgia", "North Carolina"],
-    "South Dakota": ["Iowa", "Minnesota", "Montana", "Nebraska",
+        "Rhode Island": ["Connecticut", "Massachusetts"],
+        "South Carolina": ["Georgia", "North Carolina"],
+        "South Dakota": ["Iowa", "Minnesota", "Montana", "Nebraska",
                          "North Dakota", "Wyoming"],
-    "Tennessee": ["Alabama", "Arkansas", "Georgia", "Kentucky", "Mississippi",
-                      "Missouri", "North Carolina", "Virginia"],
-    "Texas": ["Arkansas", "Louisiana", "New Mexico", "Oklahoma"],
-    "Utah": ["Arizona", "Colorado", "Idaho", "Nevada", "New Mexico", "Wyoming"],
-    "Vermont": ["Massachusetts", "New Hampshire", "New York"],
-    "Virginia": ["Kentucky", "Maryland", "North Carolina", "Tennessee",
+        "Tennessee": ["Alabama", "Arkansas", "Georgia", "Kentucky",
+                      "Mississippi", "Missouri", "North Carolina", "Virginia"],
+        "Texas": ["Arkansas", "Louisiana", "New Mexico", "Oklahoma"],
+        "Utah": ["Arizona", "Colorado", "Idaho", "Nevada", "New Mexico",
+                 "Wyoming"],
+        "Vermont": ["Massachusetts", "New Hampshire", "New York"],
+        "Virginia": ["Kentucky", "Maryland", "North Carolina", "Tennessee",
                      "West Virginia"],
-    "Washington": ["Idaho", "Oregon"],
-    "West Virginia": ["Kentucky", "Maryland", "Ohio", "Pennsylvania",
+        "Washington": ["Idaho", "Oregon"],
+        "West Virginia": ["Kentucky", "Maryland", "Ohio", "Pennsylvania",
                           "Virginia"],
-    "Wisconsin": ["Illinois", "Iowa", "Michigan", "Minnesota"],
-    "Wyoming": ["Colorado", "Idaho", "Montana", "Nebraska", "South Dakota",
+        "Wisconsin": ["Illinois", "Iowa", "Michigan", "Minnesota"],
+        "Wyoming": ["Colorado", "Idaho", "Montana", "Nebraska", "South Dakota",
                     "Utah"]
     }
     if continental:
@@ -282,9 +302,10 @@ def USAMap(continental=False):
         states['Hawaii'] = []
         name = "USA Map"
 
-    return Graph(states, format='dict_of_lists', name=name)
+    return Graph(states, format='dict_of_lists', name=name, immutable=immutable)
 
-def WorldMap():
+
+def WorldMap(immutable=False):
     """
     Return the Graph of all the countries, in which two countries are adjacent
     in the graph if they have a common boundary.
@@ -295,6 +316,11 @@ def WorldMap():
     The returned graph ``G`` has a member ``G.gps_coordinates`` equal to a
     dictionary containing the GPS coordinates of each country's capital city.
 
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
+
     EXAMPLES::
 
         sage: g = graphs.WorldMap()
@@ -302,12 +328,12 @@ def WorldMap():
         True
         sage: g.gps_coordinates["Bolivia"]
         [[17, 'S'], [65, 'W']]
-        sage: sorted(g.connected_component_containing_vertex('Ireland'))
+        sage: g.connected_component_containing_vertex('Ireland', sort=True)
         ['Ireland', 'United Kingdom']
 
-    TESTS::
+    TESTS:
 
-    :trac:`24488`::
+    :issue:`24488`::
 
         sage: 'Iceland' in graphs.WorldMap()
         True
@@ -710,9 +736,7 @@ def WorldMap():
         'Zambia': [[15, 'S'], [30, 'E']],
         'Zimbabwe': [[20, 'S'], [30, 'E']]
         }
-    g = Graph()
-    g.add_edges(edges)
-    g.add_vertices(gps_coordinates)
+    g = Graph([gps_coordinates, edges], format="vertices_and_edges",
+              name="World Map", immutable=immutable)
     g.gps_coordinates = gps_coordinates
-    g.name("World Map")
     return g

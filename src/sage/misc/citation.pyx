@@ -3,14 +3,14 @@
 Dependency usage tracking for citations
 """
 
-from sage.misc.all import tmp_filename
+from sage.misc.temporary_file import tmp_filename
 from sage.env import SAGE_LOCAL
 
 systems = {}
 systems['PARI'] = ['cypari2', 'sage.interfaces.gp']
 systems['Singular'] = ['sage.interfaces.singular', '_libsingular',
                        'sage.libs.singular']
-systems['Maxima'] = ['sage.interfaces.maxima']
+systems['Maxima'] = ['sage.interfaces.maxima_lib']
 systems['GAP'] = ['sage.interfaces.gap']
 systems['Magma'] = ['sage.interfaces.magma', 'sage.interfaces.magma_free']
 systems['Axiom'] = ['sage.interfaces.axiom']
@@ -23,7 +23,6 @@ systems['Mathematica'] = ['sage.interfaces.mathematica']
 systems['MuPAD'] = ['sage.interfaces.mupad']
 systems['Octave'] = ['sage.interfaces.octave']
 systems['povray'] = ['sage.interfaces.povray']
-systems['qsieve'] = ['sage.interfaces.qsieve']
 systems['Macaulay2'] = ['sage.interfaces.macaulay2']
 systems['mwrank'] = ['sage.interfaces.mwrank', 'sage.libs.eclib']
 systems['matlab'] = ['sage.interfaces.matlab']
@@ -58,7 +57,7 @@ def get_systems(cmd):
 
     INPUT:
 
-    - ``cmd`` -- a string to run
+    - ``cmd`` -- string to run
 
     .. WARNING::
 
@@ -72,16 +71,18 @@ def get_systems(cmd):
         sage: from sage.misc.citation import get_systems
         sage: get_systems('print("hello")')  # random (may print warning)
         []
-        sage: integrate(x^2, x)  # Priming coercion model
+        sage: integrate(x^2, x)  # Priming coercion model                               # needs sage.symbolic
         1/3*x^3
-        sage: get_systems('integrate(x^2, x)')
+        sage: get_systems('integrate(x^2, x)')                                          # needs sage.symbolic
         ['Maxima', 'ginac']
         sage: R.<x,y,z> = QQ[]
         sage: I = R.ideal(x^2+y^2, z^2+y)
         sage: get_systems('I.primary_decomposition()')
         ['Singular']
     """
-    import cProfile, pstats, re
+    import cProfile
+    import pstats
+    import re
 
     if not cython_profile_enabled():
         from warnings import warn
@@ -90,22 +91,28 @@ def get_systems(cmd):
              "Rebuild Sage with the environment variable 'SAGE_PROFILE=yes' "
              "to enable profiling.")
 
-    if not isinstance(cmd, basestring):
+    if not isinstance(cmd, str):
         raise TypeError("command must be a string")
 
     from sage.repl.preparse import preparse
     cmd = preparse(cmd)
 
-    #Run the command and get the stats
+    # Run the command and get the stats
     filename = tmp_filename()
     cProfile.runctx(cmd, globals(), {}, filename)
     stats = pstats.Stats(filename)
 
-    #Strings is a list of method names and modules which get run
-    strings = [a[0].replace(SAGE_LOCAL, "") + " " + a[2]
+    # Strings is a list of method names and modules which get run
+    def string_from_stat(a):
+        s = a[0]
+        if SAGE_LOCAL:
+            s = s.replace(SAGE_LOCAL, "")
+        return s + " " + a[2]
+
+    strings = [string_from_stat(a)
                for a in stats.stats]
 
-    #Remove trivial functions
+    # Remove trivial functions
     bad_res = [re.compile(r'is_.*Element'), re.compile("is_[a-z_]*_type")]
     for bad_re in bad_res:
         i = 0
@@ -134,7 +141,7 @@ cdef extern from *:
         """
 
 
-cpdef inline bint cython_profile_enabled():
+cpdef inline bint cython_profile_enabled() noexcept:
     """
     Return whether Cython profiling is enabled.
 

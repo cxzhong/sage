@@ -1,4 +1,3 @@
-# -*- encoding: utf-8 -*-
 r"""
 Graphics Output Types
 
@@ -14,10 +13,8 @@ and raster graphics.
 #  the License, or (at your option) any later version.
 #                  https://www.gnu.org/licenses/
 # ****************************************************************************
-
-
-import os
 import base64
+import importlib.resources
 
 from sage.cpython.string import bytes_to_str
 from sage.repl.rich_output.output_basic import OutputBase
@@ -28,7 +25,7 @@ class OutputImagePng(OutputBase):
 
     def __init__(self, png):
         """
-        PNG Image
+        PNG Image.
 
         .. NOTE::
 
@@ -55,14 +52,12 @@ class OutputImagePng(OutputBase):
     @classmethod
     def example(cls):
         r"""
-        Construct a sample PNG output container
+        Construct a sample PNG output container.
 
         This static method is meant for doctests, so they can easily
         construct an example.
 
-        OUTPUT:
-
-        An instance of :class:`OutputImagePng`.
+        OUTPUT: an instance of :class:`OutputImagePng`
 
         EXAMPLES::
 
@@ -74,17 +69,14 @@ class OutputImagePng(OutputBase):
             sage: OutputImagePng.example().png.get().startswith(b'\x89PNG')
             True
         """
-        from sage.env import SAGE_EXTCODE
-        filename = os.path.join(SAGE_EXTCODE, 'doctest', 'rich_output', 'example.png')
-        with open(filename, 'rb') as f:
-            return cls(f.read())
+        return cls(importlib.resources.read_binary(__package__, 'example.png'))
 
 
 class OutputImageGif(OutputBase):
 
     def __init__(self, gif):
         """
-        GIF Image (possibly animated)
+        GIF Image (possibly animated).
 
         INPUT:
 
@@ -106,14 +98,12 @@ class OutputImageGif(OutputBase):
     @classmethod
     def example(cls):
         r"""
-        Construct a sample GIF output container
+        Construct a sample GIF output container.
 
         This static method is meant for doctests, so they can easily
         construct an example.
 
-        OUTPUT:
-
-        An instance of :class:`OutputImageGif`.
+        OUTPUT: an instance of :class:`OutputImageGif`
 
         EXAMPLES::
 
@@ -125,20 +115,15 @@ class OutputImageGif(OutputBase):
             sage: OutputImageGif.example().gif.get().startswith(b'GIF89a')
             True
         """
-        from sage.env import SAGE_EXTCODE
-        filename = os.path.join(SAGE_EXTCODE, 'doctest', 'rich_output', 'example.gif')
-        with open(filename, 'rb') as f:
-            return cls(f.read())
+        return cls(importlib.resources.read_binary(__package__, 'example.gif'))
 
     def html_fragment(self):
         """
-        Return a self-contained HTML fragment displaying the image
+        Return a self-contained HTML fragment displaying the image.
 
         This is a workaround for the Jupyter notebook which doesn't support GIF directly.
 
-        OUTPUT:
-
-        String. HTML fragment for displaying the GIF image.
+        OUTPUT: string. HTML fragment for displaying the GIF image
 
         EXAMPLES::
 
@@ -154,7 +139,7 @@ class OutputImageJpg(OutputBase):
 
     def __init__(self, jpg):
         """
-        JPEG Image
+        JPEG Image.
 
         INPUT:
 
@@ -176,14 +161,12 @@ class OutputImageJpg(OutputBase):
     @classmethod
     def example(cls):
         r"""
-        Construct a sample JPEG output container
+        Construct a sample JPEG output container.
 
         This static method is meant for doctests, so they can easily
         construct an example.
 
-        OUTPUT:
-
-        An instance of :class:`OutputImageJpg`.
+        OUTPUT: an instance of :class:`OutputImageJpg`
 
         EXAMPLES::
 
@@ -195,17 +178,14 @@ class OutputImageJpg(OutputBase):
             sage: OutputImageJpg.example().jpg.get().startswith(b'\xff\xd8\xff\xe0\x00\x10JFIF')
             True
         """
-        from sage.env import SAGE_EXTCODE
-        filename = os.path.join(SAGE_EXTCODE, 'doctest', 'rich_output', 'example.jpg')
-        with open(filename, 'rb') as f:
-            return cls(f.read())
+        return cls(importlib.resources.read_binary(__package__, 'example.jpg'))
 
 
 class OutputImageSvg(OutputBase):
 
     def __init__(self, svg):
         """
-        SVG Image
+        SVG Image.
 
         INPUT:
 
@@ -227,14 +207,12 @@ class OutputImageSvg(OutputBase):
     @classmethod
     def example(cls):
         r"""
-        Construct a sample SVG output container
+        Construct a sample SVG output container.
 
         This static method is meant for doctests, so they can easily
         construct an example.
 
-        OUTPUT:
-
-        An instance of :class:`OutputImageSvg`.
+        OUTPUT: an instance of :class:`OutputImageSvg`
 
         EXAMPLES::
 
@@ -246,17 +224,14 @@ class OutputImageSvg(OutputBase):
             sage: b'</svg>' in OutputImageSvg.example().svg.get()
             True
         """
-        from sage.env import SAGE_EXTCODE
-        filename = os.path.join(SAGE_EXTCODE, 'doctest', 'rich_output', 'example.svg')
-        with open(filename, 'rb') as f:
-            return cls(f.read())
+        return cls(importlib.resources.read_binary(__package__, 'example.svg'))
 
 
 class OutputImagePdf(OutputBase):
 
     def __init__(self, pdf):
         """
-        PDF Image
+        PDF Image.
 
         INPUT:
 
@@ -278,14 +253,12 @@ class OutputImagePdf(OutputBase):
     @classmethod
     def example(cls):
         r"""
-        Construct a sample PDF output container
+        Construct a sample PDF output container.
 
         This static method is meant for doctests, so they can easily
         construct an example.
 
-        OUTPUT:
-
-        An instance of :class:`OutputImagePdf`.
+        OUTPUT: an instance of :class:`OutputImagePdf`
 
         EXAMPLES::
 
@@ -297,17 +270,14 @@ class OutputImagePdf(OutputBase):
             sage: OutputImagePdf.example().pdf.get().startswith(b'%PDF-1.4')
             True
         """
-        from sage.env import SAGE_EXTCODE
-        filename = os.path.join(SAGE_EXTCODE, 'doctest', 'rich_output', 'example.pdf')
-        with open(filename, 'rb') as f:
-            return cls(f.read())
+        return cls(importlib.resources.read_binary(__package__, 'example.pdf'))
 
 
 class OutputImageDvi(OutputBase):
 
     def __init__(self, dvi):
         """
-        DVI Image
+        DVI Image.
 
         INPUT:
 
@@ -329,14 +299,12 @@ class OutputImageDvi(OutputBase):
     @classmethod
     def example(cls):
         r"""
-        Construct a sample DVI output container
+        Construct a sample DVI output container.
 
         This static method is meant for doctests, so they can easily
         construct an example.
 
-        OUTPUT:
-
-        An instance of :class:`OutputImageDvi`.
+        OUTPUT: an instance of :class:`OutputImageDvi`
 
         EXAMPLES::
 
@@ -348,7 +316,4 @@ class OutputImageDvi(OutputBase):
             sage: b'TeX output' in OutputImageDvi.example().dvi.get()
             True
         """
-        from sage.env import SAGE_EXTCODE
-        filename = os.path.join(SAGE_EXTCODE, 'doctest', 'rich_output', 'example.dvi')
-        with open(filename, 'rb') as f:
-            return cls(f.read())
+        return cls(importlib.resources.read_binary(__package__, 'example.dvi'))

@@ -32,17 +32,17 @@ AUTHORS:
 - Jeroen Demeyer
 """
 
-#*****************************************************************************
+# ****************************************************************************
 #       Copyright (C) 2017-2018 Jeroen Demeyer <J.Demeyer@UGent.be>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
-from cpython.object cimport Py_TYPE, PyTypeObject
+from cpython.object cimport PyTypeObject
 from sage.cpython.wrapperdescr cimport get_slotdef, wrapperbase, PyDescr_NewWrapper
 
 cdef extern from *:
@@ -77,15 +77,13 @@ cpdef richcmp_item(x, y, int op):
 
     INPUT:
 
-    - ``x``, ``y`` -- arbitrary Python objects. Typically, these are
-      ``X[i]`` and ``Y[i]`` for sequences ``X`` and ``Y``.
+    - ``x``, ``y`` -- arbitrary Python objects; typically, these are
+      ``X[i]`` and ``Y[i]`` for sequences ``X`` and ``Y``
 
-    - ``op`` -- comparison operator (one of ``op_LT`, ``op_LE``,
+    - ``op`` -- comparison operator (one of ``op_LT``, ``op_LE``,
       ``op_EQ``, ``op_NE``, ``op_GT``, ``op_GE``)
 
-    OUTPUT:
-
-    Assuming that ``x = X[i]`` and ``y = Y[i]``:
+    OUTPUT: assuming that ``x = X[i]`` and ``y = Y[i]``:
 
     - if the comparison ``X {op} Y`` (where ``op`` is the given
       operation) could not be decided yet (i.e. we should compare the
@@ -325,7 +323,7 @@ def richcmp_method(cls):
         sage: C("left") == C("right")  # Calls __eq__ from class A
         left == right
 
-        sage: class Base(object):
+        sage: class Base():
         ....:     def __eq__(self, other):
         ....:         return False
         sage: @richcmp_method
@@ -343,7 +341,7 @@ def richcmp_method(cls):
         TypeError: None is not a class
 
         sage: @richcmp_method
-        ....: class X(object):
+        ....: class X():
         ....:     def __eq__(self, other):
         ....:         pass
         ....:     def __richcmp__(self, other, op):
@@ -417,7 +415,7 @@ def richcmp_by_eq_and_lt(eq_attr, lt_attr):
 
         sage: class C(Element):
         ....:     def __init__(self, a, b):
-        ....:         super(C, self).__init__(ZZ)
+        ....:         super().__init__(ZZ)
         ....:         self.a = a
         ....:         self.b = b
         ....:     _richcmp_ = richcmp_by_eq_and_lt("eq", "lt")
@@ -444,7 +442,7 @@ def richcmp_by_eq_and_lt(eq_attr, lt_attr):
 
         sage: from sage.structure.richcmp import richcmp_method, richcmp_by_eq_and_lt
         sage: @richcmp_method
-        ....: class C(object):
+        ....: class C():
         ....:     __richcmp__ = richcmp_by_eq_and_lt("_eq", "_lt")
         ....:     def _eq(self, other):
         ....:         return True
@@ -455,7 +453,7 @@ def richcmp_by_eq_and_lt(eq_attr, lt_attr):
         True
         sage: a > b  # Calls b._lt(a)
         True
-        sage: class X(object): pass
+        sage: class X(): pass
         sage: x = X()
         sage: a == x  # Does not call a._eq(x) because x does not have _eq
         False

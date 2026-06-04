@@ -1,5 +1,5 @@
 r"""
-Cartesian Products
+Cartesian products
 """
 # ****************************************************************************
 #       Copyright (C) 2007 Mike Hansen <mhansen@gmail.com>,
@@ -29,7 +29,7 @@ class CartesianProduct_iters(EnumeratedSetFromIterator):
     r"""
     Cartesian product of finite sets.
 
-    This class will soon be deprecated (see :trac:`18411` and :trac:`19195`).
+    This class will soon be deprecated (see :issue:`18411` and :issue:`19195`).
     One should instead use the functorial construction
     :class:`cartesian_product <sage.categories.cartesian_product.CartesianProductFunctor>`.
     The main differences in behavior are:
@@ -57,7 +57,7 @@ class CartesianProduct_iters(EnumeratedSetFromIterator):
         sage: c = cartesian_product([F1, F2, F3])
 
         sage: type(C.an_element())
-        <... 'list'>
+        <class 'list'>
         sage: type(c.an_element())
         <class 'sage.sets.cartesian_product.CartesianProduct_with_category.element_class'>
 
@@ -74,6 +74,7 @@ class CartesianProduct_iters(EnumeratedSetFromIterator):
         sage: elt.parent() is c
         True
     """
+
     def __init__(self, *iters):
         """
         TESTS::
@@ -85,7 +86,7 @@ class CartesianProduct_iters(EnumeratedSetFromIterator):
             True
             sage: TestSuite(cp).run(skip='_test_an_element')
 
-        Check that :trac:`24558` is fixed::
+        Check that :issue:`24558` is fixed::
 
             sage: from sage.combinat.cartesian_product import CartesianProduct_iters
             sage: from sage.sets.set_from_iterator import EnumeratedSetFromIterator
@@ -110,6 +111,16 @@ class CartesianProduct_iters(EnumeratedSetFromIterator):
                                            name=name,
                                            category=category,
                                            cache=False)
+
+    def __hash__(self):
+        r"""
+        EXAMPLES::
+
+            sage: from sage.combinat.cartesian_product import CartesianProduct_iters
+            sage: cp = CartesianProduct_iters((1,2), (3,4))
+            sage: hash(cp) == CartesianProduct_iters((1,2), (3,4))
+        """
+        return hash(tuple(self.iters))
 
     def __contains__(self, x):
         """
@@ -159,7 +170,7 @@ class CartesianProduct_iters(EnumeratedSetFromIterator):
 
     def cardinality(self):
         r"""
-        Returns the number of elements in the Cartesian product of
+        Return the number of elements in the Cartesian product of
         everything in \*iters.
 
         EXAMPLES::
@@ -189,7 +200,7 @@ class CartesianProduct_iters(EnumeratedSetFromIterator):
 
         An ``int``, the number of elements in the Cartesian product. If the
         number of elements is infinite or does not fit into a python ``int``, a
-        ``TypeError`` is raised.
+        :exc:`TypeError` is raised.
 
         .. SEEALSO::
 
@@ -214,7 +225,7 @@ class CartesianProduct_iters(EnumeratedSetFromIterator):
 
     def list(self):
         """
-        Returns
+        Return.
 
         EXAMPLES::
 
@@ -232,7 +243,7 @@ class CartesianProduct_iters(EnumeratedSetFromIterator):
              ['g', 'a'],
              ['g', 't']]
         """
-        return [e for e in self]
+        return list(self)
 
     def __iterate__(self):
         r"""
@@ -260,7 +271,7 @@ class CartesianProduct_iters(EnumeratedSetFromIterator):
         """
         return iter(self._mrange)
 
-    def is_finite(self):
+    def is_finite(self) -> bool:
         """
         The Cartesian product is finite if all of its inputs are
         finite, or if any input is empty.
@@ -273,17 +284,15 @@ class CartesianProduct_iters(EnumeratedSetFromIterator):
             sage: CartesianProduct_iters(4,4).is_finite()
             Traceback (most recent call last):
             ...
-            ValueError: Unable to determine whether this product is finite
+            ValueError: unable to determine whether this product is finite
         """
         finites = [_is_finite(L, fallback=None) for L in self.iters]
         if any(f is None for f in finites):
-            raise ValueError("Unable to determine whether this product is finite")
+            raise ValueError("unable to determine whether this product is finite")
         if all(f is True for f in finites):
             return True
         lens = [_len(L) for L in self.iters]
-        if any(l == 0 for l in lens):
-            return True
-        return False
+        return any(l == 0 for l in lens)
 
     def unrank(self, x):
         """
@@ -297,7 +306,7 @@ class CartesianProduct_iters(EnumeratedSetFromIterator):
             sage: C[238792368]
             [238, 792, 368]
 
-        Check for :trac:`15919`::
+        Check for :issue:`15919`::
 
             sage: FF = IntegerModRing(29)
             sage: C = CartesianProduct_iters(FF, FF, FF)
@@ -319,11 +328,11 @@ class CartesianProduct_iters(EnumeratedSetFromIterator):
         if x != 0:
             raise IndexError("x larger than the size of the Cartesian Product")
         positions.reverse()
-        return [unrank(L, i) for L,i in zip(self.iters, positions)]
+        return [unrank(L, i) for L, i in zip(self.iters, positions)]
 
     def random_element(self):
         r"""
-        Returns a random element from the Cartesian product of \*iters.
+        Return a random element from the Cartesian product of \*iters.
 
         EXAMPLES::
 
@@ -332,4 +341,4 @@ class CartesianProduct_iters(EnumeratedSetFromIterator):
             sage: c in CartesianProduct_iters('dog', 'cat')
             True
         """
-        return [rnd.choice(_) for _ in self.iters]
+        return [rnd.choice(w) for w in self.iters]

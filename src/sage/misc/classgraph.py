@@ -14,20 +14,22 @@ import inspect
 
 def class_graph(top, depth=5, name_filter=None, classes=None, as_graph=True):
     """
-    Return the class inheritance graph of a module, class, or object
+    Return the class inheritance graph of a module, class, or object.
 
     INPUT:
 
-     - ``top`` -- the module, class, or object to start with (e.g. ``sage``, ``Integer``, ``3``)
-     - ``depth`` -- maximal recursion depth within submodules (default: 5)
-     - ``name_filter`` -- e.g. 'sage.rings' to only consider classes in :mod:`sage.rings`
-     - ``classes`` -- optional dictionary to be filled in (it is also returned)
-     - ``as_graph`` -- a boolean (default: True)
+    - ``top`` -- the module, class, or object to start with (e.g. ``sage``,
+      ``Integer``, ``3``)
+    - ``depth`` -- maximal recursion depth within submodules (default: 5)
+    - ``name_filter`` -- e.g. 'sage.rings' to only consider classes in
+      :mod:`sage.rings`
+    - ``classes`` -- (optional) dictionary to be filled in (it is also returned)
+    - ``as_graph`` -- boolean (default: ``True``)
 
     OUTPUT:
 
-     - An oriented graph, with class names as vertices, and an edge
-       from each class to each of its bases.
+    An oriented graph, with class names as vertices, and an edge
+    from each class to each of its bases.
 
     EXAMPLES:
 
@@ -36,14 +38,14 @@ def class_graph(top, depth=5, name_filter=None, classes=None, as_graph=True):
         sage: from sage.rings.polynomial.padics import polynomial_padic_capped_relative_dense, polynomial_padic_flat
         sage: G = class_graph(sage.rings.polynomial.padics); G
         Digraph on 6 vertices
-        sage: G.vertices()
+        sage: G.vertices(sort=True)
         ['Polynomial',
          'Polynomial_generic_cdv',
          'Polynomial_generic_dense',
          'Polynomial_padic',
          'Polynomial_padic_capped_relative_dense',
          'Polynomial_padic_flat']
-        sage: G.edges(labels=False)
+        sage: G.edges(sort=True, labels=False)
         [('Polynomial_padic', 'Polynomial'),
          ('Polynomial_padic_capped_relative_dense', 'Polynomial_generic_cdv'),
          ('Polynomial_padic_capped_relative_dense', 'Polynomial_padic'),
@@ -52,12 +54,12 @@ def class_graph(top, depth=5, name_filter=None, classes=None, as_graph=True):
 
     We construct the inheritance graph of a given class::
 
-        sage: class_graph(Parent).edges(labels=False)
+        sage: class_graph(Parent).edges(sort=True, labels=False)
         [('CategoryObject', 'SageObject'), ('Parent', 'CategoryObject'), ('SageObject', 'object')]
 
     We construct the inheritance graph of the class of an object::
 
-        sage: class_graph([1,2,3]).edges(labels=False)
+        sage: class_graph([1,2,3]).edges(sort=True, labels=False)
         [('list', 'object')]
 
     .. warning:: the output of ``class_graph`` used to be a dictionary
@@ -70,10 +72,10 @@ def class_graph(top, depth=5, name_filter=None, classes=None, as_graph=True):
           'Polynomial_padic'],
          'Polynomial_padic_flat': ['Polynomial_generic_dense', 'Polynomial_padic']}
 
-    .. note:: the ``classes`` and ``as_graph`` options are mostly
+    .. NOTE:: the ``classes`` and ``as_graph`` options are mostly
        intended for internal recursive use.
 
-    .. note:: ``class_graph`` does not yet handle nested classes
+    .. NOTE:: ``class_graph`` does not yet handle nested classes
 
     TESTS::
 
@@ -92,7 +94,7 @@ def class_graph(top, depth=5, name_filter=None, classes=None, as_graph=True):
 
     # (first recursive call)
     if classes is None:
-        classes = dict()
+        classes = {}
 
     # Build the list ``children`` of submodules (resp. base classes)
     # of ``top`` the function will recurse through
@@ -123,5 +125,4 @@ def class_graph(top, depth=5, name_filter=None, classes=None, as_graph=True):
     if as_graph:
         from sage.graphs.digraph import DiGraph
         return DiGraph(classes)
-    else:
-        return classes
+    return classes

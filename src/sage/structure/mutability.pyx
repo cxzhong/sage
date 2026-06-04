@@ -11,7 +11,8 @@ Mutability Cython Implementation
 #                  https://www.gnu.org/licenses/
 ##########################################################################
 
-from sage.misc.decorators import sage_wraps
+from sage.misc.decorators import rename_keyword, sage_wraps
+
 
 cdef class Mutability:
     r"""
@@ -44,10 +45,9 @@ cdef class Mutability:
         ValueError: object is immutable; please change a copy instead
         sage: hash(a)
         6
-
     """
-
-    def __init__(self, is_immutable=False):
+    @rename_keyword(deprecation=41756, is_immutable='immutable')
+    def __init__(self, immutable=False):
         r"""
         TESTS::
 
@@ -61,17 +61,16 @@ cdef class Mutability:
             ....:         self._require_immutable()
             ....:         return hash(self._val)
             sage: a = A(4)
-            sage: TestSuite(a).run(skip ="_test_pickling")
-
+            sage: TestSuite(a).run(skip ='_test_pickling')
         """
-        self._is_immutable = is_immutable
+        self._is_immutable = immutable
 
     cpdef _require_mutable(self):
         r"""
         Whenever mutability is required, this method can be called.
-    
+
         EXAMPLES::
-    
+
             sage: class A(SageObject, Mutability):
             ....:     def __init__(self, val):
             ....:         self._val = val
@@ -87,7 +86,6 @@ cdef class Mutability:
             Traceback (most recent call last):
             ...
             ValueError: object is immutable; please change a copy instead
-    
         """
         if self._is_immutable:
             raise ValueError("object is immutable; please change a copy instead")
@@ -95,9 +93,9 @@ cdef class Mutability:
     cpdef _require_immutable(self):
         r"""
         Whenever immutability is required, this method can be called.
-        
+
         EXAMPLES::
-        
+
             sage: class A(SageObject, Mutability):
             ....:     def __init__(self, val):
             ....:         self._val = val
@@ -112,7 +110,6 @@ cdef class Mutability:
             Traceback (most recent call last):
             ...
             ValueError: object is mutable; please make it immutable first
-        
         """
         if not self._is_immutable:
             raise ValueError("object is mutable; please make it immutable first")
@@ -135,7 +132,7 @@ cdef class Mutability:
         """
         self._is_immutable = 1
 
-    cpdef bint is_immutable(self):
+    cpdef bint is_immutable(self) noexcept:
         """
         Return ``True`` if this object is immutable (cannot be changed)
         and ``False`` if it is not.
@@ -156,15 +153,15 @@ cdef class Mutability:
         """
         return self._is_immutable
 
-    cpdef bint is_mutable(self):
+    cpdef bint is_mutable(self) noexcept:
         """
         Return ``True`` if this object is mutable (can be changed)
         and ``False`` if it is not.
-        
+
         To make this object immutable use ``self.set_immutable()``.
-        
+
         EXAMPLES::
-        
+
             sage: v = Sequence([1,2,3,4/5])
             sage: v[0] = 5
             sage: v
@@ -180,9 +177,9 @@ cdef class Mutability:
     def __getstate__(self):
         r"""
         Get the current state of ``self`` including the mutability status.
-        
+
         TESTS::
-        
+
             sage: class A(SageObject, Mutability):
             ....:     def __init__(self, val):
             ....:         self._val = val
@@ -203,7 +200,6 @@ cdef class Mutability:
               <class 'sage.structure.sage_object.SageObject'>,
               <sage.structure.sage_object.SageObject object at ...>),
              {'_is_immutable': False, '_val': 4})
-            
         """
         state = getattr(self, '__dict__', {})
         state['_is_immutable'] = self._is_immutable
@@ -236,14 +232,14 @@ cdef class Mutability:
             True
             sage: a.__getstate__()
             {'_is_immutable': True, '_val': 4}
-
         """
         if hasattr(self, '__dict__'):
             self.__dict__ = state
         self._is_immutable = state['_is_immutable']
 
+
 ##########################################################################
-## Method decorators for mutating methods resp. methods that assume immutability
+# Method decorators for mutating methods resp. methods that assume immutability
 
 def require_mutable(f):
     """
@@ -257,7 +253,7 @@ def require_mutable(f):
     EXAMPLES::
 
         sage: from sage.structure.mutability import require_mutable, require_immutable
-        sage: class A(object):
+        sage: class A():
         ....:     def __init__(self, val):
         ....:         self._m = val
         ....:     @require_mutable
@@ -309,7 +305,7 @@ def require_immutable(f):
     EXAMPLES::
 
         sage: from sage.structure.mutability import require_mutable, require_immutable
-        sage: class A(object):
+        sage: class A():
         ....:  def __init__(self, val):
         ....:      self._m = val
         ....:  @require_mutable
@@ -343,7 +339,7 @@ def require_immutable(f):
     """
     @sage_wraps(f)
     def new_f(self, *args, **kwds):
-        if not getattr(self,'_is_immutable',False):
+        if not getattr(self, '_is_immutable', False):
             raise ValueError("{} instance is mutable, {} must not be called".format(type(self), repr(f)))
         return f(self, *args, **kwds)
     return new_f

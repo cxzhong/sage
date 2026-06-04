@@ -12,8 +12,6 @@ cdef extern from 'symmetrica/def.h':
     INT mult_schubert_polynom(OP a,OP b,OP c)
 
 
-
-
 cdef object _check_schubert(object a, OP ca):
     if a in Permutations():
         if isinstance(a, builtinlist):
@@ -24,7 +22,7 @@ cdef object _check_schubert(object a, OP ca):
         br = a.parent().base_ring()
         if (br == QQ or br == ZZ):
             _op_schubert_sp(a, ca)
-            return min([max(i.reduced_word()+[0]) for i in a.support()])
+            return min(max(i.reduced_word(), default=0) for i in a.support())
         else:
             raise ValueError("a must be a Schubert polynomial over ZZ or QQ")
     else:
@@ -33,7 +31,7 @@ cdef object _check_schubert(object a, OP ca):
 
 def mult_schubert_schubert_symmetrica(a, b):
     """
-    Multiplies the Schubert polynomials a and b.
+    Multiply the Schubert polynomials `a` and `b`.
 
     EXAMPLES::
 
@@ -48,9 +46,10 @@ def mult_schubert_schubert_symmetrica(a, b):
         max_a = _check_schubert(a, ca)
         max_b = _check_schubert(b, cb)
     except (ValueError, TypeError), err:
-        freeall(ca); freeall(cb); freeall(cres)
+        freeall(ca)
+        freeall(cb)
+        freeall(cres)
         raise err
-
 
     sig_on()
     mult_schubert_schubert(ca, cb, cres)
@@ -64,9 +63,10 @@ def mult_schubert_schubert_symmetrica(a, b):
 
     return res
 
+
 def t_SCHUBERT_POLYNOM_symmetrica(a):
     """
-    Converts a Schubert polynomial to a 'regular' multivariate
+    Convert a Schubert polynomial to a 'regular' multivariate
     polynomial.
 
     EXAMPLES::
@@ -81,7 +81,8 @@ def t_SCHUBERT_POLYNOM_symmetrica(a):
     try:
         max_a = _check_schubert(a, ca)
     except (ValueError, TypeError), err:
-        freeall(ca); freeall(cres)
+        freeall(ca)
+        freeall(cres)
         raise err
 
     sig_on()
@@ -95,9 +96,10 @@ def t_SCHUBERT_POLYNOM_symmetrica(a):
 
     return res
 
+
 def t_POLYNOM_SCHUBERT_symmetrica(a):
     """
-    Converts a multivariate polynomial a to a Schubert polynomial.
+    Convert a multivariate polynomial a to a Schubert polynomial.
 
     EXAMPLES::
 
@@ -110,13 +112,15 @@ def t_POLYNOM_SCHUBERT_symmetrica(a):
 
     cdef OP ca = callocobject(), cres = callocobject()
 
-    if not is_MPolynomial(a):
-        freeall(ca); freeall(cres)
+    if not isinstance(a, MPolynomial):
+        freeall(ca)
+        freeall(cres)
         raise TypeError("a (= %s) must be a multivariate polynomial")
     else:
         br = a.parent().base_ring()
         if br != QQ and br != ZZ:
-            freeall(ca); freeall(cres)
+            freeall(ca)
+            freeall(cres)
             raise ValueError("a's base ring must be either ZZ or QQ")
         else:
             _op_polynom(a, ca)
@@ -132,9 +136,10 @@ def t_POLYNOM_SCHUBERT_symmetrica(a):
 
     return res
 
+
 def mult_schubert_variable_symmetrica(a, i):
     """
-    Returns the product of a and x_i.  Note that indexing with i
+    Return the product of `a` and `x_i`.  Note that indexing with `i`
     starts at 1.
 
     EXAMPLES::
@@ -151,7 +156,9 @@ def mult_schubert_variable_symmetrica(a, i):
     try:
         max_a = _check_schubert(a, ca)
     except (ValueError, TypeError), err:
-        freeall(ca); freeall(ci); freeall(cres)
+        freeall(ca)
+        freeall(ci)
+        freeall(cres)
         raise err
 
     _op_integer(i, ci)
@@ -162,16 +169,18 @@ def mult_schubert_variable_symmetrica(a, i):
 
     res = _py(cres)
 
-    freeall(ca); freeall(ci); freeall(cres)
+    freeall(ca)
+    freeall(ci)
+    freeall(cres)
 
     return res
 
 
 def divdiff_perm_schubert_symmetrica(perm, a):
     r"""
-    Returns the result of applying the divided difference operator
-    $\delta_i$ to $a$ where $a$ is either a permutation or a
-    Schubert polynomial over QQ.
+    Return the result of applying the divided difference operator
+    `\delta_i` to `a` where `a` is either a permutation or a
+    Schubert polynomial over `\QQ`.
 
     EXAMPLES::
 
@@ -191,11 +200,15 @@ def divdiff_perm_schubert_symmetrica(perm, a):
     try:
         max_a = _check_schubert(a, ca)
     except (ValueError, TypeError), err:
-        freeall(ca); freeall(cperm); freeall(cres)
+        freeall(ca)
+        freeall(cperm)
+        freeall(cres)
         raise err
 
     if perm not in Permutations():
-        freeall(ca); freeall(cperm); freeall(cres)
+        freeall(ca)
+        freeall(cperm)
+        freeall(cres)
         raise TypeError("perm must be a permutation")
     else:
         perm = Permutation(perm)
@@ -204,7 +217,9 @@ def divdiff_perm_schubert_symmetrica(perm, a):
         _op_permutation(perm, cperm)
 
     if max_perm > max_a:
-        freeall(ca); freeall(cperm); freeall(cres)
+        freeall(ca)
+        freeall(cperm)
+        freeall(cres)
         raise ValueError(r"cannot apply \delta_{%s} to a (= %s)" % (perm, a))
 
     sig_on()
@@ -213,7 +228,9 @@ def divdiff_perm_schubert_symmetrica(perm, a):
 
     res = _py(cres)
 
-    freeall(ca); freeall(cperm); freeall(cres)
+    freeall(ca)
+    freeall(cperm)
+    freeall(cres)
 
     return res
 
@@ -235,7 +252,9 @@ def scalarproduct_schubert_symmetrica(a, b):
         max_a = _check_schubert(a, ca)
         max_b = _check_schubert(b, cb)
     except (ValueError, TypeError), err:
-        freeall(ca); freeall(cb); freeall(cres)
+        freeall(ca)
+        freeall(cb)
+        freeall(cres)
         raise err
 
     sig_on()
@@ -247,15 +266,18 @@ def scalarproduct_schubert_symmetrica(a, b):
     else:
         res = _py(cres)
 
-    freeall(ca); freeall(cb); freeall(cres)
+    freeall(ca)
+    freeall(cb)
+    freeall(cres)
 
     return res
 
+
 def divdiff_schubert_symmetrica(i, a):
     r"""
-    Returns the result of applying the divided difference operator
-    $\delta_i$ to $a$ where $a$ is either a permutation or a
-    Schubert polynomial over QQ.
+    Return the result of applying the divided difference operator
+    `\delta_i` to `a` where `a` is either a permutation or a
+    Schubert polynomial over `\QQ`.
 
     EXAMPLES::
 
@@ -275,17 +297,23 @@ def divdiff_schubert_symmetrica(i, a):
     try:
         max_a = _check_schubert(a, ca)
     except (ValueError, TypeError), err:
-        freeall(ca); freeall(ci); freeall(cres)
+        freeall(ca)
+        freeall(ci)
+        freeall(cres)
         raise err
 
     if not isinstance(i, (int, Integer)):
-        freeall(ca); freeall(ci); freeall(cres)
+        freeall(ca)
+        freeall(ci)
+        freeall(cres)
         raise TypeError("i must be an integer")
     else:
         _op_integer(i, ci)
 
     if i > max_a or i <= 0:
-        freeall(ca); freeall(ci); freeall(cres)
+        freeall(ca)
+        freeall(ci)
+        freeall(cres)
         raise ValueError(r"cannot apply \delta_{%s} to a (= %s)" % (i, a))
 
     sig_on()
@@ -294,6 +322,8 @@ def divdiff_schubert_symmetrica(i, a):
 
     res = _py(cres)
 
-    freeall(ca); freeall(ci); freeall(cres)
+    freeall(ca)
+    freeall(ci)
+    freeall(cres)
 
     return res

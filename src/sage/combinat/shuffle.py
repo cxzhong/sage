@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 r"""
 Shuffle product of iterables
 
@@ -34,13 +33,6 @@ EXAMPLES::
      ['a', 1, 'b', 'c', 2],
      [1, 'a', 'b', 'c', 2]]
 
-References:
-
-.. [EilLan53] On the groups `H(\pi, n)`, I,
-    Samuel Eilenberg and
-    Saunders Mac Lane,
-    1953.
-
 Author:
 
 - Jean-Baptiste Priez
@@ -73,6 +65,7 @@ class ShuffleProduct_abstract(Parent):
     """
     Abstract base class for shuffle products.
     """
+
     def __init__(self, l1, l2, element_constructor=None):
         """
         Initialize ``self``.
@@ -81,7 +74,7 @@ class ShuffleProduct_abstract(Parent):
 
             sage: from sage.combinat.shuffle import ShuffleProduct
             sage: SP = ShuffleProduct([1,2],[4,5,7,8,9])
-            sage: TestSuite(SP).run(skip="_test_an_element")
+            sage: TestSuite(SP).run(skip='_test_an_element')
         """
         self._l1 = l1
         self._l2 = l2
@@ -136,11 +129,11 @@ class ShuffleProduct_abstract(Parent):
         """
         if not isinstance(other, type(self)):
             return False
-        return (self._l1 == other._l1 and self._l2 == other._l2)
+        return self._l1 == other._l1 and self._l2 == other._l2
 
     def __ne__(self, other):
         """
-        Test for unequality
+        Test for unequality.
 
         EXAMPLES::
 
@@ -196,6 +189,7 @@ class SetShuffleProduct(ShuffleProduct_abstract):
          [6, 1],
          [6, 2, 3]]
     """
+
     def __init__(self, l1, l2, element_constructor=None):
         """
         Construct the set of all possible shuffle products of two sets of iterables.
@@ -204,7 +198,7 @@ class SetShuffleProduct(ShuffleProduct_abstract):
 
         - ``l1``, ``l2`` -- iterable: the sets to shuffle
 
-        - ``element_constructor`` --  constructor for the returned elements
+        - ``element_constructor`` -- constructor for the returned elements
 
         TESTS::
 
@@ -212,16 +206,15 @@ class SetShuffleProduct(ShuffleProduct_abstract):
             sage: X = SetShuffleProduct({(1,2,3), (2,3,4)}, {(5,)})
             sage: X   # random
             Shuffle set product of: [(2, 3, 4), (1, 2, 3)] and [(5,)]
-            sage: TestSuite(X).run(skip="_test_an_element")
+            sage: TestSuite(X).run(skip='_test_an_element')
 
             sage: list(SetShuffleProduct({(1,2,3), (2,3,4)}, {(5,)}))   # random
             [[2, 3, 4, 5], [2, 5, 3, 4], [5, 2, 3, 4], [2, 3, 5, 4],
              [1, 2, 3, 5], [1, 5, 2, 3], [5, 1, 2, 3], [1, 2, 5, 3]]
         """
-        assert(isinstance(l1, Iterable) and
-               isinstance(l2, Iterable))
-        assert(all(isinstance(elem, Iterable) for elem in l1))
-        assert(all(isinstance(elem, Iterable) for elem in l2))
+        assert isinstance(l1, Iterable) and isinstance(l2, Iterable)
+        assert all(isinstance(elem, Iterable) for elem in l1)
+        assert all(isinstance(elem, Iterable) for elem in l2)
 
         if element_constructor is None:
             try:
@@ -243,7 +236,6 @@ class SetShuffleProduct(ShuffleProduct_abstract):
             Shuffle set product of: [[1, 2], [3, 4]] and [[1, 4]]
             sage: SetShuffleProduct([()], [[1,4]])
             Shuffle set product of: [()] and [[1, 4]]
-
         """
         return "Shuffle set product of: %s and %s" % (self._element_constructor_(self._l1),
                                                       self._element_constructor_(self._l2))
@@ -253,13 +245,12 @@ class SetShuffleProduct(ShuffleProduct_abstract):
         TESTS::
 
             sage: from sage.combinat.shuffle import SetShuffleProduct
-            sage: ascii_art(SetShuffleProduct([[BinaryTree()], [BinaryTree([]), BinaryTree([[],[]])]],
+            sage: ascii_art(SetShuffleProduct([[BinaryTree()], [BinaryTree([]), BinaryTree([[],[]])]],                  # needs sage.graphs
             ....: [[1,4]]))
             Set shuffle product of:
             [       [ o,   o   ] ]
             [       [     / \  ] ]
             [ [  ], [    o   o ] ] and [ [ 1, 4 ] ]
-
         """
         from sage.typeset.ascii_art import ascii_art
         return (ascii_art("Set shuffle product of:") *
@@ -311,7 +302,7 @@ class SetShuffleProduct(ShuffleProduct_abstract):
             return (ll1 + ll2).binomial(ll2)
 
         return sum(comp_binom(el1, el2)
-                for (el1, el2) in itertools.product(self._l1, self._l2))
+                   for el1, el2 in itertools.product(self._l1, self._l2))
 
 
 class ShuffleProduct(ShuffleProduct_abstract):
@@ -334,8 +325,8 @@ class ShuffleProduct(ShuffleProduct_abstract):
          'abdec']
         sage: list(ShuffleProduct("", "de", element_constructor="".join))
         ['de']
-
     """
+
     def __init__(self, l1, l2, element_constructor=None):
         """
         Construct the shuffle product of two iterable.
@@ -344,7 +335,7 @@ class ShuffleProduct(ShuffleProduct_abstract):
 
         - ``l1``, ``l2`` -- iterable: iterables to shuffle
 
-        - ``element_constructor``:  constructor for the returned elements
+        - ``element_constructor`` -- constructor for the returned elements
 
         TESTS::
 
@@ -352,13 +343,13 @@ class ShuffleProduct(ShuffleProduct_abstract):
             sage: SP = ShuffleProduct([1,2,3],[4,5])
             sage: SP
             Shuffle product of: [1, 2, 3] and [4, 5]
-            sage: TestSuite(SP).run(skip="_test_an_element")
+            sage: TestSuite(SP).run(skip='_test_an_element')
 
             sage: list(ShuffleProduct(Word("aa"), Word("bbb"), Word))
             [word: aabbb, word: baabb, word: ababb, word: bbaab, word: babab, word: abbab,
              word: bbbaa, word: bbaba, word: babba, word: abbba]
         """
-        assert(isinstance(l1, Iterable) and isinstance(l2, Iterable))
+        assert isinstance(l1, Iterable) and isinstance(l2, Iterable)
 
         if element_constructor is None:
             try:
@@ -374,8 +365,8 @@ class ShuffleProduct(ShuffleProduct_abstract):
             sage: from sage.combinat.shuffle import ShuffleProduct
             sage: ShuffleProduct([1,2,3],[4,5])
             Shuffle product of: [1, 2, 3] and [4, 5]
-            sage: B = BinaryTree
-            sage: ShuffleProduct([B(), B([[],[]])], [])
+            sage: B = BinaryTree                                                        # needs sage.graphs
+            sage: ShuffleProduct([B(), B([[],[]])], [])                                 # needs sage.graphs
             Shuffle product of: [., [[., .], [., .]]] and []
         """
         return "Shuffle product of: %s and %s" % (self._l1, self._l2)
@@ -388,8 +379,8 @@ class ShuffleProduct(ShuffleProduct_abstract):
             sage: ascii_art(ShuffleProduct([1,2,3],[4,5]))
             Shuffle product of:
             [ 1, 2, 3 ] and [ 4, 5 ]
-            sage: B = BinaryTree
-            sage: ascii_art(ShuffleProduct([B([]), B([[],[]])],
+            sage: B = BinaryTree                                                        # needs sage.graphs
+            sage: ascii_art(ShuffleProduct([B([]), B([[],[]])],                         # needs sage.graphs
             ....:   [B([[[],[]],[[],None]])]))
             Shuffle product of:
                              [     __o__   ]
@@ -415,8 +406,8 @@ class ShuffleProduct(ShuffleProduct_abstract):
             sage: list(ShuffleProduct([1,2,3],[4,5]))
             [[1, 2, 3, 4, 5], [1, 4, 2, 3, 5], [4, 1, 2, 3, 5], [1, 2, 4, 3, 5], [1, 4, 5, 2, 3],
              [4, 1, 5, 2, 3], [4, 5, 1, 2, 3], [1, 4, 2, 5, 3], [4, 1, 2, 5, 3], [1, 2, 4, 5, 3]]
-            sage: B = BinaryTree
-            sage: ascii_art(list(ShuffleProduct([B([]), B([[],[]])],
+            sage: B = BinaryTree                                                        # needs sage.graphs
+            sage: ascii_art(list(ShuffleProduct([B([]), B([[],[]])],                    # needs sage.graphs
             ....:   [B([[[],[]],[[],None]])])))
             [ [ o,   o  ,     __o__   ]  [     __o__  , o,   o   ]
             [ [     / \      /     \  ]  [    /     \       / \  ]
@@ -516,7 +507,7 @@ class ShuffleProduct(ShuffleProduct_abstract):
                 return iterable[i + 1:] == l2[i_l2:]
             if i_l2 == len_l2:
                 return iterable[i + 1:] == l1[i_l1:]
-        return (i_l1 + 1 == len_l1) and (i_l2 + 1 == len_l2)
+        return i_l1 + 1 == len_l1 and i_l2 + 1 == len_l2
 
     def cardinality(self):
         r"""
@@ -556,6 +547,7 @@ class ShuffleProduct_overlapping_r(ShuffleProduct_abstract):
          word: 939,
          word: 9,2,10]
     """
+
     def __init__(self, w1, w2, r, element_constructor=None, add=operator.add):
         """
         Initialize ``self``.
@@ -565,7 +557,7 @@ class ShuffleProduct_overlapping_r(ShuffleProduct_abstract):
             sage: from sage.combinat.shuffle import ShuffleProduct_overlapping_r
             sage: w, u = map(Words(range(20)), [[2, 9], [9, 1]])
             sage: S = ShuffleProduct_overlapping_r(w,u,1)
-            sage: TestSuite(S).run(skip="_test_an_element")
+            sage: TestSuite(S).run(skip='_test_an_element')
         """
         self.r = r
         self.add = add
@@ -632,7 +624,7 @@ class ShuffleProduct_overlapping_r(ShuffleProduct_abstract):
         TESTS:
 
         We need to be explicitly more generic about the resulting parent
-        when shuffling two compositions `I` and `J` (:trac:`15131`)::
+        when shuffling two compositions `I` and `J` (:issue:`15131`)::
 
             sage: I, J = Compositions(4)([2, 2]), Composition([1, 1])
             sage: S = ShuffleProduct_overlapping_r(I, J, 1, Compositions())
@@ -765,6 +757,7 @@ class ShuffleProduct_overlapping(ShuffleProduct_abstract):
          [{2, 3}, {1, 2}, {3, 4, 5, 6}],
          [{1, 2, 3}, {3, 4, 5, 6}]]
     """
+
     def __init__(self, w1, w2, element_constructor=None, add=operator.add):
         """
         Initialize ``self``.
@@ -774,7 +767,7 @@ class ShuffleProduct_overlapping(ShuffleProduct_abstract):
             sage: from sage.combinat.shuffle import ShuffleProduct_overlapping
             sage: w, u = map(Words(range(20)), [[2, 9], [9, 1]])
             sage: S = ShuffleProduct_overlapping(w,u)
-            sage: TestSuite(S).run(skip="_test_an_element")
+            sage: TestSuite(S).run(skip='_test_an_element')
         """
         self._add = add
 

@@ -1,5 +1,6 @@
+# sage.doctest: needs sage.combinat sage.modules
 r"""
-Affinization Crystals
+Affinization crystals
 """
 
 #*****************************************************************************
@@ -24,6 +25,7 @@ from sage.structure.richcmp import richcmp
 from sage.categories.regular_crystals import RegularCrystals
 from sage.categories.infinite_enumerated_sets import InfiniteEnumeratedSets
 from sage.rings.infinity import Infinity
+
 
 class AffinizationOfCrystal(UniqueRepresentation, Parent):
     r"""
@@ -73,6 +75,7 @@ class AffinizationOfCrystal(UniqueRepresentation, Parent):
 
     - [HK2002]_ Chapter 10
     """
+
     def __init__(self, B):
         """
         Initialize ``self``.
@@ -82,7 +85,7 @@ class AffinizationOfCrystal(UniqueRepresentation, Parent):
         We skip the Stembridge axioms test since this is an abstract crystal::
 
             sage: A = crystals.KirillovReshetikhin(['A',2,1], 2, 2).affinization()
-            sage: TestSuite(A).run(skip="_test_stembridge_local_axioms") # long time
+            sage: TestSuite(A).run(skip='_test_stembridge_local_axioms') # long time
         """
         if not B.cartan_type().is_affine():
             raise ValueError("must be an affine crystal")
@@ -109,6 +112,7 @@ class AffinizationOfCrystal(UniqueRepresentation, Parent):
         """
         An element in an affinization crystal.
         """
+
         def __init__(self, parent, b, m):
             """
             Initialize ``self``.
@@ -324,4 +328,3 @@ class AffinizationOfCrystal(UniqueRepresentation, Parent):
             WLR = self.parent().weight_lattice_realization()
             La = WLR.fundamental_weights()
             return WLR.sum(c*La[i] for i,c in self._b.weight()) + self._m * WLR.null_root()
-

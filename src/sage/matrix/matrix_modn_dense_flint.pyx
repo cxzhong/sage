@@ -50,7 +50,6 @@ from sage.libs.flint.ulong_extras cimport (
     n_pow,
     n_addmod,
     n_submod,
-    n_negmod,
     n_invmod,
     n_mod2_preinv,
     n_mulmod2_preinv,
@@ -62,6 +61,7 @@ from sage.libs.flint.ulong_extras cimport (
 )
 from sage.libs.gmp.mpz cimport mpz_sgn,  mpz_fits_ulong_p, mpz_get_ui, mpz_get_si
 
+MAX_MODULUS = (1 << 64) - 1
 
 cdef class Matrix_modn_dense_flint(Matrix_dense):
     r"""
@@ -121,13 +121,13 @@ cdef class Matrix_modn_dense_flint(Matrix_dense):
         nmod_mat_clear(self._matrix)
         sig_off()
 
-    cdef set_unsafe_int(self, Py_ssize_t i, Py_ssize_t j, int value):
+    cdef void set_unsafe_int(self, Py_ssize_t i, Py_ssize_t j, int value) noexcept:
         nmod_mat_set_entry(self._matrix, i, j, value)
 
-    cdef void set_unsafe_ui(self, Py_ssize_t i, Py_ssize_t j, unsigned long value):
+    cdef void set_unsafe_ui(self, Py_ssize_t i, Py_ssize_t j, unsigned long value) noexcept:
         nmod_mat_set_entry(self._matrix, i, j, value)
 
-    cdef unsigned long get_unsafe_ui(self, Py_ssize_t i, Py_ssize_t j):
+    cdef unsigned long get_unsafe_ui(self, Py_ssize_t i, Py_ssize_t j) noexcept:
         return nmod_mat_get_entry(self._matrix, i, j)
 
     cdef set_unsafe(self, Py_ssize_t i, Py_ssize_t j, object x):
@@ -152,11 +152,11 @@ cdef class Matrix_modn_dense_flint(Matrix_dense):
         cdef type t = self._modulus.element_class()
         cdef IntegerMod_abstract x = t.__new__(t)
         x._parent = self._parent._base
-        x.__modulus = self._modulus
+        x._modulus = self._modulus
         x.set_from_ulong_fast(nmod_mat_get_entry(self._matrix, i, j))
         return x
 
-    cdef bint get_is_zero_unsafe(self, Py_ssize_t i, Py_ssize_t j):
+    cdef bint get_is_zero_unsafe(self, Py_ssize_t i, Py_ssize_t j) except -1:
         return not nmod_mat_get_entry(self._matrix, i, j)
 
     cdef Matrix_modn_dense_flint _new(self, Py_ssize_t nrows, Py_ssize_t ncols):
@@ -361,7 +361,7 @@ cdef class Matrix_modn_dense_flint(Matrix_dense):
     #   These function support the implementation of the level 2 functionality.
     ########################################################################
 
-    def __nonzero__(self):
+    def __bool__(self):
         """
         EXAMPLES::
 
@@ -501,14 +501,14 @@ cdef class Matrix_modn_dense_flint(Matrix_dense):
                     nmod_mat_init(tmp, n, n, 1)
                 for pz, ez in F:
                     p = pz
-                    _nmod_mat_set_mod(A, p)
+                    nmod_mat_set_mod(A, p)
                     for i in range(n):
                         for j in range(n):
                             nmod_mat_set_entry(A, i, j, nmod_mat_get_entry(self._matrix, i, j) % p)
                     ok = nmod_mat_inv(A, A)
                     if not ok:
                         raise ZeroDivisionError("input matrix must be nonsingular")
-                    _nmod_mat_set_mod(inv, N*p)
+                    nmod_mat_set_mod(inv, N*p)
                     for i in range(n):
                         for j in range(n):
                             nmod_mat_set_entry(inv, i, j, n_CRT(nmod_mat_get_entry(inv, i, j), N, nmod_mat_get_entry(A, i, j), p))
@@ -523,9 +523,9 @@ cdef class Matrix_modn_dense_flint(Matrix_dense):
                 if lift_required:
                     for k in range(nlifts):
                         N = lift_mods[k]
-                        _nmod_mat_set_mod(tmp, N)
-                        _nmod_mat_set_mod(inv, N)
-                        _nmod_mat_set_mod(A, N)
+                        nmod_mat_set_mod(tmp, N)
+                        nmod_mat_set_mod(inv, N)
+                        nmod_mat_set_mod(A, N)
                         for i in range(n):
                             for j in range(n):
                                 nmod_mat_set_entry(A, i, j, nmod_mat_get_entry(self._matrix, i, j) % N)
@@ -776,7 +776,7 @@ cdef class Matrix_modn_dense_flint(Matrix_dense):
                             x = n_mod2_preinv(x, pe, prepe)
                             nmod_mat_set_entry(A._matrix, i, j, x)
                     A.hessenbergize()
-                    _nmod_mat_set_mod(H, N*pe)
+                    nmod_mat_set_mod(H, N*pe)
                     for i in range(n):
                         jstart = i - 1
                         if i == 0:
@@ -1941,11 +1941,11 @@ cdef class Matrix_modn_dense_flint(Matrix_dense):
                     #v[pivot[l]] = -s / x
                     nmod_mat_set_entry(
                         ans._matrix, cur_row, pivl,
-                        n_div2_preinv(n_negmod(s, N), x, xinv))
+                        n_div2_preinv(n_submod(0, s, N), x, xinv))
                 cur_row += 1
             return "pivot-nmod-ring", ans
 
-    cdef int _copy_row_to_mod_int_array(self, mod_int *to, Py_ssize_t i):
+    cdef int _copy_row_to_mod_int_array(self, mod_int *to, Py_ssize_t i) noexcept:
         cdef Py_ssize_t j
         for j in range(self._ncols):
             to[j] = nmod_mat_get_entry(self._matrix, i, j)

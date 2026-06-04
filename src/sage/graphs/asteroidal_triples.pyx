@@ -1,4 +1,3 @@
-# cython: binding=True
 r"""
 Asteroidal triples
 
@@ -50,26 +49,29 @@ Functions
 ---------
 """
 
-#*****************************************************************************
+# ****************************************************************************
 #       Copyright (C) 2015 David Coudert <david.coudert@inria.fr>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
 from libc.stdint cimport uint32_t
 from cysignals.signals cimport sig_on, sig_off
+from memory_allocator cimport MemoryAllocator
 
 from sage.data_structures.bitset_base cimport *
+from sage.graphs.base.static_sparse_backend cimport StaticSparseCGraph
+from sage.graphs.base.static_sparse_backend cimport StaticSparseBackend
 from sage.graphs.base.static_sparse_graph cimport short_digraph, init_short_digraph, free_short_digraph
-from sage.ext.memory_allocator cimport MemoryAllocator
+
 
 def is_asteroidal_triple_free(G, certificate=False):
     """
-    Test if the input graph is asteroidal triple-free
+    Test if the input graph is asteroidal triple-free.
 
     An independent set of three vertices such that each pair is joined by a path
     that avoids the neighborhood of the third one is called an *asteroidal
@@ -77,7 +79,7 @@ def is_asteroidal_triple_free(G, certificate=False):
     asteroidal triples. See the :mod:`module's documentation
     <sage.graphs.asteroidal_triples>` for more details.
 
-    This method returns ``True`` is the graph is AT-free and ``False`` otherwise.
+    This method returns ``True`` if the graph is AT-free and ``False`` otherwise.
 
     INPUT:
 
@@ -123,6 +125,17 @@ def is_asteroidal_triple_free(G, certificate=False):
         Traceback (most recent call last):
         ...
         ValueError: The first parameter must be a Graph.
+
+    The method is valid for immutable graphs::
+
+        sage: G = graphs.RandomGNP(10, .7)
+        sage: G._backend
+        <sage.graphs.base.sparse_graph.SparseGraphBackend ...>
+        sage: H = Graph(G, immutable=True)
+        sage: H._backend
+        <sage.graphs.base.static_sparse_backend.StaticSparseBackend ...>
+        sage: G.is_asteroidal_triple_free() == H.is_asteroidal_triple_free()
+        True
     """
     from sage.graphs.graph import Graph
     if not isinstance(G, Graph):
@@ -137,16 +150,23 @@ def is_asteroidal_triple_free(G, certificate=False):
 
     # ==> Initialize some data structures for is_asteroidal_triple_free_C
     cdef MemoryAllocator mem = MemoryAllocator()
-    cdef uint32_t* waiting_list         = <uint32_t*>  mem.allocarray(n, sizeof(uint32_t))
-    cdef uint32_t* _connected_structure = <uint32_t*>  mem.calloc(n * n, sizeof(uint32_t))
+    cdef uint32_t* waiting_list = <uint32_t*> mem.allocarray(n, sizeof(uint32_t))
+    cdef uint32_t* _connected_structure = <uint32_t*> mem.calloc(n * n, sizeof(uint32_t))
     cdef uint32_t** connected_structure = <uint32_t**> mem.allocarray(n, sizeof(uint32_t*))
 
     # Copying the whole graph to obtain the list of neighbors quicker than by
     # calling out_neighbors. This data structure is well documented in the
     # module sage.graphs.base.static_sparse_graph
-    cdef list int_to_vertex = list(G)
+    cdef list int_to_vertex
+    cdef StaticSparseCGraph cg
     cdef short_digraph sd
-    init_short_digraph(sd, G, edge_labelled=False, vertex_list=int_to_vertex)
+    if isinstance(G, StaticSparseBackend):
+        cg = <StaticSparseCGraph> G._cg
+        sd = <short_digraph> cg.g
+        int_to_vertex = cg._vertex_to_labels
+    else:
+        int_to_vertex = list(G)
+        init_short_digraph(sd, G, edge_labelled=False, vertex_list=int_to_vertex)
 
     cdef bitset_t seen
     bitset_init(seen, n)
@@ -167,7 +187,8 @@ def is_asteroidal_triple_free(G, certificate=False):
     finally:
         # Release memory
         bitset_free(seen)
-        free_short_digraph(sd)
+        if not isinstance(G, StaticSparseBackend):
+            free_short_digraph(sd)
 
     # ==> We return the result
 
@@ -182,7 +203,7 @@ def is_asteroidal_triple_free(G, certificate=False):
 cdef list is_asteroidal_triple_free_C(uint32_t n,
                                       short_digraph sd,
                                       uint32_t** connected_structure,
-                                      uint32_t*  waiting_list,
+                                      uint32_t* waiting_list,
                                       bitset_t seen):
     """
     INPUT:
@@ -206,8 +227,8 @@ cdef list is_asteroidal_triple_free_C(uint32_t n,
     See the module's documentation.
     """
     cdef uint32_t waiting_beginning = 0
-    cdef uint32_t waiting_end       = 0
-    cdef uint32_t idx_cc            = 0
+    cdef uint32_t waiting_end = 0
+    cdef uint32_t idx_cc = 0
     cdef uint32_t source, u, v, w
     cdef uint32_t* p_tmp
     cdef uint32_t* end
@@ -288,8 +309,8 @@ cdef list is_asteroidal_triple_free_C(uint32_t n,
             if connected_structure[u][v]:
                 for w in range(v + 1, n):
                     if (connected_structure[u][v] == connected_structure[u][w] and
-                        connected_structure[v][u] == connected_structure[v][w] and
-                        connected_structure[w][u] == connected_structure[w][v]):
+                            connected_structure[v][u] == connected_structure[v][w] and
+                            connected_structure[w][u] == connected_structure[w][v]):
                         # We have found an asteroidal triple
                         return [u, v, w]
 

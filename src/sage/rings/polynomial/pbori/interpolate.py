@@ -1,14 +1,21 @@
 # Copyright (c) 2005-2007 by The PolyBoRi Team
-from time import process_time as clock
 from random import Random
+from time import process_time as clock
 
-from .PyPolyBoRi import (Polynomial, Variable, Monomial,
-                         BoolePolynomialVector)
-from .randompoly import gen_random_poly
-from .pbori import (BooleSet, add_up_polynomials, interpolate_smallest_lex,
-                    interpolate)
-from .blocks import Block, declare_ring
-
+from sage.rings.polynomial.pbori.blocks import Block, declare_ring
+from sage.rings.polynomial.pbori.pbori import (
+    BooleSet,
+    Monomial,
+    Polynomial,
+    Variable,
+    add_up_polynomials,
+    interpolate,
+    interpolate_smallest_lex,
+)
+from sage.rings.polynomial.pbori.PyPolyBoRi import (
+    BoolePolynomialVector,
+)
+from sage.rings.polynomial.pbori.randompoly import gen_random_poly
 
 generator = Random()
 
@@ -61,9 +68,9 @@ def gen_random_o_z(points, points_p):
 
 
 def variety_lex_leading_terms(points, variables):
+    assert isinstance(points, BooleSet), "Points needs to be a BooleSet"
     ring = variables.ring()
     standards = BooleSet(ring.zero())
-    assert type(points) == BooleSet, "Points needs to be a BooleSet"
     points_tuple = tuple(points)
     myvars_div = variables.divisors()
     if points != myvars_div:
@@ -78,8 +85,7 @@ def variety_lex_leading_terms(points, variables):
             len_standards = len(standards)
             standards_old = standards
 
-    leading_terms = BooleSet(myvars_div.diff(standards)).minimal_elements()
-    return leading_terms
+    return BooleSet(myvars_div.diff(standards)).minimal_elements()
 
 
 def lex_groebner_basis_points(points, variables):
@@ -90,7 +96,7 @@ def lex_groebner_basis_points(points, variables):
 def lex_groebner_basis_for_polynomial_via_variety(p):
     variables = p.vars_as_monomial()
     return lex_groebner_basis_points(p.zeros_in(variables.divisors()),
-        variables)
+                                     variables)
 
 
 if __name__ == '__main__':

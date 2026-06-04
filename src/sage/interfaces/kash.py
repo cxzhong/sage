@@ -38,14 +38,13 @@ The KASH interface offers three pieces of functionality:
 Issues
 ------
 
-For some reason hitting Control-C to interrupt a calculation
-doesn't work correctly. (TODO)
+For some reason hitting :kbd:`Control` + :kbd:`C` to interrupt a calculation
+does not work correctly. (TODO)
 
 Tutorial
 --------
 
-The examples in this tutorial require that kash
-be installed.
+The examples in this tutorial require that kash be installed.
 
 Basics
 ~~~~~~
@@ -90,11 +89,12 @@ on which one can do arithmetic.
 
 ::
 
-    sage: a = kash(12345)                          # optional -- kash
-    sage: b = kash(25)                             # optional -- kash
-    sage: a/b                                      # optional -- kash
+    sage: # optional - kash
+    sage: a = kash(12345)
+    sage: b = kash(25)
+    sage: a/b
     2469/5
-    sage: a**b                                     # optional -- kash
+    sage: a**b
     1937659030411463935651167391656422626577614411586152317674869233464019922771432158872187137603759765625
 
 Variable assignment
@@ -131,34 +131,36 @@ We illustrate arithmetic with integers and rationals in KASH.
 
 ::
 
-    sage: F = kash.Factorization(4352)             # optional -- kash
-    sage: F[1]                                     # optional -- kash
+    sage: # optional - kash
+    sage: F = kash.Factorization(4352)
+    sage: F[1]
     <2, 8>
-    sage: F[2]                                     # optional -- kash
+    sage: F[2]
     <17, 1>
-    sage: F                                        # optional -- kash
+    sage: F
     [ <2, 8>, <17, 1> ], extended by:
       ext1 := 1,
       ext2 := Unassign
 
-.. note::
+.. NOTE::
 
    For some very large numbers KASH's integer factorization seems much
    faster than PARI's (which is the default in Sage).
 
 ::
 
-    sage: kash.GCD(15,25)                          # optional -- kash
+    sage: # optional - kash
+    sage: kash.GCD(15,25)
     5
-    sage: kash.LCM(15,25)                          # optional -- kash
+    sage: kash.LCM(15,25)
     75
-    sage: kash.Div(25,15)                          # optional -- kash
+    sage: kash.Div(25,15)
     1
-    sage: kash(17) % kash(5)                       # optional -- kash
+    sage: kash(17) % kash(5)
     2
-    sage: kash.IsPrime(10007)                      # optional -- kash
+    sage: kash.IsPrime(10007)
     TRUE
-    sage: kash.IsPrime(2005)                       # optional -- kash
+    sage: kash.IsPrime(2005)
     FALSE
 
     sage: kash.NextPrime(10007)                    # optional -- kash
@@ -169,18 +171,19 @@ Real and Complex Numbers
 
 ::
 
-    sage: kash.Precision()                         # optional -- kash
+    sage: # optional - kash
+    sage: kash.Precision()
     30
-    sage: kash('R')                                # optional -- kash
+    sage: kash('R')
     Real field of precision 30
-    sage: kash.Precision(40)                       # optional -- kash
+    sage: kash.Precision(40)
     40
-    sage: kash('R')                                # optional -- kash
+    sage: kash('R')
     Real field of precision 40
-    sage: z = kash('1 + 2*I')                      # optional -- kash
-    sage: z                                        # optional -- kash
+    sage: z = kash('1 + 2*I')
+    sage: z
     1.000000000000000000000000000000000000000 + 2.000000000000000000000000000000000000000*I
-    sage: z*z                                      # optional -- kash
+    sage: z*z
     -3.000000000000000000000000000000000000000 + 4.000000000000000000000000000000000000000*I
 
     sage: kash.Cos('1.24')                         # optional -- kash
@@ -223,40 +226,42 @@ version.
 
 ::
 
-    sage: v = kash([1,2,3]); v                    # optional -- kash
+    sage: # optional - kash
+    sage: v = kash([1,2,3]); v
     [ 1, 2, 3 ]
-    sage: v[1]                                    # optional -- kash
+    sage: v[1]
     1
-    sage: v[3]                                    # optional -- kash
+    sage: v[3]
     3
-    sage: v.Append([5])                           # optional -- kash
+    sage: v.Append([5])
     [ 1, 2, 3, 5 ]
-    sage: v                                       # optional -- kash
+    sage: v
     [ 1, 2, 3 ]
-    sage: v.Append_([5, 6])                       # optional -- kash
+    sage: v.Append_([5, 6])
     SUCCESS
-    sage: v                                       # optional -- kash
+    sage: v
     [ 1, 2, 3, 5, 6 ]
-    sage: v.Add(5)                                # optional -- kash
+    sage: v.Add(5)
     [ 1, 2, 3, 5, 6, 5 ]
-    sage: v                                       # optional -- kash
+    sage: v
     [ 1, 2, 3, 5, 6 ]
-    sage: v.Add_(5)                               # optional -- kash
+    sage: v.Add_(5)
     SUCCESS
-    sage: v                                       # optional -- kash
+    sage: v
     [ 1, 2, 3, 5, 6, 5 ]
 
 The ``Apply`` command applies a function to each
 element of a list::
 
-    sage: L = kash([1,2,3,4])                    # optional -- kash
-    sage: L.Apply('i -> 3*i')                    # optional -- kash
+    sage: # optional - kash
+    sage: L = kash([1,2,3,4])
+    sage: L.Apply('i -> 3*i')
     [ 3, 6, 9, 12 ]
-    sage: L                                      # optional -- kash
+    sage: L
     [ 1, 2, 3, 4 ]
-    sage: L.Apply('IsEven')                      # optional -- kash
+    sage: L.Apply('IsEven')
     [ FALSE, TRUE, FALSE, TRUE ]
-    sage: L                                      # optional -- kash
+    sage: L
     [ 1, 2, 3, 4 ]
 
 Ranges
@@ -266,11 +271,12 @@ the following are examples of ranges.
 
 ::
 
-    sage: L = kash('[1..10]')                    # optional -- kash
-    sage: L                                      # optional -- kash
+    sage: # optional - kash
+    sage: L = kash('[1..10]')
+    sage: L
     [ 1 .. 10 ]
-    sage: L = kash('[2,4..100]')                 # optional -- kash
-    sage: L                                      # optional -- kash
+    sage: L = kash('[2,4..100]')
+    sage: L
     [ 2, 4 .. 100 ]
 
 Sequences
@@ -284,15 +290,16 @@ Polynomials
 
 ::
 
-    sage: f = kash('X^3 + X + 1')                # optional -- kash
-    sage: f + f                                  # optional -- kash
+    sage: # optional - kash
+    sage: f = kash('X^3 + X + 1')
+    sage: f + f
     2*X^3 + 2*X + 2
-    sage: f * f                                  # optional -- kash
+    sage: f * f
     X^6 + 2*X^4 + 2*X^3 + X^2 + 2*X + 1
-    sage: f.Evaluate(10)                         # optional -- kash
+    sage: f.Evaluate(10)
     1011
-    sage: Qx = kash.PolynomialAlgebra('Q')       # optional -- kash
-    sage: Qx.gen(1)**5 + kash('7/3')   # sage1 below somewhat random; optional -- kash
+    sage: Qx = kash.PolynomialAlgebra('Q')
+    sage: Qx.gen(1)**5 + kash('7/3')
     sage1.1^5 + 7/3
 
 Number Fields
@@ -309,12 +316,13 @@ We create an equation order.
 
 ::
 
-    sage: f = kash('X^5 + 4*X^4 - 56*X^2 -16*X + 192')    # optional -- kash
-    sage: O = f.EquationOrder()                           # optional -- kash
-    sage: a = O.gen(2)                                    # optional -- kash
-    sage: a                                               # optional -- kash
+    sage: # optional - kash
+    sage: f = kash('X^5 + 4*X^4 - 56*X^2 -16*X + 192')
+    sage: O = f.EquationOrder()
+    sage: a = O.gen(2)
+    sage: a
     [0, 1, 0, 0, 0]
-    sage: O.Basis()        # output somewhat random; optional -- kash
+    sage: O.Basis()
     [
     _NG.1,
     _NG.2,
@@ -322,9 +330,9 @@ We create an equation order.
     _NG.4,
     _NG.5
     ]
-    sage: O.Discriminant()              # optional -- kash
+    sage: O.Discriminant()
     1364202618880
-    sage: O.MaximalOrder()    # name sage2 below somewhat random; optional -- kash
+    sage: O.MaximalOrder()
     Maximal Order of sage2
 
     sage: O = kash.MaximalOrder('X^3 - 77')                  # optional -- kash
@@ -354,10 +362,11 @@ Determining whether an ideal is principal.
 
 Computation of class groups and unit groups::
 
-    sage: f = kash('X^5 + 4*X^4 - 56*X^2 -16*X + 192')         # optional -- kash
-    sage: O = kash.EquationOrder(f)                            # optional -- kash
-    sage: OK = O.MaximalOrder()                                # optional -- kash
-    sage: OK.ClassGroup()       # name sage32 below random; optional -- kash
+    sage: # optional - kash
+    sage: f = kash('X^5 + 4*X^4 - 56*X^2 -16*X + 192')
+    sage: O = kash.EquationOrder(f)
+    sage: OK = O.MaximalOrder()
+    sage: OK.ClassGroup()
     Abelian Group isomorphic to Z/6
       Defined on 1 generator
       Relations:
@@ -382,12 +391,13 @@ Function Fields
 
 ::
 
-    sage: k = kash.FiniteField(25)                                 # optional -- kash
-    sage: kT = k.RationalFunctionField()                           # optional -- kash
-    sage: kTy = kT.PolynomialAlgebra()                             # optional -- kash
-    sage: T = kT.gen(1)                                            # optional -- kash
-    sage: y = kTy.gen(1)                                           # optional -- kash
-    sage: f = y**3 + T**4 + 1                                      # optional -- kash
+    sage: # optional - kash
+    sage: k = kash.FiniteField(25)
+    sage: kT = k.RationalFunctionField()
+    sage: kTy = kT.PolynomialAlgebra()
+    sage: T = kT.gen(1)
+    sage: y = kTy.gen(1)
+    sage: f = y**3 + T**4 + 1
 
 Long Input
 ----------
@@ -395,7 +405,7 @@ Long Input
 The KASH interface reads in even very long input (using files) in a
 robust manner, as long as you are creating a new object.
 
-.. note::
+.. NOTE::
 
    Using ``kash.eval`` for long input is much less robust, and is not
    recommended.
@@ -425,10 +435,10 @@ unlike for the other interfaces.
 #                  https://www.gnu.org/licenses/
 # ****************************************************************************
 
-from .expect import Expect, ExpectElement
-from sage.docs.instancedoc import instancedoc
 import os
 
+from sage.interfaces.expect import Expect, ExpectElement
+from sage.misc.instancedoc import instancedoc
 from sage.misc.sage_eval import sage_eval
 
 
@@ -450,11 +460,12 @@ class Kash(Expect):
                  server_tmpdir=None):
         """
         INPUT:
-            max_workspace_size -- (default: None)
-                    set maximal workspace memory usage to <mem>
-                    <mem> stands for byte-wise allocation
-                    <mem>k stands for kilobyte-wise allocation
-                    <mem>m stands for megabyte-wise allocation
+
+        - ``max_workspace_size`` -- (default: ``None``)
+          set maximal workspace memory usage to <mem>
+          <mem> stands for byte-wise allocation
+          <mem>k stands for kilobyte-wise allocation
+          <mem>m stands for megabyte-wise allocation
         """
         cmd = "kash3 -b -c -d  "
         if max_workspace_size is not None:
@@ -517,12 +528,7 @@ class Kash(Expect):
         return 'quit;'
 
     def _start(self):
-        try:
-            Expect._start(self)
-        except RuntimeError:
-            # TODO: replace this error with something more accurate.
-            from sage.misc.package import PackageNotFoundError
-            raise PackageNotFoundError("kash")
+        Expect._start(self)
         # Turn off the annoying timer.
         self.eval('Time(false);')
 
@@ -536,14 +542,12 @@ class Kash(Expect):
 
         INPUT:
 
+        - ``s`` -- string containing Kash code
 
-        -  ``s`` - string containing Kash code.
+        - ``newlines`` -- boolean (default: ``True``); if ``False``,
+          remove all backslash-newlines inserted by the Kash output formatter
 
-        -  ``newlines`` - bool (default: True); if False,
-           remove all backslash-newlines inserted by the Kash output
-           formatter.
-
-        -  ``strip`` - ignored
+        - ``strip`` -- ignored
         """
         x = str(x)
         x = x.rstrip()
@@ -555,26 +559,7 @@ class Kash(Expect):
             s = s[i + 2:]
         if newlines:
             return s
-        else:
-            return s.replace("\\\n", "")
-
-#     def help(self, name=None):
-#         """
-#         Return help on KASH commands.
-
-#         EXAMPLES::
-
-#             sage: X = kash.help('IntegerRing')   # optional - kash
-
-#         """
-#         if name is None:
-#           print '\nTo use KASH help enter kash.help(s). '
-#           print 'The syntax of the string s is given below.\n'
-#           print self.eval('?')
-#         elif name[0] == '?':
-#           print self.eval(name)
-#         else:
-#           print self.eval('?%s'%name)
+        return s.replace("\\\n", "")
 
     def help(self, name=None):
         """
@@ -691,7 +676,7 @@ class Kash(Expect):
 
         EXAMPLES::
 
-            sage: kash._function_call_string('Expand', ['x', 'y'], ['Prec:=10'])
+            sage: Kash()._function_call_string('Expand', ['x', 'y'], ['Prec:=10'])
             'Expand(x,y,rec(Prec:=10))'
         """
         if not kwds:
@@ -738,7 +723,7 @@ class KashElement(ExpectElement):
         # Kash has separate integer and boolean types, and FALSE does not
         # compare equal to 0 (i.e, FALSE = 0 is FALSE)
 
-        # Python 2.x uses __nonzero__ for type conversion to 'bool', so we
+        # Python 3.x uses __bool__ for type conversion to 'bool', so we
         # have to test against FALSE, and sage.structure.element.Element's
         # default implementation of is_zero() is to return 'not self', so
         # our boolean conversion also has to test against 0.
@@ -746,8 +731,6 @@ class KashElement(ExpectElement):
         P = self.parent()
         return (P.eval('%s = FALSE' % self.name()) == 'FALSE' and
                 P.eval('%s = 0' % self.name()) == 'FALSE')
-
-    __nonzero__ = __bool__
 
     def _sage_(self, locals={}, *args):
         """
@@ -778,7 +761,6 @@ class KashElement(ExpectElement):
             sage541.1^2 + sage541.1
             sage: ka.sage({kR.1: x})                    # optional -- kash
             x^2 + x
-
         """
 
         string = self._sage_repr()
@@ -798,18 +780,10 @@ class KashElement(ExpectElement):
 
 
 class KashDocumentation(list):
-    def __repr__(self):
+    def __repr__(self) -> str:
         if len(self) == 0:
             return "No matches."
         return '\n'.join(self)
-
-
-def is_KashElement(x):
-    return isinstance(x, KashElement)
-
-######
-
-######
 
 
 kash = Kash()
@@ -822,7 +796,8 @@ def reduce_load_Kash():
 def kash_console():
     from sage.repl.rich_output.display_manager import get_display_manager
     if not get_display_manager().is_in_terminal():
-        raise RuntimeError('Can use the console only in the terminal. Try %%kash magics instead.')
+        raise RuntimeError('Can use the console only in the terminal. '
+                           'Try %%kash magics instead.')
     os.system("kash3 ")
 
 

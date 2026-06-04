@@ -6,7 +6,7 @@ Enumerated set of lists of integers with constraints: front-end
   where all user-accessible functionality should be implemented.
 """
 
-#*****************************************************************************
+# ***************************************************************************
 #       Copyright (C) 2015 Bryan Gillespie <Brg008@gmail.com>
 #                          Nicolas M. Thiery <nthiery at users.sf.net>
 #                          Anne Schilling <anne@math.ucdavis.edu>
@@ -16,8 +16,8 @@ Enumerated set of lists of integers with constraints: front-end
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ***************************************************************************
 
 
 from inspect import ismethod
@@ -157,7 +157,7 @@ class IntegerLists(Parent):
         TESTS:
 
         This used to fail due to poor equality testing. See
-        :trac:`17979`, comment 433::
+        :issue:`17979`, comment 433::
 
             sage: DisjointUnionEnumeratedSets(Family([2,2],
             ....:     lambda n: IntegerListsLex(n, length=2))).list()
@@ -261,7 +261,7 @@ class IntegerLists(Parent):
             sage: L.foo
             Traceback (most recent call last):
             ...
-            AttributeError: 'NoneType' object has no attribute 'foo'
+            AttributeError: 'NoneType' object has no attribute 'foo'...
         """
         return getattr(self.backend, name)
 
@@ -280,7 +280,7 @@ class IntegerLists(Parent):
 
     def _element_constructor_default(self, l):
         """
-        Default element constructor
+        Default element constructor.
 
         EXAMPLES::
 
@@ -299,7 +299,7 @@ class IntegerLists(Parent):
             ....:     Element = MyElt
             sage: L = MyIntegersLists(5)
             sage: L._element_constructor_
-            <bound method MyIntegersLists._element_constructor_default of Integer lists of sum 5 satisfying certain constraints>
+            <bound method IntegerLists._element_constructor_default of Integer lists of sum 5 satisfying certain constraints>
         """
         return self.element_class(self, l)
 
@@ -320,7 +320,7 @@ class IntegerLists(Parent):
         iterator::
 
             sage: L._element_constructor_
-            <bound method IntegerListsLex._element_constructor_nocheck of ...>
+            <bound method IntegerLists._element_constructor_nocheck of ...>
             sage: L._element_constructor_([1,2,3])
             [1, 2, 3]
         """

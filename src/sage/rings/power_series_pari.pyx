@@ -9,7 +9,7 @@ PARI by passing the keyword ``implementation='pari'`` to the
 
     sage: R.<q> = PowerSeriesRing(ZZ, implementation='pari'); R
     Power Series Ring in q over Integer Ring
-    sage: S.<t> = PowerSeriesRing(CC, implementation='pari'); S
+    sage: S.<t> = PowerSeriesRing(CC, implementation='pari'); S                         # needs sage.rings.real_mpfr
     Power Series Ring in t over Complex Field with 53 bits of precision
 
 Note that only the type of the elements depends on the implementation,
@@ -18,21 +18,21 @@ not the type of the parents::
     sage: type(R)
     <class 'sage.rings.power_series_ring.PowerSeriesRing_domain_with_category'>
     sage: type(q)
-    <type 'sage.rings.power_series_pari.PowerSeries_pari'>
-    sage: type(S)
+    <class 'sage.rings.power_series_pari.PowerSeries_pari'>
+    sage: type(S)                                                                       # needs sage.rings.real_mpfr
     <class 'sage.rings.power_series_ring.PowerSeriesRing_over_field_with_category'>
-    sage: type(t)
-    <type 'sage.rings.power_series_pari.PowerSeries_pari'>
+    sage: type(t)                                                                       # needs sage.rings.real_mpfr
+    <class 'sage.rings.power_series_pari.PowerSeries_pari'>
 
 If `k` is a finite field implemented using PARI, this is the default
 implementation for power series over `k`::
 
     sage: k.<c> = GF(5^12)
     sage: type(c)
-    <type 'sage.rings.finite_rings.element_pari_ffelt.FiniteFieldElement_pari_ffelt'>
+    <class 'sage.rings.finite_rings.element_pari_ffelt.FiniteFieldElement_pari_ffelt'>
     sage: A.<x> = k[[]]
     sage: type(x)
-    <type 'sage.rings.power_series_pari.PowerSeries_pari'>
+    <class 'sage.rings.power_series_pari.PowerSeries_pari'>
 
 .. WARNING::
 
@@ -56,7 +56,6 @@ implementation for power series over `k`::
 AUTHORS:
 
 - Peter Bruin (December 2013): initial version
-
 """
 
 # ****************************************************************************
@@ -72,17 +71,17 @@ AUTHORS:
 from cypari2.gen cimport Gen as pari_gen
 from cypari2.pari_instance cimport get_var
 from cypari2.paridecl cimport gel, typ, lg, valp, varn, t_POL, t_SER, t_RFRAC, t_VEC
-from sage.libs.pari.all import pari
+from sage.libs.pari import pari
 
 from sage.rings.polynomial.polynomial_element cimport Polynomial
 from sage.rings.power_series_ring_element cimport PowerSeries
-from sage.structure.element cimport Element, RingElement
+from sage.structure.element cimport Element
 from sage.structure.parent cimport Parent
 from sage.rings.infinity import infinity
 
 
 cdef PowerSeries_pari construct_from_pari(parent, pari_gen g):
-    """
+    r"""
     Fast construction of power series from PARI objects of suitable
     type (series, polynomials, scalars and rational functions).
 
@@ -90,12 +89,19 @@ cdef PowerSeries_pari construct_from_pari(parent, pari_gen g):
     a rational function, in which case the default precision of
     ``parent`` is used.
 
+    TESTS:
+
+    Check for :issue:`33224`::
+
+        sage: R.<z> = LaurentSeriesRing(QQ, implementation='pari')
+        sage: (z^-2).prec()
+        +Infinity
     """
     cdef long t = typ(g.g)
     v = parent.variable_name()
     if t == t_SER and varn(g.g) == get_var(v):
         prec = lg(g.g) - 2 + valp(g.g)
-    elif t == t_RFRAC:
+    elif t == t_RFRAC and pari.denominator(g) != 1:
         prec = parent.default_prec()
         g = g.Ser(v, prec - g.valuation(v))
     else:
@@ -122,7 +128,6 @@ cdef class PowerSeries_pari(PowerSeries):
 
     - ``check`` -- ignored, but accepted for compatibility with
       :class:`~sage.rings.power_series_poly.PowerSeries_poly`
-
     """
     def __init__(self, parent, f=0, prec=infinity, check=None):
         """
@@ -134,7 +139,6 @@ cdef class PowerSeries_pari(PowerSeries):
             sage: TestSuite(q).run()
             sage: f = q - q^3 + O(q^10)
             sage: TestSuite(f).run()
-
         """
         cdef Parent f_parent
         cdef pari_gen g
@@ -207,7 +211,6 @@ cdef class PowerSeries_pari(PowerSeries):
             sage: R.<t> = PowerSeriesRing(ZZ, implementation='pari')
             sage: hash(t^2 + 1) == hash(pari(t^2 + 1))
             True
-
         """
         return hash(self.g)
 
@@ -223,7 +226,6 @@ cdef class PowerSeries_pari(PowerSeries):
             True
             sage: f == loads(dumps(f))
             True
-
         """
         return PowerSeries_pari, (self._parent, self.g, self._prec, False)
 
@@ -236,7 +238,6 @@ cdef class PowerSeries_pari(PowerSeries):
             sage: R.<t> = PowerSeriesRing(GF(7), implementation='pari')
             sage: (3 - t^3 + O(t^5)).__pari__()
             Mod(3, 7) + Mod(6, 7)*t^3 + O(t^5)
-
         """
         return self.g
 
@@ -250,7 +251,6 @@ cdef class PowerSeries_pari(PowerSeries):
             sage: f = 3 - t^3 + O(t^5)
             sage: f.polynomial()
             6*t^3 + 3
-
         """
         return self._parent._poly_ring()(self.list())
 
@@ -269,7 +269,6 @@ cdef class PowerSeries_pari(PowerSeries):
             7
             sage: R(0).valuation()
             +Infinity
-
         """
         if not self.g:
             return self._prec
@@ -288,7 +287,6 @@ cdef class PowerSeries_pari(PowerSeries):
             False
             sage: bool(O(t^18))
             False
-
         """
         return bool(self.g)
 
@@ -310,7 +308,7 @@ cdef class PowerSeries_pari(PowerSeries):
             True
 
         The following demonstrates that the problems raised in
-        :trac:`3979` and :trac:`5367` are solved::
+        :issue:`3979` and :issue:`5367` are solved::
 
             sage: [f(t^2 + O(t^n)) for n in [9, 10, 11]]
             [t^4 + t^6 + O(t^11), t^4 + t^6 + O(t^12), t^4 + t^6 + O(t^12)]
@@ -342,14 +340,11 @@ cdef class PowerSeries_pari(PowerSeries):
 
             sage: f(100 + O(5^7))
             5^4 + 3*5^5 + 4*5^6 + 2*5^7 + 2*5^8 + O(5^9)
-
             sage: ff = PowerSeriesRing(pAdicRing(5), 't', implementation='pari')(f)
             sage: ff
             (1 + O(5^20))*t^2 + (1 + O(5^20))*t^3 + O(t^6)
-
             sage: ff(100 + O(5^7))
             5^4 + 3*5^5 + 4*5^6 + 2*5^7 + 2*5^8 + O(5^9)
-
             sage: ff(100 + O(2^7))
             Traceback (most recent call last):
             ...
@@ -366,17 +361,14 @@ cdef class PowerSeries_pari(PowerSeries):
             Traceback (most recent call last):
             ...
             ValueError: can only substitute elements of positive valuation
-
             sage: f(t^-2)
             Traceback (most recent call last):
             ...
             ValueError: can only substitute elements of positive valuation
-
-            sage: f(2 + O(5^3))
+            sage: f(2 + O(5^3))                                                         # needs sage.rings.padics
             Traceback (most recent call last):
             ...
             ValueError: can only substitute elements of positive valuation
-
             sage: g = t^2 + t^3
             sage: g(1 + t + O(t^2))
             2 + 5*t + O(t^2)
@@ -392,12 +384,11 @@ cdef class PowerSeries_pari(PowerSeries):
             1 + a*x + a^2*x^2 + a^3*x^3 + a^4*x^4 + a^5*x^5 + a^6*x^6 + O(x^7)
             sage: h(x^2, a=3)
             1 + 3*x^2 + 4*x^4 + 2*x^6 + x^8 + 3*x^10 + 4*x^12 + O(x^14)
-
         """
         if len(kwds) >= 1:
             name = self._parent.variable_name()
             if name in kwds:  # the series variable is specified by a keyword
-                if len(x):
+                if x:
                     raise ValueError("must not specify %s keyword and positional argument" % name)
                 x = [kwds[name]]
                 del kwds[name]
@@ -423,7 +414,7 @@ cdef class PowerSeries_pari(PowerSeries):
         # to an ideal I, and the element a lies in I.  Here we only
         # implement a few special cases.
         from sage.rings.padics.padic_generic import pAdicGeneric
-        from sage.rings.polynomial.polynomial_ring import PolynomialRing_general
+        from sage.rings.polynomial.polynomial_ring import PolynomialRing_generic
         from sage.rings.power_series_ring import PowerSeriesRing_generic
         from sage.rings.laurent_series_ring import LaurentSeriesRing
         if isinstance(Q, pAdicGeneric):
@@ -435,12 +426,12 @@ cdef class PowerSeries_pari(PowerSeries):
             return Q(self.polynomial()(a)).add_bigoh(t * self._prec)
         elif isinstance(Q, (PowerSeriesRing_generic, LaurentSeriesRing)):
             # In Sage, we want an error to be raised when trying to
-            # substitute a series of non-positive valuation, but PARI
+            # substitute a series of nonpositive valuation, but PARI
             # (2.8.0-development) does not do this.  For example,
             # subst(1 + O(x), x, 1/y) yields O(y^-1).
             if a.valuation() <= 0:
                 raise ValueError("can only substitute elements of positive valuation")
-        elif isinstance(Q, PolynomialRing_general):
+        elif isinstance(Q, PolynomialRing_generic):
             Q = Q.completion(Q.gen())
         elif Q.is_exact() and not a:
             pass
@@ -461,7 +452,7 @@ cdef class PowerSeries_pari(PowerSeries):
         same precision, whose coefficients are the same as ``self``
         for those indices in the slice, and 0 otherwise.
 
-        Returns 0 for negative coefficients.  Raises an ``IndexError``
+        Returns 0 for negative coefficients.  Raises an :exc:`IndexError`
         if trying to access beyond known coefficients.
 
         EXAMPLES::
@@ -485,11 +476,10 @@ cdef class PowerSeries_pari(PowerSeries):
             sage: f[:4]
             32 - 80*t + 80*t^2 - 40*t^3
 
-            sage: f = 1 + t^3 - 4*t^4 + O(t^7) ; f
+            sage: f = 1 + t^3 - 4*t^4 + O(t^7); f
             1 + t^3 - 4*t^4 + O(t^7)
             sage: f[:4]
             1 + t^3 + O(t^7)
-
         """
         cdef long t
         if isinstance(n, slice):
@@ -514,7 +504,6 @@ cdef class PowerSeries_pari(PowerSeries):
             sage: R.<t> = PowerSeriesRing(QQ, default_prec=6, implementation='pari')
             sage: ~(R(1-t))
             1 + t + t^2 + t^3 + t^4 + t^5 + O(t^6)
-
         """
         h = ~self.g
         if h.valuation(self._parent.variable_name()) < 0:
@@ -531,7 +520,6 @@ cdef class PowerSeries_pari(PowerSeries):
             sage: f = t + 17/5*t^3 + 2*t^4 + O(t^5)
             sage: -f
             -t - 17/5*t^3 - 2*t^4 + O(t^5)
-
         """
         return construct_from_pari(self._parent, -self.g)
 
@@ -547,7 +535,6 @@ cdef class PowerSeries_pari(PowerSeries):
             27 - 27*t^3 + O(t^5)
             sage: b = f^-3; b
             1/27 + 1/27*t^3 + O(t^5)
-
         """
         h = self.g ** n
         if h.valuation(self._parent.variable_name()) < 0:
@@ -567,7 +554,6 @@ cdef class PowerSeries_pari(PowerSeries):
             x^2 + O(x^3)
             sage: f+g
             x^2 + O(x^3)
-
         """
         return construct_from_pari(self._parent, self.g + (<PowerSeries_pari>right).g)
 
@@ -581,7 +567,6 @@ cdef class PowerSeries_pari(PowerSeries):
             sage: R.<t> = PowerSeriesRing(k, implementation='pari')
             sage: w*t^2 -w*t +13 - (w*t^2 + w*t)
             13 - 2*w*t
-
         """
         return construct_from_pari(self._parent, self.g - (<PowerSeries_pari>right).g)
 
@@ -594,7 +579,6 @@ cdef class PowerSeries_pari(PowerSeries):
             sage: k.<w> = PowerSeriesRing(ZZ, implementation='pari')
             sage: (1+17*w+15*w^3+O(w^5))*(19*w^10+O(w^12))
             19*w^10 + 323*w^11 + O(w^12)
-
         """
         return construct_from_pari(self._parent, self.g * (<PowerSeries_pari>right).g)
 
@@ -608,7 +592,6 @@ cdef class PowerSeries_pari(PowerSeries):
             sage: f = t + 3*t^4 + O(t^11)
             sage: f * GF(7)(3)
             3*t + 2*t^4 + O(t^11)
-
         """
         return construct_from_pari(self._parent, self.g * c)
 
@@ -622,7 +605,6 @@ cdef class PowerSeries_pari(PowerSeries):
             sage: f = 1 + 3*t^4 + O(t^120)
             sage: 2 * f
             2 + 6*t^4 + O(t^120)
-
         """
         return construct_from_pari(self._parent, c * self.g)
 
@@ -641,7 +623,6 @@ cdef class PowerSeries_pari(PowerSeries):
             t^-1 + 10
             sage: g.parent()
             Laurent Series Ring in t over Finite Field of size 11
-
         """
         h = self.g / (<PowerSeries_pari>right).g
         if h.valuation(self._parent.variable_name()) < 0:
@@ -665,7 +646,6 @@ cdef class PowerSeries_pari(PowerSeries):
             sage: S.<u> = PowerSeriesRing(pAdicRing(5), implementation='pari')
             sage: (2 + u).list()
             [2 + O(5^20), 1 + O(5^20)]
-
         """
         cdef pari_gen g = self.g
         cdef long vn = get_var(self._parent.variable_name())
@@ -689,10 +669,10 @@ cdef class PowerSeries_pari(PowerSeries):
 
         INPUT:
 
-        - ``n`` -- a non-negative integer (optional); if `n` is not
-           given, it will be taken to be the precision of ``self`,
-           unless this is ``+Infinity``, in which case we just
-           return ``self.list()``
+        - ``n`` -- nonnegative integer (optional); if `n` is not
+          given, it will be taken to be the precision of ``self``,
+          unless this is ``+Infinity``, in which case we just
+          return ``self.list()``
 
         EXAMPLES::
 
@@ -715,7 +695,6 @@ cdef class PowerSeries_pari(PowerSeries):
             [1, -17, 13, 0, 10]
             sage: g.padded_list(10)
             [1, -17, 13, 0, 10, 0, 0, 0, 0, 0]
-
         """
         if n is None:
             if self._prec is infinity:
@@ -752,7 +731,7 @@ cdef class PowerSeries_pari(PowerSeries):
         else:
             return [R(g)] + [R.zero()] * (n - 1)
 
-    def dict(self):
+    def monomial_coefficients(self, copy=None):
         """
         Return a dictionary of coefficients for ``self``.
 
@@ -764,11 +743,17 @@ cdef class PowerSeries_pari(PowerSeries):
 
             sage: R.<t> = PowerSeriesRing(ZZ, implementation='pari')
             sage: f = 1 + t^10 + O(t^12)
-            sage: f.dict()
+            sage: f.monomial_coefficients()
             {0: 1, 10: 1}
 
+        ``dict`` is an alias::
+
+            sage: f.dict()
+            {0: 1, 10: 1}
         """
-        return self.polynomial().dict()
+        return self.polynomial().monomial_coefficients()
+
+    dict = monomial_coefficients
 
     def _derivative(self, var=None):
         """
@@ -801,7 +786,6 @@ cdef class PowerSeries_pari(PowerSeries):
             4*t^3*x^3 + O(x^4)
             sage: f._derivative(t)
             3*t^2*x^4 + O(x^5)
-
         """
         if var is None:
             var = self._parent.variable_name()
@@ -845,11 +829,131 @@ cdef class PowerSeries_pari(PowerSeries):
             1/2*a*t^2 + 5/3*t^3
             sage: f.integral(a)
             1/2*a^2*t + 5*a*t^2
-
         """
         if var is None:
             var = self._parent.variable_name()
         return construct_from_pari(self._parent, self.g.intformal(var))
+
+    def revert(self, precision=None):
+        r"""
+        Return the reversion of this power series.
+
+        The reversion of a power series `f` is the power series `g` such
+        that `g(f(x)) = x`.  This exists if and only if the valuation
+        of ``self`` is exactly 1 and the coefficient of `x` is a unit.
+
+        If the optional argument ``precision`` is given, the reversion
+        is returned with this precision.  If ``f`` has infinite
+        precision and the argument ``precision`` is not given, then
+        the reversion is returned with the default precision of
+        ``f.parent()``.
+
+        The method ``compositional_inverse`` is an alias of ``revert``.
+
+        ..WARNING::
+
+            This implementation can only handle some rings of positive characteristic.
+
+        EXAMPLES::
+
+            sage: R.<x> = PowerSeriesRing(QQ, implementation='pari')
+            sage: f = 2*x + 3*x^2 - x^4 + O(x^5)
+            sage: g = f.revert()
+            sage: g
+            1/2*x - 3/8*x^2 + 9/16*x^3 - 131/128*x^4 + O(x^5)
+            sage: f(g)
+            x + O(x^5)
+            sage: g(f)
+            x + O(x^5)
+
+            sage: A.<t> = PowerSeriesRing(ZZ, implementation='pari')
+            sage: a = t - t^2 - 2*t^4 + t^5 + O(t^6)
+            sage: b = a.revert(); b
+            t + t^2 + 2*t^3 + 7*t^4 + 25*t^5 + O(t^6)
+            sage: a(b)
+            t + O(t^6)
+            sage: b(a)
+            t + O(t^6)
+
+            sage: B.<b,c> = PolynomialRing(ZZ)
+            sage: A.<t> = PowerSeriesRing(B, implementation='pari')
+            sage: f = t + b*t^2 + c*t^3 + O(t^4)
+            sage: g = f.revert(); g
+            t - b*t^2 + (2*b^2 - c)*t^3 + O(t^4)
+            sage: f(g)
+            t + O(t^4)
+            sage: g(f)
+            t + O(t^4)
+
+            sage: A.<t> = PowerSeriesRing(ZZ, implementation='pari')
+            sage: B.<x> = PowerSeriesRing(A, implementation='pari')
+            sage: f = (1 - 3*t + 4*t^3 + O(t^4))*x + (2 + t + t^2 + O(t^3))*x^2 + O(x^3)
+            sage: g = f.revert(); g
+            (1 + 3*t + 9*t^2 + 23*t^3 + O(t^4))*x
+             + (-2 - 19*t - 118*t^2 + O(t^3))*x^2 + O(x^3)
+
+        The optional argument ``precision`` sets the precision of the output::
+
+            sage: R.<x> = PowerSeriesRing(QQ, implementation='pari')
+            sage: f = 2*x + 3*x^2 - 7*x^3 + x^4 + O(x^5)
+            sage: g = f.revert(precision=3); g
+            1/2*x - 3/8*x^2 + O(x^3)
+            sage: f(g)
+            x + O(x^3)
+            sage: g(f)
+            x + O(x^3)
+
+        If the input series has infinite precision, the precision of the
+        output is automatically set to the default precision of the parent
+        ring::
+
+            sage: R.<x> = PowerSeriesRing(QQ, default_prec=20, implementation='pari')
+            sage: (x - x^2).revert()  # get some Catalan numbers
+            x + x^2 + 2*x^3 + 5*x^4 + 14*x^5 + 42*x^6 + 132*x^7 + 429*x^8
+             + 1430*x^9 + 4862*x^10 + 16796*x^11 + 58786*x^12 + 208012*x^13
+             + 742900*x^14 + 2674440*x^15 + 9694845*x^16 + 35357670*x^17
+             + 129644790*x^18 + 477638700*x^19 + O(x^20)
+            sage: (x - x^2).revert(precision=3)
+            x + x^2 + O(x^3)
+
+        We can handle some rings of positive characteristic::
+
+            sage: R.<t> = PowerSeriesRing(GF(5), implementation='pari')
+            sage: f = t + t^2 + t^3 + O(t^4)
+            sage: g = f.revert(); g
+            t + 4*t^2 + t^3 + O(t^4)
+            sage: f(g) == g(f) == t
+            True
+
+            sage: k.<a> = GF(3**2)
+            sage: R.<t> = PowerSeriesRing(k, implementation='pari')
+            sage: f = a*t + (1-a)*t^2 + (1+a)*t^3 + O(t^4)
+            sage: f.revert()
+            Traceback (most recent call last):
+            ...
+            PariError: impossible inverse in Fl_inv: Mod(0, 3)
+
+        TESTS::
+
+            sage: R.<x> = PowerSeriesRing(QQ, implementation='pari')
+            sage: f = 1 + 2*x + 3*x^2 - x^4 + O(x^5)
+            sage: f.revert()
+            Traceback (most recent call last):
+            ...
+            PariError: domain error in serreverse: valuation != 1
+        """
+        cdef PowerSeries_pari f
+        if self._prec is infinity:
+            if precision is None:
+                precision = self._parent.default_prec()
+            f = self.add_bigoh(precision)
+        else:
+            if precision is None:
+                precision = self._prec
+            f = self
+        return PowerSeries_pari(self._parent, f.g.serreverse(), precision)
+
+    compositional_inverse = revert
 
     def reverse(self, precision=None):
         r"""
@@ -869,81 +973,16 @@ cdef class PowerSeries_pari(PowerSeries):
 
             sage: R.<x> = PowerSeriesRing(QQ, implementation='pari')
             sage: f = 2*x + 3*x^2 - x^4 + O(x^5)
-            sage: g = f.reverse()
-            sage: g
+            sage: g = f.reverse(); g
+            doctest:warning...
+            DeprecationWarning: reverse is deprecated; use revert instead
+            See https://github.com/sagemath/sage/issues/40576 for details.
             1/2*x - 3/8*x^2 + 9/16*x^3 - 131/128*x^4 + O(x^5)
             sage: f(g)
             x + O(x^5)
             sage: g(f)
             x + O(x^5)
-
-            sage: A.<t> = PowerSeriesRing(ZZ, implementation='pari')
-            sage: a = t - t^2 - 2*t^4 + t^5 + O(t^6)
-            sage: b = a.reverse(); b
-            t + t^2 + 2*t^3 + 7*t^4 + 25*t^5 + O(t^6)
-            sage: a(b)
-            t + O(t^6)
-            sage: b(a)
-            t + O(t^6)
-
-            sage: B.<b,c> = PolynomialRing(ZZ)
-            sage: A.<t> = PowerSeriesRing(B, implementation='pari')
-            sage: f = t + b*t^2 + c*t^3 + O(t^4)
-            sage: g = f.reverse(); g
-            t - b*t^2 + (2*b^2 - c)*t^3 + O(t^4)
-            sage: f(g)
-            t + O(t^4)
-            sage: g(f)
-            t + O(t^4)
-
-            sage: A.<t> = PowerSeriesRing(ZZ, implementation='pari')
-            sage: B.<x> = PowerSeriesRing(A, implementation='pari')
-            sage: f = (1 - 3*t + 4*t^3 + O(t^4))*x + (2 + t + t^2 + O(t^3))*x^2 + O(x^3)
-            sage: g = f.reverse(); g
-            (1 + 3*t + 9*t^2 + 23*t^3 + O(t^4))*x + (-2 - 19*t - 118*t^2 + O(t^3))*x^2 + O(x^3)
-
-        The optional argument ``precision`` sets the precision of the output::
-
-            sage: R.<x> = PowerSeriesRing(QQ, implementation='pari')
-            sage: f = 2*x + 3*x^2 - 7*x^3 + x^4 + O(x^5)
-            sage: g = f.reverse(precision=3); g
-            1/2*x - 3/8*x^2 + O(x^3)
-            sage: f(g)
-            x + O(x^3)
-            sage: g(f)
-            x + O(x^3)
-
-        If the input series has infinite precision, the precision of the
-        output is automatically set to the default precision of the parent
-        ring::
-
-            sage: R.<x> = PowerSeriesRing(QQ, default_prec=20, implementation='pari')
-            sage: (x - x^2).reverse()  # get some Catalan numbers
-            x + x^2 + 2*x^3 + 5*x^4 + 14*x^5 + 42*x^6 + 132*x^7 + 429*x^8
-             + 1430*x^9 + 4862*x^10 + 16796*x^11 + 58786*x^12 + 208012*x^13
-             + 742900*x^14 + 2674440*x^15 + 9694845*x^16 + 35357670*x^17
-             + 129644790*x^18 + 477638700*x^19 + O(x^20)
-            sage: (x - x^2).reverse(precision=3)
-            x + x^2 + O(x^3)
-
-        TESTS::
-
-            sage: R.<x> = PowerSeriesRing(QQ, implementation='pari')
-            sage: f = 1 + 2*x + 3*x^2 - x^4 + O(x^5)
-            sage: f.reverse()
-            Traceback (most recent call last):
-            ...
-            PariError: domain error in serreverse: valuation != 1
-
         """
-        cdef PowerSeries_pari f
-        if self._prec is infinity:
-            if precision is None:
-                precision = self._parent.default_prec()
-            f = self.add_bigoh(precision)
-        else:
-            if precision is None:
-                precision = self._prec
-            f = self
-        return PowerSeries_pari(self._parent, f.g.serreverse(), precision)
-
+        from sage.misc.superseded import deprecation_cython
+        deprecation_cython(40576, 'reverse is deprecated; use revert instead')
+        return self.revert(precision)

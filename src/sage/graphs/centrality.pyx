@@ -20,12 +20,14 @@ from libc.string cimport memset
 from libc.stdint cimport uint32_t
 from cysignals.memory cimport check_allocarray, sig_free
 from cysignals.signals cimport sig_check
+from memory_allocator cimport MemoryAllocator
 
 from sage.data_structures.bitset_base cimport *
+from sage.graphs.base.static_sparse_backend cimport StaticSparseCGraph
+from sage.graphs.base.static_sparse_backend cimport StaticSparseBackend
 from sage.graphs.base.static_sparse_graph cimport *
 from sage.libs.gmp.mpq cimport *
 from sage.rings.rational cimport Rational
-from sage.ext.memory_allocator cimport MemoryAllocator
 from sage.graphs.base.boost_graph import shortest_paths as boost_shortest_paths
 import random
 
@@ -35,9 +37,10 @@ ctypedef fused numerical_type:
 
 cimport cython
 
+
 def centrality_betweenness(G, bint exact=False, bint normalize=True):
     r"""
-    Return the centrality betweenness of `G`
+    Return the centrality betweenness of `G`.
 
     The centrality betweenness of a vertex `v\in G` is defined by:
 
@@ -53,7 +56,7 @@ def centrality_betweenness(G, bint exact=False, bint normalize=True):
     - ``G`` -- a (di)graph
 
     - ``exact`` -- boolean (default: ``False``); whether to compute over
-      rationals or on ``double`` C variables.
+      rationals or on ``double`` C variables
 
     - ``normalize`` -- boolean (default: ``True``); whether to renormalize the
       values by dividing them by `\binom {n-1} 2` (for graphs) or `2\binom {n-1}
@@ -98,11 +101,12 @@ def centrality_betweenness(G, bint exact=False, bint normalize=True):
 
     Compare with NetworkX::
 
+        sage: # needs networkx
         sage: import networkx
         sage: g = graphs.RandomGNP(100, .2)
         sage: nw = networkx.betweenness_centrality(g.networkx_graph())
         sage: sg = centrality_betweenness(g)
-        sage: max(abs(nw[x] - sg[x]) for x in g) # abs tol 1e-10
+        sage: max(abs(nw[x] - sg[x]) for x in g)  # abs tol 1e-10
         0
 
     Stupid cases::
@@ -114,23 +118,35 @@ def centrality_betweenness(G, bint exact=False, bint normalize=True):
         sage: centrality_betweenness(Graph(2), exact=1)
         {0: 0, 1: 0}
 
+    The method is valid for immutable graphs::
+
+        sage: G = graphs.RandomGNP(10, .7)
+        sage: G._backend
+        <sage.graphs.base.sparse_graph.SparseGraphBackend ...>
+        sage: H = Graph(G, immutable=True)
+        sage: H._backend
+        <sage.graphs.base.static_sparse_backend.StaticSparseBackend ...>
+        sage: G.centrality_betweenness() == H.centrality_betweenness()
+        True
+        sage: G.centrality_betweenness(exact=True) == H.centrality_betweenness(exact=True)
+        True
     """
     if exact:
         return centrality_betweenness_C(G, <mpq_t> 0, normalize=normalize)
-    else:
-        return centrality_betweenness_C(G, <double>0, normalize=normalize)
+    return centrality_betweenness_C(G, <double>0, normalize=normalize)
+
 
 @cython.cdivision(True)
 cdef dict centrality_betweenness_C(G, numerical_type _, bint normalize=True):
     r"""
-    Return the centrality betweenness of G (C implementation)
+    Return the centrality betweenness of G (C implementation).
 
     INPUT:
 
     - ``G`` -- a graph
 
     - ``_`` -- this variable is ignored, only its type matters. If it is of type
-      `mpq_t` then computations are made on `Q`, if it is ``double`` the
+      ``mpq_t`` then computations are made on `Q`, if it is ``double`` the
       computations are made on ``double``.
 
     - ``normalize`` -- boolean (default: ``True``); whether to renormalize the
@@ -145,20 +161,21 @@ cdef dict centrality_betweenness_C(G, numerical_type _, bint normalize=True):
         return {v: zero for v in G}
 
     # A copy of G, for faster neighbor enumeration
+    cdef StaticSparseCGraph cg
     cdef short_digraph g
 
     # A second copy, to remember the edges used during the BFS (see doc)
     cdef short_digraph bfs_dag
 
-    cdef list int_to_vertex = list(G)
+    cdef list int_to_vertex
 
     cdef int n = G.order()
 
-    cdef bitset_t seen # Vertices whose neighbors have been explored
-    cdef bitset_t next_layer # Unexplored neighbors of vertices in 'seen'
+    cdef bitset_t seen  # Vertices whose neighbors have been explored
+    cdef bitset_t next_layer  # Unexplored neighbors of vertices in 'seen'
 
-    cdef uint32_t* queue = NULL # BFS queue
-    cdef uint32_t* degrees = NULL # degree[v] = nb of vertices which discovered v
+    cdef uint32_t* queue = NULL  # BFS queue
+    cdef uint32_t* degrees = NULL  # degree[v] = nb of vertices which discovered v
 
     cdef numerical_type* n_paths_from_source = NULL
     cdef numerical_type* betweenness_source = NULL
@@ -177,14 +194,21 @@ cdef dict centrality_betweenness_C(G, numerical_type _, bint normalize=True):
         mpq_init(mpq_tmp)
 
     try:
-        init_short_digraph(g, G, edge_labelled=False, vertex_list=int_to_vertex)
+        if isinstance(G, StaticSparseBackend):
+            cg = <StaticSparseCGraph> G._cg
+            g = <short_digraph> cg.g
+            int_to_vertex = cg._vertex_to_labels
+        else:
+            int_to_vertex = list(G)
+            init_short_digraph(g, G, edge_labelled=False, vertex_list=int_to_vertex)
+
         init_reverse(bfs_dag, g)
 
-        queue               = <uint32_t*> check_allocarray(n, sizeof(uint32_t))
-        degrees             = <uint32_t*> check_allocarray(n, sizeof(uint32_t))
+        queue = <uint32_t*> check_allocarray(n, sizeof(uint32_t))
+        degrees = <uint32_t*> check_allocarray(n, sizeof(uint32_t))
         n_paths_from_source = <numerical_type*> check_allocarray(n, sizeof(numerical_type))
-        betweenness_source  = <numerical_type*> check_allocarray(n, sizeof(numerical_type))
-        betweenness         = <numerical_type*> check_allocarray(n, sizeof(numerical_type))
+        betweenness_source = <numerical_type*> check_allocarray(n, sizeof(numerical_type))
+        betweenness = <numerical_type*> check_allocarray(n, sizeof(numerical_type))
 
         bitset_init(seen, n)
         bitset_init(next_layer, n)
@@ -219,8 +243,8 @@ cdef dict centrality_betweenness_C(G, numerical_type _, bint normalize=True):
 
             queue[0] = source
             layer_current_beginning = 0
-            layer_current_end       = 1
-            layer_next_end          = 1
+            layer_current_end = 1
+            layer_next_end = 1
 
             # The number of shortest paths from 'source' to every other vertex.
             #
@@ -261,7 +285,7 @@ cdef dict centrality_betweenness_C(G, numerical_type _, bint normalize=True):
                     bitset_add(seen, queue[j])
 
                 layer_current_beginning = layer_current_end
-                layer_current_end       = layer_next_end
+                layer_current_end = layer_next_end
 
             # Compute the betweenness from the number of paths
             #
@@ -270,7 +294,7 @@ cdef dict centrality_betweenness_C(G, numerical_type _, bint normalize=True):
                 u = queue[i]
                 for j in range(<int>degrees[u]):
                     v = bfs_dag.neighbors[u][j]
-                    if v != source: # better to not 'if' but set it to 0 afterwards?
+                    if v != source:  # better to not 'if' but set it to 0 afterwards?
                         if numerical_type is double:
                             betweenness_source[v] += (betweenness_source[u] + 1) * (n_paths_from_source[v] / n_paths_from_source[u])
                         else:
@@ -287,7 +311,7 @@ cdef dict centrality_betweenness_C(G, numerical_type _, bint normalize=True):
                 else:
                     mpq_add(betweenness[i], betweenness[i], betweenness_source[i])
 
-            sig_check() # check for KeyboardInterrupt
+            sig_check()  # check for KeyboardInterrupt
 
         if numerical_type is double:
             betweenness_list = [betweenness[i] for i in range(n)]
@@ -303,7 +327,8 @@ cdef dict centrality_betweenness_C(G, numerical_type _, bint normalize=True):
             mpq_clear(mpq_tmp)
 
     finally:
-        free_short_digraph(g)
+        if not isinstance(G, StaticSparseBackend):
+            free_short_digraph(g)
         free_short_digraph(bfs_dag)
         bitset_free(seen)
         bitset_free(next_layer)
@@ -324,7 +349,8 @@ cdef dict centrality_betweenness_C(G, numerical_type _, bint normalize=True):
 
     return {vv: betweenness_list[i] for i, vv in enumerate(int_to_vertex)}
 
-cdef void _estimate_reachable_vertices_dir(short_digraph g, int* reachL, int* reachU):
+
+cdef void _estimate_reachable_vertices_dir(short_digraph g, int* reachL, int* reachU) noexcept:
     r"""
     For each vertex ``v``, bounds the number of vertices reachable from ``v``.
 
@@ -456,7 +482,10 @@ cdef void _estimate_reachable_vertices_dir(short_digraph g, int* reachL, int* re
         reachL[i] = reachL_scc[scc[i]]
         reachU[i] = min(<int>reachU_scc[scc[i]], g.n)
 
-cdef void _compute_reachable_vertices_undir(short_digraph g, int* reachable):
+    free_short_digraph(sccgraph)
+
+
+cdef void _compute_reachable_vertices_undir(short_digraph g, int* reachable) noexcept:
     r"""
     For each vertex ``v``, compute the number of vertices reachable from ``v``.
 
@@ -508,7 +537,8 @@ cdef void _compute_reachable_vertices_undir(short_digraph g, int* reachable):
         for v in currentcc:
             reachable[v] = len(currentcc)
 
-cdef void _sort_vertices_degree(short_digraph g, int* sorted_verts):
+
+cdef void _sort_vertices_degree(short_digraph g, int* sorted_verts) noexcept:
     r"""
     Sort vertices in decreasing order of degree.
 
@@ -632,6 +662,7 @@ def centrality_closeness_top_k(G, int k=1, int verbose=0):
 
     The result is correct::
 
+        sage: # needs networkx
         sage: from sage.graphs.centrality import centrality_closeness_top_k
         sage: import random
         sage: n = 20
@@ -648,6 +679,7 @@ def centrality_closeness_top_k(G, int k=1, int verbose=0):
 
     Directed case::
 
+        sage: # needs networkx
         sage: from sage.graphs.centrality import centrality_closeness_top_k
         sage: import random
         sage: n = 20
@@ -660,6 +692,19 @@ def centrality_closeness_top_k(G, int k=1, int verbose=0):
         sage: len(topk) == min(k, len(sorted_centr))
         True
         sage: all(abs(topk[i][0] - sorted_centr[i]) < 1e-12 for i in range(len(topk)))
+        True
+
+    Immutable graphs::
+
+        sage: from sage.graphs.centrality import centrality_closeness_top_k
+        sage: G = graphs.RandomGNP(10, .7)
+        sage: G._backend
+        <sage.graphs.base.sparse_graph.SparseGraphBackend ...>
+        sage: H = Graph(G, immutable=True)
+        sage: H._backend
+        <sage.graphs.base.static_sparse_backend.StaticSparseBackend ...>
+        sage: k = randint(1, 10)
+        sage: centrality_closeness_top_k(G, k) == centrality_closeness_top_k(H, k)
         True
     """
     cdef list res
@@ -678,18 +723,25 @@ def centrality_closeness_top_k(G, int k=1, int verbose=0):
         return []
 
     cdef MemoryAllocator mem = MemoryAllocator()
+    cdef StaticSparseCGraph cg
     cdef short_digraph sd
     # Copying the whole graph to obtain the list of neighbors quicker than by
     # calling out_neighbors. This data structure is well documented in the
     # module sage.graphs.base.static_sparse_graph
-    cdef list V = list(G)
-    init_short_digraph(sd, G, edge_labelled=False, vertex_list=V)
+    cdef list V
+    if isinstance(G, StaticSparseBackend):
+        cg = <StaticSparseCGraph> G._cg
+        sd = <short_digraph> cg.g
+        V = cg._vertex_to_labels
+    else:
+        V = list(G)
+        init_short_digraph(sd, G, edge_labelled=False, vertex_list=V)
     cdef int n = sd.n
     cdef int* reachL = <int*> mem.malloc(n * sizeof(int))
     cdef int* reachU
     cdef int* pred = <int*> mem.calloc(n, sizeof(int))
     cdef double *farness = <double*> mem.malloc(n * sizeof(double))
-    cdef int d, nd, x, v, w
+    cdef int d, nd, x, v
     cdef long f, gamma
     cdef int* queue = <int*> mem.malloc(n * sizeof(int))
     cdef double tildefL, tildefU
@@ -730,8 +782,8 @@ def centrality_closeness_top_k(G, int k=1, int verbose=0):
             pred[v] = -1
 
         layer_current_beginning = 0
-        layer_current_end       = 1
-        layer_next_end          = 1
+        layer_current_end = 1
+        layer_next_end = 1
         d = 0
         f = 0
         # We are at level 0, and gamma is the number of arcs exiting level 0
@@ -794,7 +846,7 @@ def centrality_closeness_top_k(G, int k=1, int verbose=0):
                     break
             # 'next_layer' becomes 'current_layer'
             layer_current_beginning = layer_current_end
-            layer_current_end       = layer_next_end
+            layer_current_end = layer_next_end
 
         if not stopped:
             farness[x] = ((<double> f) * (n - 1)) / (<double>(nd - 1) * (nd - 1))
@@ -818,6 +870,9 @@ def centrality_closeness_top_k(G, int k=1, int verbose=0):
     if verbose > 0:
         print("Final performance ratio: {}".format(visited / (n * <double> (sd.neighbors[sd.n] - sd.edges))))
 
+    if not isinstance(G, StaticSparseBackend):
+        free_short_digraph(sd)
+
     res = [(1.0 / farness[v], V[v]) for v in topk[:k] if v != -1]
     try:
         res = sorted(res, reverse=True)
@@ -826,6 +881,7 @@ def centrality_closeness_top_k(G, int k=1, int verbose=0):
         # different types. We then sort on values only.
         res = sorted(res, reverse=True, key=lambda vv: vv[0])
     return res
+
 
 def centrality_closeness_random_k(G, int k=1):
     r"""
@@ -844,9 +900,7 @@ def centrality_closeness_random_k(G, int k=1):
 
     - ``k`` -- integer (default: 1); number of random nodes to choose
 
-    OUTPUT:
-
-    A dictionary associating to each vertex its estimated closeness centrality.
+    OUTPUT: a dictionary associating to each vertex its estimated closeness centrality
 
     EXAMPLES:
 
@@ -880,6 +934,20 @@ def centrality_closeness_random_k(G, int k=1):
         ...
         ValueError: G must be an undirected Graph
 
+    The method is valid for immutable graphs::
+
+        sage: from sage.graphs.centrality import centrality_closeness_random_k
+        sage: while True:
+        ....:     G = graphs.RandomGNP(10, .7)
+        ....:     if G.is_connected():  # graph should be connected
+        ....:         break
+        sage: G._backend
+        <sage.graphs.base.sparse_graph.SparseGraphBackend ...>
+        sage: H = Graph(G, immutable=True)
+        sage: H._backend
+        <sage.graphs.base.static_sparse_backend.StaticSparseBackend ...>
+        sage: centrality_closeness_random_k(G, 10) == centrality_closeness_random_k(H, 10)
+        True
     """
     G._scream_if_not_simple()
     if G.is_directed():
@@ -901,33 +969,41 @@ def centrality_closeness_random_k(G, int k=1):
     cdef double* partial_farness = <double*> mem.malloc(n * sizeof(double))
     cdef uint32_t* distance
     cdef uint32_t* waiting_list
+    cdef StaticSparseCGraph cg
     cdef short_digraph sd
     cdef bitset_t seen
     cdef double farness
     cdef int i, j
     cdef dict closeness_centrality_array = {}
-    cdef list int_to_vertex = list(G)
-    cdef dict vertex_to_int = {v: i for i, v in enumerate(int_to_vertex)}
+    cdef list int_to_vertex
+    cdef dict vertex_to_int
+    if isinstance(G, StaticSparseBackend):
+        cg = <StaticSparseCGraph> G._cg
+        int_to_vertex = cg._vertex_to_labels
+        vertex_to_int = cg._vertex_to_int
+    else:
+        int_to_vertex = list(G)
+        vertex_to_int = {v: i for i, v in enumerate(int_to_vertex)}
 
     # Initialize
     for i in range(n):
         partial_farness[i] = 0
 
     # Shuffle the vertices
-    cdef list l = list(range(n))
-    random.shuffle(l)
+    cdef list V = list(range(n))
+    random.shuffle(V)
 
     if G.weighted():
         # For all random nodes take as a source then run Dijstra and
         # calculate closeness centrality for k random vertices from l.
         for i in range(k):
             farness = 0
-            distances = boost_shortest_paths(G, int_to_vertex[l[i]], algorithm='Dijkstra')[0]
+            distances = boost_shortest_paths(G, int_to_vertex[V[i]], algorithm='Dijkstra')[0]
             for vertex in distances:
                 farness += float(distances[vertex])
                 partial_farness[vertex_to_int[vertex]] += float(distances[vertex])
 
-            closeness_centrality_array[int_to_vertex[l[i]]] = (n - 1) / farness
+            closeness_centrality_array[int_to_vertex[V[i]]] = (n - 1) / farness
 
     # G is unweighted graph
     else:
@@ -935,7 +1011,10 @@ def centrality_closeness_random_k(G, int k=1):
         # Copying the whole graph as a static_sparse_graph for fast shortest
         # paths computation in unweighted graph. This data structure is well
         # documented in module sage.graphs.base.static_sparse_graph
-        init_short_digraph(sd, G, edge_labelled=False, vertex_list=int_to_vertex)
+        if isinstance(G, StaticSparseBackend):
+            sd = <short_digraph> cg.g
+        else:
+            init_short_digraph(sd, G, edge_labelled=False, vertex_list=int_to_vertex)
         distance = <uint32_t*> mem.malloc(n * sizeof(uint32_t))
         waiting_list = <uint32_t*> mem.malloc(n * sizeof(uint32_t))
         bitset_init(seen, n)
@@ -943,18 +1022,19 @@ def centrality_closeness_random_k(G, int k=1):
         # Run BFS for random k vertices
         for i in range(k):
             farness = 0
-            simple_BFS(sd, l[i], distance, NULL, waiting_list, seen)
+            simple_BFS(sd, V[i], distance, NULL, waiting_list, seen)
             for j in range(n):
                 farness += distance[j]
                 partial_farness[j] += distance[j]
 
-            closeness_centrality_array[int_to_vertex[l[i]]] = (n - 1) / farness
+            closeness_centrality_array[int_to_vertex[V[i]]] = (n - 1) / farness
 
         bitset_free(seen)
-        free_short_digraph(sd)
+        if not isinstance(G, StaticSparseBackend):
+            free_short_digraph(sd)
 
     # Estimate the closeness centrality for remaining n-k vertices.
     for i in range(k, n):
-        closeness_centrality_array[int_to_vertex[l[i]]] = k / partial_farness[l[i]]
+        closeness_centrality_array[int_to_vertex[V[i]]] = k / partial_farness[V[i]]
 
     return closeness_centrality_array

@@ -8,7 +8,7 @@ Built-in Functions
 ==================
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    sage/functions/log
    sage/functions/trig
@@ -21,6 +21,7 @@ Built-in Functions
    sage/functions/other
    sage/functions/special
    sage/functions/hypergeometric
+   sage/functions/hypergeometric_algebraic
    sage/functions/jacobi
    sage/functions/airy
    sage/functions/bessel

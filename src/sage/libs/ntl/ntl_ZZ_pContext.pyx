@@ -5,7 +5,7 @@
 # distutils: extra_link_args = NTL_LIBEXTRA
 # distutils: language = c++
 
-#*****************************************************************************
+# ***************************************************************************
 #       Copyright (C) 2005 William Stein <wstein@gmail.com>
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
@@ -17,8 +17,8 @@
 #
 #  The full text of the GPL is available at:
 #
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ***************************************************************************
 
 include 'misc.pxi'
 include 'decl.pxi'
@@ -28,7 +28,7 @@ from sage.ext.cplusplus cimport ccrepr
 from sage.rings.integer cimport Integer
 
 
-cdef class ntl_ZZ_pContext_class(object):
+cdef class ntl_ZZ_pContext_class():
     def __init__(self, ntl_ZZ v):
         """
         EXAMPLES::
@@ -67,9 +67,9 @@ cdef class ntl_ZZ_pContext_class(object):
         """
         return ntl_ZZ_pContext, (self.p,)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """
-        Returns a print representation of self.
+        Return a print representation of ``self``.
 
         EXAMPLES::
 
@@ -77,7 +77,7 @@ cdef class ntl_ZZ_pContext_class(object):
             sage: c
             NTL modulus 7
         """
-        return "NTL modulus %s"%(self.p)
+        return "NTL modulus %s" % (self.p)
 
     def __hash__(self):
         return hash(self.p)
@@ -95,7 +95,7 @@ cdef class ntl_ZZ_pContext_class(object):
 
             sage: c = ntl.ZZ_pContext(10^30)
             sage: type(c.modulus())
-            <type 'sage.rings.integer.Integer'>
+            <class 'sage.rings.integer.Integer'>
             sage: c.modulus() == 10^30
             True
         """
@@ -114,7 +114,7 @@ cdef class ntl_ZZ_pContext_class(object):
         """
         self.restore_c()
 
-    cdef void restore_c(self):
+    cdef void restore_c(self) noexcept:
         self.x.restore()
 
     cpdef void _assert_is_current_modulus(self) except *:
@@ -157,17 +157,18 @@ cdef class ntl_ZZ_pContext_class(object):
             ccrepr(ntl_ZZ_p_current_modulus())))
 
 
-cdef class ntl_ZZ_pContext_factory(object):
+cdef class ntl_ZZ_pContext_factory():
 
     def __init__(self):
         self.context_dict = {}
 
     cdef ntl_ZZ_pContext_class make_c(self, ntl_ZZ v):
         """
-        Creates a new ZZ_pContext.
+        Create a new ZZ_pContext.
 
         INPUT:
-        v -- an ntl_ZZ
+
+        - ``v`` -- an ntl_ZZ
         """
         cdef ntl_ZZ_pContext_class context
         if v in self.context_dict:
@@ -182,7 +183,7 @@ cdef class ntl_ZZ_pContext_factory(object):
 ZZ_pContext_factory = ntl_ZZ_pContext_factory()
 
 
-def ntl_ZZ_pContext( v ):
+def ntl_ZZ_pContext(v):
     """
     Create a new ZZ_pContext.
 
@@ -194,6 +195,6 @@ def ntl_ZZ_pContext( v ):
         34
     """
     v = ntl_ZZ(v)
-    if (v < ntl_ZZ(2)):
+    if v < ntl_ZZ(2):
         raise ValueError("%s is not a valid modulus." % v)
     return (<ntl_ZZ_pContext_factory>ZZ_pContext_factory).make_c(v)

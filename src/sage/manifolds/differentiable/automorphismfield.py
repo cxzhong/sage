@@ -12,7 +12,6 @@ AUTHORS:
 
 - Eric Gourgoulhon (2015): initial version
 - Travis Scrimshaw (2016): review tweaks
-
 """
 
 # *****************************************************************************
@@ -25,9 +24,10 @@ AUTHORS:
 #                  https://www.gnu.org/licenses/
 # *****************************************************************************
 
-from sage.tensor.modules.free_module_automorphism import FreeModuleAutomorphism
 from sage.manifolds.differentiable.tensorfield import TensorField
 from sage.manifolds.differentiable.tensorfield_paral import TensorFieldParal
+from sage.tensor.modules.free_module_automorphism import FreeModuleAutomorphism
+
 
 class AutomorphismField(TensorField):
     r"""
@@ -70,7 +70,7 @@ class AutomorphismField(TensorField):
     - ``name`` -- (default: ``None``) name given to the field
     - ``latex_name`` -- (default: ``None``) LaTeX symbol to denote the field;
       if none is provided, the LaTeX symbol is set to ``name``
-    - ``is_identity`` -- (default: ``False``) determines whether the
+    - ``is_identity`` -- boolean (default: ``False``); determines whether the
       constructed object is a field of identity automorphisms
 
     EXAMPLES:
@@ -112,10 +112,10 @@ class AutomorphismField(TensorField):
     At this stage, the automorphism field `a` is fully defined::
 
         sage: a.display(eU)
-        a = d/dx*dx + x d/dx*dy + 2 d/dy*dy
+        a = ∂/∂x⊗dx + x ∂/∂x⊗dy + 2 ∂/∂y⊗dy
         sage: a.display(eV)
-        a = (1/4*u + 1/4*v + 3/2) d/du*du + (-1/4*u - 1/4*v - 1/2) d/du*dv
-         + (1/4*u + 1/4*v - 1/2) d/dv*du + (-1/4*u - 1/4*v + 3/2) d/dv*dv
+        a = (1/4*u + 1/4*v + 3/2) ∂/∂u⊗du + (-1/4*u - 1/4*v - 1/2) ∂/∂u⊗dv
+         + (1/4*u + 1/4*v - 1/2) ∂/∂v⊗du + (-1/4*u - 1/4*v + 3/2) ∂/∂v⊗dv
 
     In particular, we may ask for its inverse on the whole manifold `M`::
 
@@ -123,10 +123,10 @@ class AutomorphismField(TensorField):
         Field of tangent-space automorphisms a^(-1) on the 2-dimensional
          differentiable manifold M
         sage: ia.display(eU)
-        a^(-1) = d/dx*dx - 1/2*x d/dx*dy + 1/2 d/dy*dy
+        a^(-1) = ∂/∂x⊗dx - 1/2*x ∂/∂x⊗dy + 1/2 ∂/∂y⊗dy
         sage: ia.display(eV)
-        a^(-1) = (-1/8*u - 1/8*v + 3/4) d/du*du + (1/8*u + 1/8*v + 1/4) d/du*dv
-         + (-1/8*u - 1/8*v + 1/4) d/dv*du + (1/8*u + 1/8*v + 3/4) d/dv*dv
+        a^(-1) = (-1/8*u - 1/8*v + 3/4) ∂/∂u⊗du + (1/8*u + 1/8*v + 1/4) ∂/∂u⊗dv
+         + (-1/8*u - 1/8*v + 1/4) ∂/∂v⊗du + (1/8*u + 1/8*v + 3/4) ∂/∂v⊗dv
 
     Equivalently, one can use the power minus one to get the inverse::
 
@@ -137,7 +137,6 @@ class AutomorphismField(TensorField):
 
         sage: ia is ~a
         True
-
     """
     def __init__(self, vector_field_module, name=None, latex_name=None):
         r"""
@@ -183,7 +182,6 @@ class AutomorphismField(TensorField):
         .. TODO::
 
             Fix ``_test_pickling`` (in the superclass :class:`TensorField`).
-
         """
         TensorField.__init__(self, vector_field_module, (1,1), name=name,
                              latex_name=latex_name,
@@ -206,7 +204,6 @@ class AutomorphismField(TensorField):
             sage: a  # indirect doctest
             Field of tangent-space automorphisms a on the 2-dimensional
              differentiable manifold M
-
         """
         description = "Field of tangent-space "
         if self is self.parent().one():
@@ -226,7 +223,6 @@ class AutomorphismField(TensorField):
             sage: M = Manifold(2, 'M')
             sage: a = M.automorphism_field(name='a')
             sage: a._init_derived()
-
         """
         TensorField._init_derived(self)
         self._inverse = None  # inverse not set yet
@@ -240,7 +236,6 @@ class AutomorphismField(TensorField):
             sage: M = Manifold(2, 'M')
             sage: a = M.automorphism_field(name='a')
             sage: a._del_derived()
-
         """
         # First delete the derived quantities pertaining to the mother class:
         TensorField._del_derived(self)
@@ -279,11 +274,11 @@ class AutomorphismField(TensorField):
             sage: e_uv = c_uv.frame()
             sage: a= M.automorphism_field(name='a')
             sage: a.set_comp(e_uv)
-            2-indices components w.r.t. Coordinate frame (V, (d/du,d/dv))
+            2-indices components w.r.t. Coordinate frame (V, (∂/∂u,∂/∂v))
             sage: a.set_comp(e_uv)[0,0] = u+v
             sage: a.set_comp(e_uv)[1,1] = u+v
             sage: a.display(e_uv)
-            a = (u + v) d/du*du + (u + v) d/dv*dv
+            a = (u + v) ∂/∂u⊗du + (u + v) ∂/∂v⊗dv
 
         Setting the components in a new frame::
 
@@ -293,7 +288,7 @@ class AutomorphismField(TensorField):
             sage: a.set_comp(e)[0,1] = u*v
             sage: a.set_comp(e)[1,0] = u*v
             sage: a.display(e)
-            a = u*v e_0*e^1 + u*v e_1*e^0
+            a = u*v e_0⊗e^1 + u*v e_1⊗e^0
 
         Since the frames ``e`` and ``e_uv`` are defined on the same domain, the
         components w.r.t. ``e_uv`` have been erased::
@@ -302,7 +297,7 @@ class AutomorphismField(TensorField):
             Traceback (most recent call last):
             ...
             ValueError: no basis could be found for computing the components
-             in the Coordinate frame (V, (d/du,d/dv))
+             in the Coordinate frame (V, (∂/∂u,∂/∂v))
 
         Since the identity map is an immutable element, its components
         cannot be changed::
@@ -313,7 +308,6 @@ class AutomorphismField(TensorField):
             ...
             ValueError: the components of an immutable element cannot be
              changed
-
         """
         comp = super().set_comp(basis=basis)
         self._is_identity = False  # a priori
@@ -356,11 +350,11 @@ class AutomorphismField(TensorField):
             sage: e_uv = c_uv.frame()
             sage: a= M.automorphism_field(name='a')
             sage: a.add_comp(e_uv)
-            2-indices components w.r.t. Coordinate frame (V, (d/du,d/dv))
+            2-indices components w.r.t. Coordinate frame (V, (∂/∂u,∂/∂v))
             sage: a.add_comp(e_uv)[0,0] = u+v
             sage: a.add_comp(e_uv)[1,1] = u+v
             sage: a.display(e_uv)
-            a = (u + v) d/du*du + (u + v) d/dv*dv
+            a = (u + v) ∂/∂u⊗du + (u + v) ∂/∂v⊗dv
 
         Setting the components in a new frame::
 
@@ -370,12 +364,12 @@ class AutomorphismField(TensorField):
             sage: a.add_comp(e)[0,1] = u*v
             sage: a.add_comp(e)[1,0] = u*v
             sage: a.display(e)
-            a = u*v e_0*e^1 + u*v e_1*e^0
+            a = u*v e_0⊗e^1 + u*v e_1⊗e^0
 
         The components with respect to ``e_uv`` are kept::
 
             sage: a.display(e_uv)
-            a = (u + v) d/du*du + (u + v) d/dv*dv
+            a = (u + v) ∂/∂u⊗du + (u + v) ∂/∂v⊗dv
 
         Since the identity map is a special element, its components cannot be
         changed::
@@ -386,7 +380,6 @@ class AutomorphismField(TensorField):
             ...
             ValueError: the components of an immutable element cannot be
              changed
-
         """
         comp = super().add_comp(basis=basis)
         self._is_identity = False  # a priori
@@ -406,7 +399,6 @@ class AutomorphismField(TensorField):
              differentiable manifold M
             sage: a._new_instance().parent() is a.parent()
             True
-
         """
         return type(self)(self._vmodule)
 
@@ -456,9 +448,9 @@ class AutomorphismField(TensorField):
             sage: s = a(w); s
             Vector field a(w) on the 2-dimensional differentiable manifold M
             sage: s.display(e_xy)
-            a(w) = -3 d/dx + d/dy
+            a(w) = -3 ∂/∂x + ∂/∂y
             sage: s.display(e_uv)
-            a(w) = (3*u^2 - 2*u*v - 3*v^2) d/du + (u^2 + 6*u*v - v^2) d/dv
+            a(w) = (3*u^2 - 2*u*v - 3*v^2) ∂/∂u + (u^2 + 6*u*v - v^2) ∂/∂v
             sage: s.restrict(U) == a.restrict(U)(w.restrict(U))
             True
             sage: s.restrict(V) == a.restrict(V)(w.restrict(V))
@@ -473,9 +465,9 @@ class AutomorphismField(TensorField):
             sage: s = a(z, w); s
             Scalar field a(z,w) on the 2-dimensional differentiable manifold M
             sage: s.display()
-            a(z,w): M --> R
-            on U: (x, y) |--> x + 3*y
-            on V: (u, v) |--> (u + 3*v)/(u^2 + v^2)
+            a(z,w): M → ℝ
+            on U: (x, y) ↦ x + 3*y
+            on V: (u, v) ↦ (u + 3*v)/(u^2 + v^2)
             sage: s.restrict(U) == a.restrict(U)(z.restrict(U), w.restrict(U))
             True
             sage: s.restrict(V) == a.restrict(V)(z.restrict(V), w.restrict(V))
@@ -484,7 +476,6 @@ class AutomorphismField(TensorField):
             True
             sage: s.restrict(U) == a(z, w.restrict(U))
             True
-
         """
         if self._is_identity:
             if len(arg) == 1:
@@ -494,7 +485,7 @@ class AutomorphismField(TensorField):
                     raise TypeError("the argument must be a vector field")
                 dom = self._domain.intersection(vector._domain)
                 return vector.restrict(dom)
-            elif len(arg) == 2:
+            if len(arg) == 2:
                 # self acting as a type-(1,1) tensor on a pair
                 # (1-form, vector field), returning a scalar field:
                 oneform = arg[0]
@@ -502,8 +493,7 @@ class AutomorphismField(TensorField):
                 dom = self._domain.intersection(
                                   oneform._domain).intersection(vector._domain)
                 return oneform.restrict(dom)(vector.restrict(dom))
-            else:
-                raise TypeError("wrong number of arguments")
+            raise TypeError("wrong number of arguments")
         # Generic case
         if len(arg) == 1:
             # The field of automorphisms acting on a vector field:
@@ -556,7 +546,6 @@ class AutomorphismField(TensorField):
             sage: one = Id.copy('1'); one
             Field of tangent-space automorphisms 1 on the 2-dimensional
              differentiable manifold M
-
         """
         copy = super().copy(name=name, latex_name=latex_name)
         copy._is_identity = self._is_identity
@@ -630,7 +619,6 @@ class AutomorphismField(TensorField):
 
             sage: ia is ~a
             True
-
         """
         if self._is_identity:
             return self
@@ -696,21 +684,20 @@ class AutomorphismField(TensorField):
             Field of tangent-space automorphisms on the 2-dimensional
              differentiable manifold M
             sage: s.display(e_xy)
-            -(x^4 - 10*x^2*y^2 + y^4)/(x^4 + 2*x^2*y^2 + y^4) d/dx*dx
-             - 6*(x^3*y - x*y^3)/(x^4 + 2*x^2*y^2 + y^4) d/dx*dy
-             + 6*(x^3*y - x*y^3)/(x^4 + 2*x^2*y^2 + y^4) d/dy*dx
-             - 2*(x^4 - 4*x^2*y^2 + y^4)/(x^4 + 2*x^2*y^2 + y^4) d/dy*dy
+            -(x^4 - 10*x^2*y^2 + y^4)/(x^4 + 2*x^2*y^2 + y^4) ∂/∂x⊗dx
+             - 6*(x^3*y - x*y^3)/(x^4 + 2*x^2*y^2 + y^4) ∂/∂x⊗dy
+             + 6*(x^3*y - x*y^3)/(x^4 + 2*x^2*y^2 + y^4) ∂/∂y⊗dx
+             - 2*(x^4 - 4*x^2*y^2 + y^4)/(x^4 + 2*x^2*y^2 + y^4) ∂/∂y⊗dy
             sage: s.display(e_uv)
-            -(u^4 - 6*u^2*v^2 + v^4)/(u^4 + 2*u^2*v^2 + v^4) d/du*du
-             + 8*(u^3*v - u*v^3)/(u^4 + 2*u^2*v^2 + v^4) d/du*dv
-             - 4*(u^3*v - u*v^3)/(u^4 + 2*u^2*v^2 + v^4) d/dv*du
-            - 2*(u^4 - 6*u^2*v^2 + v^4)/(u^4 + 2*u^2*v^2 + v^4) d/dv*dv
+            -(u^4 - 6*u^2*v^2 + v^4)/(u^4 + 2*u^2*v^2 + v^4) ∂/∂u⊗du
+             + 8*(u^3*v - u*v^3)/(u^4 + 2*u^2*v^2 + v^4) ∂/∂u⊗dv
+             - 4*(u^3*v - u*v^3)/(u^4 + 2*u^2*v^2 + v^4) ∂/∂v⊗du
+            - 2*(u^4 - 6*u^2*v^2 + v^4)/(u^4 + 2*u^2*v^2 + v^4) ∂/∂v⊗dv
             sage: w = M.vector_field(name='w')
             sage: w[e_xy, :] = [3, 1]
             sage: w.add_comp_by_continuation(e_uv, U.intersection(V), c_uv)
             sage: s(w) == a(b(w))  # long time
             True
-
         """
         # No need for consistency check since self and other are guaranteed
         # to have the same parent. In particular, they are defined on the same
@@ -767,12 +754,10 @@ class AutomorphismField(TensorField):
             True
             sage: s = a.__mul__(w); s  # tensor product
             Tensor field of type (2,1) on the 2-dimensional differentiable manifold M
-
         """
         if isinstance(other, AutomorphismField):
             return self._mul_(other)  # general linear group law
-        else:
-            return TensorField.__mul__(self, other)  # tensor product
+        return TensorField.__mul__(self, other)  # tensor product
 
     def __imul__(self, other):
         r"""
@@ -804,8 +789,7 @@ class AutomorphismField(TensorField):
             sage: a *= b
             sage: a == s
             True
-
-       """
+        """
         return self.__mul__(other)
 
     def restrict(self, subdomain, dest_map=None):
@@ -827,9 +811,7 @@ class AutomorphismField(TensorField):
           subdomain of ``self._codomain``; if ``None``, the restriction
           of ``self.base_module().destination_map()`` to `V` is used
 
-        OUTPUT:
-
-        - a :class:`AutomorphismField` representing the restriction
+        OUTPUT: a :class:`AutomorphismField` representing the restriction
 
         EXAMPLES:
 
@@ -898,7 +880,6 @@ class AutomorphismField(TensorField):
             sage: id.restrict(W)[eS_W,:]
             [1 0]
             [0 1]
-
         """
         if subdomain == self._domain:
             return self
@@ -1004,7 +985,6 @@ class AutomorphismFieldParal(FreeModuleAutomorphism, TensorFieldParal):
 
         sage: inv is ~rot
         True
-
     """
     def __init__(self, vector_field_module, name=None, latex_name=None):
         r"""
@@ -1039,7 +1019,6 @@ class AutomorphismFieldParal(FreeModuleAutomorphism, TensorFieldParal):
             [1 0]
             [0 1]
             sage: TestSuite(b).run()
-
         """
         FreeModuleAutomorphism.__init__(self, vector_field_module,
                                         name=name, latex_name=latex_name)
@@ -1067,7 +1046,6 @@ class AutomorphismFieldParal(FreeModuleAutomorphism, TensorFieldParal):
             sage: a  # indirect doctest
             Field of tangent-space automorphisms a on the 2-dimensional
              differentiable manifold M
-
         """
         description = "Field of tangent-space "
         if self is self.parent().one():
@@ -1084,8 +1062,8 @@ class AutomorphismFieldParal(FreeModuleAutomorphism, TensorFieldParal):
 
         INPUT:
 
-        - ``del_restrictions`` -- (default: ``True``) determines whether the
-          restrictions of ``self`` to subdomains are deleted.
+        - ``del_restrictions`` -- boolean (default: ``True``); determines whether the
+          restrictions of ``self`` to subdomains are deleted
 
         TESTS::
 
@@ -1093,7 +1071,6 @@ class AutomorphismFieldParal(FreeModuleAutomorphism, TensorFieldParal):
             sage: X.<x,y> = M.chart()
             sage: a = M.automorphism_field(name='a')
             sage: a._del_derived()
-
         """
         # Delete the derived quantities pertaining to the mother classes:
         FreeModuleAutomorphism._del_derived(self)
@@ -1117,12 +1094,12 @@ class AutomorphismFieldParal(FreeModuleAutomorphism, TensorFieldParal):
             sage: s = a.__call__(v); s
             Vector field a(v) on the 2-dimensional differentiable manifold M
             sage: s.display()
-            a(v) = x d/dx + y d/dy
+            a(v) = x ∂/∂x + y ∂/∂y
             sage: s = a.__call__(z, v); s
             Scalar field a(z,v) on the 2-dimensional differentiable manifold M
             sage: s.display()
-            a(z,v): M --> R
-               (x, y) |--> 2*x*y^2 + x
+            a(z,v): M → ℝ
+               (x, y) ↦ 2*x*y^2 + x
             sage: U = M.open_subset('U', coord_def={X: x>0})
             sage: s = a.__call__(v.restrict(U)); s
             Vector field a(v) on the Open subset U of the 2-dimensional
@@ -1131,9 +1108,8 @@ class AutomorphismFieldParal(FreeModuleAutomorphism, TensorFieldParal):
             Scalar field a(z,v) on the Open subset U of the 2-dimensional
              differentiable manifold M
             sage: s.display()
-            a(z,v): U --> R
-               (x, y) |--> 2*x*y^2 + x
-
+            a(z,v): U → ℝ
+               (x, y) ↦ 2*x*y^2 + x
         """
         if len(arg) == 1:
             # the automorphism acting as such (map of a vector field to a
@@ -1142,7 +1118,7 @@ class AutomorphismFieldParal(FreeModuleAutomorphism, TensorFieldParal):
             dom = self._domain.intersection(vector._domain)
             return FreeModuleAutomorphism.__call__(self.restrict(dom),
                                                    vector.restrict(dom))
-        elif len(arg) == 2:
+        if len(arg) == 2:
             # the automorphism acting as a type (1,1) tensor on a pair
             # (1-form, vector field), returning a scalar field:
             oneform = arg[0]
@@ -1152,8 +1128,7 @@ class AutomorphismFieldParal(FreeModuleAutomorphism, TensorFieldParal):
             return FreeModuleAutomorphism.__call__(self.restrict(dom),
                                                    oneform.restrict(dom),
                                                    vector.restrict(dom))
-        else:
-            raise TypeError("wrong number of arguments")
+        raise TypeError("wrong number of arguments")
 
     def __invert__(self):
         r"""
@@ -1189,11 +1164,10 @@ class AutomorphismFieldParal(FreeModuleAutomorphism, TensorFieldParal):
 
             sage: b is ~a
             True
-
         """
+        from sage.manifolds.differentiable.vectorframe import CoordFrame
         from sage.matrix.constructor import matrix
         from sage.tensor.modules.comp import Components
-        from sage.manifolds.differentiable.vectorframe import CoordFrame
         if self._is_identity:
             return self
         if self._inverse is None:
@@ -1222,7 +1196,7 @@ class AutomorphismFieldParal(FreeModuleAutomorphism, TensorFieldParal):
                 if isinstance(frame, CoordFrame):
                     chart = frame._chart
                 else:
-                    chart = self._domain._def_chart #!# to be improved
+                    chart = self._domain._def_chart  # ! # to be improved
                 try:
                     # TODO: do the computation without the 'SR' enforcement
                     mat_self = matrix(
@@ -1263,9 +1237,7 @@ class AutomorphismFieldParal(FreeModuleAutomorphism, TensorFieldParal):
           ``self._codomain``; if ``None``, the restriction of
           ``self.base_module().destination_map()`` to `V` is used
 
-        OUTPUT:
-
-        - a :class:`AutomorphismFieldParal` representing the restriction
+        OUTPUT: a :class:`AutomorphismFieldParal` representing the restriction
 
         EXAMPLES:
 
@@ -1298,7 +1270,6 @@ class AutomorphismFieldParal(FreeModuleAutomorphism, TensorFieldParal):
             [0 1]
             sage: id.restrict(D) == D.tangent_identity_field()
             True
-
         """
         if subdomain == self._domain:
             return self
@@ -1359,14 +1330,14 @@ class AutomorphismFieldParal(FreeModuleAutomorphism, TensorFieldParal):
             sage: a = M.automorphism_field([[1+exp(y), x*y], [0, 1+x^2]],
             ....:                          name='a')
             sage: a.display()
-            a = (e^y + 1) d/dx*dx + x*y d/dx*dy + (x^2 + 1) d/dy*dy
+            a = (e^y + 1) ∂/∂x⊗dx + x*y ∂/∂x⊗dy + (x^2 + 1) ∂/∂y⊗dy
             sage: p = M.point((-2,3), name='p') ; p
             Point p on the 2-dimensional differentiable manifold M
             sage: ap = a.at(p) ; ap
             Automorphism a of the Tangent space at Point p on the
              2-dimensional differentiable manifold M
             sage: ap.display()
-            a = (e^3 + 1) d/dx*dx - 6 d/dx*dy + 5 d/dy*dy
+            a = (e^3 + 1) ∂/∂x⊗dx - 6 ∂/∂x⊗dy + 5 ∂/∂y⊗dy
             sage: ap.parent()
             General linear group of the Tangent space at Point p on the
              2-dimensional differentiable manifold M
@@ -1382,13 +1353,12 @@ class AutomorphismFieldParal(FreeModuleAutomorphism, TensorFieldParal):
             sage: idp is M.tangent_space(p).identity_map()
             True
             sage: idp.display()
-            Id = d/dx*dx + d/dy*dy
+            Id = ∂/∂x⊗dx + ∂/∂y⊗dy
             sage: idp.parent()
             General linear group of the Tangent space at Point p on the
              2-dimensional differentiable manifold M
             sage: idp * ap == ap
             True
-
         """
         if point not in self._domain:
             raise TypeError("the {} is not in the domain of the {}".format(
@@ -1397,7 +1367,7 @@ class AutomorphismFieldParal(FreeModuleAutomorphism, TensorFieldParal):
         if dest_map.is_identity():
             amb_point = point
         else:
-            amb_point = dest_map(point)  #  "ambient" point
+            amb_point = dest_map(point)  # "ambient" point
         ts = amb_point._manifold.tangent_space(amb_point)
         if self._is_identity:
             return ts.identity_map()

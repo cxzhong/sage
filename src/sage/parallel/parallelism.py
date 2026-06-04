@@ -11,7 +11,6 @@ Some examples of use are provided in the documentation of
 AUTHORS:
 
 - Marco Mancini, Eric Gourgoulhon, Michal Bejger (2015): initial version
-
 """
 
 # *****************************************************************************
@@ -27,6 +26,7 @@ from sage.structure.sage_object import SageObject
 from sage.misc.fast_methods import Singleton
 from sage.parallel.ncpus import ncpus
 from sage.rings.integer import Integer
+
 
 class Parallelism(Singleton, SageObject):
     r"""
@@ -82,7 +82,6 @@ class Parallelism(Singleton, SageObject):
     Switching off all parallelizations::
 
         sage: Parallelism().set(nproc=1)
-
     """
     def __init__(self):
         r"""
@@ -104,11 +103,13 @@ class Parallelism(Singleton, SageObject):
         The test suite is passed::
 
             sage: TestSuite(par).run()
-
         """
-        self._default = ncpus()  # default number of proc. used in parallelizations
-        self._nproc = {'tensor' : 1, 'linbox' : 1}  # dict. of number of processes to be used
-                                      # (keys: computational field)
+        self._default = ncpus()
+        # default number of proc. used in parallelizations
+
+        self._nproc = {'tensor': 1, 'linbox': 1}
+        # dict. of number of processes to be used
+        # (keys: computational field)
 
     def _repr_(self):
         r"""
@@ -118,7 +119,6 @@ class Parallelism(Singleton, SageObject):
 
             sage: Parallelism()._repr_()
             'Number of processes for parallelization:\n - linbox computations: 1\n - tensor computations: 1'
-
         """
         resu = "Number of processes for parallelization:\n"
         for field in sorted(self._nproc):
@@ -161,7 +161,6 @@ class Parallelism(Singleton, SageObject):
              - tensor computations: 1
             sage: Parallelism().get_default()  # random (depends on the computer)
             8
-
         """
         self._default = ncpus()
         for field in self._nproc:
@@ -230,7 +229,6 @@ class Parallelism(Singleton, SageObject):
             Number of processes for parallelization:
              - linbox computations: 1
              - tensor computations: 1
-
         """
         if field is None:
             for fi in self._nproc:
@@ -242,7 +240,7 @@ class Parallelism(Singleton, SageObject):
             if nproc is None:
                 self._nproc[field] = self._default
             else:
-                if not isinstance(nproc, (int,Integer)):
+                if not isinstance(nproc, (int, Integer)):
                     raise TypeError("nproc must be integer")
                 self._nproc[field] = nproc
 
@@ -274,13 +272,11 @@ class Parallelism(Singleton, SageObject):
             sage: Parallelism().set('tensor', nproc=4)
             sage: Parallelism().get('tensor')
             4
-
         """
         if field not in self._nproc:
             raise KeyError("entry for field {} is not ".format(field) +
                            "implemented in Parallelism()")
         return self._nproc[field]
-
 
     def get_all(self):
         r"""
@@ -303,10 +299,8 @@ class Parallelism(Singleton, SageObject):
             sage: Parallelism().set(nproc=4)
             sage: Parallelism().get_all()
             {'linbox': 4, 'tensor': 4}
-
         """
         return self._nproc
-
 
     def set_default(self, nproc=None):
         r"""
@@ -338,12 +332,11 @@ class Parallelism(Singleton, SageObject):
             sage: Parallelism().set_default()
             sage: Parallelism().get_default()  # random (depends on the computer)
             8
-
         """
         if nproc is None:
             self._default = ncpus()
         else:
-            if not isinstance(nproc,(int,Integer)):
+            if not isinstance(nproc, (int, Integer)):
                 raise TypeError("nproc must be integer")
             self._default = nproc
 
@@ -366,6 +359,5 @@ class Parallelism(Singleton, SageObject):
             sage: Parallelism().set_default(nproc=4)
             sage: Parallelism().get_default()
             4
-
         """
         return self._default

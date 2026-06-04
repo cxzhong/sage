@@ -7,50 +7,34 @@ This avoids the problem of defining a measure space and measurable
 functions.
 """
 
-#*****************************************************************************
+# ****************************************************************************
 #       Copyright (C) 2007 David Kohel <kohel@maths.usyd.edu.au>
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
 #
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
-from sage.structure.parent_base import ParentWithBase
+import sage.rings.abc
+from sage.structure.parent import Parent
 from sage.functions.log import log
-from sage.functions.all import sqrt
-from sage.rings.real_mpfr import (RealField, is_RealField)
-from sage.rings.rational_field import is_RationalField
+from sage.misc.functional import sqrt
+from sage.rings.rational_field import RationalField
 from sage.sets.set import Set
 from pprint import pformat
 
-################################################################################
-################################################################################
 
-def is_ProbabilitySpace(S):
-    return isinstance(S, ProbabilitySpace_generic)
+# We could inherit from a functions class here but use Parent
 
-def is_DiscreteProbabilitySpace(S):
-    return isinstance(S, DiscreteProbabilitySpace)
 
-def is_RandomVariable(X):
-    return isinstance(X, RandomVariable_generic)
-
-def is_DiscreteRandomVariable(X):
-    return isinstance(X, DiscreteRandomVariable)
-
-################################################################################
-################################################################################
-
-# We could inherit from a functions class here but use ParentWithBase
-
-class RandomVariable_generic(ParentWithBase):
+class RandomVariable_generic(Parent):
     """
     A random variable.
     """
     def __init__(self, X, RR):
-        if not is_ProbabilitySpace(X):
+        if not isinstance(X, ProbabilitySpace_generic):
             raise TypeError("Argument X (= %s) must be a probability space" % X)
-        ParentWithBase.__init__(self, X)
+        Parent.__init__(self, X)
         self._codomain = RR
 
     def probability_space(self):
@@ -65,29 +49,34 @@ class RandomVariable_generic(ParentWithBase):
     def field(self):
         return self._codomain
 
+
 class DiscreteRandomVariable(RandomVariable_generic):
     """
     A random variable on a discrete probability space.
     """
-    def __init__(self, X, f, codomain = None, check = False):
+    def __init__(self, X, f, codomain=None, check=False):
         r"""
         Create free binary string monoid on `n` generators.
 
-        INPUT: x: A probability space f: A dictionary such that X[x] =
-        value for x in X is the discrete function on X
+        INPUT:
+
+        - ``X`` -- a probability space
+        - ``f`` -- dictionary such that X[x] = value for x in X
+          is the discrete function on X
         """
-        if not is_DiscreteProbabilitySpace(X):
+        if not isinstance(X, DiscreteProbabilitySpace):
             raise TypeError("Argument X (= %s) must be a discrete probability space" % X)
         if check:
             raise NotImplementedError("Not implemented")
         if codomain is None:
+            from sage.rings.real_mpfr import RealField
             RR = RealField()
         else:
             RR = codomain
         RandomVariable_generic.__init__(self, X, RR)
         self._function = f
 
-    def __call__(self,x):
+    def __call__(self, x):
         """
         Return the value of the random variable at x.
         """
@@ -112,12 +101,12 @@ class DiscreteRandomVariable(RandomVariable_generic):
     def expectation(self):
         r"""
         The expectation of the discrete random variable, namely
-        `\sum_{x \in S} p(x) X[x]`, where `X` = self and
+        `\sum_{x \in S} p(x) X[x]`, where `X` = ``self`` and
         `S` is the probability space of `X`.
         """
         E = 0
         Omega = self.probability_space()
-        for x in self._function.keys():
+        for x in self._function:
             E += Omega(x) * self(x)
         return E
 
@@ -130,7 +119,7 @@ class DiscreteRandomVariable(RandomVariable_generic):
         """
         E = 0
         Omega = self.probability_space()
-        for x in Omega._function.keys():
+        for x in Omega._function:
             E += Omega(x) * self(map(x))
         return E
 
@@ -149,7 +138,7 @@ class DiscreteRandomVariable(RandomVariable_generic):
         Omega = self.probability_space()
         mu = self.expectation()
         var = 0
-        for x in self._function.keys():
+        for x in self._function:
             var += Omega(x) * (self(x) - mu)**2
         return var
 
@@ -169,14 +158,14 @@ class DiscreteRandomVariable(RandomVariable_generic):
         Omega = self.probability_space()
         mu = self.translation_expectation(map)
         var = 0
-        for x in Omega._function.keys():
+        for x in Omega._function:
             var += Omega(x) * (self(map(x)) - mu)**2
         return var
 
     def covariance(self, other):
         r"""
-        The covariance of the discrete random variable X = self with Y =
-        other.
+        The covariance of the discrete random variable X = ``self`` with Y =
+        ``other``.
 
         Let `S` be the probability space of `X` = self,
         with probability function `p`, and `E(X)` be the
@@ -192,14 +181,14 @@ class DiscreteRandomVariable(RandomVariable_generic):
         muX = self.expectation()
         muY = other.expectation()
         cov = 0
-        for x in self._function.keys():
+        for x in self._function:
             cov += Omega(x)*(self(x) - muX)*(other(x) - muY)
         return cov
 
     def translation_covariance(self, other, map):
         r"""
-        The covariance of the probability space X = self with image of Y =
-        other under the given map of the probability space.
+        The covariance of the probability space X = ``self`` with image of Y =
+        ``other`` under the given map of the probability space.
 
         Let `S` be the probability space of `X` = self,
         with probability function `p`, and `E(X)` be the
@@ -215,7 +204,7 @@ class DiscreteRandomVariable(RandomVariable_generic):
         muX = self.expectation()
         muY = other.translation_expectation(map)
         cov = 0
-        for x in Omega._function.keys():
+        for x in Omega._function:
             cov += Omega(x)*(self(x) - muX)*(other(map(x)) - muY)
         return cov
 
@@ -237,23 +226,23 @@ class DiscreteRandomVariable(RandomVariable_generic):
     def translation_standard_deviation(self, map):
         r"""
         The standard deviation of the translated discrete random variable
-        `X \circ e`, where `X` = self and `e` =
+        `X \circ e`, where `X` = ``self`` and `e` =
         map.
 
-        Let `S` be the probability space of `X` = self,
+        Let `S` be the probability space of `X` = ``self``,
         with probability function `p`, and `E(X)` be the
         expectation of `X`. Then the standard deviation of
         `X` is defined to be
 
         .. MATH::
 
-                     \sigma(X) = \sqrt{ \sum_{x \in S} p(x) (X(x) - E(x))^2}
+            \sigma(X) = \sqrt{ \sum_{x \in S} p(x) (X(x) - E(x))^2}
         """
         return sqrt(self.translation_variance(map))
 
     def correlation(self, other):
         """
-        The correlation of the probability space X = self with Y = other.
+        The correlation of the probability space X = ``self`` with Y = ``other``.
         """
         cov = self.covariance(other)
         sigX = self.standard_deviation()
@@ -264,8 +253,8 @@ class DiscreteRandomVariable(RandomVariable_generic):
 
     def translation_correlation(self, other, map):
         """
-        The correlation of the probability space X = self with image of Y =
-        other under map.
+        The correlation of the probability space X = ``self`` with image of Y =
+        ``other`` under map.
         """
         cov = self.translation_covariance(other, map)
         sigX = self.standard_deviation()
@@ -276,6 +265,7 @@ class DiscreteRandomVariable(RandomVariable_generic):
 
 ################################################################################
 ################################################################################
+
 
 class ProbabilitySpace_generic(RandomVariable_generic):
     r"""
@@ -301,7 +291,7 @@ class DiscreteProbabilitySpace(ProbabilitySpace_generic,DiscreteRandomVariable):
     r"""
     The discrete probability space
     """
-    def __init__(self, X, P, codomain = None, check = False):
+    def __init__(self, X, P, codomain=None, check=False):
         r"""
         Create the discrete probability space with probabilities on the
         space X given by the dictionary P with values in the field
@@ -335,12 +325,13 @@ class DiscreteProbabilitySpace(ProbabilitySpace_generic,DiscreteRandomVariable):
             1.50000000000000
         """
         if codomain is None:
+            from sage.rings.real_mpfr import RealField
             codomain = RealField()
-        if not is_RealField(codomain) and not is_RationalField(codomain):
+        if not isinstance(codomain, sage.rings.abc.RealField) and not isinstance(codomain, RationalField):
             raise TypeError("Argument codomain (= %s) must be the reals or rationals" % codomain)
         if check:
             one = sum(P.values())
-            if is_RationalField(codomain):
+            if isinstance(codomain, RationalField):
                 if not one == 1:
                     raise TypeError("Argument P (= %s) does not define a probability function")
             else:
@@ -367,7 +358,7 @@ class DiscreteProbabilitySpace(ProbabilitySpace_generic,DiscreteRandomVariable):
         The set of values of the probability space taking possibly nonzero
         probability (a subset of the domain).
         """
-        return Set(self.function().keys())
+        return Set(self.function())
 
     def entropy(self):
         """
@@ -376,7 +367,6 @@ class DiscreteProbabilitySpace(ProbabilitySpace_generic,DiscreteRandomVariable):
         def neg_xlog2x(p):
             if p == 0:
                 return 0
-            else:
-                return -p*log(p,2)
+            return -p*log(p,2)
         p = self.function()
-        return sum([ neg_xlog2x(p[x]) for x in p.keys() ])
+        return sum([neg_xlog2x(p[x]) for x in p])

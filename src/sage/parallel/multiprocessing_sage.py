@@ -8,13 +8,14 @@ Parallel Iterator built using Python's multiprocessing module
 #  Distributed under the terms of (any version of) the GNU
 #  General Public License (GPL). The full text of the GPL is available at:
 #
-#                  http://www.gnu.org/licenses/
+#                  https://www.gnu.org/licenses/
 ################################################################################
 
 from multiprocessing import Pool
 from functools import partial
 from sage.misc.fpickle import pickle_function, call_pickled_function
 from . import ncpus
+
 
 def pyprocessing(processes=0):
     """
@@ -24,11 +25,9 @@ def pyprocessing(processes=0):
     INPUT:
 
     - ``processes`` -- integer (default: 0); if 0, set to the number
-      of processors on the computer.
+      of processors on the computer
 
-    OUTPUT:
-
-    - a (partially evaluated) function
+    OUTPUT: a (partially evaluated) function
 
     EXAMPLES::
 
@@ -54,9 +53,7 @@ def parallel_iter(processes, f, inputs):
     - ``f`` -- function
     - ``inputs`` -- an iterable of pairs (args, kwds)
 
-    OUTPUT:
-
-    - iterator over values of ``f`` at ``args,kwds`` in some random order.
+    OUTPUT: iterator over values of ``f`` at ``args, kwds`` in some random order
 
     EXAMPLES::
 
@@ -73,7 +70,6 @@ def parallel_iter(processes, f, inputs):
 
     result = p.imap_unordered(call_pickled_function,
                               [(fp, t) for t in inputs])
-    for res in result:
-        yield res
+    yield from result
     p.close()
     p.join()

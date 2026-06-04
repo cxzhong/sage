@@ -166,7 +166,6 @@ etc:
     #!/usr/bin/env sage
 
     import sys
-    from sage.all import *
 
     if len(sys.argv) != 2:
         print("Usage: %s <n>" % sys.argv[0])
@@ -178,7 +177,7 @@ etc:
 In order to use this script, your ``SAGE_ROOT`` must be in your PATH.
 If the above script is called ``factor``, here is an example usage:
 
-.. CODE-BLOCK:: shell-session
+.. code-block:: console
 
     $ ./factor 2006
     2 * 17 * 59
@@ -249,15 +248,9 @@ examples.
     sqrt(2)
     sage: V = VectorSpace(QQ,2)
     sage: V.basis()
-        [
-        (1, 0),
-        (0, 1)
-        ]
+        [(1, 0), (0, 1)]
     sage: basis(V)
-        [
-        (1, 0),
-        (0, 1)
-        ]
+        [(1, 0), (0, 1)]
     sage: M = MatrixSpace(GF(7), 2); M
     Full MatrixSpace of 2 by 2 dense matrices over Finite Field of size 7
     sage: A = M([1,2,3,4]); A
@@ -311,7 +304,7 @@ Integers):
 
 ::
 
-    sage: range(1, 15)  # py2
+    sage: list(range(1, 15))
     [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
 
 This is useful when using list comprehensions to construct lists:
@@ -378,7 +371,7 @@ a common parent, called the sequences universe.
     sage: type(v)
     <class 'sage.structure.sequence.Sequence_generic'>
     sage: type(v[1])
-    <type 'sage.rings.rational.Rational'>
+    <class 'sage.rings.rational.Rational'>
     sage: v.universe()
     Rational Field
     sage: v.is_immutable()
@@ -408,11 +401,7 @@ sequences, since it's important that you don't change them.
 ::
 
     sage: V = QQ^3; B = V.basis(); B
-    [
-    (1, 0, 0),
-    (0, 1, 0),
-    (0, 0, 1)
-    ]
+    [(1, 0, 0), (0, 1, 0), (0, 0, 1)]
     sage: type(B)
     <class 'sage.structure.sequence.Sequence_generic'>
     sage: B[0] = B[1]
@@ -428,8 +417,8 @@ Dictionaries
 A dictionary (also sometimes called an associative array) is a
 mapping from 'hashable' objects (e.g., strings, numbers, and tuples
 of such; see the Python documentation
-http://docs.python.org/tut/node7.html and
-http://docs.python.org/lib/typesmapping.html for details) to
+http://docs.python.org/3/tutorial/datastructures.html and
+https://docs.python.org/3/library/stdtypes.html#typesmapping for details) to
 arbitrary objects.
 
 ::
@@ -522,8 +511,7 @@ nonnegative integers up to :math:`10000000`.
 
 ::
 
-    sage: v = (n^2 for n in xrange(10000000))  # py2
-    sage: v = (n^2 for n in range(10000000))  # py3
+    sage: v = (n^2 for n in range(10000000))
     sage: next(v)
     0
     sage: next(v)
@@ -671,8 +659,6 @@ the Python int ``1`` is unique, but the Sage Integer ``1`` is not:
 
     sage: 1 is 2/2
     False
-    sage: int(1) is int(2)/int(2)   # py2
-    True
     sage: 1 is 1
     False
     sage: 1 == 2/2
@@ -707,10 +693,9 @@ declares the :math:`1 \in \GF{5}` equal to :math:`1 \in \QQ`.
 Profiling
 =========
 
-Section Author: Martin Albrecht (malb@informatik.uni-bremen.de)
-
     "Premature optimization is the root of all evil." - Donald Knuth
 
+.. sectionauthor:: Martin Albrecht <malb@informatik.uni-bremen.de>
 
 Sometimes it is useful to check for bottlenecks in code to
 understand which parts take the most computational time; this can
@@ -767,7 +752,7 @@ closer examination:
 
 .. skip
 
-:: 
+::
 
     sage: %prun -r A*A
     sage: stats = _
@@ -806,10 +791,11 @@ visualization.
 
 On a system shell, type
 
-.. CODE-BLOCK:: shell-session
+.. code-block:: console
 
     $ hotshot2calltree -o cachegrind.out.42 pythongrind.prof
 
 The output file ``cachegrind.out.42`` can now be examined with
 ``kcachegrind``. Please note that the naming convention
 ``cachegrind.out.XX`` needs to be obeyed.
+

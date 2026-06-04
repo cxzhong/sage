@@ -1,5 +1,5 @@
 r"""
-Knutson-Tao Puzzles
+Knutson-Tao puzzles
 
 This module implements a generic algorithm to solve Knutson-Tao puzzles. An
 instance of this class will be callable: the arguments are the labels of
@@ -9,8 +9,9 @@ of the fillings of the puzzle with the specified pieces.
 Acknowledgements
 ----------------
 
-This code was written during Sage Days 45 at ICERM with Franco Saliola, Anne Schilling, and Avinash Dalal in discussions with Allen Knutson.
-The code was tested afterwards by Liz Beazley and Ed Richmond.
+This code was written during Sage Days 45 at ICERM with Franco Saliola, Anne
+Schilling, and Avinash Dalal in discussions with Allen Knutson.  The code was
+tested afterwards by Liz Beazley and Ed Richmond.
 
 .. TODO::
 
@@ -37,18 +38,21 @@ The code was tested afterwards by Liz Beazley and Ed Richmond.
 #  Distributed under the terms of the GNU General Public License (GPL)
 #                  https://www.gnu.org/licenses/
 # ****************************************************************************
-from sage.plot.graphics import Graphics
-from sage.plot.polygon import polygon
-from sage.plot.line import line
-from sage.plot.text import text
+from __future__ import annotations
+
+from sage.misc.lazy_import import lazy_import
+lazy_import("sage.plot.graphics", "Graphics")
+lazy_import("sage.plot.polygon", "polygon")
+lazy_import("sage.plot.line", "line")
+lazy_import("sage.plot.text", "text")
 from sage.rings.polynomial.polynomial_ring_constructor import PolynomialRing
 from sage.rings.finite_rings.integer_mod_ring import Integers
-from sage.plot.plot import graphics_array
+lazy_import("sage.plot.plot", "graphics_array")
 from sage.misc.cachefunc import cached_method
 from sage.structure.unique_representation import UniqueRepresentation
 
 
-class PuzzlePiece(object):
+class PuzzlePiece:
     r"""
     Abstract class for puzzle pieces.
 
@@ -71,8 +75,7 @@ class PuzzlePiece(object):
         """
         if isinstance(other, PuzzlePiece):
             return self.border() == other.border()
-        else:
-            return False
+        return False
 
     def __hash__(self):
         r"""
@@ -93,8 +96,8 @@ class PuzzlePiece(object):
 
             sage: from sage.combinat.knutson_tao_puzzles import DeltaPiece
             sage: delta = DeltaPiece('a','b','c')
-            sage: delta.border()
-            ('a', 'b', 'c')
+            sage: sorted(delta.border())
+            ['a', 'b', 'c']
         """
         return tuple(self.edge_label(edge) for edge in self.edges())
 
@@ -151,8 +154,7 @@ class PuzzlePiece(object):
         """
         if label in ('0', '1', '2'):
             return text(label, coords, color=fontcolor, fontsize=fontsize, rotation=rotation)
-        else:
-            return Graphics()
+        return Graphics()
 
     def _plot_piece(self, coords, border_color=(0.5, 0.5, 0.5),
                     border_thickness=1, style='fill'):
@@ -167,7 +169,7 @@ class PuzzlePiece(object):
             P = polygon(coords, color=self.color())
             P += polygon(coords, fill=False, color=border_color, thickness=border_thickness)
             return P
-        elif style == 'edges':
+        if style == 'edges':
             if isinstance(self, DeltaPiece):
                 edges = ('north_west', 'south', 'north_east')
             elif isinstance(self, NablaPiece):
@@ -175,13 +177,12 @@ class PuzzlePiece(object):
             else:
                 edges = self.edges()
             P = Graphics()
-            for (i, edge) in enumerate(edges):
+            for i, edge in enumerate(edges):
                 P += line([coords[i], coords[(i + 1) % 3]],
                           color=self.edge_color(edge),
                           thickness=border_thickness)
             return P
-        else:
-            return NotImplemented
+        return NotImplemented
 
     def edge_color(self, edge) -> str:
         r"""
@@ -273,8 +274,7 @@ class NablaPiece(PuzzlePiece):
         if isinstance(other, NablaPiece):
             return (self.border() == other.border() and
                     self._edge_labels == other._edge_labels)
-        else:
-            return False
+        return False
 
     def __hash__(self):
         r"""
@@ -301,13 +301,11 @@ class NablaPiece(PuzzlePiece):
                               self['north'],
                               self['south_east'])
 
-    def clockwise_rotation(self) -> 'NablaPiece':
+    def clockwise_rotation(self) -> NablaPiece:
         r"""
         Rotate the Nabla piece by 120 degree clockwise.
 
-        OUTPUT:
-
-        - Nabla piece
+        OUTPUT: Nabla piece
 
         EXAMPLES::
 
@@ -320,13 +318,11 @@ class NablaPiece(PuzzlePiece):
                           south_east=self['north'],
                           south_west=self['south_east'])
 
-    def half_turn_rotation(self) -> 'DeltaPiece':
+    def half_turn_rotation(self) -> DeltaPiece:
         r"""
         Rotate the Nabla piece by 180 degree.
 
-        OUTPUT:
-
-        - Delta piece
+        OUTPUT: Delta piece
 
         EXAMPLES::
 
@@ -395,8 +391,7 @@ class DeltaPiece(PuzzlePiece):
         if isinstance(other, DeltaPiece):
             return (self.border() == other.border() and
                     self._edge_labels == other._edge_labels)
-        else:
-            return False
+        return False
 
     def __hash__(self):
         r"""
@@ -423,13 +418,11 @@ class DeltaPiece(PuzzlePiece):
                               self['south'],
                               self['north_east'])
 
-    def clockwise_rotation(self) -> 'DeltaPiece':
+    def clockwise_rotation(self) -> DeltaPiece:
         r"""
         Rotate the Delta piece by 120 degree clockwise.
 
-        OUTPUT:
-
-        - Delta piece
+        OUTPUT: Delta piece
 
         EXAMPLES::
 
@@ -442,13 +435,11 @@ class DeltaPiece(PuzzlePiece):
                           north_west=self['south'],
                           north_east=self['north_west'])
 
-    def half_turn_rotation(self) -> 'NablaPiece':
+    def half_turn_rotation(self) -> NablaPiece:
         r"""
         Rotate the Delta piece by 180 degree.
 
-        OUTPUT:
-
-        - Nabla piece
+        OUTPUT: Nabla piece
 
         EXAMPLES::
 
@@ -491,6 +482,7 @@ class RhombusPiece(PuzzlePiece):
         sage: RhombusPiece(delta,nabla)
         2/\3  6\/5
     """
+
     def __init__(self, north_piece, south_piece):
         r"""
         EXAMPLES::
@@ -527,8 +519,7 @@ class RhombusPiece(PuzzlePiece):
                     self._north_piece == other._north_piece and
                     self._south_piece == other._south_piece and
                     self._edge_labels == other._edge_labels)
-        else:
-            return False
+        return False
 
     def __hash__(self):
         r"""
@@ -559,7 +550,7 @@ class RhombusPiece(PuzzlePiece):
         yield self._north_piece
         yield self._south_piece
 
-    def north_piece(self) -> 'DeltaPiece':
+    def north_piece(self) -> DeltaPiece:
         r"""
         Return the north piece.
 
@@ -574,7 +565,7 @@ class RhombusPiece(PuzzlePiece):
         """
         return self._north_piece
 
-    def south_piece(self) -> 'NablaPiece':
+    def south_piece(self) -> NablaPiece:
         r"""
         Return the south piece.
 
@@ -617,7 +608,7 @@ class RhombusPiece(PuzzlePiece):
         return ('north_west', 'north_east', 'south_east', 'south_west')
 
 
-class PuzzlePieces(object):
+class PuzzlePieces:
     r"""
     Construct a valid set of puzzle pieces.
 
@@ -647,6 +638,7 @@ class PuzzlePieces(object):
         [0/\0  0\/0, 0/\0  1\/10, 0/\10  10\/0, 0/\10  1\/1, 1/\0  0\/1,
         1/\1  10\/0, 1/\1  1\/1, 10/\1  0\/0, 10/\1  1\/10]
     """
+
     def __init__(self, forbidden_border_labels=None):
         r"""
         INPUT:
@@ -667,8 +659,8 @@ class PuzzlePieces(object):
             ...
             TypeError: Input must be a list
         """
-        self._nabla_pieces = set([])
-        self._delta_pieces = set([])
+        self._nabla_pieces = set()
+        self._delta_pieces = set()
         if forbidden_border_labels is None:
             forbidden_border_labels = []
         if not isinstance(forbidden_border_labels, list):
@@ -687,8 +679,7 @@ class PuzzlePieces(object):
         """
         if isinstance(other, type(self)):
             return self.__dict__ == other.__dict__
-        else:
-            return False
+        return False
 
     def __hash__(self):
         r"""
@@ -812,8 +803,8 @@ class PuzzlePieces(object):
             Nablas : [a\b/c, b\c/a, c\a/b]
             Deltas : [a/c\b, b/a\c, c/b\a]
         """
-        s = "Nablas : %s\n" % sorted([p for p in self._nabla_pieces], key=str)
-        s += "Deltas : %s" % sorted([p for p in self._delta_pieces], key=str)
+        s = "Nablas : %s\n" % sorted(self._nabla_pieces, key=str)
+        s += "Deltas : %s" % sorted(self._delta_pieces, key=str)
         return s
 
     def delta_pieces(self):
@@ -862,7 +853,7 @@ class PuzzlePieces(object):
             sage: sorted([p for p in pieces.rhombus_pieces()], key=str)
             [a/\b  b\/a, b/\c  c\/b, c/\a  a\/c]
         """
-        rhombi = set([])
+        rhombi = set()
         for nabla in self._nabla_pieces:
             for delta in self._delta_pieces:
                 if delta['south'] == nabla['north']:
@@ -1047,7 +1038,6 @@ def BK_pieces(max_letter):
         sage: BK_pieces(3)
         Nablas : [1\1/1, 1\2(1)/2, 1\3(1)/3, 2(1)\2/1, 2\1/2(1), 2\2/2, 2\3(2)/3, 3(1)\3/1, 3(2)\3/2, 3\1/3(1), 3\2/3(2), 3\3/3]
         Deltas : [1/1\1, 1/2\2(1), 1/3\3(1), 2(1)/1\2, 2/2(1)\1, 2/2\2, 2/3\3(2), 3(1)/1\3, 3(2)/2\3, 3/3(1)\1, 3/3(2)\2, 3/3\3]
-
     """
     forbidden_border_labels = ['%s(%s)' % (i, j)
                                for i in range(1, max_letter + 1)
@@ -1063,10 +1053,11 @@ def BK_pieces(max_letter):
     return pieces
 
 
-class PuzzleFilling(object):
+class PuzzleFilling:
     r"""
     Create partial puzzles and provides methods to build puzzles from them.
     """
+
     def __init__(self, north_west_labels, north_east_labels):
         r"""
         TESTS::
@@ -1149,11 +1140,10 @@ class PuzzleFilling(object):
             sage: P.north_west_label_of_kink()
             '1'
         """
-        (i, j) = self.kink_coordinates()
+        i, j = self.kink_coordinates()
         if i == 1:
             return self._nw_labels[j - 1]
-        else:
-            return self._squares[i - 1, j]['south_east']
+        return self._squares[i - 1, j]['south_east']
 
     def north_east_label_of_kink(self):
         r"""
@@ -1166,13 +1156,12 @@ class PuzzleFilling(object):
             sage: P.north_east_label_of_kink()
             '0'
         """
-        (i, j) = self.kink_coordinates()
+        i, j = self.kink_coordinates()
         if j == self._n:
             return self._ne_labels[i - 1]
-        else:
-            return self._squares[i, j + 1]['south_west']
+        return self._squares[i, j + 1]['south_west']
 
-    def is_completed(self):
+    def is_completed(self) -> bool:
         r"""
         Whether partial puzzle is complete (completely filled) or not.
 
@@ -1189,10 +1178,10 @@ class PuzzleFilling(object):
             sage: puzzle.is_completed()
             True
         """
-        (i, j) = self.kink_coordinates()
+        i, _ = self.kink_coordinates()
         return i == self._n + 1
 
-    def south_labels(self):
+    def south_labels(self) -> tuple:
         r"""
         Return south labels for completed puzzle.
 
@@ -1219,7 +1208,7 @@ class PuzzleFilling(object):
             sage: P.add_piece(piece); P
             {(1, 4): 1/0\0}
         """
-        (i, j) = self.kink_coordinates()
+        i, j = self.kink_coordinates()
         self._squares[i, j] = piece
         if isinstance(piece, DeltaPiece):
             i += 1
@@ -1247,7 +1236,7 @@ class PuzzleFilling(object):
             sage: P
             {(1, 4): 1/0\0, (2, 4): 1/0\0}
         """
-        (i, j) = self.kink_coordinates()
+        i, j = self.kink_coordinates()
         for piece in pieces:
             self._squares[i, j] = piece
             if isinstance(piece, DeltaPiece):
@@ -1352,7 +1341,7 @@ class PuzzleFilling(object):
             for k in range(d + 1):
                 yield self[k + 1, self._n - d + k]
 
-    def plot(self, labels=True, style="fill"):
+    def plot(self, labels=True, style='fill'):
         r"""
         Plot completed puzzle.
 
@@ -1367,9 +1356,9 @@ class PuzzleFilling(object):
         """
         P = Graphics()
         coords = [(k, -d) for d in range(self._n) for k in range(-d, d + 1, 2)]
-        for ((k, d), piece) in zip(coords, self):
+        for (k, d), piece in zip(coords, self):
             if isinstance(piece, RhombusPiece):
-                for (i, triangle) in enumerate(piece):
+                for i, triangle in enumerate(piece):
                     P += triangle._plot_piece([(k, d - 2 * i), (k - 1, d - 1), (k + 1, d - 1)], style=style)
                 if labels:
                     P += piece._plot_label(piece['north_west'], (k - 0.5, d - 0.5), rotation=60)
@@ -1451,10 +1440,10 @@ class PuzzleFilling(object):
             s += ";\n"
             return s
 
-        for ((k, d), piece) in zip(coords, self):
+        for (k, d), piece in zip(coords, self):
             for tikzcmd in (tikztriangle_fill, tikztriangle_edges, tikzlabels):
                 if isinstance(piece, RhombusPiece):
-                    for (i, triangle) in enumerate([piece.north_piece(), piece.south_piece()]):
+                    for i, triangle in enumerate([piece.north_piece(), piece.south_piece()]):
                         if i == 0:
                             s += tikzcmd(triangle.color(), k, d, i, *triangle.border())
                         else:
@@ -1490,8 +1479,8 @@ class KnutsonTaoPuzzleSolver(UniqueRepresentation):
         - ``HT2step`` -- equivariant cohomology of the *2-step* Grassmannian
         - ``BK`` -- Belkale-Kumar puzzle pieces
 
-    - ``max_letter`` -- (default: None) None or a positive integer. This is
-      only required only for Belkale-Kumar puzzles.
+    - ``max_letter`` -- ``None`` or a positive integer(default: ``None``); this
+      is only required for Belkale-Kumar puzzles
 
     EXAMPLES:
 
@@ -1564,7 +1553,7 @@ class KnutsonTaoPuzzleSolver(UniqueRepresentation):
           (3, 4): 1/\0  0\/1,
           (4, 4): 1/1\1}]
 
-    The pieces in a puzzle filling are indexed by pairs of non-negative
+    The pieces in a puzzle filling are indexed by pairs of nonnegative
     integers `(i, j)` with `1 \leq i \leq j \leq n`, where `n` is the
     length of the word labelling the triangle edge. The pieces indexed by
     `(i, i)` are the triangles along the south edge of the puzzle. ::
@@ -1922,6 +1911,7 @@ class KnutsonTaoPuzzleSolver(UniqueRepresentation):
           (4, 5): 1/\1  2\/2(1),
           (5, 5): 2(1)/1\2}]
     """
+
     def __init__(self, puzzle_pieces):
         r"""
         Knutson-Tao puzzle solver.
@@ -1983,7 +1973,7 @@ class KnutsonTaoPuzzleSolver(UniqueRepresentation):
                     puzzle_pieces = BK_pieces(max_letter)
                 else:
                     raise ValueError("max_letter needs to be specified")
-        return super(KnutsonTaoPuzzleSolver, cls).__classcall__(cls, puzzle_pieces)
+        return super().__classcall__(cls, puzzle_pieces)
 
     def __call__(self, lamda, mu, algorithm='strips'):
         r"""
@@ -2017,7 +2007,7 @@ class KnutsonTaoPuzzleSolver(UniqueRepresentation):
         lamda, mu = tuple(lamda), tuple(mu)
         if algorithm == 'pieces':
             return list(self._fill_puzzle_by_pieces(lamda, mu))
-        elif algorithm == 'strips':
+        if algorithm == 'strips':
             return list(self._fill_puzzle_by_strips(lamda, mu))
 
     solutions = __call__
@@ -2048,7 +2038,7 @@ class KnutsonTaoPuzzleSolver(UniqueRepresentation):
         """
         return self._puzzle_pieces
 
-    def _fill_piece(self, nw_label, ne_label, pieces) -> list:
+    def _fill_piece(self, nw_label, ne_label, pieces) -> list[PuzzlePiece]:
         r"""
         Fillings of a piece.
 
@@ -2057,9 +2047,7 @@ class KnutsonTaoPuzzleSolver(UniqueRepresentation):
         - ``nw_label``, ``nw_label`` -- label
         - ``pieces`` -- puzzle pieces used for the filling
 
-        OUTPUT:
-
-        - list of the fillings
+        OUTPUT: list of the fillings
 
         EXAMPLES::
 
@@ -2068,12 +2056,9 @@ class KnutsonTaoPuzzleSolver(UniqueRepresentation):
             sage: ps._fill_piece('0', '0', ps._bottom_deltas)
             [0/0\0]
         """
-        output = []
-        for piece in pieces:
-            if (piece['north_west'] == nw_label and
-                    piece['north_east'] == ne_label):
-                output.append(piece)
-        return output
+        return [piece for piece in pieces
+                if (piece['north_west'] == nw_label and
+                    piece['north_east'] == ne_label)]
 
     @cached_method
     def _fill_strip(self, nw_labels, ne_label, pieces, final_pieces=None):
@@ -2087,9 +2072,7 @@ class KnutsonTaoPuzzleSolver(UniqueRepresentation):
         - ``pieces`` -- puzzle pieces used for the filling
         - ``final_pieces`` -- pieces used for the last piece to be filled in
 
-        OUTPUT:
-
-        - list of lists of the fillings
+        OUTPUT: list of lists of the fillings
 
         EXAMPLES::
 
@@ -2101,7 +2084,7 @@ class KnutsonTaoPuzzleSolver(UniqueRepresentation):
             [[0/\0  0\/0, 0/0\0]]
             sage: sorted(ps._fill_strip(('0',), '0', ps._rhombus_pieces), key=str)
             [[0/\0  0\/0], [0/\0  1\/10]]
-            sage: sorted(ps._fill_strip(('0','1'), '0', ps._rhombus_pieces), key =str)
+            sage: sorted(ps._fill_strip(('0','1'), '0', ps._rhombus_pieces), key=str)
             [[1/\0  0\/1, 0/\0  0\/0], [1/\0  0\/1, 0/\0  1\/10]]
 
         TESTS::
@@ -2171,7 +2154,7 @@ class KnutsonTaoPuzzleSolver(UniqueRepresentation):
         queue = [PuzzleFilling(lamda, mu)]
         while queue:
             PP = queue.pop()
-            (i, j) = PP.kink_coordinates()
+            i, _ = PP.kink_coordinates()
 
             # grab nw labels
             if i == 1:
@@ -2220,9 +2203,9 @@ class KnutsonTaoPuzzleSolver(UniqueRepresentation):
 
         - ``pieces`` -- puzzle pieces to be used
         - ``lambda``, ``mu`` -- edge labels of puzzle for northwest and north east side
-        - ``nu`` -- (default: ``None``) If ``nu`` is not specified a dictionary is returned with
+        - ``nu`` -- (default: ``None``) if ``nu`` is not specified a dictionary is returned with
           the structure coefficients corresponding to all south labels; if ``nu`` is given, only
-          the coefficients with the specified label is returned.
+          the coefficients with the specified label is returned
 
         OUTPUT: dictionary
 
@@ -2289,5 +2272,4 @@ class KnutsonTaoPuzzleSolver(UniqueRepresentation):
             z[p.south_labels()] += p.contribution()
         if nu is None:
             return dict(z)
-        else:
-            return z[tuple(nu)]
+        return z[tuple(nu)]

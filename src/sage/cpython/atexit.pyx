@@ -1,16 +1,16 @@
-# -*- encoding: utf-8 -*-
+"""
+Utilities for interfacing with the standard library's atexit module.
+"""
 
-"""Utilities for interfacing with the standard library's atexit module."""
-
-#*****************************************************************************
+# ****************************************************************************
 #       Copyright (C) 2017 Erik M. Bray <erik.bray@lri.fr>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
 import atexit
 
@@ -25,12 +25,12 @@ cdef class restore_atexit:
 
     INPUT:
 
-    - ``run`` (bool, default: False) -- if True, when exiting the
+    - ``run`` -- boolean (default: ``False``); if ``True``, when exiting the
       context (but before restoring the old exit functions), run all
-      atexit functions which were added inside the context.
+      atexit functions which were added inside the context
 
-    - ``clear`` (bool, default: equal to ``run``) -- if True, clear
-      already registered atexit handlers upon entering the context.
+    - ``clear`` -- boolean (default: equal to ``run``); if ``True``, clear
+      already registered atexit handlers upon entering the context
 
     .. WARNING::
 
@@ -51,7 +51,8 @@ cdef class restore_atexit:
         sage: import atexit
         sage: from sage.cpython.atexit import restore_atexit
         sage: def handler(*args, **kwargs):
-        ....:     import sys # see https://trac.sagemath.org/ticket/25270#comment:56
+        ....:     import sys
+        ....:     # see https://github.com/sagemath/sage/issues/25270#comment:56
         ....:     sys.stdout.write(str((args, kwargs)))
         ....:     sys.stdout.write('\n')
         sage: atexit.register(handler, 1, 2, c=3)
@@ -143,52 +144,106 @@ cdef class restore_atexit:
         _set_exithandlers(self._exithandlers)
 
 from cpython.ref cimport PyObject
+import sys
 
-# Internal structures defined in the CPython source in
-# Modules/atexitmodule.c and subject to (but unlikely to) change.  Watch
-# https://bugs.python.org/issue32082 for a request to (eventually)
-# re-expose more of the atexit module's internals to Python
-ctypedef struct atexit_callback:
-    PyObject* func
-    PyObject* args
-    PyObject* kwargs
-
-
-ctypedef struct atexitmodule_state:
-    atexit_callback** atexit_callbacks
-    int ncallbacks
-    int callback_len
-
-
-cdef extern from "Python.h":
-    void* PyModule_GetState(object module)
+# Implement a uniform interface for getting atexit callbacks
+cdef extern from *:
+    """
+    #ifndef Py_BUILD_CORE
+    #define Py_BUILD_CORE
+    #endif
+    #undef _PyGC_FINALIZED
+    #include "internal/pycore_interp.h"
+    #include "internal/pycore_pystate.h"
+    
+    // Always define this struct for Cython's use
+    typedef struct {
+        PyObject *func;
+        PyObject *args;
+        PyObject *kwargs;
+    } atexit_callback_struct;
+    
+    #if PY_VERSION_HEX >= 0x030e0000
+    // Python 3.14+: atexit uses a PyList stored in state->callbacks
+    // Note: In Python 3.14 the atexit_state struct changed - callbacks is now a PyObject* (PyList)
+    
+    static PyObject* get_atexit_callbacks_list(PyObject *self) {
+        PyInterpreterState *interp = _PyInterpreterState_GET();
+        // Access the callbacks list directly from the interpreter state
+        // We return a new reference because Cython expects an owned reference
+        PyObject *callbacks = interp->atexit.callbacks;
+        Py_XINCREF(callbacks);
+        return callbacks;
+    }
+    
+    // Dummy function for Python 3.14+ (never called)
+    static atexit_callback_struct** get_atexit_callbacks_array(PyObject *self) {
+        PyErr_SetString(PyExc_RuntimeError, "Python >= 3.14 has no atexit arrays");
+        return NULL;
+    }
+    #else
+    // Python < 3.14: atexit uses C array
+    static atexit_callback_struct** get_atexit_callbacks_array(PyObject *self) {
+        PyInterpreterState *interp = _PyInterpreterState_GET();
+        struct atexit_state state = interp->atexit;
+        // Cast from atexit_callback** to our struct type
+        return (atexit_callback_struct**)state.callbacks;
+    }
+    
+    // Dummy function for Python < 3.14 (never called)
+    static PyObject* get_atexit_callbacks_list(PyObject *self) {
+        PyErr_SetString(PyExc_RuntimeError, "Python < 3.14 has no atexit lists");
+        return NULL;
+    }
+    #endif
+    """
+    # Declare both functions - they exist in all Python versions (one is dummy)
+    object get_atexit_callbacks_list(object module)
+    
+    ctypedef struct atexit_callback_struct:
+        PyObject* func
+        PyObject* args
+        PyObject* kwargs
+    atexit_callback_struct** get_atexit_callbacks_array(object module) except NULL
 
 
 def _get_exithandlers():
     """Return list of exit handlers registered with the atexit module."""
-    cdef atexitmodule_state* state
-    cdef atexit_callback callback
-    cdef list exithandlers
+    cdef list exithandlers = []
+    cdef atexit_callback_struct ** callbacks
+    cdef atexit_callback_struct callback
     cdef int idx
     cdef object kwargs
-
-    state = <atexitmodule_state*>PyModule_GetState(atexit)
-
-    if not state:
-        raise RuntimeError("atexit module state missing or corrupt")
-
-    exithandlers = []
-
-    for idx in range(state.ncallbacks):
-        callback = state.atexit_callbacks[idx][0]
-        if callback.kwargs:
-            kwargs = <object>callback.kwargs
-        else:
-            kwargs = {}
-        exithandlers.append((<object>callback.func,
-                                <object>callback.args,
-                                kwargs))
+    
+    # Python 3.14+ uses a PyList directly
+    if sys.version_info >= (3, 14):
+        callbacks_list = get_atexit_callbacks_list(atexit)
+        if callbacks_list is None:
+            return exithandlers
+        # callbacks is a list of tuples: [(func, args, kwargs), ...]
+        # Normalize kwargs to ensure it's always a dict (not None)
+        # Note: In Python 3.14+, atexit stores callbacks in LIFO order
+        # (most recently registered first), but we return them in FIFO
+        # order (registration order) for consistency with earlier versions
+        for item in reversed(callbacks_list):
+            func, args, kwargs = item
+            if kwargs is None:
+                kwargs = {}
+            exithandlers.append((func, args, kwargs))
+    else:
+        # Python < 3.14 uses C array
+        callbacks = get_atexit_callbacks_array(atexit)
+        for idx in range(atexit._ncallbacks()):
+            callback = callbacks[idx][0]
+            if callback.kwargs:
+                kwargs = <object>callback.kwargs
+            else:
+                kwargs = {}
+            exithandlers.append((<object>callback.func,
+                                 <object>callback.args,
+                                 kwargs))
     return exithandlers
+
 
 def _set_exithandlers(exithandlers):
     """
@@ -201,10 +256,14 @@ def _set_exithandlers(exithandlers):
 
     # We could do this more efficiently by directly rebuilding the array
     # of atexit_callbacks, but this is much simpler
+    # Note: exithandlers is in registration order (FIFO).
+    # In Python 3.14+, atexit.register prepends to the list (LIFO),
+    # so registering in forward order gives us the correct execution order.
     for callback in exithandlers:
         atexit.register(callback[0], *callback[1], **callback[2])
 
 
 def _clear_exithandlers():
     """Clear the atexit module of all registered exit handlers."""
+
     atexit._clear()

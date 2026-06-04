@@ -1,3 +1,4 @@
+# sage.doctest: needs sage.combinat sage.modules
 r"""
 Bijection between rigged configurations and KR tableaux
 
@@ -11,7 +12,7 @@ AUTHORS:
 - Travis Scrimshaw (2014-09-10): Added type `D_4^{(3)}`
 """
 
-#*****************************************************************************
+# ***************************************************************************
 #       Copyright (C) 2011-2015 Travis Scrimshaw <tscrim@ucdavis.edu>
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
@@ -23,8 +24,8 @@ AUTHORS:
 #
 #  The full text of the GPL is available at:
 #
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ***************************************************************************
 
 from sage.combinat.rigged_configurations.bij_type_A import KRTToRCBijectionTypeA
 from sage.combinat.rigged_configurations.bij_type_A import RCToKRTBijectionTypeA
@@ -55,6 +56,7 @@ from sage.combinat.rigged_configurations.bij_type_D_tri import RCToKRTBijectionT
 
 from sage.combinat.rigged_configurations.bij_type_E67 import KRTToRCBijectionTypeE67
 from sage.combinat.rigged_configurations.bij_type_E67 import RCToKRTBijectionTypeE67
+
 
 def KRTToRCBijection(tp_krt):
     r"""
@@ -97,6 +99,7 @@ def KRTToRCBijection(tp_krt):
             return KRTToRCBijectionTypeDTri(tp_krt)
     raise NotImplementedError
 
+
 def RCToKRTBijection(rigged_configuration_elt):
     r"""
     Return the correct rigged configuration to KR tableaux bijection helper class.
@@ -137,4 +140,3 @@ def RCToKRTBijection(rigged_configuration_elt):
         if typ == 'G': # D_4^{(3)}
             return RCToKRTBijectionTypeDTri(rigged_configuration_elt)
     raise NotImplementedError
-

@@ -59,7 +59,7 @@ et que l'on peut aussi dériver ou intégrer symboliquement ::
     sage: Dg(3)
     6
     sage: type(g)
-    <type 'sage.symbolic.expression.Expression'>
+    <class 'sage.symbolic.expression.Expression'>
     sage: plot(g, 0, 2)
     Graphics object consisting of 1 graphics primitive
 
@@ -76,7 +76,7 @@ illustrées dans le point 5 ci-dessous.
     sage: g(x)
     x^2
     sage: type(g(x))
-    <type 'sage.symbolic.expression.Expression'>
+    <class 'sage.symbolic.expression.Expression'>
     sage: g(x).derivative()
     2*x
     sage: plot(g(x), 0, 2)
@@ -90,7 +90,7 @@ servir à tracer des courbes, et, indirectement, être dérivées ou intégrées
     sage: plot(sin, 0, 2)
     Graphics object consisting of 1 graphics primitive
     sage: type(sin(x))
-    <type 'sage.symbolic.expression.Expression'>
+    <class 'sage.symbolic.expression.Expression'>
     sage: plot(sin(x), 0, 2)
     Graphics object consisting of 1 graphics primitive
 
@@ -118,8 +118,7 @@ Examinons maintenant quelques problèmes fréquents.
     sage: def h(x):
     ....:     if x < 2:
     ....:         return 0
-    ....:     else:
-    ....:         return x-2
+    ....:     return x - 2
 
 Problème : ``plot(h(x), 0, 4)`` trace la droite `y = x - 2`, et non pas la
 fonction affine par morceaux définie par ``h``. Pourquoi ? Lors de l'exécution,
@@ -132,7 +131,7 @@ est donc évaluée.
 ::
 
     sage: type(x < 2)
-    <type 'sage.symbolic.expression.Expression'>
+    <class 'sage.symbolic.expression.Expression'>
 
 Or, l'évaluation d'une inégalité symbolique renvoie ``False`` quand la
 condition n'est pas clairement vraie. Ainsi, ``h(x)`` s'évalue en
@@ -147,8 +146,7 @@ Solution : Il ne faut pas utiliser ``plot(h(x), 0, 4)``, mais plutôt
     sage: def h(x):
     ....:     if x < 2:
     ....:         return 0
-    ....:     else:
-    ....:         return x-2
+    ....:     return x - 2
     sage: plot(h, 0, 4)
     Graphics object consisting of 1 graphics primitive
 
@@ -167,9 +165,9 @@ the number of arguments must be less than or equal to 0 ».
 ::
 
     sage: type(f)
-    <type 'sage.symbolic.expression.Expression'>
+    <class 'sage.symbolic.expression.Expression'>
     sage: type(g)
-    <type 'sage.symbolic.expression.Expression'>
+    <class 'sage.symbolic.expression.Expression'>
 
 En effet, ``g`` n'est pas une fonction, mais une constante, sans
 variable en laquelle on peut l'évaluer.
@@ -185,7 +183,7 @@ Solution : il y a plusieurs possibilités.
     sage: g(3)
     1
     sage: type(g)
-    <type 'sage.symbolic.expression.Expression'>
+    <class 'sage.symbolic.expression.Expression'>
 
 - Ou, sans changer la définition de ``f``, définir ``g`` comme une
   expression symbolique fonctionnelle ::
@@ -197,7 +195,7 @@ Solution : il y a plusieurs possibilités.
     sage: g(3)
     1
     sage: type(g)
-    <type 'sage.symbolic.expression.Expression'>
+    <class 'sage.symbolic.expression.Expression'>
 
 - Ou encore, avec ``f`` et ``g`` définies comme dans l'exemple de
   départ, donner explicitement la variable à remplacer par sa valeur ::

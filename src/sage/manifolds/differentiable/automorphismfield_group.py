@@ -26,7 +26,6 @@ AUTHORS:
 REFERENCES:
 
 - Chap. 15 of [God1968]_
-
 """
 
 #******************************************************************************
@@ -39,15 +38,20 @@ REFERENCES:
 #                  http://www.gnu.org/licenses/
 #******************************************************************************
 
-from sage.structure.unique_representation import UniqueRepresentation
-from sage.structure.parent import Parent
 from sage.categories.groups import Groups
+from sage.manifolds.differentiable.automorphismfield import (
+    AutomorphismField,
+    AutomorphismFieldParal,
+)
+from sage.manifolds.differentiable.vectorfield_module import (
+    VectorFieldFreeModule,
+    VectorFieldModule,
+)
 from sage.misc.cachefunc import cached_method
+from sage.structure.parent import Parent
+from sage.structure.unique_representation import UniqueRepresentation
 from sage.tensor.modules.free_module_linear_group import FreeModuleLinearGroup
-from sage.manifolds.differentiable.vectorfield_module import (VectorFieldModule,
-                                                              VectorFieldFreeModule)
-from sage.manifolds.differentiable.automorphismfield import (AutomorphismField,
-                                                             AutomorphismFieldParal)
+
 
 class AutomorphismFieldGroup(UniqueRepresentation, Parent):
     r"""
@@ -121,9 +125,9 @@ class AutomorphismFieldGroup(UniqueRepresentation, Parent):
         sage: a.parent() is G
         True
         sage: a.restrict(U).display()
-        2 d/dx*dx + 2 d/dy*dy
+        2 ∂/∂x⊗dx + 2 ∂/∂y⊗dy
         sage: a.restrict(V).display()
-        2 d/du*du + 2 d/dv*dv
+        2 ∂/∂u⊗du + 2 ∂/∂v⊗dv
 
     The identity element of the group ``G``::
 
@@ -131,14 +135,13 @@ class AutomorphismFieldGroup(UniqueRepresentation, Parent):
         Field of tangent-space identity maps on the 2-dimensional
          differentiable manifold M
         sage: eU = U.default_frame() ; eU
-        Coordinate frame (U, (d/dx,d/dy))
+        Coordinate frame (U, (∂/∂x,∂/∂y))
         sage: eV = V.default_frame() ; eV
-        Coordinate frame (V, (d/du,d/dv))
+        Coordinate frame (V, (∂/∂u,∂/∂v))
         sage: e.display(eU)
-        Id = d/dx*dx + d/dy*dy
+        Id = ∂/∂x⊗dx + ∂/∂y⊗dy
         sage: e.display(eV)
-        Id = d/du*du + d/dv*dv
-
+        Id = ∂/∂u⊗du + ∂/∂v⊗dv
     """
 
     Element = AutomorphismField
@@ -167,14 +170,12 @@ class AutomorphismFieldGroup(UniqueRepresentation, Parent):
         ``_test_elements`` does not pass due to the failure
         of ``_test_pickling`` in
         :class:`sage.manifolds.differentiable.tensorfield.TensorField`.
-
         """
         if not isinstance(vector_field_module, VectorFieldModule):
             raise TypeError("{} is not a module of vector fields".format(
                             vector_field_module))
         Parent.__init__(self, category=Groups())
         self._vmodule = vector_field_module
-
 
     #### Parent methods ####
 
@@ -183,9 +184,7 @@ class AutomorphismFieldGroup(UniqueRepresentation, Parent):
         r"""
         Construct a field of tangent-space automorphisms.
 
-        OUTPUT:
-
-        - :class:`~sage.manifolds.differentiable.automorphismfield.AutomorphismField`
+        OUTPUT: :class:`~sage.manifolds.differentiable.automorphismfield.AutomorphismField`
 
         TESTS::
 
@@ -205,8 +204,7 @@ class AutomorphismFieldGroup(UniqueRepresentation, Parent):
             Field of tangent-space automorphisms a on the 2-dimensional
              differentiable manifold M
             sage: a.display(c_xy.frame())
-            a = (x^2 + 1) d/dx*dx + (y^2 + 1) d/dy*dy
-
+            a = (x^2 + 1) ∂/∂x⊗dx + (y^2 + 1) ∂/∂y⊗dy
         """
         if hasattr(comp, 'is_trivial_zero'):
             if (comp - 1).is_trivial_zero():
@@ -227,9 +225,7 @@ class AutomorphismFieldGroup(UniqueRepresentation, Parent):
         r"""
         Construct some specific field of tangent-space automorphisms.
 
-        OUTPUT:
-
-        - :class:`~sage.manifolds.differentiable.automorphismfield.AutomorphismField`
+        OUTPUT: :class:`~sage.manifolds.differentiable.automorphismfield.AutomorphismField`
 
         TESTS::
 
@@ -246,12 +242,11 @@ class AutomorphismFieldGroup(UniqueRepresentation, Parent):
             Field of tangent-space automorphisms on the 2-dimensional
              differentiable manifold M
             sage: a.restrict(U).display()
-            2 d/dx*dx + 2 d/dy*dy
+            2 ∂/∂x⊗dx + 2 ∂/∂y⊗dy
             sage: a.restrict(V).display()
-            2 d/du*du + 2 d/dv*dv
+            2 ∂/∂u⊗du + 2 ∂/∂v⊗dv
             sage: a == G.an_element()  # indirect doctest
             True
-
         """
         resu = self.element_class(self._vmodule)
         for dom in resu.domain().subsets():
@@ -265,7 +260,6 @@ class AutomorphismFieldGroup(UniqueRepresentation, Parent):
         return resu
 
     #### End of parent methods ####
-
 
     #### Monoid methods ####
 
@@ -305,7 +299,6 @@ class AutomorphismFieldGroup(UniqueRepresentation, Parent):
             sage: G.one().restrict(V)[:]
             [1 0]
             [0 1]
-
         """
         # Specific initializations for the field of identity maps:
         resu = self._element_constructor_(name='Id', latex_name=r'\mathrm{Id}')
@@ -338,7 +331,6 @@ class AutomorphismFieldGroup(UniqueRepresentation, Parent):
             sage: G  # indirect doctest
             General linear group of the Module X(M) of vector fields on the
              2-dimensional differentiable manifold M
-
         """
         return "General linear group of the {}".format(self._vmodule)
 
@@ -354,19 +346,16 @@ class AutomorphismFieldGroup(UniqueRepresentation, Parent):
             \mathrm{GL}\left( \mathfrak{X}\left(M\right) \right)
             sage: latex(G)  # indirect doctest
             \mathrm{GL}\left( \mathfrak{X}\left(M\right) \right)
-
         """
         from sage.misc.latex import latex
-        return r"\mathrm{GL}\left("+ latex(self._vmodule)+ r"\right)"
+        return r"\mathrm{GL}\left(" + latex(self._vmodule) + r"\right)"
 
     def base_module(self):
         r"""
         Return the vector-field module of which ``self`` is the general
         linear group.
 
-        OUTPUT:
-
-        - :class:`~sage.manifolds.differentiable.vectorfield_module.VectorFieldModule`
+        OUTPUT: :class:`~sage.manifolds.differentiable.vectorfield_module.VectorFieldModule`
 
         EXAMPLES:
 
@@ -389,7 +378,6 @@ class AutomorphismFieldGroup(UniqueRepresentation, Parent):
              manifold M
             sage: G.base_module() is M.vector_field_module()
             True
-
         """
         return self._vmodule
 
@@ -475,11 +463,11 @@ class AutomorphismFieldParalGroup(FreeModuleLinearGroup):
         sage: v = XM.an_element() ; v
         Vector field on the 2-dimensional differentiable manifold M
         sage: v.display()
-        2 d/dx + 2 d/dy
+        2 ∂/∂x + 2 ∂/∂y
         sage: a(v)
         Vector field on the 2-dimensional differentiable manifold M
         sage: a(v).display()
-        2 d/dx - 2 d/dy
+        2 ∂/∂x - 2 ∂/∂y
 
     Indeed the matrix of ``a`` with respect to the frame
     `(\partial_x, \partial_y)` is::
@@ -498,7 +486,7 @@ class AutomorphismFieldParalGroup(FreeModuleLinearGroup):
         sage: a.domain()
         2-dimensional differentiable manifold M
         sage: a.display()
-        d/dx*dx - d/dy*dy
+        ∂/∂x⊗dx - ∂/∂y⊗dy
 
     The identity element of the group ``G`` is::
 
@@ -522,9 +510,9 @@ class AutomorphismFieldParalGroup(FreeModuleLinearGroup):
         Field of tangent-space automorphisms on the 2-dimensional
          differentiable manifold M
         sage: b.display()
-        (x^2 + 1) d/dx*dx + (y^2 + 1) d/dy*dy
+        (x^2 + 1) ∂/∂x⊗dx + (y^2 + 1) ∂/∂y⊗dy
         sage: (~b).display()  # the inverse automorphism
-        1/(x^2 + 1) d/dx*dx + 1/(y^2 + 1) d/dy*dy
+        1/(x^2 + 1) ∂/∂x⊗dx + 1/(y^2 + 1) ∂/∂y⊗dy
 
     We check the group law on these elements::
 
@@ -542,13 +530,13 @@ class AutomorphismFieldParalGroup(FreeModuleLinearGroup):
         sage: t1 in G
         True
         sage: t1.display()
-        t = (e^y + 1) d/dx*dx + x*y d/dx*dy + (x^2 + 1) d/dy*dy
+        t = (e^y + 1) ∂/∂x⊗dx + x*y ∂/∂x⊗dy + (x^2 + 1) ∂/∂y⊗dy
         sage: t1^(-1)
         Field of tangent-space automorphisms t^(-1) on the 2-dimensional
          differentiable manifold M
         sage: (t1^(-1)).display()
-        t^(-1) = 1/(e^y + 1) d/dx*dx - x*y/(x^2 + (x^2 + 1)*e^y + 1) d/dx*dy
-         + 1/(x^2 + 1) d/dy*dy
+        t^(-1) = 1/(e^y + 1) ∂/∂x⊗dx - x*y/(x^2 + (x^2 + 1)*e^y + 1) ∂/∂x⊗dy
+         + 1/(x^2 + 1) ∂/∂y⊗dy
 
     Since any automorphism field can be considered as a tensor field of
     type-`(1,1)` on ``M``, there is a coercion map from ``G`` to the
@@ -590,7 +578,6 @@ class AutomorphismFieldParalGroup(FreeModuleLinearGroup):
     TESTS::
 
         sage: TestSuite(G).run()
-
     """
 
     Element = AutomorphismFieldParal
@@ -609,10 +596,8 @@ class AutomorphismFieldParalGroup(FreeModuleLinearGroup):
             General linear group of the Free module X(M) of vector fields on
              the 2-dimensional differentiable manifold M
             sage: TestSuite(G).run()
-
         """
         if not isinstance(vector_field_module, VectorFieldFreeModule):
             raise TypeError("{} is not a free module of vector fields".format(
                             vector_field_module))
         FreeModuleLinearGroup.__init__(self, vector_field_module)
-

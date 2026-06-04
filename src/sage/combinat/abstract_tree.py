@@ -1,6 +1,5 @@
-# -*- coding: utf-8 -*-
 r"""
-Abstract Recursive Trees
+Abstract recursive trees
 
 The purpose of this class is to help implement trees with a specific structure
 on the children of each node. For instance, one could want to define a tree in
@@ -62,17 +61,19 @@ incoherent with the data structure.
 - Florent Hivert (2010-2011): initial revision
 - Frédéric Chapoton (2011): contributed some methods
 """
+import itertools
 
-from sage.structure.list_clone import ClonableArray
-from sage.rings.integer import Integer
+from sage.misc.latex import latex
 from sage.misc.misc_c import prod
+from sage.rings.integer import Integer
+from sage.structure.list_clone import ClonableArray
 
 # Unfortunately Cython forbids multiple inheritance. Therefore, we do not
 # inherit from SageObject to be able to inherit from Element or a subclass
 # of it later.
 
 
-class AbstractTree(object):
+class AbstractTree:
     """
     Abstract Tree.
 
@@ -108,6 +109,7 @@ class AbstractTree(object):
         sage: TestSuite(OrderedTree()).run()
         sage: TestSuite(BinaryTree()).run()
     """
+
     def pre_order_traversal_iter(self):
         r"""
         The depth-first pre-order traversal iterator.
@@ -186,7 +188,7 @@ class AbstractTree(object):
             sage: v = BinaryTree([u, u])
             sage: w = BinaryTree([v, v])
             sage: t = BinaryTree([w, w])
-            sage: t.node_number()
+            sage: t.number_of_nodes()
             7
             sage: l = [1 for i in t.pre_order_traversal_iter()]
             sage: len(l)
@@ -195,15 +197,8 @@ class AbstractTree(object):
         if self.is_empty():
             return
         yield self
-        # TODO:: PYTHON 3
-        # import itertools
-        # yield from itertools.chain(map(
-        #     lambda c: c.pre_order_traversal_iter(),
-        #     self
-        # ))
-        for children in self:
-            for node in children.pre_order_traversal_iter():
-                yield node
+        yield from itertools.chain(*[c.pre_order_traversal_iter()
+                                     for c in self])
 
     def iterative_pre_order_traversal(self, action=None):
         r"""
@@ -265,7 +260,7 @@ class AbstractTree(object):
             sage: v = BinaryTree([u, u])
             sage: w = BinaryTree([v, v])
             sage: t = BinaryTree([w, w])
-            sage: t.node_number()
+            sage: t.number_of_nodes()
             7
             sage: l = []
             sage: t.iterative_pre_order_traversal(lambda node: l.append(1))
@@ -275,14 +270,14 @@ class AbstractTree(object):
         if self.is_empty():
             return
         if action is None:
-            action = lambda x: None
+            def action(x):
+                return None
         stack = []
         stack.append(self)
         while stack:
             node = stack.pop()
             action(node)
-            for i in range(len(node)):
-                subtree = node[-i - 1]
+            for subtree in reversed(node):
                 if not subtree.is_empty():
                     stack.append(subtree)
 
@@ -382,7 +377,7 @@ class AbstractTree(object):
             sage: v = BinaryTree([u, u])
             sage: w = BinaryTree([v, v])
             sage: t = BinaryTree([w, w])
-            sage: t.node_number()
+            sage: t.number_of_nodes()
             7
             sage: l = []
             sage: t.pre_order_traversal(lambda node: l.append(1))
@@ -390,7 +385,8 @@ class AbstractTree(object):
             7
         """
         if action is None:
-            action = lambda x: None
+            def action(x):
+                return None
         for node in self.pre_order_traversal_iter():
             action(node)
 
@@ -476,7 +472,7 @@ class AbstractTree(object):
             sage: v = BinaryTree([u, u])
             sage: w = BinaryTree([v, v])
             sage: t = BinaryTree([w, w])
-            sage: t.node_number()
+            sage: t.number_of_nodes()
             7
             sage: l = [1 for i in t.post_order_traversal_iter()]
             sage: len(l)
@@ -484,15 +480,8 @@ class AbstractTree(object):
         """
         if self.is_empty():
             return
-        # TODO:: PYTHON 3
-        # import itertools
-        # yield from itertools.chain(map(
-        #     lambda c: c.post_order_traversal_iter(),
-        #     self
-        # ))
-        for children in self:
-            for node in children.post_order_traversal_iter():
-                yield node
+        yield from itertools.chain(*[c.post_order_traversal_iter()
+                                     for c in self])
         yield self
 
     def post_order_traversal(self, action=None):
@@ -555,7 +544,7 @@ class AbstractTree(object):
             sage: v = BinaryTree([u, u])
             sage: w = BinaryTree([v, v])
             sage: t = BinaryTree([w, w])
-            sage: t.node_number()
+            sage: t.number_of_nodes()
             7
             sage: l = []
             sage: t.post_order_traversal(lambda node: l.append(1))
@@ -563,7 +552,8 @@ class AbstractTree(object):
             7
         """
         if action is None:
-            action = lambda x: None
+            def action(x):
+                return None
         for node in self.post_order_traversal_iter():
             action(node)
 
@@ -628,7 +618,7 @@ class AbstractTree(object):
             sage: v = BinaryTree([u, u])
             sage: w = BinaryTree([v, v])
             sage: t = BinaryTree([w, w])
-            sage: t.node_number()
+            sage: t.number_of_nodes()
             7
             sage: l = []
             sage: t.iterative_post_order_traversal(lambda node: l.append(1))
@@ -638,7 +628,8 @@ class AbstractTree(object):
         if self.is_empty():
             return
         if action is None:
-            action = lambda x: None
+            def action(x):
+                return None
         stack = [self]
         while stack:
             node = stack[-1]
@@ -648,14 +639,121 @@ class AbstractTree(object):
                 # subtrees, and should not be exploded again, but instead
                 # should be manipulated and removed from the stack.
                 stack.append(None)
-                for i in range(len(node)):
-                    subtree = node[-i - 1]
+                for subtree in reversed(node):
                     if not subtree.is_empty():
                         stack.append(subtree)
             else:
                 stack.pop()
                 node = stack.pop()
                 action(node)
+
+    def contour_traversal(self, first_action=None, middle_action=None, final_action=None, leaf_action=None):
+        r"""
+        Run the counterclockwise contour traversal algorithm (iterative
+        implementation) and subject every node encountered
+        to some procedure ``first_action``, ``middle_action`` or ``final_action`` each time it reaches it.
+
+        ALGORITHM:
+
+        - if the root is a leaf, apply `leaf_action`
+        - else
+            -  apply `first_action` to the root
+            - iteratively apply `middle_action` to the root and traverse each subtree
+              from the leftmost one to the rightmost one
+            - apply `final_action` to the root
+
+        INPUT:
+
+        - ``first_action`` -- (optional) a function which takes a node as
+          input, and does something the first time it is reached during exploration
+
+        - ``middle_action`` -- (optional) a function which takes a node as
+          input, and does something each time it explore one of its children
+
+        - ``final_action`` -- (optional) a function which takes a node as
+          input, and does something the last time it is reached during exploration
+
+        - ``leaf_action`` -- (optional) a function which takes a leaf as
+          input, and does something when it is reached during exploration.
+
+        OUTPUT:
+
+        ``None``. (This is *not* an iterator.)
+
+        TESTS::
+
+            sage: l = []
+            sage: t = OrderedTree([[],[[],[],]]).canonical_labelling()
+            sage: t
+            1[2[], 3[4[], 5[]]]
+            sage: t.contour_traversal(lambda node: (l.append(node.label()),l.append('a')),
+            ....:   lambda node: (l.append(node.label()),l.append('b')),
+            ....:   lambda node: (l.append(node.label()),l.append('c')),
+            ....:   lambda node: (l.append(node.label())))
+            sage: l
+            [1, 'a', 1, 'b', 2, 1, 'b', 3, 'a', 3, 'b', 4, 3, 'b', 5, 3, 'c', 1, 'c']
+
+            sage: l = []
+            sage: b = BinaryTree([[None,[]],[[[],[]],[]]]).canonical_labelling()
+            sage: b
+            3[1[., 2[., .]], 7[5[4[., .], 6[., .]], 8[., .]]]
+            sage: b.contour_traversal(lambda node: l.append(node.label()),
+            ....:   lambda node: l.append(node.label()),
+            ....:   lambda node: l.append(node.label()),
+            ....:   None)
+            sage: l
+            [3, 3, 1, 1, 1, 2, 2, 2, 2, 1, 3, 7, 7, 5, 5, 4, 4, 4, 4, 5, 6, 6, 6, 6, 5, 7, 8, 8, 8, 8, 7, 3]
+
+        The following test checks that things do not go wrong if some among
+        the descendants of the tree are equal or even identical::
+
+            sage: u = BinaryTree(None)
+            sage: v = BinaryTree([u, u])
+            sage: w = BinaryTree([v, v])
+            sage: t = BinaryTree([w, w])
+            sage: t.number_of_nodes()
+            7
+            sage: l = []
+            sage: t.contour_traversal(first_action = lambda node: l.append(0))
+            sage: len(l)
+            7
+        """
+        if first_action is None:
+            def first_action(x):
+                return
+        if middle_action is None:
+            def middle_action(x):
+                return
+        if final_action is None:
+            def final_action(x):
+                return
+        if leaf_action is None:
+            def leaf_action(x):
+                return
+        stack = []
+        stack.append(self)
+        corners = [0, 0]
+        while stack:
+            node = stack.pop()
+            if not node:
+                leaf_action(node)
+                corners.pop()
+                corners[-1] += 1
+            elif not corners[-1]:
+                first_action(node)
+                middle_action(node)
+                stack.append(node)
+                stack.append(node[0])
+                corners.append(0)
+            elif corners[-1] == len(node):
+                final_action(node)
+                corners.pop()
+                corners[-1] += 1
+            else:
+                middle_action(node)
+                stack.append(node)
+                stack.append(node[corners[-1]])
+                corners.append(0)
 
     def breadth_first_order_traversal(self, action=None):
         r"""
@@ -725,7 +823,8 @@ class AbstractTree(object):
         if self.is_empty():
             return
         if action is None:
-            action = lambda x: None
+            def action(x):
+                return None
         queue = []
         queue.append(self)
         while queue:
@@ -745,8 +844,8 @@ class AbstractTree(object):
 
         INPUT:
 
-        - depth -- an integer
-        - path -- optional given path (as a list) used in the recursion
+        - ``depth`` -- integer
+        - ``path`` -- (optional) list; given path used in the recursion
 
         .. WARNING::
 
@@ -754,7 +853,7 @@ class AbstractTree(object):
 
         .. SEEALSO::
 
-            :meth:`paths`, :meth:`paths_to_the_right`, :meth:`node_number_at_depth`
+            :meth:`paths`, :meth:`paths_to_the_right`, :meth:`number_of_nodes_at_depth`
 
         EXAMPLES::
 
@@ -786,10 +885,9 @@ class AbstractTree(object):
             yield tuple(path)
         else:
             for i in range(len(self)):
-                for p in self[i].paths_at_depth(depth - 1, path + [i]):
-                    yield p
+                yield from self[i].paths_at_depth(depth - 1, path + [i])
 
-    def node_number_at_depth(self, depth):
+    def number_of_nodes_at_depth(self, depth):
         r"""
         Return the number of nodes at a given depth.
 
@@ -799,11 +897,12 @@ class AbstractTree(object):
 
         INPUT:
 
-        - depth -- an integer
+        - ``depth`` -- integer
 
         .. SEEALSO::
 
-            :meth:`node_number`, :meth:`node_number_to_the_right`, :meth:`paths_at_depth`
+            :meth:`number_of_nodes`, :meth:`number_of_nodes_to_the_right`,
+            :meth:`paths_at_depth`
 
         EXAMPLES::
 
@@ -818,26 +917,57 @@ class AbstractTree(object):
               o    o
                    |
                    o
-            sage: [T.node_number_at_depth(i) for i in range(6)]
+            sage: [T.number_of_nodes_at_depth(i) for i in range(6)]
             [1, 3, 4, 2, 1, 0]
 
         TESTS:
 
-        Check that the empty tree has no nodes (:trac:`29134`)::
+        Check that the empty tree has no nodes (:issue:`29134`)::
 
             sage: T = BinaryTree()
             sage: T
             .
             sage: T.is_empty()
             True
-            sage: [T.node_number_at_depth(i) for i in range(3)]
+            sage: [T.number_of_nodes_at_depth(i) for i in range(3)]
             [0, 0, 0]
+
+        Check that we do not hit a recursion limit::
+
+            sage: T = OrderedTree([])
+            sage: for _ in range(9999):
+            ....:     T = OrderedTree([T])
+            sage: T.number_of_nodes_at_depth(2000)
+            1
         """
         if self.is_empty():
-            return Integer(0)
-        if depth == 0:
-            return Integer(1)
-        return sum(son.node_number_at_depth(depth - 1) for son in self)
+            return 0
+        m = 0
+
+        def fr_action(node):
+            nonlocal m, depths, depth
+            if depths[-1] == depth:
+                m += 1
+
+        def m_action(node):
+            nonlocal depths
+            depths.append(depths[-1] + 1)
+
+        def fn_action(node):
+            nonlocal depths
+            depths.pop()
+
+        def lf_action(node):
+            nonlocal m, depths, depth
+            if depths[-1] == depth:
+                m += 1
+            depths.pop()
+
+        depths = [0]
+        self.contour_traversal(fr_action, m_action, fn_action, lf_action)
+        return Integer(m)
+
+    node_number_at_depth = number_of_nodes_at_depth
 
     def paths_to_the_right(self, path):
         r"""
@@ -853,7 +983,7 @@ class AbstractTree(object):
 
         .. SEEALSO::
 
-            :meth:`paths`, :meth:`paths_at_depth`, :meth:`node_number_to_the_right`
+            :meth:`paths`, :meth:`paths_at_depth`, :meth:`number_of_nodes_to_the_right`
 
         EXAMPLES::
 
@@ -897,7 +1027,7 @@ class AbstractTree(object):
         for p in self[path[0]].paths_to_the_right(path[1:]):
             yield tuple([path[0]] + list(p))
 
-    def node_number_to_the_right(self, path):
+    def number_of_nodes_to_the_right(self, path):
         r"""
         Return the number of nodes at the same depth and to the right of
         the node identified by ``path``.
@@ -907,7 +1037,8 @@ class AbstractTree(object):
 
         .. SEEALSO::
 
-            :meth:`node_number`, :meth:`node_number_at_depth`, :meth:`paths_to_the_right`
+            :meth:`number_of_nodes`, :meth:`number_of_nodes_at_depth`,
+            :meth:`paths_to_the_right`
 
         EXAMPLES::
 
@@ -922,27 +1053,29 @@ class AbstractTree(object):
               o    o
                    |
                    o
-            sage: T.node_number_to_the_right(())
+            sage: T.number_of_nodes_to_the_right(())
             0
-            sage: T.node_number_to_the_right((0,))
+            sage: T.number_of_nodes_to_the_right((0,))
             2
-            sage: T.node_number_to_the_right((0,1))
+            sage: T.number_of_nodes_to_the_right((0,1))
             2
-            sage: T.node_number_to_the_right((0,1,0))
+            sage: T.number_of_nodes_to_the_right((0,1,0))
             1
 
             sage: T = OrderedTree([])
-            sage: T.node_number_to_the_right(())
+            sage: T.number_of_nodes_to_the_right(())
             0
         """
         depth = len(path)
         if depth == 0:
             return Integer(0)
-        result = sum(son.node_number_at_depth(depth - 1)
+        result = sum(son.number_of_nodes_at_depth(depth - 1)
                      for son in self[path[0] + 1:])
         if path[0] < len(self) and path[0] >= 0:
-            result += self[path[0]].node_number_to_the_right(path[1:])
+            result += self[path[0]].number_of_nodes_to_the_right(path[1:])
         return result
+
+    node_number_to_the_right = number_of_nodes_to_the_right
 
     def subtrees(self):
         """
@@ -973,12 +1106,12 @@ class AbstractTree(object):
         TESTS::
 
             sage: t = OrderedTree([[], [[], [[], []], [[], []]], [[], []]])
-            sage: t.node_number() == len(list(t.subtrees()))
+            sage: t.number_of_nodes() == len(list(t.subtrees()))
             True
             sage: list(BinaryTree().subtrees())
             []
             sage: bt = BinaryTree([[],[[],[]]])
-            sage: bt.node_number() == len(list(bt.subtrees()))
+            sage: bt.number_of_nodes() == len(list(bt.subtrees()))
             True
         """
         return self.pre_order_traversal_iter()
@@ -1016,12 +1149,12 @@ class AbstractTree(object):
         TESTS::
 
             sage: t = OrderedTree([[], [[], [[], []], [[], []]], [[], []]])
-            sage: t.node_number() == len(list(t.paths()))
+            sage: t.number_of_nodes() == len(list(t.paths()))
             True
             sage: list(BinaryTree().paths())
             []
             sage: bt = BinaryTree([[],[[],[]]])
-            sage: bt.node_number() == len(list(bt.paths()))
+            sage: bt.number_of_nodes() == len(list(bt.paths()))
             True
         """
         if not self.is_empty():
@@ -1030,42 +1163,72 @@ class AbstractTree(object):
                 for p in t.paths():
                     yield (i,) + p
 
-    def node_number(self):
+    def number_of_nodes(self):
         """
         Return the number of nodes of ``self``.
 
         .. SEEALSO::
 
-            :meth:`node_number_at_depth`, :meth:`node_number_to_the_right`
+            :meth:`number_of_nodes_at_depth`, :meth:`number_of_nodes_to_the_right`
 
         EXAMPLES::
 
-            sage: OrderedTree().node_number()
+            sage: OrderedTree().number_of_nodes()
             1
-            sage: OrderedTree([]).node_number()
+            sage: OrderedTree([]).number_of_nodes()
             1
-            sage: OrderedTree([[],[]]).node_number()
+            sage: OrderedTree([[],[]]).number_of_nodes()
             3
-            sage: OrderedTree([[],[[]]]).node_number()
+            sage: OrderedTree([[],[[]]]).number_of_nodes()
             4
-            sage: OrderedTree([[], [[], [[], []], [[], []]], [[], []]]).node_number()
+            sage: OrderedTree([[], [[], [[], []], [[], []]], [[], []]]).number_of_nodes()
             13
 
         EXAMPLES::
 
-            sage: BinaryTree(None).node_number()
+            sage: BinaryTree(None).number_of_nodes()
             0
-            sage: BinaryTree([]).node_number()
+            sage: BinaryTree([]).number_of_nodes()
             1
-            sage: BinaryTree([[], None]).node_number()
+            sage: BinaryTree([[], None]).number_of_nodes()
             2
-            sage: BinaryTree([[None, [[], []]], None]).node_number()
+            sage: BinaryTree([[None, [[], []]], None]).number_of_nodes()
             5
+
+        TESTS:
+
+        Check that we do not hit a recursion limit::
+
+            sage: T = OrderedTree([])
+            sage: for _ in range(9999):
+            ....:     T = OrderedTree([T])
+            sage: T.number_of_nodes()
+            10000
         """
+        # An attribute _node_number for storing the number of nodes
+        # This is OK as AbstractTree is immutable
+        # If the attribute is not present, we compute it
+        try:
+            return self._node_number
+        except AttributeError:
+            pass
+
         if self.is_empty():
-            return Integer(0)
-        else:
-            return sum((i.node_number() for i in self), Integer(1))
+            self._node_number = Integer(0)
+            return self._node_number
+
+        def count(node):
+            if not node.is_empty():
+                # Using post-order
+                # Thus _node_number is computed for all non-empty subtrees
+                node._node_number = Integer(1)
+                node._node_number += sum(e._node_number for e in node
+                                         if not e.is_empty())
+
+        self.iterative_post_order_traversal(count)
+        return self._node_number
+
+    node_number = number_of_nodes
 
     def depth(self):
         """
@@ -1088,11 +1251,33 @@ class AbstractTree(object):
             0
             sage: BinaryTree([[],[[],[]]]).depth()
             3
+
+        TESTS:
+
+        Check that we do not hit a recursion limit::
+
+            sage: T = OrderedTree([])
+            sage: for _ in range(9999):
+            ....:     T = OrderedTree([T])
+            sage: T.depth()
+            10000
         """
-        if self:
-            return Integer(1 + max(i.depth() for i in self))
-        else:
-            return Integer(0 if self.is_empty() else 1)
+        if self.is_empty():
+            return 0
+        m = []
+
+        def action(node):
+            nonlocal m
+            if node.is_empty():
+                m.append(-1)
+            elif not bool(node):
+                m.append(0)
+            else:
+                mx = max(m.pop() for _ in node)
+                m.append(mx + 1)
+
+        self.contour_traversal(final_action=action, leaf_action=action)
+        return Integer(m[0] + 1)
 
     def _ascii_art_(self):
         r"""
@@ -1179,10 +1364,10 @@ class AbstractTree(object):
             return t_repr
         if len(self) == 1:
             repr_child = self[0]._ascii_art_()
-            sep = AsciiArt([" "*(repr_child._root-1)])
+            sep = AsciiArt([" " * (repr_child._root - 1)])
             t_repr = AsciiArt([node_to_str(self)])
             t_repr._root = 1
-            repr_root = (sep + t_repr)*(sep + AsciiArt(["|"]))
+            repr_root = (sep + t_repr) * (sep + AsciiArt(["|"]))
             t_repr = repr_root * repr_child
             t_repr._root = repr_child._root
             t_repr._baseline = t_repr._h - 1
@@ -1190,9 +1375,9 @@ class AbstractTree(object):
         # General case
         l_repr = [subtree._ascii_art_() for subtree in self]
         acc = l_repr.pop(0)
-        whitesep = acc._root+1
-        lf_sep = " "*(acc._root+1) + "_"*(acc._l-acc._root)
-        ls_sep = " "*(acc._root) + "/" + " "*(acc._l-acc._root)
+        whitesep = acc._root + 1
+        lf_sep = " " * (acc._root + 1) + "_" * (acc._l - acc._root)
+        ls_sep = " " * (acc._root) + "/" + " " * (acc._l - acc._root)
         while l_repr:
             t_repr = l_repr.pop(0)
             acc += AsciiArt([" "]) + t_repr
@@ -1200,10 +1385,10 @@ class AbstractTree(object):
                 lf_sep += "_" * (t_repr._root + 1)
             else:
                 lf_sep += "_" * (t_repr._l + 1)
-            ls_sep += " "*(t_repr._root) + "/" + " "*(t_repr._l-t_repr._root)
+            ls_sep += " " * (t_repr._root) + "/" + " " * (t_repr._l - t_repr._root)
         mid = whitesep + (len(lf_sep) - whitesep) // 2
         node = node_to_str(self)
-        t_repr = AsciiArt([lf_sep[:mid-1] + node + lf_sep[mid+len(node)-1:], ls_sep]) * acc
+        t_repr = AsciiArt([lf_sep[:mid - 1] + node + lf_sep[mid + len(node) - 1:], ls_sep]) * acc
         t_repr._root = mid
         t_repr._baseline = t_repr._h - 1
         return t_repr
@@ -1283,8 +1468,7 @@ class AbstractTree(object):
         def node_to_str(t):
             if hasattr(t, "label"):
                 return str(t.label())
-            else:
-                return u"o"
+            return "o"
         # other possible choices for nodes would be u"█ ▓ ░ ╋ ╬"
 
         if self.is_empty():
@@ -1299,9 +1483,9 @@ class AbstractTree(object):
 
         if len(self) == 1:
             repr_child = self[0]._unicode_art_()
-            sep = UnicodeArt([u" " * repr_child._root])
+            sep = UnicodeArt([" " * repr_child._root])
             t_repr = UnicodeArt([node_to_str(self)])
-            repr_root = (sep + t_repr) * (sep + UnicodeArt([u"│"]))
+            repr_root = (sep + t_repr) * (sep + UnicodeArt(["│"]))
             t_repr = repr_root * repr_child
             t_repr._root = repr_child._root
             t_repr._baseline = t_repr._h - 1
@@ -1311,17 +1495,17 @@ class AbstractTree(object):
         l_repr = [subtree._unicode_art_() for subtree in self]
         acc = l_repr.pop(0)
         whitesep = acc._root
-        lf_sep = u" " * whitesep + u"╭" + u"─" * (acc._l - acc._root)
-        ls_sep = u" " * whitesep + u"│" + u" " * (acc._l - acc._root)
+        lf_sep = " " * whitesep + "╭" + "─" * (acc._l - acc._root)
+        ls_sep = " " * whitesep + "│" + " " * (acc._l - acc._root)
         while l_repr:
             tr = l_repr.pop(0)
-            acc += UnicodeArt([u" "]) + tr
-            if not len(l_repr):
-                lf_sep += u"─" * (tr._root) + u"╮"
-                ls_sep += u" " * (tr._root) + u"│"
+            acc += UnicodeArt([" "]) + tr
+            if not l_repr:
+                lf_sep += "─" * (tr._root) + "╮"
+                ls_sep += " " * (tr._root) + "│"
             else:
-                lf_sep += u"─" * (tr._root) + u"┬" + u"─" * (tr._l - tr._root)
-                ls_sep += u" " * (tr._root) + u"│" + u" " * (tr._l - tr._root)
+                lf_sep += "─" * (tr._root) + "┬" + "─" * (tr._l - tr._root)
+                ls_sep += " " * (tr._root) + "│" + " " * (tr._l - tr._root)
         mid = whitesep + (len(lf_sep) - whitesep) // 2
         node = node_to_str(self)
         lf_sep = (lf_sep[:mid - len(node) // 2] + node +
@@ -1356,20 +1540,21 @@ class AbstractTree(object):
             sage: BinaryTree().canonical_labelling()
             .
         """
-        LTR = self.parent().labelled_trees()
-        liste = []
-        deca = 1
-        for subtree in self:
-            liste += [subtree.canonical_labelling(shift + deca)]
-            deca += subtree.node_number()
-        return LTR._element_constructor_(liste, label=shift)
+        def aux(tree, LTR, curlabel):
+            mylabel = curlabel[0]
+            curlabel[0] += 1
+            newtree = LTR([aux(st, LTR, curlabel) for st in tree],
+                          label=mylabel)
+            return newtree
+
+        return aux(self, self.parent().labelled_trees(), [shift])
 
     def to_hexacode(self):
         r"""
-        Transform a tree into an hexadecimal string.
+        Transform a tree into a hexadecimal string.
 
         The definition of the hexacode is recursive. The first letter is
-        the valence of the root as an hexadecimal (up to 15), followed by
+        the valence of the root as a hexadecimal (up to 15), followed by
         the concatenation of the hexacodes of the subtrees.
 
         This method only works for trees where every vertex has
@@ -1404,7 +1589,7 @@ class AbstractTree(object):
         """
         if len(self) > 15:
             raise ValueError("the width of the tree is too large")
-        if self.node_number() == 1:
+        if self.number_of_nodes() == 1:
             return "0"
         return ("%x" % len(self)) + "".join(u.to_hexacode() for u in self)
 
@@ -1432,7 +1617,7 @@ class AbstractTree(object):
             sage: BinaryTree().tree_factorial()
             1
         """
-        nb = self.node_number()
+        nb = self.number_of_nodes()
         if nb <= 1:
             return Integer(1)
         return nb * prod(s.tree_factorial() for s in self)
@@ -1444,30 +1629,28 @@ class AbstractTree(object):
         TESTS::
 
             sage: latex(BinaryTree([[[],[]],[[],None]]))
-            { \newcommand{\nodea}{\node[draw,circle] (a) {$$}
-            ;}\newcommand{\nodeb}{\node[draw,circle] (b) {$$}
-            ;}\newcommand{\nodec}{\node[draw,circle] (c) {$$}
-            ;}\newcommand{\noded}{\node[draw,circle] (d) {$$}
-            ;}\newcommand{\nodee}{\node[draw,circle] (e) {$$}
-            ;}\newcommand{\nodef}{\node[draw,circle] (f) {$$}
+            { \newcommand{\nodea}{\node[draw,circle] (a) {}
+            ;}\newcommand{\nodeb}{\node[draw,circle] (b) {}
+            ;}\newcommand{\nodec}{\node[draw,circle] (c) {}
+            ;}\newcommand{\noded}{\node[draw,circle] (d) {}
+            ;}\newcommand{\nodee}{\node[draw,circle] (e) {}
+            ;}\newcommand{\nodef}{\node[draw,circle] (f) {}
             ;}\begin{tikzpicture}[auto]
             \matrix[column sep=.3cm, row sep=.3cm,ampersand replacement=\&]{
                      \&         \&         \& \nodea  \&         \&         \&         \\
                      \& \nodeb  \&         \&         \&         \& \nodee  \&         \\
              \nodec  \&         \& \noded  \&         \& \nodef  \&         \&         \\
             };
-            <BLANKLINE>
             \path[ultra thick, red] (b) edge (c) edge (d)
                 (e) edge (f)
                 (a) edge (b) edge (e);
             \end{tikzpicture}}
         """
-        ###############################################################################
+        #######################################################################
         # load tikz in the preamble for *view*
-        from sage.misc.latex import latex
         latex.add_package_to_preamble_if_available("tikz")
-        ###############################################################################
-        # latex environnement : TikZ
+        #######################################################################
+        # latex environment : TikZ
         begin_env = "\\begin{tikzpicture}[auto]\n"
         end_env = "\\end{tikzpicture}"
         # it uses matrix trick to place each node
@@ -1481,11 +1664,11 @@ class AbstractTree(object):
         cmd = "\\node"
         new_cmd1 = "\\newcommand{" + cmd
         new_cmd2 = "}{\\node[draw,circle] ("
-        new_cmd3 = ") {$"
-        new_cmd4 = "$}\n;}"
+        new_cmd3 = ") {"
+        new_cmd4 = "}\n;}"
         # some variables to simplify code
         sep = "\\&"
-        space = " "*9
+        space = " " * 9
         sepspace = sep + space
         spacesep = space + sep
 
@@ -1504,12 +1687,12 @@ class AbstractTree(object):
                 create a name (infixe reading)
                  -> ex: b
                 create a new command:
-                 -> ex: \newcommand{\nodeb}{\node[draw,circle] (b) {$$};
+                 -> ex: \newcommand{\nodeb}{\node[draw,circle] (b) {};
                 return the name and the command to build:
                   . the matrix
                   . and the edges
                 """
-                name = "".join((chr(ord(x) + 49) for x in str(num[0])))
+                name = "".join(chr(ord(x) + 49) for x in str(num[0]))
                 node = cmd + name
                 nodes.append((name,
                     (str(self.label()) if hasattr(self, "label") else ""))
@@ -1536,14 +1719,14 @@ class AbstractTree(object):
                 TESTS::
 
                     sage: t = BinaryTree([]); print(latex(t))
-                    { \newcommand{\nodea}{\node[draw,circle] (a) {$$}
+                    { \newcommand{\nodea}{\node[draw,circle] (a) {}
                     ;}\begin{tikzpicture}[auto]
                     \matrix[column sep=.3cm, row sep=.3cm,ampersand replacement=\&]{
                      \nodea  \\
                     };
                     \end{tikzpicture}}
                     sage: t = OrderedTree([]); print(latex(t))
-                    { \newcommand{\nodea}{\node[draw,circle] (a) {$$}
+                    { \newcommand{\nodea}{\node[draw,circle] (a) {}
                     ;}\begin{tikzpicture}[auto]
                     \matrix[column sep=.3cm, row sep=.3cm,ampersand replacement=\&]{
                      \nodea  \\
@@ -1562,7 +1745,7 @@ class AbstractTree(object):
                     # ==> n & n & ... & n' & n' & ...
                     try:
                         mat[i] += sep + mat2[i]
-                    except Exception:
+                    except IndexError:
                         if i >= lmat:
                             if i != 0:
                                 # mat[i] does not exist but
@@ -1620,24 +1803,23 @@ class AbstractTree(object):
                              \& \nodeb  \&         \&         \&         \& \nodee  \&         \\
                      \nodec  \&         \& \noded  \&         \& \nodef  \&         \& \nodeg  \\
                     };
-                    <BLANKLINE>
                     \path[ultra thick, red] (b) edge (c) edge (d)
                         (e) edge (f) edge (g)
                         (a) edge (b) edge (e);
                     \end{tikzpicture}}
+
                     sage: t = BinaryTree([[],[[],[]]]); print(latex(t))
-                    { \newcommand{\nodea}{\node[draw,circle] (a) {$$}
-                    ;}\newcommand{\nodeb}{\node[draw,circle] (b) {$$}
-                    ;}\newcommand{\nodec}{\node[draw,circle] (c) {$$}
-                    ;}\newcommand{\noded}{\node[draw,circle] (d) {$$}
-                    ;}\newcommand{\nodee}{\node[draw,circle] (e) {$$}
+                    { \newcommand{\nodea}{\node[draw,circle] (a) {}
+                    ;}\newcommand{\nodeb}{\node[draw,circle] (b) {}
+                    ;}\newcommand{\nodec}{\node[draw,circle] (c) {}
+                    ;}\newcommand{\noded}{\node[draw,circle] (d) {}
+                    ;}\newcommand{\nodee}{\node[draw,circle] (e) {}
                     ;}\begin{tikzpicture}[auto]
                     \matrix[column sep=.3cm, row sep=.3cm,ampersand replacement=\&]{
                              \& \nodea  \&         \&         \&         \\
                      \nodeb  \&         \&         \& \nodec  \&         \\
                              \&         \& \noded  \&         \& \nodee  \\
                     };
-                    <BLANKLINE>
                     \path[ultra thick, red] (c) edge (d) edge (e)
                         (a) edge (b) edge (c);
                     \end{tikzpicture}}
@@ -1678,7 +1860,6 @@ class AbstractTree(object):
                      \nodea  \\
                      \nodeb  \\
                     };
-                    <BLANKLINE>
                     \path[ultra thick, red] (a) edge (b);
                     \end{tikzpicture}}
                     sage: t = OrderedTree([[[],[]]]).canonical_labelling(); print(latex(t))
@@ -1692,7 +1873,6 @@ class AbstractTree(object):
                              \& \nodeb  \&         \\
                      \nodec  \&         \& \noded  \\
                     };
-                    <BLANKLINE>
                     \path[ultra thick, red] (b) edge (c) edge (d)
                         (a) edge (b);
                     \end{tikzpicture}}
@@ -1708,7 +1888,6 @@ class AbstractTree(object):
                              \& \nodeb  \&         \\
                      \nodec  \& \noded  \& \nodee  \\
                     };
-                    <BLANKLINE>
                     \path[ultra thick, red] (b) edge (c) edge (d) edge (e)
                         (a) edge (b);
                     \end{tikzpicture}}
@@ -1726,7 +1905,6 @@ class AbstractTree(object):
                              \& \nodeb  \&         \& \nodef  \& \nodeg  \\
                      \nodec  \& \noded  \& \nodee  \&         \&         \\
                     };
-                    <BLANKLINE>
                     \path[ultra thick, red] (b) edge (c) edge (d) edge (e)
                         (a) edge (b) edge (f) edge (g);
                     \end{tikzpicture}}
@@ -1739,7 +1917,7 @@ class AbstractTree(object):
                 for i in range(split):
                     tmp(self[i], edge, nodes, edges, matrix)
                 # # prepare the root line
-                if len(matrix):
+                if matrix:
                     nb_of_and = matrix[0].count(sep)
                     sizetmp = len(matrix[0])
                 else:
@@ -1762,9 +1940,9 @@ class AbstractTree(object):
             if self.is_empty():
                 empty_tree()
             elif len(self) == 0 or all(subtree.is_empty()
-                    for subtree in self):
+                                       for subtree in self):
                 one_node_tree(self)
-            elif len(self) % 2 == 0:
+            elif not len(self) % 2:
                 pair_nodes_tree(self, nodes, edges, matrix)
             else:
                 odd_nodes_tree(self, nodes, edges, matrix)
@@ -1775,9 +1953,11 @@ class AbstractTree(object):
         def make_cmd(nodes):
             cmds = []
             for name, label in nodes:
+                if label:
+                    label = "$" + label + "$"
                 cmds.append(new_cmd1 + name + new_cmd2 +
-                    name + new_cmd3 +
-                    label + new_cmd4)
+                            name + new_cmd3 +
+                            label + new_cmd4)
             return cmds
 
         def make_edges(edges):
@@ -1794,11 +1974,10 @@ class AbstractTree(object):
                 (matrix_begin +
                     "\\\\ \n".join(matrix) +
                 matrix_end +
-                ("\n" +
-                path_begin +
+                (path_begin +
                     "\n\t".join(make_edges(edges)) +
-                path_end if len(edges) else "")
-                if len(matrix) else "") +
+                path_end if edges else "")
+                if matrix else "") +
             end_env +
             "}")
 
@@ -1836,6 +2015,7 @@ class AbstractClonableTree(AbstractTree):
 
     See also the assumptions in :class:`AbstractTree`.
     """
+
     def check(self):
         """
         Check that ``self`` is a correct tree.
@@ -1865,7 +2045,7 @@ class AbstractClonableTree(AbstractTree):
             The tree ``self`` must be in a mutable state. See
             :mod:`sage.structure.list_clone` for more details about
             mutability.  The default implementation here assume that the
-            container of the node implement a method `_setitem` with signature
+            container of the node implement a method ``_setitem`` with signature
             `self._setitem(idx, value)`. It is usually provided by inheriting
             from :class:`~sage.structure.list_clone.ClonableArray`.
 
@@ -1943,8 +2123,8 @@ class AbstractClonableTree(AbstractTree):
         TESTS::
 
             sage: x = OrderedTree([[[], []],[[]]])
-            sage: with x.clone() as x:
-            ....:     x[0,1] = OrderedTree([[[]]]) # indirect doctest
+            sage: with x.clone() as x:              # indirect doctest
+            ....:     x[0,1] = OrderedTree([[[]]])
             sage: x
             [[[], [[[]]]], [[]]]
         """
@@ -1952,7 +2132,7 @@ class AbstractClonableTree(AbstractTree):
             self._setitem(idx[-1], value)
         else:
             with self[idx[i]].clone() as child:
-                child.__setitem_rec__(idx, i+1, value)
+                child.__setitem_rec__(idx, i + 1, value)
             self[idx[i]] = child
 
     def __getitem__(self, idx):
@@ -1966,7 +2146,7 @@ class AbstractClonableTree(AbstractTree):
 
         INPUT:
 
-        - ``idx`` -- an integer, or a valid path in ``self`` identifying a node
+        - ``idx`` -- integer; or a valid path in ``self`` identifying a node
 
         .. NOTE::
 
@@ -2018,6 +2198,41 @@ class AbstractClonableTree(AbstractTree):
         else:
             return ClonableArray._getitem(self, i)
 
+    def _require_mutable(self):
+        """
+        Check that ``self`` is mutable and clear the ``_node_number`` parameter.
+
+        The mutation could affect a precomputed ``_node_number``,
+        and so we clear this when this is called, which is done in
+        preparation for mutating the tree.
+
+        Values cleared:
+
+        - ``_node_number`` : number of nodes in the tree
+
+        EXAMPLES::
+
+            sage: T = OrderedTree()
+            sage: T._require_mutable()
+            Traceback (most recent call last):
+            ...
+            ValueError: object is immutable; please change a copy instead.
+
+        ::
+
+            sage: T = LabelledRootedTree([]).clone()
+            sage: T.node_number()
+            1
+            sage: T._require_mutable()
+            sage: hasattr(T, '_node_number')
+            False
+        """
+        super()._require_mutable()
+        try:
+            delattr(self, '_node_number')
+        except AttributeError:
+            pass
+
 
 class AbstractLabelledTree(AbstractTree):
     """
@@ -2052,6 +2267,7 @@ class AbstractLabelledTree(AbstractTree):
 
     .. SEEALSO:: :class:`AbstractTree`
     """
+
     def __init__(self, parent, children, label=None, check=True):
         """
         TESTS::
@@ -2068,7 +2284,7 @@ class AbstractLabelledTree(AbstractTree):
             None[None[], None[None[], None[]], None[]]
 
         We test that inheriting from `LabelledOrderedTree` allows construction from a
-        `LabelledOrderedTree` (:trac:`16314`)::
+        `LabelledOrderedTree` (:issue:`16314`)::
 
             sage: LBTS = LabelledOrderedTrees()
             sage: class Foo(LabelledOrderedTree):
@@ -2093,7 +2309,7 @@ class AbstractLabelledTree(AbstractTree):
         """
         # We must initialize the label before the subtrees to allows rooted
         # trees canonization. Indeed it needs that ``self``._hash_() is working
-        # at the end of the call super(..., self).__init__(...)
+        # at the end of the call super().__init__(...)
         if isinstance(children, AbstractLabelledTree):
             if label is None:
                 self._label = children._label
@@ -2101,7 +2317,7 @@ class AbstractLabelledTree(AbstractTree):
                 self._label = label
         else:
             self._label = label
-        super(AbstractLabelledTree, self).__init__(parent, children, check=check)
+        super().__init__(parent, children, check=check)
 
     def _repr_(self):
         """
@@ -2148,11 +2364,10 @@ class AbstractLabelledTree(AbstractTree):
         """
         if path is None:
             return self._label
-        else:
-            tr = self
-            for i in path:
-                tr = tr[i]
-            return tr._label
+        tr = self
+        for i in path:
+            tr = tr[i]
+        return tr._label
 
     def labels(self):
         """
@@ -2195,11 +2410,11 @@ class AbstractLabelledTree(AbstractTree):
             sage: LBT(None).leaf_labels()
             []
         """
-        return [t.label() for t in self.subtrees() if t.node_number() == 1]
+        return [t.label() for t in self.subtrees() if t.number_of_nodes() == 1]
 
     def __eq__(self, other):
         """
-        Test if ``self`` is equal to ``other``
+        Test if ``self`` is equal to ``other``.
 
         TESTS::
 
@@ -2219,12 +2434,11 @@ class AbstractLabelledTree(AbstractTree):
             sage: t1 == t2
             False
         """
-        return (super(AbstractLabelledTree, self).__eq__(other) and
-                self._label == other._label)
+        return super().__eq__(other) and self._label == other._label
 
     def _hash_(self):
         """
-        Return the hash value for ``self``
+        Return the hash value for ``self``.
 
         TESTS::
 
@@ -2284,10 +2498,9 @@ class AbstractLabelledTree(AbstractTree):
         TR = self.parent().unlabelled_trees()
         if not self:
             return TR.leaf()
-        else:
-            return TR._element_constructor_([i.shape() for i in self])
+        return TR._element_constructor_([i.shape() for i in self])
 
-    def as_digraph(self):
+    def as_digraph(self, immutable=False):
         """
         Return a directed graph version of ``self``.
 
@@ -2296,6 +2509,11 @@ class AbstractLabelledTree(AbstractTree):
             At this time, the output makes sense only if ``self`` is a
             labelled binary tree with no repeated labels and no ``None``
             labels.
+
+        INPUT:
+
+        - ``immutable`` -- boolean (default: ``False``); whether to return an
+          immutable or a mutable graph
 
         EXAMPLES::
 
@@ -2306,23 +2524,35 @@ class AbstractLabelledTree(AbstractTree):
 
            sage: t = BinaryTree([[None, None],[[],None]])
            sage: lt = t.canonical_labelling()
-           sage: lt.as_digraph()
+           sage: d1 = lt.as_digraph(); d1
            Digraph on 4 vertices
+           sage: d2 = lt.as_digraph(immutable=True); d2
+           Digraph on 4 vertices
+           sage: d1.is_isomorphic(d2)
+           True
         """
         from sage.graphs.digraph import DiGraph
-        resu = {self.label():
-                [t.label() for t in self if not t.is_empty()]}
-        resu = DiGraph(resu, format="dict_of_lists")
-        for t in self:
-            if not t.is_empty():
-                resu = resu.union(t.as_digraph())
-        return resu
+        vertices = [self.label()]
+        edges = []
+        stack = [self]
+        while stack:
+            lt = stack.pop()
+            u = lt.label()
+            for t in lt:
+                if not t.is_empty():
+                    v = t.label()
+                    vertices.append(v)
+                    edges.append((u, v))
+                    stack.append(t)
+
+        return DiGraph([vertices, edges], format="vertices_and_edges",
+                       immutable=immutable)
 
 
 class AbstractLabelledClonableTree(AbstractLabelledTree,
                                    AbstractClonableTree):
     """
-    Abstract Labelled Clonable Tree
+    Abstract Labelled Clonable Tree.
 
     This class takes care of modification for the label by the clone protocol.
 
@@ -2330,13 +2560,16 @@ class AbstractLabelledClonableTree(AbstractLabelledTree,
        here from :class:`~sage.structure.list_clone.ClonableArray`, because it would prevent us to
        inherit later from :class:`~sage.structure.list_clone.ClonableList`.
     """
+
     def set_root_label(self, label):
         """
         Set the label of the root of ``self``.
 
-        INPUT: ``label`` -- any Sage object
+        INPUT:
 
-        OUTPUT: ``None``, ``self`` is modified in place
+        - ``label`` -- any Sage object
+
+        OUTPUT: none, ``self`` is modified in place
 
         .. NOTE::
 
@@ -2393,11 +2626,11 @@ class AbstractLabelledClonableTree(AbstractLabelledTree,
         INPUT:
 
         - ``path`` -- ``None`` (default) or a path (list or tuple of children
-                      index in the tree)
+          index in the tree)
 
         - ``label`` -- any sage object
 
-        OUTPUT: Nothing, ``self`` is modified in place
+        OUTPUT: nothing, ``self`` is modified in place
 
         .. NOTE::
 
@@ -2439,7 +2672,7 @@ class AbstractLabelledClonableTree(AbstractLabelledTree,
 
     def map_labels(self, f):
         """
-        Apply the function `f` to the labels of ``self``
+        Apply the function `f` to the labels of ``self``.
 
         This method returns a copy of ``self`` on which the function `f` has
         been applied on all labels (a label `x` is replaced by `f(x)`).
@@ -2466,11 +2699,11 @@ class AbstractLabelledClonableTree(AbstractLabelledTree,
 
 def from_hexacode(ch, parent=None, label='@'):
     r"""
-    Transform an hexadecimal string into a tree.
+    Transform a hexadecimal string into a tree.
 
     INPUT:
 
-    - ``ch`` -- an hexadecimal string
+    - ``ch`` -- a hexadecimal string
 
     - ``parent`` -- kind of trees to be produced. If ``None``, this will
       be ``LabelledOrderedTrees``
@@ -2516,13 +2749,13 @@ def from_hexacode(ch, parent=None, label='@'):
 
 def _from_hexacode_aux(ch, parent, label='@'):
     r"""
-    Transform an hexadecimal string into a tree and a remainder string.
+    Transform a hexadecimal string into a tree and a remainder string.
 
     INPUT:
 
-    - ``ch`` -- an hexadecimal string
+    - ``ch`` -- a hexadecimal string
 
-    - ``parent`` -- kind of trees to be produced.
+    - ``parent`` -- kind of trees to be produced
 
     - ``label`` -- a label (default: ``'@'``) to be used for every vertex
       of the tree

@@ -1,24 +1,23 @@
 # -*- coding: utf-8 -*-
 """
-    multi documentation in Sphinx
-    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Sage multidocs extension
 
-    The goal of this extension is to manage a multi documentation in Sphinx.
-    To be able to compile Sage's huge documentation in parallel, the
-    documentation is cut into a bunch of independent documentations called
-    "subdocs", which are compiled separately. There is a master document which
-    points to all the subdocs. The intersphinx extension ensures that the
-    cross-link between the subdocs are correctly resolved. However some work
-    is needed to build a global index. This is the goal of multidocs.
+The goal of this extension is to manage a multi-documentation in Sphinx.  To be
+able to compile Sage's huge documentation in parallel, the documentation is cut
+into a bunch of independent documentations called "sub-docs", which are
+compiled separately. There is a master document which points to all the
+sub-docs. The intersphinx extension ensures that the cross-link between the
+sub-docs are correctly resolved. However some work is needed to build a global
+index. This is the goal of the ``multidocs`` extension.
 
-    More precisely this extension ensures the correct merging of
-    - the todo list if this extension is activated;
-    - the python indexes;
-    - the list of python modules;
-    - the javascript index;
-    - the citations.
+More precisely this extension ensures the correct merging of
+
+- the todo list if this extension is activated
+- the python indexes
+- the list of python modules
+- the javascript index
+- the citations
 """
-
 import os
 import pickle
 import shutil
@@ -26,7 +25,6 @@ import sphinx
 from sphinx.application import Sphinx
 from sphinx.util.console import bold
 from sage.env import SAGE_DOC
-from sage.misc.misc import sage_makedirs
 from pathlib import Path
 
 logger = sphinx.util.logging.getLogger(__name__)
@@ -36,26 +34,26 @@ CITE_FILENAME = 'citations.pickle'
 
 def merge_environment(app, env):
     """
-    Merges the following attributes of the sub-docs environment into the main
+    Merge the following attributes of the sub-docs environment into the main
     environment:
-    - titles                      # Titles
-    - todo_all_todos              # ToDo's
-    - indexentries                # global python index
-    - all_docs                    # needed by the js index
-    - citations                   # citations
 
-    - domaindata['py']['modules'] # list of python modules
+    - ``titles`` -- Titles
+    - ``todo_all_todos`` -- todo's
+    - ``indexentries`` -- global python index
+    - ``all_docs`` -- needed by the js index
+    - ``citations`` -- citations
+    - ``domaindata['py']['modules']`` -- list of python modules
     """
     logger.info(bold('Merging environment/index files...'))
     for curdoc in app.env.config.multidocs_subdoc_list:
-        logger.info("    %s:"%curdoc, nonl=1)
+        logger.info("    %s:" % curdoc, nonl=1)
         docenv = get_env(app, curdoc)
         if docenv is not None:
             fixpath = lambda path: os.path.join(curdoc, path)
             todos = docenv.domaindata['todo'].get('todos', dict())
             citations = docenv.domaindata['citation'].get('citations', dict())
             indexentries = docenv.domaindata['index'].get('entries', dict())
-            logger.info(" %s todos, %s index, %s citations"%(
+            logger.info(" %s todos, %s index, %s citations" % (
                     sum(len(t) for t in todos.values()),
                     len(indexentries),
                     len(citations)
@@ -82,7 +80,7 @@ def merge_environment(app, env):
             env.all_docs.update(newalldoc)
             # needed by env.check_consistency (sphinx.environment, line 1734)
             for ind in newalldoc:
-                # treat subdocument source as orphaned file and don't complain
+                # treat sub-document source as orphaned file and don't complain
                 md = env.metadata.get(ind, dict())
                 md['orphan'] = 1
                 env.metadata[ind] = md
@@ -98,8 +96,8 @@ def merge_environment(app, env):
             for ind,mod in docenv.domaindata['py']['modules'].items():
                 newmodules[ind] = ModuleEntry(fixpath(mod.docname), mod.node_id, mod.synopsis, mod.platform, mod.deprecated)
             env.domaindata['py']['modules'].update(newmodules)
-            logger.info(", %s modules"%(len(newmodules)))
-    logger.info('... done (%s todos, %s index, %s citations, %s modules)'%(
+            logger.info(", %s modules" % (len(newmodules)))
+    logger.info('... done (%s todos, %s index, %s citations, %s modules)' % (
             sum(len(t) for t in env.domaindata['todo']['todos'].values()),
             len(env.domaindata['index']['entries']),
             len(env.domaindata['citation']['citations']),
@@ -116,9 +114,8 @@ def get_env(app, curdoc):
         app.env.doctreedir, curdoc, ENV_PICKLE_FILENAME)
     try:
         f = open(filename, 'rb')
-    except IOError:
-        logger.info("")
-        logger.warning("Unable to fetch %s " % filename)
+    except OSError:
+        logger.debug(f"Unable to load pickled environment '{filename}'", exc_info=True)
         return None
     docenv = pickle.load(f)
     f.close()
@@ -133,12 +130,12 @@ def merge_js_index(app):
     logger.info(bold('Merging js index files...'))
     mapping = app.builder.indexer._mapping
     for curdoc in app.env.config.multidocs_subdoc_list:
-        logger.info("    %s:"%curdoc, nonl=1)
+        logger.info("    %s:" % curdoc, nonl=1)
         fixpath = lambda path: os.path.join(curdoc, path)
         index = get_js_index(app, curdoc)
         if index is not None:
             # merge the mappings
-            logger.info(" %s js index entries"%(len(index._mapping)))
+            logger.info(" %s js index entries" % (len(index._mapping)))
             for (ref, locs) in index._mapping.items():
                 newmapping = set(map(fixpath, locs))
                 if ref in mapping:
@@ -148,6 +145,10 @@ def merge_js_index(app):
             titles = app.builder.indexer._titles
             for (res, title) in index._titles.items():
                 titles[fixpath(res)] = title
+            # merge the alltitles
+            alltitles = app.builder.indexer._all_titles
+            for (res, alltitle) in index._all_titles.items():
+                alltitles[fixpath(res)] = alltitle
             # merge the filenames
             filenames = app.builder.indexer._filenames
             for (res, filename) in index._filenames.items():
@@ -158,7 +159,7 @@ def merge_js_index(app):
             dest = os.path.join(app.outdir, "_sources", curdoc)
             if not os.path.exists(dest):
                 os.symlink(os.path.join("..", curdoc, "_sources"), dest)
-    logger.info('... done (%s js index entries)'%(len(mapping)))
+    logger.info('... done (%s js index entries)' % (len(mapping)))
     logger.info(bold('Writing js search indexes...'), nonl=1)
     return [] # no extra page to setup
 
@@ -169,7 +170,7 @@ def get_js_index(app, curdoc):
     """
     from sphinx.search import IndexBuilder, languages
     # FIXME: find the correct lang
-    sphinx_version=__import__("sphinx").__version__
+    sphinx_version = __import__("sphinx").__version__
     if (sphinx_version < '1.2'):
         indexer = IndexBuilder(app.env, 'en',
                                app.config.html_search_options)
@@ -178,8 +179,8 @@ def get_js_index(app, curdoc):
                                app.config.html_search_options, scoring=None)
     indexfile = os.path.join(app.outdir, curdoc, 'searchindex.js')
     try:
-        f = open(indexfile, 'r')
-    except IOError:
+        f = open(indexfile)
+    except OSError:
         logger.info("")
         logger.warning("Unable to fetch %s " % indexfile)
         return None
@@ -194,19 +195,20 @@ mustbefixed = ['search', 'genindex', 'genindex-all',
 
 def fix_path_html(app, pagename, templatename, ctx, event_arg):
     """
-    Fixes the context so that the files
-    - search.html
-    - genindex.html
-    - py-modindex.html
-    point to the right place, that is in
-        reference/
-    instead of
-        reference/subdocument
+    Fix the context so that the files
+
+    - :file:`search.html`
+    - :file:`genindex.html`
+    - :file:`py-modindex.html`
+
+    point to the right place, that is in :file:`reference/` instead of
+    :file:`reference/subdocument`.
     """
     # sphinx/builder/html.py line 702
     # def pathto(otheruri, resource=False,
     #            baseuri=self.get_target_uri(pagename)):
     old_pathto = ctx['pathto']
+
     def sage_pathto(otheruri, *args, **opts):
         if otheruri in mustbefixed:
             otheruri = os.path.join("..", otheruri)
@@ -228,10 +230,10 @@ def citation_dir(app: Sphinx) -> Path:
         if dirs[0] == '/':
             dirs.pop(0)
         tail = dirs[1:]
-        citedir = (sage_doc / "inventory").joinpath(*tail) 
+        citedir = (sage_doc / "inventory").joinpath(*tail)
     else:
         citedir = outdir / "inventory"
-    sage_makedirs(citedir)
+    os.makedirs(citedir, exist_ok=True)
     return citedir
 
 
@@ -257,7 +259,7 @@ def fetch_citation(app: Sphinx, env):
         return
     with open(file, 'rb') as f:
         cache = pickle.load(f)
-    logger.info("done (%s citations)."%len(cache))
+    logger.info("done (%s citations)." % len(cache))
     cite = env.domaindata['citation'].get('citations', dict())
     for ind, (path, tag, lineno) in cache.items():
         if ind not in cite: # don't override local citation
@@ -266,7 +268,7 @@ def fetch_citation(app: Sphinx, env):
 
 def init_subdoc(app):
     """
-    Init the merger depending on if we are compiling a subdoc or the master
+    Init the merger depending on if we are compiling a sub-doc or the master
     doc itself.
     """
     if app.config.multidocs_is_master:
@@ -305,6 +307,10 @@ def init_subdoc(app):
                     shutil.rmtree(static_dir)
                 except OSError:
                     os.unlink(static_dir)
+            # This ensures that the symlink we are creating points to an
+            # existing directory. See trac #33608.
+            os.makedirs(os.path.join(app.builder.outdir, master_static_dir),
+                        exist_ok=True)
             os.symlink(master_static_dir, static_dir)
 
         app.builder.copy_static_files = link_static_files
@@ -315,10 +321,9 @@ def init_subdoc(app):
         app.emit('env-check-consistency', app.env)
 
 
-
 def setup(app: Sphinx):
     app.add_config_value('multidocs_is_master', True, True)
     app.add_config_value('multidocs_subdoc_list', [], True)
     app.add_config_value('multidoc_first_pass', 0, False)   # 1 = deactivate the loading of the inventory
     app.connect('builder-inited', init_subdoc)
-    return {'parallel_read_safe': True} 
+    return {'parallel_read_safe': True}

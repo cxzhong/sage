@@ -15,14 +15,5 @@ License
 Upstream Contact
 ----------------
 
-   https://github.com/sebasguts/PyNormaliz
+https://pypi.org/project/PyNormaliz/
 
-Dependencies
-------------
-
--  pip
--  normaliz
-
-
-Special Update/Build Instructions
----------------------------------

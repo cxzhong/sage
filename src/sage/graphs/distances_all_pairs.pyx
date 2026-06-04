@@ -1,4 +1,3 @@
-# cython: binding=True
 r"""
 Distances/shortest paths between all pairs of vertices
 
@@ -73,7 +72,7 @@ Breadth First Search per vertex of the (di)graph.
 **Technical details**
 
 - The vertices are encoded as `1, ..., n` as they appear in the ordering of
-  ``G.vertices()``, unless another ordering is specified by the user.
+  ``G.vertices(sort=True)``, unless another ordering is specified by the user.
 
 - Because this function works on matrices whose size is quadratic compared to
   the number of vertices when computing all distances or predecessors, it uses
@@ -112,27 +111,28 @@ Functions
 ---------
 """
 
-#*****************************************************************************
+# ****************************************************************************
 #       Copyright (C) 2011 Nathann Cohen <nathann.cohen@gmail.com>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
-from sage.data_structures.binary_matrix cimport *
 from libc.string cimport memset
 from libc.stdint cimport uint64_t, UINT64_MAX
 from libc.stdint cimport uint32_t, INT32_MAX, UINT32_MAX
 from cysignals.memory cimport sig_malloc, sig_calloc, sig_free
 from cysignals.signals cimport sig_on, sig_off
+from memory_allocator cimport MemoryAllocator
 
+from sage.data_structures.binary_matrix cimport *
 from sage.graphs.base.c_graph cimport CGraphBackend
 from sage.graphs.base.c_graph cimport CGraph
-from sage.ext.memory_allocator cimport MemoryAllocator
-
+from sage.graphs.base.static_sparse_backend cimport StaticSparseCGraph
+from sage.graphs.base.static_sparse_backend cimport StaticSparseBackend
 from sage.graphs.base.static_sparse_graph cimport (short_digraph,
                                                    init_short_digraph,
                                                    init_reverse,
@@ -140,6 +140,7 @@ from sage.graphs.base.static_sparse_graph cimport (short_digraph,
                                                    out_degree,
                                                    has_edge,
                                                    simple_BFS)
+
 
 cdef inline c_all_pairs_shortest_path_BFS(short_digraph sd,
                                           unsigned short* predecessors,
@@ -191,8 +192,6 @@ cdef inline c_all_pairs_shortest_path_BFS(short_digraph sd,
     # This data structure is well documented in the module
     # sage.graphs.base.static_sparse_graph
     cdef uint32_t** p_vertices = sd.neighbors
-    cdef uint32_t* p_edges = sd.edges
-    cdef uint32_t* p_next = p_edges
 
     # We run n different BFS taking each vertex as a source
     for source in range(n):
@@ -265,6 +264,7 @@ cdef inline c_all_pairs_shortest_path_BFS(short_digraph sd,
 
     bitset_free(seen)
 
+
 cdef inline all_pairs_shortest_path_BFS(gg,
                                         unsigned short* predecessors,
                                         unsigned short* distances,
@@ -273,17 +273,18 @@ cdef inline all_pairs_shortest_path_BFS(gg,
     r"""
     See the module's documentation.
 
-    Optional parameter ``vertex_list`` is a list of `n` vertices specifying a
-    mapping from `(0, \ldots, n-1)` to vertex labels in ``gg``. When
-    ``vertex_list`` is ``None`` (default), the mapping is given by the ordering
-    of ``gg.vertices()``. When set, ``distances[i * n + j]`` is the shortest BFS
-    distance between vertices ``vertex_list[i]`` and ``vertex_list[j]``.
+    Optional parameter ``vertex_list`` is a list of `n` vertices
+    specifying a mapping from `(0, \ldots, n-1)` to vertex labels in
+    ``gg``. When ``vertex_list`` is ``None`` (default), the mapping is
+    given by the ordering of ``gg.vertices(sort=True)``. When set,
+    ``distances[i * n + j]`` is the shortest BFS distance between
+    vertices ``vertex_list[i]`` and ``vertex_list[j]``.
     """
     from sage.rings.infinity import Infinity
 
     cdef list int_to_vertex
     if vertex_list is None:
-        int_to_vertex = gg.vertices()
+        int_to_vertex = gg.vertices(sort=True)
     elif set(gg.vertex_iterator()) == set(vertex_list):
         int_to_vertex = vertex_list
     else:
@@ -309,6 +310,7 @@ cdef inline all_pairs_shortest_path_BFS(gg,
 
     free_short_digraph(sd)
 
+
 ################
 # Predecessors #
 ################
@@ -326,7 +328,7 @@ cdef unsigned short* c_shortest_path_all_pairs(G, vertex_list=None) except NULL:
     Optional parameter ``vertex_list`` is a list of `n` vertices specifying a
     mapping from `(0, \ldots, n-1)` to vertex labels in `G`. When
     ``vertex_list`` is ``None`` (default), the mapping is given by the ordering
-    of ``G.vertices()``. When set, ``predecessors[i * n + j]`` is the
+    of ``G.vertices(sort=True)``. When set, ``predecessors[i * n + j]`` is the
     predecessor of ``vertex_list[j]`` on the shortest path from
     ``vertex_list[i]`` to ``vertex_list[j]``.
     """
@@ -344,6 +346,7 @@ cdef unsigned short* c_shortest_path_all_pairs(G, vertex_list=None) except NULL:
     sig_free(distances)
 
     return predecessors
+
 
 def shortest_path_all_pairs(G):
     r"""
@@ -371,7 +374,6 @@ def shortest_path_all_pairs(G):
          8: {0: 5, 1: 6, 2: 3, 3: 8, 4: 3, 5: 8, 6: 8, 7: 5, 8: None, 9: 6},
          9: {0: 4, 1: 6, 2: 7, 3: 4, 4: 9, 5: 7, 6: 9, 7: 9, 8: 6, 9: None}}
     """
-
     cdef int n = G.order()
 
     if not n:
@@ -403,25 +405,25 @@ def shortest_path_all_pairs(G):
     sig_free(predecessors)
     return d
 
+
 #############
 # Distances #
 #############
 
-cdef unsigned short * c_distances_all_pairs(G, vertex_list=None):
+cdef unsigned short * c_distances_all_pairs(G, vertex_list=None) noexcept:
     r"""
-    Returns the matrix of distances in G.
+    Return the matrix of distances in G.
 
     The matrix `M` returned is of length `n^2`, and the distance between
     vertices `u` and `v` is `M[u,v]`. The integer corresponding to a vertex is
-    its index in the list ``G.vertices()`` unless parameter ``vertex_list`` is
-    set.
+    its index in the list ``G.vertices(sort=True)`` unless parameter
+    ``vertex_list`` is set.
 
     Optional parameter ``vertex_list`` is a list of `n` vertices specifying a
     mapping from `(0, \ldots, n-1)` to vertex labels in `G`. When set,
     ``distances[i * n + j]`` is the shortest BFS distance between vertices
     ``vertex_list[i]`` and ``vertex_list[j]``.
     """
-
     cdef unsigned int n = G.order()
     cdef unsigned short* distances = <unsigned short*> sig_malloc(n * n * sizeof(unsigned short))
     if not distances:
@@ -429,6 +431,7 @@ cdef unsigned short * c_distances_all_pairs(G, vertex_list=None):
     all_pairs_shortest_path_BFS(G, NULL, distances, NULL, vertex_list=vertex_list)
 
     return distances
+
 
 def distances_all_pairs(G):
     r"""
@@ -443,17 +446,16 @@ def distances_all_pairs(G):
         sage: g = graphs.PetersenGraph()
         sage: distances_all_pairs(g)
         {0: {0: 0, 1: 1, 2: 2, 3: 2, 4: 1, 5: 1, 6: 2, 7: 2, 8: 2, 9: 2},
-        1: {0: 1, 1: 0, 2: 1, 3: 2, 4: 2, 5: 2, 6: 1, 7: 2, 8: 2, 9: 2},
-        2: {0: 2, 1: 1, 2: 0, 3: 1, 4: 2, 5: 2, 6: 2, 7: 1, 8: 2, 9: 2},
-        3: {0: 2, 1: 2, 2: 1, 3: 0, 4: 1, 5: 2, 6: 2, 7: 2, 8: 1, 9: 2},
-        4: {0: 1, 1: 2, 2: 2, 3: 1, 4: 0, 5: 2, 6: 2, 7: 2, 8: 2, 9: 1},
-        5: {0: 1, 1: 2, 2: 2, 3: 2, 4: 2, 5: 0, 6: 2, 7: 1, 8: 1, 9: 2},
-        6: {0: 2, 1: 1, 2: 2, 3: 2, 4: 2, 5: 2, 6: 0, 7: 2, 8: 1, 9: 1},
-        7: {0: 2, 1: 2, 2: 1, 3: 2, 4: 2, 5: 1, 6: 2, 7: 0, 8: 2, 9: 1},
-        8: {0: 2, 1: 2, 2: 2, 3: 1, 4: 2, 5: 1, 6: 1, 7: 2, 8: 0, 9: 2},
-        9: {0: 2, 1: 2, 2: 2, 3: 2, 4: 1, 5: 2, 6: 1, 7: 1, 8: 2, 9: 0}}
+         1: {0: 1, 1: 0, 2: 1, 3: 2, 4: 2, 5: 2, 6: 1, 7: 2, 8: 2, 9: 2},
+         2: {0: 2, 1: 1, 2: 0, 3: 1, 4: 2, 5: 2, 6: 2, 7: 1, 8: 2, 9: 2},
+         3: {0: 2, 1: 2, 2: 1, 3: 0, 4: 1, 5: 2, 6: 2, 7: 2, 8: 1, 9: 2},
+         4: {0: 1, 1: 2, 2: 2, 3: 1, 4: 0, 5: 2, 6: 2, 7: 2, 8: 2, 9: 1},
+         5: {0: 1, 1: 2, 2: 2, 3: 2, 4: 2, 5: 0, 6: 2, 7: 1, 8: 1, 9: 2},
+         6: {0: 2, 1: 1, 2: 2, 3: 2, 4: 2, 5: 2, 6: 0, 7: 2, 8: 1, 9: 1},
+         7: {0: 2, 1: 2, 2: 1, 3: 2, 4: 2, 5: 1, 6: 2, 7: 0, 8: 2, 9: 1},
+         8: {0: 2, 1: 2, 2: 2, 3: 1, 4: 2, 5: 1, 6: 1, 7: 2, 8: 0, 9: 2},
+         9: {0: 2, 1: 2, 2: 2, 3: 2, 4: 1, 5: 2, 6: 1, 7: 1, 8: 2, 9: 0}}
     """
-
     from sage.rings.infinity import Infinity
 
     cdef int n = G.order()
@@ -486,9 +488,10 @@ def distances_all_pairs(G):
     sig_free(distances)
     return d
 
+
 def is_distance_regular(G, parameters=False):
     r"""
-    Test if the graph is distance-regular
+    Test if the graph is distance-regular.
 
     A graph `G` is distance-regular if for any integers `j,k` the value of
     `|\{x:d_G(x,u)=j,x\in V(G)\} \cap \{y:d_G(y,v)=j,y\in V(G)\}|` is constant
@@ -542,9 +545,8 @@ def is_distance_regular(G, parameters=False):
         ([1, None], [None, 1])
         sage: graphs.Tutte12Cage().is_distance_regular(parameters=True)
         ([3, 2, 2, 2, 2, 2, None], [None, 1, 1, 1, 1, 1, 3])
-
     """
-    cdef int i,l,u,v,d,b,c,k
+    cdef int i, u, v, d, b, c, k
     cdef int n = G.order()
     cdef int infinity = <unsigned short> -1
 
@@ -591,7 +593,7 @@ def is_distance_regular(G, parameters=False):
     for u in range(n):
         for v in range(n):
             if u == v:
-               continue
+                continue
 
             d = distance_matrix[u * n + v]
             if d == infinity:
@@ -624,8 +626,8 @@ def is_distance_regular(G, parameters=False):
         bi[diameter] = None
         ci[0] = None
         return bi, ci
-    else:
-        return  True
+    return True
+
 
 ###################################
 # Both distances and predecessors #
@@ -637,7 +639,7 @@ def distances_and_predecessors_all_pairs(G):
 
     Distances : the matrix `M` returned is of length `n^2`, and the distance
     between vertices `u` and `v` is `M[u,v]`. The integer corresponding to a
-    vertex is its index in the list ``G.vertices()``.
+    vertex is its index in the list ``G.vertices(sort=True)``.
 
     Predecessors : the matrix `P` returned has size `n^2`, and is such that
     vertex `P[u,v]` is a predecessor of `v` on a shortest `uv`-path. Hence, this
@@ -714,6 +716,7 @@ def distances_and_predecessors_all_pairs(G):
 
     return d_distance, d_predecessor
 
+
 ################
 # Eccentricity #
 ################
@@ -723,7 +726,7 @@ cdef uint32_t * c_eccentricity(G, vertex_list=None) except NULL:
     Return the vector of eccentricities in G.
 
     The array returned is of length `n`, and by default its `i`-th component is
-    the eccentricity of the `i`-th vertex in ``G.vertices()``.
+    the eccentricity of the `i`-th vertex in ``G.vertices(sort=True)``.
 
     Optional parameter ``vertex_list`` is a list of `n` vertices specifying a
     mapping from `(0, \ldots, n-1)` to vertex labels in `G`. When set,
@@ -737,6 +740,7 @@ cdef uint32_t * c_eccentricity(G, vertex_list=None) except NULL:
     all_pairs_shortest_path_BFS(G, NULL, NULL, ecc, vertex_list=vertex_list)
 
     return ecc
+
 
 cdef uint32_t * c_eccentricity_bounding(short_digraph sd) except NULL:
     r"""
@@ -758,18 +762,18 @@ cdef uint32_t * c_eccentricity_bounding(short_digraph sd) except NULL:
     # allocated some data structures
     cdef MemoryAllocator mem = MemoryAllocator()
     cdef uint32_t * distances = <uint32_t *> mem.malloc(3 * n * sizeof(uint32_t))
-    cdef uint32_t * LB        = <uint32_t *> sig_calloc(n, sizeof(uint32_t))
+    cdef uint32_t * LB = <uint32_t *> sig_calloc(n, sizeof(uint32_t))
     if not distances or not LB:
         sig_free(LB)
         free_short_digraph(sd)
         raise MemoryError()
     cdef uint32_t * waiting_list = distances + n
-    cdef uint32_t * UB           = distances + 2 * n
+    cdef uint32_t * UB = distances + 2 * n
     memset(UB, -1, n * sizeof(uint32_t))
     cdef bitset_t seen
     bitset_init(seen, n)
 
-    cdef uint32_t v, w, next_v, tmp, cpt = 0
+    cdef uint32_t v, w, next_v, cpt = 0
 
     # The first vertex is the one with largest degree
     next_v = max((out_degree(sd, v), v) for v in range(n))[1]
@@ -808,6 +812,7 @@ cdef uint32_t * c_eccentricity_bounding(short_digraph sd) except NULL:
 
     return LB
 
+
 cdef uint32_t * c_eccentricity_DHV(short_digraph sd) except NULL:
     r"""
     Return the vector of eccentricities using the algorithm of [Dragan2018]_.
@@ -834,8 +839,8 @@ cdef uint32_t * c_eccentricity_DHV(short_digraph sd) except NULL:
 
     TESTS:
 
-        sage: G = graphs.RandomBarabasiAlbert(50, 2)
-        sage: eccentricity(G, algorithm='bounds') == eccentricity(G, algorithm='DHV')
+        sage: G = graphs.RandomBarabasiAlbert(50, 2)                                    # needs networkx
+        sage: eccentricity(G, algorithm='bounds') == eccentricity(G, algorithm='DHV')   # needs networkx
         True
     """
     cdef uint32_t n = sd.n
@@ -862,7 +867,7 @@ cdef uint32_t * c_eccentricity_DHV(short_digraph sd) except NULL:
     cdef uint32_t v, tmp
     cdef size_t i, idx
     cdef bitset_t seen
-    bitset_init(seen,n)
+    bitset_init(seen, n)
 
     cdef list active = list(range(n))
 
@@ -931,34 +936,35 @@ cdef uint32_t * c_eccentricity_DHV(short_digraph sd) except NULL:
 
     return ecc_upper_bound
 
-def eccentricity(G, algorithm="standard", vertex_list=None):
+
+def eccentricity(G, algorithm='standard', vertex_list=None):
     r"""
     Return the vector of eccentricities in G.
 
     The array returned is of length `n`, and its `i`-th component is the
-    eccentricity of the ith vertex in ``G.vertices()``.
+    eccentricity of the `i`-th vertex in ``G.vertices(sort=True)``.
 
     INPUT:
 
-    - ``G`` -- a Graph or a DiGraph.
+    - ``G`` -- a Graph or a DiGraph
 
     - ``algorithm`` -- string (default: ``'standard'``); name of the method used
-      to compute the eccentricity of the vertices.
+      to compute the eccentricity of the vertices
 
-      - ``'standard'`` -- Computes eccentricity by performing a BFS from each
-        vertex.
+      - ``'standard'`` -- computes eccentricity by performing a BFS from each
+        vertex
 
-      - ``'bounds'`` -- Computes eccentricity using the fast algorithm proposed
-        in [TK2013]_ for undirected graphs.
+      - ``'bounds'`` -- computes eccentricity using the fast algorithm proposed
+        in [TK2013]_ for undirected graphs
 
-      - ``'DHV'`` -- Computes all eccentricities of undirected graph using the
-        algorithm proposed in [Dragan2018]_.
+      - ``'DHV'`` -- computes all eccentricities of undirected graph using the
+        algorithm proposed in [Dragan2018]_
 
     - ``vertex_list`` -- list (default: ``None``); a list of `n` vertices
       specifying a mapping from `(0, \ldots, n-1)` to vertex labels in `G`. When
       set, ``ecc[i]`` is the eccentricity of vertex ``vertex_list[i]``. When
       ``vertex_list`` is ``None``, ``ecc[i]`` is the eccentricity of vertex
-      ``G.vertices()[i]``.
+      ``G.vertices(sort=True)[i]``.
 
     EXAMPLES::
 
@@ -1038,7 +1044,7 @@ def eccentricity(G, algorithm="standard", vertex_list=None):
 
     cdef list int_to_vertex
     if vertex_list is None:
-        int_to_vertex = G.vertices()
+        int_to_vertex = G.vertices(sort=True)
     elif len(vertex_list) == n and set(vertex_list) == set(G):
         int_to_vertex = vertex_list
     else:
@@ -1076,7 +1082,7 @@ cdef uint32_t diameter_lower_bound_2sweep(short_digraph g,
                                           uint32_t* distances,
                                           uint32_t* predecessors,
                                           uint32_t* waiting_list,
-                                          bitset_t seen):
+                                          bitset_t seen) noexcept:
     """
     Compute a lower bound on the diameter using the 2-sweep algorithm.
 
@@ -1113,9 +1119,8 @@ cdef uint32_t diameter_lower_bound_2sweep(short_digraph g,
     - ``seen`` -- bitset of size ``n`` that must be initialized before calling
       this method (i.e., bitset_init(seen, n)). However, there is no need to
       clear it.
-
     """
-    cdef uint32_t LB, i, k, tmp
+    cdef uint32_t LB
 
     # We do a first BFS from source and get the eccentricity of source
     LB = simple_BFS(g, source, distances, NULL, waiting_list, seen)
@@ -1158,7 +1163,7 @@ cdef tuple diameter_lower_bound_2Dsweep(short_digraph g,
 
     - ``g`` -- a short_digraph
 
-    - ``rev_g`` -- a copy of `g` with edges reversed.
+    - ``rev_g`` -- a copy of `g` with edges reversed
 
     - ``source`` -- starting node of the forward and backward BFS
 
@@ -1247,6 +1252,7 @@ cdef tuple diameter_lower_bound_2Dsweep(short_digraph g,
 
     return (LB, s, m, d)
 
+
 cdef tuple diameter_lower_bound_multi_sweep(short_digraph g,
                                             uint32_t source):
     """
@@ -1270,7 +1276,6 @@ cdef tuple diameter_lower_bound_multi_sweep(short_digraph g,
     - ``g`` -- a short_digraph
 
     - ``source`` -- starting node of the BFS
-
     """
     # The while loop below might not be entered so we have to make sure that
     # s and d which are returned are initialized.
@@ -1288,7 +1293,6 @@ cdef tuple diameter_lower_bound_multi_sweep(short_digraph g,
         raise MemoryError()
     cdef uint32_t * predecessors = distances + n
     cdef uint32_t * waiting_list = distances + 2 * n
-
 
     # We perform a first 2sweep call from source. If the returned value is a
     # very large number, the graph is not connected and so the diameter is
@@ -1327,7 +1331,7 @@ cdef tuple diameter_lower_bound_multi_sweep(short_digraph g,
 
 
 cdef uint32_t diameter_iFUB(short_digraph g,
-                            uint32_t source):
+                            uint32_t source) noexcept:
     """
     Compute the diameter of the input Graph using the ``iFUB`` algorithm.
 
@@ -1343,19 +1347,17 @@ cdef uint32_t diameter_iFUB(short_digraph g,
     - ``g`` -- a short_digraph
 
     - ``source`` -- starting node of the first BFS
-
     """
-    cdef uint32_t i, LB, s, m, d
+    cdef uint32_t i, LB, m
     cdef uint32_t n = g.n
 
     # We select a vertex m with low eccentricity using multi-sweep
-    LB, s, m, d = diameter_lower_bound_multi_sweep(g, source)
+    LB, _, m, _ = diameter_lower_bound_multi_sweep(g, source)
 
     # If the lower bound is a very large number, it means that the graph is not
     # connected and so the diameter is infinite.
     if LB == UINT32_MAX:
         return LB
-
 
     # We allocate some arrays and a bitset
     cdef bitset_t seen
@@ -1365,9 +1367,8 @@ cdef uint32_t diameter_iFUB(short_digraph g,
         bitset_free(seen)
         raise MemoryError()
     cdef uint32_t* waiting_list = distances + n
-    cdef uint32_t* layer        = distances + 2 * n
-    cdef uint32_t* order        = distances + 3 * n
-
+    cdef uint32_t* layer = distances + 2 * n
+    cdef uint32_t* order = distances + 3 * n
 
     # We order the vertices by decreasing layers. This is the inverse order of a
     # BFS from m, and so the inverse order of array waiting_list. Distances are
@@ -1405,15 +1406,15 @@ cdef uint32_t diameter_iFUB(short_digraph g,
         if tmp > LB:
             LB = tmp
 
-
     sig_free(distances)
     bitset_free(seen)
 
     # We finally return the computed diameter
     return LB
 
+
 cdef uint32_t diameter_DiFUB(short_digraph sd,
-                             uint32_t source):
+                             uint32_t source) noexcept:
     r"""
     Return the diameter of unweighted directed graph.
 
@@ -1433,7 +1434,7 @@ cdef uint32_t diameter_DiFUB(short_digraph sd,
 
     - ``source`` -- starting node of the first BFS
 
-    TESTS::
+    TESTS:
 
     The diameter of a weakly connected digraph is infinity ::
 
@@ -1450,12 +1451,12 @@ cdef uint32_t diameter_DiFUB(short_digraph sd,
     cdef short_digraph rev_sd  # Copy of sd with edges reversed
     init_reverse(rev_sd, sd)
 
-    cdef uint32_t LB, s, m, d, LB_1, LB_2, UB
+    cdef uint32_t LB, m, LB_1, LB_2, UB
     cdef size_t i
     cdef bitset_t seen
 
     # We select a vertex with low eccentricity using 2Dsweep
-    LB, s, m, d = diameter_lower_bound_2Dsweep(sd, rev_sd, source)
+    LB, _, m, _ = diameter_lower_bound_2Dsweep(sd, rev_sd, source)
 
     # If the lower bound is a very large number, it means that the digraph is
     # not strongly connected and so the diameter is infinite.
@@ -1472,10 +1473,10 @@ cdef uint32_t diameter_DiFUB(short_digraph sd,
         raise MemoryError()
 
     cdef uint32_t * waiting_list = distances + n
-    cdef uint32_t * order_1      = distances + 2 * n
-    cdef uint32_t * order_2      = distances + 3 * n
-    cdef uint32_t * layer_1      = distances + 4 * n
-    cdef uint32_t * layer_2      = distances + 5 * n
+    cdef uint32_t * order_1 = distances + 2 * n
+    cdef uint32_t * order_2 = distances + 3 * n
+    cdef uint32_t * layer_1 = distances + 4 * n
+    cdef uint32_t * layer_2 = distances + 5 * n
 
     # We order the vertices by decreasing forward / backward layers. This is the
     # inverse order of a forward / backward BFS from m, and so the inverse order
@@ -1537,7 +1538,8 @@ cdef uint32_t diameter_DiFUB(short_digraph sd,
     # Finally return the computed diameter
     return LB
 
-cdef uint32_t diameter_DHV(short_digraph g):
+
+cdef uint32_t diameter_DHV(short_digraph g) noexcept:
     r"""
     Return the diameter of unweighted graph `g`.
 
@@ -1675,11 +1677,11 @@ def diameter(G, algorithm=None, source=None):
     - ``algorithm`` -- string (default: ``None``); specifies the algorithm to
       use among:
 
-      - ``'standard'`` -- Computes the diameter of the input (di)graph as the
+      - ``'standard'`` -- computes the diameter of the input (di)graph as the
         largest eccentricity of its vertices. This is the classical algorithm
         with time complexity in `O(nm)`.
 
-      - ``'2sweep'`` -- Computes a lower bound on the diameter of an
+      - ``'2sweep'`` -- computes a lower bound on the diameter of an
         unweighted undirected graph using 2 BFS, as proposed in [MLH2008]_.  It
         first selects a vertex `v` that is at largest distance from an initial
         vertex source using BFS. Then it performs a second BFS from `v`. The
@@ -1687,15 +1689,15 @@ def diameter(G, algorithm=None, source=None):
         of `G`.  The time complexity of this algorithm is linear in the size of
         `G`.
 
-      - ``'2Dsweep'`` -- Computes lower bound on the diameter of an unweighted
+      - ``'2Dsweep'`` -- computes lower bound on the diameter of an unweighted
         directed graph using directed version of ``2sweep`` as proposed in
         [Broder2000]_. If the digraph is not strongly connected, the returned
         value is infinity.
 
-      - ``'DHV'`` -- Computes diameter of unweighted undirected graph using the
-        algorithm proposed in [Dragan2018]_.
+      - ``'DHV'`` -- computes diameter of unweighted undirected graph using the
+        algorithm proposed in [Dragan2018]_
 
-      - ``'multi-sweep'`` -- Computes a lower bound on the diameter of an
+      - ``'multi-sweep'`` -- computes a lower bound on the diameter of an
         unweighted undirected graph using several iterations of the ``2sweep``
         algorithms [CGHLM2013]_. Roughly, it first uses ``2sweep`` to identify
         two vertices `u` and `v` that are far apart. Then it selects a vertex
@@ -1705,12 +1707,12 @@ def diameter(G, algorithm=None, source=None):
         This process is repeated as long as the lower bound on the diameter
         is improved.
 
-      - ``'iFUB'`` -- The iFUB (iterative Fringe Upper Bound) algorithm,
+      - ``'iFUB'`` -- the iFUB (iterative Fringe Upper Bound) algorithm,
         proposed in [CGILM2010]_, computes the exact value of the diameter of an
         unweighted undirected graph. It is based on the following observation:
 
             The diameter of the graph is equal to the maximum eccentricity of
-            a vertex. Let `v` be any vertex, and let `V` be partitionned into
+            a vertex. Let `v` be any vertex, and let `V` be partitioned into
             `A\cup B` where:
 
             .. MATH::
@@ -1733,7 +1735,7 @@ def diameter(G, algorithm=None, source=None):
         by the remark above. The worst case time complexity of the iFUB
         algorithm is `O(nm)`, but it can be very fast in practice.
 
-      - ``'DiFUB'`` -- The directed version of iFUB (iterative Fringe Upper
+      - ``'DiFUB'`` -- the directed version of iFUB (iterative Fringe Upper
         Bound) algorithm. See the code's documentation and [CGLM2012]_ for more
         details. If the digraph is not strongly connected, the returned value is
         infinity.
@@ -1742,6 +1744,11 @@ def diameter(G, algorithm=None, source=None):
       If ``source==None``, an arbitrary vertex of the graph is chosen. Raise an
       error if the initial vertex is not in `G`.  This parameter is not used
       when ``algorithm=='standard'``.
+
+    .. NOTE::
+        As the graph is first converted to a short_digraph, all complexity
+        have an extra `O(m+n)` for ``SparseGraph`` and `O(n^2)` for
+        ``DenseGraph``.
 
     EXAMPLES::
 
@@ -1768,6 +1775,7 @@ def diameter(G, algorithm=None, source=None):
 
     Comparison of exact algorithms for graphs::
 
+        sage: # needs networkx
         sage: G = graphs.RandomBarabasiAlbert(100, 2)
         sage: d1 = diameter(G, algorithm='standard')
         sage: d2 = diameter(G, algorithm='iFUB')
@@ -1777,12 +1785,13 @@ def diameter(G, algorithm=None, source=None):
 
     Comparison of lower bound algorithms::
 
-        sage: lb2 = diameter(G, algorithm='2sweep')
-        sage: lbm = diameter(G, algorithm='multi-sweep')
-        sage: if not (lb2 <= lbm and lbm <= d3): print("Something goes wrong!")
+        sage: lb2 = diameter(G, algorithm='2sweep')                                     # needs networkx
+        sage: lbm = diameter(G, algorithm='multi-sweep')                                # needs networkx
+        sage: if not (lb2 <= lbm and lbm <= d3): print("Something goes wrong!")         # needs networkx
 
     Comparison of exact algorithms for digraphs::
 
+        sage: # needs networkx
         sage: D = DiGraph(graphs.RandomBarabasiAlbert(50, 2))
         sage: d1 = diameter(D, algorithm='standard')
         sage: d2 = diameter(D, algorithm='DiFUB')
@@ -1790,13 +1799,24 @@ def diameter(G, algorithm=None, source=None):
         sage: d1 == d2 and d1 == d3
         True
 
-    TESTS::
+    TESTS:
 
-    This was causing a segfault. Fixed in :trac:`17873` ::
+    This was causing a segfault. Fixed in :issue:`17873` ::
 
         sage: G = graphs.PathGraph(1)
         sage: diameter(G, algorithm='iFUB')
         0
+
+    Immutable graphs::
+
+        sage: G = graphs.RandomGNP(10, .5)
+        sage: G._backend
+        <sage.graphs.base.sparse_graph.SparseGraphBackend ...>
+        sage: H = Graph(G, immutable=True)
+        sage: H._backend
+        <sage.graphs.base.static_sparse_backend.StaticSparseBackend ...>
+        sage: diameter(G, algorithm='iFUB') == diameter(H, algorithm='iFUB')
+        True
     """
     cdef uint32_t n = G.order()
     if n <= 1:
@@ -1805,16 +1825,16 @@ def diameter(G, algorithm=None, source=None):
     if G.is_directed():
         if algorithm is None:
             algorithm = 'DiFUB'
-        elif not algorithm in ['2Dsweep', 'standard', 'DiFUB']:
+        elif algorithm not in ['2Dsweep', 'standard', 'DiFUB']:
             raise ValueError("unknown algorithm for computing the diameter of directed graph")
     else:
         if algorithm is None:
             algorithm = 'iFUB'
-        elif not algorithm in ['2sweep', 'multi-sweep', 'iFUB', 'standard', 'DHV']:
+        elif algorithm not in ['2sweep', 'multi-sweep', 'iFUB', 'standard', 'DHV']:
             raise ValueError("unknown algorithm for computing the diameter of undirected graph")
 
     if algorithm == 'standard':
-       return max(G.eccentricity())
+        return max(G.eccentricity())
     if source is None:
         source = next(G.vertex_iterator())
     elif not G.has_vertex(source):
@@ -1823,10 +1843,17 @@ def diameter(G, algorithm=None, source=None):
     # Copying the whole graph to obtain the list of neighbors quicker than by
     # calling out_neighbors. This data structure is well documented in the
     # module sage.graphs.base.static_sparse_graph
-    cdef list int_to_vertex = list(G)
+    cdef list int_to_vertex
+    cdef StaticSparseCGraph cg
     cdef short_digraph sd
-    init_short_digraph(sd, G, edge_labelled=False, vertex_list=int_to_vertex)
-    cdef short_digraph rev_sd # to store copy of sd with edges reversed
+    if isinstance(G, StaticSparseBackend):
+        cg = <StaticSparseCGraph> G._cg
+        sd = <short_digraph> cg.g
+        int_to_vertex = cg._vertex_to_labels
+    else:
+        int_to_vertex = list(G)
+        init_short_digraph(sd, G, edge_labelled=False, vertex_list=int_to_vertex)
+    cdef short_digraph rev_sd  # to store copy of sd with edges reversed
 
     # and we map the source to an int in [0,n-1]
     cdef uint32_t isource = 0 if source is None else int_to_vertex.index(source)
@@ -1840,7 +1867,8 @@ def diameter(G, algorithm=None, source=None):
         bitset_init(seen, n)
         tab = <uint32_t*> sig_malloc(2* n * sizeof(uint32_t))
         if not tab:
-            free_short_digraph(sd)
+            if not isinstance(G, StaticSparseBackend):
+                free_short_digraph(sd)
             bitset_free(seen)
             raise MemoryError()
 
@@ -1863,17 +1891,16 @@ def diameter(G, algorithm=None, source=None):
     elif algorithm == 'DHV':
         LB = diameter_DHV(sd)
 
-    else: # algorithm == 'iFUB'
+    else:  # algorithm == 'iFUB'
         LB = diameter_iFUB(sd, isource)
 
-
-    free_short_digraph(sd)
+    if not isinstance(G, StaticSparseBackend):
+        free_short_digraph(sd)
 
     if LB < 0 or LB > n:
         from sage.rings.infinity import Infinity
         return +Infinity
-    else:
-        return int(LB)
+    return int(LB)
 
 
 ###########
@@ -1919,6 +1946,17 @@ def radius_DHV(G):
         Traceback (most recent call last):
         ...
         TypeError: this method works for unweighted undirected graphs only
+
+    Immutable graphs::
+
+        sage: G = graphs.RandomGNP(10, .5)
+        sage: G._backend
+        <sage.graphs.base.sparse_graph.SparseGraphBackend ...>
+        sage: H = Graph(G, immutable=True)
+        sage: H._backend
+        <sage.graphs.base.static_sparse_backend.StaticSparseBackend ...>
+        sage: radius_DHV(G) == radius_DHV(H)
+        True
     """
     if G.is_directed():
         raise TypeError("this method works for unweighted undirected graphs only")
@@ -1927,9 +1965,16 @@ def radius_DHV(G):
     if n <= 1:
         return 0
 
-    cdef list int_to_vertex = list(G)
+    cdef list int_to_vertex
+    cdef StaticSparseCGraph cg
     cdef short_digraph sd
-    init_short_digraph(sd, G, edge_labelled=False, vertex_list=int_to_vertex)
+    if isinstance(G, StaticSparseBackend):
+        cg = <StaticSparseCGraph> G._cg
+        sd = <short_digraph> cg.g
+        int_to_vertex = cg._vertex_to_labels
+    else:
+        int_to_vertex = list(G)
+        init_short_digraph(sd, G, edge_labelled=False, vertex_list=int_to_vertex)
 
     cdef uint32_t source, ecc_source
     cdef uint32_t antipode, ecc_antipode
@@ -1939,6 +1984,8 @@ def radius_DHV(G):
     cdef MemoryAllocator mem = MemoryAllocator()
     cdef uint32_t * distances = <uint32_t *>mem.malloc(3 * n * sizeof(uint32_t))
     if not distances:
+        if not isinstance(G, StaticSparseBackend):
+            free_short_digraph(sd)
         raise MemoryError()
 
     cdef uint32_t * waiting_list = distances + n
@@ -1969,7 +2016,8 @@ def radius_DHV(G):
         # vertex visited in simple_BFS), and compute its BFS distances.
         # By definition of antipode, we have ecc_antipode >= ecc_source.
         antipode = waiting_list[n-1]
-        ecc_antipode = simple_BFS(sd, antipode, distances, NULL, waiting_list, seen)
+        ecc_antipode = simple_BFS(sd, antipode, distances,
+                                  NULL, waiting_list, seen)
 
         # 3) Use distances from antipode to improve eccentricity lower bounds.
         # We also determine the next source
@@ -1980,13 +2028,15 @@ def radius_DHV(G):
                 LB = ecc_lower_bound[v]
                 source = v  # vertex with minimum eccentricity lower bound
 
-    free_short_digraph(sd)
+    if not isinstance(G, StaticSparseBackend):
+        free_short_digraph(sd)
     bitset_free(seen)
     if UB == UINT32_MAX:
         from sage.rings.infinity import Infinity
         return +Infinity
 
     return UB
+
 
 ################
 # Wiener index #
@@ -2033,6 +2083,19 @@ def wiener_index(G):
         Traceback (most recent call last):
         ...
         ValueError: Wiener index is not defined for the empty graph
+
+    TESTS:
+
+    Immutable graphs::
+
+        sage: G = graphs.RandomGNP(10, .5)
+        sage: G._backend
+        <sage.graphs.base.sparse_graph.SparseGraphBackend ...>
+        sage: H = Graph(G, immutable=True)
+        sage: H._backend
+        <sage.graphs.base.static_sparse_backend.StaticSparseBackend ...>
+        sage: G.wiener_index() == H.wiener_index()
+        True
     """
     if not G:
         raise ValueError("Wiener index is not defined for the empty graph")
@@ -2044,8 +2107,13 @@ def wiener_index(G):
     # Copying the whole graph to obtain the list of neighbors quicker than by
     # calling out_neighbors.  This data structure is well documented in the
     # module sage.graphs.base.static_sparse_graph
+    cdef StaticSparseCGraph cg
     cdef short_digraph sd
-    init_short_digraph(sd, G, edge_labelled=False, vertex_list=list(G))
+    if isinstance(G, StaticSparseBackend):
+        cg = <StaticSparseCGraph> G._cg
+        sd = <short_digraph> cg.g
+    else:
+        init_short_digraph(sd, G, edge_labelled=False, vertex_list=list(G))
 
     # allocated some data structures
     cdef bitset_t seen
@@ -2066,7 +2134,8 @@ def wiener_index(G):
         for v in range(0 if G.is_directed() else (u + 1), n):
             s += distances[v]
 
-    free_short_digraph(sd)
+    if not isinstance(G, StaticSparseBackend):
+        free_short_digraph(sd)
     bitset_free(seen)
 
     if s == UINT64_MAX:
@@ -2074,12 +2143,13 @@ def wiener_index(G):
         return +Infinity
     return s
 
+
 ################
 # Szeged index #
 ################
 
-cdef uint64_t c_szeged_index_low_memory(short_digraph sd):
-    """
+cdef uint64_t c_szeged_index_low_memory(short_digraph sd) noexcept:
+    r"""
     Return the Szeged index of the graph.
 
     Let `G = (V, E)` be a connected simple graph, and for any `uv\in E`, let
@@ -2100,7 +2170,7 @@ cdef uint64_t c_szeged_index_low_memory(short_digraph sd):
 
     EXAMPLES::
 
-        sage: graphs.CycleGraph(4).szeged_index(algorithm="low")
+        sage: graphs.CycleGraph(4).szeged_index(algorithm='low')
         16
     """
     cdef size_t n = sd.n
@@ -2185,8 +2255,9 @@ cdef uint64_t c_szeged_index_low_memory(short_digraph sd):
 
     return s
 
-cdef uint64_t c_szeged_index_high_memory(short_digraph sd):
-    """
+
+cdef uint64_t c_szeged_index_high_memory(short_digraph sd) noexcept:
+    r"""
     Return the Szeged index of the graph.
 
     Let `G = (V, E)` be a connected graph, and for any `uv\in E`, let `N_u(uv) =
@@ -2195,7 +2266,7 @@ cdef uint64_t c_szeged_index_high_memory(short_digraph sd):
 
     EXAMPLES::
 
-        sage: graphs.CycleGraph(4).szeged_index(algorithm="high")
+        sage: graphs.CycleGraph(4).szeged_index(algorithm='high')
         16
     """
     cdef int n = sd.n
@@ -2233,6 +2304,7 @@ cdef uint64_t c_szeged_index_high_memory(short_digraph sd):
 
     return s
 
+
 def szeged_index(G, algorithm=None):
     r"""
     Return the Szeged index of the graph `G`.
@@ -2253,16 +2325,16 @@ def szeged_index(G, algorithm=None):
 
     - ``algorithm`` -- string (default: ``None``); algorithm to use among:
 
-      - ``"low"`` -- algorithm with time complexity in `O(nm)` and space
+      - ``'low'`` -- algorithm with time complexity in `O(nm)` and space
         complexity in `O(m)`. This implementation is currently valid only for
         simple (without loops or multiple edges) connected graphs.
 
-      - ``"high"`` -- algorithm with time complexity in `O(nm)` and space
+      - ``'high'`` -- algorithm with time complexity in `O(nm)` and space
         complexity in `O(n^2)`. It cannot be used on graphs with more than
         `65536 = 2^{16}` vertices.
 
-      By default (``None``), the ``"low"`` algorithm is used for graphs and the
-      ``"high"`` algorithm for digraphs.
+      By default (``None``), the ``'low'`` algorithm is used for graphs and the
+      ``'high'`` algorithm for digraphs.
 
     EXAMPLES:
 
@@ -2282,10 +2354,11 @@ def szeged_index(G, algorithm=None):
 
     Check that both algorithms return same value::
 
-        sage: G = graphs.RandomBarabasiAlbert(100, 2)  # long time
-        sage: a = szeged_index(G, algorithm='low')  # long time
-        sage: b = szeged_index(G, algorithm='high')  # long time
-        sage: a == b  # long time
+        sage: # long time, needs networkx
+        sage: G = graphs.RandomBarabasiAlbert(100, 2)
+        sage: a = szeged_index(G, algorithm='low')
+        sage: b = szeged_index(G, algorithm='high')
+        sage: a == b
         True
 
     The Szeged index of a directed circuit of order `n` is `(n-1)^2`::
@@ -2295,7 +2368,7 @@ def szeged_index(G, algorithm=None):
 
     TESTS:
 
-    Not defined when the graph is not connected (:trac:`26803`)::
+    Not defined when the graph is not connected (:issue:`26803`)::
 
         sage: szeged_index(Graph({0: [1], 2: []}))
         Traceback (most recent call last):
@@ -2311,32 +2384,44 @@ def szeged_index(G, algorithm=None):
 
     Wrong name of algorithm::
 
-        sage: szeged_index(Graph(1), algorithm="wheel")
+        sage: szeged_index(Graph(1), algorithm='wheel')
         Traceback (most recent call last):
         ...
         ValueError: unknown algorithm 'wheel'
 
     Algorithm `"low"` is for graphs without loops or multiple edges::
 
-        sage: szeged_index(Graph([(0, 0)], loops=True), algorithm="low")
+        sage: szeged_index(Graph([(0, 0)], loops=True), algorithm='low')
         Traceback (most recent call last):
         ...
         ValueError: the 'low' algorithm is for simple connected undirected graphs only
-        sage: szeged_index(Graph([(0, 1), (0, 1)], multiedges=True), algorithm="low")
+        sage: szeged_index(Graph([(0, 1), (0, 1)], multiedges=True), algorithm='low')
         Traceback (most recent call last):
         ...
         ValueError: the 'low' algorithm is for simple connected undirected graphs only
-        sage: szeged_index(digraphs.Circuit(3), algorithm="low")
+        sage: szeged_index(digraphs.Circuit(3), algorithm='low')
         Traceback (most recent call last):
         ...
         ValueError: the 'low' algorithm cannot be used on digraphs
+
+    Immutable graphs::
+
+        sage: G = graphs.RandomGNP(10, .3)
+        sage: G.add_edges(graphs.RandomTree(10).edges())
+        sage: G._backend
+        <sage.graphs.base.sparse_graph.SparseGraphBackend ...>
+        sage: H = Graph(G, immutable=True)
+        sage: H._backend
+        <sage.graphs.base.static_sparse_backend.StaticSparseBackend ...>
+        sage: szeged_index(G) == szeged_index(H)
+        True
     """
     if not G.is_connected():
         raise ValueError("the Szeged index is defined for connected graphs only")
     if G.is_directed() and not G.is_strongly_connected():
         raise ValueError("the Szeged index is defined for "
                          "strongly connected digraphs only")
-    if G.is_directed() and algorithm is "low":
+    if G.is_directed() and algorithm == "low":
         raise ValueError("the 'low' algorithm cannot be used on digraphs")
 
     if algorithm is None:
@@ -2345,24 +2430,32 @@ def szeged_index(G, algorithm=None):
     elif algorithm not in ["low", "high"]:
         raise ValueError(f"unknown algorithm '{algorithm}'")
 
-    if algorithm is "low" and (G.has_loops() or G.has_multiple_edges()):
+    if algorithm == "low" and (G.has_loops() or G.has_multiple_edges()):
         raise ValueError("the 'low' algorithm is for simple connected "
                          "undirected graphs only")
 
     if G.order() <= 1:
         return 0
 
+    cdef StaticSparseCGraph cg
     cdef short_digraph sd
-    init_short_digraph(sd, G, edge_labelled=False, vertex_list=list(G))
+    if isinstance(G, StaticSparseBackend):
+        cg = <StaticSparseCGraph> G._cg
+        sd = <short_digraph> cg.g
+    else:
+        init_short_digraph(sd, G, edge_labelled=False, vertex_list=list(G))
+
     cdef uint64_t s
 
-    if algorithm is "low":
+    if algorithm == "low":
         s = c_szeged_index_low_memory(sd)
     else:
         s = c_szeged_index_high_memory(sd)
 
-    free_short_digraph(sd)
+    if not isinstance(G, StaticSparseBackend):
+        free_short_digraph(sd)
     return s
+
 
 ##########################
 # Distances distribution #
@@ -2425,16 +2518,34 @@ def distances_distribution(G):
 
     The de Bruijn digraph dB(2,3)::
 
-        sage: D = digraphs.DeBruijn(2,3)
-        sage: D.distances_distribution()
+        sage: D = digraphs.DeBruijn(2,3)                                                # needs sage.combinat
+        sage: D.distances_distribution()                                                # needs sage.combinat
         {1: 1/4, 2: 11/28, 3: 5/14}
+
+    TESTS:
+
+    Immutable graphs::
+
+        sage: G = graphs.RandomGNP(10, .5)
+        sage: G._backend
+        <sage.graphs.base.sparse_graph.SparseGraphBackend ...>
+        sage: H = Graph(G, immutable=True)
+        sage: H._backend
+        <sage.graphs.base.static_sparse_backend.StaticSparseBackend ...>
+        sage: G.distances_distribution() == H.distances_distribution()
+        True
     """
     cdef size_t n = G.order()
     if n <= 1:
         return {}
 
+    cdef StaticSparseCGraph cg
     cdef short_digraph sd
-    init_short_digraph(sd, G, edge_labelled=False, vertex_list=list(G))
+    if isinstance(G, StaticSparseBackend):
+        cg = <StaticSparseCGraph> G._cg
+        sd = <short_digraph> cg.g
+    else:
+        init_short_digraph(sd, G, edge_labelled=False, vertex_list=list(G))
 
     cdef MemoryAllocator mem = MemoryAllocator()
     cdef uint32_t * distances = <uint32_t *> mem.allocarray(2 * n, sizeof(uint32_t))
@@ -2457,7 +2568,8 @@ def distances_distribution(G):
             for v in range(n):
                 count[distances[v]] += 1
 
-    free_short_digraph(sd)
+    if not isinstance(G, StaticSparseBackend):
+        free_short_digraph(sd)
     bitset_free(seen)
 
     from sage.rings.infinity import Infinity
@@ -2472,6 +2584,7 @@ def distances_distribution(G):
             distr[d] = QQ((count[d], NN))
 
     return distr
+
 
 ###################
 # Antipodal graph #
@@ -2488,12 +2601,12 @@ def antipodal_graph(G):
     This method first computes the eccentricity of all vertices and determines
     the diameter of the graph. Then, it for each vertex `u` with eccentricity
     the diameter, it computes BFS distances from `u` and add an edge in the
-    antipodal graph for each vertex `v` at diamter distance from `u` (i.e., for
-    each antipodal vertex).
+    antipodal graph for each vertex `v` at diameter distance from `u`
+    (i.e., for each antipodal vertex).
 
     The drawback of this method is that some BFS distances may be computed
     twice, one time to determine the eccentricities and another time is the
-    vertex has eccentricity equal to the diameter. However, in practive, this is
+    vertex has eccentricity equal to the diameter. However, in practice, this is
     much more efficient. See the documentation of method
     :meth:`c_eccentricity_DHV`.
 
@@ -2538,8 +2651,19 @@ def antipodal_graph(G):
         ValueError: this method is defined for undirected graphs only
         sage: antipodal_graph(Graph(1))
         Antipodal graph of Graph on 1 vertex: Looped graph on 1 vertex
-        sage: antipodal_graph(Graph(2)).edges(labels=False)
+        sage: antipodal_graph(Graph(2)).edges(sort=True, labels=False)
         [(0, 1)]
+
+    Immutable graphs::
+
+        sage: G = graphs.RandomGNP(10, .5)
+        sage: G._backend
+        <sage.graphs.base.sparse_graph.SparseGraphBackend ...>
+        sage: H = Graph(G, immutable=True)
+        sage: H._backend
+        <sage.graphs.base.static_sparse_backend.StaticSparseBackend ...>
+        sage: antipodal_graph(G).is_isomorphic(antipodal_graph(H))
+        True
     """
     if not G:
         raise ValueError("the antipodal graph of the empty graph is not defined")
@@ -2558,14 +2682,21 @@ def antipodal_graph(G):
 
     if not G.is_connected():
         import itertools
-        CC = G.connected_components()
+        CC = G.connected_components(sort=False)
         for c1, c2 in itertools.combinations(CC, 2):
             A.add_edges(itertools.product(c1, c2))
         return A
 
-    cdef list int_to_vertex = list(G)
+    cdef list int_to_vertex
+    cdef StaticSparseCGraph cg
     cdef short_digraph sd
-    init_short_digraph(sd, G, edge_labelled=False, vertex_list=int_to_vertex)
+    if isinstance(G, StaticSparseBackend):
+        cg = <StaticSparseCGraph> G._cg
+        sd = <short_digraph> cg.g
+        int_to_vertex = cg._vertex_to_labels
+    else:
+        int_to_vertex = list(G)
+        init_short_digraph(sd, G, edge_labelled=False, vertex_list=int_to_vertex)
 
     cdef MemoryAllocator mem = MemoryAllocator()
     cdef uint32_t * distances = <uint32_t *> mem.allocarray(2 * n, sizeof(uint32_t))
@@ -2593,11 +2724,13 @@ def antipodal_graph(G):
                     A.add_edge(u, int_to_vertex[vj])
                 j -= 1
 
-    free_short_digraph(sd)
+    if not isinstance(G, StaticSparseBackend):
+        free_short_digraph(sd)
     bitset_free(seen)
 
     A.add_vertices(G)
     return A
+
 
 ##################
 # Floyd-Warshall #
@@ -2612,7 +2745,7 @@ def floyd_warshall(gg, paths=True, distances=False):
 
     INPUT:
 
-    - ``gg`` -- the graph on which to work.
+    - ``gg`` -- the graph on which to work
 
     - ``paths`` -- boolean (default: ``True``); whether to return the dictionary
       of shortest paths
@@ -2704,21 +2837,20 @@ def floyd_warshall(gg, paths=True, distances=False):
     if not gverts:
         if distances and paths:
             return {}, {}
-        else:
-            return {}
+        return {}
 
     cdef unsigned int n = max(gverts) + 1
 
     if n >= <unsigned short> -1:
-        raise ValueError("the graph backend contains more than "+str(<unsigned short> -1)+" nodes")
+        raise ValueError("the graph backend contains more than " + str(<unsigned short> -1) + " nodes")
 
     # All this just creates two tables prec[n][n] and dist[n][n]
     cdef MemoryAllocator mem = MemoryAllocator()
     cdef unsigned short* t_prec = NULL
-    cdef unsigned short**  prec = NULL
+    cdef unsigned short** prec = NULL
     # init dist
-    cdef unsigned short* t_dist = <unsigned short*>  mem.allocarray(n * n, sizeof(unsigned short))
-    cdef unsigned short**  dist = <unsigned short**> mem.allocarray(n, sizeof(unsigned short*))
+    cdef unsigned short* t_dist = <unsigned short*> mem.allocarray(n * n, sizeof(unsigned short))
+    cdef unsigned short** dist = <unsigned short**> mem.allocarray(n, sizeof(unsigned short*))
     dist[0] = t_dist
     cdef unsigned int i
     for i in range(1, n):
@@ -2731,14 +2863,14 @@ def floyd_warshall(gg, paths=True, distances=False):
 
     # Copying the adjacency matrix (vertices at distance 1)
     for v_int in gverts:
-        dist[v_int][v_int] =  0
+        dist[v_int][v_int] = 0
         for u_int in g.out_neighbors(v_int):
             dist[v_int][u_int] = 1
 
     if paths:
         # init prec
-        t_prec = <unsigned short*>  mem.allocarray(n * n, sizeof(unsigned short))
-        prec   = <unsigned short**> mem.allocarray(n, sizeof(unsigned short*))
+        t_prec = <unsigned short*> mem.allocarray(n * n, sizeof(unsigned short))
+        prec = <unsigned short**> mem.allocarray(n, sizeof(unsigned short*))
         prec[0] = t_prec
         for i in range(1, n):
             prec[i] = prec[i - 1] + n
@@ -2778,20 +2910,24 @@ def floyd_warshall(gg, paths=True, distances=False):
 
     for v_int in gverts:
         v = cgb.vertex_label(v_int)
-        if paths: tmp_prec = {v: None}
-        if distances: tmp_dist = {v: 0}
+        if paths:
+            tmp_prec = {v: None}
+        if distances:
+            tmp_dist = {v: 0}
         dv = dist[v_int]
         for u_int in gverts:
             u = cgb.vertex_label(u_int)
-            if v != u and dv[u_int] !=  <unsigned short> -1:
+            if v != u and dv[u_int] != <unsigned short> -1:
                 if paths:
                     tmp_prec[u] = cgb.vertex_label(prec[v_int][u_int])
 
                 if distances:
                     tmp_dist[u] = dv[u_int]
 
-        if paths: d_prec[v] = tmp_prec
-        if distances: d_dist[v] = tmp_dist
+        if paths:
+            d_prec[v] = tmp_prec
+        if distances:
+            d_dist[v] = tmp_dist
 
     if distances and paths:
         return d_dist, d_prec

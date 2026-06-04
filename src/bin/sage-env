@@ -31,7 +31,7 @@
 # absolute path (a relative path remains relative), nor does it treat
 # "." or ".." specially.
 #
-# AUTHOR: Jeroen Demeyer (2011-08-23): Trac tickets #5852 and #11704
+# AUTHOR: Jeroen Demeyer (2011-08-23): Github issues #5852 and #11704
 #
 resolvelinks() {
     # $in is what still needs to be converted (normally has no starting slash)
@@ -107,62 +107,27 @@ resolvelinks() {
     echo "$out"
 }
 
-# New value for SAGE_ROOT: either SAGE_ROOT (if given)
-# or a guessed value based on pwd.
+# Make sure that SAGE_ROOT is either an absolute physical directory name
+# or empty.
 if [ -n "$SAGE_ROOT" ]; then
-    NEW_SAGE_ROOT="$SAGE_ROOT"
-elif [ -f sage -a -d build ]; then
-    NEW_SAGE_ROOT="."
-elif [ -f ../../sage -a -d ../../build ]; then
-    NEW_SAGE_ROOT="../.."
+    export SAGE_ROOT=$(cd "$SAGE_ROOT" 2>/dev/null && pwd -P)
 fi
-
-if [ -n "$NEW_SAGE_ROOT" ]; then
-    # Make NEW_SAGE_ROOT absolute
-    NEW_SAGE_ROOT=`cd "$NEW_SAGE_ROOT" && pwd -P`
-
-    # Warn if NEW_SAGE_ROOT does not equal the old SAGE_ROOT
-    if [ "$SAGE_ROOT" != "$NEW_SAGE_ROOT" -a -n "$SAGE_ROOT" ]; then
-        echo >&2 "Warning: overwriting SAGE_ROOT environment variable:"
-        echo >&2 "Old SAGE_ROOT=$SAGE_ROOT"
-        echo >&2 "New SAGE_ROOT=$NEW_SAGE_ROOT"
-    fi
-fi
-
 
 # Don't execute the commands more than once for the same version of
-# sage-env.  Check this after checking the validity of SAGE_ROOT, but
-# before modifying its value.
-#
-# The idea of versioning is that SAGE_ENV_SOURCED will be set to a
-# "version number" of sage-env.  If a different version of sage-env was
-# sourced earlier (when upgrading), we still source the new version.
-# The sage-env version should be increased whenever a newer sage-env is
-# required for upgrading.  Note that build/make/deps might also need
-# to be changed: the packages which need the new sage-env must depend on
-# SAGE_ROOT_REPO (the root repo contains sage-env).
-#
-# sage-env version history:
-# - sage-4.7.1: version 1 (#10469)
-# - sage-5.4:   version 2 (#13395)
-# - sage-5.10:  version 3 (#14699)
-# - sage-6.0:   version 4 (#14715)
-#
-SAGE_ENV_VERSION=4
+# sage-env... for the same combination of SAGE_LOCAL and SAGE_VENV.
+# "6" indicates the version of the format of the value of SAGE_ENV_VERSION.
+SAGE_ENV_VERSION="6:$SAGE_LOCAL:$SAGE_VENV:$SAGE_SRC"
 if [ "$SAGE_ENV_SOURCED" = "$SAGE_ENV_VERSION" ]; then
     # Already sourced, nothing to do.
     return 0
 fi
-export SAGE_ENV_SOURCED=$SAGE_ENV_VERSION
-
-if [ -n "$NEW_SAGE_ROOT" ]; then
-    export SAGE_ROOT="$NEW_SAGE_ROOT"
-fi
+# Set SAGE_ENV_SOURCED to the appropriate value at the end of this file, once
+# $SAGE_LOCAL, $SAGE_VENV, $SAGE_SRC have been set.
 
 # The compilers are set in order of priority by
 # 1) environment variables
 # 2) compiler installed by sage
-# 3) compiler set at configuration time 
+# 3) compiler set at configuration time
 if [ -z "$CC" ]; then
     if [ -n "$SAGE_LOCAL" -a -x "$SAGE_LOCAL/bin/gcc" ]; then
         CC=gcc
@@ -235,7 +200,7 @@ fi
 
 
 if [ 1 = 2 ]; then
-    echo "The following enviroment variables can be set by the user"
+    echo "The following environment variables can be set by the user"
     echo "AR          The archiver (e.g. ar, /usr/ccs/bin/ar or /usr/bin/ar)"
     echo "AS          The assembler (e.g. as, /usr/ccs/bin/as or /usr/bin/as)"
     echo "CC          The C compiler (e.g cc, /opt/SUNWspro/bin/cc or /usr/bin/gcc)"
@@ -252,24 +217,23 @@ if [ 1 = 2 ]; then
     echo "SHAREDFLAGS Flag(s) necessary for building a shared library (e.g. -fPIC or -xcode=pic32)"
     echo "We attempt to set this to sensible values, but check below to"
     echo "ensure they are OK. If you wish to override any then please use:"
-    echo "setenv NAME_OF_ENVIROMENT_VARIABLE value_of_enviroment_variable"
+    echo "setenv NAME_OF_ENVIRONMENT_VARIABLE value_of_environment_variable"
     echo "(if you use tcsh, csh or a similar shell) or"
-    echo "NAME_OF_ENVIROMENT_VARIABLE value_of_enviroment_variable"
-    echo "export NAME_OF_ENVIROMENT_VARIABLE"
+    echo "NAME_OF_ENVIRONMENT_VARIABLE value_of_environment_variable"
+    echo "export NAME_OF_ENVIRONMENT_VARIABLE"
     echo "if you use sh, bash or a similar shell"
 fi
 
 # Setting Sage-related location environment variables,
 # depending on SAGE_ROOT and SAGE_LOCAL which are already defined.
 if [ -n "$SAGE_LOCAL" ]; then
-    export SAGE_ETC="$SAGE_LOCAL/etc"
     export SAGE_SHARE="$SAGE_LOCAL/share"
-    export SAGE_SPKG_INST="$SAGE_LOCAL/var/lib/sage/installed"
+    export SAGE_SPKG_INST="$SAGE_LOCAL/var/lib/sage/installed"  # deprecated
 fi
 if [ -n "$SAGE_SHARE" ]; then
     export SAGE_DOC="$SAGE_SHARE/doc/sage"
 fi
-if [ -n "$SAGE_ROOT" ]; then
+if [ -d "$SAGE_ROOT" ]; then
     export SAGE_LOGS="$SAGE_ROOT/logs/pkgs"
     export SAGE_SRC="$SAGE_ROOT/src"
 fi
@@ -293,10 +257,7 @@ fi
 if [ -n "$SAGE_VENV" ]; then
     export PATH="$SAGE_VENV/bin:$PATH"
 fi
-if [ -n "$SAGE_SRC" ]; then
-    export PATH="$SAGE_SRC/bin:$PATH"
-fi
-if [ -n "$SAGE_ROOT" ]; then
+if [ -d "$SAGE_ROOT" ]; then
     export PATH="$SAGE_ROOT/build/bin:$PATH"
 fi
 
@@ -307,18 +268,14 @@ if [ -n "$SAGE_LOCAL" -a -f "$SAGE_LOCAL"/toolchain/toolchain-env ]; then
 fi
 
 # setting of the variable UNAME (describing the o.s.)
-# On Cygwin the result of `uname` depends on the version of Windows
-# it is running on, e.g. CYGWIN_NT-5.1 on 32 bits Windows XP or
-# CYGWIN_NT-6.1-WOW64 on 64 bits Windows 7.
-# Currently, this information is of no use to us so we discard it.
-export UNAME=`uname | sed 's/CYGWIN.*/CYGWIN/' `
+export UNAME=`uname`
 
 # Mac OS X-specific setup
 if [ "$UNAME" = "Darwin" ]; then
     export MACOSX_VERSION=`uname -r | awk -F. '{print $1}'`
     # Work around problems on recent OS X crashing with an error message
     # "... may have been in progress in another thread when fork() was called"
-    # when objective-C functions are called after fork(). See Trac #25921.
+    # when objective-C functions are called after fork(). See Issue #25921.
     # Most likely, these errors are false positives, so we disable them:
     export OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
 fi
@@ -335,20 +292,25 @@ if [ -n "$SAGE_LOCAL" ]; then
 fi
 
 if [ -n "$SAGE_LOCAL" ]; then
-    SINGULARPATH="$SAGE_LOCAL/share/singular" && export SINGULARPATH
-    SINGULAR_EXECUTABLE="$SAGE_LOCAL/bin/Singular" && export SINGULAR_EXECUTABLE
+    # Ensure that there is a colon at the end of $INFOPATH by
+    # stripping the existing one (if it exists), and then adding a new
+    # one. This forces the "info" program to check various default
+    # system locations when the user does not have $INFOPATH set. This
+    # is necessary to find some *.info files installed by system
+    # packages when "info" from the SPKG is used.
+    export INFOPATH="${SAGE_LOCAL}/share/info:${INFOPATH%:}:"
 fi
 
 if [ -z "$SAGE_REPO_ANONYMOUS" ]; then
-    SAGE_REPO_ANONYMOUS="https://gitlab.com/sagemath/dev/tracmirror.git"
+    SAGE_REPO_ANONYMOUS="https://github.com/sagemath/sage.git"
     export SAGE_REPO_ANONYMOUS
 fi
 if [ -z "$SAGE_REPO_AUTHENTICATED" ]; then
-        SAGE_REPO_AUTHENTICATED="ssh://git@trac.sagemath.org:2222/sage.git"
+        SAGE_REPO_AUTHENTICATED="https://github.com/sagemath/sage.git"
         export SAGE_REPO_AUTHENTICATED
 fi
 
-if [ -n "$SAGE_ROOT" ]; then
+if [ -d "$SAGE_ROOT" ]; then
     if [ -z "$SAGE_DISTFILES" ]; then
         SAGE_DISTFILES="$SAGE_ROOT/upstream"
         export SAGE_DISTFILES
@@ -390,12 +352,12 @@ if [ "$PYTHON_EGG_CACHE" = "" ]; then
 fi
 
 # Set PYTHONUSERBASE to avoid picking up non-Sage versions of
-# Matplotlib, numpy, etc. See http://trac.sagemath.org/ticket/19612.
+# Matplotlib, numpy, etc. See https://github.com/sagemath/sage/issues/19612.
 #
 # For more history (it used to be PYTHONNOUSERSITE=yes which killed
 # the ability to do "sage -pip install PACKAGE --user"), see
-# http://trac.sagemath.org/ticket/14243 and
-# http://trac.sagemath.org/ticket/18955.
+# https://github.com/sagemath/sage/issues/14243 and
+# https://github.com/sagemath/sage/issues/18955.
 
 if [ "$PYTHONUSERBASE" = "" ]; then
     PYTHONUSERBASE="$DOT_SAGE/local"
@@ -408,8 +370,41 @@ if [ -n "$PYTHONHOME" ]; then
 fi
 
 if [ -n "$SAGE_LOCAL" ]; then
-    LDFLAGS="-L$SAGE_LOCAL/lib -Wl,-rpath,$SAGE_LOCAL/lib $LDFLAGS"
+    # Construct and export LDFLAGS
+    if [ "$UNAME" = "Darwin" ]; then
+       LDFLAGS="-L$SAGE_LOCAL/lib $LDFLAGS"
+       # On OS X, use the old linker if it is available.
+       # if "ld-classic" is present in the selected XCode
+       # toolchain, add "-Wl,-ld_classic" to LDFLAGS (see #36599) unless
+       # LD is already set, as it will be with conda on macOS.  When the
+       # selected toolchain is in the Xcode app the output of "xcode-select -p"
+       # is "/Applications/Xcode.app/Contents/Developer", but "ld-classic" is
+       # not in the subdirectory "usr/bin/" but rather in the subdirectory
+       # "Toolchains/XcodeDefault.xctoolchain/usr/bin/".  (See #37237.)
+       if [ -z "$LD" ]; then
+	   # Running xcode-select on a system with no toolchain writes an
+	   # error message to stderr, so redirect stderr to /dev/null.
+	   XCODE_PATH=$(/usr/bin/xcode-select -p 2> /dev/null)
+	   if [ -n $XCODE_PATH ]; then
+               if [ -x "$XCODE_PATH/usr/bin/ld-classic" -o \
+		       -x "$XCODE_PATH/Toolchains/XcodeDefault.xctoolchain/usr/bin/ld-classic" ]; then
+                   # Add -ld_classic only if -ld_classic is not deprecated.
+                   if [ -z "$(ld -ld_classic 2>&1 | grep 'ld_classic is deprecated')" ]; then
+		       LDFLAGS="$LDFLAGS -Wl,-ld_classic"
+                   fi
+               fi
+           else
+               # On a macOS system with no toolchain we don't want this script
+               # to call gcc because that will also print an error message to
+               # stderr.  We can avoid this by setting AS and LD to their
+               # default values.
+               AS=as
+               LD=ld
+	   fi
+       fi
+    fi
     if [ "$UNAME" = "Linux" ]; then
+	LDFLAGS="-L$SAGE_LOCAL/lib -Wl,-rpath,$SAGE_LOCAL/lib $LDFLAGS"
         LDFLAGS="-Wl,-rpath-link,$SAGE_LOCAL/lib $LDFLAGS"
     fi
     export LDFLAGS
@@ -475,16 +470,13 @@ if [ -d "$DOT_SAGE" ] ; then
     fi
 fi
 
-if [ -n "$SAGE_LOCAL" ]; then
-    export MAXIMA_PREFIX="$SAGE_LOCAL"
-fi
 export MAXIMA_USERDIR="$DOT_SAGE/maxima"
 
 if [ -n "$SAGE_LOCAL" ]; then
     PERL5LIB="$SAGE_LOCAL/lib/perl5:$PERL5LIB" && export PERL5LIB
 fi
 
-# Allow SAGE_BROWSER to override BROWSER (Trac #22449)
+# Allow SAGE_BROWSER to override BROWSER (Issue #22449)
 if [ -n "$SAGE_BROWSER" ]; then
     export BROWSER="$SAGE_BROWSER"
 fi
@@ -500,7 +492,7 @@ export __sage__=""
 if [ -n "$SAGE_LOCAL" -a -d "$SAGE_LOCAL/libexec/ccache" ]; then
     PATH="$SAGE_LOCAL/libexec/ccache:$PATH"
 fi
-if [ -n "$SAGE_ROOT" -a -z "$CCACHE_BASEDIR" ]; then
+if [ -d "$SAGE_ROOT" -a -z "$CCACHE_BASEDIR" ]; then
     export CCACHE_BASEDIR="$SAGE_ROOT"
 fi
 
@@ -577,21 +569,6 @@ if [ "$TOUCH" = "" ]; then
     TOUCH="touch"  && export TOUCH
 fi
 
-if [ "$UNAME" = "CYGWIN" -a -n "$SAGE_LOCAL" ]; then
-    # Cygwin needs pathnames in PATH to resolve runtime dependencies
-    PATH="$SAGE_LOCAL/lib/R/lib:$SAGE_LOCAL/lib:$PATH" && export PATH
-    # And "dlopen" needs them in LD_LIBRARY_PATH, just as on Linuces,
-    # except that on Cygwin shared libraries are usually stored in "bin"
-    # and not in "lib"
-    LD_LIBRARY_PATH="$SAGE_LOCAL/bin:$LD_LIBRARY_PATH" && export LD_LIBRARY_PATH
-fi
-
-# See trac 7186 -- this is needed if ecl is moved
-if [ -n "$SAGE_LOCAL" ]; then
-    ECLDIR="$SAGE_LOCAL/lib/ecl/" && export ECLDIR
-fi
-
-
 # Handle parallel building/testing/...
 case "$SAGE_NUM_THREADS,$SAGE_NUM_THREADS_PARALLEL" in
     [1-9][0-9]*,[1-9][0-9]*)
@@ -599,11 +576,11 @@ case "$SAGE_NUM_THREADS,$SAGE_NUM_THREADS_PARALLEL" in
         # sage-num-threads.py would just recompute them
         ;;
     *)
-        # See Trac Ticket #12016
+        # See Issue Ticket #12016
         # First, figure out the right values for SAGE_NUM_THREADS (default
         # number of threads) and SAGE_NUM_THREADS_PARALLEL (default number of
         # threads when parallel execution is asked explicitly).
-        sage_num_threads_array=$(sage-num-threads.py 2>/dev/null || echo 1 2 1)
+        sage_num_threads_array=$("$(dirname "$0")"/sage-num-threads.py 2>/dev/null || echo 1 2 1)
         sage_num_threads_array="${sage_num_threads_array% *}" # strip third item
         SAGE_NUM_THREADS="${sage_num_threads_array% *}" # keep first item
         SAGE_NUM_THREADS_PARALLEL="${sage_num_threads_array#* }" # keep second item
@@ -633,21 +610,6 @@ if [ "${MAKEFLAGS-__unset__}" != "__unset__" ]; then
 fi
 export MAKE
 
-export PIP_FORMAT="columns"
-
-# When building documentation, use MathJax by default. To turn it off,
-# set SAGE_DOC_MATHJAX to be "no" or "False".
-if [ -z "$SAGE_DOC_MATHJAX" ]; then
-    # For backwards compatibility, we use the value of SAGE_DOC_JSMATH
-    # if it is set.
-    if [ -n "$SAGE_DOC_JSMATH" ]; then
-        SAGE_DOC_MATHJAX="$SAGE_DOC_JSMATH"
-    else
-        SAGE_DOC_MATHJAX="True"
-    fi
-    export SAGE_DOC_MATHJAX
-fi
-
 # Set the cysignals crash logs directory
 if [ -z "$CYSIGNALS_CRASH_LOGS" ]; then
     export CYSIGNALS_CRASH_LOGS="$DOT_SAGE/crash_logs"
@@ -671,7 +633,7 @@ fi
 
 if [ -n "$SAGE_LOCAL" ]; then
     # If we move the Sage tree then ncurses cannot find terminfo, hence, we
-    # tell it where to find it. See Trac Ticket #15091
+    # tell it where to find it. See Issue Ticket #15091
     export TERMINFO="$SAGE_LOCAL/share/terminfo"
 
     # If nodejs is installed, activate the nodeenv containing it.
@@ -694,3 +656,15 @@ if [ -n "$SAGE_LOCAL" ]; then
     fi
 
 fi
+
+
+# Newer versions of debugpy come with a bundled pydevd that complains
+# about >=python-3.11's core modules being frozen (and therefore not
+# breakpoint-able). This workaround simply hides the warning to keep
+# our doctests predictable (which was the status quo with earlier
+# versions of debugpy).
+export PYDEVD_DISABLE_FILE_VALIDATION=1
+
+# Finally, set SAGE_ENV_SOURCED as evidence that this script has been
+# run successfully.
+export SAGE_ENV_SOURCED="6:$SAGE_LOCAL:$SAGE_VENV:$SAGE_SRC"

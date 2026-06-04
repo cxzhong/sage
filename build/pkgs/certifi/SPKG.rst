@@ -9,15 +9,10 @@ Python package for providing Mozilla's CA Bundle.
 License
 -------
 
-ISC
-
+MPL-2.0
 
 Upstream Contact
 ----------------
 
-Home page: https://pypi.python.org/pypi/certifi
+https://pypi.org/project/certifi/
 
-Dependencies
-------------
-
-Python, Setuptools

@@ -57,26 +57,26 @@ AUTHOR:
 - Jonathan Kliem (2019-04)
 """
 
-#*****************************************************************************
-#       Copyright (C) 2019 Jonathan Kliem <jonathan.kliem@fu-berlin.de>
+# ****************************************************************************
+#       Copyright (C) 2019 Jonathan Kliem <jonathan.kliem@gmail.com>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
-from sage.structure.element import is_Matrix
+from memory_allocator                 cimport MemoryAllocator
 
-from .list_of_faces                   cimport ListOfFaces
-from sage.matrix.matrix_integer_dense cimport Matrix_integer_dense
-from sage.ext.memory_allocator        cimport MemoryAllocator
-from .face_data_structure             cimport face_next_atom, face_add_atom_safe, facet_set_coatom, face_clear
-from .face_list_data_structure        cimport face_list_t
+from sage.matrix.matrix_dense cimport Matrix_dense
+
+from sage.geometry.polyhedron.combinatorial_polyhedron.list_of_faces                   cimport ListOfFaces
+from sage.geometry.polyhedron.combinatorial_polyhedron.face_data_structure             cimport face_next_atom, face_add_atom_safe, facet_set_coatom, face_clear
 
 cdef extern from "Python.h":
     int unlikely(int) nogil  # Defined by Cython
+
 
 def _Vrep_list_to_bit_rep_wrapper(tup):
     r"""
@@ -93,6 +93,7 @@ def _Vrep_list_to_bit_rep_wrapper(tup):
     Vrep_list_to_bit_rep(tup, output.data.faces[0])
     return output
 
+
 cdef int Vrep_list_to_bit_rep(tuple Vrep_list, face_t output) except -1:
     r"""
     Convert a vertex list into Bit-representation. Store it in ``output``.
@@ -105,9 +106,7 @@ cdef int Vrep_list_to_bit_rep(tuple Vrep_list, face_t output) except -1:
     - ``vertex_list`` -- tuple of pairwise distinct positive integers that fit into ``output``
     - ``output`` -- an already initialized face
 
-    OUTPUT:
-
-    - ``output`` is filled
+    OUTPUT: ``output`` is filled
 
     EXAMPLES::
 
@@ -134,6 +133,7 @@ cdef int Vrep_list_to_bit_rep(tuple Vrep_list, face_t output) except -1:
     for entry in Vrep_list:
         face_add_atom_safe(output, entry)
 
+
 def _incidences_to_bit_rep_wrapper(tup):
     r"""
     A function to allow doctesting of :func:`incidences_to_bit_rep`.
@@ -149,21 +149,20 @@ def _incidences_to_bit_rep_wrapper(tup):
     incidences_to_bit_rep(tup, output.data.faces[0])
     return output
 
+
 cdef int incidences_to_bit_rep(tuple incidences, face_t output) except -1:
     r"""
     Convert a tuple of incidences into Bit-representation.
 
     Store it in ``output``. Each entry in ``incidences`` represents a bit in
-    ``output``. It is set to ``1``, iff the entry in ``incidences`` is non-zero.
+    ``output``. It is set to ``1``, iff the entry in ``incidences`` is nonzero.
 
     INPUT:
 
     - ``incidences`` -- tuple of integers representing incidences that fit into ``output``
     - ``output`` -- an already initialized face
 
-    OUTPUT:
-
-    - ``output`` is filled
+    OUTPUT: ``output`` is filled
 
     EXAMPLES::
 
@@ -184,7 +183,8 @@ cdef int incidences_to_bit_rep(tuple incidences, face_t output) except -1:
             # Vrep ``entry`` is contained in the face, so set the corresponding bit
             face_add_atom_safe(output, entry)
 
-def incidence_matrix_to_bit_rep_of_facets(Matrix_integer_dense matrix):
+
+def incidence_matrix_to_bit_rep_of_facets(Matrix_dense matrix):
     r"""
     Initialize facets in Bit-representation as :class:`~sage.geometry.polyhedron.combinatorial_polyhedron.list_of_faces.ListOfFaces`.
 
@@ -193,11 +193,9 @@ def incidence_matrix_to_bit_rep_of_facets(Matrix_integer_dense matrix):
     - ``matrix`` -- an incidence matrix as in
       :meth:`sage.geometry.polyhedron.base.Polyhedron_base.incidence_matrix`
       with columns corresponding to equations deleted
-      of type :class:`sage.matrix.matrix_integer_dense.Matrix_integer_dense`
+      of type :class:`sage.matrix.matrix_dense.Matrix_dense`
 
-    OUTPUT:
-
-    - :class:`~sage.geometry.polyhedron.combinatorial_polyhedron.list_of_faces.ListOfFaces`
+    OUTPUT: :class:`~sage.geometry.polyhedron.combinatorial_polyhedron.list_of_faces.ListOfFaces`
 
     EXAMPLES::
 
@@ -248,7 +246,8 @@ def incidence_matrix_to_bit_rep_of_facets(Matrix_integer_dense matrix):
                 face_add_atom_safe(output, entry)
     return facets
 
-def incidence_matrix_to_bit_rep_of_Vrep(Matrix_integer_dense matrix):
+
+def incidence_matrix_to_bit_rep_of_Vrep(Matrix_dense matrix):
     r"""
     Initialize Vrepresentatives in Bit-representation as :class:`~sage.geometry.polyhedron.combinatorial_polyhedron.list_of_faces.ListOfFaces`.
 
@@ -260,11 +259,9 @@ def incidence_matrix_to_bit_rep_of_Vrep(Matrix_integer_dense matrix):
     - ``matrix`` -- an incidence matrix as in
       :meth:`sage.geometry.polyhedron.base.Polyhedron_base.incidence_matrix`
       with columns corresponding to equations deleted
-      of type :class:`sage.matrix.matrix_integer_dense.Matrix_integer_dense`
+      of type :class:`sage.matrix.matrix_dense.Matrix_dense`
 
-    OUTPUT:
-
-    - :class:`~sage.geometry.polyhedron.combinatorial_polyhedron.list_of_faces.ListOfFaces`
+    OUTPUT: :class:`~sage.geometry.polyhedron.combinatorial_polyhedron.list_of_faces.ListOfFaces`
 
     EXAMPLES::
 
@@ -306,9 +303,10 @@ def incidence_matrix_to_bit_rep_of_Vrep(Matrix_integer_dense matrix):
     """
     return incidence_matrix_to_bit_rep_of_facets(matrix.transpose())
 
+
 def facets_tuple_to_bit_rep_of_facets(tuple facets_input, size_t n_Vrep):
     r"""
-    Initializes facets in Bit-representation as :class:`~sage.geometry.polyhedron.combinatorial_polyhedron.list_of_faces.ListOfFaces`.
+    Initialize facets in Bit-representation as :class:`~sage.geometry.polyhedron.combinatorial_polyhedron.list_of_faces.ListOfFaces`.
 
     INPUT:
 
@@ -316,9 +314,7 @@ def facets_tuple_to_bit_rep_of_facets(tuple facets_input, size_t n_Vrep):
       Vrep must be exactly ``range(n_Vrep)``
     - ``n_Vrep``
 
-    OUTPUT:
-
-    - :class:`~sage.geometry.polyhedron.combinatorial_polyhedron.list_of_faces.ListOfFaces`
+    OUTPUT: :class:`~sage.geometry.polyhedron.combinatorial_polyhedron.list_of_faces.ListOfFaces`
 
     EXAMPLES::
 
@@ -347,6 +343,7 @@ def facets_tuple_to_bit_rep_of_facets(tuple facets_input, size_t n_Vrep):
         facet_set_coatom(facets.data.faces[i], i)
     return facets
 
+
 def facets_tuple_to_bit_rep_of_Vrep(tuple facets_input, size_t n_Vrep):
     r"""
     Initialize Vrepresentatives in Bit-representation as :class:`~sage.geometry.polyhedron.combinatorial_polyhedron.list_of_faces.ListOfFaces`.
@@ -360,10 +357,7 @@ def facets_tuple_to_bit_rep_of_Vrep(tuple facets_input, size_t n_Vrep):
       Vrep must be exactly ``range(n_Vrep)``
     - ``n_Vrep``
 
-    OUTPUT:
-
-    - :class:`~sage.geometry.polyhedron.combinatorial_polyhedron.list_of_faces.ListOfFaces`
-
+    OUTPUT: :class:`~sage.geometry.polyhedron.combinatorial_polyhedron.list_of_faces.ListOfFaces`
 
     EXAMPLES::
 
@@ -407,6 +401,7 @@ def facets_tuple_to_bit_rep_of_Vrep(tuple facets_input, size_t n_Vrep):
             face_add_atom_safe(Vrep_data[input_Vrep], input_facet)
     return Vrep
 
+
 def _bit_rep_to_Vrep_list_wrapper(ListOfFaces faces, index=0):
     r"""
     A function to test :func:`bit_rep_to_Vrep_list`.
@@ -414,9 +409,9 @@ def _bit_rep_to_Vrep_list_wrapper(ListOfFaces faces, index=0):
     INPUT:
 
     - ``faces`` -- a :class:`~sage.geometry.polyhedron.combinatorial_polyhedron.list_of_faces.ListOfFaces`
-    - ``index`` -- (default: ``0``); the face to obtain
+    - ``index`` -- (default: ``0``) the face to obtain
 
-    OUTPUT: The face as tuple of integers.
+    OUTPUT: the face as tuple of integers
 
     EXAMPLES::
 
@@ -432,9 +427,9 @@ def _bit_rep_to_Vrep_list_wrapper(ListOfFaces faces, index=0):
     output = <size_t *> mem.allocarray(faces.n_atoms(),
                                        sizeof(size_t))
 
-    length = bit_rep_to_Vrep_list(
-            faces.data.faces[index], output)
+    length = bit_rep_to_Vrep_list(faces.data.faces[index], output)
     return tuple(output[i] for i in range(length))
+
 
 cdef inline size_t bit_rep_to_Vrep_list(face_t face, size_t *output) except -1:
     r"""

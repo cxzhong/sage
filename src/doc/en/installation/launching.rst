@@ -9,25 +9,66 @@ Notebook from the command line.
 
 If you did install the Windows version or the macOS application you
 should have icons available on your desktops or launching menus. Otherwise
-you are strongly advised to create shortcuts for Sage as indicated at the end
-of the "Linux" Section in :ref:`sec-installation-from-binaries`. Assuming
-that you have this shortcut, running
+you are strongly advised to create shortcuts for Sage as indicated in the part
+6 of the "Installation steps" Section in :ref:`build-from-source-step-by-step`.
+Assuming that you have this shortcut, running
 
-.. CODE-BLOCK:: bash
+.. code-block:: console
 
-    sage
+    $ sage
 
 in a console starts a Sage session.  To quit the session enter ``quit`` and
 then press ``<Enter>``.
 
 To start a Jupyter Notebook instead of a Sage console, run the command
 
-.. CODE-BLOCK:: bash
+.. code-block:: console
 
-    sage -n jupyter
+    $ sage -n jupyter
 
 instead of just ``sage``. To quit the Jupyter Notebook press ``<Ctrl> + <c>``
 twice in the console where you launched the command.
+
+You can pass extra parameters to this command. For example,
+
+.. code-block:: console
+
+    $ sage -n jupyter --port 8899
+
+will run the Jupyter server on a port different from the default (8888).
+In particular on WSL, this is very useful because Jupyter may not be able to
+detect whether the default port is already taken by another instance of
+Jupyter running in Windows.
+
+
+Environment variables
+---------------------
+
+Sage uses the following environment variables when it runs:
+
+- :envvar:`DOT_SAGE` - this is the directory, to which the user has read and
+  write access, where Sage stores a number of files.
+  The default location is :file:`$HOME/.sage/`.
+
+- :envvar:`SAGE_STARTUP_FILE` - a file including commands to be executed every
+  time Sage starts.
+  The default value is :file:`$DOT_SAGE/init.sage`.
+
+- :envvar:`BROWSER` - on most platforms, Sage will detect the command to
+  run a web browser, but if this doesn't seem to work on your machine, set this
+  variable to the appropriate command.
+
+- :envvar:`TMPDIR` - this variable is used by Python, and hence by
+  Sage; it gives the directory in which temporary files should be
+  stored. This includes files used by the notebook. Some browsers have
+  security settings which restrict the locations of files that they
+  will access, and users may need to set this variable to handle this
+  situation.
+
+- See
+  https://docs.python.org/3/using/cmdline.html#environment-variables
+  for more variables used by Python (not an exhaustive list).
+  A brief summary can also be obtained by running ``python3 --help-env``.
 
 Using a Jupyter Notebook remotely
 ---------------------------------
@@ -35,9 +76,9 @@ Using a Jupyter Notebook remotely
 If Sage is installed on a remote machine to which you have ``ssh`` access, you
 can launch a Jupyter Notebook using a command such as
 
-.. CODE-BLOCK:: bash
+.. code-block:: console
 
-    ssh -L localhost:8888:localhost:8888 -t USER@REMOTE sage -n jupyter --no-browser --port=8888
+    $ ssh -L localhost:8888:localhost:8888 -t USER@REMOTE sage -n jupyter --no-browser --port=8888
 
 where ``USER@REMOTE`` needs to be replaced by the login details to the remote
 machine. This uses local port forwarding to connect your local machine to the
@@ -53,7 +94,8 @@ the internet, e.g. https://www.ssh.com/ssh/tunneling/example.
 WSL Post-installation steps
 ---------------------------
 
-If you've installed Sage Math from source on WSL, there are a couple of extra steps you can do to make your life easier:
+If you've installed SageMath from source on WSL, there are a couple of extra steps you can do to make your life easier:
+
 
 Create a notebook launch script
 """""""""""""""""""""""""""""""
@@ -63,7 +105,7 @@ If you plan to use JupyterLab, install that first.
 Now create a script called ``~/sage_nb.sh`` containing the following lines, and fill in the correct paths for your desired starting directory and ``SAGE_ROOT``
 
 
-.. CODE-BLOCK:: bash
+.. code-block:: bash
 
     #!/bin/bash
     # Switch to desired windows directory
@@ -75,16 +117,16 @@ Now create a script called ``~/sage_nb.sh`` containing the following lines, and 
 
 Make it executable:
 
-.. CODE-BLOCK:: bash
+.. code-block:: console
 
-    chmod ug+x ~/sage_nb.sh
+    $ chmod ug+x ~/sage_nb.sh
 
 Run it to test:
 
-.. CODE-BLOCK:: bash
+.. code-block:: console
 
-    cd ~
-    ./sage_nb.sh
+    $ cd ~
+    $ ./sage_nb.sh
 
 The Jupyter(Lab) server should start in the terminal window, and you windows browser should open a page showing the Jupyter or JupyterLab starting page, at the directory you specified.
 
@@ -95,13 +137,13 @@ This is a final nicety that lets you start the Jupyter or JupyterLab server in o
 
 * Open Windows explorer, and type ``%APPDATA%\Microsoft\Windows\Start Menu\Programs`` in the address bar and press enter. This is the folder that contains you start menu shortcuts. If you want the sage shortcut somewhere else (like your desktop), open that folder instead.
 * Open a separate window and go to ``%LOCALAPPDATA%\Microsoft\WindowsApps\``
-* Right-click-drag the ``ubuntu.exe`` icon from the second window into the first, then choose ``Create shortcuts here`` from the context menu when you drop it. 
+* Right-click-drag the ``ubuntu.exe`` icon from the second window into the first, then choose ``Create shortcuts here`` from the context menu when you drop it.
 * To customize this shortcut, right-click on it and choose properties.
 
   * On the General tab:
 
     * Change the name to whatever you want, e.g. "Sage 9.2 JupyterLab"
-  
+
   * On the Shortcut tab:
 
     * Change Target to: ``ubuntu.exe run ~/sage_nb.sh``
@@ -117,56 +159,89 @@ For further reading you can have a look at the other documents in the
 SageMath documentation at http://doc.sagemath.org/.
 
 
+.. _sec-launching-system-jupyter:
+
 Setting up SageMath as a Jupyter kernel in an existing Jupyter notebook or JupyterLab installation
 --------------------------------------------------------------------------------------------------
 
-You may already have a global installation of Jupyter.  For added
+By default, SageMath installs itself as a Jupyter kernel in the same
+environment as the SageMath installation. This is the most convenient way to
+use SageMath in a Jupyter notebook. To check if the Sage kernel is
+available, start a Jupyter notebook and look for the kernel named
+``SageMath <x.y.z>`` in the list of available kernels.
+Alternatively, you can use the following command to check which kernels are
+available:
+
+.. code-block:: console
+
+    $ jupyter kernelspec list
+    Available kernels:
+      python3     <path to env>/share/jupyter/kernels/python3
+      sagemath    <path to env>/share/jupyter/kernels/sagemath
+
+In case the Sage kernel is not listed, you can check if the file ``kernel.json``
+is present in ``<path to env>/share/jupyter/kernels/sagemath``.
+If it is not there, you can create it using ``jupyter kernelspec install``
+as described below.
+
+You may already have a global installation of Jupyter. For added
 convenience, it is possible to link your installation of SageMath into
 your Jupyter installation, adding it to the list of available kernels
 that can be selected in the notebook or JupyterLab interface.
 
-If ``$SAGE_LOCAL`` is the installation prefix of your Sage
-installation (the default is ``$SAGE_ROOT/local``) and you can start
-the Jupyter notebook by typing ``jupyter notebook``, then the
-following command will install SageMath as a new kernel.
+Assuming that SageMath can be invoked by typing ``sage``, you can use
 
-.. CODE-BLOCK:: bash
+.. code-block:: console
 
-    jupyter kernelspec install --user $SAGE_LOCAL/share/jupyter/kernels/sagemath
+    $ sage -sh -c 'ls -d $SAGE_VENV/share/jupyter/kernels/sagemath'
 
-This installs the kernel under the name ``sagemath``.  If you wish to
-rename it to something more specific in order to distinguish between
-different installations of SageMath, you can use the additional option
-``--name``, for example
+to find the location of the SageMath kernel description.
+Alternatively, use ``jupyter kernelspec list`` from the same environment
+where SageMath is installed to find the location of the SageMath kernel.
 
-.. CODE-BLOCK:: bash
+Now pick a name for the kernel that identifies it clearly and uniquely.
 
-    jupyter kernelspec install --user $SAGE_LOCAL/share/jupyter/kernels/sagemath --name sagemath-dev-worktree
+For example, if you install Sage from source tarballs, you could decide
+to include the version number in the name, such as ``sagemath-9.6``.
+If you build SageMath from a clone of the git repository, it is better to
+choose a name that identifies the directory, perhaps ``sagemath-dev``
+or ``sagemath-teaching`` because the version will change.
+
+Now assuming that the Jupyter notebook can be started by typing
+``jupyter notebook``, the following command will install SageMath as a
+new kernel named ``sagemath-dev``.
+
+.. code-block:: console
+
+    $ jupyter kernelspec install --user $(sage -sh -c 'ls -d $SAGE_VENV/share/jupyter/kernels/sagemath') --name sagemath-dev
 
 The ``jupyter kernelspec`` approach by default does lead to about 2Gb of
-sagemath documentation being copied into your personal jupyter configuration
-directory. You can avoid that by instead putting a symlink in the relevant spot.
-Assuming that sagemath is properly installed, you can use
+SageMath documentation being copied into your personal jupyter configuration
+directory. You can avoid that by instead putting a symlink in the relevant spot
+and
 
-.. CODE-BLOCK:: bash
+.. code-block:: console
 
-    sage -sh -c 'ls -d $SAGE_LOCAL/share/jupyter/kernels/sagemath'
+    $ jupyter --paths
 
-to find location of the sagemath kernel description and
-
-.. CODE-BLOCK:: bash
-
-    jupyter --paths
-
-to find valid data directories for your jupyter installation.
+to find valid data directories for your Jupyter installation.
 A command along the lines of
 
-.. CODE-BLOCK:: bash
+.. code-block:: console
 
-    ln -s `sage -sh -c 'ls -d $SAGE_LOCAL/share/jupyter/kernels/sagemath'` $HOME/.local/share/jupyter
+    $ ln -s $(sage -sh -c 'ls -d $SAGE_VENV/share/jupyter/kernels/sagemath') $HOME/.local/share/jupyter/kernels/sagemath-dev
 
-can then be used to create a symlink to the sagemath kernel description
+can then be used to create a symlink to the SageMath kernel description
 in a location where your own ``jupyter`` can find it.
+
+If you have installed SageMath from source, the alternative command
+
+.. code-block:: console
+
+    $ ln -s $(sage -sh -c 'ls -d $SAGE_ROOT/venv/share/jupyter/kernels/sagemath') $HOME/.local/share/jupyter/kernels/sagemath-dev
+
+creates a symlink that will stay current even if you switch to a different Python version
+later.
 
 To get the full functionality of the SageMath kernel in your global
 Jupyter installation, the following Notebook Extension packages also
@@ -223,3 +298,28 @@ You can check the presence of some of these packages using the command
    following code in the notebook::
 
      plot3d(lambda u,v:(u^2+v^2)/4-2,(-2,2),(-2,2)).show(viewer="jmol")
+
+Using Jupyter notebook through Visual Studio Code (VS Code) in WSL
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+If you have installed Sage on Windows using Windows Subsystem for
+Linux (WSL), it is convenient to use Visual Studio Code (VS Code)
+to interact with Sage.
+
+Here are steps to use SageMath in a Jupyter notebook in VS Code:
+
+* Install and run `VS Code <https://code.visualstudio.com/download>`_
+  in Windows.
+
+* Click the "Extension" icon on the left (or press :kbd:`Ctrl` +
+  :kbd:`Shift` + :kbd:`X`) to open a list of extensions. Install the
+  "WSL" and "Jupyter" extensions.
+
+* In the command palette (:kbd:`Ctrl` + :kbd:`Shift` + :kbd:`P`),
+  enter "Remote-WSL: New Window", and hit :kbd:`Enter`.
+
+* In the command palette, enter "Create: New Jupyter Notebook", and
+  hit :kbd:`Enter`.
+
+* Click "Select Kernel" on the right (or press :kbd:`Ctrl` +
+  :kbd:`Alt` + :kbd:`Enter`), select SageMath, and hit :kbd:`Enter`.

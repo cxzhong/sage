@@ -19,13 +19,8 @@ AUTHORS:
 #                  https://www.gnu.org/licenses/
 # ****************************************************************************
 
-import weakref
-from weakref import KeyedRef
-
 from cpython.list cimport PyList_New
-from cpython cimport Py_XINCREF, Py_XDECREF
 
-from libc.stdint cimport int8_t, int16_t, int32_t, int64_t
 cdef extern from "Python.h":
     ctypedef struct PyDictKeysObject
 
@@ -34,99 +29,22 @@ cdef extern from "Python.h":
         PyDictKeysObject * ma_keys
         PyObject ** ma_values
 
-    #we need this redefinition because we want to be able to call
-    #PyWeakref_GetObject with borrowed references. This is the recommended
-    #strategy according to Cython/Includes/cpython/__init__.pxd
-    PyObject* PyWeakref_GetObject(PyObject * wr)
     int PyList_SetItem(object list, Py_ssize_t index, PyObject * item) except -1
-    int PyWeakref_Check(PyObject * ob)
-####
-#definitions replicated from CPython's Objects/dict-common.h
-#(this file is not exported from CPython, so we need to be
-#careful the definitions are in step with what happens there.
 
-ctypedef void* dict_lookup_func  # Precise definition not needed
+cdef extern from "dict_internal.h":
+    Py_ssize_t DK_MASK(PyDictKeysObject *)
+    PyDictKeyEntry * DK_ENTRIES(PyDictKeysObject *keys)
 
-ctypedef union IndexBlock:
-    int8_t as_1[8]
-    int16_t as_2[4]
-    int32_t as_4[2]
-    int64_t as_8[1]
+    Py_ssize_t dictkeys_get_index (PyDictKeysObject *keys, Py_ssize_t i)
+    void dictkeys_set_index (PyDictKeysObject *keys, Py_ssize_t i, Py_ssize_t ix)
 
-ctypedef struct MyPyDictKeysObject:
-    Py_ssize_t dk_refcnt
-    Py_ssize_t dk_size
-    dict_lookup_func dk_lookup
-    Py_ssize_t dk_usable
-    Py_ssize_t dk_nentries
-    IndexBlock dk_indices
+    Py_ssize_t DKIX_EMPTY, DKIX_DUMMY
+    int PERTURB_SHIFT
 
-ctypedef struct PyDictKeyEntry:
-    Py_hash_t me_hash
-    PyObject * me_key
-    PyObject * me_value
-
-cdef Py_ssize_t DKIX_EMPTY = -1
-cdef Py_ssize_t DKIX_DUMMY = -2
-cdef Py_ssize_t DKIX_ERROR = -3
-
-#####
-#These routines are copied from CPython's Object/dictobject.c
-#in order to access PyDictKeysObject fields
-
-cdef inline int DK_IXSIZE(MyPyDictKeysObject *keys):
-    cdef Py_ssize_t s = keys.dk_size
-    if s <= 0xff:
-        return 1
-    elif s <= 0xffff:
-        return 2
-    elif s <= 0xffffffff:
-        return 4
-    else:
-        return 8
-
-cdef inline PyDictKeyEntry * DK_ENTRIES(MyPyDictKeysObject *keys):
-    return <PyDictKeyEntry*> &(keys.dk_indices.as_1[keys.dk_size * DK_IXSIZE(keys)])
-
-cdef inline Py_ssize_t dk_get_index(MyPyDictKeysObject *keys, Py_ssize_t i):
-    cdef Py_ssize_t s = keys.dk_size
-    if s <= 0xff:
-        return keys.dk_indices.as_1[i]
-    elif s <= 0xffff:
-        return keys.dk_indices.as_2[i]
-    elif s <= 0xffffffff:
-        return keys.dk_indices.as_4[i]
-    else:
-        return keys.dk_indices.as_8[i]
-
-cdef inline void dk_set_index(MyPyDictKeysObject *keys, Py_ssize_t i, Py_ssize_t ix):
-    cdef Py_ssize_t s = keys.dk_size
-    if s <= 0xff:
-        keys.dk_indices.as_1[i] = ix
-    elif s <= 0xffff:
-        keys.dk_indices.as_2[i] = ix
-    elif s <= 0xffffffff:
-        keys.dk_indices.as_4[i] = ix
-    else:
-        keys.dk_indices.as_8[i] = ix
-
-#End of replication of Object/dictobject.c
-######
-
-cdef dict_lookup_func lookdict
-
-cdef dict_lookup_func DK_LOOKUP(PyDictObject *mp):
-    return (<MyPyDictKeysObject *>(mp.ma_keys)).dk_lookup
-
-def init_lookdict():
-    global lookdict
-    # A dict which a non-string key uses the generic "lookdict"
-    # as lookup function
-    cdef object D = {}
-    D[0] = 0
-    lookdict = DK_LOOKUP(<PyDictObject *>D)
-
-init_lookdict()
+    ctypedef struct PyDictKeyEntry:
+        Py_hash_t me_hash
+        PyObject * me_key
+        PyObject * me_value
 
 cdef int del_dictitem_by_exact_value(PyDictObject *mp, PyObject *value, Py_hash_t hash) except -1:
     """
@@ -135,8 +53,8 @@ cdef int del_dictitem_by_exact_value(PyDictObject *mp, PyObject *value, Py_hash_
     INPUT:
 
     - ``PyDictObject *mp`` -- pointer to a dict
-    - ``PyObject *value``  -- pointer to a value of the dictionary
-    - ``Py_hash_t hash``        -- hash of the key by which the value is stored in the dict
+    - ``PyObject *value`` -- pointer to a value of the dictionary
+    - ``Py_hash_t hash`` -- hash of the key by which the value is stored in the dict
 
     The hash bucket determined by the given hash is searched for the item
     containing the given value. If this item cannot be found, the function is
@@ -144,7 +62,7 @@ cdef int del_dictitem_by_exact_value(PyDictObject *mp, PyObject *value, Py_hash_
 
     TESTS:
 
-    The following is an indirect doctest, as discussed on :trac:`13394`.
+    The following is an indirect doctest, as discussed on :issue:`13394`.
     ::
 
         sage: from sage.misc.weak_dict import WeakValueDictionary
@@ -169,7 +87,7 @@ cdef int del_dictitem_by_exact_value(PyDictObject *mp, PyObject *value, Py_hash_
     TESTS:
 
     The following shows that the deletion of deeply nested structures does not
-    result in an error, by :trac:`15506`::
+    result in an error, by :issue:`15506`::
 
         sage: class A: pass
         sage: a = A(); prev = a
@@ -177,9 +95,9 @@ cdef int del_dictitem_by_exact_value(PyDictObject *mp, PyObject *value, Py_hash_
         sage: for i in range(10^3+10): newA = A(); M[newA] = prev; prev = newA
         sage: del a
     """
-    keys = <MyPyDictKeysObject *>(mp.ma_keys)
+    keys = mp.ma_keys
     cdef size_t perturb
-    cdef size_t mask = <size_t> keys.dk_size-1
+    cdef size_t mask = DK_MASK(keys)
     cdef PyDictKeyEntry *entries = DK_ENTRIES(keys)
     cdef PyDictKeyEntry *ep
 
@@ -187,7 +105,7 @@ cdef int del_dictitem_by_exact_value(PyDictObject *mp, PyObject *value, Py_hash_
         raise TypeError("del_dictitem_by_exact_value cannot be applied to a shared key dict")
 
     cdef size_t i = <size_t>hash & mask
-    ix = dk_get_index(keys, i)
+    ix = dictkeys_get_index(keys, i)
 
     if ix == DKIX_EMPTY:
         # key not found
@@ -196,17 +114,13 @@ cdef int del_dictitem_by_exact_value(PyDictObject *mp, PyObject *value, Py_hash_
     ep = &(entries[ix])
     perturb = hash
     while (ep.me_value != value or ep.me_hash != hash):
-        perturb = perturb >> 5 #this is the value of PERTURB_SHIFT
+        perturb = perturb >> PERTURB_SHIFT
         i = mask & (i * 5 + perturb + 1)
-        ix = dk_get_index(keys, i)
+        ix = dictkeys_get_index(keys, i)
         if ix == DKIX_EMPTY:
             # key not found
             return 0
         ep = &(entries[ix])
-
-    # We need the lookup function to be the generic lookdict, otherwise
-    # deletions may not work correctly
-    keys.dk_lookup = lookdict
 
     T = PyList_New(2)
     PyList_SetItem(T, 0, ep.me_key)
@@ -214,12 +128,13 @@ cdef int del_dictitem_by_exact_value(PyDictObject *mp, PyObject *value, Py_hash_
     ep.me_key = NULL
     ep.me_value = NULL
     mp.ma_used -= 1
-    dk_set_index(keys, i, DKIX_DUMMY)
-    #We have transferred the to-be-deleted references to the list T
-    #we now delete the list so that the actual decref happens through a
-    #deallocation routine that uses the Python Trashcan macros to
-    #avoid stack overflow in deleting deep structures.
+    dictkeys_set_index(keys, i, DKIX_DUMMY)
+    # We have transferred the to-be-deleted references to the list T
+    # we now delete the list so that the actual decref happens through a
+    # deallocation routine that uses the Python Trashcan macros to
+    # avoid stack overflow in deleting deep structures.
     del T
+
 
 def test_del_dictitem_by_exact_value(D, value, h):
     """
@@ -227,12 +142,12 @@ def test_del_dictitem_by_exact_value(D, value, h):
 
     INPUT:
 
-    - ``D`` -- a Python ``<dict>``.
-    - ``value`` -- an object that is value ``D``.
-    - ``h`` -- the hash of the key under which to find ``value`` in ``D``.
+    - ``D`` -- a Python ``<dict>``
+    - ``value`` -- an object that is value ``D``
+    - ``h`` -- the hash of the key under which to find ``value`` in ``D``
 
     The underlying cdef function deletes an item from ``D`` that is in the
-    hash bucket determined by ``h`` and whose value is identic with
+    hash bucket determined by ``h`` and whose value is identical with
     ``value``. Of course, this only makes sense if the pairs ``(h, value)``
     corresponding to items in ``D`` are pair-wise distinct.
 
@@ -241,7 +156,7 @@ def test_del_dictitem_by_exact_value(D, value, h):
 
     TESTS:
 
-    See :trac:`13394` for a discussion.
+    See :issue:`13394` for a discussion.
     ::
 
         sage: from sage.cpython.dict_del_by_value import test_del_dictitem_by_exact_value

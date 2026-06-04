@@ -9,9 +9,10 @@ Graded bialgebras
 #                  http://www.gnu.org/licenses/
 #******************************************************************************
 
+
 def GradedBialgebras(base_ring):
     """
-    The category of graded bialgebras
+    The category of graded bialgebras.
 
     EXAMPLES::
 
@@ -26,5 +27,5 @@ def GradedBialgebras(base_ring):
 
         sage: TestSuite(C).run()
     """
-    from sage.categories.all import Bialgebras
+    from sage.categories.bialgebras import Bialgebras
     return Bialgebras(base_ring).Graded()

@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+# sage.doctest: needs sage.rings.number_field
 r"""
 Galois representations for elliptic curves over number fields
 
@@ -9,6 +9,7 @@ and ``non_surjective`` methods of an elliptic curve over a number field.
 
 EXAMPLES::
 
+    sage: x = polygen(ZZ, 'x')
     sage: K = NumberField(x**2 - 29, 'a'); a = K.gen()
     sage: E = EllipticCurve([1, 0, ((5 + a)/2)**2, 0, 0])
     sage: rho = E.galois_representation()
@@ -34,7 +35,6 @@ REFERENCES:
 
 - [Ser1972]_
 - [Sut2012]_
-
 """
 # ****************************************************************************
 #       Copyright (C) 2012 Eric Larson <elarson3@gmail.com>
@@ -45,14 +45,19 @@ REFERENCES:
 #                  https://www.gnu.org/licenses/
 # ****************************************************************************
 
-from sage.structure.sage_object import SageObject
-from sage.rings.number_field.number_field import NumberField
+from sage.arith.misc import legendre_symbol, primes
+from sage.misc.functional import cyclotomic_polynomial
+from sage.misc.lazy_import import lazy_import
 from sage.modules.free_module import VectorSpace
 from sage.rings.finite_rings.finite_field_constructor import GF
-from sage.misc.functional import cyclotomic_polynomial
-from sage.arith.all import legendre_symbol, primes
+from sage.rings.infinity import Infinity
+from sage.rings.integer import Integer
+from sage.rings.integer_ring import ZZ
+from sage.rings.rational_field import QQ
 from sage.sets.set import Set
-from sage.rings.all import Integer, ZZ, QQ, Infinity
+from sage.structure.sage_object import SageObject
+
+lazy_import('sage.rings.number_field.number_field', 'NumberField')
 
 
 class GaloisRepresentation(SageObject):
@@ -71,11 +76,14 @@ class GaloisRepresentation(SageObject):
 
     EXAMPLES::
 
+        sage: x = polygen(ZZ, 'x')
         sage: K = NumberField(x**2 + 1, 'a')
         sage: E = EllipticCurve('11a1').change_ring(K)
         sage: rho = E.galois_representation()
         sage: rho
-        Compatible family of Galois representations associated to the Elliptic Curve defined by y^2 + y = x^3 + (-1)*x^2 + (-10)*x + (-20) over Number Field in a with defining polynomial x^2 + 1
+        Compatible family of Galois representations associated to the Elliptic Curve
+         defined by y^2 + y = x^3 + (-1)*x^2 + (-10)*x + (-20)
+         over Number Field in a with defining polynomial x^2 + 1
     """
 
     def __init__(self, E):
@@ -84,11 +92,14 @@ class GaloisRepresentation(SageObject):
 
         EXAMPLES::
 
+            sage: x = polygen(ZZ, 'x')
             sage: K = NumberField(x**2 + 1, 'a')
             sage: E = EllipticCurve('11a1').change_ring(K)
             sage: rho = E.galois_representation()
             sage: rho
-            Compatible family of Galois representations associated to the Elliptic Curve defined by y^2 + y = x^3 + (-1)*x^2 + (-10)*x + (-20) over Number Field in a with defining polynomial x^2 + 1
+            Compatible family of Galois representations associated to the Elliptic Curve
+             defined by y^2 + y = x^3 + (-1)*x^2 + (-10)*x + (-20)
+             over Number Field in a with defining polynomial x^2 + 1
             sage: loads(rho.dumps()) == rho
             True
         """
@@ -100,32 +111,36 @@ class GaloisRepresentation(SageObject):
 
         EXAMPLES::
 
+            sage: x = polygen(ZZ, 'x')
             sage: K = NumberField(x**2 + 1, 'a')
             sage: E = EllipticCurve('11a1').change_ring(K)
             sage: rho = E.galois_representation()
             sage: rho
-            Compatible family of Galois representations associated to the Elliptic Curve defined by y^2 + y = x^3 + (-1)*x^2 + (-10)*x + (-20) over Number Field in a with defining polynomial x^2 + 1
+            Compatible family of Galois representations associated to the Elliptic Curve
+             defined by y^2 + y = x^3 + (-1)*x^2 + (-10)*x + (-20)
+             over Number Field in a with defining polynomial x^2 + 1
 
             sage: K.<a> = NumberField(x^2-x+1)
             sage: E = EllipticCurve([0,0,0,a,0])
             sage: E.galois_representation()
-            Compatible family of Galois representations associated to the CM Elliptic Curve defined by y^2 = x^3 + a*x over Number Field in a with defining polynomial x^2 - x + 1
+            Compatible family of Galois representations associated to the
+             CM Elliptic Curve defined by y^2 = x^3 + a*x
+             over Number Field in a with defining polynomial x^2 - x + 1
         """
         if self.E.has_cm():
             return "Compatible family of Galois representations associated to the CM " + repr(self.E)
-        else:
-            return "Compatible family of Galois representations associated to the " + repr(self.E)
+        return "Compatible family of Galois representations associated to the " + repr(self.E)
 
-
-    def __eq__(self,other):
+    def __eq__(self, other):
         r"""
-        Compares two Galois representations.
+        Compare two Galois representations.
 
         We define two compatible families of representations attached
         to elliptic curves to be equal if the curves are isomorphic.
 
         EXAMPLES::
 
+            sage: x = polygen(ZZ, 'x')
             sage: K = NumberField(x**2 + 1, 'a'); a = K.gen()
             sage: rho1 = EllipticCurve_from_j(1 + a).galois_representation()
             sage: rho2 = EllipticCurve_from_j(2 + a).galois_representation()
@@ -146,6 +161,7 @@ class GaloisRepresentation(SageObject):
 
         EXAMPLES::
 
+            sage: x = polygen(ZZ, 'x')
             sage: K = NumberField(x**2 + 1, 'a'); a = K.gen()
             sage: E = EllipticCurve_from_j(a)
             sage: rho = E.galois_representation()
@@ -154,7 +170,6 @@ class GaloisRepresentation(SageObject):
         """
         return self.E
 
-
     def non_surjective(self, A=100):
         r"""
         Return a list of primes `p` including all primes for which the mod-`p`
@@ -162,22 +177,22 @@ class GaloisRepresentation(SageObject):
 
         INPUT:
 
-        - ``A`` -- int (a bound on the number of traces of Frobenius to use
-          while trying to prove surjectivity).
+        - ``A`` -- integer; a bound on the number of traces of Frobenius to use
+          while trying to prove surjectivity
 
         OUTPUT:
 
-        - ``list`` -- A list of primes where mod-`p` representation is
-          very likely not surjective. At any prime not in this list,
-          the representation is definitely surjective. If `E` has CM,
-          the list [0] is returned.
+        A list of primes where mod-`p` representation is very likely not
+        surjective. At any prime not in this list, the representation is
+        definitely surjective. If `E` has CM, the list ``[0]`` is returned.
 
         EXAMPLES::
 
+            sage: x = polygen(ZZ, 'x')
             sage: K = NumberField(x**2 - 29, 'a'); a = K.gen()
             sage: E = EllipticCurve([1, 0, ((5 + a)/2)**2, 0, 0])
             sage: rho = E.galois_representation()
-            sage: rho.non_surjective() # See Section 5.10 of [Ser1972].
+            sage: rho.non_surjective() # See Section 5.10 of [Ser1972].  # long time
             [3, 5, 29]
             sage: K = NumberField(x**2 + 3, 'a'); a = K.gen()
             sage: E = EllipticCurve([0, -1, 1, -10, -20]).change_ring(K) # X_0(11)
@@ -197,14 +212,13 @@ class GaloisRepresentation(SageObject):
 
         TESTS:
 
-        An example which failed until fixed at :trac:`19229`::
+        An example which failed until fixed at :issue:`19229`::
 
             sage: K.<a> = NumberField(x^2-x+1)
             sage: E = EllipticCurve([a+1,1,1,0,0])
             sage: rho = E.galois_representation()
             sage: rho.non_surjective()
             [2, 3]
-
         """
         if self.E.has_cm():
             return [0]
@@ -218,13 +232,14 @@ class GaloisRepresentation(SageObject):
 
         INPUT:
 
-        * ``p`` - int - a prime number.
+        - ``p`` -- prime number
 
-        * ``A`` - int - a bound on the number of traces of Frobenius to use
-                     while trying to prove surjectivity.
+        - ``A`` -- integer; a bound on the number of traces of Frobenius to use
+          while trying to prove surjectivity
 
         EXAMPLES::
 
+            sage: x = polygen(ZZ, 'x')
             sage: K = NumberField(x**2 - 29, 'a'); a = K.gen()
             sage: E = EllipticCurve([1, 0, ((5 + a)/2)**2, 0, 0])
             sage: rho = E.galois_representation()
@@ -250,7 +265,7 @@ class GaloisRepresentation(SageObject):
 
         For CM curves, the mod-p representation is never surjective::
 
-            sage: K.<a> = NumberField(x^2-x+1)
+            sage: K.<a> = NumberField(x^2 - x + 1)
             sage: E = EllipticCurve([0,0,0,0,a])
             sage: E.has_cm()
             True
@@ -270,45 +285,48 @@ class GaloisRepresentation(SageObject):
 
         .. NOTE::
 
-           For the actual list of primes `p` at which the
-           representation is reducible see :meth:`reducible_primes()`.
+            For the actual list of primes `p` at which the
+            representation is reducible see :meth:`reducible_primes()`.
 
         INPUT:
 
-        - ``A`` -- int (a bound on the number of traces of Frobenius to
-          use while trying to prove the mod-`p`
-          representation is not contained in a Borel).
+        - ``A`` -- integer; a bound on the number of traces of Frobenius to
+          use while trying to prove the mod-`p` representation is not contained
+          in a Borel
 
         OUTPUT:
 
-        - ``list`` - A list of primes which contains (but may not be
-          equal to) all `p` for which the image of the mod-`p`
-          representation is contained in a Borel subgroup.  At any
-          prime not in this list, the image is definitely not
-          contained in a Borel. If E has `CM` defined over `K`, the list
-          [0] is returned.
+        A list of primes which contains (but may not be equal to) all `p` for
+        which the image of the mod-`p` representation is contained in a Borel
+        subgroup.  At any prime not in this list, the image is definitely not
+        contained in a Borel. If E has `CM` defined over `K`, the list ``[0]``
+        is returned.
 
         EXAMPLES::
 
+            sage: x = polygen(ZZ, 'x')
             sage: K = NumberField(x**2 - 29, 'a'); a = K.gen()
             sage: E = EllipticCurve([1, 0, ((5 + a)/2)**2, 0, 0])
             sage: rho = E.galois_representation()
-            sage: rho.isogeny_bound() # See Section 5.10 of [Ser1972].
+            sage: rho.isogeny_bound() # See Section 5.10 of [Ser1972].  # long time
             [3, 5]
             sage: K = NumberField(x**2 + 1, 'a')
-            sage: EllipticCurve_from_j(K(1728)).galois_representation().isogeny_bound() # CM over K
+            sage: E = EllipticCurve_from_j(K(1728))             # CM over K
+            sage: E.galois_representation().isogeny_bound()
             [0]
-            sage: EllipticCurve_from_j(K(0)).galois_representation().isogeny_bound() # CM NOT over K
+            sage: E = EllipticCurve_from_j(K(0))                # CM NOT over K
+            sage: E.galois_representation().isogeny_bound()     # long time
             [2, 3]
-            sage: E = EllipticCurve_from_j(K(2268945/128)) # c.f. [Sut2012]
-            sage: E.galois_representation().isogeny_bound() # No 7-isogeny, but...
+            sage: E = EllipticCurve_from_j(K(2268945/128))      # c.f. [Sut2012]
+            sage: rho = E.galois_representation()
+            sage: rho.isogeny_bound()  # No 7-isogeny, but...   # long time
             [7]
 
         For curves with rational CM, there are infinitely many primes
         `p` for which the mod-`p` representation is reducible, and [0]
         is returned::
 
-            sage: K.<a> = NumberField(x^2-x+1)
+            sage: K.<a> = NumberField(x^2 - x + 1)
             sage: E = EllipticCurve([0,0,0,0,a])
             sage: E.has_rational_cm()
             True
@@ -318,7 +336,7 @@ class GaloisRepresentation(SageObject):
 
         An example (an elliptic curve with everywhere good reduction
         over an imaginary quadratic field with quite large
-        discriminant), which failed until fixed at :trac:`21776`::
+        discriminant), which failed until fixed at :issue:`21776`::
 
             sage: K.<a> = NumberField(x^2 - x + 112941801)
             sage: E = EllipticCurve([a+1,a-1,a,-23163076*a + 266044005933275,57560769602038*a - 836483958630700313803])
@@ -327,7 +345,6 @@ class GaloisRepresentation(SageObject):
             sage: GR = E.galois_representation()
             sage: GR.isogeny_bound()
             []
-
         """
         if self.E.has_rational_cm():
             return [0]
@@ -359,39 +376,39 @@ class GaloisRepresentation(SageObject):
 
         OUTPUT:
 
-        - ``list`` - A list of those primes `p` for which the mod-`p`
-          representation is contained in a Borel subgroup, i.e. is
-          reducible.  If E has CM *defined over K*, the list [0] is
-          returned (in this case the representation is reducible for
-          infinitely many primes).
+        A list of those primes `p` for which the mod-`p` representation is
+        contained in a Borel subgroup, i.e. is reducible.  If E has CM
+        *defined over K*, the list ``[0]`` is returned (in this case the
+        representation is reducible for infinitely many primes).
 
         EXAMPLES::
 
+            sage: x = polygen(ZZ, 'x')
             sage: K = NumberField(x**2 - 29, 'a'); a = K.gen()
             sage: E = EllipticCurve([1, 0, ((5 + a)/2)**2, 0, 0])
             sage: rho = E.galois_representation()
-            sage: rho.isogeny_bound() # See Section 5.10 of [Ser1972].
-            [3, 5]
-            sage: rho.reducible_primes()
+            sage: rho.reducible_primes() # See Section 5.10 of [Ser1972].  # long time
             [3, 5]
 
             sage: K = NumberField(x**2 + 1, 'a')
-            sage: EllipticCurve_from_j(K(1728)).galois_representation().isogeny_bound() # CM over K
+            sage: E = EllipticCurve_from_j(K(1728))             # CM over K
+            sage: E.galois_representation().reducible_primes()
             [0]
-            sage: EllipticCurve_from_j(K(0)).galois_representation().reducible_primes() # CM but NOT over K
+            sage: E = EllipticCurve_from_j(K(0))                # CM but NOT over K
+            sage: E.galois_representation().reducible_primes()  # long time
             [2, 3]
-            sage: E = EllipticCurve_from_j(K(2268945/128)) # c.f. [Sut2012]
+            sage: E = EllipticCurve_from_j(K(2268945/128))      # c.f. [Sut2012]
             sage: rho = E.galois_representation()
-            sage: rho.isogeny_bound() # ... but there is no 7-isogeny ...
+            sage: rho.isogeny_bound()  # No 7-isogeny, but...   # long time
             [7]
-            sage: rho.reducible_primes()
+            sage: rho.reducible_primes()                        # long time
             []
 
         For curves with rational CM, there are infinitely many primes
         `p` for which the mod-`p` representation is reducible, and [0]
         is returned::
 
-            sage: K.<a> = NumberField(x^2-x+1)
+            sage: K.<a> = NumberField(x^2 - x + 1)
             sage: E = EllipticCurve([0,0,0,0,a])
             sage: E.has_rational_cm()
             True
@@ -404,6 +421,7 @@ class GaloisRepresentation(SageObject):
 
         return [l for l in self.isogeny_bound() if self.E.isogenies_prime_degree(l)]
 
+
 def _non_surjective(E, patience=100):
     r"""
     Return a list of primes `p` including all primes for which the mod-`p`
@@ -411,29 +429,30 @@ def _non_surjective(E, patience=100):
 
     INPUT:
 
-    - ``E`` - EllipticCurve (over a number field).
+    - ``E`` -- :class:`EllipticCurve` (over a number field)
 
-    - ``A`` - int (a bound on the number of traces of Frobenius to use
-                 while trying to prove surjectivity).
+    - ``A`` -- integer; a bound on the number of traces of Frobenius to use
+      while trying to prove surjectivity
 
     OUTPUT:
 
-    - ``list`` - A list of primes where mod-`p` representation is very likely
-      not surjective. At any prime not in this list, the representation is
-      definitely surjective. If E has CM, a ValueError is raised.
+    A list of primes where mod-`p` representation is very likely not
+    surjective. At any prime not in this list, the representation is
+    definitely surjective. If E has CM, a :exc:`ValueError` is raised.
 
     EXAMPLES::
 
+        sage: x = polygen(ZZ, 'x')
         sage: K = NumberField(x**2 - 29, 'a'); a = K.gen()
         sage: E = EllipticCurve([1, 0, ((5 + a)/2)**2, 0, 0])
-        sage: sage.schemes.elliptic_curves.gal_reps_number_field._non_surjective(E) # See Section 5.10 of [Ser1972].
+        sage: sage.schemes.elliptic_curves.gal_reps_number_field._non_surjective(E) # See Section 5.10 of [Ser1972].  # long time
         [3, 5, 29]
         sage: E = EllipticCurve_from_j(1728).change_ring(K) # CM
         sage: sage.schemes.elliptic_curves.gal_reps_number_field._non_surjective(E)
         Traceback (most recent call last):
         ...
         ValueError: The curve E should not have CM.
-        """
+    """
     if E.has_cm():
         raise ValueError("The curve E should not have CM.")
 
@@ -470,36 +489,35 @@ def _non_surjective(E, patience=100):
 
 
 def Frobenius_filter(E, L, patience=100):
-    r""" Determine which primes in L might have an image contained in a
+    r"""
+    Determine which primes in L might have an image contained in a
     Borel subgroup, by checking of traces of Frobenius.
 
     .. NOTE::
 
-       This function will sometimes return primes for which the image
-       is not contained in a Borel subgroup.  This issue cannot always
-       be fixed by increasing patience as it may be a result of a
-       failure of a local-global principle for isogenies.
+        This function will sometimes return primes for which the image
+        is not contained in a Borel subgroup.  This issue cannot always
+        be fixed by increasing patience as it may be a result of a
+        failure of a local-global principle for isogenies.
 
     INPUT:
 
-    - ``E`` -- EllipticCurve - over a number field.
+    - ``E`` -- :class:`EllipticCurve` over a number field
 
-    - ``L`` -- list - a list of prime numbers.
+    - ``L`` -- list of prime numbers
 
-    - ``patience`` (int), default 100-- a positive integer bounding
-      the number of traces of Frobenius to use while trying to prove
-      irreducibility.
+    - ``patience`` -- positive integer (default: 100) bounding the number of
+      traces of Frobenius to use while trying to prove irreducibility
 
     OUTPUT:
 
-    - list -- The list of all primes `\ell` in L for which the mod
-      `\ell` image might be contained in a Borel subgroup of
-      `GL_2(\mathbf{F}_{\ell})`.
+    The list of all primes `\ell` in L for which the mod `\ell` image might be
+    contained in a Borel subgroup of `GL_2(\mathbf{F}_{\ell})`.
 
     EXAMPLES::
 
         sage: E = EllipticCurve('11a1') # has a 5-isogeny
-        sage: sage.schemes.elliptic_curves.gal_reps_number_field.Frobenius_filter(E,primes(40))
+        sage: sage.schemes.elliptic_curves.gal_reps_number_field.Frobenius_filter(E,primes(40))  # long time
         [5]
 
     Example to show that the output may contain primes where the
@@ -507,7 +525,7 @@ def Frobenius_filter(E, L, patience=100):
     essentially the unique such example by [Sut2012]_::
 
         sage: E = EllipticCurve_from_j(2268945/128)
-        sage: sage.schemes.elliptic_curves.gal_reps_number_field.Frobenius_filter(E, [7, 11])
+        sage: sage.schemes.elliptic_curves.gal_reps_number_field.Frobenius_filter(E, [7, 11])  # long time
         [7]
 
     This curve does possess a 7-isogeny modulo every prime of good
@@ -520,16 +538,15 @@ def Frobenius_filter(E, L, patience=100):
 
         sage: K.<i> = QuadraticField(-1)
         sage: E = EllipticCurve([1+i, -i, i, -399-240*i,  2627+2869*i])
-        sage: sage.schemes.elliptic_curves.gal_reps_number_field.Frobenius_filter(E, primes(20))
+        sage: sage.schemes.elliptic_curves.gal_reps_number_field.Frobenius_filter(E, primes(20))  # long time
         [2, 3]
 
     Here the curve really does possess isogenies of degrees 2 and 3::
 
         sage: [len(E.isogenies_prime_degree(l)) for l in [2,3]]
         [1, 1]
-
     """
-    E = _over_numberfield(E)
+    E = _over_numberfield(E).global_integral_model()
     K = E.base_field()
 
     L = list(set(L)) # Remove duplicates from L and makes a copy for output
@@ -540,9 +557,10 @@ def Frobenius_filter(E, L, patience=100):
         L.remove(2)
         include_2 = not E.division_polynomial(2).is_irreducible()
 
-    K_is_Q = (K==QQ)
+    K_is_Q = (K == QQ)
     from sage.arith.misc import primes
     from sage.rings.infinity import infinity
+
     def primes_iter():
         for p in primes(start=2, stop=infinity):
             if K_is_Q:
@@ -552,48 +570,46 @@ def Frobenius_filter(E, L, patience=100):
                 for P in K.primes_above(p):
                     if E.has_good_reduction(P):
                         yield P
-    numP = 0
-    for P in primes_iter():
-        if not L or numP==patience:  # stop if no primes are left, or patience is exhausted
-            break
 
-        numP += 1
+    for numP, P in enumerate(primes_iter()):
+        if not L or numP == patience:  # stop if no primes are left, or patience is exhausted
+            break
 
         # Discard any l for which the Frobenius polynomial at P is
         # irreducible modulo l
-
         disc = E.reduction(P).frobenius_polynomial().discriminant()
-
-        L = [l for l in L if legendre_symbol(disc,l) != -1]
-
-        #print("After using {} primes P, {}  primes l remain".format(numP,len(L)))
+        L = [l for l in L if legendre_symbol(disc, l) != -1]
 
     if include_2:
         L = [2] + L
     return L
 
+
 def _exceptionals(E, L, patience=1000):
     r"""
-    Determine which primes in L are exceptional for E, using Proposition 19
-    of Section 2.8 of Serre's ``Propriétés Galoisiennes des Points d'Ordre
-    Fini des Courbes Elliptiques'' [Ser1972]_.
+    Determine which primes in L are exceptional for E.
+
+    This is done using Proposition 19 of Section 2.8 of Serre's
+    *Propriétés Galoisiennes des Points d'Ordre Fini des Courbes Elliptiques*
+    [Ser1972]_.
 
     INPUT:
 
-    - ``E`` - EllipticCurve - over a number field.
+    - ``E`` -- :class:`EllipticCurve` over a number field
 
-    - ``L`` - list - a list of prime numbers.
+    - ``L`` -- list of prime numbers
 
-    - ``patience`` - int (a bound on the number of traces of Frobenius to
-      use while trying to prove surjectivity).
+    - ``patience`` -- integer; a bound on the number of traces of Frobenius to
+      use while trying to prove surjectivity
 
     OUTPUT:
 
-    - list -- The list of all primes l in L for which the mod l image
-      might fail to be surjective.
+    The list of all primes l in L for which the mod l image might fail to be
+    surjective.
 
     EXAMPLES::
 
+        sage: x = polygen(ZZ, 'x')
         sage: K = NumberField(x**2 - 29, 'a'); a = K.gen()
         sage: E = EllipticCurve([1, 0, ((5 + a)/2)**2, 0, 0])
         sage: sage.schemes.elliptic_curves.gal_reps_number_field._exceptionals(E, [29, 31])
@@ -703,7 +719,6 @@ def _exceptionals(E, L, patience=1000):
                 if u not in (1, 2, 4) and u**2 - 3 * u + 1 != 0:
                     D[l][2] = False
 
-
             if D[l] == [False, False, False]:
                 unexc.append(l)
 
@@ -714,29 +729,30 @@ def _exceptionals(E, L, patience=1000):
         if (not D) or (patience == 0):
             break
 
-    for l in D:
-        output.append(l)
-
+    output.extend(D)
     output.sort()
     return output
 
 
 def _over_numberfield(E):
     r"""
-    Return `E`, defined over a ``NumberField`` object.
+    Return `E`, defined over an absolute ``NumberField``.
 
     This is necessary since if `E` is defined over `\QQ`, then we
-    cannot use Sage commands available for number fields.
+    cannot use Sage commands available for number fields, and if the
+    base field is relative then other problems result.
 
     INPUT:
 
-    - ``E`` - EllipticCurve - over a number field.
+    - ``E`` -- :class:`EllipticCurve` over a number field
 
     OUTPUT:
 
-    - If `E` is defined over a NumberField, returns E.
+    - If `E` is defined over an absolute number field, returns `E`.
 
-    - If `E` is defined over QQ, returns E defined over the NumberField QQ.
+    - If `E` is defined over a relative number field, returns `E` defined over the absolute base field.
+
+    - If `E` is defined over `\QQ`, returns `E` defined over the number field `\QQ`.
 
     EXAMPLES::
 
@@ -744,15 +760,14 @@ def _over_numberfield(E):
         sage: sage.schemes.elliptic_curves.gal_reps_number_field._over_numberfield(E)
         Elliptic Curve defined by y^2 = x^3 + x + 2 over Number Field in a with defining polynomial x
     """
-
     K = E.base_field()
 
     if K == QQ:
-        x = QQ['x'].gen()
-        K = NumberField(x, 'a')
-        E = E.change_ring(K)
-
-    return E
+        from sage.rings.polynomial.polynomial_ring import polygen
+        K = NumberField(polygen(QQ), 'a')
+    else:
+        K = K.absolute_field('a')
+    return E.change_ring(K)
 
 
 def deg_one_primes_iter(K, principal_only=False):
@@ -762,7 +777,7 @@ def deg_one_primes_iter(K, principal_only=False):
     INPUT:
 
     - ``K`` -- a number field
-    - ``principal_only`` -- bool; if ``True``, only yield principal primes
+    - ``principal_only`` -- boolean; if ``True``, only yield principal primes
 
     OUTPUT:
 
@@ -784,16 +799,16 @@ def deg_one_primes_iter(K, principal_only=False):
         sage: it = deg_one_primes_iter(K, True)
         sage: [next(it) for _ in range(6)]
         [Fractional ideal (-a),
-         Fractional ideal (-2*a + 3),
-         Fractional ideal (2*a + 3),
+         Fractional ideal (2*a - 3),
+         Fractional ideal (-2*a - 3),
          Fractional ideal (a + 6),
          Fractional ideal (a - 6),
-         Fractional ideal (-3*a + 4)]
+         Fractional ideal (3*a - 4)]
     """
     # imaginary quadratic fields have no principal primes of norm < disc / 4
     start = K.discriminant().abs() // 4 if principal_only and K.signature() == (0,1) else 2
 
-    K_is_Q = (K==QQ)
+    K_is_Q = (K == QQ)
 
     for p in primes(start=start, stop=Infinity):
         if K_is_Q:
@@ -803,20 +818,21 @@ def deg_one_primes_iter(K, principal_only=False):
                 if not principal_only or P.is_principal():
                     yield P
 
+
 def _semistable_reducible_primes(E, verbose=False):
     r"""Find a list containing all semistable primes l unramified in K/QQ
     for which the Galois image for E could be reducible.
 
     INPUT:
 
-    - ``E`` - EllipticCurve - over a number field.
+    - ``E`` -- :class:`EllipticCurve` over a number field
 
     OUTPUT:
 
     A list of primes, which contains all primes `l` unramified in
     `K/\mathbb{QQ}`, such that `E` is semistable at all primes lying
     over `l`, and the Galois image at `l` is reducible. If `E` has CM
-    defined over its ground field, a ``ValueError`` is raised.
+    defined over its ground field, a :exc:`ValueError` is raised.
 
     EXAMPLES::
 
@@ -825,10 +841,12 @@ def _semistable_reducible_primes(E, verbose=False):
         True
 
     This example, over a quintic field with Galois group `S_5`, took a
-    very long time before :trac:`22343`::
+    very long time before :issue:`22343`::
 
+        sage: x = polygen(ZZ, 'x')
         sage: K.<a> = NumberField(x^5 - 6*x^3 + 8*x - 1)
-        sage: E = EllipticCurve(K, [a^3 - 2*a, a^4 - 2*a^3 - 4*a^2 + 6*a + 1, a + 1, -a^3 + a + 1, -a])
+        sage: E = EllipticCurve(K, [a^3 - 2*a, a^4 - 2*a^3 - 4*a^2 + 6*a + 1,
+        ....:                       a + 1, -a^3 + a + 1, -a])
         sage: from sage.schemes.elliptic_curves.gal_reps_number_field import _semistable_reducible_primes
         sage: _semistable_reducible_primes(E)
         [2, 5, 53, 1117]
@@ -840,7 +858,7 @@ def _semistable_reducible_primes(E, verbose=False):
 
     deg_one_primes = deg_one_primes_iter(K, principal_only=True)
 
-    bad_primes = set([]) # This will store the output.
+    bad_primes = set()  # This will store the output.
 
     # We find two primes (of distinct residue characteristics) which are
     # of degree 1, unramified in K/Q, and at which E has good reduction.
@@ -854,23 +872,23 @@ def _semistable_reducible_primes(E, verbose=False):
     while len(precomp) < 2:
         P = next(deg_one_primes)
         p = P.norm()
-        if p != last_p and (d==1 or P.ramification_index() == 1) and E.has_good_reduction(P):
+        if p != last_p and (d == 1 or P.ramification_index() == 1) and E.has_good_reduction(P):
             precomp.append(P)
             last_p = p
 
     Px, Py = precomp
-    x, y = [PP.gens_reduced()[0] for PP in precomp]
-    EmodPx = E.reduction(Px) if d>1 else E.reduction(x)
-    EmodPy = E.reduction(Py) if d>1 else E.reduction(y)
+    x, y = (PP.gens_reduced()[0] for PP in precomp)
+    EmodPx = E.reduction(Px) if d > 1 else E.reduction(x)
+    EmodPy = E.reduction(Py) if d > 1 else E.reduction(y)
     fxpol = EmodPx.frobenius_polynomial()
     fypol = EmodPy.frobenius_polynomial()
-    fx12pol = fxpol.adams_operator(12) # roots are 12th powers of those of fxpol
-    fy12pol = fypol.adams_operator(12)
-    px = x.norm() if d>1 else x
-    py = y.norm() if d>1 else x
+    fx12pol = fxpol.adams_operator_on_roots(12) # roots are 12th powers of those of fxpol
+    fy12pol = fypol.adams_operator_on_roots(12)
+    px = x.norm() if d > 1 else x
+    py = y.norm() if d > 1 else x
     Zx = fxpol.parent()
-    xpol = x.charpoly() if d>1 else Zx([-x,1])
-    ypol = y.charpoly() if d>1 else Zx([-y,1])
+    xpol = x.charpoly() if d > 1 else Zx([-x,1])
+    ypol = y.charpoly() if d > 1 else Zx([-y,1])
 
     if verbose:
         print("Finished precomp, x={} (p={}), y={} (p={})".format(x,px,y,py))
@@ -878,8 +896,8 @@ def _semistable_reducible_primes(E, verbose=False):
     for w in range(1 + d // 2):
         if verbose:
             print("w = {}".format(w))
-        gx = xpol.symmetric_power(w).adams_operator(12).resultant(fx12pol)
-        gy = ypol.symmetric_power(w).adams_operator(12).resultant(fy12pol)
+        gx = xpol.symmetric_power(w).adams_operator_on_roots(12).resultant(fx12pol)
+        gy = ypol.symmetric_power(w).adams_operator_on_roots(12).resultant(fy12pol)
         if verbose:
             print("computed gx and gy")
 
@@ -897,7 +915,6 @@ def _semistable_reducible_primes(E, verbose=False):
         else:
             if verbose:
                 print("gx and gy both 0!")
-
 
         ## It is possible that our curve has CM. ##
 
@@ -934,7 +951,7 @@ def _semistable_reducible_primes(E, verbose=False):
         # has CM and computing the set of CM j-invariants of K to check.
         # TODO: Is this the best value for this parameter?
 
-        while div==0 and patience>0:
+        while div == 0 and patience > 0:
             P = next(deg_one_primes) # a prime of K not K_rel
             while E.has_bad_reduction(P):
                 P = next(deg_one_primes)
@@ -946,11 +963,11 @@ def _semistable_reducible_primes(E, verbose=False):
             if verbose:
                 print("...good reduction, frobenius poly = {}".format(fpol))
             x = iso(P.gens_reduced()[0]).relative_norm()
-            xpol = x.charpoly().adams_operator(12)
-            div2 = Integer(xpol.resultant(fpol.adams_operator(12)) // x.norm()**12)
+            xpol = x.charpoly().adams_operator_on_roots(12)
+            div2 = Integer(xpol.resultant(fpol.adams_operator_on_roots(12)) // x.norm()**12)
             if div2:
                 div = div2.isqrt()
-                assert div2==div**2
+                assert div2 == div**2
                 if verbose:
                     print("...div = {}".format(div))
             else:
@@ -984,19 +1001,18 @@ def _possible_normalizers(E, SA):
 
     INPUT:
 
-    - ``E`` - EllipticCurve - over a number field K.
+    - ``E`` -- :class:`EllipticCurve` over a number field K
 
-    - ``SA`` - list - a list of primes of K.
+    - ``SA`` -- list of primes of K
 
     OUTPUT:
 
-    - list -- A list of primes, which contains all primes `l` such that the
-             Galois image at `l` is contained in the normalizer of a Cartan
-             subgroup, such that the corresponding quadratic character is
-             ramified only at primes in SA.
+    - a list of primes, which contains all primes `l` such that the Galois
+      image at `l` is contained in the normalizer of a Cartan subgroup, such
+      that the corresponding quadratic character is ramified only at primes in SA.
 
-    - If `E` has geometric CM that is not defined over its ground field, a
-      ValueError is raised.
+    - if `E` has geometric CM that is not defined over its ground field, a
+      :exc:`ValueError` is raised.
 
     EXAMPLES::
 
@@ -1012,7 +1028,6 @@ def _possible_normalizers(E, SA):
         Traceback (most recent call last):
         ...
         ValueError: The curve E should not have CM.
-
     """
     if E.has_cm():
         raise ValueError("The curve E should not have CM.")
@@ -1080,7 +1095,7 @@ def _possible_normalizers(E, SA):
 
         W = W + V.span([splitting_vector])
 
-    bad_primes = set([])
+    bad_primes = set()
 
     for i in traces_list:
         for p in i.prime_factors():
@@ -1132,27 +1147,29 @@ def _possible_normalizers(E, SA):
 # elliptiques", Nicolas Billerey, https://arxiv.org/abs/0908.1084
 #
 
+
 def Billerey_P_l(E, l):
     r"""
     Return Billerey's `P_l^*` as defined in [Bil2011]_, equation (9).
 
     INPUT:
 
-    - ``E`` -- an elliptic curve over a number field `K`
+    - ``E`` -- an elliptic curve over a number field `K`, given by a
+      global integral model
 
     - ``l`` -- a rational prime
 
     EXAMPLES::
 
+        sage: x = polygen(ZZ, 'x')
         sage: K = NumberField(x**2 - 29, 'a'); a = K.gen()
         sage: E = EllipticCurve([1, 0, ((5 + a)/2)**2, 0, 0])
         sage: from sage.schemes.elliptic_curves.gal_reps_number_field import Billerey_P_l
         sage: [Billerey_P_l(E,l) for l in primes(10)]
         [x^2 + 8143*x + 16777216,
-        x^2 + 451358*x + 282429536481,
-        x^4 - 664299076*x^3 + 205155493652343750*x^2 - 39595310449600219726562500*x + 3552713678800500929355621337890625,
-        x^4 - 207302404*x^3 - 377423798538689366394*x^2 - 39715249826471656586987520004*x + 36703368217294125441230211032033660188801]
-
+         x^2 + 451358*x + 282429536481,
+         x^4 - 664299076*x^3 + 205155493652343750*x^2 - 39595310449600219726562500*x + 3552713678800500929355621337890625,
+         x^4 - 207302404*x^3 - 377423798538689366394*x^2 - 39715249826471656586987520004*x + 36703368217294125441230211032033660188801]
     """
     K = E.base_field()
     qq = K.primes_above(l)
@@ -1163,33 +1180,37 @@ def Billerey_P_l(E, l):
     P = polygen(ZZ)-1
     for q in qq:
         e = K(l).valuation(q)
-        P = P.composed_op(E.reduction(q).frobenius_polynomial().adams_operator(12*e), mul, monic=True)
+        P = P.composed_op(E.reduction(q).frobenius_polynomial().adams_operator_on_roots(12*e), mul, monic=True)
     return P
 
-def Billerey_B_l(E,l,B=0):
+
+def Billerey_B_l(E, l, B=0):
     r"""
     Return Billerey's `B_l`, adapted from the definition in [Bil2011]_, after (9).
 
     INPUT:
 
-    - ``E`` -- an elliptic curve over a number field `K`
+    - ``E`` -- an elliptic curve over a number field `K`, given by a
+      global integral model
 
-    - ``l`` (int) -- a rational prime
+    - ``l`` -- integer; a rational prime
 
-    - ``B`` (int) -- 0 or LCM of previous `B_l`: the prime-to-B part of this `B_l` is ignored.
+    - ``B`` -- integer; 0 or LCM of previous `B_l` the prime-to-B part of this
+      `B_l` is ignored
 
     EXAMPLES::
 
+        sage: x = polygen(ZZ, 'x')
         sage: K = NumberField(x**2 - 29, 'a'); a = K.gen()
         sage: E = EllipticCurve([1, 0, ((5 + a)/2)**2, 0, 0])
         sage: from sage.schemes.elliptic_curves.gal_reps_number_field import Billerey_B_l
         sage: [Billerey_B_l(E,l) for l in primes(15)]
         [1123077552537600,
-        227279663773903886745600,
-        0,
-        0,
-        269247154818492941287713746693964214802283882086400,
-        0]
+         227279663773903886745600,
+         0,
+         0,
+         269247154818492941287713746693964214802283882086400,
+         0]
     """
     d = E.base_field().absolute_degree()
     P = Billerey_P_l(E, l)
@@ -1212,14 +1233,17 @@ def Billerey_R_q(E, q, B=0):
 
     INPUT:
 
-    - ``E`` -- an elliptic curve over a number field `K`
+    - ``E`` -- an elliptic curve over a number field `K`, given by a
+      global integral model
 
     - ``q`` -- a prime ideal of `K`
 
-    - ``B`` (int) -- 0 or LCM of previous `R_q`: the prime-to-B part of this `R_q` is ignored.
+    - ``B`` -- integer; 0 or LCM of previous `R_q` the prime-to-B part of this
+      `R_q` is ignored
 
     EXAMPLES::
 
+        sage: x = polygen(ZZ, 'x')
         sage: K = NumberField(x**2 - 29, 'a'); a = K.gen()
         sage: E = EllipticCurve([1, 0, ((5 + a)/2)**2, 0, 0])
         sage: from sage.schemes.elliptic_curves.gal_reps_number_field import Billerey_R_q
@@ -1228,13 +1252,12 @@ def Billerey_R_q(E, q, B=0):
         227279663773903886745600,
         51956919562116960000000000000000,
         252485933820556361829926400000000]
-
     """
     K = E.base_field()
     d = K.absolute_degree()
     h = K.class_number()
-    P = E.reduction(q).frobenius_polynomial().adams_operator(12*h)
-    Q = ((q**h).gens_reduced()[0]).absolute_minpoly().adams_operator(12)
+    P = E.reduction(q).frobenius_polynomial().adams_operator_on_roots(12*h)
+    Q = ((q**h).gens_reduced()[0]).absolute_minpoly().adams_operator_on_roots(12)
 
     # We compute the factors one at a time since if any is 0 we quit:
     R_q = ZZ(1)
@@ -1244,34 +1267,35 @@ def Billerey_R_q(E, q, B=0):
         if factor:
             R_q *= factor.gcd(B)
         else:
-            return ZZ(0)
+            return ZZ.zero()
     return R_q
 
 
 def Billerey_B_bound(E, max_l=200, num_l=8, small_prime_bound=0, debug=False):
-    """
+    r"""
     Compute Billerey's bound `B`.
 
     We compute `B_l` for `l` up to ``max_l`` (at most) until ``num_l``
     nonzero values are found (at most).  Return the list of primes
     dividing all `B_l` computed, excluding those dividing 6 or
     ramified or of bad reduction or less than small_prime_bound.  If
-    no non-zero values are found return [0].
+    no nonzero values are found return ``[0]``.
 
     INPUT:
 
-    - ``E`` -- an elliptic curve over a number field `K`.
+    - ``E`` -- an elliptic curve over a number field `K`, given by a
+      global integral model
 
-    - ``max_l`` (int, default 200) -- maximum size of primes l to check.
+    - ``max_l`` -- integer (default: 200); maximum size of primes l to check
 
-    - ``num_l`` (int, default 8)  -- maximum number of primes l to check.
+    - ``num_l`` integer (default: 8); maximum number of primes l to check
 
-    - ``small_prime_bound`` (int, default 0) -- remove primes less
-      than this from the output.
+    - ``small_prime_bound`` -- integer (default: 0); remove primes less
+      than this from the output
 
-    - ``debug`` (bool, default ``False``)  -- if ``True`` prints details.
+    - ``debug`` -- boolean (default: ``False``); if ``True`` prints details
 
-    .. note::
+    .. NOTE::
 
         The purpose of the small_prime_bound is that it is faster to
         deal with these using the local test; by ignoring them here,
@@ -1280,6 +1304,7 @@ def Billerey_B_bound(E, max_l=200, num_l=8, small_prime_bound=0, debug=False):
 
     EXAMPLES::
 
+        sage: x = polygen(ZZ, 'x')
         sage: K = NumberField(x**2 - 29, 'a'); a = K.gen()
         sage: E = EllipticCurve([1, 0, ((5 + a)/2)**2, 0, 0])
         sage: from sage.schemes.elliptic_curves.gal_reps_number_field import Billerey_B_bound
@@ -1303,7 +1328,6 @@ def Billerey_B_bound(E, max_l=200, num_l=8, small_prime_bound=0, debug=False):
 
         sage: len(E.isogenies_prime_degree(5))
         1
-
     """
     if debug:
         print("Computing B-bound for {} with max_l={}, num_l={}".format(E.ainvs(),max_l,num_l) + " (ignoring primes under {})".format(small_prime_bound) if small_prime_bound else "")
@@ -1313,13 +1337,14 @@ def Billerey_B_bound(E, max_l=200, num_l=8, small_prime_bound=0, debug=False):
     DK = K.discriminant()
     ED = E.discriminant().norm()
     B0 = ZZ(6*DK*ED)
+
     def remove_primes(B):
         B1 = B.prime_to_m_part(B0)
         for p in primes(small_prime_bound):
             B1 = B1.prime_to_m_part(p)
         return B1
     ll = primes(5,max_l) # iterator
-    while B!=1 and len(ells)<num_l:
+    while B != 1 and len(ells) < num_l:
         try:
             l = next(ll)
             while B0.valuation(l):
@@ -1362,32 +1387,34 @@ def Billerey_R_bound(E, max_l=200, num_l=8, small_prime_bound=None, debug=False)
     (at most) until ``num_l`` nonzero values are found (at most).
     Return the list of primes dividing all ``R_q`` computed, excluding
     those dividing 6 or ramified or of bad reduction or less than
-    small_prime_bound.  If no non-zero values are found return [0].
+    small_prime_bound.  If no nonzero values are found return ``[0]``.
 
     INPUT:
 
-    - ``E`` -- an elliptic curve over a number field `K`.
+    - ``E`` -- an elliptic curve over a number field `K`, given by a
+      global integral model
 
-    - ``max_l`` (int, default 200) -- maximum size of rational primes
-      l for which the primes q above l are checked.
+    - ``max_l`` -- integer (default: 200); maximum size of rational primes
+      l for which the primes q above l are checked
 
-    - ``num_l`` (int, default 8) -- maximum number of rational primes
-      l for which the primes q above l are checked.
+    - ``num_l`` -- integer (default: 8); maximum number of rational primes
+      l for which the primes q above l are checked
 
-    - ``small_prime_bound`` (int, default 0) -- remove primes less
-      than this from the output.
+    - ``small_prime_bound`` -- integer (default: 0); remove primes less
+      than this from the output
 
-    - ``debug`` (bool, default ``False``)  -- if ``True`` prints details.
+    - ``debug`` -- boolean (default: ``False``); if ``True`` prints details
 
-    .. note::
+    .. NOTE::
 
-        The purpose of the small_prime_bound is that it is faster to
+        The purpose of the ``small_prime_bound`` is that it is faster to
         deal with these using the local test; by ignoring them here,
         we enable the algorithm to terminate sooner when there are no
         large reducible primes, which is always the case in practice.
 
     EXAMPLES::
 
+        sage: x = polygen(ZZ, 'x')
         sage: K = NumberField(x**2 - 29, 'a'); a = K.gen()
         sage: E = EllipticCurve([1, 0, ((5 + a)/2)**2, 0, 0])
         sage: from sage.schemes.elliptic_curves.gal_reps_number_field import Billerey_R_bound
@@ -1411,7 +1438,6 @@ def Billerey_R_bound(E, max_l=200, num_l=8, small_prime_bound=None, debug=False)
         [5]
         sage: len(E.isogenies_prime_degree(5))
         1
-
     """
     if debug:
         print("Computing R-bound for {} with max_l={}, num_l={}".format(E.ainvs(),max_l,num_l) + " (ignoring primes under {})".format(small_prime_bound) if small_prime_bound else "")
@@ -1421,6 +1447,7 @@ def Billerey_R_bound(E, max_l=200, num_l=8, small_prime_bound=None, debug=False)
     DK = K.discriminant()
     ED = E.discriminant().norm()
     B0 = ZZ(6*DK*ED)
+
     def remove_primes(B):
         B1 = B.prime_to_m_part(B0)
         for p in primes(small_prime_bound):
@@ -1469,18 +1496,17 @@ def reducible_primes_Billerey(E, num_l=None, max_l=None, verbose=False):
 
     INPUT:
 
-    - ``E`` -- an elliptic curve defined over a number field `K`.
+    - ``E`` -- an elliptic curve defined over a number field `K`
 
-    - ``max_l`` (int or ``None`` (default)) -- the maximum prime
+    - ``max_l`` -- integer or ``None`` (default); the maximum prime
       `\ell` to use for the B-bound and R-bound.  If ``None``, a
       default value will be used.
 
-    - ``num_l`` (int or ``None`` (default)) -- the number of primes
+    - ``num_l`` -- integer or ``None`` (default); the number of primes
       `\ell` to use for the B-bound and R-bound.  If ``None``, a
       default value will be used.
 
-
-    .. note::
+    .. NOTE::
 
         If ``E`` has CM then [0] is returned.  In this case use the
         function
@@ -1493,29 +1519,41 @@ def reducible_primes_Billerey(E, num_l=None, max_l=None, verbose=False):
     Provided that one of these methods succeeds in producing a finite
     list of primes we check these using a local condition, and finally
     test that the primes returned actually are reducible.  Otherwise
-    we return [0].
+    we return ``[0]``.
 
     EXAMPLES::
 
         sage: from sage.schemes.elliptic_curves.gal_reps_number_field import reducible_primes_Billerey
+        sage: x = polygen(ZZ, 'x')
         sage: K = NumberField(x**2 - 29, 'a'); a = K.gen()
         sage: E = EllipticCurve([1, 0, ((5 + a)/2)**2, 0, 0])
-        sage: reducible_primes_Billerey(E)
+        sage: reducible_primes_Billerey(E)  # long time
         [3, 5]
         sage: K = NumberField(x**2 + 1, 'a')
         sage: E = EllipticCurve_from_j(K(1728)) # CM over K
-        sage: reducible_primes_Billerey(E)
+        sage: reducible_primes_Billerey(E)  # long time
         [0]
         sage: E = EllipticCurve_from_j(K(0)) # CM but NOT over K
-        sage: reducible_primes_Billerey(E)
+        sage: reducible_primes_Billerey(E)  # long time
         [2, 3]
 
     An example where a prime is not reducible but passes the test::
 
         sage: E = EllipticCurve_from_j(K(2268945/128)).global_minimal_model() # c.f. [Sut2012]
-        sage: reducible_primes_Billerey(E)
+        sage: reducible_primes_Billerey(E)  # long time
         [7]
 
+    TESTS:
+
+    Test that this function works with non-integral models (see :issue:`34174`)::
+
+        sage: K.<a> = QuadraticField(4569)
+        sage: j = 46969655/32768
+        sage: E = EllipticCurve(j=K(j))
+        sage: EK = E.change_ring(K)
+        sage: C = EK.isogeny_class(minimal_models=False)    # long time
+        sage: len(C)                                        # long time
+        4
     """
     #verbose=True
     if verbose:
@@ -1529,8 +1567,12 @@ def reducible_primes_Billerey(E, num_l=None, max_l=None, verbose=False):
 
     K = E.base_field()
     DK = K.discriminant()
-    ED = E.discriminant().norm()
-    B0 = ZZ(6*DK*ED).prime_divisors()  # TODO: only works if discriminant is integral
+
+    # We replace E by an integral model if necessary, since this
+    # function and the helper functions need this:
+    E1 = E.global_integral_model()
+    ED = E1.discriminant().norm()
+    B0 = ZZ(6*DK*ED).prime_divisors()
 
     # Billeray's algorithm will be faster if we tell it to ignore
     # small primes; these can be tested using the naive algorithm.
@@ -1539,16 +1581,16 @@ def reducible_primes_Billerey(E, num_l=None, max_l=None, verbose=False):
         print("First doing naive test of primes up to {}...".format(max_l))
 
     max_small_prime = 200
-    OK_small_primes = reducible_primes_naive(E, max_l=max_small_prime, num_P=200, verbose=verbose)
+    OK_small_primes = reducible_primes_naive(E1, max_l=max_small_prime, num_P=200, verbose=verbose)
     if verbose:
         print("Naive test of primes up to {} returns {}.".format(max_small_prime, OK_small_primes))
 
-    B1 = Billerey_B_bound(E, max_l, num_l, max_small_prime, verbose)
+    B1 = Billerey_B_bound(E1, max_l, num_l, max_small_prime, verbose)
     if B1 == [0]:
         if verbose:
             print("...  B_bound ineffective using max_l={}, moving on to R-bound".format(max_l))
 
-        B1 = Billerey_R_bound(E,max_l, num_l, max_small_prime, verbose)
+        B1 = Billerey_R_bound(E1,max_l, num_l, max_small_prime, verbose)
         if B1 == [0]:
             if verbose:
                 print("... R_bound ineffective using max_l={}",format(max_l))
@@ -1563,7 +1605,7 @@ def reducible_primes_Billerey(E, num_l=None, max_l=None, verbose=False):
         print("... combined bound = {}".format(B))
 
     num_p = 100
-    B = Frobenius_filter(E, B, num_p)
+    B = Frobenius_filter(E1, B, num_p)
     if verbose:
         print("... after Frobenius filter = {}".format(B))
     return B
@@ -1583,15 +1625,16 @@ def reducible_primes_naive(E, max_l=None, num_P=None, verbose=False):
 
     - ``E`` -- an elliptic curve defined over a number field `K`
 
-    - ``max_l`` (int or ``None`` (default)) -- the maximum prime
-      `\ell` to test.
+    - ``max_l`` -- integer or ``None`` (default); the maximum prime
+      `\ell` to test
 
-    - ``num_P`` (int or ``None`` (default)) -- the number of primes
-      `P` of `K` to use in testing each `\ell`.
+    - ``num_P`` -- integer or ``None`` (default); the number of primes
+      `P` of `K` to use in testing each `\ell`
 
     EXAMPLES::
 
         sage: from sage.schemes.elliptic_curves.gal_reps_number_field import reducible_primes_naive
+        sage: x = polygen(ZZ, 'x')
         sage: K.<a> = NumberField(x^4 - 5*x^2 + 3)
         sage: E = EllipticCurve(K, [a^2 - 2, -a^2 + 3, a^2 - 2, -50*a^2 + 35, 95*a^2 - 67])
         sage: reducible_primes_naive(E,num_P=10)
@@ -1600,9 +1643,9 @@ def reducible_primes_naive(E, max_l=None, num_P=None, verbose=False):
         [2, 5, 197, 557, 653, 769]
         sage: reducible_primes_naive(E,num_P=20)
         [2, 5]
-        sage: reducible_primes_naive(E)
+        sage: reducible_primes_naive(E)  # long time
         [2, 5]
-        sage: [phi.degree() for phi in E.isogenies_prime_degree()]
+        sage: [phi.degree() for phi in E.isogenies_prime_degree()]  # long time
         [2, 2, 2, 5]
     """
     if max_l is None:

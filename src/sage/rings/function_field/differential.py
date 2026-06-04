@@ -1,3 +1,4 @@
+# sage.doctest: needs sage.modules
 """
 Differentials of function fields
 
@@ -42,27 +43,27 @@ Cartier operation::
 AUTHORS:
 
 - Kwankyu Lee (2017-04-30): initial version
-
 """
-#*****************************************************************************
-#       Copyright (C) 2016 Kwankyu Lee <ekwankyu@gmail.com>
+
+# ****************************************************************************
+#       Copyright (C) 2016-2019 Kwankyu Lee <ekwankyu@gmail.com>
+#                     2019      Brent Baccala
+#                     2019      Travis Scrimshaw
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
 #  as published by the Free Software Foundation; either version 2 of
 #  the License, or (at your option) any later version.
 #                  http://www.gnu.org/licenses/
-#*****************************************************************************
-
-from sage.misc.latex import latex
-
-from sage.structure.unique_representation import UniqueRepresentation
-from sage.structure.parent import Parent
-from sage.structure.element import ModuleElement
-from sage.structure.richcmp import richcmp
-from sage.sets.family import Family
+# ****************************************************************************
 
 from sage.categories.modules import Modules
 from sage.categories.morphism import Morphism
+from sage.misc.latex import latex
+from sage.sets.family import Family
+from sage.structure.element import ModuleElement
+from sage.structure.parent import Parent
+from sage.structure.richcmp import richcmp
+from sage.structure.unique_representation import UniqueRepresentation
 
 
 class FunctionFieldDifferential(ModuleElement):
@@ -78,7 +79,7 @@ class FunctionFieldDifferential(ModuleElement):
 
     EXAMPLES::
 
-        sage: F.<x>=FunctionField(QQ)
+        sage: F.<x> = FunctionField(QQ)
         sage: f = x/(x^2 + x + 1)
         sage: f.differential()
         ((-x^2 + 1)/(x^4 + 2*x^3 + 3*x^2 + 2*x + 1)) d(x)
@@ -86,13 +87,13 @@ class FunctionFieldDifferential(ModuleElement):
     ::
 
         sage: K.<x> = FunctionField(QQ); _.<Y> = K[]
-        sage: L.<y> = K.extension(Y^3 + x + x^3*Y)
-        sage: L(x).differential()
+        sage: L.<y> = K.extension(Y^3 + x + x^3*Y)                                      # needs sage.rings.function_field
+        sage: L(x).differential()                                                       # needs sage.rings.function_field
         d(x)
-        sage: y.differential()
+        sage: y.differential()                                                          # needs sage.rings.function_field
         ((21/4*x/(x^7 + 27/4))*y^2 + ((3/2*x^7 + 9/4)/(x^8 + 27/4*x))*y + 7/2*x^4/(x^7 + 27/4)) d(x)
     """
-    def __init__(self, parent, f, t=None):
+    def __init__(self, parent, f, t=None) -> None:
         """
         Initialize the differential `fdt`.
 
@@ -110,65 +111,65 @@ class FunctionFieldDifferential(ModuleElement):
 
         self._f = f
 
-    def _repr_(self):
+    def _repr_(self) -> str:
         """
         Return the string representation of the differential.
 
         EXAMPLES::
 
-            sage: K.<x> = FunctionField(GF(4)); _.<Y>=K[]
-            sage: L.<y> = K.extension(Y^3+x+x^3*Y)
-            sage: y.differential()
+            sage: K.<x> = FunctionField(GF(4)); _.<Y> = K[]                             # needs sage.rings.finite_rings
+            sage: L.<y> = K.extension(Y^3+x+x^3*Y)                                      # needs sage.rings.finite_rings sage.rings.function_field
+            sage: y.differential()                                                      # needs sage.rings.finite_rings sage.rings.function_field
             (x*y^2 + 1/x*y) d(x)
 
-            sage: F.<x>=FunctionField(QQ)
+            sage: F.<x> = FunctionField(QQ)
             sage: f = 1/x
             sage: f.differential()
             (-1/x^2) d(x)
         """
-        if self._f.is_zero(): # zero differential
+        if self._f.is_zero():  # zero differential
             return '0'
 
-        r =  'd({})'.format(self.parent()._gen_base_differential)
+        r = 'd({})'.format(self.parent()._gen_base_differential)
 
         if self._f.is_one():
             return r
 
         return '({})'.format(self._f) + ' ' + r
 
-    def _latex_(self):
+    def _latex_(self) -> str:
         r"""
         Return a latex representation of the differential.
 
         EXAMPLES::
 
-            sage: K.<x> = FunctionField(GF(4)); _.<Y>=K[]
-            sage: L.<y> = K.extension(Y^3+x+x^3*Y)
-            sage: w = y.differential()
-            sage: latex(w)
+            sage: K.<x> = FunctionField(GF(4)); _.<Y> = K[]
+            sage: L.<y> = K.extension(Y^3 + x + x^3*Y)                                  # needs sage.rings.function_field
+            sage: w = y.differential()                                                  # needs sage.rings.function_field
+            sage: latex(w)                                                              # needs sage.rings.function_field
             \left( x y^{2} + \frac{1}{x} y \right)\, dx
         """
-        if self._f.is_zero(): # zero differential
+        if self._f.is_zero():  # zero differential
             return '0'
 
-        r =  'd{}'.format(self.parent()._gen_base_differential)
+        r = 'd{}'.format(self.parent()._gen_base_differential)
 
         if self._f.is_one():
             return r
 
         return '\\left(' + latex(self._f) + '\\right)\\,' + r
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         """
         Return the hash of ``self``.
 
         EXAMPLES::
 
-            sage: K.<x>=FunctionField(GF(2)); _.<Y> = K[]
-            sage: L.<y>=K.extension(Y^3 + x + x^3*Y)
+            sage: K.<x> = FunctionField(GF(2)); _.<Y> = K[]
+            sage: L.<y> = K.extension(Y^3 + x + x^3*Y)                                  # needs sage.rings.function_field
             sage: {x.differential(): 1}
             {d(x): 1}
-            sage: {y.differential(): 1}
+            sage: {y.differential(): 1}                                                 # needs sage.rings.function_field
             {(x*y^2 + 1/x*y) d(x): 1}
         """
         return hash((self.parent(), self._f))
@@ -186,8 +187,8 @@ class FunctionFieldDifferential(ModuleElement):
 
         EXAMPLES::
 
-            sage: K.<x> = FunctionField(GF(4)); _.<Y>=K[]
-            sage: L.<y> = K.extension(Y^3+x+x^3*Y)
+            sage: K.<x> = FunctionField(GF(4)); _.<Y> = K[]
+            sage: L.<y> = K.extension(Y^3 + x + x^3*Y)
             sage: w1 = y.differential()
             sage: w2 = L(x).differential()
             sage: w3 = (x*y).differential()
@@ -198,7 +199,7 @@ class FunctionFieldDifferential(ModuleElement):
             sage: w3 == x * w1 + y * w2
             True
 
-            sage: F.<x>=FunctionField(QQ)
+            sage: F.<x> = FunctionField(QQ)
             sage: w1 = ((x^2+x+1)^10).differential()
             sage: w2 = (x^2+x+1).differential()
             sage: w1 < w2
@@ -220,8 +221,8 @@ class FunctionFieldDifferential(ModuleElement):
 
         EXAMPLES::
 
-            sage: K.<x> = FunctionField(GF(4)); _.<Y>=K[]
-            sage: L.<y> = K.extension(Y^3+x+x^3*Y)
+            sage: K.<x> = FunctionField(GF(4)); _.<Y> = K[]
+            sage: L.<y> = K.extension(Y^3 + x + x^3*Y)
             sage: w1 = y.differential()
             sage: w2 = (1/y).differential()
             sage: w1 + w2
@@ -238,7 +239,7 @@ class FunctionFieldDifferential(ModuleElement):
 
     def _div_(self, other):
         """
-        Return the quotient of ``self`` and ``other``
+        Return the quotient of ``self`` and ``other``.
 
         INPUT:
 
@@ -248,8 +249,8 @@ class FunctionFieldDifferential(ModuleElement):
 
         EXAMPLES::
 
-            sage: K.<x> = FunctionField(GF(4)); _.<Y>=K[]
-            sage: L.<y> = K.extension(Y^3+x+x^3*Y)
+            sage: K.<x> = FunctionField(GF(4)); _.<Y> = K[]
+            sage: L.<y> = K.extension(Y^3 + x + x^3*Y)
             sage: w1 = y.differential()
             sage: w2 = (1/y).differential()
             sage: w1 / w2
@@ -272,8 +273,8 @@ class FunctionFieldDifferential(ModuleElement):
 
         EXAMPLES::
 
-            sage: K.<x> = FunctionField(GF(5)); _.<Y>=K[]
-            sage: L.<y> = K.extension(Y^3+x+x^3*Y)
+            sage: K.<x> = FunctionField(GF(5)); _.<Y> = K[]
+            sage: L.<y> = K.extension(Y^3 + x + x^3*Y)
             sage: w1 = y.differential()
             sage: w2 = (-y).differential()
             sage: -w1 == w2
@@ -299,14 +300,14 @@ class FunctionFieldDifferential(ModuleElement):
 
         EXAMPLES::
 
-            sage: K.<x> = FunctionField(GF(5)); _.<Y>=K[]
-            sage: L.<y> = K.extension(Y^3+x+x^3*Y)
+            sage: K.<x> = FunctionField(GF(5)); _.<Y> = K[]
+            sage: L.<y> = K.extension(Y^3 + x + x^3*Y)
             sage: w1 = (1/y).differential()
             sage: w2 = (-1/y^2) * y.differential()
             sage: w1 == w2
             True
 
-            sage: F.<x>=FunctionField(QQ)
+            sage: F.<x> = FunctionField(QQ)
             sage: w1 = (x^2*(x^2+x+1)).differential()
             sage: w2 = (x^2).differential()
             sage: w3 = (x^2+x+1).differential()
@@ -345,9 +346,9 @@ class FunctionFieldDifferential(ModuleElement):
 
         ::
 
-            sage: K.<x>=FunctionField(GF(4)); _.<Y> = K[]
-            sage: L.<y>=K.extension(Y^3 + x + x^3*Y)
-            sage: y * x.differential()
+            sage: K.<x> = FunctionField(GF(4)); _.<Y> = K[]                             # needs sage.rings.finite_rings
+            sage: L.<y> = K.extension(Y^3 + x + x^3*Y)                                  # needs sage.rings.finite_rings sage.rings.function_field
+            sage: y * x.differential()                                                  # needs sage.rings.finite_rings sage.rings.function_field
             (y) d(x)
         """
         F = f.parent()
@@ -363,10 +364,10 @@ class FunctionFieldDifferential(ModuleElement):
 
         EXAMPLES::
 
-            sage: K.<x> = FunctionField(GF(5)); _.<Y>=K[]
-            sage: L.<y> = K.extension(Y^3+x+x^3*Y)
-            sage: w = (1/y) * y.differential()
-            sage: w.divisor()
+            sage: K.<x> = FunctionField(GF(5)); _.<Y> = K[]
+            sage: L.<y> = K.extension(Y^3 + x + x^3*Y)                                  # needs sage.rings.function_field
+            sage: w = (1/y) * y.differential()                                          # needs sage.rings.function_field
+            sage: w.divisor()                                                           # needs sage.rings.function_field
             - Place (1/x, 1/x^3*y^2 + 1/x)
              - Place (1/x, 1/x^3*y^2 + 1/x^2*y + 1)
              - Place (x, y)
@@ -377,12 +378,12 @@ class FunctionFieldDifferential(ModuleElement):
 
             sage: F.<x> = FunctionField(QQ)
             sage: w = (1/x).differential()
-            sage: w.divisor()
+            sage: w.divisor()                                                           # needs sage.libs.pari
             -2*Place (x)
         """
         F = self.parent().function_field()
         x = F.base_field().gen()
-        return self._f.divisor() + (-2)*F(x).divisor_of_poles() + F.different()
+        return self._f.divisor() + (-2) * F(x).divisor_of_poles() + F.different()
 
     def valuation(self, place):
         """
@@ -394,15 +395,15 @@ class FunctionFieldDifferential(ModuleElement):
 
         EXAMPLES::
 
-            sage: K.<x> = FunctionField(GF(5)); _.<Y>=K[]
-            sage: L.<y> = K.extension(Y^3+x+x^3*Y)
-            sage: w = (1/y) * y.differential()
-            sage: [w.valuation(p) for p in L.places()]
+            sage: K.<x> = FunctionField(GF(5)); _.<Y> = K[]
+            sage: L.<y> = K.extension(Y^3 + x + x^3*Y)                                  # needs sage.rings.function_field
+            sage: w = (1/y) * y.differential()                                          # needs sage.rings.function_field
+            sage: [w.valuation(p) for p in L.places()]                                  # needs sage.rings.function_field
             [-1, -1, -1, 0, 1, 0]
         """
         F = self.parent().function_field()
         x = F.base_field().gen()
-        return (self._f.valuation(place) + 2*min(F(x).valuation(place), 0)
+        return (self._f.valuation(place) + 2 * min(F(x).valuation(place), 0)
                 + F.different().valuation(place))
 
     def residue(self, place):
@@ -413,9 +414,7 @@ class FunctionFieldDifferential(ModuleElement):
 
         - ``place`` -- a place of the function field
 
-        OUTPUT:
-
-        - an element of the residue field of the place
+        OUTPUT: an element of the residue field of the place
 
         EXAMPLES:
 
@@ -428,7 +427,7 @@ class FunctionFieldDifferential(ModuleElement):
             sage: w = 1/f * f.differential()
             sage: d = f.divisor()
             sage: s = d.support()
-            sage: sum([w.residue(p).trace() for p in s])
+            sage: sum([w.residue(p).trace() for p in s])                                # needs sage.rings.function_field
             0
 
         and in an extension field::
@@ -450,14 +449,13 @@ class FunctionFieldDifferential(ModuleElement):
             sage: L.<Y> = R[]
             sage: F.<y> = R.extension(Y^2 - x^4 - 4*x^3 - 2*x^2 - 1)
             sage: a = 6*x^2 + 5*x + 7
-            sage: b = 2*x^6 + 8*x^5 + 3*x^4 - 4*x^3 -1
+            sage: b = 2*x^6 + 8*x^5 + 3*x^4 - 4*x^3 - 1
             sage: w = y*a/b*x.differential()
             sage: d = w.divisor()
             sage: sum([QQ(w.residue(p)) for p in d.support()])
             0
-
         """
-        R,fr_R,to_R = place._residue_field()
+        R, fr_R, to_R = place._residue_field()
 
         # Step 1: compute f such that fds equals this differential.
         s = place.local_uniformizer()
@@ -469,12 +467,11 @@ class FunctionFieldDifferential(ModuleElement):
         r = g.valuation(place)
         if r >= 0:
             return R.zero()
-        else:
-            g_shifted = g * s**(-r)
-            c = g_shifted.higher_derivative(-r-1, s)
-            return to_R(c)
+        g_shifted = g * s**(-r)
+        c = g_shifted.higher_derivative(-r - 1, s)
+        return to_R(c)
 
-    def monomial_coefficients(self, copy=True):
+    def monomial_coefficients(self, copy: bool = True):
         """
         Return a dictionary whose keys are indices of basis elements in the
         support of ``self`` and whose values are the corresponding coefficients.
@@ -482,11 +479,11 @@ class FunctionFieldDifferential(ModuleElement):
         EXAMPLES::
 
             sage: K.<x> = FunctionField(GF(5)); _.<Y> = K[]
-            sage: L.<y> = K.extension(Y^3+x+x^3*Y)
-            sage: d = y.differential()
-            sage: d
+            sage: L.<y> = K.extension(Y^3 + x + x^3*Y)                                  # needs sage.rings.function_field
+            sage: d = y.differential()                                                  # needs sage.rings.function_field
+            sage: d                                                                     # needs sage.rings.function_field
             ((4*x/(x^7 + 3))*y^2 + ((4*x^7 + 1)/(x^8 + 3*x))*y + x^4/(x^7 + 3)) d(x)
-            sage: d.monomial_coefficients()
+            sage: d.monomial_coefficients()                                             # needs sage.rings.function_field
             {0: (4*x/(x^7 + 3))*y^2 + ((4*x^7 + 1)/(x^8 + 3*x))*y + x^4/(x^7 + 3)}
         """
         return {0: self._f}
@@ -498,16 +495,16 @@ class FunctionFieldDifferential_global(FunctionFieldDifferential):
 
     EXAMPLES::
 
-        sage: F.<x>=FunctionField(GF(7))
+        sage: F.<x> = FunctionField(GF(7))
         sage: f = x/(x^2 + x + 1)
         sage: f.differential()
         ((6*x^2 + 1)/(x^4 + 2*x^3 + 3*x^2 + 2*x + 1)) d(x)
 
     ::
 
-        sage: K.<x> = FunctionField(GF(4)); _.<Y> = K[]
-        sage: L.<y> = K.extension(Y^3 + x + x^3*Y)
-        sage: y.differential()
+        sage: K.<x> = FunctionField(GF(4)); _.<Y> = K[]                                 # needs sage.rings.finite_rings
+        sage: L.<y> = K.extension(Y^3 + x + x^3*Y)                                      # needs sage.rings.finite_rings sage.rings.function_field
+        sage: y.differential()                                                          # needs sage.rings.finite_rings sage.rings.function_field
         (x*y^2 + 1/x*y) d(x)
     """
     def cartier(self):
@@ -539,7 +536,7 @@ class FunctionFieldDifferential_global(FunctionFieldDifferential):
             sage: F.<x> = FunctionField(GF(4))
             sage: f = x/(x^2 + x + 1)
             sage: w = 1/f*f.differential()
-            sage: w.cartier() == w
+            sage: w.cartier() == w                                                      # needs sage.rings.function_field
             True
         """
         W = self.parent()
@@ -559,9 +556,9 @@ class DifferentialsSpace(UniqueRepresentation, Parent):
 
     EXAMPLES::
 
-        sage: K.<x> = FunctionField(GF(4)); _.<Y> = K[]
-        sage: L.<y> = K.extension(Y^3 + x^3*Y + x)
-        sage: L.space_of_differentials()
+        sage: K.<x> = FunctionField(GF(4)); _.<Y> = K[]                                 # needs sage.rings.finite_rings
+        sage: L.<y> = K.extension(Y^3 + x^3*Y + x)                                      # needs sage.rings.finite_rings sage.rings.function_field
+        sage: L.space_of_differentials()                                                # needs sage.rings.finite_rings sage.rings.function_field
         Space of differentials of Function field in y defined by y^3 + x^3*y + x
 
     The space of differentials is a one-dimensional module over the function
@@ -583,14 +580,14 @@ class DifferentialsSpace(UniqueRepresentation, Parent):
     """
     Element = FunctionFieldDifferential
 
-    def __init__(self, field, category=None):
+    def __init__(self, field, category=None) -> None:
         """
         Initialize the space of differentials of the function field.
 
         TESTS::
 
-            sage: K.<x>=FunctionField(GF(4)); _.<Y>=K[]
-            sage: L.<y>=K.extension(Y^3+x+x^3*Y)
+            sage: K.<x> = FunctionField(GF(4)); _.<Y>=K[]
+            sage: L.<y> = K.extension(Y^3 + x + x^3*Y)
             sage: W = L.space_of_differentials()
             sage: TestSuite(W).run()
         """
@@ -609,14 +606,14 @@ class DifferentialsSpace(UniqueRepresentation, Parent):
         self._gen_base_differential = F.gen()
         self._gen_derivative_inv = ~der(F.gen())  # used for fast computation
 
-    def _repr_(self):
+    def _repr_(self) -> str:
         """
         Return the string representation of the space of differentials.
 
         EXAMPLES::
 
-            sage: K.<x>=FunctionField(GF(4)); _.<Y>=K[]
-            sage: L.<y>=K.extension(Y^3+x+x^3*Y)
+            sage: K.<x> = FunctionField(GF(4)); _.<Y> = K[]
+            sage: L.<y> = K.extension(Y^3 + x + x^3*Y)
             sage: w = y.differential()
             sage: w.parent()
             Space of differentials of Function field in y defined by y^3 + x^3*y + x
@@ -633,8 +630,8 @@ class DifferentialsSpace(UniqueRepresentation, Parent):
 
         EXAMPLES::
 
-            sage: K.<x>=FunctionField(GF(4)); _.<Y>=K[]
-            sage: L.<y>=K.extension(Y^3+x+x^3*Y)
+            sage: K.<x> = FunctionField(GF(4)); _.<Y> = K[]
+            sage: L.<y> = K.extension(Y^3 + x + x^3*Y)
             sage: S = L.space_of_differentials()
             sage: S(y)
             (x*y^2 + 1/x*y) d(x)
@@ -658,8 +655,8 @@ class DifferentialsSpace(UniqueRepresentation, Parent):
         EXAMPLES::
 
             sage: K.<x> = FunctionField(QQ); R.<y> = K[]
-            sage: L.<y> = K.extension(y^2 - x*y + 4*x^3)
-            sage: L.space_of_differentials().coerce_map_from(K.space_of_differentials())
+            sage: L.<y> = K.extension(y^2 - x*y + 4*x^3)                                            # needs sage.rings.function_field
+            sage: L.space_of_differentials().coerce_map_from(K.space_of_differentials())            # needs sage.rings.function_field
             Inclusion morphism:
               From: Space of differentials of Rational function field in x over Rational Field
               To:   Space of differentials of Function field in y defined by y^2 - x*y + 4*x^3
@@ -689,8 +686,8 @@ class DifferentialsSpace(UniqueRepresentation, Parent):
 
         EXAMPLES::
 
-            sage: K.<x>=FunctionField(GF(4)); _.<Y>=K[]
-            sage: L.<y>=K.extension(Y^3+x+x^3*Y)
+            sage: K.<x> = FunctionField(GF(4)); _.<Y> = K[]
+            sage: L.<y> = K.extension(Y^3 + x + x^3*Y)
             sage: S = L.space_of_differentials()
             sage: S.an_element()  # random
             (x*y^2 + 1/x*y) d(x)
@@ -723,9 +720,9 @@ class DifferentialsSpace_global(DifferentialsSpace):
 
     EXAMPLES::
 
-        sage: K.<x> = FunctionField(GF(4)); _.<Y> = K[]
-        sage: L.<y> = K.extension(Y^3 + x^3*Y + x)
-        sage: L.space_of_differentials()
+        sage: K.<x> = FunctionField(GF(4)); _.<Y> = K[]                                 # needs sage.rings.finite_rings
+        sage: L.<y> = K.extension(Y^3 + x^3*Y + x)                                      # needs sage.rings.finite_rings sage.rings.function_field
+        sage: L.space_of_differentials()                                                # needs sage.rings.finite_rings sage.rings.function_field
         Space of differentials of Function field in y defined by y^3 + x^3*y + x
     """
     Element = FunctionFieldDifferential_global
@@ -738,26 +735,26 @@ class DifferentialsSpaceInclusion(Morphism):
     EXAMPLES::
 
         sage: K.<x> = FunctionField(QQ); R.<y> = K[]
-        sage: L.<y> = K.extension(y^2 - x*y + 4*x^3)
+        sage: L.<y> = K.extension(y^2 - x*y + 4*x^3)                                    # needs sage.rings.function_field
         sage: OK = K.space_of_differentials()
-        sage: OL = L.space_of_differentials()
-        sage: OL.coerce_map_from(OK)
+        sage: OL = L.space_of_differentials()                                           # needs sage.rings.function_field
+        sage: OL.coerce_map_from(OK)                                                    # needs sage.rings.function_field
         Inclusion morphism:
           From: Space of differentials of Rational function field in x over Rational Field
           To:   Space of differentials of Function field in y defined by y^2 - x*y + 4*x^3
     """
 
-    def _repr_(self):
+    def _repr_(self) -> str:
         """
         Return the string representation of this morphism.
 
         EXAMPLES::
 
             sage: K.<x> = FunctionField(QQ); R.<y> = K[]
-            sage: L.<y> = K.extension(y^2 - x*y + 4*x^3)
+            sage: L.<y> = K.extension(y^2 - x*y + 4*x^3)                                # needs sage.rings.function_field
             sage: OK = K.space_of_differentials()
-            sage: OL = L.space_of_differentials()
-            sage: OL.coerce_map_from(OK)
+            sage: OL = L.space_of_differentials()                                       # needs sage.rings.function_field
+            sage: OL.coerce_map_from(OK)                                                # needs sage.rings.function_field
             Inclusion morphism:
               From: Space of differentials of Rational function field in x over Rational Field
               To:   Space of differentials of Function field in y defined by y^2 - x*y + 4*x^3
@@ -767,17 +764,17 @@ class DifferentialsSpaceInclusion(Morphism):
         s += "\n  To:   {}".format(self.codomain())
         return s
 
-    def is_injective(self):
+    def is_injective(self) -> bool:
         """
         Return ``True``, since the inclusion morphism is injective.
 
         EXAMPLES::
 
             sage: K.<x> = FunctionField(QQ); R.<y> = K[]
-            sage: L.<y> = K.extension(y^2 - x*y + 4*x^3)
+            sage: L.<y> = K.extension(y^2 - x*y + 4*x^3)                                # needs sage.rings.function_field
             sage: OK = K.space_of_differentials()
-            sage: OL = L.space_of_differentials()
-            sage: OL.coerce_map_from(OK).is_injective()
+            sage: OL = L.space_of_differentials()                                       # needs sage.rings.function_field
+            sage: OL.coerce_map_from(OK).is_injective()                                 # needs sage.rings.function_field
             True
         """
         return True
@@ -824,6 +821,4 @@ class DifferentialsSpaceInclusion(Morphism):
         """
         domain = self.domain()
         F = self.codomain().function_field()
-        return F(v._f)*F(domain._gen_base_differential).differential()
-
-
+        return F(v._f) * F(domain._gen_base_differential).differential()

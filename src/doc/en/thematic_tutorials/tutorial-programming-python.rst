@@ -12,9 +12,9 @@ This tutorial is an introduction to basic programming in Python and Sage, for
 readers with elementary notions of programming but not familiar with the Python
 language. It is far from exhaustive. For a more complete tutorial, have a look
 at the `Python Tutorial
-<http://docs.python.org/release/2.6.4/tutorial/index.html>`_. Also Python's
-`documentation <http://docs.python.org/release/2.6.4/>`_ and in particular the
-`standard library <http://docs.python.org/release/2.6.4/library>`_ can be
+<https://docs.python.org/3/tutorial/index.html>`_. Also Python's
+`documentation <https://docs.python.org/3/>`_ and in particular the
+`standard library <https://docs.python.org/3/library/>`_ can be
 useful.
 
 A :ref:`more advanced tutorial <tutorial-objects-and-classes>` presents the
@@ -24,15 +24,9 @@ Here are further resources to learn Python:
 
 * `Learn Python in 10 minutes
   <http://www.korokithakis.net/tutorials/python>`_ ou en français
-  `Python en 10 minutes
-  <http://mat.oxyg3n.org/index.php?post/2009/07/26/Python-en-10-minutes>`_
-* `Dive into Python <http://diveintopython.net/>`_
+* `Dive into Python <https://diveintopython3.net/>`_
   is a Python book for experienced programmers. Also available in
-  `other languages <http://diveintopython.net/#languages>`_.
-* `Discover Python
-  <http://www.ibm.com/developerworks/views/opensource/libraryview.jsp?search_by=Discover+Python+Part|>`_
-  is a series of articles published in IBM's `developerWorks
-  <http://www.ibm.com/developerworks/>`_ technical resource center.
+  `Spanish <https://www.jmgaguilera.com/inmersionenpython3html/>`_.
 
 Data structures
 ===============
@@ -53,7 +47,7 @@ The *standard types* are :class:`bool`, :class:`int`, :class:`list`,
 * The type :class:`bool` (*booleans*) has two values: ``True`` and ``False``. The
   boolean operators are denoted by their names ``or``, ``and``, ``not``.
 
-* The Python types :class:`int` and :class:`long` are used to
+* The Python type :class:`int` is used to
   represent integers of limited size. To handle arbitrary large
   integers with exact arithmetic, Sage uses its own type named
   :class:`Integer`.
@@ -93,7 +87,7 @@ The *standard types* are :class:`bool`, :class:`int`, :class:`list`,
       sage: set([ [1], [2] ])
       Traceback (most recent call last):
       ...
-      TypeError: unhashable type: 'list'
+      TypeError: ...unhashable type: 'list'...
 
 * A *dictionary* is an association table, which associates values to
   keys. Keys must be hashable. One creates dictionaries using the
@@ -176,9 +170,9 @@ indentation. Most of the time a new block is introduced by
 
   .. CODE-BLOCK:: python
 
-     raise <ErrorType> [, error message]
+     raise <ErrorType>[("error message")]
 
-  Usual errors include ``ValueError`` and ``TypeError``.
+  Usual errors include :class:`ValueError` and :class:`TypeError`.
 
 Functions
 =========
@@ -293,7 +287,7 @@ Creating Lists III: list comprehensions
 
 **Example** We already know how to create the list `[1, 2, \dots, 16]`::
 
-    sage: range(1,17)   # py2
+    sage: list(range(1,17))
     [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
 
 Using a *list comprehension*, we can now create the list
@@ -771,7 +765,7 @@ appear once and must be immutable::
     sage: d = {[1,2,3] : 12}
     Traceback (most recent call last):
     ...
-    TypeError: unhashable type: 'list'
+    TypeError: ...unhashable type: 'list'...
 
 Another way to add items to a dictionary is with the ``update()`` method which
 updates the dictionary from another dictionary::
@@ -1032,22 +1026,22 @@ included:
 
 ::
 
-    sage: range(4)  # py2
+    sage: list(range(4))
     [0, 1, 2, 3]
 
 ::
 
-    sage: range(1, 5)  # py2
+    sage: list(range(1, 5))
     [1, 2, 3, 4]
 
 ::
 
-    sage: range(1, 11, 2)  # py2
+    sage: list(range(1, 11, 2))
     [1, 3, 5, 7, 9]
 
 ::
 
-    sage: range(10, 0, -1)  # py2
+    sage: list(range(10, 0, -1))
     [10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
 
 ::
@@ -1183,7 +1177,7 @@ a list comprehension.
 
         sage: # edit here
 
-#.  The first `n` odd integers::
+#.  The first `n` odd positive integers::
 
         sage: # edit here
 
@@ -1192,7 +1186,7 @@ a list comprehension.
 
         sage: # edit here
 
-#.  The first `n` integers between `1` and `n` that are neither
+#.  The first `n` positive integers that are neither
     divisible by `2` nor by `3` nor by `5`::
 
        sage: # edit here
@@ -1204,7 +1198,7 @@ Functions are defined using the *def* statement, and values are
 returned using the *return* keyword::
 
     sage: def f(x):
-    ....:     return x*x
+    ....:     return x * x
 
 ::
 
@@ -1216,8 +1210,7 @@ Functions can be recursive::
     sage: def fib(n):
     ....:     if n <= 1:
     ....:         return 1
-    ....:     else:
-    ....:         return fib(n-1) + fib(n-2)
+    ....:     return fib(n - 1) + fib(n - 2)
 
 ::
 

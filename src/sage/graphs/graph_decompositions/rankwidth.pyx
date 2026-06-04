@@ -1,4 +1,3 @@
-# cython: binding=True
 # distutils: libraries = rw
 r"""
 Rank Decompositions of graphs
@@ -30,7 +29,7 @@ achieving the minimal *rank-width*.
 **RW -- The original source code :**
 
 RW is a program that calculates rank-width and
-rank-decompositions. It is based on ideas from :
+rank-decompositions. It is based on ideas from:
 
     * "Computing rank-width exactly" by Sang-il Oum [Oum2009]_
     * "Sopra una formula numerica" by Ernesto Pascal
@@ -47,6 +46,7 @@ i.e. singletons.
 
 ::
 
+    sage: # needs rankwidth
     sage: g = graphs.PetersenGraph()
     sage: rw, tree = g.rank_decomposition()
     sage: all(len(v)==1 for v in tree if tree.degree(v) == 1)
@@ -59,6 +59,7 @@ from the smaller of the two and its complement.
 
 ::
 
+    sage: # needs rankwidth
     sage: g = graphs.PetersenGraph()
     sage: rw, tree = g.rank_decomposition()
     sage: u = Set([8, 9, 3, 7])
@@ -66,7 +67,7 @@ from the smaller of the two and its complement.
     sage: tree.has_edge(u,v)
     True
     sage: m = min(u,v)
-    sage: bipartition = (m, Set(g.vertices()) - m)
+    sage: bipartition = (m, Set(g.vertices(sort=False)) - m)
     sage: bipartition
     ({8, 9}, {0, 1, 2, 3, 4, 5, 6, 7})
 
@@ -81,6 +82,7 @@ from the smaller of the two and its complement.
 
 EXAMPLES::
 
+        sage: # needs rankwidth
         sage: g = graphs.PetersenGraph()
         sage: g.rank_decomposition()
         (3, Graph on 19 vertices)
@@ -94,15 +96,15 @@ Methods
 -------
 """
 
-#*****************************************************************************
-#       Copyright (C) 2011 Nathann Cohen <nathann.cohen@gail.com>
+# ****************************************************************************
+#       Copyright (C) 2011 Nathann Cohen <nathann.cohen@gmail.com>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
 from cysignals.memory cimport check_allocarray, sig_free
 from cysignals.signals cimport *
@@ -112,7 +114,8 @@ from libc.string cimport memset
 cdef list id_to_vertices
 cdef dict vertices_to_id
 
-def rank_decomposition(G, verbose=False):
+
+def rank_decomposition(G, verbose=False, immutable=None):
     r"""
     Compute an optimal rank-decomposition of the given graph.
 
@@ -125,6 +128,10 @@ def rank_decomposition(G, verbose=False):
     - ``verbose`` -- boolean (default: ``False``); whether to display progress
       information while computing the decomposition
 
+    - ``immutable`` -- boolean (default: ``None``); whether to create a
+      mutable/immutable graph. ``immutable=None`` (default) means that
+      the graph and its decomposition tree will behave the same way.
+
     OUTPUT:
 
     A pair ``(rankwidth, decomposition_tree)``, where ``rankwidth`` is a
@@ -133,6 +140,7 @@ def rank_decomposition(G, verbose=False):
 
     EXAMPLES::
 
+        sage: # needs rankwidth
         sage: from sage.graphs.graph_decompositions.rankwidth import rank_decomposition
         sage: g = graphs.PetersenGraph()
         sage: rank_decomposition(g)
@@ -140,6 +148,7 @@ def rank_decomposition(G, verbose=False):
 
     On more than 32 vertices::
 
+        sage: # needs rankwidth
         sage: g = graphs.RandomGNP(40, .5)
         sage: rank_decomposition(g)
         Traceback (most recent call last):
@@ -148,11 +157,28 @@ def rank_decomposition(G, verbose=False):
 
     The empty graph::
 
+        sage: # needs rankwidth
         sage: g = Graph()
         sage: rank_decomposition(g)
         (0, Graph on 0 vertices)
+
+    Check the behavior of parameter ``immutable``::
+
+        sage: # needs rankwidth
+        sage: G = Graph()
+        sage: rank_decomposition(G)[1].is_immutable()
+        False
+        sage: rank_decomposition(G, immutable=True)[1].is_immutable()
+        True
+        sage: G = Graph(immutable=True)
+        sage: rank_decomposition(G)[1].is_immutable()
+        True
+        sage: rank_decomposition(G, immutable=False)[1].is_immutable()
+        False
     """
     cdef int n = G.order()
+    if immutable is None:
+        immutable = G.is_immutable()
 
     if n >= 32:
         raise RuntimeError("the rank decomposition cannot be computed "
@@ -160,7 +186,7 @@ def rank_decomposition(G, verbose=False):
 
     elif not n:
         from sage.graphs.graph import Graph
-        return (0, Graph())
+        return (0, Graph(immutable=immutable))
 
     cdef int i
 
@@ -196,9 +222,12 @@ def rank_decomposition(G, verbose=False):
     # Free the memory
     destroy_rw()
 
+    if immutable:
+        g = g.copy(immutable=True)
     return (rank_width, g)
 
-cdef int sage_graph_to_matrix(G):
+
+cdef int sage_graph_to_matrix(G) noexcept:
     r"""
     Convert the given Sage graph as an adjacency matrix.
     """
@@ -224,7 +253,7 @@ cdef int sage_graph_to_matrix(G):
     vertices_to_id = {v: i for i, v in enumerate(id_to_vertices)}
 
     # Filling the matrix
-    for u,v in G.edge_iterator(labels=False):
+    for u, v in G.edge_iterator(labels=False):
         if u == v:
             continue
         set_am(vertices_to_id[u], vertices_to_id[v], 1)
@@ -232,10 +261,12 @@ cdef int sage_graph_to_matrix(G):
     # All is fine.
     return 0
 
-cdef uint_fast32_t bitmask(int i):
+
+cdef uint_fast32_t bitmask(int i) noexcept:
     return (1ul << i)
 
-cdef void set_am(int i, int j, int val):
+
+cdef void set_am(int i, int j, int val) noexcept:
     r"""
     Set/Unset an arc between vertices i and j
 
@@ -250,7 +281,8 @@ cdef void set_am(int i, int j, int val):
         adjacency_matrix[i] |= bitmask(j)
         adjacency_matrix[j] |= bitmask(i)
 
-cdef void print_rank_dec(subset_t s, int l):
+
+cdef void print_rank_dec(subset_t s, int l) noexcept:
     r"""
     Print the current rank decomposition as a text
 
@@ -268,6 +300,7 @@ cdef void print_rank_dec(subset_t s, int l):
     print_rank_dec(cslots[s], l + 1)
     print_rank_dec(s & ~cslots[s], l + 1)
 
+
 def mkgraph(int num_vertices):
     r"""
     Return the graph corresponding to the current rank-decomposition.
@@ -276,6 +309,7 @@ def mkgraph(int num_vertices):
 
     EXAMPLES::
 
+        sage: # needs rankwidth
         sage: from sage.graphs.graph_decompositions.rankwidth import rank_decomposition
         sage: g = graphs.PetersenGraph()
         sage: rank_decomposition(g)
@@ -313,6 +347,7 @@ def mkgraph(int num_vertices):
 
     sig_free(tab)
     return g
+
 
 cdef bitset_to_vertex_set(subset_t s):
     """

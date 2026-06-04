@@ -88,7 +88,7 @@ class LinearExpression(ModuleElement):
 
             sage: TestSuite(linear).run()
         """
-        super(LinearExpression, self).__init__(parent)
+        super().__init__(parent)
         self._coeffs = coefficients
         self._const = constant
         if check:
@@ -103,9 +103,7 @@ class LinearExpression(ModuleElement):
         """
         Return the coefficient vector.
 
-        OUTPUT:
-
-        The coefficient vector of the linear expression.
+        OUTPUT: the coefficient vector of the linear expression
 
         EXAMPLES::
 
@@ -124,9 +122,7 @@ class LinearExpression(ModuleElement):
         """
         Return the constant term.
 
-        OUTPUT:
-
-        The constant term of the linear expression.
+        OUTPUT: the constant term of the linear expression
 
         EXAMPLES::
 
@@ -225,12 +221,10 @@ class LinearExpression(ModuleElement):
         - ``include_constant`` -- whether to include the constant
           term
 
-        - ``multiplication`` -- string (optional, default: ``*``); the
+        - ``multiplication`` -- string (default: ``'*'``); the
           multiplication symbol to use
 
-        OUTPUT:
-
-        A string.
+        OUTPUT: string
 
         EXAMPLES::
 
@@ -359,9 +353,7 @@ class LinearExpression(ModuleElement):
 
         - ``base_ring`` -- a ring; the new base ring
 
-        OUTPUT:
-
-        A new linear expression over the new base ring.
+        OUTPUT: a new linear expression over the new base ring
 
         EXAMPLES::
 
@@ -427,9 +419,7 @@ class LinearExpression(ModuleElement):
         - ``point`` -- list/tuple/iterable of coordinates; the
           coordinates of a point
 
-        OUTPUT:
-
-        The linear expression `Ax + b` evaluated at the point `x`.
+        OUTPUT: the linear expression `Ax + b` evaluated at the point `x`
 
         EXAMPLES::
 
@@ -440,7 +430,7 @@ class LinearExpression(ModuleElement):
             9
             sage: ex([1,1])    # syntactic sugar
             9
-            sage: ex([pi, e])
+            sage: ex([pi, e])                                                           # needs sage.symbolic
             2*pi + 3*e + 4
         """
         try:
@@ -490,7 +480,7 @@ class LinearExpressionModule(Parent, UniqueRepresentation):
             sage: TestSuite(L).run()
         """
         from sage.categories.modules import Modules
-        super(LinearExpressionModule, self).__init__(base_ring, category=Modules(base_ring).WithBasis().FiniteDimensional())
+        super().__init__(base_ring, category=Modules(base_ring).WithBasis().FiniteDimensional())
         self._names = names
 
     @cached_method
@@ -510,7 +500,7 @@ class LinearExpressionModule(Parent, UniqueRepresentation):
         """
         from sage.sets.family import Family
         gens = self.gens()
-        d = {i: g for i, g in enumerate(gens)}
+        d = dict(enumerate(gens))
         d['b'] = self.element_class(self, self.ambient_module().zero(),
                                     self.base_ring().one())
         return Family(list(range(len(gens))) + ['b'], lambda i: d[i])
@@ -520,9 +510,7 @@ class LinearExpressionModule(Parent, UniqueRepresentation):
         """
         Return the number of linear variables.
 
-        OUTPUT:
-
-        An integer.
+        OUTPUT: integer
 
         EXAMPLES::
 
@@ -534,13 +522,11 @@ class LinearExpressionModule(Parent, UniqueRepresentation):
         return len(self._names)
 
     @cached_method
-    def gens(self):
+    def gens(self) -> tuple:
         """
         Return the generators of ``self``.
 
-        OUTPUT:
-
-        A tuple of linear expressions, one for each linear variable.
+        OUTPUT: a tuple of linear expressions, one for each linear variable
 
         EXAMPLES::
 
@@ -561,9 +547,7 @@ class LinearExpressionModule(Parent, UniqueRepresentation):
 
         - ``i`` -- integer
 
-        OUTPUT:
-
-        A linear expression.
+        OUTPUT: a linear expression
 
         EXAMPLES::
 
@@ -685,7 +669,7 @@ class LinearExpressionModule(Parent, UniqueRepresentation):
             sage: M.ambient_vector_space()
             Vector space of dimension 2 over Rational Field
         """
-        from sage.modules.all import FreeModule
+        from sage.modules.free_module import FreeModule
         return FreeModule(self.base_ring(), self.ngens())
 
     @cached_method
@@ -714,7 +698,7 @@ class LinearExpressionModule(Parent, UniqueRepresentation):
             sage: M.ambient_vector_space()
             Vector space of dimension 2 over Rational Field
         """
-        from sage.modules.all import VectorSpace
+        from sage.modules.free_module import VectorSpace
         field = self.base_ring().fraction_field()
         return VectorSpace(field, self.ngens())
 
@@ -746,22 +730,20 @@ class LinearExpressionModule(Parent, UniqueRepresentation):
                 self.base().has_coerce_map_from(P.base())
         except AttributeError:
             pass
-        return super(LinearExpressionModule, self)._coerce_map_from_(P)
+        return super()._coerce_map_from_(P)
 
     def _repr_(self):
         """
         Return a string representation.
 
-        OUTPUT:
-
-        A string.
+        OUTPUT: string
 
         EXAMPLES::
 
             sage: from sage.geometry.linear_expression import LinearExpressionModule
             sage: L.<x> = LinearExpressionModule(QQ);  L
             Module of linear expressions in variable x over Rational Field
-       """
+        """
         return 'Module of linear expressions in variable{2} {0} over {1}'.format(
             ', '.join(self._names), self.base_ring(), 's' if self.ngens() > 1 else '')
 
@@ -773,9 +755,7 @@ class LinearExpressionModule(Parent, UniqueRepresentation):
 
         - ``base_ring`` -- a ring; the new base ring
 
-        OUTPUT:
-
-        A new linear expression over the new base ring.
+        OUTPUT: a new linear expression over the new base ring
 
         EXAMPLES::
 

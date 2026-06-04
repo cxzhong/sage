@@ -6,9 +6,8 @@ AUTHORS:
 - William Stein (2007-12): initial version
 
 - William Stein and Robert Bradshaw (2008-01): Many improvements
-
 """
-#*****************************************************************************
+# ****************************************************************************
 #      Copyright (C) 2007 William Stein <wstein@gmail.com>
 #      Copyright (C) 2008 Robert Bradshaw <robertwb@math.washington.edu>
 #
@@ -21,24 +20,21 @@ AUTHORS:
 #
 #  The full text of the GPL is available at:
 #
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
 import math
-from . import shapes
 
-from .base import PrimitiveObject, point_list_bounding_box
-
-from sage.rings.real_double import RDF
-from sage.modules.free_module_element import vector
-from sage.misc.decorators import options, rename_keyword
 from sage.arith.srange import srange
+from sage.misc.decorators import options, rename_keyword
+from sage.modules.free_module_element import vector
+from sage.plot.plot3d import shapes
+from sage.plot.plot3d.base import PrimitiveObject, point_list_bounding_box
+from sage.plot.plot3d.shapes import Sphere, Text
+from sage.plot.plot3d.texture import Texture
+from sage.rings.real_double import RDF
 
-from .texture import Texture
-
-TACHYON_PIXEL = 1/200.0
-
-from .shapes import Text, Sphere
+TACHYON_PIXEL = 1 / 200.0
 
 
 @rename_keyword(alpha='opacity')
@@ -53,19 +49,19 @@ def line3d(points, thickness=1, radius=None, arrow_head=False, **kwds):
 
     INPUT:
 
-    - ``points`` -- a list of at least 2 points
+    - ``points`` -- list of at least 2 points
 
     - ``thickness`` -- (default: 1)
 
-    - ``radius`` -- (default: None)
+    - ``radius`` -- (default: ``None``)
 
-    - ``arrow_head`` -- (default: False)
+    - ``arrow_head`` -- (default: ``False``)
 
-    - ``color`` -- a string (``"red"``, ``"green"`` etc)
+    - ``color`` -- string (``'red'``, ``'green'`` etc)
       or a tuple (r, g, b) with r, g, b numbers between 0 and 1
 
-    -  ``opacity`` -- (default: 1) if less than 1 then is
-       transparent
+    - ``opacity`` -- (default: 1) if less than 1 then is
+      transparent
 
     EXAMPLES:
 
@@ -74,10 +70,18 @@ def line3d(points, thickness=1, radius=None, arrow_head=False, **kwds):
         sage: line3d([(1,2,3), (1,0,-2), (3,1,4), (2,1,-2)])
         Graphics3d Object
 
+    .. PLOT::
+
+        sphinx_plot(line3d([(1,2,3), (1,0,-2), (3,1,4), (2,1,-2)]))
+
     The same line but red::
 
         sage: line3d([(1,2,3), (1,0,-2), (3,1,4), (2,1,-2)], color='red')
         Graphics3d Object
+
+    .. PLOT::
+
+        sphinx_plot(line3d([(1,2,3), (1,0,-2), (3,1,4), (2,1,-2)], color='red'))
 
     The points of the line provided as a numpy array::
 
@@ -85,11 +89,20 @@ def line3d(points, thickness=1, radius=None, arrow_head=False, **kwds):
         sage: line3d(numpy.array([(1,2,3), (1,0,-2), (3,1,4), (2,1,-2)]))
         Graphics3d Object
 
+    .. PLOT::
+
+        import numpy
+        sphinx_plot(line3d(numpy.array([(1,2,3), (1,0,-2), (3,1,4), (2,1,-2)])))
+
     A transparent thick green line and a little blue line::
 
         sage: line3d([(0,0,0), (1,1,1), (1,0,2)], opacity=0.5, radius=0.1,
         ....:        color='green') + line3d([(0,1,0), (1,0,2)])
         Graphics3d Object
+
+    .. PLOT::
+
+        sphinx_plot(line3d([(0,0,0), (1,1,1), (1,0,2)], opacity=0.5, radius=0.1, color='green') + line3d([(0,1,0), (1,0,2)]))
 
     A Dodecahedral complex of 5 tetrahedra (a more elaborate example
     from Peter Jipsen)::
@@ -100,6 +113,7 @@ def line3d(points, thickness=1, radius=None, arrow_head=False, **kwds):
         ....:            (-sqrt(2.)/3,-sqrt(6.)/3,-1./3), (2*sqrt(2.)/3,0,-1./3)],\
         ....:            color=col, thickness=10, aspect_ratio=[1,1,1])
 
+        sage: from math import pi
         sage: v  = (sqrt(5.)/2-5/6, 5/6*sqrt(3.)-sqrt(15.)/2, sqrt(5.)/3)
         sage: t  = acos(sqrt(5.)/3)/2
         sage: t1 = tetra('blue').rotateZ(t)
@@ -108,6 +122,22 @@ def line3d(points, thickness=1, radius=None, arrow_head=False, **kwds):
         sage: t4 = tetra('yellow').rotateZ(t).rotate(v,6*pi/5)
         sage: t5 = tetra('orange').rotateZ(t).rotate(v,8*pi/5)
         sage: show(t1+t2+t3+t4+t5, frame=False)
+
+    .. PLOT::
+
+        def tetra(col):
+            return line3d([(0,0,1), (2*sqrt(2.)/3,0,-1./3), (-sqrt(2.)/3, sqrt(6.)/3,-1./3),\
+                    (-sqrt(2.)/3,-sqrt(6.)/3,-1./3), (0,0,1), (-sqrt(2.)/3, sqrt(6.)/3,-1./3),\
+                    (-sqrt(2.)/3,-sqrt(6.)/3,-1./3), (2*sqrt(2.)/3,0,-1./3)],\
+                    color=col, thickness=10, aspect_ratio=[1,1,1])
+        v  = (sqrt(5.)/2-5/6, 5/6*sqrt(3.)-sqrt(15.)/2, sqrt(5.)/3)
+        t  = acos(sqrt(5.)/3)/2
+        t1 = tetra('blue').rotateZ(t)
+        t2 = tetra('red').rotateZ(t).rotate(v,2*pi/5)
+        t3 = tetra('green').rotateZ(t).rotate(v,4*pi/5)
+        t4 = tetra('yellow').rotateZ(t).rotate(v,6*pi/5)
+        t5 = tetra('orange').rotateZ(t).rotate(v,8*pi/5)
+        sphinx_plot(t1+t2+t3+t4+t5)
 
     TESTS:
 
@@ -125,9 +155,9 @@ def line3d(points, thickness=1, radius=None, arrow_head=False, **kwds):
         sage: L = line3d(((0,0,0),(1,2,3)))
 
     This function should work for anything than can be turned into a
-    list, such as iterators and such (see :trac:`10478`)::
+    list, such as iterators and such (see :issue:`10478`)::
 
-        sage: line3d(iter([(0,0,0), (sqrt(3), 2, 4)]))
+        sage: line3d(iter([(0,0,0), (sqrt(3), 2, 4)]))                                  # needs sage.symbolic
         Graphics3d Object
         sage: line3d((x, x^2, x^3) for x in range(5))
         Graphics3d Object
@@ -146,22 +176,22 @@ def line3d(points, thickness=1, radius=None, arrow_head=False, **kwds):
         L._set_extra_kwds(kwds)
         L._extra_kwds['thickness'] = thickness  # remove this line if json_repr is defined
         return L
+    v = []
+    if 'texture' in kwds:
+        kwds = kwds.copy()
+        texture = kwds.pop('texture')
     else:
-        v = []
-        if 'texture' in kwds:
-            kwds = kwds.copy()
-            texture = kwds.pop('texture')
-        else:
-            texture = Texture(kwds)
-        for i in range(len(points) - 1):
-            line = shapes.arrow3d if i == len(points)-2 and arrow_head else shapes.LineSegment
-            v.append(line(points[i], points[i+1], texture=texture, radius=radius, **kwds))
-        w = sum(v)
-        w._set_extra_kwds(kwds)
-        return w
+        texture = Texture(kwds)
+    for i in range(len(points) - 1):
+        line = shapes.arrow3d if i == len(points)-2 and arrow_head else shapes.LineSegment
+        v.append(line(points[i], points[i+1], texture=texture, radius=radius, **kwds))
+    w = sum(v)
+    w._set_extra_kwds(kwds)
+    return w
+
 
 @rename_keyword(alpha='opacity')
-@options(opacity=1, color="blue", aspect_ratio=[1,1,1], thickness=2)
+@options(opacity=1, color='blue', aspect_ratio=[1, 1, 1], thickness=2)
 def bezier3d(path, **options):
     """
     Draw a 3-dimensional bezier path.
@@ -171,18 +201,18 @@ def bezier3d(path, **options):
 
     INPUT:
 
-    -  ``path`` -- a list of curves, which each is a list of points. See further
-        detail below.
+    - ``path`` -- list of curves, which each is a list of points. See further
+        detail below
 
-    -  ``thickness`` -- (default: 2)
+    - ``thickness`` -- (default: 2)
 
-    - ``color`` -- a string (``"red"``, ``"green"`` etc)
+    - ``color`` -- string (``'red'``, ``'green'`` etc)
       or a tuple (r, g, b) with r, g, b numbers between 0 and 1
 
-    -  ``opacity`` -- (default: 1) if less than 1 then is
-       transparent
+    - ``opacity`` -- (default: 1) if less than 1 then is
+      transparent
 
-    -  ``aspect_ratio`` -- (default:[1,1,1])
+    - ``aspect_ratio`` -- (default: [1,1,1])
 
     The path is a list of curves, and each curve is a list of points.
     Each point is a tuple (x,y,z).
@@ -214,34 +244,47 @@ def bezier3d(path, **options):
 
     EXAMPLES::
 
-        sage: path = [[(0,0,0),(.5,.1,.2),(.75,3,-1),(1,1,0)],[(.5,1,.2),(1,.5,0)],[(.7,.2,.5)]]
-        sage: b = bezier3d(path, color='green')
-        sage: b
+        sage: path = [[(0,0,0),(.5,.1,.2),(.75,3,-1),(1,1,0)],
+        ....:         [(.5,1,.2),(1,.5,0)], [(.7,.2,.5)]]
+        sage: b = bezier3d(path, color='green'); b                                      # needs sage.symbolic
         Graphics3d Object
+
+    .. PLOT::
+
+        path = [[(0,0,0),(.5,.1,.2),(.75,3,-1),(1,1,0)],[(.5,1,.2),(1,.5,0)],[(.7,.2,.5)]]
+        sphinx_plot(bezier3d(path, color='green'))
 
     To construct a simple curve, create a list containing a single list::
 
         sage: path = [[(0,0,0),(1,0,0),(0,1,0),(0,1,1)]]
-        sage: curve = bezier3d(path, thickness=5, color='blue')
-        sage: curve
+        sage: curve = bezier3d(path, thickness=5, color='blue'); curve                  # needs sage.symbolic
         Graphics3d Object
+
+    .. PLOT::
+
+        path = [[(0,0,0),(1,0,0),(0,1,0),(0,1,1)]]
+        sphinx_plot(bezier3d(path, thickness=5, color='blue'))
 
     TESTS:
 
-    Check for :trac:`31640`::
+    Check for :issue:`31640`::
 
-        sage: p2d = [[(3,0.0),(3,0.13),(2,0.2),(2,0.3)], [(2.7,0.4),(2.6,0.5),(2.5,0.5)], [(2.3,0.5),(2.2,0.4),(2.1,0.3)]]
-        sage: bp = bezier_path(p2d)
-        sage: bp.plot3d()
+        sage: p2d = [[(3,0.0),(3,0.13),(2,0.2),(2,0.3)],
+        ....:        [(2.7,0.4),(2.6,0.5),(2.5,0.5)], [(2.3,0.5),(2.2,0.4),(2.1,0.3)]]
+        sage: bp = bezier_path(p2d)                                                     # needs sage.symbolic
+        sage: bp.plot3d()                                                               # needs sage.symbolic
         Graphics3d Object
 
-        sage: p3d = p3d = [[(3,0,0),(3,0.1,0),(2.9,0.2,0),(2.8,0.3,0)], [(2.7,0.4,0),(2,0.5,0),(2.5,0.5,0)], [(2.3,0.5,0),(2.2,0.4,0),(2.1,0.3,0)]]
-        sage: bezier3d(p3d)
+        sage: p3d = [[(3,0,0),(3,0.1,0),(2.9,0.2,0),(2.8,0.3,0)],
+        ....:        [(2.7,0.4,0),(2,0.5,0),(2.5,0.5,0)],
+        ....:        [(2.3,0.5,0),(2.2,0.4,0),(2.1,0.3,0)]]
+        sage: bezier3d(p3d)                                                             # needs sage.symbolic
         Graphics3d Object
     """
-    from . import parametric_plot3d as P3D
     from sage.modules.free_module_element import vector
     from sage.symbolic.ring import SR
+
+    from . import parametric_plot3d as P3D
 
     p0 = vector(path[0][-1])
     t = SR.var('t')
@@ -259,12 +302,13 @@ def bezier3d(path, **options):
             B = (1-t)**3*p0+3*t*(1-t)**2*p1+3*t**2*(1-t)*p2+t**3*p3
             G += P3D.parametric_plot3d(list(B), (0, 1), color=options['color'], aspect_ratio=options['aspect_ratio'], thickness=options['thickness'], opacity=options['opacity'])
         else:
-            G += line3d([p0,curve[0]], color=options['color'], thickness=options['thickness'], opacity=options['opacity'])
+            G += line3d([p0, curve[0]], color=options['color'], thickness=options['thickness'], opacity=options['opacity'])
         p0 = vector(curve[-1])
     return G
 
+
 @rename_keyword(alpha='opacity')
-@options(opacity=1, color=(0,0,1))
+@options(opacity=1, color=(0, 0, 1))
 def polygon3d(points, **options):
     """
     Draw a polygon in 3d.
@@ -282,35 +326,56 @@ def polygon3d(points, **options):
 
     A simple triangle::
 
-        sage: polygon3d([[0,0,0], [1,2,3], [3,0,0]])
+        sage: polygon3d([[0,2,0], [1.5,1,3], [3,0,0]])
         Graphics3d Object
+
+    .. PLOT::
+
+        sphinx_plot(polygon3d([[0,2,0], [1.5,1,3], [3,0,0]]))
 
     Some modern art -- a random polygon::
 
-        sage: v = [(randrange(-5,5), randrange(-5,5), randrange(-5, 5)) for _ in range(10)]
+        sage: v = [(randrange(-5,5), randrange(-5,5), randrange(-5, 5))
+        ....:      for _ in range(10)]
         sage: polygon3d(v)
         Graphics3d Object
 
+    .. PLOT::
+
+        v = [(randrange(-5,5), randrange(-5,5), randrange(-5, 5)) for _ in range(10)]
+        sphinx_plot(polygon3d(v))
+
     A bent transparent green triangle::
 
-        sage: polygon3d([[1, 2, 3], [0,1,0], [1,0,1], [3,0,0]], color=(0,1,0), opacity=0.7)
+        sage: polygon3d([[1, 2, 3], [0,1,0], [1,0,1], [3,0,0]],
+        ....:           color=(0,1,0), opacity=0.7)
         Graphics3d Object
+
+    .. PLOT::
+
+        sphinx_plot(polygon3d([[1, 2, 3], [0,1,0], [1,0,1], [3,0,0]], color=(0,1,0), opacity=0.7))
 
     This is the same as using ``alpha=0.7``::
 
-        sage: polygon3d([[1, 2, 3], [0,1,0], [1,0,1], [3,0,0]], color=(0,1,0), alpha=0.7)
+        sage: polygon3d([[1, 2, 3], [0,1,0], [1,0,1], [3,0,0]],
+        ....:           color=(0,1,0), alpha=0.7)
         Graphics3d Object
+
+    .. PLOT::
+
+        sphinx_plot(polygon3d([[1, 2, 3], [0,1,0], [1,0,1], [3,0,0]], color=(0,1,0), alpha=0.7))
     """
     from sage.plot.plot3d.index_face_set import IndexFaceSet
     return IndexFaceSet([range(len(points))], points, **options)
 
+
 @rename_keyword(alpha='opacity')
-@options(opacity=1, color=(0,0,1))
+@options(opacity=1, color=(0, 0, 1))
 def polygons3d(faces, points, **options):
     """
     Draw the union of several polygons in 3d.
 
-    Useful to plot a polyhedron as just one ``IndexFaceSet``.
+    Useful to plot a polyhedron as just one :class:`IndexFaceSet`.
 
     INPUT:
 
@@ -327,6 +392,12 @@ def polygons3d(faces, points, **options):
         sage: v = [(-1,0,0),(0,1,1),(0,-1,1),(1,0,0)]
         sage: polygons3d(f, v, color='red')
         Graphics3d Object
+
+    .. PLOT::
+
+        f = [[0,1,2],[1,2,3]]
+        v = [(-1,0,0),(0,1,1),(0,-1,1),(1,0,0)]
+        sphinx_plot(polygons3d(f, v, color='red'))
     """
     from sage.plot.plot3d.index_face_set import IndexFaceSet
     return IndexFaceSet(faces, points, **options)
@@ -342,10 +413,10 @@ def frame3d(lower_left, upper_right, **kwds):
     INPUT:
 
     - ``lower_left`` -- the lower left corner of the frame, as a
-      list, tuple, or vector.
+      list, tuple, or vector
 
     - ``upper_right`` -- the upper right corner of the frame, as a
-      list, tuple, or vector.
+      list, tuple, or vector
 
     EXAMPLES:
 
@@ -357,26 +428,28 @@ def frame3d(lower_left, upper_right, **kwds):
 
     This is usually used for making an actual plot::
 
-        sage: y = var('y')
-        sage: plot3d(sin(x^2+y^2),(x,0,pi),(y,0,pi))
+        sage: y = var('y')                                                              # needs sage.symbolic
+        sage: plot3d(sin(x^2+y^2), (x,0,pi), (y,0,pi))                                  # needs sage.symbolic
         Graphics3d Object
     """
-    x0,y0,z0 = lower_left
-    x1,y1,z1 = upper_right
-    L1 = line3d([(x0,y0,z0), (x0,y1,z0), (x1,y1,z0), (x1,y0,z0),  (x0,y0,z0), # top square
-                 (x0,y0,z1), (x0,y1,z1), (x1,y1,z1), (x1,y0,z1),  (x0,y0,z1)],  # bottom square
+    x0, y0, z0 = lower_left
+    x1, y1, z1 = upper_right
+    L1 = line3d([(x0, y0, z0), (x0, y1, z0), (x1, y1, z0),
+                 (x1, y0, z0), (x0, y0, z0),  # top square
+                 (x0, y0, z1), (x0, y1, z1), (x1, y1, z1),
+                 (x1, y0, z1), (x0, y0, z1)],  # bottom square
                 **kwds)
     # 3 additional lines joining top to bottom
-    v2 = line3d([(x0,y1,z0), (x0,y1,z1)], **kwds)
-    v3 = line3d([(x1,y0,z0), (x1,y0,z1)], **kwds)
-    v4 = line3d([(x1,y1,z0), (x1,y1,z1)], **kwds)
-    F  = L1 + v2 + v3 + v4
+    v2 = line3d([(x0, y1, z0), (x0, y1, z1)], **kwds)
+    v3 = line3d([(x1, y0, z0), (x1, y0, z1)], **kwds)
+    v4 = line3d([(x1, y1, z0), (x1, y1, z1)], **kwds)
+    F = L1 + v2 + v3 + v4
     F._set_extra_kwds(kwds)
     return F
 
 
 def frame_labels(lower_left, upper_right,
-                 label_lower_left, label_upper_right, eps = 1,
+                 label_lower_left, label_upper_right, eps=1,
                  **kwds):
     """
     Draw correct labels for a given frame in 3-D.
@@ -388,10 +461,10 @@ def frame_labels(lower_left, upper_right,
     INPUT:
 
     - ``lower_left`` -- the lower left corner of the frame, as a
-      list, tuple, or vector.
+      list, tuple, or vector
 
     - ``upper_right`` -- the upper right corner of the frame, as a
-      list, tuple, or vector.
+      list, tuple, or vector
 
     - ``label_lower_left`` -- the label for the lower left corner
       of the frame, as a list, tuple, or vector.  This label must actually
@@ -402,7 +475,7 @@ def frame_labels(lower_left, upper_right,
       have all coordinates greater than the coordinates of the other label.
 
     - ``eps`` -- (default: 1) a parameter for how far away from the frame
-      to put the labels.
+      to put the labels
 
     EXAMPLES:
 
@@ -414,10 +487,11 @@ def frame_labels(lower_left, upper_right,
 
     This is usually used for making an actual plot::
 
+        sage: # needs sage.symbolic
         sage: y = var('y')
-        sage: P = plot3d(sin(x^2+y^2),(x,0,pi),(y,0,pi))
+        sage: P = plot3d(sin(x^2+y^2), (x,0,pi), (y,0,pi))
         sage: a,b = P._rescale_for_frame_aspect_ratio_and_zoom(1.0,[1,1,1],1)
-        sage: F = frame_labels(a,b,*P._box_for_aspect_ratio("automatic",a,b))
+        sage: F = frame_labels(a, b, *P._box_for_aspect_ratio("automatic",a,b))
         sage: F.jmol_repr(F.default_render_params())[0]
         [['select atomno = 1', 'color atom  [76,76,76]', 'label "0.0"']]
 
@@ -426,46 +500,50 @@ def frame_labels(lower_left, upper_right,
         sage: frame_labels([1,2,3],[4,5,6],[1,2,3],[1,3,4])
         Traceback (most recent call last):
         ...
-        ValueError: Ensure the upper right labels are above and to the right of the lower left labels.
+        ValueError: ensure the upper right labels are above and to the right of the lower left labels
     """
-    x0,y0,z0 = lower_left
-    x1,y1,z1 = upper_right
-    lx0,ly0,lz0 = label_lower_left
-    lx1,ly1,lz1 = label_upper_right
+    x0, y0, z0 = lower_left
+    x1, y1, z1 = upper_right
+    lx0, ly0, lz0 = label_lower_left
+    lx1, ly1, lz1 = label_upper_right
     if (lx1 - lx0) <= 0 or (ly1 - ly0) <= 0 or (lz1 - lz0) <= 0:
-        raise ValueError("Ensure the upper right labels are above and to the right of the lower left labels.")
+        raise ValueError("ensure the upper right labels are above "
+                         "and to the right of the lower left labels")
 
     # Helper function for formatting the frame labels
     from math import log
     log10 = log(10)
-    nd = lambda a: int(log(a)/log10)
+
+    def nd(a):
+        return int(log(a) / log10)
+
     def fmt_string(a):
-        b = a/2.0
+        b = a / 2.0
         if b >= 1:
             return "%.1f"
         n = max(0, 2 - nd(a/2.0))
-        return "%%.%sf"%n
+        return "%%.%sf" % n
 
     # Slightly faster than mean for this situation
-    def avg(a,b):
-        return (a+b)/2.0
+    def avg(a, b):
+        return (a + b) / 2.0
 
-    color = (0.3,0.3,0.3)
+    color = (0.3, 0.3, 0.3)
 
     fmt = fmt_string(lx1 - lx0)
-    T =  Text(fmt%lx0, color=color).translate((x0,y0-eps,z0))
-    T += Text(fmt%avg(lx0,lx1), color=color).translate((avg(x0,x1),y0-eps,z0))
-    T += Text(fmt%lx1, color=color).translate((x1,y0-eps,z0))
+    T = Text(fmt % lx0, color=color).translate((x0, y0-eps, z0))
+    T += Text(fmt % avg(lx0, lx1), color=color).translate((avg(x0, x1), y0-eps, z0))
+    T += Text(fmt % lx1, color=color).translate((x1, y0-eps, z0))
 
     fmt = fmt_string(ly1 - ly0)
-    T += Text(fmt%ly0, color=color).translate((x1+eps,y0,z0))
-    T += Text(fmt%avg(ly0,ly1), color=color).translate((x1+eps,avg(y0,y1),z0))
-    T += Text(fmt%ly1, color=color).translate((x1+eps,y1,z0))
+    T += Text(fmt % ly0, color=color).translate((x1+eps, y0, z0))
+    T += Text(fmt % avg(ly0, ly1), color=color).translate((x1+eps, avg(y0, y1), z0))
+    T += Text(fmt % ly1, color=color).translate((x1+eps, y1, z0))
 
     fmt = fmt_string(lz1 - lz0)
-    T += Text(fmt%lz0, color=color).translate((x0-eps,y0,z0))
-    T += Text(fmt%avg(lz0,lz1), color=color).translate((x0-eps,y0,avg(z0,z1)))
-    T += Text(fmt%lz1, color=color).translate((x0-eps,y0,z1))
+    T += Text(fmt % lz0, color=color).translate((x0-eps, y0, z0))
+    T += Text(fmt % avg(lz0, lz1), color=color).translate((x0-eps, y0, avg(z0, z1)))
+    T += Text(fmt % lz1, color=color).translate((x0-eps, y0, z1))
     return T
 
 
@@ -476,41 +554,56 @@ def ruler(start, end, ticks=4, sub_ticks=4, absolute=False, snap=False, **kwds):
     INPUT:
 
     - ``start`` -- the beginning of the ruler, as a list,
-      tuple, or vector.
+      tuple, or vector
 
     - ``end`` -- the end of the ruler, as a list, tuple,
-      or vector.
+      or vector
 
     - ``ticks`` -- (default: 4) the number of major ticks
-      shown on the ruler.
+      shown on the ruler
 
     - ``sub_ticks`` -- (default: 4) the number of shown
-      subdivisions between each major tick.
+      subdivisions between each major tick
 
-    - ``absolute`` -- (default: ``False``) if ``True``, makes a huge ruler
-      in the direction of an axis.
+    - ``absolute`` -- boolean (default: ``False``); if ``True``, makes a huge ruler
+      in the direction of an axis
 
-    - ``snap`` -- (default: ``False``) if ``True``, snaps to an implied
-      grid.
+    - ``snap`` -- boolean (default: ``False``); if ``True``, snaps to an implied
+      grid
 
     EXAMPLES:
 
     A ruler::
 
         sage: from sage.plot.plot3d.shapes2 import ruler
-        sage: R = ruler([1,2,3],vector([2,3,4])); R
+        sage: R = ruler([4, 2, 1],vector([3, 3, 2])); R
         Graphics3d Object
+
+    .. PLOT::
+
+        from sage.plot.plot3d.shapes2 import ruler
+        sphinx_plot(ruler([4, 2, 1],vector([3, 3, 2])))
 
     A ruler with some options::
 
-        sage: R = ruler([1,2,3],vector([2,3,4]),ticks=6, sub_ticks=2, color='red'); R
+        sage: R = ruler([4, 2, 1],vector([3, 3, 2]),ticks=6, sub_ticks=2, color='red'); R
         Graphics3d Object
+
+    .. PLOT::
+
+        from sage.plot.plot3d.shapes2 import ruler
+        sphinx_plot(ruler([4, 2, 1],vector([3, 3, 2]),ticks=6, sub_ticks=2, color='red'))
 
     The keyword ``snap`` makes the ticks not necessarily coincide
     with the ruler::
 
-        sage: ruler([1,2,3],vector([1,2,4]),snap=True)
+        sage: ruler([4, 2, 1],vector([3, 3, 2]),snap=True)
         Graphics3d Object
+
+    .. PLOT::
+
+        from sage.plot.plot3d.shapes2 import ruler
+        sphinx_plot(ruler([4, 2, 1],vector([3, 3, 2]), snap=True))
 
     The keyword ``absolute`` makes a huge ruler in one of the axis
     directions::
@@ -518,15 +611,20 @@ def ruler(start, end, ticks=4, sub_ticks=4, absolute=False, snap=False, **kwds):
         sage: ruler([1,2,3],vector([1,2,4]),absolute=True)
         Graphics3d Object
 
+    .. PLOT::
+
+        from sage.plot.plot3d.shapes2 import ruler
+        sphinx_plot(ruler([1,2,3],vector([1,2,4]), absolute=True))
+
     TESTS::
 
         sage: ruler([1,2,3],vector([1,3,4]),absolute=True)
         Traceback (most recent call last):
         ...
-        ValueError: Absolute rulers only valid for axis-aligned paths
+        ValueError: absolute rulers only valid for axis-aligned paths
     """
     start = vector(RDF, start)
-    end   = vector(RDF, end)
+    end = vector(RDF, end)
     dir = end - start
     dist = math.sqrt(dir.dot_product(dir))
     dir /= dist
@@ -539,11 +637,11 @@ def ruler(start, end, ticks=4, sub_ticks=4, absolute=False, snap=False, **kwds):
         unit *= 2
 
     if dir[0]:
-        tick = dir.cross_product(vector(RDF, (0,0,-dist/30)))
+        tick = dir.cross_product(vector(RDF, (0, 0, -dist/30)))
     elif dir[1]:
-        tick = dir.cross_product(vector(RDF, (0,0,dist/30)))
+        tick = dir.cross_product(vector(RDF, (0, 0, dist/30)))
     else:
-        tick = vector(RDF, (dist/30,0,0))
+        tick = vector(RDF, (dist/30, 0, 0))
 
     if snap:
         for i in range(3):
@@ -552,7 +650,7 @@ def ruler(start, end, ticks=4, sub_ticks=4, absolute=False, snap=False, **kwds):
 
     if absolute:
         if dir[0]*dir[1] or dir[1]*dir[2] or dir[0]*dir[2]:
-            raise ValueError("Absolute rulers only valid for axis-aligned paths")
+            raise ValueError("absolute rulers only valid for axis-aligned paths")
         m = max(dir[0], dir[1], dir[2])
         if dir[0] == m:
             off = start[0]
@@ -588,16 +686,16 @@ def ruler_frame(lower_left, upper_right, ticks=4, sub_ticks=4, **kwds):
     INPUT:
 
     - ``lower_left`` -- the lower left corner of the frame, as a
-      list, tuple, or vector.
+      list, tuple, or vector
 
     - ``upper_right`` -- the upper right corner of the frame, as a
-      list, tuple, or vector.
+      list, tuple, or vector
 
     - ``ticks`` -- (default: 4) the number of major ticks
-      shown on each ruler.
+      shown on each ruler
 
     - ``sub_ticks`` -- (default: 4) the number of shown
-      subdivisions between each major tick.
+      subdivisions between each major tick
 
     EXAMPLES:
 
@@ -607,22 +705,30 @@ def ruler_frame(lower_left, upper_right, ticks=4, sub_ticks=4, **kwds):
         sage: F = ruler_frame([1,2,3],vector([2,3,4])); F
         Graphics3d Object
 
+    .. PLOT::
+
+        from sage.plot.plot3d.shapes2 import ruler_frame
+        sphinx_plot(ruler_frame([1,2,3],vector([2,3,4])))
+
     A ruler frame with some options::
 
         sage: F = ruler_frame([1,2,3],vector([2,3,4]),ticks=6, sub_ticks=2, color='red'); F
         Graphics3d Object
+
+    .. PLOT::
+
+        from sage.plot.plot3d.shapes2 import ruler_frame
+        sphinx_plot(ruler_frame([1,2,3],vector([2,3,4]),ticks=6, sub_ticks=2, color='red'))
     """
     return ruler(lower_left, (upper_right[0], lower_left[1], lower_left[2]), ticks=ticks, sub_ticks=sub_ticks, absolute=True, **kwds) \
-         + ruler(lower_left, (lower_left[0], upper_right[1], lower_left[2]), ticks=ticks, sub_ticks=sub_ticks, absolute=True, **kwds) \
-         + ruler(lower_left, (lower_left[0], lower_left[1], upper_right[2]), ticks=ticks, sub_ticks=sub_ticks, absolute=True, **kwds)
-
-
+        + ruler(lower_left, (lower_left[0], upper_right[1], lower_left[2]), ticks=ticks, sub_ticks=sub_ticks, absolute=True, **kwds) \
+        + ruler(lower_left, (lower_left[0], lower_left[1], upper_right[2]), ticks=ticks, sub_ticks=sub_ticks, absolute=True, **kwds)
 
 
 ###########################
 
 @rename_keyword(alpha='opacity')
-def sphere(center=(0,0,0), size=1, **kwds):
+def sphere(center=(0, 0, 0), size=1, **kwds):
     r"""
     Return a plot of a sphere of radius ``size`` centered at
     `(x,y,z)`.
@@ -631,7 +737,7 @@ def sphere(center=(0,0,0), size=1, **kwds):
 
     -  `(x,y,z)` -- center (default: (0,0,0))
 
-    -  ``size`` -- the radius (default: 1)
+    - ``size`` -- the radius (default: 1)
 
     EXAMPLES: A simple sphere::
 
@@ -643,18 +749,32 @@ def sphere(center=(0,0,0), size=1, **kwds):
         sage: sphere(center=(-1,0,0)) + sphere(center=(1,0,0), aspect_ratio=[1,1,1])
         Graphics3d Object
 
+    .. PLOT::
+
+        sphinx_plot(sphere(center=(-1,0,0)) + sphere(center=(1,0,0), aspect_ratio=[1,1,1]))
+
     Spheres of radii 1 and 2 one stuck into the other::
 
         sage: sphere(color='orange') + sphere(color=(0,0,0.3),
-        ....:        center=(0,0,-2),size=2,opacity=0.9)
+        ....:                                 center=(0,0,-2), size=2, opacity=0.9)
         Graphics3d Object
+
+    .. PLOT::
+
+        sphinx_plot(sphere(color='orange') + sphere(color=(0,0,0.3), center=(0,0,-2),size=2,opacity=0.9))
 
     We draw a transparent sphere on a saddle. ::
 
-        sage: u,v = var('u v')
-        sage: saddle = plot3d(u^2 - v^2, (u,-2,2), (v,-2,2))
-        sage: sphere((0,0,1), color='red', opacity=0.5, aspect_ratio=[1,1,1]) + saddle
+        sage: u,v = var('u v')                                                          # needs sage.symbolic
+        sage: saddle = plot3d(u^2 - v^2, (u,-2,2), (v,-2,2))                            # needs sage.symbolic
+        sage: sphere((0,0,1), color='red', opacity=0.5, aspect_ratio=[1,1,1]) + saddle  # needs sage.symbolic
         Graphics3d Object
+
+    .. PLOT::
+
+        u,v = var('u v')
+        saddle = plot3d(u**2 - v**2, (u,-2,2), (v,-2,2))
+        sphinx_plot(sphere((0,0,1), color='red', opacity=0.5, aspect_ratio=[1,1,1]) + saddle)
 
     TESTS::
 
@@ -676,11 +796,11 @@ def text3d(txt, x_y_z, **kwds):
 
     INPUT:
 
-    -  ``txt`` -- some text
+    - ``txt`` -- some text
 
-    -  ``(x,y,z)`` -- position tuple `(x,y,z)`
+    - ``x_y_z`` -- position tuple `(x,y,z)`
 
-    -  ``**kwds`` -- standard 3d graphics options
+    - ``**kwds`` -- standard 3d graphics options
 
     EXAMPLES:
 
@@ -689,21 +809,38 @@ def text3d(txt, x_y_z, **kwds):
         sage: text3d("Sage", (1,2,3), color=(0.5,0,0))
         Graphics3d Object
 
+    .. PLOT::
+
+        sphinx_plot(text3d("Sage", (1,2,3), color=(0.5,0,0)))
+
     We draw a multicolor spiral of numbers::
 
         sage: sum([text3d('%.1f'%n, (cos(n),sin(n),n), color=(n/2,1-n/2,0))
         ....:     for n in [0,0.2,..,8]])
         Graphics3d Object
 
+    .. PLOT::
+
+        import numpy
+        sphinx_plot(sum([text3d('%.1f'%n, (cos(n),sin(n),n), color=(n/2,1-n/2,0))  for n in numpy.linspace(0,8,40)]))
+
     Another example::
 
         sage: text3d("Sage is really neat!!",(2,12,1))
         Graphics3d Object
 
+    .. PLOT::
+
+        sphinx_plot(text3d("Sage is really neat!!",(2,12,1)))
+
     And in 3d in two places::
 
         sage: text3d("Sage is...",(2,12,1), color=(1,0,0)) + text3d("quite powerful!!",(4,10,0), color=(0,0,1))
         Graphics3d Object
+
+    .. PLOT::
+
+        sphinx_plot(text3d("Sage is...",(2,12,1), color=(1,0,0)) + text3d("quite powerful!!",(4,10,0), color=(0,0,1)))
 
     Adjust the font size, family, style, and weight (Three.js viewer only)::
 
@@ -723,7 +860,6 @@ def text3d(txt, x_y_z, **kwds):
         sage: def echo(o):
         ....:     return text3d("Echo!", (0, 0, o), opacity=o)
         sage: show(sum([echo(o) for o in (0.1, 0.2, .., 1)]), viewer='threejs')
-
     """
     (x, y, z) = x_y_z
     if 'color' not in kwds and 'rgbcolor' not in kwds:
@@ -741,9 +877,9 @@ class Point(PrimitiveObject):
 
     INPUT:
 
-    -  ``center`` -- point (3-tuple)
+    - ``center`` -- point (3-tuple)
 
-    -  ``size`` -- (default: 1)
+    - ``size`` -- (default: 1)
 
     EXAMPLES:
 
@@ -773,7 +909,7 @@ class Point(PrimitiveObject):
 
     def bounding_box(self):
         """
-        Returns the lower and upper corners of a 3-D bounding box for ``self``.
+        Return the lower and upper corners of a 3-D bounding box for ``self``.
 
         This is used for rendering and ``self`` should fit entirely within this
         box.  In this case, we simply return the center of the point.
@@ -805,9 +941,8 @@ class Point(PrimitiveObject):
 
         radius = self.size * TACHYON_PIXEL
         texture = self.texture.id
-        return ("Sphere center {center[0]!r} {center[1]!r} {center[2]!r} "
-                "Rad {radius!r} {texture}").format(center=cen, radius=radius,
-                                                   texture=texture)
+        return (f"Sphere center {cen[0]!r} {cen[1]!r} {cen[2]!r} "
+                f"Rad {radius!r} {texture}")
 
     def obj_repr(self, render_params):
         """
@@ -843,7 +978,7 @@ class Point(PrimitiveObject):
         name = render_params.unique_name('point')
         transform = render_params.transform
         cen = self.loc if transform is None else transform(self.loc)
-        return ["draw %s DIAMETER %s {%s %s %s}\n%s" % (name, int(self.size), cen[0], cen[1], cen[2], self.texture.jmol_str('$' + name))]
+        return ["draw {} DIAMETER {} {{{} {} {}}}\n{}".format(name, int(self.size), cen[0], cen[1], cen[2], self.texture.jmol_str('$' + name))]
 
     def threejs_repr(self, render_params):
         r"""
@@ -864,7 +999,6 @@ class Point(PrimitiveObject):
             sage: P.threejs_repr(P.default_render_params())
             [('point',
               {'color': '#6666ff', 'opacity': 1.0, 'point': (0.0, 0.0, 0.0), 'size': 5.0})]
-
         """
         transform = render_params.transform
         center = tuple(float(coord) for coord in self.loc)
@@ -873,7 +1007,7 @@ class Point(PrimitiveObject):
         color = '#' + str(self.texture.hex_rgb())
         opacity = float(self.texture.opacity)
         size = float(self.size)
-        point = dict(point=center, size=size, color=color, opacity=opacity)
+        point = {'point': center, 'size': size, 'color': color, 'opacity': opacity}
         return [('point', point)]
 
     def stl_binary_repr(self, render_params):
@@ -900,12 +1034,12 @@ class Line(PrimitiveObject):
 
     - ``points`` -- list of points to pass through
 
-    - ``thickness`` -- (optional, default 5) diameter of the line
+    - ``thickness`` -- (default: 5) diameter of the line
 
-    - ``corner_cutoff`` -- (optional, default 0.5) threshold for
-      smoothing (see :meth:`corners`).
+    - ``corner_cutoff`` -- (default: 0.5) threshold for
+      smoothing (see :meth:`corners`)
 
-    - ``arrow_head`` -- (optional, default ``False``) if ``True`` make
+    - ``arrow_head`` -- boolean (default: ``False``); if ``True`` make
       this curve into an arrow
 
     The parameter ``corner_cutoff`` is a bound for the cosine of the
@@ -918,7 +1052,8 @@ class Line(PrimitiveObject):
     EXAMPLES::
 
         sage: from sage.plot.plot3d.shapes2 import Line
-        sage: Line([(i*math.sin(i), i*math.cos(i), i/3) for i in range(30)], arrow_head=True)
+        sage: Line([(i*math.sin(i), i*math.cos(i), i/3) for i in range(30)],
+        ....:      arrow_head=True)
         Graphics3d Object
 
     Smooth angles less than 90 degrees::
@@ -926,14 +1061,14 @@ class Line(PrimitiveObject):
         sage: Line([(0,0,0),(1,0,0),(2,1,0),(0,1,0)], corner_cutoff=0)
         Graphics3d Object
 
-    Make sure that the ``corner_cutoff`` keyword works (:trac:`3859`)::
+    Make sure that the ``corner_cutoff`` keyword works (:issue:`3859`)::
 
         sage: N = 11
         sage: c = 0.4
-        sage: sum([Line([(i,1,0), (i,0,0), (i,cos(2*pi*i/N), sin(2*pi*i/N))],
-        ....:     corner_cutoff=c,
-        ....:     color='red' if -cos(2*pi*i/N)<=c else 'blue')
-        ....:     for i in range(N+1)])
+        sage: sum(Line([(i,1,0), (i,0,0), (i,cos(2*pi*i/N), sin(2*pi*i/N))],            # needs sage.symbolic
+        ....:          corner_cutoff=c,
+        ....:          color='red' if -cos(2*pi*i/N)<=c else 'blue')
+        ....:     for i in range(N+1))
         Graphics3d Object
     """
     def __init__(self, points, thickness=5, corner_cutoff=0.5,
@@ -969,10 +1104,10 @@ class Line(PrimitiveObject):
         TESTS::
 
             sage: from sage.plot.plot3d.shapes2 import Line
-            sage: L = Line([(i,i^2-1,-2*ln(i)) for i in [10,20,30]])
-            sage: L.bounding_box()
+            sage: L = Line([(i, i^2 - 1, -2*ln(i)) for i in [10,20,30]])                # needs sage.symbolic
+            sage: L.bounding_box()                                                      # needs sage.symbolic
             ((10.0, 99.0, -6.802394763324311),
-            (30.0, 899.0, -4.605170185988092))
+             (30.0, 899.0, -4.605170185988092))
         """
         try:
             return self.__bounding_box
@@ -987,8 +1122,9 @@ class Line(PrimitiveObject):
 
         TESTS::
 
-            sage: L = line3d([(cos(i),sin(i),i^2) for i in srange(0,10,.01)],color='red')
-            sage: L.tachyon_repr(L.default_render_params())[0]
+            sage: L = line3d([(cos(i),sin(i),i^2) for i in srange(0,10,.01)],           # needs sage.symbolic
+            ....:            color='red')
+            sage: L.tachyon_repr(L.default_render_params())[0]                          # needs sage.symbolic
             'FCylinder base 1.0 0.0 0.0 apex 0.9999500004166653 0.009999833334166664 0.0001 rad 0.005 texture...'
         """
         T = render_params.transform
@@ -998,7 +1134,7 @@ class Line(PrimitiveObject):
         for P in self.points[1:]:
             x, y, z = P if T is None else T(P)
             if self.arrow_head and P is self.points[-1]:
-                A = shapes.arrow3d((px, py, pz), (x, y, z), radius = radius, texture = self.texture)
+                A = shapes.arrow3d((px, py, pz), (x, y, z), radius=radius, texture=self.texture)
                 render_params.push_transform(~T)
                 cmds.append(A.tachyon_repr(render_params))
                 render_params.pop_transform()
@@ -1006,8 +1142,8 @@ class Line(PrimitiveObject):
                 cmd = ('FCylinder base {pos[0]!r} {pos[1]!r} {pos[2]!r} '
                        'apex {apex[0]!r} {apex[1]!r} {apex[2]!r} '
                        'rad {radius!r} {texture}').format(
-                               pos=(px, py, pz), apex=(x, y, z), radius=radius,
-                               texture=self.texture.id)
+                           pos=(px, py, pz), apex=(x, y, z), radius=radius,
+                           texture=self.texture.id)
                 cmds.append(cmd)
             px, py, pz = x, y, z
         return cmds
@@ -1019,8 +1155,9 @@ class Line(PrimitiveObject):
         TESTS::
 
             sage: from sage.plot.plot3d.shapes2 import Line
-            sage: L = Line([(cos(i),sin(i),i^2) for i in srange(0,10,.01)],color='red')
-            sage: L.obj_repr(L.default_render_params())[0][0][0][2][:3]
+            sage: L = Line([(cos(i),sin(i),i^2) for i in srange(0,10,.01)],             # needs sage.symbolic
+            ....:          color='red')
+            sage: L.obj_repr(L.default_render_params())[0][0][0][2][:3]                 # needs sage.symbolic
             ['v 0.99995 0.00999983 0.0001',
              'v 1.02376 0.010195 -0.00750607',
              'v 1.00007 0.0102504 -0.0248984']
@@ -1042,8 +1179,9 @@ class Line(PrimitiveObject):
 
         TESTS::
 
-            sage: L = line3d([(cos(i),sin(i),i^2) for i in srange(0,10,.01)],color='red')
-            sage: L.jmol_repr(L.default_render_params())[0][:42]
+            sage: L = line3d([(cos(i),sin(i),i^2) for i in srange(0,10,.01)],           # needs sage.symbolic
+            ....:            color='red')
+            sage: L.jmol_repr(L.default_render_params())[0][:42]                        # needs sage.symbolic
             'draw line_1 diameter 1 curve {1.0 0.0 0.0}'
         """
         T = render_params.transform
@@ -1057,13 +1195,13 @@ class Line(PrimitiveObject):
             TP = P if T is None else T(P)
             if P in corners:
                 if cmd:
-                    cmds.append(cmd + " {%s %s %s} " % TP)
+                    cmds.append(cmd + " {{{} {} {}}} ".format(*TP))
                     cmds.append(self.texture.jmol_str('$' + name))
                 type = 'arrow' if self.arrow_head and P is last_corner else 'curve'
                 name = render_params.unique_name('line')
-                cmd = "draw %s diameter %s %s {%s %s %s} " % (name, int(self.thickness), type, TP[0], TP[1], TP[2])
+                cmd = "draw {} diameter {} {} {{{} {} {}}} ".format(name, int(self.thickness), type, TP[0], TP[1], TP[2])
             else:
-                cmd += " {%s %s %s} " % TP
+                cmd += " {{{} {} {}}} ".format(*TP)
         cmds.append(cmd)
         cmds.append(self.texture.jmol_str('$' + name))
         return cmds
@@ -1075,13 +1213,13 @@ class Line(PrimitiveObject):
 
         INPUT:
 
-        - ``corner_cutoff`` -- (optional, default ``None``) If the
+        - ``corner_cutoff`` -- (default: ``None``) if the
           cosine of the angle between adjacent line segments is smaller than
           this bound, then there will be a sharp corner in the path.
           Otherwise, the path is smoothed. If ``None``,
           then the default value 0.5 is used.
 
-        - ``max_len`` -- (optional, default ``None``) Maximum number
+        - ``max_len`` -- (default: ``None``) maximum number
           of points allowed in a single path. If this is set, this
           creates corners at smooth points in order to break the path
           into smaller pieces.
@@ -1123,47 +1261,45 @@ class Line(PrimitiveObject):
             # corners everywhere
             return self.points[:-1]
 
-        elif corner_cutoff <= -1:
+        if corner_cutoff <= -1:
             # no corners
-            if not(max_len is None):
+            if max_len is not None:
                 # forced by the maximal number of consecutive smooth points
                 return self.points[:-1][::max_len - 1]
-            else:
-                return [self.points[0]]
+            return [self.points[0]]
 
-        else:
-            if max_len is None:
-                max_len = len(self.points) + 1
-            count = 2
-            # ... -- prev -- cur -- next -- ...
-            cur  = self.points[0]
-            next = self.points[1]
+        if max_len is None:
+            max_len = len(self.points) + 1
+        count = 2
+        # ... -- prev -- cur -- next -- ...
+        cur = self.points[0]
+        next = self.points[1]
+        next_dir = [next[i] - cur[i] for i in range(3)]
+        corners = [cur]
+        cur, prev_dir = next, next_dir
+
+        # quicker than making them vectors first
+        def dot(x0_y0_z0, x1_y1_z1):
+            (x0, y0, z0) = x0_y0_z0
+            (x1, y1, z1) = x1_y1_z1
+            return x0 * x1 + y0 * y1 + z0 * z1
+
+        for next in self.points[2:]:
+            if next == cur:
+                corners.append(cur)
+                cur = next
+                count = 1
+                continue
             next_dir = [next[i] - cur[i] for i in range(3)]
-            corners = [cur]
+            cos_angle = (dot(prev_dir, next_dir) /
+                         math.sqrt(dot(prev_dir, prev_dir) *
+                                   dot(next_dir, next_dir)))
+            if cos_angle <= corner_cutoff or count > max_len - 1:
+                corners.append(cur)
+                count = 1
             cur, prev_dir = next, next_dir
-
-            # quicker than making them vectors first
-            def dot(x0_y0_z0, x1_y1_z1):
-                (x0, y0, z0) = x0_y0_z0
-                (x1, y1, z1) = x1_y1_z1
-                return x0 * x1 + y0 * y1 + z0 * z1
-
-            for next in self.points[2:]:
-                if next == cur:
-                    corners.append(cur)
-                    cur = next
-                    count = 1
-                    continue
-                next_dir = [next[i] - cur[i] for i in range(3)]
-                cos_angle = (dot(prev_dir, next_dir) /
-                             math.sqrt(dot(prev_dir, prev_dir) *
-                                       dot(next_dir, next_dir)))
-                if cos_angle <= corner_cutoff or count > max_len - 1:
-                    corners.append(cur)
-                    count = 1
-                cur, prev_dir = next, next_dir
-                count += 1
-            return corners
+            count += 1
+        return corners
 
     def threejs_repr(self, render_params):
         r"""
@@ -1234,7 +1370,6 @@ class Line(PrimitiveObject):
             sage: A_repr = A.threejs_repr(A.default_render_params())
             sage: A_repr == L_repr
             True
-
         """
         reprs = []
         points = [tuple(float(coord) for coord in p) for p in self.points]
@@ -1246,12 +1381,12 @@ class Line(PrimitiveObject):
             arrow = shapes.arrow3d(start=points[-2], end=points[-1], width=width,
                                    color=color, opacity=opacity)
             reprs += arrow.threejs_repr(render_params)
-            points = points[:-1] # The arrow replaces the last line segment.
+            points = points[:-1]  # The arrow replaces the last line segment.
         if len(points) > 1:
             transform = render_params.transform
             if transform is not None:
                 points = [transform(p) for p in points]
-            line = dict(points=points, color=color, opacity=opacity, linewidth=thickness)
+            line = {'points': points, 'color': color, 'opacity': opacity, 'linewidth': thickness}
             reprs.append(('line', line))
         return reprs
 
@@ -1275,21 +1410,25 @@ def point3d(v, size=5, **kwds):
 
     INPUT:
 
-    -  ``v`` -- a point or list of points
+    - ``v`` -- a point or list of points
 
-    -  ``size`` -- (default: 5) size of the point (or
-       points)
+    - ``size`` -- (default: 5) size of the point (or
+      points)
 
-    - ``color`` -- a string (``"red"``, ``"green"`` etc)
+    - ``color`` -- string (``'red'``, ``'green'`` etc)
       or a tuple (r, g, b) with r, g, b numbers between 0 and 1
 
-    -  ``opacity`` -- (default: 1) if less than 1 then is
-       transparent
+    - ``opacity`` -- (default: 1) if less than 1 then is
+      transparent
 
     EXAMPLES::
 
-        sage: sum([point3d((i,i^2,i^3), size=5) for i in range(10)])
+        sage: sum(point3d((i,i^2,i^3), size=5) for i in range(10))
         Graphics3d Object
+
+    .. PLOT::
+
+        sphinx_plot(sum([point3d((i,i^2,i^3), size=5) for i in range(10)]))
 
     We check to make sure this works with vectors and other iterables::
 
@@ -1297,16 +1436,20 @@ def point3d(v, size=5, **kwds):
         sage: print(point(vector((2,3,4))))
         Graphics3d Object
 
-        sage: c = polytopes.hypercube(3)
-        sage: v = c.vertices()[0];  v
+        sage: c = polytopes.hypercube(3)                                                # needs sage.geometry.polyhedron
+        sage: v = c.vertices()[0];  v                                                   # needs sage.geometry.polyhedron
         A vertex at (1, -1, -1)
-        sage: print(point(v))
+        sage: print(point(v))                                                           # needs sage.geometry.polyhedron
         Graphics3d Object
 
     We check to make sure the options work::
 
-        sage: point3d((4,3,2),size=20,color='red',opacity=.5)
+        sage: point3d((4,3,2), size=20, color='red', opacity=.5)
         Graphics3d Object
+
+    .. PLOT::
+
+        sphinx_plot(point3d((4,3,2),size=20,color='red',opacity=.5))
 
     numpy arrays can be provided as input::
 
@@ -1314,12 +1457,24 @@ def point3d(v, size=5, **kwds):
         sage: point3d(numpy.array([1,2,3]))
         Graphics3d Object
 
+    .. PLOT::
+
+        import numpy
+        sphinx_plot(point3d(numpy.array([1,2,3])))
+
+    ::
+
         sage: point3d(numpy.array([[1,2,3], [4,5,6], [7,8,9]]))
         Graphics3d Object
 
-    We check that iterators of points are accepted (:trac:`13890`)::
+    .. PLOT::
 
-        sage: point3d(iter([(1,1,2),(2,3,4),(3,5,8)]),size=20,color='red')
+        import numpy
+        sphinx_plot(point3d(numpy.array([[1,2,3], [4,5,6], [7,8,9]])))
+
+    We check that iterators of points are accepted (:issue:`13890`)::
+
+        sage: point3d(iter([(1,1,2),(2,3,4),(3,5,8)]), size=20, color='red')
         Graphics3d Object
 
     TESTS::

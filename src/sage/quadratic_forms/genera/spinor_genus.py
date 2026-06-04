@@ -1,7 +1,9 @@
+# sage.doctest: needs sage.groups
 r"""
 Spinor genus computations.
 
-This file defines the group of spinor operators used for the computation of spinor genera.
+This file defines the group of spinor operators used
+for the computation of spinor genera.
 It is meant for internal use only.
 
 EXAMPLES::
@@ -24,15 +26,18 @@ AUTHORS:
 #                  https://www.gnu.org/licenses/
 # ****************************************************************************
 
-from sage.groups.abelian_gps.abelian_group_gap import AbelianGroupGap, AbelianGroupElement_gap
-from sage.rings.all import ZZ,QQ
+from sage.groups.abelian_gps.abelian_group_gap import (AbelianGroupGap,
+                                                       AbelianGroupElement_gap)
+from sage.rings.integer_ring import ZZ
+from sage.rings.rational_field import QQ
+
 
 class SpinorOperator(AbelianGroupElement_gap):
     r"""
     A spinor operator seen as a tuple of square classes.
 
     For `2` the square class is represented as one of `1,3,5,7` and for
-    `p` odd it is `1` for a p-adic unit square and `-1` for a non-square.
+    `p` odd it is `1` for a `p`-adic unit square and `-1` for a non-square.
 
     EXAMPLES::
 
@@ -42,7 +47,7 @@ class SpinorOperator(AbelianGroupElement_gap):
         [2:7, 3:-1, 7:-1]
     """
 
-    def _repr_(self):
+    def _repr_(self) -> str:
         r"""
         Return the print representation.
 
@@ -56,16 +61,16 @@ class SpinorOperator(AbelianGroupElement_gap):
         e = self.exponents()
         p = self.parent()._primes
         s = "[2:"
-        if e[0] == 0 and e[1] == 0:
+        if e[0] == 0 == e[1]:
             s += "1"
         elif e[0] == 1 and e[1] == 0:
             s += "3"
         elif e[0] == 0 and e[1] == 1:
             s += "5"
-        elif e[0] == 1 and e[1] == 1:
+        elif e[0] == 1 == e[1]:
             s += "7"
-        for k in range(1,len(p)):
-            s += ", %s:%s"%(p[k], (-1)**e[k+1])
+        for k in range(1, len(p)):
+            s += f", {p[k]}:{(-1)**e[k + 1]}"
         s += "]"
         return s
 
@@ -74,7 +79,8 @@ class SpinorOperators(AbelianGroupGap):
     r"""
     The group of spinor operators of a genus.
 
-    It is a product of `p`-adic unit square classes used for spinor genus computations.
+    It is a product of `p`-adic unit square classes
+    used for spinor genus computations.
 
     INPUT:
 
@@ -88,7 +94,7 @@ class SpinorOperators(AbelianGroupGap):
     """
     def __init__(self, primes):
         r"""
-        Initialize the group of spinor operators
+        Initialize the group of spinor operators.
 
         TESTS::
 
@@ -99,7 +105,7 @@ class SpinorOperators(AbelianGroupGap):
         if primes[0] != 2:
             raise ValueError("first prime must be 2")
         self._primes = tuple(ZZ(p) for p in primes)
-        orders = len(self._primes)*[2] + [2]
+        orders = len(self._primes) * [2] + [2]
         # 3, 5, unit_p1, unit_p2,...
         orders = tuple(orders)
         AbelianGroupGap.__init__(self, orders)
@@ -110,7 +116,7 @@ class SpinorOperators(AbelianGroupGap):
 
         OUTPUT:
 
-        - a tuple ``f`` such that this element is ``f[0](*f[1])``
+        a tuple ``f`` such that this element is ``f[0](*f[1])``
 
         EXAMPLES::
 
@@ -123,28 +129,27 @@ class SpinorOperators(AbelianGroupGap):
 
     Element = SpinorOperator
 
-    def _repr_(self):
-      r"""
-      Return the print representation of ``self``.
+    def _repr_(self) -> str:
+        r"""
+        Return the print representation of ``self``.
 
-      EXAMPLES::
+        EXAMPLES::
 
-          sage: from sage.quadratic_forms.genera.spinor_genus import SpinorOperators
-          sage: SpinorOperators((2, 3, 7))
-          Group of SpinorOperators at primes (2, 3, 7)
-      """
-      s = "Group of SpinorOperators at primes %s"%(self._primes,)
-      return s
+            sage: from sage.quadratic_forms.genera.spinor_genus import SpinorOperators
+            sage: SpinorOperators((2, 3, 7))
+            Group of SpinorOperators at primes (2, 3, 7)
+        """
+        return f"Group of SpinorOperators at primes {self._primes}"
 
     def to_square_class(self, x, p):
         r"""
-        Return `(1, ..., 1, x, 1, ..., 1)` with the square class of `x` at position `p`.
+        Return `(1,...,1,x,1,...,1)` with the square class of `x` at position `p`.
 
         INPUT:
 
         - ``p`` -- a prime
 
-        - ``x```-- a non zero rational number
+        - ``x`` -- nonzero rational number
 
         EXAMPLES::
 
@@ -161,13 +166,13 @@ class SpinorOperators(AbelianGroupGap):
         """
         x = QQ(x)
         if x == 0:
-            raise ValueError("x must be non zero")
-        if not p in self._primes:
+            raise ValueError("x must be nonzero")
+        if p not in self._primes:
             raise ValueError("not a coordinate prime")
         v, u = x.val_unit(p)
         v = v % 2
         if v != 0:
-            raise ValueError("x(=%s) must be a p-adic unit" %x)
+            raise ValueError(f"x(={x}) must be a p-adic unit")
         y = self.one()
         if p == 2:
             u = u % 8
@@ -189,14 +194,14 @@ class SpinorOperators(AbelianGroupGap):
 
         INPUT:
 
-        - ``r`` -- a non zero integer;
-          if ``prime`` is ``None``, ``r`` must not be divisible by the defining primes of ``self``
+        - ``r`` -- a nonzero integer; if ``prime`` is ``None``, ``r`` must not
+          be divisible by the defining primes of ``self``
 
-        - ``prime`` --(default:``None``) a prime or `-1`
+        - ``prime`` -- (default: ``None``) a prime or `-1`
 
         OUTPUT:
 
-        If a prime `p` is given the method returns
+        If a prime `p` is given, the method returns
         `\Delta_p(r)`
         otherwise returns `\Delta(r)`
         where both are as defined by Conway-Sloane in
@@ -218,17 +223,20 @@ class SpinorOperators(AbelianGroupGap):
         r = ZZ(r)
         if prime is None:
             if any(p.divides(r) for p in self._primes):
-                raise ValueError("r must not be divisible by %s"%(self._primes,))
-            return self.prod([self.to_square_class(r, p) for p in self._primes])
+                raise ValueError(f"r must not be divisible by {self._primes}")
+            return self.prod([self.to_square_class(r, p)
+                              for p in self._primes])
         prime = ZZ(prime)
         if prime == -1:
             r = r.sign()
-            return self.prod([self.to_square_class(r, p) for p in self._primes])
+            return self.prod([self.to_square_class(r, p)
+                              for p in self._primes])
         if prime not in self._primes:
-            raise ValueError("prime must be among %s"%self._primes)
+            raise ValueError("prime must be among %s" % self._primes)
         v, u = r.val_unit(prime)
         pv = prime**v
-        y = self.prod([self.to_square_class(pv,q) for q in self._primes if q!=prime])
+        y = self.prod([self.to_square_class(pv, q)
+                       for q in self._primes if q != prime])
         if prime in self._primes:
             y *= self.to_square_class(u, p=prime)
         return y

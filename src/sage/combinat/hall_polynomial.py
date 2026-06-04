@@ -1,7 +1,8 @@
+# sage.doctest: needs sage.combinat sage.modules
 r"""
-Hall Polynomials
+Hall polynomials
 """
-#*****************************************************************************
+# ****************************************************************************
 #       Copyright (C) 2013 Travis Scrimshaw <tscrim at ucdavis.edu>,
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
@@ -13,11 +14,11 @@ Hall Polynomials
 #
 #  The full text of the GPL is available at:
 #
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
-from sage.misc.all import prod
-from sage.rings.all import ZZ
+from sage.misc.misc_c import prod
+from sage.rings.integer_ring import ZZ
 from sage.combinat.partition import Partition
 from sage.combinat.q_analogues import q_binomial
 
@@ -170,7 +171,7 @@ def hall_polynomial(nu, mu, la, q=None):
         for k in range(n):
             r.append(r[-1] + sum(exp_mu[k:]) - sum(exp_nu[k:]))
         # Now, r is [r_0, r_1, ..., r_n].
-        exp_nu += [0]*(n - len(exp_nu)) # Pad with 0's until it has length n
+        exp_nu += [0]*(n - len(exp_nu)) # Pad with 0s until it has length n
         # Note that all -1 for exp_nu is due to indexing
         t = sum((r[k-2] - r[k-1])*(sum(exp_nu[k-1:]) - r[k-1]) for k in range(2,n+1))
         if t < 0:
@@ -184,4 +185,3 @@ def hall_polynomial(nu, mu, la, q=None):
     from sage.algebras.hall_algebra import HallAlgebra
     H = HallAlgebra(R, q)
     return (H[mu]*H[la]).coefficient(nu)
-

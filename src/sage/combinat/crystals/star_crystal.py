@@ -1,11 +1,11 @@
+# sage.doctest: needs sage.combinat sage.modules
 r"""
-Star-Crystal Structure On `B(\infty)`
+Star-crystal structure on `B(\infty)`
 
 AUTHORS:
 
-- Ben Salisbury: Initial version
-
-- Travis Scrimshaw: Initial version
+- Ben Salisbury: initial version
+- Travis Scrimshaw: initial version
 """
 
 #*****************************************************************************
@@ -60,7 +60,7 @@ class StarCrystal(UniqueRepresentation, Parent):
       is the highest weight vector in `B(\infty)`;
 
     - if `\Psi_i(b) = f_i^mb_i(0) \otimes b_0`, then
-      `\Psi_i(f_i^*b) =f_i^{m+1}b_i(0) \otimes b_0`
+      `\Psi_i(f_i^*b) = f_i^{m+1}b_i(0) \otimes b_0`
       and `\varepsilon_i(b^*) = m`;
 
     - the image of `\Psi_i` is `\{f_i^mb_i(0)\otimes b :
@@ -85,6 +85,7 @@ class StarCrystal(UniqueRepresentation, Parent):
         sage: mg.f_string([1,2,1,2,2])
         [[1, 1, 1, 1, 1, 2, 2], [2, 3, 3, 3]]
     """
+
     def __init__(self, Binf):
         r"""
         Initialize ``self``.
@@ -122,7 +123,7 @@ class StarCrystal(UniqueRepresentation, Parent):
 
     class Element(ElementWrapper):
 
-        def e(self,i):
+        def e(self, i):
             r"""
             Return the action of `e_i^*` on ``self``.
 
@@ -150,7 +151,7 @@ class StarCrystal(UniqueRepresentation, Parent):
                 return None
             return P(P._pullback[i]( P._tens[i](image[0].e(i),image[1]) ))
 
-        def f(self,i):
+        def f(self, i):
             r"""
             Return the action of `f_i^*` on ``self``.
 
@@ -286,4 +287,3 @@ class StarCrystal(UniqueRepresentation, Parent):
             P = self.parent().weight_lattice_realization()
             ac = P.simple_coroot(i)
             return P(self.value.weight()).scalar(ac) + self.epsilon(i) + self.value.epsilon(i)
-

@@ -43,7 +43,7 @@ fi
 
 # Make the special target _clean-broken-gcc before trying to build any other
 # packages.  This is necessary if configure detected a broken GCC installed
-# in Sage; Trac #25011
+# in Sage; Issue #25011
 $MAKE _clean-broken-gcc
 
 # If "make" doesn't understand the -q option (although we require
@@ -55,10 +55,17 @@ if $MAKE -q "$@" >/dev/null 2>/dev/null; then
 fi
 
 # Dump environment for debugging purposes:
-echo "*** ALL ENVIRONMENT VARIABLES BEFORE BUILD: ***"
+if [ -n "$GITHUB_ACTIONS" ]; then
+    echo "::group::*** ALL ENVIRONMENT VARIABLES BEFORE BUILD: ***"
+else
+    echo "*** ALL ENVIRONMENT VARIABLES BEFORE BUILD: ***"
+fi
 env | sort
 printf '\E[m'
 echo "***********************************************"
+if [ -n "$GITHUB_ACTIONS" ]; then
+    echo "::endgroup::"
+fi
 
 # look_for_errors: search log files for error messages and print a summary.
 # arguments:
@@ -96,7 +103,7 @@ EOF
 ###############################################################################
 # NOW do the actual build:
 ###############################################################################
-time $MAKE "$@"
+$MAKE "$@"
 if [ $? -ne 0 ]; then
     cat >&2 <<EOF
 ***************************************************************
@@ -107,7 +114,6 @@ during this run of 'make $@'):
 EOF
 
     look_for_errors "$SAGE_LOGS/*.log" 20 "^Error" package >&2
-    look_for_errors "$SAGE_LOGS/../doc*.log" 100 "^Error" documentation >&2
 
     cat >&2 <<EOF
 
@@ -122,7 +128,8 @@ EOF
 
 elif [ "$SAGE_CHECK" = "warn" ]; then
     echo "SAGE_CHECK=warn, so scanning the log files. This may take a few seconds."
-    warnings=`look_for_errors "$SAGE_LOGS/*.log" 20 "^Warning: Error testing" package`
+    # The following warning message must be consistent with SAGE_ROOT/build/bin/sage-spkg (see trac:32781)
+    warnings=`look_for_errors "$SAGE_LOGS/*.log" 20 "^Warning: Failures testing package" package`
     if [ -n "$warnings" ]; then
         cat >&2 <<EOF
 ***************************************************************
@@ -137,16 +144,3 @@ fi
 
 # Build succeeded.
 echo "Sage build/upgrade complete!"
-
-if [ "$1" = "all" ]; then
-    echo
-    echo "To install small scripts to directly run Sage's versions of GAP,"
-    echo "the PARI/GP interpreter, Maxima, or Singular etc. (by typing e.g."
-    echo "just 'gap' or 'gp') into a standard 'bin' directory, start Sage"
-    echo "by typing 'sage' (or './sage') and enter something like"
-    echo
-    echo "    install_scripts('/usr/local/bin')"
-    echo
-    echo "at the Sage command prompt ('sage:')."
-    echo
-fi

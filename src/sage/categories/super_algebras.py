@@ -1,18 +1,19 @@
 r"""
 Super Algebras
 """
-#*****************************************************************************
+# ****************************************************************************
 #  Copyright (C) 2015 Travis Scrimshaw <tscrim at ucdavis.edu>
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
-#                  http://www.gnu.org/licenses/
-#******************************************************************************
+#                  https://www.gnu.org/licenses/
+# *****************************************************************************
 
 from sage.categories.super_modules import SuperModulesCategory
 from sage.categories.signed_tensor import SignedTensorProductsCategory, tensor_signed
 from sage.categories.tensor import tensor
 from sage.misc.lazy_import import LazyImport
 from sage.misc.cachefunc import cached_method
+
 
 class SuperAlgebras(SuperModulesCategory):
     r"""
@@ -75,7 +76,8 @@ class SuperAlgebras(SuperModulesCategory):
 
             EXAMPLES::
 
-                sage: A.<x,y,z> = ExteriorAlgebra(ZZ); A.rename("A")
+                sage: # needs sage.combinat sage.modules
+                sage: A.<x,y,z> = ExteriorAlgebra(ZZ); A.rename('A')
                 sage: T = A.tensor(A,A); T
                 A # A # A
                 sage: T in Algebras(ZZ).Graded().SignedTensorProducts()
@@ -85,12 +87,13 @@ class SuperAlgebras(SuperModulesCategory):
                 sage: A.rename(None)
 
             This also works when the other elements do not have
-            a signed tensor product (:trac:`31266`)::
+            a signed tensor product (:issue:`31266`)::
 
+                sage: # needs sage.combinat sage.modules
                 sage: a = SteenrodAlgebra(3).an_element()
                 sage: M = CombinatorialFreeModule(GF(3), ['s', 't', 'u'])
                 sage: s = M.basis()['s']
-                sage: tensor([a, s])
+                sage: tensor([a, s])                                                    # needs sage.rings.finite_rings
                 2*Q_1 Q_3 P(2,1) # B['s']
             """
             constructor = kwargs.pop('constructor', tensor_signed)
@@ -143,4 +146,3 @@ class SuperAlgebras(SuperModulesCategory):
             Meaning: a signed tensor product of coalgebras is a coalgebra
             """
             return [self.base_category()]
-

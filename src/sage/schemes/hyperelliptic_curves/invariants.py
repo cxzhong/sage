@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 r"""
 Compute invariants of quintics and sextics via 'Ueberschiebung'
 
@@ -8,13 +7,28 @@ Compute invariants of quintics and sextics via 'Ueberschiebung'
 
     * Cardona-Quer and additional invariants for classifying automorphism groups.
 
-AUTHOR:
+AUTHORS:
 
 - Nick Alexander
+- Sabrina Kunzweiler, Gareth Ma, Giacomo Pope (2024): adapt to smooth model
 
 """
-from sage.rings.all import ZZ
-from sage.rings.all import PolynomialRing
+
+# ****************************************************************************
+#       Copyright (C) 2008 Nick Alexander
+#                     2025 Sabrina Kunzweiler <sabrina.kunzweiler@math.u-bordeaux.fr>
+#                     2025 Gareth Ma <grhkm21@gmail.com>
+#                     2025 Giacomo Pope <giacomopope@gmail.com>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 2 of the License, or
+# (at your option) any later version.
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
+
+from sage.rings.integer_ring import ZZ
+from sage.rings.polynomial.polynomial_ring_constructor import PolynomialRing
 
 
 def diffxy(f, x, xtimes, y, ytimes):
@@ -24,14 +38,15 @@ def diffxy(f, x, xtimes, y, ytimes):
 
     EXAMPLES::
 
+        sage: from sage.schemes.hyperelliptic_curves.invariants import diffxy
         sage: R.<u, v> = QQ[]
-        sage: sage.schemes.hyperelliptic_curves.invariants.diffxy(u^2*v^3, u, 0, v, 0)
+        sage: diffxy(u^2*v^3, u, 0, v, 0)
         u^2*v^3
-        sage: sage.schemes.hyperelliptic_curves.invariants.diffxy(u^2*v^3, u, 2, v, 1)
+        sage: diffxy(u^2*v^3, u, 2, v, 1)
         6*v^2
-        sage: sage.schemes.hyperelliptic_curves.invariants.diffxy(u^2*v^3, u, 2, v, 2)
+        sage: diffxy(u^2*v^3, u, 2, v, 2)
         12*v
-        sage: sage.schemes.hyperelliptic_curves.invariants.diffxy(u^2*v^3 + u^4*v^4, u, 2, v, 2)
+        sage: diffxy(u^2*v^3 + u^4*v^4, u, 2, v, 2)
         144*u^2*v^2 + 12*v
     """
     h = f
@@ -67,15 +82,17 @@ def differential_operator(f, g, k):
         sage: differential_operator(x^2*y, x*y^2, 2)
         1/36*dfdy^2*dgdx^2 - 1/18*dfdx*dfdy*dgdx*dgdy + 1/36*dfdx^2*dgdy^2
         sage: differential_operator(x^2*y, x*y^2, 4)
-        1/576*dfdy^4*dgdx^4 - 1/144*dfdx*dfdy^3*dgdx^3*dgdy + 1/96*dfdx^2*dfdy^2*dgdx^2*dgdy^2 - 1/144*dfdx^3*dfdy*dgdx*dgdy^3 + 1/576*dfdx^4*dgdy^4
+        1/576*dfdy^4*dgdx^4 - 1/144*dfdx*dfdy^3*dgdx^3*dgdy + 1/96*dfdx^2*dfdy^2*dgdx^2*dgdy^2
+        - 1/144*dfdx^3*dfdy*dgdx*dgdy^3 + 1/576*dfdx^4*dgdy^4
     """
     (x, y) = f.parent().gens()
     n = max(ZZ(f.degree()), ZZ(k))
     m = max(ZZ(g.degree()), ZZ(k))
-    R, (fx, fy, gx, gy) = PolynomialRing(f.base_ring(), 4, 'dfdx,dfdy,dgdx,dgdy').objgens()
+    R, (fx, fy, gx, gy) = PolynomialRing(
+        f.base_ring(), 4, "dfdx,dfdy,dgdx,dgdy"
+    ).objgens()
     const = (m - k).factorial() * (n - k).factorial() / (m.factorial() * n.factorial())
-    U = f.base_ring()(const) * (fx*gy - fy*gx)**k
-    return U
+    return f.base_ring()(const) * (fx * gy - fy * gx) ** k
 
 
 def diffsymb(U, f, g):
@@ -99,12 +116,14 @@ def diffsymb(U, f, g):
         2*x*y^4 + 3*x^2*y^2
     """
     (x, y) = f.parent().gens()
-    R, (fx, fy, gx, gy) = PolynomialRing(f.base_ring(), 4, 'dfdx,dfdy,dgdx,dgdy').objgens()
+    R, (fx, fy, gx, gy) = PolynomialRing(
+        f.base_ring(), 4, "dfdx,dfdy,dgdx,dgdy"
+    ).objgens()
     res = 0
     for coeff, mon in list(U):
-        mon = R(mon)
-        a = diffxy(f, x, mon.degree(fx), y, mon.degree(fy))
-        b = diffxy(g, x, mon.degree(gx), y, mon.degree(gy))
+        m = R(mon)
+        a = diffxy(f, x, m.degree(fx), y, m.degree(fy))
+        b = diffxy(g, x, m.degree(gx), y, m.degree(gy))
         temp = coeff * a * b
         res = res + temp
     return res
@@ -190,18 +209,18 @@ def ubs(f):
     if f.parent().ngens() == 1:
         f = PolynomialRing(f.parent().base_ring(), 1, f.parent().variable_name())(f)
         x1, x2 = f.homogenize().parent().gens()
-        f = sum([ f[i]*x1**i*x2**(6-i) for i in range(7) ])
+        f = sum([f[i] * x1**i * x2 ** (6 - i) for i in range(7)])
     U = {}
-    U['f'] = f
-    U['i'] = ub(f, f, 4)
-    U['Delta'] = ub(U['i'], U['i'], 2)
-    U['y1'] = ub(f, U['i'], 4)
-    U['y2'] = ub(U['i'], U['y1'], 2)
-    U['y3'] = ub(U['i'], U['y2'], 2)
-    U['A'] = ub(f, f, 6)
-    U['B'] = ub(U['i'], U['i'], 4)
-    U['C'] = ub(U['i'], U['Delta'], 4)
-    U['D'] = ub(U['y3'], U['y1'], 2)
+    U["f"] = f
+    U["i"] = ub(f, f, 4)
+    U["Delta"] = ub(U["i"], U["i"], 2)
+    U["y1"] = ub(f, U["i"], 4)
+    U["y2"] = ub(U["i"], U["y1"], 2)
+    U["y3"] = ub(U["i"], U["y2"], 2)
+    U["A"] = ub(f, f, 6)
+    U["B"] = ub(U["i"], U["i"], 4)
+    U["C"] = ub(U["i"], U["Delta"], 4)
+    U["D"] = ub(U["y3"], U["y1"], 2)
     return U
 
 
@@ -224,10 +243,17 @@ def clebsch_to_igusa(A, B, C, D):
         sage: igusa_to_clebsch(*clebsch_to_igusa(*Cs))
         (2, 3, 4, 5)
     """
-    I2 = -120*A
-    I4 = -720*A**2 + 6750*B
-    I6 = 8640*A**3 - 108000*A*B + 202500*C
-    I10 = -62208*A**5 + 972000*A**3*B + 1620000*A**2*C - 3037500*A*B**2 - 6075000*B*C - 4556250*D
+    I2 = -120 * A
+    I4 = -720 * A**2 + 6750 * B
+    I6 = 8640 * A**3 - 108000 * A * B + 202500 * C
+    I10 = (
+        -62208 * A**5
+        + 972000 * A**3 * B
+        + 1620000 * A**2 * C
+        - 3037500 * A * B**2
+        - 6075000 * B * C
+        - 4556250 * D
+    )
     return (I2, I4, I6, I10)
 
 
@@ -250,10 +276,20 @@ def igusa_to_clebsch(I2, I4, I6, I10):
         sage: clebsch_to_igusa(*igusa_to_clebsch(*Is))
         (18, 7, 12, 27)
     """
-    A = -(+ I2) / 120
-    B = -(- I2**2 - 20*I4)/135000
-    C = -(+ I2**3 + 80*I2*I4 - 600*I6)/121500000
-    D = -(+ 9*I2**5 + 700*I2**3*I4 - 3600*I2**2*I6 - 12400*I2*I4**2 + 48000*I4*I6 + 10800000*I10) / 49207500000000
+    A = -(+I2) / 120
+    B = -(-(I2**2) - 20 * I4) / 135000
+    C = -(+(I2**3) + 80 * I2 * I4 - 600 * I6) / 121500000
+    D = (
+        -(
+            +9 * I2**5
+            + 700 * I2**3 * I4
+            - 3600 * I2**2 * I6
+            - 12400 * I2 * I4**2
+            + 48000 * I4 * I6
+            + 10800000 * I10
+        )
+        / 49207500000000
+    )
     return (A, B, C, D)
 
 
@@ -274,20 +310,22 @@ def clebsch_invariants(f):
         sage: clebsch_invariants(x^6 + x^5 + x^4 + x^2 + 2)
         (62/15, 15434/5625, -236951/140625, 229930748/791015625)
 
-        sage: magma(x^6 + 1).ClebschInvariants() # optional - magma
+        sage: magma(x^6 + 1).ClebschInvariants()                    # optional - magma
         [ 2, 2/3, -2/9, 0 ]
-        sage: magma(x^6 + x^5 + x^4 + x^2 + 2).ClebschInvariants() # optional - magma
+        sage: magma(x^6 + x^5 + x^4 + x^2 + 2).ClebschInvariants()  # optional - magma
         [ 62/15, 15434/5625, -236951/140625, 229930748/791015625 ]
     """
     R = f.parent().base_ring()
     if R.characteristic() in [2, 3, 5]:
-        raise NotImplementedError("Invariants of binary sextics/genus 2 hyperelliptic "
-                                  "curves not implemented in characteristics 2, 3, and 5")
+        raise NotImplementedError(
+            "Invariants of binary sextics/genus 2 hyperelliptic "
+            "curves not implemented in characteristics 2, 3, and 5"
+        )
 
     U = ubs(f)
-    L = U['A'], U['B'], U['C'], U['D']
+    L = U["A"], U["B"], U["C"], U["D"]
     assert all(t.is_constant() for t in L)
-    return tuple([ t.constant_coefficient() for t in L ])
+    return tuple([t.constant_coefficient() for t in L])
 
 
 def igusa_clebsch_invariants(f):
@@ -307,9 +345,9 @@ def igusa_clebsch_invariants(f):
         sage: igusa_clebsch_invariants(x^6 + x^5 + x^4 + x^2 + 2)
         (-496, 6220, -955932, -1111784)
 
-        sage: magma(x^6 + 1).IgusaClebschInvariants() # optional - magma
+        sage: magma(x^6 + 1).IgusaClebschInvariants()                    # optional - magma
         [ -240, 1620, -119880, -46656 ]
-        sage: magma(x^6 + x^5 + x^4 + x^2 + 2).IgusaClebschInvariants() # optional - magma
+        sage: magma(x^6 + x^5 + x^4 + x^2 + 2).IgusaClebschInvariants()  # optional - magma
         [ -496, 6220, -955932, -1111784 ]
 
     TESTS:
@@ -321,10 +359,12 @@ def igusa_clebsch_invariants(f):
         sage: igusa_clebsch_invariants(x^5 + a*x^4 + b*x^3 + c*x^2 + d*x + e)[0]
         6*b^2 - 16*a*c + 40*d
 
+        sage: from sage.schemes.hyperelliptic_curves.invariants import absolute_igusa_invariants_wamelen
         sage: absolute_igusa_invariants_wamelen(GF(5)['x'](x^6 - 2*x))
         Traceback (most recent call last):
         ...
-        NotImplementedError: Invariants of binary sextics/genus 2 hyperelliptic curves not implemented in characteristics 2, 3, and 5
+        NotImplementedError: Invariants of binary sextics/genus 2 hyperelliptic curves
+        not implemented in characteristics 2, 3, and 5
     """
     return clebsch_to_igusa(*clebsch_invariants(f))
 
@@ -348,7 +388,8 @@ def absolute_igusa_invariants_wamelen(f):
 
     The following example can be checked against van Wamelen's paper::
 
-        sage: i1, i2, i3 = absolute_igusa_invariants_wamelen(-x^5 + 3*x^4 + 2*x^3 - 6*x^2 - 3*x + 1)
+        sage: h = -x^5 + 3*x^4 + 2*x^3 - 6*x^2 - 3*x + 1
+        sage: i1, i2, i3 = absolute_igusa_invariants_wamelen(h)
         sage: list(map(factor, (i1, i2, i3)))
         [2^7 * 3^15, 2^5 * 3^11 * 5, 2^4 * 3^9 * 31]
 
@@ -357,12 +398,13 @@ def absolute_igusa_invariants_wamelen(f):
         sage: absolute_igusa_invariants_wamelen(GF(3)['x'](x^5 - 2*x))
         Traceback (most recent call last):
         ...
-        NotImplementedError: Invariants of binary sextics/genus 2 hyperelliptic curves not implemented in characteristics 2, 3, and 5
+        NotImplementedError: Invariants of binary sextics/genus 2 hyperelliptic curves
+        not implemented in characteristics 2, 3, and 5
     """
     I2, I4, I6, I10 = igusa_clebsch_invariants(f)
-    i1 = I2**5/I10
-    i2 = I2**3*I4/I10
-    i3 = I2**2*I6/I10
+    i1 = I2**5 / I10
+    i2 = I2**3 * I4 / I10
+    i3 = I2**2 * I6 / I10
     return (i1, i2, i3)
 
 
@@ -383,7 +425,8 @@ def absolute_igusa_invariants_kohel(f):
 
     The following example can be checked against Kohel's database [KohECHIDNA]_ ::
 
-        sage: i1, i2, i3 = absolute_igusa_invariants_kohel(-x^5 + 3*x^4 + 2*x^3 - 6*x^2 - 3*x + 1)
+        sage: h = -x^5 + 3*x^4 + 2*x^3 - 6*x^2 - 3*x + 1
+        sage: i1, i2, i3 = absolute_igusa_invariants_kohel(h)
         sage: list(map(factor, (i1, i2, i3)))
         [2^2 * 3^5 * 5 * 31, 2^5 * 3^11 * 5, 2^4 * 3^9 * 31]
         sage: list(map(factor, (150660, 28343520, 9762768)))
@@ -394,10 +437,11 @@ def absolute_igusa_invariants_kohel(f):
         sage: absolute_igusa_invariants_kohel(GF(2)['x'](x^5 - x))
         Traceback (most recent call last):
         ...
-        NotImplementedError: Invariants of binary sextics/genus 2 hyperelliptic curves not implemented in characteristics 2, 3, and 5
+        NotImplementedError: Invariants of binary sextics/genus 2 hyperelliptic curves
+        not implemented in characteristics 2, 3, and 5
     """
     I2, I4, I6, I10 = igusa_clebsch_invariants(f)
-    i1 = I4*I6/I10
-    i2 = I2**3*I4/I10
-    i3 = I2**2*I6/I10
+    i1 = I4 * I6 / I10
+    i2 = I2**3 * I4 / I10
+    i3 = I2**2 * I6 / I10
     return (i1, i2, i3)

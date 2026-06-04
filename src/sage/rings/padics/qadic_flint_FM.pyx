@@ -14,7 +14,7 @@ cdef class PowComputer_(PowComputer_flint_unram):
 
             sage: R.<a> = ZqFM(125)
             sage: type(R.prime_pow)
-            <type 'sage.rings.padics.qadic_flint_FM.PowComputer_'>
+            <class 'sage.rings.padics.qadic_flint_FM.PowComputer_'>
             sage: R.prime_pow._prec_type
             'fixed-mod'
         """
@@ -27,8 +27,8 @@ cdef class qAdicFixedModElement(FMElement):
     norm = norm_unram
 
     def matrix_mod_pn(self):
-        """
-        Returns the matrix of right multiplication by the element on
+        r"""
+        Return the matrix of right multiplication by the element on
         the power basis `1, x, x^2, \ldots, x^{d-1}` for this
         extension field.  Thus the *rows* of this matrix give the
         images of each of the `x^i`.  The entries of the matrices are
@@ -83,13 +83,13 @@ cdef class qAdicFixedModElement(FMElement):
         Return the element with the same reduction mod p that can be expressed
         with coefficients between 0 and p-1.  The absolute precision will be maximal.
 
-        This method is used in printing and computing p-adic expansions.
+        This method is used in printing and computing `p`-adic expansions.
 
         INPUT:
 
-        - ``use_smallest_mode`` -- if True, use reps between -p/2 and p/2 instead.
-        - ``return_list`` -- if True, return a list of coefficients (as integers).
-            For use in printing.
+        - ``use_smallest_mode`` -- if ``True``, use reps between -p/2 and p/2 instead
+        - ``return_list`` -- if ``True``, return a list of coefficients (as integers);
+          for use in printing
 
         EXAMPLES::
 

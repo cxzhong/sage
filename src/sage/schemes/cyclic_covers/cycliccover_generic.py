@@ -17,7 +17,6 @@ EXAMPLES::
     ...
     ValueError: As the characteristic divides the order of the cover, this model is not smooth.
 
-
     sage: GF7x.<x> = GF(7)[]
     sage: C = CyclicCover(3, x^9 + x + 1)
     sage: C
@@ -28,9 +27,6 @@ EXAMPLES::
     Traceback (most recent call last):
     ...
     NotImplementedError: Weighted Projective Space is not implemented
-
-
-
 """
 
 # *****************************************************************************
@@ -39,28 +35,27 @@ EXAMPLES::
 #                  https://www.gnu.org/licenses/
 # *****************************************************************************
 
-from sage.rings.polynomial.all import PolynomialRing
+from sage.rings.polynomial.polynomial_ring_constructor import PolynomialRing
 from sage.structure.category_object import normalize_names
 from sage.arith.misc import GCD
 from sage.schemes.curves.affine_curve import AffinePlaneCurve
 
 
-
 class CyclicCover_generic(AffinePlaneCurve):
     def __init__(self, AA, r, f, names=None):
         """
-        Cyclic covers over a general ring
+        Cyclic covers over a general ring.
 
         INPUT:
 
-        - ``A`` - ambient affine space
+        - ``A`` -- ambient affine space
 
-        - ``r`` - degree of the cover
+        - ``r`` -- degree of the cover
 
-        -  ``f`` - univariate polynomial
+        - ``f`` -- univariate polynomial
 
-        -  ``names``  (default: ``["x","y"]``) - names for the
-           coordinate functions
+        - ``names`` -- (default: ``["x","y"]``); names for the
+          coordinate functions
 
         TESTS::
 
@@ -76,7 +71,8 @@ class CyclicCover_generic(AffinePlaneCurve):
             sage: C.change_ring(GF(5))
             Traceback (most recent call last):
             ...
-            ValueError: As the characteristic divides the order of the cover, this model is not smooth.
+            ValueError: As the characteristic divides the order of the cover,
+            this model is not smooth.
 
 
             sage: GF7x.<x> = GF(7)[]
@@ -89,9 +85,6 @@ class CyclicCover_generic(AffinePlaneCurve):
             Traceback (most recent call last):
             ...
             NotImplementedError: Weighted Projective Space is not implemented
-
-
-
         """
         x, y = AA.gens()
         self._r = r
@@ -119,11 +112,13 @@ class CyclicCover_generic(AffinePlaneCurve):
             sage: C.change_ring(GF(5))
             Traceback (most recent call last):
             ...
-            ValueError: As the characteristic divides the order of the cover, this model is not smooth.
+            ValueError: As the characteristic divides the order of the cover,
+            this model is not smooth.
             sage: C.change_ring(GF(3))
             Traceback (most recent call last):
             ...
-            ValueError: Not a smooth Cyclic Cover of P^1: singularity in the provided affine patch.
+            ValueError: Not a smooth Cyclic Cover of P^1: singularity in the
+            provided affine patch.
             sage: C.change_ring(GF(17))
             Cyclic Cover of P^1 over Finite Field of size 17 defined by y^5 = x^5 + x + 1
         """
@@ -249,15 +244,13 @@ class CyclicCover_generic(AffinePlaneCurve):
             sage: ZZx.<x> = ZZ[]
             sage: CyclicCover(5, x^5 + x + 1).projective_closure()
             Projective Plane Curve over Integer Ring defined by x0^5 + x0^4*x1 + x1^5 - x2^5
-
         """
         # test d = 3 and 4
         if self._d == self._r:
             return AffinePlaneCurve.projective_closure(self, **kwds)
-        else:
-            raise NotImplementedError("Weighted Projective Space is not implemented")
+        raise NotImplementedError("Weighted Projective Space is not implemented")
 
-    def cover_polynomial(self, K=None, var="x"):
+    def cover_polynomial(self, K=None, var='x'):
         """
         Return the polynomial defining the cyclic cover.
 
@@ -265,16 +258,14 @@ class CyclicCover_generic(AffinePlaneCurve):
 
             sage: ZZx.<x> = ZZ[]; CyclicCover(5, x^5 + x + 1).cover_polynomial()
             x^5 + x + 1
-
         """
 
         if K is None:
             return self._f
-        else:
-            P = PolynomialRing(K, var)
-            return P(self._f)
+        P = PolynomialRing(K, var)
+        return P(self._f)
 
-    def is_singular(self):
+    def is_singular(self) -> bool:
         r"""
         Return if this curve is singular or not.
 
@@ -294,10 +285,9 @@ class CyclicCover_generic(AffinePlaneCurve):
         r = self._r
         if P(r) == 0:
             return True
-        else:
-            return not self._f.is_squarefree()
+        return not self._f.is_squarefree()
 
-    def is_smooth(self):
+    def is_smooth(self) -> bool:
         r"""
         Return if this curve is smooth or not.
 

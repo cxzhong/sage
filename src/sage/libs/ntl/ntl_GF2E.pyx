@@ -5,7 +5,7 @@
 # distutils: extra_link_args = NTL_LIBEXTRA
 # distutils: language = c++
 
-#*****************************************************************************
+# ****************************************************************************
 #       Copyright (C) 2005 William Stein <wstein@gmail.com>
 #       Copyright (C) 2007 Martin Albrecht <malb@informatik.uni-bremen.de>
 #
@@ -18,8 +18,8 @@
 #
 #  The full text of the GPL is available at:
 #
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
 from sage.ext.cplusplus cimport ccrepr
 
@@ -27,13 +27,13 @@ include 'misc.pxi'
 include 'decl.pxi'
 
 from cpython.object cimport Py_EQ, Py_NE
-from .ntl_ZZ cimport ntl_ZZ
-from .ntl_GF2 cimport ntl_GF2
-from .ntl_GF2X cimport ntl_GF2X
-from .ntl_GF2EContext cimport ntl_GF2EContext_class
-from .ntl_GF2EContext import ntl_GF2EContext
+from sage.libs.ntl.ntl_ZZ cimport ntl_ZZ
+from sage.libs.ntl.ntl_GF2 cimport ntl_GF2
+from sage.libs.ntl.ntl_GF2X cimport ntl_GF2X
+from sage.libs.ntl.ntl_GF2EContext cimport ntl_GF2EContext_class
+from sage.libs.ntl.ntl_GF2EContext import ntl_GF2EContext
 from sage.libs.ntl.ntl_ZZ import unpickle_class_args
-from sage.misc.randstate cimport randstate, current_randstate
+from sage.misc.randstate cimport current_randstate
 
 
 ##############################################################################
@@ -50,11 +50,11 @@ from sage.misc.randstate cimport randstate, current_randstate
 
 def ntl_GF2E_random(ntl_GF2EContext_class ctx):
     """
-    Returns a random element from GF2E modulo the current modulus.
+    Return a random element from GF2E modulo the current modulus.
 
     INPUT:
 
-    - ``ctx`` -- the GF2E context for which an random element should be created
+    - ``ctx`` -- the GF2E context for which a random element should be created
 
     EXAMPLES::
 
@@ -71,9 +71,10 @@ def ntl_GF2E_random(ntl_GF2EContext_class ctx):
     r.x = GF2E_random()
     return r
 
-cdef class ntl_GF2E(object):
+
+cdef class ntl_GF2E():
     r"""
-    The \\class{GF2E} represents a finite extension field over GF(2)
+    The :class:`GF2E` represents a finite extension field over GF(2)
     using NTL. Elements are represented as polynomials over GF(2)
     modulo a modulus.
 
@@ -83,19 +84,19 @@ cdef class ntl_GF2E(object):
 
     def __init__(self, x=None, modulus=None):
         """
-        Constructs a new finite field element in GF(2**x).
+        Construct a new finite field element in GF(2**x).
 
         If you pass a string to the constructor please note that byte
         sequences and the hexadecimal notation are Little Endian in
         NTL.  So e.g. '[0 1]' == '0x2' == x.
 
         INPUT:
-            x -- value to be assigned to this element. Same types as
-                 ntl.GF2X() are accepted.
-            modulus -- the context/modulus of the field
 
-        OUTPUT:
-            a new ntl.GF2E element
+        - ``x`` -- value to be assigned to this element. Same types as
+          ``ntl.GF2X()`` are accepted.
+        - ``modulus`` -- the context/modulus of the field
+
+        OUTPUT: a new ``ntl.GF2E`` element
 
         EXAMPLES::
 
@@ -164,6 +165,8 @@ cdef class ntl_GF2E(object):
 
     def __reduce__(self):
         """
+        EXAMPLES::
+
             sage: ctx = ntl.GF2EContext( ntl.GF2X([1,1,0,1,1,0,0,0,1]) )
             sage: a = ntl.GF2E(ntl.ZZ_pX([1,1,3],2), ctx)
             sage: loads(dumps(a)) == a
@@ -173,7 +176,7 @@ cdef class ntl_GF2E(object):
 
     def modulus_context(self):
         """
-        Returns the structure that holds the underlying NTL GF2E modulus.
+        Return the structure that holds the underlying NTL GF2E modulus.
 
         EXAMPLES::
 
@@ -188,7 +191,7 @@ cdef class ntl_GF2E(object):
 
     def __repr__(self):
         """
-        Return the string representation of self.
+        Return the string representation of ``self``.
 
         EXAMPLES::
 
@@ -201,7 +204,7 @@ cdef class ntl_GF2E(object):
 
     def __copy__(self):
         """
-        Return a copy of self.
+        Return a copy of ``self``.
 
         EXAMPLES::
 
@@ -227,7 +230,7 @@ cdef class ntl_GF2E(object):
         """
         cdef ntl_GF2E r
         if not isinstance(other, ntl_GF2E):
-            other = ntl_GF2E(other,self.c)
+            other = ntl_GF2E(other, self.c)
         elif self.c is not (<ntl_GF2E>other).c:
             raise ValueError("You cannot perform arithmetic with elements in different fields.")
         r = self._new()
@@ -245,7 +248,7 @@ cdef class ntl_GF2E(object):
         """
         cdef ntl_GF2E r
         if not isinstance(other, ntl_GF2E):
-            other = ntl_GF2E(other,self.c)
+            other = ntl_GF2E(other, self.c)
         elif self.c is not (<ntl_GF2E>other).c:
             raise ValueError("You cannot perform arithmetic with elements in different fields.")
         r = self._new()
@@ -263,7 +266,7 @@ cdef class ntl_GF2E(object):
         """
         cdef ntl_GF2E r
         if not isinstance(other, ntl_GF2E):
-            other = ntl_GF2E(other,self.c)
+            other = ntl_GF2E(other, self.c)
         elif self.c is not (<ntl_GF2E>other).c:
             raise ValueError("You cannot perform arithmetic with elements in different fields.")
         r = self._new()
@@ -316,7 +319,7 @@ cdef class ntl_GF2E(object):
 
     def __richcmp__(ntl_GF2E self, other, int op):
         r"""
-        Compare self to other.
+        Compare ``self`` to ``other``.
 
         EXAMPLES::
 
@@ -347,7 +350,7 @@ cdef class ntl_GF2E(object):
 
     def IsZero(ntl_GF2E self):
         """
-        Returns True if this element equals zero, False otherwise.
+        Return ``True`` if this element equals zero, ``False`` otherwise.
 
         EXAMPLES::
 
@@ -362,7 +365,7 @@ cdef class ntl_GF2E(object):
 
     def IsOne(ntl_GF2E self):
         """
-        Returns True if this element equals one, False otherwise.
+        Return ``True`` if this element equals one, ``False`` otherwise.
 
         EXAMPLES::
 
@@ -377,7 +380,7 @@ cdef class ntl_GF2E(object):
 
     def trace(ntl_GF2E self):
         """
-        Returns the trace of this element.
+        Return the trace of this element.
 
         EXAMPLES::
 
@@ -394,7 +397,7 @@ cdef class ntl_GF2E(object):
 
     def rep(ntl_GF2E self):
         """
-        Returns a ntl.GF2X copy of this element.
+        Return a ntl.GF2X copy of this element.
 
         EXAMPLES::
 
@@ -403,7 +406,7 @@ cdef class ntl_GF2E(object):
             sage: a.rep()
             [1 0 0 0 0 0 1 1]
             sage: type(a.rep())
-            <type 'sage.libs.ntl.ntl_GF2X.ntl_GF2X'>
+            <class 'sage.libs.ntl.ntl_GF2X.ntl_GF2X'>
         """
         cdef ntl_GF2X x = ntl_GF2X.__new__(ntl_GF2X)
         x.x = GF2E_rep(self.x)
@@ -411,7 +414,7 @@ cdef class ntl_GF2E(object):
 
     def list(ntl_GF2E self):
         """
-        Represents this element as a list of binary digits.
+        Represent this element as a list of binary digits.
 
         EXAMPLES::
 
@@ -422,9 +425,8 @@ cdef class ntl_GF2E(object):
              sage: e.list()
              [1, 1, 1, 1, 1, 1, 1, 1]
 
-        OUTPUT:
-             a list of digits representing the coefficients in this element's
-             polynomial representation
+        OUTPUT: list of digits representing the coefficients in this element's
+        polynomial representation
         """
         cdef int i
         cdef GF2X_c x = GF2E_rep(self.x)
@@ -434,22 +436,23 @@ cdef class ntl_GF2E(object):
 
         for i from 0 <= i <= GF2X_deg(x):
             b = ntl_GF2.__new__(ntl_GF2)
-            b.x = GF2X_coeff(x,i)
+            b.x = GF2X_coeff(x, i)
             l.append(b)
         return l
 
     def _sage_(ntl_GF2E self, k=None):
-        """
-        Returns a \class{FiniteFieldElement} representation
-        of this element. If a \class{FiniteField} k is provided
-        it is constructed in this field if possible. A \class{FiniteField}
-        will be constructed if none is provided.
+        r"""
+        Return a :class:`FiniteFieldElement` representation of this element.
+
+        If a :class:`FiniteField` `k` is provided, it is constructed
+        in this field if possible. A :class:`FiniteField` will be
+        constructed if none is provided.
 
         INPUT:
-            k     -- optional GF(2**deg)
 
-        OUTPUT:
-            FiniteFieldElement over k
+        - ``k`` -- (optional) a field `\GF{2^d}`
+
+        OUTPUT: :class:`FiniteFieldElement` over `k`
 
         EXAMPLES::
 

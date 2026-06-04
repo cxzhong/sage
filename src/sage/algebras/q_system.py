@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 r"""
 Q-Systems
 
@@ -23,7 +22,7 @@ from sage.misc.cachefunc import cached_method
 from sage.misc.misc_c import prod
 
 from sage.categories.algebras import Algebras
-from sage.rings.all import ZZ
+from sage.rings.integer_ring import ZZ
 from sage.rings.infinity import infinity
 from sage.rings.polynomial.polynomial_ring_constructor import PolynomialRing
 from sage.sets.family import Family
@@ -149,7 +148,7 @@ class QSystem(CombinatorialFreeModule):
             raise ValueError("the Cartan type is not tamely-laced")
         if twisted and not cartan_type.is_affine() and not cartan_type.is_untwisted_affine():
             raise ValueError("the Cartan type must be of twisted type")
-        return super(QSystem, cls).__classcall__(cls, base_ring, cartan_type, level, twisted)
+        return super().__classcall__(cls, base_ring, cartan_type, level, twisted)
 
     def __init__(self, base_ring, cartan_type, level, twisted):
         """
@@ -180,7 +179,7 @@ class QSystem(CombinatorialFreeModule):
         CombinatorialFreeModule.__init__(self, base_ring, basis,
                                          prefix='Q', category=category)
 
-    def _repr_(self):
+    def _repr_(self) -> str:
         r"""
         Return a string representation of ``self``.
 
@@ -200,7 +199,7 @@ class QSystem(CombinatorialFreeModule):
             res += "Twisted "
         return "{}Q-system of type {} over {}".format(res, self._cartan_type, self.base_ring())
 
-    def _repr_term(self, t):
+    def _repr_term(self, t) -> str:
         """
         Return a string representation of the basis element indexed by ``t``.
 
@@ -213,6 +212,7 @@ class QSystem(CombinatorialFreeModule):
         """
         if len(t) == 0:
             return '1'
+
         def repr_gen(x):
             ret = 'Q^({})[{}]'.format(*(x[0]))
             if x[1] > 1:
@@ -220,7 +220,7 @@ class QSystem(CombinatorialFreeModule):
             return ret
         return '*'.join(repr_gen(x) for x in t._sorted_items())
 
-    def _latex_term(self, t):
+    def _latex_term(self, t) -> str:
         r"""
         Return a `\LaTeX` representation of the basis element indexed
         by ``t``.
@@ -234,6 +234,7 @@ class QSystem(CombinatorialFreeModule):
         """
         if len(t) == 0:
             return '1'
+
         def repr_gen(x):
             ret = 'Q^{{({})}}_{{{}}}'.format(*(x[0]))
             if x[1] > 1:
@@ -263,16 +264,14 @@ class QSystem(CombinatorialFreeModule):
                 ret += AsciiArt(['*'], baseline=0)
             else:
                 first = False
-            a,m = k
+            a, m = k
             var = AsciiArt([" ({})".format(a),
                             "Q{}".format(m)],
                            baseline=0)
-            #print var
-            #print " "*(len(str(m))+1) + "({})".format(a) + '\n' + "Q{}".format(m)
             if exp > 1:
-                var = (AsciiArt(['(','('], baseline=0) + var
+                var = (AsciiArt(['(', '('], baseline=0) + var
                        + AsciiArt([')', ')'], baseline=0))
-                var = AsciiArt([" "*len(var) + str(exp)], baseline=-1) * var
+                var = AsciiArt([" " * len(var) + str(exp)], baseline=-1) * var
             ret += var
         return ret
 
@@ -293,10 +292,10 @@ class QSystem(CombinatorialFreeModule):
         ret = UnicodeArt("")
         for k, exp in t._sorted_items():
             a,m = k
-            var = UnicodeArt([u"Q" + unicode_subscript(m) + u'⁽' + unicode_superscript(a) + u'⁾'], baseline=0)
+            var = UnicodeArt(["Q" + unicode_subscript(m) + '⁽' + unicode_superscript(a) + '⁾'], baseline=0)
             if exp > 1:
-                var = (UnicodeArt([u'('], baseline=0) + var
-                       + UnicodeArt([u')' + unicode_superscript(exp)], baseline=0))
+                var = (UnicodeArt(['('], baseline=0) + var
+                       + UnicodeArt([')' + unicode_superscript(exp)], baseline=0))
             ret += var
         return ret
 
@@ -382,7 +381,7 @@ class QSystem(CombinatorialFreeModule):
         d = {a: self.Q(a, 1) for a in I}
         return Family(I, d.__getitem__)
 
-    def gens(self):
+    def gens(self) -> tuple:
         """
         Return the generators of ``self``.
 
@@ -446,12 +445,12 @@ class QSystem(CombinatorialFreeModule):
             if m == t[a] * self._level:
                 return self.one()
         if m == 1:
-            return self.monomial( self._indices.gen((a,1)) )
+            return self.monomial(self._indices.gen((a,1)))
         #if self._cartan_type.type() == 'A' and self._level is None:
         #    return self._jacobi_trudy(a, m)
         I = self._cm.index_set()
         p = self._Q_poly(a, m)
-        return p.subs({ g: self.Q(I[i], 1) for i,g in enumerate(self._poly.gens()) })
+        return p.subs({g: self.Q(I[i], 1) for i,g in enumerate(self._poly.gens())})
 
     @cached_method
     def _Q_poly(self, a, m):
@@ -563,9 +562,11 @@ class QSystem(CombinatorialFreeModule):
                  + Q^(2)[1]^2*Q^(4)[1] - Q^(2)[1]*Q^(3)[1]^2
             """
             return self.parent().sum_of_terms((tl*tr, cl*cr)
-                                              for tl,cl in self for tr,cr in x)
+                                              for tl, cl in self
+                                              for tr, cr in x)
 
-def is_tamely_laced(ct):
+
+def is_tamely_laced(ct) -> bool:
     r"""
     Check if the Cartan type ``ct`` is tamely-laced.
 
@@ -604,4 +605,3 @@ def is_tamely_laced(ct):
     I = ct.index_set()
     return all(-cm[j,i] == 1 and d[i] == 1
                for i in I for j in I if cm[i,j] < -1)
-

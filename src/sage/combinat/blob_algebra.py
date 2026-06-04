@@ -1,6 +1,6 @@
-# -*- coding: utf-8 -*-
+# sage.doctest: needs sage.combinat sage.modules
 r"""
-Blob Algebras
+Blob algebras
 
 AUTHORS:
 
@@ -17,22 +17,21 @@ AUTHORS:
 #                  https://www.gnu.org/licenses/
 # ****************************************************************************
 
-from sage.structure.parent import Parent
-from sage.structure.unique_representation import UniqueRepresentation
-from sage.structure.element import Element, get_coercion_model
-from sage.structure.richcmp import richcmp
-#from sage.misc.inherit_comparison import InheritComparisonClasscallMetaclass
-from sage.misc.cachefunc import cached_method
-from sage.misc.misc import powerset
-from sage.functions.other import binomial
-from sage.categories.finite_enumerated_sets import FiniteEnumeratedSets
 from sage.categories.algebras import Algebras
+from sage.categories.finite_enumerated_sets import FiniteEnumeratedSets
 from sage.combinat.diagram_algebras import (TemperleyLiebDiagrams, diagram_latex,
                                             TL_diagram_ascii_art)
-from sage.combinat.free_module import CombinatorialFreeModule
 from sage.combinat.dyck_word import DyckWords
+from sage.combinat.free_module import CombinatorialFreeModule
+from sage.combinat.subset import powerset
+from sage.misc.cachefunc import cached_method
+from sage.rings.integer import Integer
+from sage.structure.element import Element, get_coercion_model
+from sage.structure.parent import Parent
+from sage.structure.richcmp import richcmp
+from sage.structure.unique_representation import UniqueRepresentation
 
-#@add_metaclass(InheritComparisonClasscallMetaclass)
+
 class BlobDiagram(Element):
     r"""
     A blob diagram.
@@ -45,6 +44,7 @@ class BlobDiagram(Element):
     those without. The blobed pairs must either be either the leftmost
     propagating strand or to the left of it and not nested.
     """
+
     def __init__(self, parent, marked, unmarked):
         r"""
         Initialize ``self``.
@@ -148,10 +148,12 @@ class BlobDiagram(Element):
         """
         return self.parent()._TL_diagrams(self.marked + self.unmarked)
 
+
 class BlobDiagrams(Parent, UniqueRepresentation):
     r"""
     The set of all blob diagrams.
     """
+
     def __init__(self, n):
         r"""
         Initialize ``self``.
@@ -162,7 +164,7 @@ class BlobDiagrams(Parent, UniqueRepresentation):
             sage: BD4 = BlobDiagrams(4)
             sage: TestSuite(BD4).run()
         """
-        self._n = n
+        self._n = Integer(n)
         self._TL_diagrams = TemperleyLiebDiagrams(n)
         Parent.__init__(self, category=FiniteEnumeratedSets())
 
@@ -176,7 +178,7 @@ class BlobDiagrams(Parent, UniqueRepresentation):
             sage: BlobDiagrams(4)
             Blob diagrams of order 4
         """
-        return "Blob diagrams of order {}".format(self._n)
+        return f"Blob diagrams of order {self._n}"
 
     def cardinality(self):
         r"""
@@ -189,7 +191,7 @@ class BlobDiagrams(Parent, UniqueRepresentation):
             sage: BD4.cardinality()
             70
         """
-        return binomial(2*self._n, self._n)
+        return (2 * self._n).binomial(self._n)
 
     def order(self):
         r"""
@@ -216,7 +218,7 @@ class BlobDiagrams(Parent, UniqueRepresentation):
             sage: sorted(BD4.base_set())
             [-4, -3, -2, -1, 1, 2, 3, 4]
         """
-        return frozenset(range(1,self._n+1)).union(range(-self._n,0))
+        return frozenset(range(1, self._n + 1)).union(range(-self._n, 0))
 
     def _element_constructor_(self, marked, unmarked=None):
         r"""
@@ -370,6 +372,7 @@ class BlobDiagrams(Parent, UniqueRepresentation):
 
     Element = BlobDiagram
 
+
 class BlobAlgebra(CombinatorialFreeModule):
     r"""
     The blob algebra.
@@ -429,7 +432,7 @@ class BlobAlgebra(CombinatorialFreeModule):
         q1 = base_ring(q1)
         q2 = base_ring(q2)
         q3 = base_ring(q3)
-        return super(BlobAlgebra, cls).__classcall__(cls, k, q1, q2, q3, base_ring, prefix)
+        return super().__classcall__(cls, k, q1, q2, q3, base_ring, prefix)
 
     def __init__(self, k, q1, q2, q3, base_ring, prefix):
         r"""
@@ -498,32 +501,32 @@ class BlobAlgebra(CombinatorialFreeModule):
             sage: R.<q,r,s> = ZZ[]
             sage: B2 = algebras.Blob(2, q, r, s)
             sage: latex(B2.an_element())  # indirect doctest
-            2\begin{tikzpicture}[scale = 0.5,thick, baseline={(0,-1ex/2)}] 
-            \tikzstyle{vertex} = [shape = circle, minimum size = 7pt, inner sep = 1pt] 
-            \node[vertex] (G--2) at (1.5, -1) [shape = circle, draw] {}; 
-            \node[vertex] (G--1) at (0.0, -1) [shape = circle, draw] {}; 
-            \node[vertex] (G-1) at (0.0, 1) [shape = circle, draw] {}; 
-            \node[vertex] (G-2) at (1.5, 1) [shape = circle, draw] {}; 
-            \draw[] (G--2) .. controls +(-0.5, 0.5) and +(0.5, 0.5) .. (G--1); 
-            \draw[] (G-1) .. controls +(0.5, -0.5) and +(-0.5, -0.5) .. (G-2); 
-            \end{tikzpicture} 
-             + 3\begin{tikzpicture}[scale = 0.5,thick, baseline={(0,-1ex/2)}] 
-            \tikzstyle{vertex} = [shape = circle, minimum size = 7pt, inner sep = 1pt] 
-            \node[vertex] (G--2) at (1.5, -1) [shape = circle, draw] {}; 
-            \node[vertex] (G--1) at (0.0, -1) [shape = circle, draw] {}; 
-            \node[vertex] (G-1) at (0.0, 1) [shape = circle, draw] {}; 
-            \node[vertex] (G-2) at (1.5, 1) [shape = circle, draw] {}; 
-            \draw[blue,very thick] (G--2) .. controls +(-0.5, 0.5) and +(0.5, 0.5) .. node[midway,circle,fill,scale=0.6] {} (G--1); 
-            \draw[] (G-1) .. controls +(0.5, -0.5) and +(-0.5, -0.5) .. (G-2); 
-            \end{tikzpicture} 
-             + 2\begin{tikzpicture}[scale = 0.5,thick, baseline={(0,-1ex/2)}] 
-            \tikzstyle{vertex} = [shape = circle, minimum size = 7pt, inner sep = 1pt] 
-            \node[vertex] (G-1) at (0.0, 1) [shape = circle, draw] {}; 
-            \node[vertex] (G-2) at (1.5, 1) [shape = circle, draw] {}; 
-            \node[vertex] (G--2) at (1.5, -1) [shape = circle, draw] {}; 
-            \node[vertex] (G--1) at (0.0, -1) [shape = circle, draw] {}; 
-            \draw[blue,very thick] (G-1) .. controls +(0.5, -0.5) and +(-0.5, -0.5) .. node[midway,circle,fill,scale=0.6] {} (G-2); 
-            \draw[] (G--2) .. controls +(-0.5, 0.5) and +(0.5, 0.5) .. (G--1); 
+            2 \begin{tikzpicture}[scale = 0.5,thick, baseline={(0,-1ex/2)}]
+            \tikzstyle{vertex} = [shape = circle, minimum size = 7pt, inner sep = 1pt]
+            \node[vertex] (G--2) at (1.5, -1) [shape = circle, draw] {};
+            \node[vertex] (G--1) at (0.0, -1) [shape = circle, draw] {};
+            \node[vertex] (G-1) at (0.0, 1) [shape = circle, draw] {};
+            \node[vertex] (G-2) at (1.5, 1) [shape = circle, draw] {};
+            \draw[] (G--2) .. controls +(-0.5, 0.5) and +(0.5, 0.5) .. (G--1);
+            \draw[] (G-1) .. controls +(0.5, -0.5) and +(-0.5, -0.5) .. (G-2);
+            \end{tikzpicture}
+             + 3 \begin{tikzpicture}[scale = 0.5,thick, baseline={(0,-1ex/2)}]
+            \tikzstyle{vertex} = [shape = circle, minimum size = 7pt, inner sep = 1pt]
+            \node[vertex] (G--2) at (1.5, -1) [shape = circle, draw] {};
+            \node[vertex] (G--1) at (0.0, -1) [shape = circle, draw] {};
+            \node[vertex] (G-1) at (0.0, 1) [shape = circle, draw] {};
+            \node[vertex] (G-2) at (1.5, 1) [shape = circle, draw] {};
+            \draw[blue,very thick] (G--2) .. controls +(-0.5, 0.5) and +(0.5, 0.5) .. node[midway,circle,fill,scale=0.6] {} (G--1);
+            \draw[] (G-1) .. controls +(0.5, -0.5) and +(-0.5, -0.5) .. (G-2);
+            \end{tikzpicture}
+             + 2 \begin{tikzpicture}[scale = 0.5,thick, baseline={(0,-1ex/2)}]
+            \tikzstyle{vertex} = [shape = circle, minimum size = 7pt, inner sep = 1pt]
+            \node[vertex] (G-1) at (0.0, 1) [shape = circle, draw] {};
+            \node[vertex] (G-2) at (1.5, 1) [shape = circle, draw] {};
+            \node[vertex] (G--2) at (1.5, -1) [shape = circle, draw] {};
+            \node[vertex] (G--1) at (0.0, -1) [shape = circle, draw] {};
+            \draw[blue,very thick] (G-1) .. controls +(0.5, -0.5) and +(-0.5, -0.5) .. node[midway,circle,fill,scale=0.6] {} (G-2);
+            \draw[] (G--2) .. controls +(-0.5, 0.5) and +(0.5, 0.5) .. (G--1);
             \end{tikzpicture}
         """
         def edge_options(P):
@@ -532,6 +535,7 @@ class BlobAlgebra(CombinatorialFreeModule):
             if tuple(P) in diagram.marked:
                 return 'blue,very thick'
             return ''
+
         def edge_additions(P):
             if P[1] < P[0]:
                 P = [P[1], P[0]]
@@ -678,4 +682,3 @@ class BlobAlgebra(CombinatorialFreeModule):
             return self.zero()
         diagram = self._indices.element_class(self._indices, ret_lists[0], ret_lists[1])
         return self._from_dict({diagram: coeff}, remove_zeros=False)
-

@@ -1,8 +1,7 @@
-# -*- coding: utf-8 -*-
 r"""
 Converting Dictionary
 
-At the moment, the only class contained in this model is a key
+At the moment, the only class contained in this module is a key
 converting dictionary, which applies some function (e.g. type
 conversion function) to all arguments used as keys.
 
@@ -26,8 +25,9 @@ arguments which are keys::
 This is used e.g. in the result of a variety, to allow access to the
 result no matter how a generator is identified::
 
+    sage: # needs sage.libs.singular sage.rings.number_field
     sage: K.<x,y> = QQ[]
-    sage: I = ideal([x^2+2*y-5,x+y+3])
+    sage: I = ideal([x^2 + 2*y - 5, x + y + 3])
     sage: V = sorted(I.variety(AA), key=str)
     sage: v = V[0]
     sage: v['x'], v['y']
@@ -35,7 +35,6 @@ result no matter how a generator is identified::
     sage: list(v)[0].parent()
     Multivariate Polynomial Ring in x, y over Algebraic Real Field
 """
-
 # ****************************************************************************
 #       Copyright (C) 2015 Martin von Gagern <Martin.vGagern@gmx.net>
 #
@@ -46,10 +45,15 @@ result no matter how a generator is identified::
 #                  https://www.gnu.org/licenses/
 # ****************************************************************************
 
-from collections.abc import Mapping
+from collections.abc import Callable, Iterable, Mapping
+from typing import Any, TypeVar, overload
+
+KT = TypeVar("KT")
+VT = TypeVar("VT")
+TDefault = TypeVar("TDefault")
 
 
-class KeyConvertingDict(dict):
+class KeyConvertingDict(dict[KT, VT]):
     r"""
     A dictionary which automatically applies a conversions to its keys.
 
@@ -62,9 +66,9 @@ class KeyConvertingDict(dict):
     INPUT:
 
     - ``key_conversion_function`` -- a function which will be
-      applied to all method arguments which represent keys.
-    - ``data`` -- optional dictionary or sequence of key-value pairs
-      to initialize this mapping.
+      applied to all method arguments which represent keys
+    - ``data`` -- (optional) dictionary or sequence of key-value pairs
+      to initialize this mapping
 
     EXAMPLES::
 
@@ -76,10 +80,15 @@ class KeyConvertingDict(dict):
         sage: d[5.0] = 64
         sage: d["05"]
         64
-
     """
 
-    def __init__(self, key_conversion_function, data=None):
+    key_conversion_function: Callable[[Any], KT]
+
+    def __init__(
+        self,
+        key_conversion_function: Callable[[Any], KT],
+        data: Mapping[Any, VT] | Iterable[tuple[Any, VT]] | None = None,
+    ) -> None:
         r"""
         Construct a dictionary with a given conversion function.
 
@@ -95,18 +104,18 @@ class KeyConvertingDict(dict):
             sage: list(KeyConvertingDict(int, [("9", 99)]).items())
             [(9, 99)]
         """
-        super(KeyConvertingDict, self).__init__()
+        super().__init__()
         self.key_conversion_function = key_conversion_function
         if data:
             self.update(data)
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: Any) -> VT:
         r"""
         Retrieve an element from the dictionary.
 
         INPUT:
 
-        - ``key`` -- A value identifying the element, will be converted.
+        - ``key`` -- a value identifying the element, will be converted
 
         EXAMPLES::
 
@@ -117,16 +126,16 @@ class KeyConvertingDict(dict):
             42
         """
         key = self.key_conversion_function(key)
-        return super(KeyConvertingDict, self).__getitem__(key)
+        return super().__getitem__(key)
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: Any, value: VT) -> None:
         r"""
         Assign an element in the dictionary.
 
         INPUT:
 
-        - ``key`` -- A value identifying the element, will be converted.
-        - ``value`` -- The associated value, will be left unmodified.
+        - ``key`` -- a value identifying the element, will be converted
+        - ``value`` -- the associated value, will be left unmodified
 
         EXAMPLES::
 
@@ -137,15 +146,15 @@ class KeyConvertingDict(dict):
             [(3, 42)]
         """
         key = self.key_conversion_function(key)
-        return super(KeyConvertingDict, self).__setitem__(key, value)
+        return super().__setitem__(key, value)
 
-    def __delitem__(self, key):
+    def __delitem__(self, key: Any) -> None:
         r"""
         Remove a mapping from the dictionary.
 
         INPUT:
 
-        - ``key`` -- A value identifying the element, will be converted.
+        - ``key`` -- a value identifying the element, will be converted
 
         EXAMPLES::
 
@@ -157,15 +166,15 @@ class KeyConvertingDict(dict):
             0
         """
         key = self.key_conversion_function(key)
-        return super(KeyConvertingDict, self).__delitem__(key)
+        return super().__delitem__(key)
 
-    def __contains__(self, key):
+    def __contains__(self, key: object) -> bool:
         r"""
         Test whether a given key is contained in the mapping.
 
         INPUT:
 
-        - ``key`` -- A value identifying the element, will be converted.
+        - ``key`` -- a value identifying the element, will be converted
 
         EXAMPLES::
 
@@ -178,43 +187,21 @@ class KeyConvertingDict(dict):
             False
         """
         key = self.key_conversion_function(key)
-        return super(KeyConvertingDict, self).__contains__(key)
+        return super().__contains__(key)
 
-    def has_key(self, key):
-        r"""
-        Deprecated; present just for the sake of compatibility.
+    @overload
+    def pop(self, key: Any) -> VT: ...
+    @overload
+    def pop(self, key: Any, default: TDefault) -> VT | TDefault: ...
 
-        Use ``key in self`` instead.
-
-        INPUT:
-
-        - ``key`` -- A value identifying the element, will be converted.
-
-        EXAMPLES::
-
-            sage: from sage.misc.converting_dict import KeyConvertingDict
-            sage: d = KeyConvertingDict(int)
-            sage: d[3] = 42
-            sage: d.has_key("3")
-            doctest:warning...:
-            DeprecationWarning: use 'key in dictionary' syntax instead
-            See https://trac.sagemath.org/25281 for details.
-            True
-            sage: d.has_key(4)
-            False
-        """
-        from sage.misc.superseded import deprecation
-        deprecation(25281, "use 'key in dictionary' syntax instead")
-        return key in self
-
-    def pop(self, key, *args):
+    def pop(self, key: Any, *args: Any) -> VT | Any:
         r"""
         Remove and retrieve a given element from the dictionary.
 
         INPUT:
 
-        - ``key`` -- A value identifying the element, will be converted.
-        - ``default`` -- The value to return if the element is not mapped, optional.
+        - ``key`` -- a value identifying the element, will be converted
+        - ``default`` -- the value to return if the element is not mapped, optional
 
         EXAMPLES::
 
@@ -231,17 +218,24 @@ class KeyConvertingDict(dict):
             KeyError: ...
         """
         key = self.key_conversion_function(key)
-        return super(KeyConvertingDict, self).pop(key, *args)
+        return super().pop(key, *args)
 
-    def setdefault(self, key, default=None):
+    @overload
+    def setdefault(self, key: Any) -> VT | None: ...
+    @overload
+    def setdefault(self, key: Any, default: VT) -> VT: ...
+    @overload
+    def setdefault(self, key: Any, default: TDefault) -> VT | TDefault: ...
+
+    def setdefault(self, key: Any, default: VT | TDefault | None = None) -> VT | TDefault | None:
         r"""
         Create a given mapping unless there already exists a mapping
         for that key.
 
         INPUT:
 
-        - ``key`` -- A value identifying the element, will be converted.
-        - ``default`` -- The value to associate with the key.
+        - ``key`` -- a value identifying the element, will be converted
+        - ``default`` -- the value to associate with the key
 
         EXAMPLES::
 
@@ -252,19 +246,19 @@ class KeyConvertingDict(dict):
             [(3, None)]
         """
         key = self.key_conversion_function(key)
-        return super(KeyConvertingDict, self).setdefault(key, default)
+        return super().setdefault(key, default)
 
-    def update(self, *args, **kwds):
+    def update(self, *args: Any, **kwds: Any) -> None:
         r"""
         Update the dictionary with key-value pairs from another dictionary,
         sequence of key-value pairs, or keyword arguments.
 
         INPUT:
 
-        - ``key`` -- A value identifying the element, will be converted.
-        - ``args`` -- A single dict or sequence of pairs.
-        - ``kwds`` -- Named elements require that the conversion
-          function accept strings.
+        - ``key`` -- a value identifying the element, will be converted
+        - ``args`` -- a single dict or sequence of pairs
+        - ``kwds`` -- named elements require that the conversion
+          function accept strings
 
         EXAMPLES::
 
@@ -282,7 +276,7 @@ class KeyConvertingDict(dict):
             {x: 42}
         """
         f = self.key_conversion_function
-        u = super(KeyConvertingDict, self).update
+        u = super().update
         if args:
             if len(args) != 1:
                 raise TypeError("update expected at most 1 argument")
@@ -295,3 +289,27 @@ class KeyConvertingDict(dict):
         if kwds:
             seq = ((f(k), v) for k, v in kwds.items())
             u(seq)
+
+    def _repr_pretty_(self, p: Any, cycle: bool) -> None:
+        """
+        For pretty printing in the Sage command prompt.
+
+        Since ``KeyConvertingDict`` inherits from ``dict``, we just use IPython's
+        built-in ``dict`` pretty printer.
+        When :issue:`36801` is fixed, this function will be redundant.
+
+        EXAMPLES::
+
+            sage: from sage.misc.converting_dict import KeyConvertingDict
+            sage: d = KeyConvertingDict(int)
+            sage: d["3"] = 4
+            sage: d["1"] = 2
+            sage: repr(d)    # dictionaries are insertion ordered
+            '{3: 4, 1: 2}'
+            sage: d          # indirect doctest
+            {1: 2, 3: 4}
+
+        The last example output will be ``{3: 4, 1: 2}`` outside of doctesting,
+        see :func:`sage.doctest.forker.init_sage`.
+        """
+        p.pretty(dict(self))

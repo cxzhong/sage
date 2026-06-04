@@ -1,4 +1,4 @@
-"""
+r"""
 Dense matrices over `\ZZ/n\ZZ` for `n` small using the LinBox library (FFLAS/FFPACK)
 
 FFLAS/FFPACK are libraries to provide BLAS/LAPACK-style routines for
@@ -23,7 +23,7 @@ EXAMPLES::
     sage: A.rank()
     4
     sage: v = vector(GF(127), 4, (100, 93, 47, 110))
-    sage: x = A\v
+    sage: x = A.solve_right(v)
     sage: A*x == v
     True
 
@@ -71,10 +71,9 @@ We test corner cases for multiplication::
     ....:         print('Uncaught dimension mismatch!')
     ....:     except (IndexError, TypeError, ArithmeticError):
     ....:         pass
-
 """
 
-#*****************************************************************************
+# ****************************************************************************
 #       Copyright (C) 2004,2005,2006 William Stein <wstein@gmail.com>
 #       Copyright (C) 2011 Burcin Erocal <burcin@erocal.org>
 #       Copyright (C) 2011 Martin Albrecht <martinralbrecht@googlemail.com>
@@ -84,24 +83,26 @@ We test corner cases for multiplication::
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
 from libc.stdint cimport uint64_t
 from cpython.bytes cimport *
 
-from cysignals.memory cimport check_malloc, check_allocarray, sig_malloc, sig_free
+from cysignals.memory cimport check_malloc, check_allocarray, check_calloc, sig_malloc, sig_free
 from cysignals.signals cimport sig_check, sig_on, sig_off
 
 from sage.libs.gmp.mpz cimport *
 from sage.libs.linbox.fflas cimport FFLAS_TRANSPOSE, FflasNoTrans, FflasTrans, \
-    FflasRight, vector, list as std_list
+    FfpackTileRecursive, FflasLeft, FflasRight, vector, list as std_list, \
+    RankProfileFromLU, PLUQtoEchelonPermutation, MathPerm2LAPACKPerm
+
 from libcpp cimport bool
 from sage.parallel.parallelism import Parallelism
 
 cimport sage.rings.fast_arith
 cdef sage.rings.fast_arith.arith_int ArithIntObj
-ArithIntObj  = sage.rings.fast_arith.arith_int()
+ArithIntObj = sage.rings.fast_arith.arith_int()
 
 # for copying/pickling
 from libc.string cimport memcpy
@@ -109,13 +110,13 @@ from libc.stdio cimport snprintf
 
 from sage.modules.vector_modn_dense cimport Vector_modn_dense
 
-from sage.arith.all import is_prime
+from sage.arith.misc import is_prime
 from sage.structure.element cimport (Element, Vector, Matrix,
-        ModuleElement, RingElement)
+                                     ModuleElement, RingElement)
 from sage.matrix.matrix_dense cimport Matrix_dense
 from sage.matrix.matrix_integer_dense cimport Matrix_integer_dense
 from sage.rings.finite_rings.integer_mod cimport IntegerMod_int, IntegerMod_abstract
-from sage.misc.misc import cputime
+from sage.misc.timing import cputime
 from sage.misc.verbose import verbose, get_verbose
 from sage.rings.integer cimport Integer
 from sage.rings.integer_ring import ZZ
@@ -123,7 +124,8 @@ from sage.structure.proof.proof import get_flag as get_proof_flag
 from sage.structure.richcmp cimport rich_to_bool
 from sage.misc.randstate cimport randstate, current_randstate
 import sage.matrix.matrix_space as matrix_space
-from .args cimport MatrixArgs_init
+from sage.matrix.args cimport SparseEntry, MatrixArgs_init
+from sage.matrix.matrix_utils cimport check_matrix_multiplication_sizes
 
 
 from sage.cpython.string cimport char_to_str
@@ -149,7 +151,7 @@ cdef inline celement_invert(celement a, celement n):
         # always: gcd (n,residue) = gcd (x_int,y_int)
         #         sx*n + tx*residue = x_int
         #         sy*n + ty*residue = y_int
-        q = x_int / y_int # integer quotient
+        q = x_int / y_int  # integer quotient
         temp = y_int
         y_int = x_int - q * y_int
         x_int = temp
@@ -158,7 +160,7 @@ cdef inline celement_invert(celement a, celement n):
         tx = temp
 
     if tx < 0:
-         tx += <int>n
+        tx += <int>n
 
     # now x_int = gcd (n,residue)
     return <celement>tx
@@ -176,62 +178,117 @@ cdef inline bint linbox_is_zero(celement modulus, celement* entries, Py_ssize_t 
 
 cdef inline linbox_echelonize(celement modulus, celement* entries, Py_ssize_t nrows, Py_ssize_t ncols):
     """
-    Return the reduced row echelon form of this matrix.
+    In-place transform this matrix into its reduced row echelon form, and return
+    the rank `r` of this matrix as well as two lists of length `r`, sorted
+    increasingly. The first list gives the column rank profile of this matrix
+    (which is also that of its reduced row echelon form) while the second list
+    gives the row rank profile of the input matrix (which may differ from that
+    of its reduced row echelon form).
     """
-
     if linbox_is_zero(modulus, entries, nrows, ncols):
-        return 0,[]
+        return 0, [], []
 
     cdef Py_ssize_t i, j
     cdef ModField *F = new ModField(<long>modulus)
     cdef size_t* P = <size_t*>check_allocarray(nrows, sizeof(size_t))
     cdef size_t* Q = <size_t*>check_allocarray(ncols, sizeof(size_t))
+    cdef size_t* Qperm = <size_t*>check_allocarray(ncols, sizeof(size_t))
+
+    cdef size_t* rrp = <size_t*>check_allocarray(nrows, sizeof(size_t))
+    cdef size_t* crp = <size_t*>check_allocarray(ncols, sizeof(size_t))
 
     cdef Py_ssize_t r
-    cpdef size_t nbthreads
+    cdef size_t nbthreads
     nbthreads = Parallelism().get('linbox')
     cdef bool transform = False
-    if nrows*ncols > 1000: sig_on()
+    if nrows * ncols > 1000:
+        sig_on()
     if nbthreads > 1 :
-        r = pReducedRowEchelonForm(F[0], nrows, ncols, <ModField.Element*>entries, ncols, P, Q, transform, nbthreads)
+        r = pReducedRowEchelonForm(F[0], nrows, ncols, <ModField.Element*>entries,
+                                   ncols, P, Q, transform, nbthreads, FfpackTileRecursive)
     else :
-        r = ReducedRowEchelonForm(F[0], nrows, ncols, <ModField.Element*>entries, ncols, P, Q)
-    if nrows*ncols > 1000: sig_off()
+        r = ReducedRowEchelonForm(F[0], nrows, ncols, <ModField.Element*>entries, ncols, P, Q,
+                                  transform, FfpackTileRecursive)
+    if nrows * ncols > 1000:
+        sig_off()
 
+    # extract row and column rank profiles
+    RankProfileFromLU(P, nrows, r, rrp, FfpackTileRecursive)
+    RankProfileFromLU(Q, ncols, r, crp, FfpackTileRecursive)
+
+    cdef list pivots = [int(crp[i]) for i in range(r)]
+    cdef list pivot_rows = [int(rrp[i]) for i in range(r)]
+
+    # row permutation into echelon
+    PLUQtoEchelonPermutation(ncols, r, Q, Qperm)
+    applyP(F[0], FflasLeft, FflasNoTrans, ncols, 0, r, <ModField.Element*>entries, ncols, Qperm)
+
+    # fill top left with identity
     for i in range(nrows):
         for j in range(r):
-            (entries+i*ncols+j)[0] = 0
+            (entries + i*ncols + j)[0] = 0
         if i<r:
-            (entries + i*(ncols+1))[0] = 1
+            (entries + i*ncols + i)[0] = 1
 
-    applyP(F[0], FflasRight, FflasNoTrans, nrows, 0, r, <ModField.Element*>entries, ncols, Q)
+    # column permutation to put pivots in correct columns
+    piv = 0
+    ipiv = r
+    idx = 0
+    while idx < r and ipiv < ncols:
+        if crp[idx] > piv:
+            crp[ipiv] = piv
+            ipiv += 1
+            piv += 1
+        else:
+            idx += 1
+            piv += 1
+    while ipiv < ncols:
+        crp[ipiv] = piv
+        ipiv += 1
+        piv += 1
 
-    cdef list pivots = [int(Q[i]) for i in range(r)]
+    MathPerm2LAPACKPerm(Q, crp, ncols)
+
+    applyP(F[0], FflasRight, FflasNoTrans, nrows, 0, ncols, <ModField.Element*>entries, ncols, Q)
 
     sig_free(P)
     sig_free(Q)
+    sig_free(Qperm)
+    sig_free(rrp)
+    sig_free(crp)
     del F
-    return r, pivots
+    return r, pivots, pivot_rows
 
 cdef inline linbox_echelonize_efd(celement modulus, celement* entries, Py_ssize_t nrows, Py_ssize_t ncols):
+    """
+    In-place transform this matrix into its reduced row echelon form, and return
+    the rank `r` of this matrix as well as a list of length `r`, sorted
+    increasingly. This list gives the column rank profile of this matrix
+    (which is also that of its reduced row echelon form).
+    """
     # See trac #13878: This is to avoid sending invalid data to linbox,
     # which would yield a segfault in Sage's debug version. TODO: Fix
     # that bug upstream.
     if nrows == 0 or ncols == 0:
-        return 0,[]
+        return 0, []
 
     cdef ModField *F = new ModField(<long>modulus)
-    cdef DenseMatrix *A = new DenseMatrix(F[0], <ModField.Element*>entries,<Py_ssize_t>nrows, <Py_ssize_t>ncols)
-    cdef Py_ssize_t r = reducedRowEchelonize(A[0])
-    cdef Py_ssize_t i,j
+    cdef DenseMatrix *A = new DenseMatrix(F[0], nrows, ncols)
+
+    cdef Py_ssize_t i, j
     for i in range(nrows):
         for j in range(ncols):
-            entries[i*ncols+j] = <celement>A.getEntry(i,j)
+            A.setEntry(i, j, entries[i*ncols+j])
+
+    cdef Py_ssize_t r = reducedRowEchelonize(A[0])
+    for i in range(nrows):
+        for j in range(ncols):
+            entries[i*ncols+j] = <celement>A.getEntry(i, j)
 
     cdef Py_ssize_t ii = 0
     cdef list pivots = []
     for i in range(r):
-        for j in range(ii,ncols):
+        for j in range(ii, ncols):
             if entries[i*ncols+j] == 1:
                 pivots.append(j)
                 ii = j+1
@@ -256,81 +313,89 @@ cdef inline int linbox_rank(celement modulus, celement* entries, Py_ssize_t nrow
 
     cdef celement *cpy = linbox_copy(modulus, entries, nrows, ncols)
 
-    cpdef Py_ssize_t r
-    cpdef size_t nbthreads
+    cdef Py_ssize_t r
+    cdef size_t nbthreads
     nbthreads = Parallelism().get('linbox')
-    if nrows*ncols > 1000: sig_on()
+    if nrows * ncols > 1000:
+        sig_on()
     if nbthreads > 1:
         r = pRank(F[0], nrows, ncols, <ModField.Element*>cpy, ncols, nbthreads)
     else:
         r = Rank(F[0], nrows, ncols, <ModField.Element*>cpy, ncols)
-    if nrows*ncols > 1000: sig_off()
+    if nrows * ncols > 1000:
+        sig_off()
     sig_free(cpy)
     del F
     return r
 
-cdef inline celement linbox_det(celement modulus, celement* entries, Py_ssize_t n):
+cdef inline celement linbox_det(celement modulus, celement* entries, Py_ssize_t n) noexcept:
     """
     Return the determinant of this matrix.
     """
     cdef ModField *F = new ModField(<long>modulus)
     cdef celement *cpy = linbox_copy(modulus, entries, n, n)
 
-    cdef celement d
-    cpdef size_t nbthreads
+    cdef celement d = 0
+    cdef size_t nbthreads
     nbthreads = Parallelism().get('linbox')
 
-    if n*n > 1000: sig_on()
+    if n*n > 1000:
+        sig_on()
     if nbthreads > 1 :
         pDet(F[0], d, n, <ModField.Element*>cpy, n, nbthreads)
     else :
         Det(F[0], d, n, <ModField.Element*>cpy, n)
-    if n*n > 1000: sig_off()
+    if n*n > 1000:
+        sig_off()
     sig_free(cpy)
     del F
     return d
 
-cdef inline celement linbox_matrix_matrix_multiply(celement modulus, celement* ans, celement* A, celement* B, Py_ssize_t m, Py_ssize_t n, Py_ssize_t k) :
+cdef inline celement linbox_matrix_matrix_multiply(celement modulus, celement* ans, celement* A, celement* B, Py_ssize_t m, Py_ssize_t n, Py_ssize_t k)  noexcept:
     """
     C = A*B
     """
     cdef ModField *F = new ModField(<long>modulus)
-    cdef ModField.Element one, zero
+    cdef ModField.Element one = 0, zero = 0
     F[0].init(one, <int>1)
     F[0].init(zero, <int>0)
 
-    cpdef size_t nbthreads
+    cdef size_t nbthreads
     nbthreads = Parallelism().get('linbox')
 
-    if m*n*k > 100000: sig_on()
+    if m*n*k > 100000:
+        sig_on()
     if nbthreads > 1 :
         pfgemm(F[0], FflasNoTrans, FflasNoTrans, m, n, k, one,
                <ModField.Element*>A, k, <ModField.Element*>B, n, zero,
                <ModField.Element*>ans, n, nbthreads)
-    else :
+    else:
         fgemm(F[0], FflasNoTrans, FflasNoTrans, m, n, k, one,
-               <ModField.Element*>A, k, <ModField.Element*>B, n, zero,
-               <ModField.Element*>ans, n)
+              <ModField.Element*>A, k, <ModField.Element*>B, n, zero,
+              <ModField.Element*>ans, n)
 
-    if m*n*k > 100000: sig_off()
+    if m*n*k > 100000:
+        sig_off()
 
     del F
 
-cdef inline int linbox_matrix_vector_multiply(celement modulus, celement* C, celement* A, celement* b, Py_ssize_t m, Py_ssize_t n, FFLAS_TRANSPOSE trans):
+cdef inline int linbox_matrix_vector_multiply(celement modulus, celement* C, celement* A, celement* b, Py_ssize_t m, Py_ssize_t n, FFLAS_TRANSPOSE trans) noexcept:
     """
     C = A*v
     """
     cdef ModField *F = new ModField(<long>modulus)
-    cdef ModField.Element one, zero
+    cdef ModField.Element one = 0, zero = 0
     F.init(one, <int>1)
     F.init(zero, <int>0)
 
-    if m*n > 100000: sig_on()
+    if m*n > 100000:
+        sig_on()
 
     fgemv(F[0], trans,  m, n, one, <ModField.Element*>A, n, <ModField.Element*>b, 1,
-               zero, <ModField.Element*>C, 1)
+          zero, <ModField.Element*>C, 1)
 
-    if m*n > 100000: sig_off()
+    if m*n > 100000:
+        sig_off()
 
     del F
 
@@ -342,13 +407,13 @@ cdef inline linbox_minpoly(celement modulus, Py_ssize_t nrows, celement* entries
     cdef ModField *F = new ModField(<long>modulus)
     cdef vector[ModField.Element] *minP = new vector[ModField.Element]()
 
-    if nrows*nrows > 1000: sig_on()
+    if nrows*nrows > 1000:
+        sig_on()
     MinPoly(F[0], minP[0], nrows, <ModField.Element*>entries, nrows)
-    if nrows*nrows > 1000: sig_off()
+    if nrows*nrows > 1000:
+        sig_off()
 
-    l = []
-    for i in range(minP.size()):
-        l.append( <celement>minP.at(i) )
+    l = [<celement>minP.at(i) for i in range(minP.size())]
 
     del F
     return l
@@ -364,9 +429,11 @@ cdef inline linbox_charpoly(celement modulus, Py_ssize_t nrows, celement* entrie
 
     cdef celement *cpy = linbox_copy(modulus, entries, nrows, nrows)
 
-    if nrows*nrows > 1000: sig_on()
+    if nrows * nrows > 1000:
+        sig_on()
     CharPoly(R[0], P, nrows, <ModField.Element*>cpy, nrows)
-    if nrows*nrows > 1000: sig_off()
+    if nrows * nrows > 1000:
+        sig_off()
 
     sig_free(cpy)
 
@@ -386,52 +453,29 @@ cpdef __matrix_from_rows_of_matrices(X):
 
     INPUT:
 
-    - ``X`` - a nonempty list of matrices of the same size mod a
-       single modulus `n`
+    - ``X`` -- a nonempty list of matrices of the same size mod a
+      single modulus `n`
 
     EXAMPLES::
 
-        sage: X = [random_matrix(GF(17), 4, 4, implementation='linbox') for _ in range(10)]; X
-        [
-        [ 2 14  0 15]  [12 14  3 13]  [ 9 15  8  1]  [ 2 12  6 10]
-        [11 10 16  2]  [10  1 14  6]  [ 5  8 10 11]  [12  0  6  9]
-        [ 9  4 10 14]  [ 2 14 13  7]  [ 5 12  4  9]  [ 7  7  3  8]
-        [ 1 14  3 14], [ 6 14 10  3], [15  2  6 11], [ 2  9  1  5],
-        <BLANKLINE>
-        [12 13  7 16]  [ 5  3 16  2]  [14 15 16  4]  [ 1 15 11  0]
-        [ 7 11 11  1]  [11 10 12 14]  [14  1 12 13]  [16 13  8 14]
-        [ 0  2  0  4]  [ 0  7 16  4]  [ 5  5 16 13]  [13 14 16  4]
-        [ 7  9  8 15], [ 6  5  2  3], [10 12  1  7], [15  6  6  6],
-        <BLANKLINE>
-        [ 4 10 11 15]  [13 12  5  1]
-        [11  2  9 14]  [16 13 16  7]
-        [12  5  4  4]  [12  2  0 11]
-        [ 2  0 12  8], [13 11  6 15]
-        ]
+        sage: X = [random_matrix(GF(17), 4, 4, implementation='linbox') for _ in range(10)]
         sage: X[0]._matrix_from_rows_of_matrices(X) # indirect doctest
-        [ 2 14  0 15 11 10 16  2  9  4 10 14  1 14  3 14]
-        [12 14  3 13 10  1 14  6  2 14 13  7  6 14 10  3]
-        [ 9 15  8  1  5  8 10 11  5 12  4  9 15  2  6 11]
-        [ 2 12  6 10 12  0  6  9  7  7  3  8  2  9  1  5]
-        [12 13  7 16  7 11 11  1  0  2  0  4  7  9  8 15]
-        [ 5  3 16  2 11 10 12 14  0  7 16  4  6  5  2  3]
-        [14 15 16  4 14  1 12 13  5  5 16 13 10 12  1  7]
-        [ 1 15 11  0 16 13  8 14 13 14 16  4 15  6  6  6]
-        [ 4 10 11 15 11  2  9 14 12  5  4  4  2  0 12  8]
-        [13 12  5  1 16 13 16  7 12  2  0 11 13 11  6 15]
+        sage: Y = X[0]._matrix_from_rows_of_matrices(X)  # indirect doctest
+        sage: all(list(Y[i]) == X[i].list() for i in range(10))
+        True
 
-    OUTPUT: A single matrix mod ``p`` whose ``i``-th row is ``X[i].list()``.
+    OUTPUT: a single matrix mod ``p`` whose ``i``-th row is ``X[i].list()``.
 
-    .. note::
+    .. NOTE::
 
          Do not call this function directly but use the static method
          ``Matrix_modn_dense_float/double._matrix_from_rows_of_matrices``
     """
     # The code below is just a fast version of the following:
-    ##     from constructor import matrix
-    ##     K = X[0].base_ring()
-    ##     v = sum([y.list() for y in X],[])
-    ##     return matrix(K, len(X), X[0].nrows()*X[0].ncols(), v)
+    #     from constructor import matrix
+    #     K = X[0].base_ring()
+    #     v = sum([y.list() for y in X],[])
+    #     return matrix(K, len(X), X[0].nrows()*X[0].ncols(), v)
 
     cdef Matrix_modn_dense_template T
     cdef Py_ssize_t i, n, m
@@ -439,7 +483,7 @@ cpdef __matrix_from_rows_of_matrices(X):
 
     T = X[0]
     m = T._nrows * T._ncols
-    cdef Matrix_modn_dense_template A = T.new_matrix(nrows = n, ncols = m)
+    cdef Matrix_modn_dense_template A = T.new_matrix(nrows=n, ncols=m)
 
     for i from 0 <= i < n:
         T = X[i]
@@ -448,21 +492,28 @@ cpdef __matrix_from_rows_of_matrices(X):
 
 
 cdef class Matrix_modn_dense_template(Matrix_dense):
-    def __cinit__(self):
+    def __cinit__(self, *args, bint zeroed_alloc=True, **kwds):
         cdef long p = self._base_ring.characteristic()
         self.p = p
         if p >= MAX_MODULUS:
-            raise OverflowError("p (=%s) must be < %s."%(p, MAX_MODULUS))
+            raise OverflowError("p (=%s) must be < %s." % (p, MAX_MODULUS))
 
-        self._entries = <celement *>check_allocarray(self._nrows * self._ncols, sizeof(celement))
-        self._matrix = <celement **>check_allocarray(self._nrows, sizeof(celement*))
+        if zeroed_alloc:
+            self._entries = <celement *> check_calloc(self._nrows * self._ncols, sizeof(celement))
+        else:
+            self._entries = <celement *> check_allocarray(self._nrows * self._ncols, sizeof(celement))
 
-        cdef unsigned int k
+        # TODO: it is a bit of a waste to allocate _matrix when ncols=0. Though some
+        # of the code expects self._matrix[i] to be valid, even though it points to
+        # an empty vector.
+        self._matrix = <celement **> check_allocarray(self._nrows, sizeof(celement*))
+        if self._nrows == 0:
+            return
+
         cdef Py_ssize_t i
-        k = 0
-        for i in range(self._nrows):
-            self._matrix[i] = self._entries + k
-            k = k + self._ncols
+        self._matrix[0] = self._entries
+        for i in range(self._nrows - 1):
+            self._matrix[i + 1] = self._matrix[i] + self._ncols
 
     def __dealloc__(self):
         """
@@ -495,7 +546,7 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
 
         - ``copy`` -- ignored (for backwards compatibility)
 
-        - ``coerce`` - perform modular reduction first?
+        - ``coerce`` -- perform modular reduction first?
 
         EXAMPLES::
 
@@ -507,7 +558,7 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
             <type 'sage.matrix.matrix_modn_dense_float.Matrix_modn_dense_float'>
             sage: A = random_matrix(Integers(2^16), 1000, 1000, implementation='linbox')
             sage: type(A)
-            <type 'sage.matrix.matrix_modn_dense_double.Matrix_modn_dense_double'>
+            <class 'sage.matrix.matrix_modn_dense_double.Matrix_modn_dense_double'>
 
         TESTS::
 
@@ -522,30 +573,15 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
             sage: Matrix(Integers(4618990), 2, 2, [-1, int(-2), GF(7)(-3), 1/7], implementation='linbox')
             [4618989 4618988]
             [      4 2639423]
+
+            sage: Matrix(IntegerModRing(200), [[int(2**128+1), int(2**256+1), int(2**1024+1)]])        # needs sage.rings.finite_rings
+            [ 57 137  17]
         """
         ma = MatrixArgs_init(parent, entries)
         cdef long i, j
-        it = ma.iter(False)
+        it = ma.iter(convert=False, sparse=True)
         R = ma.base
         p = R.characteristic()
-        for i in range(ma.nrows):
-            v = self._matrix[i]
-            for j in range(ma.ncols):
-                x = next(it)
-                if type(x) is int:
-                    tmp = (<long>x) % p
-                    v[j] = tmp + (tmp<0)*p
-                elif type(x) is IntegerMod_int and (<IntegerMod_int>x)._parent is R:
-                    v[j] = <celement>(<IntegerMod_int>x).ivalue
-                elif type(x) is Integer:
-                    if coerce:
-                        v[j] = mpz_fdiv_ui((<Integer>x).value, p)
-                    else:
-                        v[j] = mpz_get_ui((<Integer>x).value)
-                elif coerce:
-                    v[j] = R(x)
-                else:
-                    v[j] = <celement>x
 
     def _change_implementation(self, implementation):
         """
@@ -577,22 +613,17 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
             mat.subdivide(self.subdivisions())
         return mat
 
-    cdef long _hash_(self) except -1:
+    cdef Py_hash_t _hash_(self) except -1:
         """
         EXAMPLES::
 
             sage: B = random_matrix(GF(127), 3, 3, implementation='linbox')
             sage: B.set_immutable()
-            sage: {B:0} # indirect doctest
-            {[  9  75  94]
-            [  4  57 112]
-            [ 59  85  45]: 0}
+            sage: _ = {B:0} # indirect doctest
 
             sage: M = random_matrix(GF(7), 10, 10, implementation='linbox')
             sage: M.set_immutable()
-            sage: hash(M)
-            -5724333594806680561  # 64-bit
-            -1581874161           # 32-bit
+            sage: _ = hash(M)
             sage: MZ = M.change_ring(ZZ)
             sage: MZ.set_immutable()
             sage: hash(MZ) == hash(M)
@@ -616,7 +647,8 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
         cdef long C[5]
         self.get_hash_constants(C)
 
-        cdef long h = 0, k, l
+        cdef Py_hash_t h = 0
+        cdef long k, l
         cdef Py_ssize_t i, j
         cdef celement* row
         sig_on()
@@ -767,7 +799,7 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
 
             PyBytes_AsStringAndSize(s, &buf, &buflen)
             if buflen != expectedlen:
-                raise ValueError("incorrect size in matrix pickle (expected %d, got %d)"%(expectedlen, buflen))
+                raise ValueError("incorrect size in matrix pickle (expected %d, got %d)" % (expectedlen, buflen))
 
             sig_on()
             try:
@@ -784,7 +816,7 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
                     for i from 0 <= i < self._nrows:
                         row_self = self._matrix[i]
                         for j from 0 <= j < self._ncols:
-                            v  = <mod_int>(us[0])
+                            v = <mod_int>(us[0])
                             v += <mod_int>(us[1]) << 8
                             v += <mod_int>(us[2]) << 16
                             v += <mod_int>(us[3]) << 24
@@ -796,7 +828,7 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
                     for i from 0 <= i < self._nrows:
                         row_self = self._matrix[i]
                         for j from 0 <= j < self._ncols:
-                            v  = <mod_int>(us[word_size-1])
+                            v = <mod_int>(us[word_size-1])
                             v += <mod_int>(us[word_size-2]) << 8
                             v += <mod_int>(us[word_size-3]) << 16
                             v += <mod_int>(us[word_size-4]) << 24
@@ -828,7 +860,8 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
         cdef Matrix_modn_dense_template M
         cdef celement p = self.p
 
-        M = self.__class__.__new__(self.__class__, self._parent,None,None,None)
+        M = self.__class__.__new__(self.__class__, self._parent,
+                                   None, None, None, zeroed_alloc=False)
 
         sig_on()
         for i in range(self._nrows*self._ncols):
@@ -862,12 +895,13 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
             sage: 3*A + 9*A == 12*A
             True
         """
-        cdef Py_ssize_t i,j
+        cdef Py_ssize_t i, j
         cdef Matrix_modn_dense_template M
         cdef celement p = self.p
         cdef celement a = left
 
-        M = self.__class__.__new__(self.__class__, self._parent,None,None,None)
+        M = self.__class__.__new__(self.__class__, self._parent,
+                                   None, None, None, zeroed_alloc=False)
 
         sig_on()
         for i in range(self._nrows*self._ncols):
@@ -886,20 +920,20 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
             False
         """
         cdef Matrix_modn_dense_template A
-        A = self.__class__.__new__(self.__class__, self._parent, 0, 0, 0)
+        A = self.__class__.__new__(self.__class__, self._parent,
+                                   None, None, None, zeroed_alloc=False)
         memcpy(A._entries, self._entries, sizeof(celement)*self._nrows*self._ncols)
         if self._subdivisions is not None:
             A.subdivide(*self.subdivisions())
         return A
 
-
     cpdef _add_(self, right):
-        """
-        Add two dense matrices over `\Z/n\Z`
+        r"""
+        Add two dense matrices over `\Z/n\Z`.
 
         INPUT:
 
-        - ``right`` - a matrix
+        - ``right`` -- a matrix
 
         EXAMPLES::
 
@@ -925,7 +959,8 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
         cdef celement k, p
         cdef Matrix_modn_dense_template M
 
-        M = self.__class__.__new__(self.__class__, self._parent,None,None,None)
+        M = self.__class__.__new__(self.__class__, self._parent,
+                                   None, None, None, zeroed_alloc=False)
         p = self.p
         cdef celement* other_ent = (<Matrix_modn_dense_template>right)._entries
 
@@ -936,10 +971,9 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
         sig_off()
         return M
 
-
     cpdef _sub_(self, right):
         r"""
-        Subtract two dense matrices over `\Z/n\Z`
+        Subtract two dense matrices over `\Z/n\Z`.
 
         EXAMPLES::
 
@@ -962,7 +996,7 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
         cdef celement k, p
         cdef Matrix_modn_dense_template M
 
-        M = self.__class__.__new__(self.__class__, self._parent, None, None, None)
+        M = self.__class__.__new__(self.__class__, self._parent, None, None, None, zeroed_alloc=False)
         p = self.p
         cdef celement* other_ent = (<Matrix_modn_dense_template>right)._entries
 
@@ -1005,11 +1039,11 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
             sage: A = matrix(ZZ, 10, 10, range(1000, 1100))
             sage: A.change_ring(GF(17)) == A.change_ring(GF(17))
             True
-            sage: A.change_ring(GF(17)) == A.change_ring(GF(19))
+            sage: A.change_ring(GF(17)) == A.change_ring(GF(19))                        # needs sage.rings.finite_rings
             False
-            sage: A.change_ring(GF(17)) == A.change_ring(Integers(2000))
+            sage: A.change_ring(GF(17)) == A.change_ring(Integers(2000))                # needs sage.rings.finite_rings
             False
-            sage: A.change_ring(GF(17)) == A.change_ring(Integers(2000))
+            sage: A.change_ring(GF(17)) == A.change_ring(Integers(2000))                # needs sage.rings.finite_rings
             False
         """
         cdef Py_ssize_t i
@@ -1027,7 +1061,7 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
 
     cdef _matrix_times_matrix_(self, Matrix right):
         """
-        return ``self*right``
+        Return ``self*right``.
 
         INPUT:
 
@@ -1036,25 +1070,14 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
         EXAMPLES::
 
             sage: A = random_matrix(GF(7), 2, 2, implementation='linbox'); A
-            [3 1]
-            [6 6]
-
             sage: B = random_matrix(GF(7), 2, 2, implementation='linbox'); B
-            [4 4]
-            [2 2]
-
-            sage: A*B
-            [0 0]
-            [1 1]
-
-            sage: 3*A
-            [2 3]
-            [4 4]
+            sage: C = A*B
+            sage: all(C[i, j] == sum(A[i, k]*B[k, j] for k in range(2)) for i in range(2) for j in range(2))
+            True
 
             sage: MS = parent(A)
-            sage: MS(3) * A
-            [2 3]
-            [4 4]
+            sage: MS(3) * A == 3*A
+            True
 
         ::
 
@@ -1081,25 +1104,14 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
         ::
 
             sage: A = random_matrix(Integers(8), 2, 2, implementation='linbox'); A
-            [0 5]
-            [6 4]
-
             sage: B = random_matrix(Integers(8), 2, 2, implementation='linbox'); B
-            [4 4]
-            [5 6]
-
-            sage: A*B
-            [1 6]
-            [4 0]
-
-            sage: 3*A
-            [0 7]
-            [2 4]
+            sage: C = A*B
+            sage: all(C[i, j] == sum(A[i, k]*B[k, j] for k in range(2)) for i in range(2) for j in range(2))
+            True
 
             sage: MS = parent(A)
-            sage: MS(3) * A
-            [0 7]
-            [2 4]
+            sage: MS(3) * A == 3*A
+            True
 
         ::
 
@@ -1126,25 +1138,14 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
         ::
 
             sage: A = random_matrix(GF(16007), 2, 2, implementation='linbox'); A
-            [ 6194 13327]
-            [ 5985  5926]
-
             sage: B = random_matrix(GF(16007), 2, 2, implementation='linbox'); B
-            [ 6901  1242]
-            [13032   859]
-
-            sage: A*B
-            [ 7618 12476]
-            [14289  6330]
-
-            sage: 3*A
-            [2575 7967]
-            [1948 1771]
+            sage: C = A*B
+            sage: all(C[i, j] == sum(A[i, k]*B[k, j] for k in range(2)) for i in range(2) for j in range(2))
+            True
 
             sage: MS = parent(A)
-            sage: MS(3) * A
-            [2575 7967]
-            [1948 1771]
+            sage: MS(3) * A == 3*A
+            True
 
         ::
 
@@ -1173,25 +1174,14 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
         ::
 
             sage: A = random_matrix(Integers(1008), 2, 2, implementation='linbox'); A
-            [ 41 973]
-            [851 876]
-
             sage: B = random_matrix(Integers(1008), 2, 2, implementation='linbox'); B
-            [180 234]
-            [680 640]
-
-            sage: A*B
-            [716 298]
-            [924 750]
-
-            sage: 3*A
-            [123 903]
-            [537 612]
+            sage: C = A*B
+            sage: all(C[i, j] == sum(A[i, k]*B[k, j] for k in range(2)) for i in range(2) for j in range(2))
+            True
 
             sage: MS = parent(A)
-            sage: MS(3) * A
-            [123 903]
-            [537 612]
+            sage: MS(3) * A == 3*A
+            True
 
         ::
 
@@ -1208,11 +1198,10 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
             True
         """
         if get_verbose() >= 2:
-            verbose('mod-p multiply of %s x %s matrix by %s x %s matrix modulo %s'%(
+            verbose('mod-p multiply of %s x %s matrix by %s x %s matrix modulo %s' % (
                     self._nrows, self._ncols, right._nrows, right._ncols, self.p))
 
-        if self._ncols != right._nrows:
-            raise ArithmeticError("right's number of rows must match self's number of columns")
+        check_matrix_multiplication_sizes(self, right)
 
         cdef int e
         cdef Matrix_modn_dense_template ans, B
@@ -1228,11 +1217,11 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
 
     cdef _vector_times_matrix_(self, Vector v):
         """
-        ``v*self``
+        Return ``v*self``.
 
         INPUT:
 
-        - ``v`` - a vector
+        - ``v`` -- a vector
 
         EXAMPLES::
 
@@ -1255,12 +1244,11 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
             sage: v = random_vector(Integers(16337), 10)
             sage: matrix(v*A) == matrix(v)*A
             True
-
         """
         if not isinstance(v, Vector_modn_dense):
-            return (self.new_matrix(1,self._nrows, entries=v.list()) * self)[0]
+            return (self.new_matrix(1, self._nrows, entries=v.list()) * self)[0]
 
-        M = self._row_ambient_module()
+        M = self.row_ambient_module()
         cdef Vector_modn_dense c = M.zero_vector()
 
         if self._ncols == 0 or self._nrows == 0:
@@ -1285,7 +1273,7 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
 
     cdef _matrix_times_vector_(self, Vector v):
         """
-        ``self*v``
+        Return ``self*v``.
 
         EXAMPLES::
 
@@ -1314,7 +1302,7 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
             from sage.modules.free_module_element import vector
             return vector(r.list())
 
-        M = self._column_ambient_module()
+        M = self.column_ambient_module()
         cdef Vector_modn_dense c = M.zero_vector()
 
         if self._ncols == 0 or self._nrows == 0:
@@ -1355,7 +1343,7 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
 
         INPUT:
 
-        - ``var`` - a variable name
+        - ``var`` -- a variable name
 
         - ``algorithm`` - 'generic', 'linbox', 'flint' or 'all' (default: linbox)
 
@@ -1374,15 +1362,13 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
             [10  8 16 18  9 18  2 13  5 10]
 
             sage: B = copy(A)
-            sage: char_p = A.characteristic_polynomial(); char_p
-            x^10 + 2*x^9 + 18*x^8 + 4*x^7 + 13*x^6 + 11*x^5 + 2*x^4 + 5*x^3 + 7*x^2 + 16*x + 6
+            sage: char_p = A.characteristic_polynomial()
             sage: char_p(A) == 0
             True
             sage: B == A              # A is not modified
             True
 
-            sage: min_p = A.minimal_polynomial(proof=True); min_p
-            x^10 + 2*x^9 + 18*x^8 + 4*x^7 + 13*x^6 + 11*x^5 + 2*x^4 + 5*x^3 + 7*x^2 + 16*x + 6
+            sage: min_p = A.minimal_polynomial(proof=True)
             sage: min_p.divides(char_p)
             True
 
@@ -1398,15 +1384,13 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
             [1797050 2128203 1161160  562535 2875615 1165768  286972]
 
             sage: B = copy(A)
-            sage: char_p = A.characteristic_polynomial(); char_p
-            x^7 + 1274305*x^6 + 1497602*x^5 + 12362*x^4 + 875330*x^3 + 31311*x^2 + 1858466*x + 700510
+            sage: char_p = A.characteristic_polynomial()
             sage: char_p(A) == 0
             True
             sage: B == A               # A is not modified
             True
 
-            sage: min_p = A.minimal_polynomial(proof=True); min_p
-            x^7 + 1274305*x^6 + 1497602*x^5 + 12362*x^4 + 875330*x^3 + 31311*x^2 + 1858466*x + 700510
+            sage: min_p = A.minimal_polynomial(proof=True)
             sage: min_p.divides(char_p)
             True
 
@@ -1470,7 +1454,7 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
         TESTS:
 
         The cached polynomial should be independent of the ``var``
-        argument (:trac:`12292`). We check (indirectly) that the
+        argument (:issue:`12292`). We check (indirectly) that the
         second call uses the cached value by noting that its result is
         not cached. The polynomial here is not unique, so we only
         check the polynomial's variable.
@@ -1478,14 +1462,13 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
             sage: M = MatrixSpace(Integers(37), 2, implementation='linbox')
             sage: A = M(range(0, 2^2))
             sage: type(A)
-            <type 'sage.matrix.matrix_modn_dense_float.Matrix_modn_dense_float'>
+            <class 'sage.matrix.matrix_modn_dense_float.Matrix_modn_dense_float'>
             sage: A.charpoly('x').variables()
             (x,)
             sage: A.charpoly('y').variables()
             (y,)
             sage: A._cache['charpoly_linbox'].variables()
             (x,)
-
         """
         cache_key = 'charpoly_%s' % algorithm
         g = self.fetch(cache_key)
@@ -1512,7 +1495,6 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
         self.cache(cache_key, g)
         return g
 
-
     def minpoly(self, var='x', algorithm='linbox', proof=None):
         """
         Return the minimal polynomial of this matrix.
@@ -1521,12 +1503,12 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
 
         INPUT:
 
-        - ``var`` - a variable name
+        - ``var`` -- a variable name
 
         - ``algorithm`` - ``generic``, ``flint`` or ``linbox`` (default:
           ``linbox``)
 
-        - ``proof`` -- (default: ``True``); whether to provably return
+        - ``proof`` -- (default: ``True``) whether to provably return
           the true minimal polynomial; if ``False``, we only guarantee
           to return a divisor of the minimal polynomial.  There are
           also certainly cases where the computed results is
@@ -1553,46 +1535,28 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
             [11  1  0  2  0  4  7  9  8 15]
             [ 5  3 16  2 11 10 12 14  0  7]
             [16  4  6  5  2  3 14 15 16  4]
-
             sage: B = copy(A)
-            sage: min_p = A.minimal_polynomial(proof=True); min_p
-            x^10 + 13*x^9 + 10*x^8 + 9*x^7 + 10*x^6 + 4*x^5 + 10*x^4 + 10*x^3 + 12*x^2 + 14*x + 7
+            sage: min_p = A.minimal_polynomial(proof=True)
             sage: min_p(A) == 0
             True
             sage: B == A
             True
 
-            sage: char_p = A.characteristic_polynomial(); char_p
-            x^10 + 13*x^9 + 10*x^8 + 9*x^7 + 10*x^6 + 4*x^5 + 10*x^4 + 10*x^3 + 12*x^2 + 14*x + 7
+            sage: char_p = A.characteristic_polynomial()
             sage: min_p.divides(char_p)
             True
 
         ::
 
             sage: A = random_matrix(GF(1214471), 10, 10, implementation='linbox'); A
-            [ 160562  831940   65852  173001  515930  714380  778254  844537  584888  392730]
-            [ 502193  959391  614352  775603  240043 1156372  104118 1175992  612032 1049083]
-            [ 660489 1066446  809624   15010 1002045  470722  314480 1155149 1173111   14213]
-            [1190467 1079166  786442  429883  563611  625490 1015074  888047 1090092  892387]
-            [   4724  244901  696350  384684  254561  898612   44844   83752 1091581  349242]
-            [ 130212  580087  253296  472569  913613  919150   38603  710029  438461  736442]
-            [ 943501  792110  110470  850040  713428  668799 1122064  325250 1084368  520553]
-            [1179743  791517   34060 1183757 1118938  642169   47513   73428 1076788  216479]
-            [ 626571  105273  400489 1041378 1186801  158611  888598 1138220 1089631   56266]
-            [1092400  890773 1060810  211135  719636 1011640  631366  427711  547497 1084281]
-
             sage: B = copy(A)
-            sage: min_p = A.minimal_polynomial(proof=True); min_p
-            x^10 + 384251*x^9 + 702437*x^8 + 960299*x^7 + 202699*x^6 + 409368*x^5 + 1109249*x^4 + 1163061*x^3 + 333802*x^2 + 273775*x + 55190
-
+            sage: min_p = A.minimal_polynomial(proof=True)
             sage: min_p(A) == 0
             True
             sage: B == A
             True
 
-            sage: char_p = A.characteristic_polynomial(); char_p
-            x^10 + 384251*x^9 + 702437*x^8 + 960299*x^7 + 202699*x^6 + 409368*x^5 + 1109249*x^4 + 1163061*x^3 + 333802*x^2 + 273775*x + 55190
-
+            sage: char_p = A.characteristic_polynomial()
             sage: min_p.divides(char_p)
             True
 
@@ -1676,9 +1640,9 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
             raise NotImplementedError("Minimal polynomials are not implemented for Z/nZ.")
 
         else:
-            raise ValueError("no algorithm '%s'"%algorithm)
+            raise ValueError("no algorithm '%s'" % algorithm)
 
-        self.cache('minpoly_%s_%s'%(algorithm, var), g)
+        self.cache('minpoly_%s_%s' % (algorithm, var), g)
         return g
 
     def minpoly_ideal(self, var='x', proof=None, **kwds):
@@ -1703,39 +1667,26 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
 
     def _charpoly_linbox(self, var='x'):
         """
-        Computes the characteristic polynomial using LinBox. No checks
+        Compute the characteristic polynomial using LinBox. No checks
         are performed.
 
         This function is called internally by ``charpoly``.
 
         INPUT:
 
-        - ``var`` - a variable name
+        - ``var`` -- a variable name
 
         EXAMPLES::
 
             sage: A = random_matrix(GF(19), 10, 10, implementation='linbox'); A
-            [ 3  1  8 10  5 16 18  9  6  1]
-            [ 5 14  4  4 14 15  5 11  3  0]
-            [ 4  1  0  7 11  6 17  8  5  6]
-            [ 4  6  9  4  8  1 18 17  8 18]
-            [11  2  0  6 13  7  4 11 16 10]
-            [12  6 12  3 15 10  5 11  3  8]
-            [15  1 16  2 18 15 14  7  2 11]
-            [16 16 17  7 14 12  7  7  0  5]
-            [13 15  9  2 12 16  1 15 18  7]
-            [10  8 16 18  9 18  2 13  5 10]
-
             sage: B = copy(A)
-            sage: char_p = A._charpoly_linbox(); char_p
-            x^10 + 2*x^9 + 18*x^8 + 4*x^7 + 13*x^6 + 11*x^5 + 2*x^4 + 5*x^3 + 7*x^2 + 16*x + 6
+            sage: char_p = A._charpoly_linbox()
             sage: char_p(A) == 0
             True
             sage: B == A              # A is not modified
             True
 
-            sage: min_p = A.minimal_polynomial(proof=True); min_p
-            x^10 + 2*x^9 + 18*x^8 + 4*x^7 + 13*x^6 + 11*x^5 + 2*x^4 + 5*x^3 + 7*x^2 + 16*x + 6
+            sage: min_p = A.minimal_polynomial(proof=True)
             sage: min_p.divides(char_p)
             True
         """
@@ -1775,7 +1726,7 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
 
         INPUT:
 
-        - ``self`` - a mutable matrix
+        - ``self`` -- a mutable matrix
 
         - ``algorithm``
 
@@ -1783,28 +1734,33 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
 
           - ``linbox`` - uses the LinBox library (wrapping fflas-ffpack)
 
-          - ``linbox_noefd`` - uses the FFPACK directly, less memory and faster (default)
+          - ``linbox_noefd`` -- uses the FFPACK directly, less memory and faster (default)
 
           - ``flint`` -- use FLINT's nmod_mat module
 
-          - ``gauss`` - uses a custom slower `O(n^3)` Gauss
-            elimination implemented in Sage.
+          - ``gauss`` -- uses a custom slower `O(n^3)` Gauss
+            elimination implemented in Sage
 
-          - ``all`` - compute using both algorithms and verify that
-            the results are the same.
+          - ``all`` -- compute using all algorithms and verify that
+            the results are the same
 
-        - ``**kwds`` - these are all ignored
+        - ``**kwds`` -- these are all ignored
 
-        OUTPUT:
+        OUTPUT: if ``self`` is known to be echelonized (the information is
+        cached), nothing is done; else, ``self`` is put in reduced row echelon
+        form and
 
-        - ``self`` is put in reduced row echelon form.
+        - the fact that ``self`` is now in echelon form is cached so future
+          calls to echelonize return immediately
 
-        - the rank of self is computed and cached
+        - the rank of ``self`` is computed and cached
 
-        - the pivot columns of self are computed and cached.
+        - the pivot columns (a.k.a. column rank profile) of ``self`` are
+          computed and cached
 
-        - the fact that self is now in echelon form is recorded and
-          cached so future calls to echelonize return immediately.
+        - only if using algorithm ``linbox_noefd``: the pivot rows of ``self``
+          before echelonization (a.k.a. its row rank profile) are computed and
+          cached
 
         EXAMPLES::
 
@@ -1851,18 +1807,15 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
             sage: B.echelonize()
             sage: A.rank()
             10
-            sage: C = B.submatrix(0,10,10,10); C
-            [ 4  9  4  4  0  4  7 11  9 11]
-            [11  7  6  8  2  8  6 11  9  5]
-            [ 3  9  9  2  4  8  9  2  9  4]
-            [ 7  0 11  4  0  9  6 11  8  1]
-            [12 12  4 12  3 12  6  1  7 12]
-            [12  2 11  6  6  6  7  0 10  6]
-            [ 0  7  3  4  7 11 10 12  4  6]
-            [ 5 11  0  5  3 11  4 12  5 12]
-            [ 6  7  3  5  1  4 11  7  4  1]
-            [ 4  9  6  7 11  1  2 12  6  7]
+            sage: C = B.submatrix(0,10,10,10)
+            sage: ~A == C
+            True
 
+            sage: B = A.augment(MS(1))
+            sage: B.echelonize(algorithm='linbox')
+            sage: A.rank()
+            10
+            sage: C = B.submatrix(0,10,10,10)
             sage: ~A == C
             True
 
@@ -1965,6 +1918,8 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
             [ 0  0  0  0]
             sage: A.pivots()
             (0, 1)
+            sage: A.pivot_rows()
+            (0, 1)
 
             sage: for p in (3,17,97,127,1048573):
             ....:    for i in range(10):
@@ -2019,7 +1974,7 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
             if A != self or A != B:
                 raise ArithmeticError("Bug in echelon form.")
         else:
-            raise ValueError("Algorithm '%s' not known"%algorithm)
+            raise ValueError("Algorithm '%s' not known" % algorithm)
 
     def _echelonize_linbox(self, efd=True):
         """
@@ -2030,12 +1985,15 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
 
         INPUT:
 
-        - ``efd`` - if ``True`` LinBox's ``EchelonFormDomain``
+        - ``efd`` -- if ``True`` LinBox's ``EchelonFormDomain``
           implementation is used, which is faster than the direct
           ``LinBox::FFPACK`` implementation, since the latter also
           computes the transformation matrix (which we
           ignore). However, ``efd=True`` uses more memory than FFLAS
-          directly (default=``True``)
+          directly (default: ``True``)
+
+        OUTPUT: if ``efd`` is ``False``, return the pivot rows (a.k.a. row rank
+        profile) of the matrix ``self`` before echelonization
 
         EXAMPLES::
 
@@ -2066,15 +2024,21 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
         self.check_mutability()
         self.clear_cache()
 
-        t = verbose('Calling echelonize mod %d.'%self.p)
+        t = verbose('Calling echelonize mod %d.' % self.p)
         if efd:
-            r, pivots = linbox_echelonize_efd(self.p, self._entries, self._nrows, self._ncols)
+            r, pivots = linbox_echelonize_efd(self.p, self._entries,
+                                              self._nrows, self._ncols)
         else:
-            r, pivots = linbox_echelonize(self.p, self._entries, self._nrows, self._ncols)
-        verbose('done with echelonize',t)
-        self.cache('in_echelon_form',True)
+            r, pivots, rrp = linbox_echelonize(self.p, self._entries,
+                                               self._nrows, self._ncols)
+        verbose('done with echelonize', t)
+        self.cache('in_echelon_form', True)
         self.cache('rank', r)
         self.cache('pivots', tuple(pivots))
+        self.cache('pivot_rows', tuple(range(r)))
+
+        if not efd:
+            return tuple(rrp)
 
     def _echelon_in_place_classical(self):
         """
@@ -2125,11 +2089,11 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
         fifth = self._ncols / 10 + 1
         do_verb = (get_verbose() >= 2)
         for c from 0 <= c < nc:
-            if do_verb and (c % fifth == 0 and c>0):
-                tm = verbose('on column %s of %s'%(c, self._ncols),
+            if do_verb and (c % fifth == 0 and c > 0):
+                tm = verbose('on column %s of %s' % (c, self._ncols),
                              level = 2,
                              caller_name = 'matrix_modn_dense echelon')
-            #end if
+            # end if
             sig_check()
             for r from start_row <= r < nr:
                 a = m[r][c]
@@ -2146,12 +2110,159 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
                     start_row = start_row + 1
                     break
         self.cache('pivots', tuple(pivots))
-        self.cache('in_echelon_form',True)
+        self.cache('pivot_rows', tuple(range(r)))
+        self.cache('in_echelon_form', True)
+
+    def pivots(self):
+        """
+        Return the column pivot positions for this matrix, which form the
+        leftmost subset of the columns that span the column space and are
+        linearly independent. This coincides with the position of the first
+        nonzero entry in each row of the reduced row echelon form of ``self``,
+        and is also known as the column rank profile of ``self``. The returned
+        tuple is ordered increasingly.
+
+        If this has already been computed and cached, this returns the cached
+        value. Otherwise, this computes an echelon form (using algorithm
+        ``linbox_noefd``), and deduces the pivot positions to be cached and
+        returned. In the latter case, this also caches other attributes at the
+        same time: the reduced row echelon form of ``self`` and the rank of
+        ``self``, as well as its row pivot positions (also known as row rank
+        profile).
+
+        OUTPUT: a tuple of `r` integers where `r` is the rank of ``self``
+
+        .. SEEALSO::
+
+            The method :meth:`Matrix_modn_dense_template.pivot_rows` computes
+            the row pivot positions, also known as row rank profile.
+
+        EXAMPLES::
+
+            sage: A = matrix(GF(7), 2, 2, range(4))
+            sage: A.pivots()
+            (0, 1)
+
+            sage: A = matrix(GF(3), [[1,1,1,0],[0,0,0,1],[1,0,0,0]])
+            sage: A
+            [1 1 1 0]
+            [0 0 0 1]
+            [1 0 0 0]
+            sage: A.pivots() == (0, 1, 3)
+            True
+
+            sage: A = matrix(GF(65537), 5, 3,
+            ....:            [  223,   669, 21130,
+            ....:             13996, 41988, 21387,
+            ....:             39034, 51565, 40500,
+            ....:             14660, 43980,  3899,
+            ....:             12016, 36048,  9308])
+            sage: A[:,1] == 3 * A[:,0]
+            True
+            sage: A.pivots() == (0, 2)
+            True
+            sage: A = matrix(GF(7), 3, 5, [2, 2, 4, 1, 4,
+            ....:                          4, 4, 1, 4, 6,
+            ....:                          5, 2, 5, 6, 6])
+            sage: A[:,0] == 2 * A[:,1] + 3 * A[:,2]
+            True
+            sage: A.pivots() == (0, 1, 3)
+            True
+        """
+        if not self.base_ring().is_field():
+            raise NotImplementedError("Echelon form not implemented over '%s'." % self.base_ring())
+
+        v = self.fetch('pivots')
+        if v is not None:
+            return tuple(v)
+
+        E = self.__copy__()
+        rrp = E._echelonize_linbox(efd=False)
+        E.set_immutable()
+        v = E.pivots()
+        self.cache('echelon_form', E)
+        self.cache('rank', E._cache['rank'])
+        self.cache('pivots', tuple(v))
+        self.cache('pivot_rows', rrp)
+        return tuple(v)
+
+    def pivot_rows(self):
+        """
+        Return the row pivot positions for this matrix, which form the topmost
+        subset of the rows that span the row space and are linearly
+        independent. This coincides with the position of the first nonzero
+        entry in each column of the reduced column echelon form of ``self``,
+        and is also known as the row rank profile of ``self``. The returned
+        tuple is ordered increasingly.
+
+        If this has already been computed and cached, this returns the cached
+        value. Otherwise, this computes an echelon form (using algorithm
+        ``linbox_noefd``), and deduces the pivot row positions to be cached and
+        returned.  In the latter case, this also caches other attributes at the
+        same time: the reduced row echelon form of ``self`` and the rank of
+        ``self``, as well as its pivot indices (also known as column rank
+        profile).
+
+        OUTPUT: a tuple of `r` integers where `r` is the rank of ``self``
+
+        .. SEEALSO::
+
+            The method :meth:`Matrix_modn_dense_template.pivots` computes
+            the column pivot positions, also known as column rank profile.
+
+        EXAMPLES::
+
+            sage: A = matrix(GF(3), [[1,0,1,0],[1,0,0,0],[1,0,0,0],[0,1,0,0]])
+            sage: A
+            [1 0 1 0]
+            [1 0 0 0]
+            [1 0 0 0]
+            [0 1 0 0]
+            sage: A.pivot_rows() == (0, 1, 3)
+            True
+
+            sage: A = matrix(GF(65537), 3, 5,
+            ....:            [  223, 13996, 39034, 14660, 12016,
+            ....:               669, 41988, 51565, 43980, 36048,
+            ....:             21130, 21387, 40500,  3899,  9308])
+            sage: A[1,:] == 3 * A[0,:]
+            True
+            sage: A.pivot_rows() == (0, 2)
+            True
+            sage: A = matrix(GF(7), 5, 3, [2, 4, 5,
+            ....:                          2, 4, 2,
+            ....:                          4, 1, 5,
+            ....:                          1, 4, 6,
+            ....:                          4, 6, 6])
+            sage: A[0,:] == 2 * A[1,:] + 3 * A[2,:]
+            True
+            sage: A.pivot_rows() == (0, 1, 3)
+            True
+        """
+        if not self.base_ring().is_field():
+            raise NotImplementedError("Echelon form not implemented over '%s'." % self.base_ring())
+
+        v = self.fetch('pivot_rows')
+        if v is not None:
+            return tuple(v)
+
+        E = self.__copy__()
+        v = E._echelonize_linbox(efd=False)
+        E.set_immutable()
+        self.cache('echelon_form', E)
+        self.cache('rank', E._cache['rank'])
+        self.cache('pivots', E._cache['pivots'])
+        self.cache('pivot_rows', v)
+        return v
 
     def right_kernel_matrix(self, algorithm='linbox', basis='echelon'):
         r"""
-        Returns a matrix whose rows form a basis for the right kernel
-        of ``self``, where ``self`` is a matrix over a (small) finite field.
+        Return a matrix whose rows form a basis for the right kernel
+        of ``self``.
+
+        If the base ring is the ring of integers modulo a composite,
+        the keyword arguments are ignored and the computation is
+        delegated to :meth:`Matrix_dense.right_kernel_matrix`.
 
         INPUT:
 
@@ -2205,7 +2316,10 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
             [0 0 0 0]
         """
         if self.fetch('in_echelon_form') is None:
-            self = self.echelon_form(algorithm=algorithm)
+            try:
+                self = self.echelon_form(algorithm=algorithm)
+            except NotImplementedError:  # composite modulus
+                return Matrix_dense.right_kernel_matrix(self)
 
         cdef Py_ssize_t r = self.rank()
         cdef Py_ssize_t nrows = self._nrows
@@ -2252,7 +2366,7 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
 
     def hessenbergize(self):
         """
-        Transforms self in place to its Hessenberg form.
+        Transform ``self`` in place to its Hessenberg form.
 
         EXAMPLES::
 
@@ -2281,8 +2395,8 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
         """
         self.check_mutability()
         x = self.fetch('in_hessenberg_form')
-        if not x is None and x: return  # already known to be in Hessenberg form
-
+        if x is not None and x:
+            return  # already known to be in Hessenberg form
         if self._nrows != self._ncols:
             raise ArithmeticError("Matrix must be square to compute Hessenberg form.")
         R = self._parent._base
@@ -2305,54 +2419,54 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
             i = -1
             for r from m+1 <= r < n:
                 if h[r][m-1]:
-                     i = r
-                     break
+                    i = r
+                    break
 
             if i != -1:
-                 # Found a nonzero entry in column m-1 that is strictly
-                 # below row m.  Now set i to be the first nonzero position >=
-                 # m in column m-1.
-                 if h[m][m-1]:
-                     i = m
-                 t = h[i][m-1]
-                 t_inv = celement_invert(t,p)
-                 if i > m:
-                     self.swap_rows_c(i,m)
-                     self.swap_columns_c(i,m)
+                # Found a nonzero entry in column m-1 that is strictly
+                # below row m.  Now set i to be the first nonzero position >=
+                # m in column m-1.
+                if h[m][m-1]:
+                    i = m
+                t = h[i][m-1]
+                t_inv = celement_invert(t, p)
+                if i > m:
+                    self.swap_rows_c(i, m)
+                    self.swap_columns_c(i, m)
 
-                 # Now the nonzero entry in position (m,m-1) is t.
-                 # Use t to clear the entries in column m-1 below m.
-                 for j from m+1 <= j < n:
-                     if h[j][m-1]:
-                         u = (h[j][m-1] * t_inv) % p
-                         self.add_multiple_of_row_c(j, m, p - u, 0)  # h[j] -= u*h[m]
-                         # To maintain charpoly, do the corresponding
-                         # column operation, which doesn't mess up the
-                         # matrix, since it only changes column m, and
-                         # we're only worried about column m-1 right
-                         # now.  Add u*column_j to column_m.
-                         self.add_multiple_of_column_c(m, j, u, 0)
-                 # end for
+                # Now the nonzero entry in position (m,m-1) is t.
+                # Use t to clear the entries in column m-1 below m.
+                for j from m+1 <= j < n:
+                    if h[j][m-1]:
+                        u = (h[j][m-1] * t_inv) % p
+                        self.add_multiple_of_row_c(j, m, p - u, 0)  # h[j] -= u*h[m]
+                        # To maintain charpoly, do the corresponding
+                        # column operation, which doesn't mess up the
+                        # matrix, since it only changes column m, and
+                        # we're only worried about column m-1 right
+                        # now.  Add u*column_j to column_m.
+                        self.add_multiple_of_column_c(m, j, u, 0)
+                # end for
             # end if
         # end for
         sig_off()
-        self.cache('in_hessenberg_form',True)
+        self.cache('in_hessenberg_form', True)
 
     def _charpoly_hessenberg(self, var):
         """
-        Transforms self in place to its Hessenberg form then computes
+        Transform ``self`` in place to its Hessenberg form then computes
         and returns the coefficients of the characteristic polynomial
         of this matrix.
 
         INPUT:
 
-        - ``var`` - name of the indeterminate of the charpoly.
+        - ``var`` -- name of the indeterminate of the charpoly
 
         OUTPUT:
 
            The characteristic polynomial is represented as a vector of
            ints, where the constant term of the characteristic
-           polynomial is the 0th coefficient of the vector.
+           polynomial is the `0`-th coefficient of the vector.
 
         EXAMPLES::
 
@@ -2370,8 +2484,8 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
             sage: A.characteristic_polynomial()
             x^10 + 12*x^9 + 6*x^8 + 8*x^7 + 13*x^6
             sage: P.<x> = GF(17)[]
-            sage: A._charpoly_hessenberg('x')
-            x^10 + 12*x^9 + 6*x^8 + 8*x^7 + 13*x^6
+            sage: A._charpoly_hessenberg('x') == B.charpoly()
+            True
         """
         if self._nrows != self._ncols:
             raise ArithmeticError("charpoly not defined for non-square matrix.")
@@ -2399,7 +2513,7 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
         # Algorithm 2.2.9.
 
         cdef Matrix_modn_dense_template c
-        c = self.new_matrix(nrows=n+1,ncols=n+1)    # the 0 matrix
+        c = self.new_matrix(nrows=n+1, ncols=n+1)    # the 0 matrix
         c._matrix[0][0] = 1
         for m from 1 <= m <= n:
             # Set the m-th row of c to (x - H[m-1,m-1])*c[m-1] = x*c[m-1] - H[m-1,m-1]*c[m-1]
@@ -2414,7 +2528,7 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
             for i from 1 <= i < m:
                 t = (t*H._matrix[m-i][m-i-1]) % p
                 # Set the m-th row of c to c[m] - t*H[m-i-1,m-1]*c[m-i-1]
-                c.add_multiple_of_row_c(m, m-i-1, p - (t*H._matrix[m-i-1][m-1])%p, 0)
+                c.add_multiple_of_row_c(m, m-i-1, p - (t*H._matrix[m-i-1][m-1]) % p, 0)
 
         # The answer is now the n-th row of c.
         v = []
@@ -2431,8 +2545,7 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
 
             sage: A = random_matrix(GF(3), 100, 100, implementation='linbox')
             sage: B = copy(A)
-            sage: A.rank()
-            99
+            sage: _ = A.rank()
             sage: B == A
             True
 
@@ -2486,7 +2599,7 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
         cdef Matrix_modn_dense_template A
         if self.p > 2 and is_prime(self.p):
             x = self.fetch('rank')
-            if not x is None:
+            if x is not None:
                 return x
             r = Integer(linbox_rank(self.p, self._entries, self._nrows, self._ncols))
             self.cache('rank', r)
@@ -2619,7 +2732,7 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
 
         if self.p > 2 and is_prime(self.p):
             x = self.fetch('det')
-            if not x is None:
+            if x is not None:
                 return x
             d = linbox_det(self.p, self._entries, self._nrows)
             d2 = self._coerce_element(d)
@@ -2629,20 +2742,19 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
             return Matrix_dense.determinant(self)
 
     cdef xgcd_eliminate(self, celement * row1, celement* row2, Py_ssize_t start_col):
-        """
+        r"""
         Reduces ``row1`` and ``row2`` by a unimodular transformation
         using the xgcd relation between their first coefficients ``a`` and
         ``b``.
 
         INPUT:
 
-        - ``row1, row2`` - the two rows to be transformed (within
-          self)
+        - ``row1``, ``row2`` -- the two rows to be transformed (within
+          ``self``)
 
-        -``start_col`` - the column of the pivots in ``row1`` and
-         ``row2``. It is assumed that all entries before ``start_col``
-         in ``row1`` and ``row2`` are zero.
-
+        - ``start_col`` -- the column of the pivots in ``row1`` and
+          ``row2``. It is assumed that all entries before ``start_col``
+          in ``row1`` and ``row2`` are zero.
 
         OUTPUT:
 
@@ -2660,13 +2772,13 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
         cdef Py_ssize_t nc, i
         cdef int a = <int>row1[start_col]
         cdef int b = <int>row2[start_col]
-        g = ArithIntObj.c_xgcd_int (a,b,<int*>&s,<int*>&t)
+        g = ArithIntObj.c_xgcd_int(a, b, <int*>&s, <int*>&t)
         v = a/g
         w = -<int>b/g
         nc = self.ncols()
 
         for i from start_col <= i < nc:
-            tmp = ( s * <int>row1[i] + t * <int>row2[i]) % p
+            tmp = (s * <int>row1[i] + t * <int>row2[i]) % p
             row2[i] = (w* <int>row1[i] + v*<int>row2[i]) % p
             row1[i] = tmp
         return g
@@ -2678,9 +2790,9 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
 
         INPUT:
 
-        - ``row`` - integer
-        - ``multiple`` - finite field element
-        - ``start_col`` - integer
+        - ``row`` -- integer
+        - ``multiple`` -- finite field element
+        - ``start_col`` -- integer
 
         EXAMPLES::
 
@@ -2788,30 +2900,18 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
             (22, 9, 5, 6, 24, 34, 17, 5, 12, 34)
 
             sage: A.add_multiple_of_row(2, 3, 10)
-            sage: A
-            [24 15  7 27 32 34 16 32 25 23]
-            [11  3 22 13 35 33  1 10 33 25]
-            [22  9  5  6 24 34 17  5 12 34]
-            [10  0 35  4 12 34 32 16 19 17]
-            [36  4 21 17  3 34 11 10 10 17]
-            [32 15 23  2 23 32  5  8 18 11]
-            [24  5 28 13 21 22 29 18 33 30]
-            [26 18 10 26 17 31 35 18 25 30]
-            [21  1  4 14 11 17 29 16 18 12]
-            [34 19 14 11 35 30 35 34 25 33]
+            sage: all(A[i] == B[i] for i in range(10) if not i == 2)
+            True
+            sage: A[2] == B[2] + 10*B[3]
+            True
 
             sage: A.add_multiple_of_row(2, 3, 10, 4)
-            sage: A
-            [24 15  7 27 32 34 16 32 25 23]
-            [11  3 22 13 35 33  1 10 33 25]
-            [22  9  5  6 33  4  4 17 17 19]
-            [10  0 35  4 12 34 32 16 19 17]
-            [36  4 21 17  3 34 11 10 10 17]
-            [32 15 23  2 23 32  5  8 18 11]
-            [24  5 28 13 21 22 29 18 33 30]
-            [26 18 10 26 17 31 35 18 25 30]
-            [21  1  4 14 11 17 29 16 18 12]
-            [34 19 14 11 35 30 35 34 25 33]
+            sage: all(A[i] == B[i] for i in range(10) if not i == 2)
+            True
+            sage: A[2][:4] == B[2][:4] + 10*B[3][:4]
+            True
+            sage: A[2][4:] == B[2][4:] + 20*B[3][4:]
+            True
         """
         cdef celement p
         cdef celement *v_from
@@ -2824,7 +2924,7 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
         cdef Py_ssize_t i, nc
         nc = self._ncols
         for i from start_col <= i < nc:
-            v_to[i] = ((<celement>multiple) * v_from[i] +  v_to[i]) % p
+            v_to[i] = ((<celement>multiple) * v_from[i] + v_to[i]) % p
 
     cdef add_multiple_of_column_c(self, Py_ssize_t col_to, Py_ssize_t col_from, multiple, Py_ssize_t start_row):
         """
@@ -2849,30 +2949,18 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
             (18, 4, 18, 1, 6, 6, 10, 11, 33, 13)
 
             sage: A.add_multiple_of_column(2, 3, 10)
-            sage: A
-            [24 15 18 27 32 34 16 32 25 23]
-            [11  3  4 13 35 33  1 10 33 25]
-            [33  9 18  3 15 27 30 30  7 12]
-            [10  0  1  4 12 34 32 16 19 17]
-            [36  4  6 17  3 34 11 10 10 17]
-            [32 15  6  2 23 32  5  8 18 11]
-            [24  5 10 13 21 22 29 18 33 30]
-            [26 18 11 26 17 31 35 18 25 30]
-            [21  1 33 14 11 17 29 16 18 12]
-            [34 19 13 11 35 30 35 34 25 33]
+            sage: all(A.column(i) == B.column(i) for i in range(10) if not i == 2)
+            True
+            sage: A.column(2) == B.column(2) + 10*B.column(3)
+            True
 
             sage: A.add_multiple_of_column(2, 3, 10, 4)
-            sage: A
-            [24 15 18 27 32 34 16 32 25 23]
-            [11  3  4 13 35 33  1 10 33 25]
-            [33  9 18  3 15 27 30 30  7 12]
-            [10  0  1  4 12 34 32 16 19 17]
-            [36  4 28 17  3 34 11 10 10 17]
-            [32 15 26  2 23 32  5  8 18 11]
-            [24  5 29 13 21 22 29 18 33 30]
-            [26 18 12 26 17 31 35 18 25 30]
-            [21  1 25 14 11 17 29 16 18 12]
-            [34 19 12 11 35 30 35 34 25 33]
+            sage: all(A.column(i) == B.column(i) for i in range(10) if not i == 2)
+            True
+            sage: A.column(2)[:4] == B.column(2)[:4] + 10*B.column(3)[:4]
+            True
+            sage: A.column(2)[4:] == B.column(2)[4:] + 20*B.column(3)[4:]
+            True
         """
         cdef celement  p
         cdef celement **m
@@ -2930,14 +3018,12 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
 
         INPUT:
 
-        - ``density`` - Integer; proportion (roughly) to be considered
-           for changes
-        - ``nonzero`` - Bool (default: ``False``); whether the new
-           entries are forced to be non-zero
+        - ``density`` -- integer; proportion (roughly) to be considered
+          for changes
+        - ``nonzero`` -- boolean (default: ``False``); whether the new
+          entries are forced to be nonzero
 
-        OUTPUT:
-
-        -  None, the matrix is modified in-space
+        OUTPUT: none, the matrix is modified in-space
 
         EXAMPLES::
 
@@ -2949,12 +3035,23 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
             [4 0 0 0 0]
             [0 1 0 0 0]
 
-            sage: A.randomize(); A
-            [3 3 2 1 2]
-            [4 3 3 2 2]
-            [0 3 3 3 3]
-            [3 3 2 2 4]
-            [2 2 2 1 4]
+            sage: add_samples(1.0)
+            sage: while not all(abs(dic[a]/total_count - 1/5) < 0.01 for a in dic):
+            ....:     add_samples(1.0)
+
+            sage: def add_sample(density):
+            ....:     global density_sum, total_count
+            ....:     total_count += 1.0
+            ....:     density_sum += random_matrix(GF(5), 1000, 1000, density=density).density()
+
+            sage: density_sum = 0.0
+            sage: total_count = 0.0
+            sage: add_sample(0.5)
+            sage: expected_density = 1.0 - (999/1000)^500
+            sage: expected_density
+            0.3936...
+            sage: while abs(density_sum/total_count - expected_density) > 0.001:
+            ....:     add_sample(0.5)
 
         The matrix is updated instead of overwritten::
 
@@ -2962,9 +3059,23 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
             sage: A.density()
             961/10000
 
-            sage: A.randomize(density=0.1)
-            sage: A.density()
-            801/5000
+            sage: density_sum = 0.0
+            sage: total_count = 0.0
+            sage: add_sample(0.5)
+            sage: expected_density = 1.0 - (999/1000)^1000
+            sage: expected_density
+            0.6323...
+            sage: while abs(density_sum/total_count - expected_density) > 0.001:
+            ....:     add_sample(0.5)
+
+            sage: density_sum = 0.0
+            sage: total_count = 0.0
+            sage: add_sample(0.1)
+            sage: expected_density = 1.0 - (999/1000)^200
+            sage: expected_density
+            0.1813...
+            sage: while abs(density_sum/total_count - expected_density) > 0.001:
+            ....:     add_sample(0.1)
         """
         density = float(density)
         if density <= 0:
@@ -3012,11 +3123,11 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
 
     def _magma_init_(self, magma):
         """
-        Returns a string representation of ``self`` in Magma form.
+        Return a string representation of ``self`` in Magma form.
 
         INPUT:
 
-        -  ``magma`` - a Magma session
+        - ``magma`` -- a Magma session
 
         OUTPUT: string
 
@@ -3036,7 +3147,7 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
             True
         """
         s = self.base_ring()._magma_init_(magma)
-        return 'Matrix(%s,%s,%s,StringToIntegerSequence("%s"))'%(
+        return 'Matrix(%s,%s,%s,StringToIntegerSequence("%s"))' % (
             s, self._nrows, self._ncols, self._export_as_string())
 
     cpdef _export_as_string(self):
@@ -3128,8 +3239,9 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
         cdef Py_ssize_t i, j
 
         cdef Matrix_integer_dense L
-        cdef object P =  matrix_space.MatrixSpace(ZZ, self._nrows, self._ncols, sparse=False)
-        L = Matrix_integer_dense(P,ZZ(0),False,False)
+        cdef object P = matrix_space.MatrixSpace(ZZ, self._nrows,
+                                                 self._ncols, sparse=False)
+        L = Matrix_integer_dense(P, ZZ(0), False, False)
         cdef celement* A_row
         for i in range(self._nrows):
             A_row = self._matrix[i]
@@ -3177,8 +3289,8 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
         cdef Py_ssize_t nrows = self._nrows
         cdef Py_ssize_t ncols = self._ncols
 
-        cdef Matrix_modn_dense_template M = self.new_matrix(nrows = ncols, ncols = nrows)
-        cdef Py_ssize_t i,j
+        cdef Matrix_modn_dense_template M = self.new_matrix(nrows=ncols, ncols=nrows)
+        cdef Py_ssize_t i, j
 
         for i from 0 <= i < ncols:
             for j from 0 <= j < nrows:
@@ -3325,19 +3437,20 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
         memcpy(M._entries+selfsize, other._entries, sizeof(celement)*other._ncols*other._nrows)
         return M
 
-    def submatrix(self, Py_ssize_t row=0, Py_ssize_t col=0,
-                        Py_ssize_t nrows=-1, Py_ssize_t ncols=-1):
+    def submatrix(self,
+                  Py_ssize_t row=0, Py_ssize_t col=0,
+                  Py_ssize_t nrows=-1, Py_ssize_t ncols=-1):
         r"""
-        Return the matrix constructed from self using the specified
+        Return the matrix constructed from ``self`` using the specified
         range of rows and columns.
 
         INPUT:
 
-        - ``row``, ``col`` -- index of the starting row and column.
-          Indices start at zero
+        - ``row``, ``col`` -- index of the starting row and column;
+          indices start at zero
 
         - ``nrows``, ``ncols`` -- (optional) number of rows and columns to
-          take. If not provided, take all rows below and all columns to
+          take; if not provided, take all rows below and all columns to
           the right of the starting entry
 
         .. SEEALSO::
@@ -3383,14 +3496,21 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
         if nrows == -1:
             nrows = self._nrows - row
 
-        if col != 0 or ncols != self._ncols:
-            return self.matrix_from_rows_and_columns(range(row, row+nrows), range(col, col+ncols))
-
         if nrows < 0 or row < 0 or row + nrows > self._nrows:
             raise IndexError("rows out of range")
+        if ncols < 0 or col < 0 or col + ncols > self._ncols:
+            raise IndexError("columns out of range")
 
-        cdef Matrix_modn_dense_template M = self.new_matrix(nrows=nrows, ncols=self._ncols)
-        memcpy(M._entries, self._entries+row*ncols, sizeof(celement)*ncols*nrows)
+        cdef Matrix_modn_dense_template M = self.new_matrix(nrows=nrows, ncols=ncols)
+
+        if col == 0 and ncols == self._ncols:
+            memcpy(M._entries, self._matrix[row], sizeof(celement)*ncols*nrows)
+            return M
+
+        cdef Py_ssize_t i, r
+        for i, r in enumerate(range(row, row+nrows)) :
+            memcpy(M._matrix[i], self._matrix[r]+col, sizeof(celement)*ncols)
+
         return M
 
     def _matrices_from_rows(self, Py_ssize_t nrows, Py_ssize_t ncols):
@@ -3401,9 +3521,9 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
 
         INPUT:
 
-        - ``nrows`` - integer
+        - ``nrows`` -- integer
 
-        - ``ncols`` - integer
+        - ``ncols`` -- integer
 
         EXAMPLES::
 
@@ -3419,9 +3539,7 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
             [2 3], [6 7], [10 11], [14 15]
             ]
 
-        OUTPUT:
-
-        - ``list`` - a list of matrices
+        OUTPUT: list of matrices
         """
         if nrows * ncols != self._ncols:
             raise ValueError("nrows * ncols must equal self's number of columns")
@@ -3436,7 +3554,123 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
             ans.append(M)
         return ans
 
-    def __nonzero__(self):
+    def matrix_from_columns(self, columns):
+        """
+        Return the matrix constructed from ``self`` using columns with indices
+        in the columns list.
+
+        EXAMPLES::
+
+            sage: M = MatrixSpace(Integers(8),3,3)
+            sage: A = M(range(9)); A
+            [0 1 2]
+            [3 4 5]
+            [6 7 0]
+            sage: A.matrix_from_columns([2,1])
+            [2 1]
+            [5 4]
+            [0 7]
+        """
+        cdef Py_ssize_t ncols = len(columns)
+
+        # Construct new matrix
+        cdef Matrix_modn_dense_template A = self.new_matrix(ncols=ncols)
+        cdef Py_ssize_t i, j, col
+        for j, col in enumerate(columns):
+            if col < 0 or col >= self._ncols:
+                raise IndexError("column index out of range")
+            for i in range(self._nrows):
+                A._matrix[i][j] = self._matrix[i][col]
+
+        return A
+
+    def matrix_from_rows(self, rows):
+        """
+        Return the matrix constructed from ``self`` using rows with indices in
+        the rows list.
+
+        EXAMPLES::
+
+            sage: M = MatrixSpace(Integers(8),3,3)
+            sage: A = M(range(9)); A
+            [0 1 2]
+            [3 4 5]
+            [6 7 0]
+            sage: A.matrix_from_rows([2,1])
+            [6 7 0]
+            [3 4 5]
+        """
+        cdef Py_ssize_t nrows = len(rows)
+
+        # Construct new matrix
+        cdef Matrix_modn_dense_template A = self.new_matrix(nrows=nrows)
+
+        cdef Py_ssize_t i, row
+        for i, row in enumerate(rows):
+            if row < 0 or row >= self._nrows:
+                raise IndexError("row index out of range")
+            memcpy(A._matrix[i], self._matrix[row], sizeof(celement)*self._ncols)
+
+        return A
+
+    def matrix_from_rows_and_columns(self, rows, columns):
+        """
+        Return the matrix constructed from ``self`` from the given rows and
+        columns.
+
+        EXAMPLES::
+
+            sage: M = MatrixSpace(Integers(8),3,3)
+            sage: A = M(range(9)); A
+            [0 1 2]
+            [3 4 5]
+            [6 7 0]
+            sage: A.matrix_from_rows_and_columns([1], [0,2])
+            [3 5]
+            sage: A.matrix_from_rows_and_columns([1,2], [1,2])
+            [4 5]
+            [7 0]
+
+        Note that row and column indices can be reordered or repeated::
+
+            sage: A.matrix_from_rows_and_columns([2,1], [2,1])
+            [0 7]
+            [5 4]
+
+        For example here we take from row 1 columns 2 then 0 twice, and do
+        this 3 times::
+
+            sage: A.matrix_from_rows_and_columns([1,1,1],[2,0,0])
+            [5 3 3]
+            [5 3 3]
+            [5 3 3]
+
+        AUTHORS:
+
+        - Jaap Spies (2006-02-18)
+
+        - Didier Deshommes: some Pyrex speedups implemented
+        """
+        cdef Py_ssize_t ncols = len(columns)
+        cdef Py_ssize_t nrows = len(rows)
+
+        # Check whether column indices are valid
+        cdef Py_ssize_t i, j, row, col
+        for col in columns:
+            if col < 0 or col >= self._ncols:
+                raise IndexError("column index out of range")
+
+        # Construct new matrix
+        cdef Matrix_modn_dense_template A = self.new_matrix(nrows=nrows, ncols=ncols)
+        for i, row in enumerate(rows):
+            if row < 0 or row >= self._nrows:
+                raise IndexError("row index out of range")
+            for j, col in enumerate(columns):
+                A._matrix[i][j] = self._matrix[row][col]
+
+        return A
+
+    def __bool__(self):
         """
         Test whether this matrix is zero.
 
@@ -3468,13 +3702,13 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
 
     _matrix_from_rows_of_matrices = staticmethod(__matrix_from_rows_of_matrices)
 
-    cdef int _copy_row_to_mod_int_array(self, mod_int *to, Py_ssize_t i):
+    cdef int _copy_row_to_mod_int_array(self, mod_int *to, Py_ssize_t i) noexcept:
         cdef Py_ssize_t j
         cdef celement *_from = self._entries+(i*self._ncols)
         for j in range(self._ncols):
             to[j] = <mod_int>_from[j]
 
-    cdef bint get_is_zero_unsafe(self, Py_ssize_t i, Py_ssize_t j):
+    cdef bint get_is_zero_unsafe(self, Py_ssize_t i, Py_ssize_t j) except -1:
         r"""
         Return 1 if the entry ``(i, j)`` is zero, otherwise 0.
 
@@ -3491,4 +3725,3 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
             [0 1]
         """
         return self._entries[j+i*self._ncols] == 0
-

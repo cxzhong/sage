@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 r"""
 Puiseux Series Ring Element
 
@@ -46,10 +45,12 @@ Other arithmetic can be performed with Puiseux Series::
 
 Mind the base ring. However, the base ring can be changed::
 
-    sage: I*q
+    sage: I*q                                                                           # needs sage.rings.number_field
     Traceback (most recent call last):
     ...
-    TypeError: unsupported operand parent(s) for *: 'Number Field in I with defining polynomial x^2 + 1 with I = 1*I' and 'Puiseux Series Ring in x over Rational Field'
+    TypeError: unsupported operand parent(s) for *:
+    'Number Field in I with defining polynomial x^2 + 1 with I = 1*I' and
+    'Puiseux Series Ring in x over Rational Field'
     sage: qz = q.change_ring(ZZ); qz
     x^(1/3) + x^(1/2)
     sage: qz.parent()
@@ -104,17 +105,11 @@ REFERENCES:
 
 from sage.arith.functions import lcm
 from sage.arith.misc import gcd
-from sage.ext.fast_callable import fast_callable
-from sage.rings.big_oh import O
 from sage.rings.integer_ring import ZZ
 from sage.rings.rational_field import QQ
-from sage.rings.complex_mpfr import ComplexField
 from sage.rings.infinity import infinity
 from sage.rings.laurent_series_ring_element cimport LaurentSeries
-from sage.rings.laurent_series_ring import LaurentSeriesRing
-from sage.rings.power_series_ring_element cimport PowerSeries
-from sage.structure.element cimport (Element, ModuleElement,
-                                     RingElement, AlgebraElement)
+from sage.structure.element cimport (Element, AlgebraElement)
 from sage.structure.richcmp cimport richcmp
 
 
@@ -138,12 +133,12 @@ cdef class PuiseuxSeries(AlgebraElement):
 
     - ``parent`` -- the parent ring
 
-    - ``f``  -- one of the following types of inputs:
+    - ``f`` -- one of the following types of inputs:
 
       * instance of :class:`PuiseuxSeries`
       * instance that can be coerced into the Laurent series ring of the parent
 
-    - ``e`` -- integer (default: 1) the ramification index
+    - ``e`` -- integer (default: 1); the ramification index
 
     EXAMPLES::
 
@@ -206,7 +201,7 @@ cdef class PuiseuxSeries(AlgebraElement):
                 l = l.add_bigoh(prec / d)
 
         self._l = l
-        self._e = long(abs(e))
+        self._e = int(abs(e))
 
     def __reduce__(self):
         """
@@ -226,7 +221,7 @@ cdef class PuiseuxSeries(AlgebraElement):
             sage: R.<x> = PuiseuxSeriesRing(ZZ)
             sage: p = x^(1/3) + x**3
             sage: t = p._im_gens_(QQbar, [2])
-            sage: t  in QQbar
+            sage: t in QQbar
             True
             sage: f = R.hom([QQbar(2)], check=False)
             sage: t == f(p)
@@ -246,8 +241,8 @@ cdef class PuiseuxSeries(AlgebraElement):
             sage: R.zero()
             0
 
-            sage: S.<t> = PuiseuxSeriesRing(Zp(5))
-            sage: t**(1/2) + 5 * t^(1/3)
+            sage: S.<t> = PuiseuxSeriesRing(Zp(5))                                      # needs sage.rings.padics
+            sage: t**(1/2) + 5 * t^(1/3)                                                # needs sage.rings.padics
             (5 + O(5^21))*t^(1/3) + (1 + O(5^20))*t^(1/2)
         """
         laurent = self.laurent_part()
@@ -272,8 +267,10 @@ cdef class PuiseuxSeries(AlgebraElement):
             exponents = [ZZ(exp) for exp in set(laurent.exponents() + [laurent.prec()])]
 
         # sort exponents such that the largest will be replaced first
-        exp_pos = [exp for exp in exponents if exp >= 0]; exp_pos.sort(reverse=True)
-        exp_neg = [exp for exp in exponents if exp < 0]; exp_neg.sort()
+        exp_pos = [exp for exp in exponents if exp >= 0]
+        exp_pos.sort(reverse=True)
+        exp_neg = [exp for exp in exponents if exp < 0]
+        exp_neg.sort()
         exponents = exp_neg + exp_pos
 
         # replacing exponents
@@ -303,13 +300,14 @@ cdef class PuiseuxSeries(AlgebraElement):
             sage: p = x^(1/2) + x**3-x**(-1/4)
             sage: p(16)
             8199/2
-            sage: p(pi.n())
+            sage: p(pi.n())                                                             # needs sage.symbolic
             32.0276049867404
         """
         # use x.nth_root since x**(1/self._e) returns oo when x = 0
         if isinstance(x, int):
             x = ZZ(x)
         elif isinstance(x, float):
+            from sage.rings.complex_mpfr import ComplexField
             x = ComplexField()(x)
         t = x.nth_root(self._e)
         p = self._l.__u.polynomial()
@@ -336,8 +334,10 @@ cdef class PuiseuxSeries(AlgebraElement):
 
         OUTPUT:
 
-        - ``g`` -- int; a ramification index common to self and right
-        - ``M, N`` -- int, int; scaling factors on self and right, respectively
+        - ``g`` -- integer; a ramification index common to ``self`` and
+          ``right``
+        - ``M``, ``N`` -- integers; scaling factors on ``self`` and ``right``,
+          respectively
 
         EXAMPLES::
 
@@ -441,9 +441,9 @@ cdef class PuiseuxSeries(AlgebraElement):
 
         EXAMPLES::
 
-            sage: P.<y> = PuiseuxSeriesRing(Zp(3))
-            sage: t = y^(2/5) + O(y)
-            sage: 5*t                                          # indirect doctest
+            sage: P.<y> = PuiseuxSeriesRing(Zp(3))                                      # needs sage.rings.padics
+            sage: t = y^(2/5) + O(y)                                                    # needs sage.rings.padics
+            sage: 5*t                                          # indirect doctest       # needs sage.rings.padics
             (2 + 3 + O(3^20))*y^(2/5) + O(y)
         """
         return type(self)(self._parent, self._l._lmul_(c), self._e)
@@ -579,7 +579,7 @@ cdef class PuiseuxSeries(AlgebraElement):
         """
         return self.shift(-r)
 
-    def __nonzero__(self):
+    def __bool__(self):
         """
         Return whether ``self`` is not zero.
 
@@ -853,7 +853,7 @@ cdef class PuiseuxSeries(AlgebraElement):
             sage: p.exponents()
             [3/4, 4/5, 5/6]
         """
-        return [QQ(n) /  self._e for n in self._l.exponents()]
+        return [QQ(n) / self._e for n in self._l.exponents()]
 
     def __setitem__(self, n, value):
         """
@@ -1050,4 +1050,3 @@ cdef class PuiseuxSeries(AlgebraElement):
             25*x^(23/2) + O(x^(27/2))
         """
         return self.__invert__()
-

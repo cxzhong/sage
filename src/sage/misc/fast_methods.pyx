@@ -15,21 +15,19 @@ AUTHOR:
 
 - Simon King (2013-02): Original version
 - Simon King (2013-10): Add :class:`Singleton`
-
 """
 
-#*****************************************************************************
+# ****************************************************************************
 #       Copyright (C) 2013 Simon A. King <simon.king at uni-jena.de>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
 from sage.misc.classcall_metaclass import ClasscallMetaclass, typecall
-from sage.misc.constant_function import ConstantFunction
 
 from cpython.object cimport Py_EQ, Py_NE
 
@@ -101,11 +99,10 @@ cdef class WithEqualityById:
         True
         sage: a is d
         False
-
     """
     def __hash__(self):
         """
-        The hash provided by this class coincides with that of ``<type 'object'>``.
+        The hash provided by this class coincides with that of ``<class 'object'>``.
 
         TESTS::
 
@@ -166,10 +163,10 @@ cdef class WithEqualityById:
             sage: a == AlwaysEqual()
             True
 
-        Check that :trac:`19628` is fixed::
+        Check that :issue:`19628` is fixed::
 
             sage: from sage.misc.lazy_import import LazyImport
-            sage: lazyQQ = LazyImport('sage.all', 'QQ')
+            sage: lazyQQ = LazyImport('sage.rings.rational_field', 'QQ')
             sage: PolynomialRing(lazyQQ, 'ijk') is PolynomialRing(QQ, 'ijk')
             True
             sage: PolynomialRing(QQ, 'ijkl') is PolynomialRing(lazyQQ, 'ijkl')
@@ -195,7 +192,7 @@ cdef class FastHashable_class:
 
         This is for internal use only. The class has a cdef attribute
         ``_hash``, that needs to be assigned (for example, by calling
-        the init method, or by a direct assignement using
+        the init method, or by a direct assignment using
         cython). This is slower than using :func:`provide_hash_by_id`,
         but has the advantage that the hash can be prescribed, by
         assigning a cdef attribute ``_hash``.
@@ -226,7 +223,6 @@ cdef class FastHashable_class:
             sage: H = FastHashable_class(123)
             sage: hash(H)   # indirect doctest
             123
-
         """
         return self._hash
 
@@ -296,6 +292,9 @@ class Singleton(WithEqualityById, metaclass=ClasscallMetaclass):
             sage: loads(dumps(c)) is copy(c) is C()  # indirect doctest
             True
         """
+        # local import to avoid circular initialization issues in `CartesianProductFunctor`
+        from sage.misc.constant_function import ConstantFunction
+
         assert cls.mro()[1] == Singleton, "{} is not a direct subclass of {}".format(cls, Singleton)
         res = typecall(cls)
         cf = ConstantFunction(res)
@@ -311,7 +310,7 @@ class Singleton(WithEqualityById, metaclass=ClasscallMetaclass):
         EXAMPLES::
 
             sage: from sage.misc.fast_methods import Singleton
-            sage: class C(Singleton, Parent):                  
+            sage: class C(Singleton, Parent):
             ....:     def __init__(self):
             ....:         print("creating singleton")
             ....:         Parent.__init__(self, base=ZZ, category=Rings())
@@ -321,7 +320,7 @@ class Singleton(WithEqualityById, metaclass=ClasscallMetaclass):
             sage: __main__.C = C       # ... in doctests
             sage: loads(dumps(c)) is copy(c) is C()  # indirect doctest
             True
-        """ 
+        """
         return self
 
     def __reduce__(self):
@@ -332,7 +331,7 @@ class Singleton(WithEqualityById, metaclass=ClasscallMetaclass):
         EXAMPLES::
 
             sage: from sage.misc.fast_methods import Singleton
-            sage: class C(Singleton, Parent):                  
+            sage: class C(Singleton, Parent):
             ....:     def __init__(self):
             ....:         print("creating singleton")
             ....:         Parent.__init__(self, base=ZZ, category=Rings())
@@ -343,11 +342,11 @@ class Singleton(WithEqualityById, metaclass=ClasscallMetaclass):
             sage: __main__.C = C       # ... in doctests
             sage: loads(dumps(c)) is copy(c) is C()  # indirect doctest
             True
- 
+
         The pickle data mainly consist of the class of the unique instance,
         which may be a subclass of the original class used to create the
         instance.If the class is replaced by a sub-sub-class after creation
         of the instance, pickling fails. See the doctest
         in :class:`Singleton`.
-        """ 
+        """
         return self.__class__, ()

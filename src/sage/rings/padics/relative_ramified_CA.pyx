@@ -1,10 +1,11 @@
+# sage.doctest: needs sage.libs.flint
 include "sage/libs/linkages/padics/Polynomial_ram.pxi"
 include "CA_template.pxi"
 
 cdef class RelativeRamifiedCappedAbsoluteElement(CAElement):
     def _poly_rep(self):
         """
-        Return the underlying polynomial representation of this element 
+        Return the underlying polynomial representation of this element
         (which is used for computations).
 
         For debugging and printing purpose.
@@ -19,10 +20,10 @@ cdef class RelativeRamifiedCappedAbsoluteElement(CAElement):
             sage: W(5)._poly_rep()
             5
 
-        The coefficients of P are floating point p-adics::
+        The coefficients of P are floating point `p`-adics::
 
             sage: P = W.random_element()._poly_rep()
-            sage: ring = P.parent().base_ring() 
+            sage: ring = P.parent().base_ring()
             sage: ring
             5-adic Unramified Extension Ring in a defined by x^3 + 3*x + 3
             sage: ring._prec_type()

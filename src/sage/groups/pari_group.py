@@ -1,3 +1,4 @@
+# sage.doctest: needs sage.libs.pari
 r"""
 PARI Groups
 
@@ -5,11 +6,13 @@ See :pari:`polgalois` for the PARI documentation of these objects.
 """
 
 from sage.libs.pari import pari
-from sage.rings.all import Integer
-from sage.groups.perm_gps.permgroup_named import TransitiveGroup
+from sage.misc.lazy_import import lazy_import
+from sage.rings.integer import Integer
+
+lazy_import('sage.groups.perm_gps.permgroup_named', 'TransitiveGroup')
 
 
-class PariGroup(object):
+class PariGroup:
     def __init__(self, x, degree):
         """
         EXAMPLES::
@@ -26,7 +29,7 @@ class PariGroup(object):
 
     def __repr__(self):
         """
-        String representation of this group
+        String representation of this group.
 
         EXAMPLES::
 
@@ -156,7 +159,7 @@ class PariGroup(object):
 
     def permutation_group(self):
         """
-        Return the corresponding GAP transitive group
+        Return the corresponding GAP transitive group.
 
         EXAMPLES::
 

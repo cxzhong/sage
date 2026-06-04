@@ -1,3 +1,5 @@
+# sage.doctest: needs sage.rings.finite_rings
+
 #############################################################################
 #    Copyright (C) 2019 Xavier Caruso <xavier.caruso@normalesup.org>
 #
@@ -198,7 +200,7 @@ cdef _backend_morphism(f):
         sage: K.<a> = GF(7^3).over()
         sage: f = End(K)(Frob)
         sage: type(f)
-        <type 'sage.rings.ring_extension_morphism.RingExtensionHomomorphism'>
+        <class 'sage.rings.ring_extension_morphism.RingExtensionHomomorphism'>
         sage: backend_morphism(f) == Frob   # indirect doctest
         True
 
@@ -219,7 +221,7 @@ cdef _backend_morphism(f):
 
         sage: iota = End(K).identity()
         sage: type(iota)
-        <type 'sage.categories.morphism.IdentityMorphism'>
+        <class 'sage.categories.morphism.IdentityMorphism'>
         sage: backend_morphism(iota)
         Identity endomorphism of Finite Field in z3 of size 7^3
     """
@@ -241,7 +243,7 @@ cdef _backend_morphism(f):
             return ring.coerce_map_from(domain)
     raise NotImplementedError
 
-cpdef backend_morphism(f, forget="all"):
+cpdef backend_morphism(f, forget='all'):
     r"""
     Return the backend morphism of ``f``.
 
@@ -249,8 +251,8 @@ cpdef backend_morphism(f, forget="all"):
 
     - ``f`` -- a map
 
-    - ``forget`` -- a string, either ``all`` or ``domain`` or ``codomain``
-      (default: ``all``); whether to switch to the backend for the domain,
+    - ``forget`` -- string; either ``'all'`` or ``'domain'`` or ``'codomain'``
+      (default: ``'all'``). Whether to switch to the backend for the domain,
       the codomain or both of them.
 
     EXAMPLES::
@@ -267,13 +269,13 @@ cpdef backend_morphism(f, forget="all"):
         Ring endomorphism of Finite Field in z3 of size 7^3
           Defn: z3 |--> 3*z3^2 + 5*z3
 
-        sage: backend_morphism(f, forget="domain")
+        sage: backend_morphism(f, forget='domain')
         Ring morphism:
           From: Finite Field in z3 of size 7^3
           To:   Field in a with defining polynomial x^3 + 6*x^2 + 4 over its base
           Defn: z3 |--> 5*a + 3*a^2
 
-        sage: backend_morphism(f, forget="codomain")
+        sage: backend_morphism(f, forget='codomain')
         Ring morphism:
           From: Field in a with defining polynomial x^3 + 6*x^2 + 4 over its base
           To:   Finite Field in z3 of size 7^3
@@ -306,7 +308,7 @@ cpdef from_backend_morphism(f, RingExtension_generic E):
 
     - ``x`` -- a morphism
 
-    - ``E`` -- a ring extension 
+    - ``E`` -- a ring extension
 
     EXAMPLES::
 
@@ -392,14 +394,14 @@ cpdef to_backend(arg):
 
 cpdef from_backend(arg, E):
     r"""
-    Try to reconstruct something (somehow related to ``E``) 
+    Try to reconstruct something (somehow related to ``E``)
     whose backend is ``arg``.
 
     INPUT:
 
     - ``arg`` -- any argument
 
-    - ``E`` -- a ring extension 
+    - ``E`` -- a ring extension
 
     EXAMPLES::
 

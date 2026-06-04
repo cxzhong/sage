@@ -16,6 +16,7 @@ from sage.combinat.root_system import cartan_type
 from sage.combinat.root_system.root_lattice_realizations import RootLatticeRealizations
 from sage.combinat.root_system import ambient_space
 
+
 class CartanType(cartan_type.CartanType_decorator, cartan_type.CartanType_crystallographic):
     r"""
     A class for dual Cartan types.
@@ -75,6 +76,7 @@ class CartanType(cartan_type.CartanType_decorator, cartan_type.CartanType_crysta
 
     .. NOTE:: F4d is pickled by construction as F4.dual() hence the above failure.
     """
+
     def __init__(self, type):
         """
         INPUT:
@@ -97,7 +99,7 @@ class CartanType(cartan_type.CartanType_decorator, cartan_type.CartanType_crysta
             False
 
         Test that the produced Cartan type is in the appropriate
-        abstract classes (see :trac:`13724`)::
+        abstract classes (see :issue:`13724`)::
 
             sage: from sage.combinat.root_system import cartan_type
             sage: ct = CartanType(['B',3,1]).dual()
@@ -161,7 +163,7 @@ class CartanType(cartan_type.CartanType_decorator, cartan_type.CartanType_crysta
     _stable_abstract_classes = [
         cartan_type.CartanType_simple]
 
-    def _repr_(self, compact = False):
+    def _repr_(self, compact=False):
         """
         EXAMPLES::
 
@@ -175,14 +177,14 @@ class CartanType(cartan_type.CartanType_decorator, cartan_type.CartanType_crysta
         if self.is_affine() and self.options.notation == "Kac":
             if self._type.type() == 'B':
                 if compact:
-                    return 'A%s^2'%(self.classical().rank()*2-1)
-                return "['A', %s, 2]"%(self.classical().rank()*2-1)
-            elif self._type.type() == 'BC':
+                    return 'A%s^2' % (self.classical().rank()*2-1)
+                return "['A', %s, 2]" % (self.classical().rank()*2-1)
+            if self._type.type() == 'BC':
                 dual_str = '+'
             elif self._type.type() == 'C':
                 if compact:
-                    return 'D%s^2'%(self.rank())
-                return "['D', %s, 2]"%(self.rank())
+                    return 'D%s^2' % (self.rank())
+                return "['D', %s, 2]" % (self.rank())
             elif self._type.type() == 'F':
                 if compact:
                     return 'E6^2'
@@ -207,7 +209,7 @@ class CartanType(cartan_type.CartanType_decorator, cartan_type.CartanType_crysta
         """
         return (attrcall("dual"), (self._type,))
 
-    def _latex_dynkin_diagram(self, label=lambda i: i, node=None, node_dist=2):
+    def _latex_dynkin_diagram(self, label=None, node=None, node_dist=2):
         r"""
         EXAMPLES::
 
@@ -227,13 +229,15 @@ class CartanType(cartan_type.CartanType_decorator, cartan_type.CartanType_crysta
             }
             \draw[fill=white] (0 cm, 0 cm) circle (.25cm) node[below=4pt]{$0$};
         """
+        if label is None:
+            label = lambda i: i
         if node is None:
             node = self._latex_draw_node
         return self._type._latex_dynkin_diagram(label, node, node_dist, dual=True)
 
-    def ascii_art(self, label=lambda i: i, node=None):
+    def ascii_art(self, label=None, node=None):
         """
-        Return an ascii art representation of this Cartan type
+        Return an ascii art representation of this Cartan type.
 
         (by hacking the ascii art representation of the dual Cartan type)
 
@@ -259,6 +263,8 @@ class CartanType(cartan_type.CartanType_decorator, cartan_type.CartanType_crysta
             O=>=O---O---O=>=O
             0   1   2   3   4
         """
+        if label is None:
+            label = lambda i: i
         if node is None:
             node = self._ascii_art_node
         res = self._type.ascii_art(label, node)
@@ -272,7 +278,7 @@ class CartanType(cartan_type.CartanType_decorator, cartan_type.CartanType_crysta
     def __eq__(self, other):
         """
         Return whether ``self`` is equal to ``other``.
-        
+
         EXAMPLES::
 
             sage: B41 = CartanType(['B', 4, 1])
@@ -293,7 +299,7 @@ class CartanType(cartan_type.CartanType_decorator, cartan_type.CartanType_crysta
     def __ne__(self, other):
         """
         Return whether ``self`` is equal to ``other``.
-        
+
         EXAMPLES::
 
             sage: B41 = CartanType(['B', 4, 1])
@@ -336,7 +342,7 @@ class CartanType(cartan_type.CartanType_decorator, cartan_type.CartanType_crysta
         EXAMPLES::
 
             sage: ct = CartanType(['F', 4, 1]).dual()
-            sage: ct.dynkin_diagram()
+            sage: ct.dynkin_diagram()                                                   # needs sage.graphs
             O---O---O=<=O---O
             0   1   2   3   4
             F4~*
@@ -344,6 +350,7 @@ class CartanType(cartan_type.CartanType_decorator, cartan_type.CartanType_crysta
         return self._type.dynkin_diagram().dual()
 
 ###########################################################################
+
 
 class AmbientSpace(ambient_space.AmbientSpace):
     """
@@ -376,7 +383,7 @@ class AmbientSpace(ambient_space.AmbientSpace):
         sage: ct = sage.combinat.root_system.type_dual.CartanType(CartanType(['F',4]))
         sage: L = ct.root_system().ambient_space(); L
         Ambient space of the Root system of type ['F', 4]^*
-        sage: TestSuite(L).run(skip=["_test_elements","_test_pickling"])
+        sage: TestSuite(L).run(skip=["_test_elements","_test_pickling"])                # needs sage.graphs
     """
 
     @lazy_attribute
@@ -469,7 +476,7 @@ class AmbientSpace(ambient_space.AmbientSpace):
 
             sage: ct = sage.combinat.root_system.type_dual.CartanType(CartanType(['F',4]))
             sage: L = ct.root_system().ambient_space()
-            sage: L.fundamental_weights()
+            sage: L.fundamental_weights()                                               # needs sage.graphs
             Finite family {1: (1, 1, 0, 0), 2: (2, 1, 1, 0), 3: (3, 1, 1, 1), 4: (2, 0, 0, 0)}
 
         Note that this ambient space is isomorphic, but not equal, to
@@ -508,18 +515,19 @@ class AmbientSpace(ambient_space.AmbientSpace):
         dual_space = self.cartan_type().dual().root_system().ambient_space(self.base_ring())
         if dual_space._plot_projection == dual_space._plot_projection_barycentric:
             return self._plot_projection_barycentric
-        else:
-            RootLatticeRealizations.ParentMethods.__dict__["_plot_projection"]
+        RootLatticeRealizations.ParentMethods.__dict__["_plot_projection"]
 
 
 class CartanType_finite(CartanType, cartan_type.CartanType_finite):
     AmbientSpace = AmbientSpace
 
 ###########################################################################
+
+
 class CartanType_affine(CartanType, cartan_type.CartanType_affine):
     def classical(self):
         """
-        Return the classical Cartan type associated with self (which should
+        Return the classical Cartan type associated with ``self`` (which should
         be affine).
 
         EXAMPLES::
@@ -556,18 +564,18 @@ class CartanType_affine(CartanType, cartan_type.CartanType_affine):
         from . import cartan_type
         if self.dual().type() == 'B':
             return cartan_type.CartanType(['A', self.classical().rank()*2-1])
-        elif self.dual().type() == 'BC':
+        if self.dual().type() == 'BC':
             return cartan_type.CartanType(['A', self.classical().rank()*2])
-        elif self.dual().type() == 'C':
+        if self.dual().type() == 'C':
             return cartan_type.CartanType(['D', self.classical().rank()+1])
-        elif self.dual().type() == 'F':
+        if self.dual().type() == 'F':
             return cartan_type.CartanType(['E', 6])
-        elif self.dual().type() == 'G':
+        if self.dual().type() == 'G':
             return cartan_type.CartanType(['D', 4])
 
     def special_node(self):
         """
-        Implement :meth:`CartanType_affine.special_node`
+        Implement :meth:`CartanType_affine.special_node`.
 
         The special node of the dual of an affine type `T` is the
         special node of `T`.
@@ -598,14 +606,14 @@ class CartanType_affine(CartanType, cartan_type.CartanType_affine):
         if self.options.notation == "Kac":
             if self._type.type() == 'B':
                 if compact:
-                    return 'A%s^2'%(self.classical().rank()*2-1)
-                return "['A', %s, 2]"%(self.classical().rank()*2-1)
-            elif self._type.type() == 'BC':
+                    return 'A%s^2' % (self.classical().rank()*2-1)
+                return "['A', %s, 2]" % (self.classical().rank()*2-1)
+            if self._type.type() == 'BC':
                 pass
             elif self._type.type() == 'C':
                 if compact:
-                    return 'D%s^2'%(self.rank())
-                return "['D', %s, 2]"%(self.rank())
+                    return 'D%s^2' % (self.rank())
+                return "['D', %s, 2]" % (self.rank())
             elif self._type.type() == 'F':
                 if compact:
                     return 'E6^2'
@@ -642,19 +650,18 @@ class CartanType_affine(CartanType, cartan_type.CartanType_affine):
         """
         if self.options('notation') == "Kac":
             if self._type.type() == 'B':
-                return "A_{%s}^{(2)}"%(self.classical().rank()*2-1)
-            elif self._type.type() == 'BC':
-                return "A_{%s}^{(2)\\dagger}"%(2*self.classical().rank())
-            elif self._type.type() == 'C':
-                return "D_{%s}^{(2)}"%(self.rank)()
-            elif self._type.type() == 'F':
+                return "A_{%s}^{(2)}" % (self.classical().rank()*2-1)
+            if self._type.type() == 'BC':
+                return "A_{%s}^{(2)\\dagger}" % (2*self.classical().rank())
+            if self._type.type() == 'C':
+                return "D_{%s}^{(2)}" % (self.rank)()
+            if self._type.type() == 'F':
                 return "E_6^{(2)}"
         result = self._type._latex_()
         import re
         if re.match(r".*\^{\(\d\)}$", result):
-            return "%s%s}"%(result[:-1], self.options('dual_latex'))
-        else:
-            return "{%s}^%s"%(result, self.options('dual_latex'))
+            return "%s%s}" % (result[:-1], self.options('dual_latex'))
+        return "{%s}^%s" % (result, self.options('dual_latex'))
 
     def _default_folded_cartan_type(self):
         """
@@ -675,21 +682,20 @@ class CartanType_affine(CartanType, cartan_type.CartanType_affine):
         """
         from sage.combinat.root_system.type_folded import CartanTypeFolded
         letter = self._type.type()
-        if letter == 'BC': # A_{2n}^{(2)\dagger}
+        if letter == 'BC':  # A_{2n}^{(2)\dagger}
             n = self._type.classical().rank()
             return CartanTypeFolded(self, ['A', 2*n - 1, 1],
                 [[0]] + [[i, 2*n-i] for i in range(1, n)] + [[n]])
-        if letter == 'B': # A_{2n-1}^{(2)}
+        if letter == 'B':  # A_{2n-1}^{(2)}
             n = self._type.classical().rank()
             return CartanTypeFolded(self, ['D', n + 1, 1],
                 [[i] for i in range(n)] + [[n, n+1]])
-        if letter == 'C': # D_{n+1}^{(2)}
+        if letter == 'C':  # D_{n+1}^{(2)}
             n = self._type.classical().rank()
             return CartanTypeFolded(self, ['A', 2*n-1, 1],
                 [[0]] + [[i, 2*n-i] for i in range(1, n)] + [[n]])
-        if letter == 'F': # E_6^{(2)}
+        if letter == 'F':  # E_6^{(2)}
             return CartanTypeFolded(self, ['E', 6, 1], [[0], [2], [4], [3, 5], [1, 6]])
-        if letter == 'G': # D_4^{(3)}
+        if letter == 'G':  # D_4^{(3)}
             return CartanTypeFolded(self, ['D', 4, 1], [[0], [1, 3, 4], [2]])
-        return super(CartanType, self)._default_folded_cartan_type()
-
+        return super()._default_folded_cartan_type()

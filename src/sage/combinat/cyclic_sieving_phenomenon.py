@@ -12,11 +12,6 @@ unique polynomial ``P(q)`` of order < `n` such that the triple (`S`,
 AUTHORS:
 
 - Christian Stump
-
-REFERENCES:
-
-.. [RSW2004] Reiner, Stanton, White - *The cyclic sieving phenomenon*,
-             Journal of Combinatorial Theory A 108 (2004)
 """
 # ****************************************************************************
 #       Copyright (C) 2010 Christian Stump christian.stump@univie.ac.at
@@ -24,8 +19,9 @@ REFERENCES:
 #  Distributed under the terms of the GNU General Public License (GPL)
 #                  https://www.gnu.org/licenses/
 # ****************************************************************************
-from sage.rings.all import ZZ
-from sage.arith.all import lcm
+from __future__ import annotations
+from sage.rings.integer_ring import ZZ
+from sage.arith.functions import lcm
 from sage.rings.polynomial.polynomial_ring_constructor import PolynomialRing
 
 
@@ -41,14 +37,14 @@ def CyclicSievingPolynomial(L, cyc_act=None, order=None, get_order=False):
     - ``L`` -- if ``cyc_act`` is ``None``: list of orbit sizes,
       otherwise list of objects
 
-    - ``cyc_act`` -- (default:``None``) bijective function from ``L`` to ``L``
+    - ``cyc_act`` -- (default: ``None``) bijective function from ``L`` to ``L``
 
-    - ``order`` -- (default:``None``) if set to an integer, this
+    - ``order`` -- (default: ``None``) if set to an integer, this
         cyclic order of ``cyc_act`` is used (must be an integer multiple
         of the order of ``cyc_act``) otherwise, the order of ``cyc_action`` is
         used
 
-    - ``get_order`` -- (default:``False``) if ``True``, a tuple ``[p,n]``
+    - ``get_order`` -- (default: ``False``) if ``True``, a tuple ``[p,n]``
       is returned where ``p`` is as above, and ``n`` is the order
 
     EXAMPLES::
@@ -71,7 +67,7 @@ def CyclicSievingPolynomial(L, cyc_act=None, order=None, get_order=False):
 
     TESTS:
 
-    We check that :trac:`13997` is handled::
+    We check that :issue:`13997` is handled::
 
         sage: CyclicSievingPolynomial(S42, cyc_act, order=8, get_order=True)
         [q^6 + 2*q^4 + q^2 + 2, 8]
@@ -97,7 +93,7 @@ def CyclicSievingPolynomial(L, cyc_act=None, order=None, get_order=False):
         else:
             orbit_sizes[length] = 1
 
-    n = lcm(list(orbit_sizes))
+    n = lcm(orbit_sizes)
 
     if order:
         if order.mod(n):
@@ -110,19 +106,16 @@ def CyclicSievingPolynomial(L, cyc_act=None, order=None, get_order=False):
         if i == 0:
             j = sum(orbit_sizes.values())
         else:
-            j = sum(orbit_sizes[l] for l in orbit_sizes
-                    if ZZ(i).mod(n / l) == 0)
+            j = sum(orb for l, orb in orbit_sizes.items()
+                    if not ZZ(i).mod(n // l))
         p += j * q**i
 
     p = p(q**(order // n))
 
-    if get_order:
-        return [p, order]
-    else:
-        return p
+    return [p, order] if get_order else p
 
 
-def CyclicSievingCheck(L, cyc_act, f, order=None):
+def CyclicSievingCheck(L, cyc_act, f, order=None) -> bool:
     """
     Return whether the triple ``(L, cyc_act, f)`` exhibits
     the cyclic sieving phenomenon.
@@ -134,9 +127,9 @@ def CyclicSievingCheck(L, cyc_act, f, order=None):
     - ``L`` -- if ``cyc_act`` is ``None``: list of orbit sizes,
       otherwise list of objects
 
-    - ``cyc_act`` -- (default:``None``) bijective function from ``L`` to ``L``
+    - ``cyc_act`` -- (default: ``None``) bijective function from ``L`` to ``L``
 
-    - ``order`` -- (default:``None``) if set to an integer, this
+    - ``order`` -- (default: ``None``) if set to an integer, this
         cyclic order of ``cyc_act`` is used (must be an integer
         multiple of the order of ``cyc_act``) otherwise, the order of
         ``cyc_action`` is used
@@ -162,11 +155,10 @@ def CyclicSievingCheck(L, cyc_act, f, order=None):
                                     get_order=True)
     R = p1.parent()
     q = R.gen()
-    p2 = R(f).mod(q**n - 1)
-    return p1 == p2
+    return p1 == R(f).mod(q**n - 1)
 
 
-def orbit_decomposition(L, cyc_act):
+def orbit_decomposition(L, cyc_act) -> list[list]:
     """
     Return the orbit decomposition of ``L`` by the action of ``cyc_act``.
 
@@ -176,9 +168,7 @@ def orbit_decomposition(L, cyc_act):
 
     - ``cyc_act`` -- bijective function from ``L`` to ``L``
 
-    OUTPUT:
-
-    - a list of lists, the orbits under the cyc_act acting on ``L``
+    OUTPUT: list of lists, the orbits under the cyc_act acting on ``L``
 
     EXAMPLES::
 
@@ -196,7 +186,7 @@ def orbit_decomposition(L, cyc_act):
     """
     orbits = []
     L_prime = set(L)
-    while L_prime != set():
+    while L_prime:
         obj = L_prime.pop()
         orbit = [obj]
         obj = cyc_act(obj)

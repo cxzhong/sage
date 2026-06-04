@@ -1,26 +1,10 @@
 r"""
-`p`-Adic Elements with lattice precision.
+`p`-adic Elements with lattice precision.
 
 AUTHOR:
 
 - Xavier Caruso (2018-02): initial version
 
-TESTS:
-
-We create some rings and run the test suite for them. We skip the Smith form
-tests because they take a few minutes as of mid 2018, see :trac:`25431`::
-
-    sage: R1 = ZpLC(2)
-    doctest:...: FutureWarning: This class/method/function is marked as experimental. It, its functionality or its interface might change without a formal deprecation.
-    See http://trac.sagemath.org/23505 for details.
-    sage: R2 = ZpLF(2)
-    sage: R3 = QpLC(2)
-    sage: R4 = QpLF(2)
-
-    sage: TestSuite(R1).run(skip=['_test_teichmuller', '_test_matrix_smith']) # long time
-    sage: TestSuite(R2).run(skip=['_test_teichmuller', '_test_matrix_smith']) # long time
-    sage: TestSuite(R3).run(skip=['_test_teichmuller', '_test_matrix_smith']) # long time
-    sage: TestSuite(R4).run(skip=['_test_teichmuller', '_test_matrix_smith']) # long time
 """
 
 # ****************************************************************************
@@ -58,12 +42,13 @@ def unpickle_le(parent, value, prec):
 
     - ``value`` -- a rational number
 
-    - ``prec`` -- an integer
+    - ``prec`` -- integer
 
     EXAMPLES::
 
         sage: from sage.rings.padics.padic_lattice_element import unpickle_le
         sage: R = ZpLC(5,8)
+        doctest:...: FutureWarning:...
         sage: a = unpickle_le(R, 42, 6); a
         2 + 3*5 + 5^2 + O(5^6)
         sage: a.parent() is R
@@ -74,7 +59,7 @@ def unpickle_le(parent, value, prec):
 
 class pAdicLatticeElement(pAdicGenericElement):
     r"""
-    Constructs new element with given parent and value.
+    Construct new element with given parent and value.
 
     INPUT:
 
@@ -82,21 +67,21 @@ class pAdicLatticeElement(pAdicGenericElement):
 
     - ``x`` -- the newly created element
 
-    - ``prec`` -- an integer; the absolute precision at which this 
+    - ``prec`` -- integer; the absolute precision at which this
       element has to be capped
 
-    - ``dx`` -- a dictionary representing the differential of ``x``
+    - ``dx`` -- dictionary representing the differential of ``x``
 
-    - ``dx_mode`` -- a string, either ``linear_combination`` (the default)
-      or ``values``
+    - ``dx_mode`` -- string; either ``'linear_combination'`` (the default)
+      or ``'values'``
 
-    - ``valuation`` -- an integer or ``None`` (default: ``None``), 
+    - ``valuation`` -- integer or ``None`` (default: ``None``);
       the valuation of this element
 
-    - ``check`` -- a boolean (default: ``True``), whether the function
+    - ``check`` -- boolean (default: ``True``); whether the function
       should check that the given values are well formed and coherent
 
-    - ``reduce`` -- a boolean (default: ``True``), whether the given
+    - ``reduce`` -- boolean (default: ``True``); whether the given
       values need to be reduced
 
     TESTS::
@@ -139,7 +124,7 @@ class pAdicLatticeElement(pAdicGenericElement):
     @abstract_method
     def _declare_new_element(self, dx, prec, dx_mode):
         r"""
-        Declare this element to the precision object and 
+        Declare this element to the precision object and
         return the precision at which this element can be truncated safely.
 
         Only for internal use.
@@ -203,12 +188,13 @@ class pAdicLatticeElement(pAdicGenericElement):
 
         INPUT:
 
-        - ``p`` -- a prime, which is compared with the parent of this element.
+        - ``p`` -- a prime, which is compared with the parent of this element
 
         EXAMPLES::
 
             sage: K = QpLC(7)
-            sage: K.random_element()._is_base_elt(7)
+            doctest:...: FutureWarning:...
+            sage: K.random_element()._is_base_elt(7)  # not tested, known bug (see :issue:`32126`)
             True
         """
         return p == self._parent.prime()
@@ -233,8 +219,8 @@ class pAdicLatticeElement(pAdicGenericElement):
     def value(self):
         r"""
         Return the actual approximation of this element
-        stored in memory. 
-        In presence of diffused digits of precision, it can 
+        stored in memory.
+        In presence of diffused digits of precision, it can
         have more precision than the absolute precision of
         the element.
 
@@ -263,12 +249,14 @@ class pAdicLatticeElement(pAdicGenericElement):
 
         INPUT:
 
-        - ``absprec`` -- a non-negative integer (default: ``1``)
+        - ``absprec`` -- nonnegative integer (default: 1)
 
-        - ``field`` -- boolean (default ``None``).  Whether to return an element of GF(p) or Zmod(p).
+        - ``field`` -- boolean (default: ``None``); whether to return an
+          element of GF(p) or Zmod(p)
 
-        - ``check_prec`` -- boolean (default ``True``).  Whether to raise an error if this
-          element has insufficient precision to determine the reduction.
+        - ``check_prec`` -- boolean (default: ``True``); whether to raise an
+          error if this element has insufficient precision to determine the
+          reduction
 
         OUTPUT:
 
@@ -291,11 +279,11 @@ class pAdicLatticeElement(pAdicGenericElement):
             sage: a.residue(-1)
             Traceback (most recent call last):
             ...
-            ValueError: cannot reduce modulo a negative power of p.
+            ValueError: cannot reduce modulo a negative power of p
             sage: a.residue(5)
             Traceback (most recent call last):
             ...
-            PrecisionError: not enough precision known in order to compute residue.
+            PrecisionError: not enough precision known in order to compute residue
             sage: a.residue(5, check_prec=False)
             8
 
@@ -305,11 +293,11 @@ class pAdicLatticeElement(pAdicGenericElement):
         if not isinstance(absprec, Integer):
             absprec = Integer(absprec)
         if check_prec and absprec > self.precision_absolute():
-            raise PrecisionError("not enough precision known in order to compute residue.")
+            raise PrecisionError("not enough precision known in order to compute residue")
         elif absprec < 0:
-            raise ValueError("cannot reduce modulo a negative power of p.")
+            raise ValueError("cannot reduce modulo a negative power of p")
         if self.valuation() < 0:
-            raise ValueError("element must have non-negative valuation in order to compute residue.")
+            raise ValueError("element must have nonnegative valuation in order to compute residue")
         if field is None:
             field = (absprec == 1)
         elif field and absprec != 1:
@@ -326,7 +314,7 @@ class pAdicLatticeElement(pAdicGenericElement):
     def precision_lattice(self):
         r"""
         Return the precision object (which is a lattice in a possibly
-        high-dimensional vector space) that handles the precision of 
+        high-dimensional vector space) that handles the precision of
         this element.
 
         EXAMPLES::
@@ -408,11 +396,11 @@ class pAdicLatticeElement(pAdicGenericElement):
 
         INPUT:
 
-        - ``secure`` -- a boolean (default: ``False``); when ``True``,
+        - ``secure`` -- boolean (default: ``False``); when ``True``,
           an error is raised if the precision on the element is not
-          enough to determine for sure its valuation; otherwise the
+          enough to determine for sure its valuation. Otherwise the
           absolute precision (which is the smallest possible valuation)
-          is returned
+          is returned.
 
         EXAMPLES::
 
@@ -429,14 +417,14 @@ class pAdicLatticeElement(pAdicGenericElement):
             sage: y.valuation(secure=True)
             Traceback (most recent call last):
             ...
-            PrecisionError: Not enough precision
+            PrecisionError: not enough precision
         """
         val = self._value.valuation()
         prec = self.precision_absolute()
-        if val < prec: 
+        if val < prec:
             return val
-        elif secure:
-            raise PrecisionError("Not enough precision")
+        if secure:
+            raise PrecisionError("not enough precision")
         else:
             return prec
 
@@ -448,7 +436,7 @@ class pAdicLatticeElement(pAdicGenericElement):
 
         INPUT:
 
-        - ``secure`` -- a boolean (default: ``False``); when ``True``,
+        - ``secure`` -- boolean (default: ``False``); when ``True``,
           an error is raised if the precision on the element is not
           enough to determine for sure its valuation
 
@@ -467,7 +455,7 @@ class pAdicLatticeElement(pAdicGenericElement):
             sage: y.precision_relative(secure=True)
             Traceback (most recent call last):
             ...
-            PrecisionError: Not enough precision
+            PrecisionError: not enough precision
         """
         if not secure and self.is_zero():
             return ZZ(0)
@@ -496,12 +484,11 @@ class pAdicLatticeElement(pAdicGenericElement):
         """
         if (self - other).is_zero():
             return rich_to_bool(op, 0)
-        else:
-            return richcmp(QQ(self.lift()), QQ(other.lift()), op)
+        return richcmp(QQ(self.lift()), QQ(other.lift()), op)
 
     def is_equal_to(self, other, prec):
         r"""
-        Return ``True`` if this element is indisting
+        Return ``True`` if this element is indistinguishable
         from ``other`` at precision ``prec``
 
         EXAMPLES::
@@ -553,7 +540,7 @@ class pAdicLatticeElement(pAdicGenericElement):
         if self._parent._zero_cap is not None:
             if x.valuation() >= min(self._value.valuation(), other._value.valuation()) + self._parent._zero_cap:
                 x = self._parent._approx_zero
-        dx = [  [self, self._parent._approx_one], 
+        dx = [  [self, self._parent._approx_one],
                [other, self._parent._approx_one] ]
         return self.__class__(self._parent, x, dx=dx, check=False)
 
@@ -575,7 +562,7 @@ class pAdicLatticeElement(pAdicGenericElement):
         if self._parent._zero_cap is not None:
             if x.valuation() >= min(self._value.valuation(), other._value.valuation()) + self._parent._zero_cap:
                 x = self._parent._approx_zero
-        dx = [  [self, self._parent._approx_one], 
+        dx = [  [self, self._parent._approx_one],
                [other, self._parent._approx_minusone] ]
         return self.__class__(self._parent, x, dx=dx, check=False)
 
@@ -617,10 +604,10 @@ class pAdicLatticeElement(pAdicGenericElement):
         r"""
         Return the quotient of this element and ``other``.
 
-        NOTE::
+        .. NOTE::
 
-        The result of division always lives in the fraction field,
-        even if the element to be inverted is a unit.
+            The result of division always lives in the fraction field,
+            even if the element to be inverted is a unit.
 
         EXAMPLES::
 
@@ -629,7 +616,7 @@ class pAdicLatticeElement(pAdicGenericElement):
             18 + 18*19 + 18*19^2 + 18*19^3 + 18*19^4 + O(19^5)
             sage: b = R(-5/2, 5); b
             7 + 9*19 + 9*19^2 + 9*19^3 + 9*19^4 + O(19^5)
- 
+
             sage: c = a / b   # indirect doctest
             sage: c
             8 + 11*19 + 7*19^2 + 11*19^3 + 7*19^4 + O(19^5)
@@ -660,10 +647,10 @@ class pAdicLatticeElement(pAdicGenericElement):
         r"""
         Return the multiplicative inverse of this element.
 
-        NOTE::
+        .. NOTE::
 
-        The result of division always lives in the fraction field,
-        even if the element to be inverted is a unit.
+            The result of division always lives in the fraction field,
+            even if the element to be inverted is a unit.
 
         EXAMPLES::
 
@@ -726,7 +713,7 @@ class pAdicLatticeElement(pAdicGenericElement):
 
         INPUT:
 
-        - ``prec`` -- an integer or infinity
+        - ``prec`` -- integer or infinity
 
         EXAMPLES::
 
@@ -767,20 +754,20 @@ class pAdicLatticeElement(pAdicGenericElement):
     def lift_to_precision(self, prec=None, infer_precision=False):
         r"""
         Return another element of the same parent with absolute precision
-        at least ``prec``, congruent to this p-adic element modulo the
+        at least ``prec``, congruent to this `p`-adic element modulo the
         precision of this element.
 
         INPUT:
 
-        - ``prec`` -- an integer or ``None`` (default: ``None``), the
-          absolute precision of the result. If ``None``, lifts to the 
-          maximum precision allowed
+        - ``prec`` -- integer or ``None`` (default: ``None``); the
+          absolute precision of the result. If ``None``, lifts to the
+          maximum precision allowed.
 
-        - ``infer_precision`` -- a boolean (default: ``False``)
+        - ``infer_precision`` -- boolean (default: ``False``)
 
         NOTE:
 
-        In the lattice precision model, the precision of all variables is 
+        In the lattice precision model, the precision of all variables is
         handled globally by a unique object, namely a lattice in a certain
         vector space.
 
@@ -791,7 +778,7 @@ class pAdicLatticeElement(pAdicGenericElement):
         When ``infer_precision`` is set to ``False``, the precision on the
         newly created variable is independent as if the variable were created
         by hand by setting independently the value of the absolute precision.
-        In particular, if ``self`` used to share diffused digits of precision 
+        In particular, if ``self`` used to share diffused digits of precision
         with other variables, they are not preserved.
 
         EXAMPLES::
@@ -817,7 +804,7 @@ class pAdicLatticeElement(pAdicGenericElement):
         The gain of precision on ``u + v`` is due to the presence of diffused
         digits of precision between ``u`` and ``v``.
 
-        However, if we call :meth:`lift_to_precision` on one of these variables, 
+        However, if we call :meth:`lift_to_precision` on one of these variables,
         these diffused digits are lost and the precision on the sum is no longer
         sharp::
 
@@ -835,7 +822,7 @@ class pAdicLatticeElement(pAdicGenericElement):
             1 + O(2^10)
 
         Indeed if the absolute precision on ``u = x+y`` (resp. on ``x``)
-        is 20 (resp. 10), we deduce that the absolution precision on 
+        is 20 (resp. 10), we deduce that the absolution precision on
         ``y = u-x`` is 10.
 
         .. SEEALSO::
@@ -877,7 +864,7 @@ class pAdicLatticeElement(pAdicGenericElement):
 
         INPUT:
 
-        - ``prec`` -- an integer or ``None`` (default: ``None``)
+        - ``prec`` -- integer or ``None`` (default: ``None``)
 
         EXAMPLES::
 
@@ -1010,21 +997,21 @@ class pAdicLatticeElement(pAdicGenericElement):
             sage: b.unit_part()
             1 + 16*17 + O(17^3)
 
-        If the element is indistinguishable from zero, an error is raised.
+        If the element is indistinguishable from zero, an error is raised::
 
             sage: c = R(0, 5); c
             O(17^5)
             sage: c.unit_part()
             Traceback (most recent call last):
             ...
-            PrecisionError: Not enough precision
+            PrecisionError: not enough precision
         """
         v = self.valuation(secure=True)
         return self >> v
 
     def val_unit(self):
         r"""
-        Return the pair `(v, u)`, where this element is 
+        Return the pair `(v, u)`, where this element is
         `p^v u` and `u` is a unit.
 
         EXAMPLES::
@@ -1046,7 +1033,7 @@ class pAdicLatticeElement(pAdicGenericElement):
             sage: c.val_unit()
             Traceback (most recent call last):
             ...
-            PrecisionError: Not enough precision
+            PrecisionError: not enough precision
         """
         v = self.valuation(secure=True)
         return v, self >> v
@@ -1066,7 +1053,7 @@ class pAdicLatticeElement(pAdicGenericElement):
             sage: y
             1 + O(2^10)
 
-        In the lattice precision model, Sage remembers that ``y`` is 
+        In the lattice precision model, Sage remembers that ``y`` is
         actually equal to ``x``. Therefore, when we compute the difference,
         the `O(2^10)` cancel as well::
 
@@ -1161,14 +1148,14 @@ class pAdicLatticeElement(pAdicGenericElement):
 
         INPUT:
 
-        - ``n`` -- an integer or ``None`` (default ``None``); if given, 
-          return the corresponding entry in the expansion.
+        - ``n`` -- integer or ``None`` (default: ``None``); if given,
+          return the corresponding entry in the expansion
 
-        - ``lift_mode`` -- a string (default: ``simple``); currently
-          only ``simple`` is implemented.
+        - ``lift_mode`` -- string (default: ``'simple'``); currently
+          only ``'simple'`` is implemented
 
-        - ``start_val`` -- an integer or ``None`` (default: ``None``);
-          start at this valuation rather than the default (`0` or the 
+        - ``start_val`` -- integer or ``None`` (default: ``None``);
+          start at this valuation rather than the default (`0` or the
           valuation of this element).
 
         EXAMPLES::
@@ -1193,7 +1180,7 @@ class pAdicLatticeElement(pAdicGenericElement):
             [4, 1, 4, 4, 1, 0, 0, 0, 0, 0]
         """
         if lift_mode != 'simple':
-            raise NotImplementedError("Other modes than 'simple' are not implemented yet")
+            raise NotImplementedError("other modes than 'simple' are not implemented yet")
         prec = self.precision_absolute()
         val = self.valuation()
         expansion = self._value.list(prec)
@@ -1203,7 +1190,7 @@ class pAdicLatticeElement(pAdicGenericElement):
             try:
                 return expansion[n-val]
             except KeyError:
-                raise PrecisionError("The digit in position %s is not determined" % n)
+                raise PrecisionError("the digit in position %s is not determined" % n)
         if start_val is None:
             if self._parent.is_field():
                 start_val = val
@@ -1211,8 +1198,7 @@ class pAdicLatticeElement(pAdicGenericElement):
                 start_val = 0
         if start_val > val:
             return expansion[start_val-val:]
-        else:
-            return (val-start_val)*[ZZ(0)] + expansion
+        return (val-start_val)*[ZZ(0)] + expansion
 
     def dist(self, other):
         r"""
@@ -1241,14 +1227,13 @@ class pAdicLatticeElement(pAdicGenericElement):
         p = self._parent.prime()
         if x.is_zero():
             return ZZ(0)
-        else:
-            return p**(-x.valuation())
+        return p**(-x.valuation())
 
 
 class pAdicLatticeCapElement(pAdicLatticeElement):
     def _declare_new_element(self, dx, prec, dx_mode):
         r"""
-        Declare this element to the precision object and 
+        Declare this element to the precision object and
         return the precision at which this element can be truncated safely.
 
         Only for internal use.
@@ -1278,10 +1263,10 @@ class pAdicLatticeCapElement(pAdicLatticeElement):
         r"""
         Return ``True`` if this element is exactly zero.
 
-        NOTE::
+        .. NOTE::
 
-        Since exact zeros are not supported in the precision lattice
-        model, this function always returns ``False``.
+            Since exact zeros are not supported in the precision lattice
+            model, this function always returns ``False``.
 
         EXAMPLES::
 
@@ -1297,7 +1282,7 @@ class pAdicLatticeCapElement(pAdicLatticeElement):
 class pAdicLatticeFloatElement(pAdicLatticeElement):
     def _declare_new_element(self, dx, prec, dx_mode):
         r"""
-        Declare this element to the precision object and 
+        Declare this element to the precision object and
         return the precision at which this element can be truncated safely.
 
         Only for internal use.
@@ -1305,6 +1290,7 @@ class pAdicLatticeFloatElement(pAdicLatticeElement):
         TESTS::
 
             sage: R = ZpLF(17)
+            doctest:...: FutureWarning:...
             sage: prec = R.precision()
 
             sage: prec.del_elements()
@@ -1317,8 +1303,7 @@ class pAdicLatticeFloatElement(pAdicLatticeElement):
         cap = self._precision.internal_prec() + self._value.valuation()
         if prec is None:
             return cap
-        else:
-            return min(cap, prec)
+        return min(cap, prec)
 
     def _is_exact_zero(self):
         r"""

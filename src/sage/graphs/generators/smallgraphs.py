@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 r"""
 Various small graphs
 
@@ -8,6 +7,7 @@ The methods defined here appear in :mod:`sage.graphs.graph_generators`.
 #           Copyright (C) 2006 Robert L. Miller <rlmillster@gmail.com>
 #                              and Emily A. Kirkman
 #           Copyright (C) 2009 Michael C. Yurko <myurko@gmail.com>
+#           Copyright (C) 2024 Janmenjaya Panda <janmenjaya.panda.22@gmail.com>
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
 #  as published by the Free Software Foundation; either version 2 of
@@ -18,21 +18,26 @@ The methods defined here appear in :mod:`sage.graphs.graph_generators`.
 # import from Sage library
 from sage.graphs.graph import Graph
 from sage.rings.rational_field import QQ
-from sage.functions.other import sqrt
-
+from sage.misc.functional import sqrt
 from math import sin, cos, pi
+
 
 # ****************************************************************************
 #   Named Graphs
 # ****************************************************************************
 
-def HarborthGraph():
+def HarborthGraph(immutable=False):
     r"""
     Return the Harborth Graph.
 
     The Harborth graph has 104 edges and 52 vertices, and is the smallest known
     example of a 4-regular matchstick graph. For more information, see the
     :wikipedia:`Harborth_graph`.
+
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES::
 
@@ -41,33 +46,82 @@ def HarborthGraph():
         sage: g.is_regular(4)
         True
 
+    TESTS:
+
+    Check the behavior of parameter immutable::
+
+        sage: g = graphs.HarborthGraph()
+        sage: h = graphs.HarborthGraph(immutable=True)
+        sage: h.is_immutable()
+        True
+        sage: g.is_isomorphic(h)
+        True
     """
     g = Graph(':s_OGKI?@_?g[QABAo__YEFCp@?iIEbqHWuWLbbh?}[OfcXpGhNHdYPY_SgdYX]'
               'pZkfJPuo[lfZHys^mFcDs}`pG{UNNgoHC}DIgrI[qjMhTyDQrQlVydrBYmWkn',
-              loops=False, multiedges=False)
+              loops=False, multiedges=False, immutable=immutable,
+              name="Harborth Graph")
 
-    g.set_pos({ 0: ( 51.5, 400.0),  1: ( 90.6, 308.0),  2: ( 90.6, 492.0),
-                3: (129.8, 216.0),  4: (129.8, 584.0),  5: (150.7, 387.9),
-                6: (150.7, 412.1),  7: (169.0, 124.0),  8: (169.0, 676.0),
-                9: (189.9, 295.9), 10: (189.9, 504.1), 11: (229.1, 203.9),
-               12: (229.1, 596.1), 13: (250.0, 400.0), 14: (251.4, 180.6),
-               15: (251.4, 619.4), 16: (256.1, 300.2), 17: (256.1, 499.8),
-               18: (259.3, 080.9), 19: (259.3, 719.1), 20: (333.8, 237.2),
-               21: (333.8, 562.8), 22: (341.7, 137.5), 23: (341.7, 662.5),
-               24: (350.0, 037.9), 25: (350.0, 336.0), 26: (350.0, 464.0),
-               27: (350.0, 762.1), 28: (358.3, 137.5), 29: (358.3, 662.5),
-               30: (366.2, 237.2), 31: (366.2, 562.8), 32: (440.7, 080.9),
-               33: (440.7, 719.1), 34: (443.9, 300.2), 35: (443.9, 499.8),
-               36: (448.6, 180.6), 37: (448.6, 619.4), 38: (450.0, 400.0),
-               39: (470.9, 203.9), 40: (470.9, 596.1), 41: (510.1, 295.9),
-               42: (510.1, 504.1), 43: (531.0, 124.0), 44: (531.0, 676.0),
-               45: (549.3, 387.9), 46: (549.3, 412.1), 47: (570.2, 216.0),
-               48: (570.2, 584.0), 49: (609.4, 308.0), 50: (609.4, 492.0),
-               51: (648.5, 400.0)})
-    g.name("Harborth Graph")
+    g.set_pos(
+        {
+            0: (51.5, 400.0),
+            1: (90.6, 308.0),
+            2: (90.6, 492.0),
+            3: (129.8, 216.0),
+            4: (129.8, 584.0),
+            5: (150.7, 387.9),
+            6: (150.7, 412.1),
+            7: (169.0, 124.0),
+            8: (169.0, 676.0),
+            9: (189.9, 295.9),
+            10: (189.9, 504.1),
+            11: (229.1, 203.9),
+            12: (229.1, 596.1),
+            13: (250.0, 400.0),
+            14: (251.4, 180.6),
+            15: (251.4, 619.4),
+            16: (256.1, 300.2),
+            17: (256.1, 499.8),
+            18: (259.3, 80.9),
+            19: (259.3, 719.1),
+            20: (333.8, 237.2),
+            21: (333.8, 562.8),
+            22: (341.7, 137.5),
+            23: (341.7, 662.5),
+            24: (350.0, 37.9),
+            25: (350.0, 336.0),
+            26: (350.0, 464.0),
+            27: (350.0, 762.1),
+            28: (358.3, 137.5),
+            29: (358.3, 662.5),
+            30: (366.2, 237.2),
+            31: (366.2, 562.8),
+            32: (440.7, 80.9),
+            33: (440.7, 719.1),
+            34: (443.9, 300.2),
+            35: (443.9, 499.8),
+            36: (448.6, 180.6),
+            37: (448.6, 619.4),
+            38: (450.0, 400.0),
+            39: (470.9, 203.9),
+            40: (470.9, 596.1),
+            41: (510.1, 295.9),
+            42: (510.1, 504.1),
+            43: (531.0, 124.0),
+            44: (531.0, 676.0),
+            45: (549.3, 387.9),
+            46: (549.3, 412.1),
+            47: (570.2, 216.0),
+            48: (570.2, 584.0),
+            49: (609.4, 308.0),
+            50: (609.4, 492.0),
+            51: (648.5, 400.0),
+        }
+    )
     return g
 
-def HarriesGraph(embedding=1):
+
+def HarriesGraph(embedding=1, immutable=False):
     r"""
     Return the Harries Graph.
 
@@ -95,8 +149,11 @@ def HarriesGraph(embedding=1):
 
     INPUT:
 
-    - ``embedding`` -- integer (default: ``1``); two embeddings are available,
+    - ``embedding`` -- integer (default: `1`); two embeddings are available,
       and can be selected by setting ``embedding`` to 1 or 2
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES::
 
@@ -109,8 +166,8 @@ def HarriesGraph(embedding=1):
         10
         sage: g.diameter()
         6
-        sage: g.show(figsize=[10, 10])   # long time
-        sage: graphs.HarriesGraph(embedding=2).show(figsize=[10, 10])   # long time
+        sage: g.show(figsize=[10, 10])          # long time                             # needs sage.plot
+        sage: graphs.HarriesGraph(embedding=2).show(figsize=[10, 10])   # long time, needs sage.plot
 
     TESTS::
 
@@ -121,8 +178,8 @@ def HarriesGraph(embedding=1):
     """
     from sage.graphs.generators.families import LCFGraph
     g = LCFGraph(70, [-29, -19, -13, 13, 21, -27, 27, 33, -13, 13,
-                             19, -21, -33, 29], 5)
-    g.name("Harries Graph")
+                      19, -21, -33, 29], 5,
+                 immutable=immutable, name="Harries Graph")
 
     if embedding == 1:
         gpos = g.get_pos()
@@ -161,7 +218,7 @@ def HarriesGraph(embedding=1):
         # Vertices from o[1]. These are actually the "edges" of the copies of
         # Petersen.
         for v in o[1]:
-            p1, p2 = [gpos[x] for x in g.neighbors(v) if x in o[0]]
+            p1, p2 = (gpos[x] for x in g.neighbors(v) if x in o[0])
             gpos[v] = ((p1[0] + p2[0])/2, (p1[1] + p2[1])/2)
 
         # 15 vertices from o[2]
@@ -174,13 +231,12 @@ def HarriesGraph(embedding=1):
 
         return g
 
-    elif embedding == 2:
+    if embedding == 2:
         return g
-    else:
-        raise ValueError("the value of embedding must be 1 or 2")
+    raise ValueError("the value of embedding must be 1 or 2")
 
 
-def HarriesWongGraph(embedding=1):
+def HarriesWongGraph(embedding=1, immutable=False):
     r"""
     Return the Harries-Wong Graph.
 
@@ -213,8 +269,11 @@ def HarriesWongGraph(embedding=1):
 
     INPUT:
 
-    - ``embedding`` -- integer (default: ``1``); two embeddings are available,
+    - ``embedding`` -- integer (default: `1`); two embeddings are available,
       and can be selected by setting ``embedding`` to 1 or 2
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES::
 
@@ -227,12 +286,12 @@ def HarriesWongGraph(embedding=1):
         10
         sage: g.diameter()
         6
-        sage: orbits = g.automorphism_group(orbits=True)[-1]  # long time
-        sage: g.show(figsize=[15, 15], partition=orbits)  # long time
+        sage: orbits = g.automorphism_group(orbits=True)[-1]    # long time             # needs sage.groups
+        sage: g.show(figsize=[15, 15], partition=orbits)        # long time             # needs sage.groups sage.plot
 
     Alternative embedding::
 
-        sage: graphs.HarriesWongGraph(embedding=2).show()  # long time
+        sage: graphs.HarriesWongGraph(embedding=2).show()       # long time             # needs sage.plot
 
     TESTS::
 
@@ -248,30 +307,24 @@ def HarriesWongGraph(embedding=1):
          -27, -21, 15, -9, 29, -29, 33, -9, -25]
 
     from sage.graphs.generators.families import LCFGraph
-    g = LCFGraph(70, L, 1)
-    g.name("Harries-Wong graph")
+    g = LCFGraph(70, L, 1, immutable=immutable, name="Harries-Wong graph")
 
     if embedding == 1:
         d = g.get_pos()
 
         # Binary tree (left side)
         d[66] = (-9.5, 0)
-        g._line_embedding([37, 65, 67], first=(-8, 2.25),
-                last=(-8, -2.25))
+        g._line_embedding([37, 65, 67], first=(-8, 2.25), last=(-8, -2.25))
         g._line_embedding([36, 38, 64, 24, 68, 30], first=(-7, 3),
-                last=(-7, -3))
+                          last=(-7, -3))
         g._line_embedding([35, 39, 63, 25, 59, 29, 11, 5, 55, 23, 69, 31],
-                first=(-6, 3.5), last=(-6, -3.5))
+                          first=(-6, 3.5), last=(-6, -3.5))
 
         # Cube, corners: [9, 15, 21, 27, 45, 51, 57, 61]
-        g._circle_embedding([61, 9], center=(0, -1.5), shift=.2,
-                radius=4)
-        g._circle_embedding([27, 15], center=(0, -1.5), shift=.7,
-                radius=4*.707)
-        g._circle_embedding([51, 21], center=(0, 2.5), shift=.2,
-                radius=4)
-        g._circle_embedding([45, 57], center=(0, 2.5), shift=.7,
-                radius=4*.707)
+        g._circle_embedding([61, 9], center=(0, -1.5), shift=.2, radius=4)
+        g._circle_embedding([27, 15], center=(0, -1.5), shift=.7, radius=4*.707)
+        g._circle_embedding([51, 21], center=(0, 2.5), shift=.2, radius=4)
+        g._circle_embedding([45, 57], center=(0, 2.5), shift=.7, radius=4*.707)
 
         # Cube, subdivision
         g._line_embedding([21, 22, 43, 44, 45], first=d[21], last=d[45])
@@ -292,12 +345,12 @@ def HarriesWongGraph(embedding=1):
 
         return g
 
-    elif embedding == 2:
+    if embedding == 2:
         return g
-    else:
-        raise ValueError("the value of embedding must be 1 or 2")
+    raise ValueError("the value of embedding must be 1 or 2")
 
-def WellsGraph():
+
+def WellsGraph(immutable=False):
     r"""
     Return the Wells graph.
 
@@ -311,6 +364,11 @@ def WellsGraph():
     is quite unlikely that this could become the most time-consuming operation
     in any sensible algorithm, and .... "preserves knowledge", which is what
     open-source software is meant to do.
+
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES::
 
@@ -328,7 +386,6 @@ def WellsGraph():
         4
         sage: g.is_regular(k=5)
         True
-
     """
     from .platonic_solids import DodecahedralGraph
     from .basic import CompleteBipartiteGraph
@@ -340,11 +397,11 @@ def WellsGraph():
     distance3 = dodecahedron.distance_graph([3])
 
     # Building the graph whose line graph is the dodecahedron.
-    b = CompleteBipartiteGraph(5,5)
-    b.delete_edges([(0,5), (1,6), (2,7), (3,8), (4,9)])
+    b = CompleteBipartiteGraph(5, 5)
+    b.delete_edges([(0, 5), (1, 6), (2, 7), (3, 8), (4, 9)])
 
     # Computing the isomorphism between the two
-    b = b.line_graph(labels = False)
+    b = b.line_graph(labels=False)
     _, labels = distance3.is_isomorphic(b, certificate=True)
 
     # The relabeling that the books claims to exist.
@@ -397,14 +454,15 @@ def WellsGraph():
          (3, 17, 21, 9, 24, 16, 27, 25),
          (6, 10, 8, 15, 0, 11, 19, 26)]
 
-    g._circle_embedding(p[0], radius = 1)
-    g._circle_embedding(p[1], radius = .9)
-    g._circle_embedding(p[2], radius = .8)
-    g._circle_embedding(p[3], radius = .7)
+    g._circle_embedding(p[0], radius=1)
+    g._circle_embedding(p[1], radius=.9)
+    g._circle_embedding(p[2], radius=.8)
+    g._circle_embedding(p[3], radius=.7)
 
-    return g
+    return g.copy(immutable=True) if immutable else g
 
-def Cell600(embedding=1):
+
+def Cell600(embedding=1, immutable=False):
     r"""
     Return the 600-Cell graph.
 
@@ -413,17 +471,32 @@ def Cell600(embedding=1):
 
     INPUT:
 
-    - ``embedding`` -- integer (default: ``1``); two different embeddings for a
+    - ``embedding`` -- integer (default: `1`); two different embeddings for a
       plot
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES::
 
-        sage: g = graphs.Cell600()      # long time
-        sage: g.size()                  # long time
+        sage: # long time, needs sage.rings.number_field
+        sage: g = graphs.Cell600()
+        sage: g.size()
         720
-        sage: g.is_regular(12)          # long time
+        sage: g.is_regular(12)
         True
-        sage: g.is_vertex_transitive()  # long time
+        sage: g.is_vertex_transitive()
+        True
+
+    TESTS:
+
+    Check the behavior of parameter immutable::
+
+        sage: g = graphs.Cell600()
+        sage: h = graphs.Cell600(immutable=True)
+        sage: h.is_immutable()
+        True
+        sage: g.is_isomorphic(h)
         True
     """
     from sage.rings.polynomial.polynomial_ring import polygen
@@ -457,7 +530,8 @@ def Cell600(embedding=1):
     U = vert96 + vert16 + vert8
 
     g = Graph([list(range(120)),
-               lambda i, j: U[i].inner_product(U[j]) == f / 2])
+               lambda i, j: U[i].inner_product(U[j]) == f / 2],
+              format='rule', immutable=immutable)
 
     # Embedding
     if embedding == 1:
@@ -483,21 +557,39 @@ def Cell600(embedding=1):
 
     return g
 
-def Cell120():
+
+def Cell120(immutable=False):
     r"""
     Return the 120-Cell graph.
 
     This is the adjacency graph of the 120-cell. It has 600 vertices and 1200
     edges. For more information, see the :wikipedia:`120-cell`.
 
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
+
     EXAMPLES::
 
-        sage: g = graphs.Cell120()      # long time
-        sage: g.size()                  # long time
+        sage: # long time, needs sage.rings.number_field
+        sage: g = graphs.Cell120()
+        sage: g.size()
         1200
-        sage: g.is_regular(4)           # long time
+        sage: g.is_regular(4)
         True
-        sage: g.is_vertex_transitive()  # long time
+        sage: g.is_vertex_transitive()
+        True
+
+    TESTS:
+
+    Check the behavior of parameter immutable::
+
+        sage: g = graphs.Cell120()
+        sage: h = graphs.Cell120(immutable=True)
+        sage: h.is_immutable()
+        True
+        sage: g.is_isomorphic(h)
         True
     """
     from sage.rings.polynomial.polynomial_ring import polygen
@@ -515,8 +607,8 @@ def Cell120():
     step = [(0, 0, K(a) * 2, K(b) * 2)
             for a in [-1, 1] for b in [-1, 1]]
     step += [(a * K(1), b * K(1), c * K(1), d * (2 * f - 1))
-            for a in [-1, 1] for b in [-1, 1]
-            for c in [-1, 1] for d in [-1, 1]]
+             for a in [-1, 1] for b in [-1, 1]
+             for c in [-1, 1] for d in [-1, 1]]
     step += [(a * (2 - f), b * f, c * f, d * f)
              for a in [-1, 1] for b in [-1, 1]
              for c in [-1, 1] for d in [-1, 1]]
@@ -531,18 +623,19 @@ def Cell120():
     step = [(0, a * (2 - f), b * K(1), c * (f + 1))
             for a in [-1, 1] for b in [-1, 1] for c in [-1, 1]]
     step += [(0, a * (f - 1), b * f, c * (2 * f - 1))
-            for a in [-1, 1] for b in [-1, 1] for c in [-1, 1]]
+             for a in [-1, 1] for b in [-1, 1] for c in [-1, 1]]
     step += [(a * (f - 1), b * K(1), c * f, d * K(2))
              for a in [-1, 1] for b in [-1, 1]
              for c in [-1, 1] for d in [-1, 1]]
     vert2 = [K4([v[s(1) - 1], v[s(2) - 1], v[s(3) - 1], v[s(4) - 1]])
-              for v in step for s in AlternatingGroup(4)]
+             for v in step for s in AlternatingGroup(4)]
 
     # all vertices together
     U = vert1 + vert2
 
     g = Graph([list(range(600)),
-               lambda i, j: U[i].inner_product(U[j]) == 6*f-2])
+               lambda i, j: U[i].inner_product(U[j]) == 6*f-2],
+              format='rule', immutable=immutable)
 
     pos = [0, 1, 3, 5, 6, 7, 8, 9, 11, 12, 14, 15, 16, 17, 20, 21, 23, 24, 25,
            27, 33, 40, 47, 49, 76, 77, 216, 217, 218, 219, 220, 222, 224, 225,
@@ -591,7 +684,8 @@ def Cell120():
 
     return g
 
-def SuzukiGraph():
+
+def SuzukiGraph(immutable=False):
     r"""
     Return the Suzuki Graph.
 
@@ -603,6 +697,11 @@ def SuzukiGraph():
         It takes approximately 50 seconds to build this graph. Do not be too
         impatient.
 
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
+
     EXAMPLES::
 
         sage: g = graphs.SuzukiGraph(); g  # optional internet # not tested
@@ -611,13 +710,15 @@ def SuzukiGraph():
         (1782, 416, 100, 96)
     """
     from sage.groups.perm_gps.permgroup_named import SuzukiSporadicGroup
-    g = Graph()
-    g.add_edges(SuzukiSporadicGroup().orbit((1, 2), "OnSets"))
-    g.relabel()
-    g.name("Suzuki graph")
+    g = Graph(SuzukiSporadicGroup().orbit((1, 2), "OnSets"),
+              format='list_of_edges', name="Suzuki graph")
+    if immutable:
+        return g.relabel(inplace=False, immutable=True)
+    g.relabel(inplace=True)
     return g
 
-def HallJankoGraph(from_string=True):
+
+def HallJankoGraph(from_string=True, immutable=False):
     r"""
     Return the Hall-Janko graph.
 
@@ -636,12 +737,15 @@ def HallJankoGraph(from_string=True):
       from its sparse6 string or through GAP. The two methods return the same
       graph though doing it through GAP takes more time.
 
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
+
     EXAMPLES::
 
         sage: g = graphs.HallJankoGraph()
         sage: g.is_regular(36)
         True
-        sage: g.is_vertex_transitive()
+        sage: g.is_vertex_transitive()                                                  # needs sage.groups
         True
 
     Is it really strongly regular with parameters 14, 12? ::
@@ -664,13 +768,24 @@ def HallJankoGraph(from_string=True):
         2
         sage: g.girth()
         3
-        sage: factor(g.characteristic_polynomial())
+        sage: factor(g.characteristic_polynomial())                                     # needs sage.libs.pari sage.modules
         (x - 36) * (x - 6)^36 * (x + 4)^63
 
     TESTS::
 
         sage: gg = graphs.HallJankoGraph(from_string=False)  # long time # optional - internet
         sage: g.is_isomorphic(gg)  # long time # optional - internet
+        True
+
+    TESTS:
+
+    Check the behavior of parameter immutable::
+
+        sage: g = graphs.HallJankoGraph()
+        sage: h = graphs.HallJankoGraph(immutable=True)
+        sage: h.is_immutable()
+        True
+        sage: g.is_isomorphic(h)
         True
     """
     if from_string:
@@ -716,7 +831,8 @@ def HallJankoGraph(from_string=True):
                   "RxFQSlMSDDQTDXVUTi@?_KDAOoLBpKUEQOfIa{oLB_xMrt?Os\\HQcpMST"
                   "HSTtl[VT}A@ocJBOwSD`_XEpo_Ha_mJrKtLbgzNSTGQspLRtDUUDp\\WG["
                   "HB`CQCp[WFQGgIQgkJQ{rLbc{Nc@APsdLRt@PSt\\WUtt_Wn")
-        g = Graph(string, loops=False, multiedges=False)
+        g = Graph(string, loops=False, multiedges=False, immutable=immutable,
+                  name="Hall-Janko graph")
     else:
         # The following construction is due to version 3 of the ATLAS of
         # Finite Group Representations, specifically the page at
@@ -725,16 +841,18 @@ def HallJankoGraph(from_string=True):
         from sage.libs.gap.libgap import libgap
         libgap.load_package("AtlasRep")  # representation of HJ on 100 points
         G = libgap.AtlasGroup("HJ", libgap.NrMovedPoints, 100)
-        edges = G.Orbit([1, 5], libgap.OnSets)
-        g = Graph()
-        g.add_edges(edges)
-        g.relabel()
+        g = Graph(G.Orbit([1, 5], libgap.OnSets), format='list_of_edges',
+                  name="Hall-Janko graph")
+        if immutable:
+            g = g.relabel(inplace=False, immutable=True)
+        else:
+            g.relabel()
 
     g._circle_embedding(list(range(100)))
-    g.name("Hall-Janko graph")
     return g
 
-def Balaban10Cage(embedding=1):
+
+def Balaban10Cage(embedding=1, immutable=False):
     r"""
     Return the Balaban 10-cage.
 
@@ -760,8 +878,11 @@ def Balaban10Cage(embedding=1):
 
     INPUT:
 
-    - ``embedding`` -- integer (default: ``1``); two embeddings are available,
+    - ``embedding`` -- integer (default: `1`); two embeddings are available,
       and can be selected by setting ``embedding`` to be either 1 or 2
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES::
 
@@ -772,9 +893,9 @@ def Balaban10Cage(embedding=1):
         2
         sage: g.diameter()
         6
-        sage: g.is_hamiltonian()
+        sage: g.is_hamiltonian()                                                        # needs sage.numerical.mip
         True
-        sage: g.show(figsize=[10,10])   # long time
+        sage: g.show(figsize=[10,10])           # long time                             # needs sage.plot
 
     TESTS::
 
@@ -784,42 +905,41 @@ def Balaban10Cage(embedding=1):
         ValueError: the value of embedding must be 1 or 2
     """
     L = [-9, -25, -19, 29, 13, 35, -13, -29, 19, 25, 9, -29, 29, 17, 33,
-          21, 9,-13, -31, -9, 25, 17, 9, -31, 27, -9, 17, -19, -29, 27,
-          -17, -9, -29, 33, -25,25, -21, 17, -17, 29, 35, -29, 17, -17,
-          21, -25, 25, -33, 29, 9, 17, -27, 29, 19, -17, 9, -27, 31, -9,
-          -17, -25, 9, 31, 13, -9, -21, -33, -17, -29, 29]
+         21, 9, -13, -31, -9, 25, 17, 9, -31, 27, -9, 17, -19, -29, 27,
+         -17, -9, -29, 33, -25, 25, -21, 17, -17, 29, 35, -29, 17, -17,
+         21, -25, 25, -33, 29, 9, 17, -27, 29, 19, -17, 9, -27, 31, -9,
+         -17, -25, 9, 31, 13, -9, -21, -33, -17, -29, 29]
 
     from sage.graphs.generators.families import LCFGraph
-    g = LCFGraph(70, L, 1)
-    g.name("Balaban 10-cage")
+    g = LCFGraph(70, L, 1, immutable=immutable, name="Balaban 10-cage")
 
     if embedding == 2:
         return g
-    elif embedding != 1:
+    if embedding != 1:
         raise ValueError("the value of embedding must be 1 or 2")
 
     L3 = [5, 24, 35, 46, 29, 40, 51, 34, 45, 56]
-    g._circle_embedding(L3, center=(0, 0), radius = 4.3)
+    g._circle_embedding(L3, center=(0, 0), radius=4.3)
 
-    L2  = [6, 4, 23, 25, 60, 36, 1, 47, 28, 30, 39, 41, 50, 52, 33, 9, 44,
-            20, 55, 57]
-    g._circle_embedding(L2, center=(0, 0), radius = 5, shift=-.5)
-
+    L2 = [6, 4, 23, 25, 60, 36, 1, 47, 28, 30, 39, 41, 50, 52, 33, 9, 44,
+          20, 55, 57]
+    g._circle_embedding(L2, center=(0, 0), radius=5, shift=-.5)
 
     L1a = [69, 68, 67, 66, 65, 64, 63, 62, 61, 0]
     L1b = [19, 18, 17, 16, 15, 14, 13, 12, 11, 10]
-    g._circle_embedding(L1a, center=(0, 0), radius = 6, shift = 3.25)
-    g._circle_embedding(L1b, center=(0, 0), radius = 6, shift = -1.25)
+    g._circle_embedding(L1a, center=(0, 0), radius=6, shift=3.25)
+    g._circle_embedding(L1b, center=(0, 0), radius=6, shift=-1.25)
 
     L4a = [37, 2, 31, 38, 53, 32, 21, 54, 3, 22]
-    g._circle_embedding(L4a, center=(0, 0), radius = 3, shift = 1.9)
+    g._circle_embedding(L4a, center=(0, 0), radius=3, shift=1.9)
 
     L4b = [26, 59, 48, 27, 42, 49, 8, 43, 58, 7]
-    g._circle_embedding(L4b, center=(0, 0), radius = 3, shift = 1.1)
+    g._circle_embedding(L4b, center=(0, 0), radius=3, shift=1.1)
 
     return g
 
-def Balaban11Cage(embedding=1):
+
+def Balaban11Cage(embedding=1, immutable=False):
     r"""
     Return the Balaban 11-cage.
 
@@ -827,7 +947,7 @@ def Balaban11Cage(embedding=1):
 
     INPUT:
 
-    - ``embedding`` -- integer (default: ``1``); three embeddings are available,
+    - ``embedding`` -- integer (default: `1`); three embeddings are available,
       and can be selected by setting ``embedding`` to be 1, 2, or 3
 
       - The first embedding is the one appearing on page 9 of the Fifth Annual
@@ -840,6 +960,9 @@ def Balaban11Cage(embedding=1):
 
       - The last embedding is the default one produced by the :meth:`LCFGraph`
         constructor.
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     .. NOTE::
 
@@ -858,7 +981,7 @@ def Balaban11Cage(embedding=1):
         11
         sage: g.diameter()
         8
-        sage: g.automorphism_group().cardinality()
+        sage: g.automorphism_group().cardinality()                                      # needs sage.groups
         64
 
     Our many embeddings::
@@ -866,9 +989,9 @@ def Balaban11Cage(embedding=1):
         sage: g1 = graphs.Balaban11Cage(embedding=1)
         sage: g2 = graphs.Balaban11Cage(embedding=2)
         sage: g3 = graphs.Balaban11Cage(embedding=3)
-        sage: g1.show(figsize=[10,10])   # long time
-        sage: g2.show(figsize=[10,10])   # long time
-        sage: g3.show(figsize=[10,10])   # long time
+        sage: g1.show(figsize=[10,10])          # long time                             # needs sage.plot
+        sage: g2.show(figsize=[10,10])          # long time                             # needs sage.plot
+        sage: g3.show(figsize=[10,10])          # long time                             # needs sage.plot
 
     Proof that the embeddings are the same graph::
 
@@ -886,7 +1009,7 @@ def Balaban11Cage(embedding=1):
         pos_dict = {}
         for j in range(8):
             for i in range(8):
-                pos_dict[str(j) + str(i)]= [
+                pos_dict[str(j) + str(i)] = [
                         0.8 * float(cos(2*((8*j + i)*pi/64 + pi/128))),
                         0.8 * float(sin(2*((8*j + i)*pi/64 + pi/128)))
                 ]
@@ -953,9 +1076,10 @@ def Balaban11Cage(embedding=1):
             "165": ["162", "163", "164"],   "175": ["172", "173", "174"]
         }
 
-        return Graph(edge_dict, pos=pos_dict, name="Balaban 11-cage")
+        return Graph(edge_dict, pos=pos_dict, name="Balaban 11-cage",
+                     immutable=immutable)
 
-    elif embedding == 2 or embedding == 3:
+    if embedding == 2 or embedding == 3:
         L = [44, 26, -47, -15, 35, -39, 11, -27, 38, -37, 43, 14, 28, 51,
              -29, -16, 41, -11, -26, 15, 22, -51, -35, 36, 52, -14, -33,
              -26, -46, 52, 26, 16, 43, 33, -15, 17, -53, 23, -42, -35, -28,
@@ -967,8 +1091,7 @@ def Balaban11Cage(embedding=1):
              42, -26, -36, 16]
 
         from sage.graphs.generators.families import LCFGraph
-        g = LCFGraph(112, L, 1)
-        g.name("Balaban 11-cage")
+        g = LCFGraph(112, L, 1, immutable=immutable, name="Balaban 11-cage")
 
         if embedding == 3:
             return g
@@ -985,34 +1108,39 @@ def Balaban11Cage(embedding=1):
               96]
 
         d = g.get_pos()
-        for i,v in enumerate(v1):
-            d[v] = (-2, 16.5-i)
+        for i, v in enumerate(v1):
+            d[v] = (-2, 16.5 - i)
 
-        for i,v in enumerate(l1):
-            d[v] = (-10, 8-i)
+        for i, v in enumerate(l1):
+            d[v] = (-10, 8 - i)
 
-        for i,v in enumerate(l2):
-            d[v] = (10, 8.5-i)
+        for i, v in enumerate(l2):
+            d[v] = (10, 8.5 - i)
 
-        for i,v in enumerate(v2):
-            d[v] = (2, 16.5-i)
+        for i, v in enumerate(v2):
+            d[v] = (2, 16.5 - i)
 
-        for i,v in enumerate([0, 111, 92, 91, 52, 51, 23, 22]):
-            d[v] = (-20, 14.5-4*i)
+        for i, v in enumerate([0, 111, 92, 91, 52, 51, 23, 22]):
+            d[v] = (-20, 14.5 - 4*i)
 
-        for i,v in enumerate([104, 103, 86, 85, 40, 39, 31, 30]):
-            d[v] = (20, 14.5-4*i)
+        for i, v in enumerate([104, 103, 86, 85, 40, 39, 31, 30]):
+            d[v] = (20, 14.5 - 4*i)
 
         return g
 
-    else:
-        raise ValueError("the value of embedding must be 1, 2, or 3")
+    raise ValueError("the value of embedding must be 1, 2, or 3")
 
-def BidiakisCube():
+
+def BidiakisCube(immutable=False):
     r"""
     Return the Bidiakis cube.
 
     For more information, see the :wikipedia:`Bidiakis_cube`.
+
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES:
 
@@ -1021,7 +1149,7 @@ def BidiakisCube():
 
         sage: g = graphs.BidiakisCube(); g
         Bidiakis cube: Graph on 12 vertices
-        sage: g.show()  # long time
+        sage: g.show()                          # long time                             # needs sage.plot
         sage: g.order()
         12
         sage: g.size()
@@ -1031,7 +1159,7 @@ def BidiakisCube():
 
     It is a Hamiltonian graph with diameter 3 and girth 4::
 
-        sage: g.is_hamiltonian()
+        sage: g.is_hamiltonian()                                                        # needs sage.numerical.mip
         True
         sage: g.diameter()
         3
@@ -1044,30 +1172,34 @@ def BidiakisCube():
 
         sage: g.is_planar()
         True
-        sage: bool(g.characteristic_polynomial() == expand((x - 3) * (x - 2) * (x^4) * (x + 1) * (x + 2) * (x^2 + x - 4)^2))
+        sage: char_poly = g.characteristic_polynomial()                                 # needs sage.modules
+        sage: x = char_poly.parent()('x')                                               # needs sage.modules
+        sage: char_poly == (x - 3) * (x - 2) * (x^4) * (x + 1) * (x + 2) * (x^2 + x - 4)^2          # needs sage.modules
         True
-        sage: g.chromatic_number()
+        sage: g.chromatic_number()                                                      # needs sage.modules
         3
+
+    TESTS:
+
+    Check the behavior of parameter immutable::
+
+        sage: g = graphs.BidiakisCube()
+        sage: h = graphs.BidiakisCube(immutable=True)
+        sage: h.is_immutable()
+        True
+        sage: g.is_isomorphic(h)
+        True
     """
     edge_dict = {
-        0:[1,6,11], 1:[2,5], 2:[3,10], 3:[4,9], 4:[5,8],
-        5:[6], 6:[7], 7:[8,11], 8:[9], 9:[10], 10:[11]}
-    pos_dict = {
-        0: [0, 1],
-        1: [0.5, 0.866025403784439],
-        2: [0.866025403784439, 0.500000000000000],
-        3: [1, 0],
-        4: [0.866025403784439, -0.5],
-        5: [0.5, -0.866025403784439],
-        6: [0, -1],
-        7: [-0.5, -0.866025403784439],
-        8: [-0.866025403784439, -0.5],
-        9: [-1, 0],
-        10: [-0.866025403784439, 0.5],
-        11: [-0.5, 0.866025403784439]}
-    return Graph(edge_dict, pos=pos_dict, name="Bidiakis cube")
+        0: [1, 6, 11], 1: [2, 5], 2: [3, 10], 3: [4, 9], 4: [5, 8],
+        5: [6], 6: [7], 7: [8, 11], 8: [9], 9: [10], 10: [11]}
+    g = Graph(edge_dict, format='dict_of_lists', name="Bidiakis cube",
+              immutable=immutable)
+    g._circle_embedding(range(12), angle=pi/2)
+    return g
 
-def BiggsSmithGraph(embedding=1):
+
+def BiggsSmithGraph(embedding=1, immutable=False):
     r"""
     Return the Biggs-Smith graph.
 
@@ -1075,8 +1207,11 @@ def BiggsSmithGraph(embedding=1):
 
     INPUT:
 
-    - ``embedding`` -- integer (default: ``1``); two embeddings are available,
+    - ``embedding`` -- integer (default: `1`); two embeddings are available,
       and can be selected by setting ``embedding`` to be 1 or 2
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES:
 
@@ -1091,13 +1226,13 @@ def BiggsSmithGraph(embedding=1):
         9
         sage: g.diameter()
         7
-        sage: g.automorphism_group().cardinality() # long time
+        sage: g.automorphism_group().cardinality()      # long time
         2448
-        sage: g.show(figsize=[10, 10])   # long time
+        sage: g.show(figsize=[10, 10])          # long time                             # needs sage.plot
 
     The other embedding::
 
-        sage: graphs.BiggsSmithGraph(embedding=2).show()  # long time
+        sage: graphs.BiggsSmithGraph(embedding=2).show()        # long time
 
     TESTS::
 
@@ -1105,7 +1240,6 @@ def BiggsSmithGraph(embedding=1):
         Traceback (most recent call last):
         ...
         ValueError: the value of embedding must be 1 or 2
-
     """
     L = [16, 24, -38, 17, 34, 48, -19, 41, -35, 47, -20, 34, -36,
          21, 14, 48, -16, -36, -43, 28, -17, 21, 29, -43, 46, -24,
@@ -1117,8 +1251,7 @@ def BiggsSmithGraph(embedding=1):
          -24, -14, -21, -8, 44, -31, -38, -28, 37]
 
     from sage.graphs.generators.families import LCFGraph
-    g = LCFGraph(102, L, 1)
-    g.name("Biggs-Smith graph")
+    g = LCFGraph(102, L, 1, immutable=immutable, name="Biggs-Smith graph")
 
     if embedding == 1:
 
@@ -1153,7 +1286,8 @@ def BiggsSmithGraph(embedding=1):
 
     return g
 
-def BlanusaFirstSnarkGraph():
+
+def BlanusaFirstSnarkGraph(immutable=False):
     r"""
     Return the first Blanusa Snark Graph.
 
@@ -1163,6 +1297,11 @@ def BlanusaFirstSnarkGraph():
     .. SEEALSO::
 
         * :meth:`~sage.graphs.graph_generators.GraphGenerators.BlanusaSecondSnarkGraph`.
+
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES::
 
@@ -1175,19 +1314,34 @@ def BlanusaFirstSnarkGraph():
         4
         sage: g.girth()
         5
-        sage: g.automorphism_group().cardinality()
+        sage: g.automorphism_group().cardinality()                                      # needs sage.groups
         8
-    """
-    g = Graph({17: [4, 7, 1], 0: [5], 3: [8], 13: [9], 12: [16],
-               10: [15], 11: [6], 14: [2]},
-              name="Blanusa First Snark Graph")
 
-    g.add_cycle(list(range(17)))
+    TESTS:
+
+    Check the behavior of parameter immutable::
+
+        sage: g = graphs.BlanusaFirstSnarkGraph()
+        sage: h = graphs.BlanusaFirstSnarkGraph(immutable=True)
+        sage: h.is_immutable()
+        True
+        sage: g.is_isomorphic(h)
+        True
+    """
+    from itertools import chain
+    E1 = [(0, 5), (1, 17), (2, 14), (3, 8), (4, 17), (6, 11), (7, 17),
+          (9, 13), (10, 15), (12, 16)]
+    E2 = ((i, i + 1) for i in range(16))
+    E3 = ((0, 16), )
+    g = Graph([range(18), chain(E1, E2, E3)], format='vertices_and_edges',
+              name="Blanusa First Snark Graph", immutable=immutable)
+
     g._circle_embedding(list(range(17)), shift=0.25)
-    g.get_pos()[17] = (0, 0)
+    g._pos[17] = (0, 0)
     return g
 
-def BlanusaSecondSnarkGraph():
+
+def BlanusaSecondSnarkGraph(immutable=False):
     r"""
     Return the second Blanusa Snark Graph.
 
@@ -1197,6 +1351,11 @@ def BlanusaSecondSnarkGraph():
     .. SEEALSO::
 
         * :meth:`~sage.graphs.graph_generators.GraphGenerators.BlanusaFirstSnarkGraph`.
+
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES::
 
@@ -1209,8 +1368,19 @@ def BlanusaSecondSnarkGraph():
         4
         sage: g.girth()
         5
-        sage: g.automorphism_group().cardinality()
+        sage: g.automorphism_group().cardinality()                                      # needs sage.groups
         4
+
+    TESTS:
+
+    Check the behavior of parameter immutable::
+
+        sage: g = graphs.BlanusaSecondSnarkGraph()
+        sage: h = graphs.BlanusaSecondSnarkGraph(immutable=True)
+        sage: h.is_immutable()
+        True
+        sage: g.is_isomorphic(h)
+        True
     """
     c0 = (-1, 0)
     c1 = (-1, 1)
@@ -1225,29 +1395,37 @@ def BlanusaSecondSnarkGraph():
     g.add_cycle([(0, 5), (0, 6), (0, 7), (1, 5), (1, 6), (1, 7)])
 
     g._circle_embedding([(0, (2 * i) % 5) for i in range(5)],
-                            center=(-1.5, 0),
-                            shift=.5)
+                        center=(-1.5, 0),
+                        shift=.5)
     g._circle_embedding([(1, (2 * i) % 5) for i in range(5)],
-                            center=(1.5, 0))
+                        center=(1.5, 0))
 
     g._circle_embedding([(0, i) for i in range(5, 8)] + [c0] * 4,
-                            center=(-1.2, 0),
-                            shift=2.5,
-                            radius=2.2)
+                        center=(-1.2, 0),
+                        shift=2.5,
+                        radius=2.2)
     g._circle_embedding([(1, i) for i in range(5, 8)] + [c0] * 4,
-                            center=(1.2, 0),
-                            shift=-1,
-                            radius=2.2)
+                        center=(1.2, 0),
+                        shift=-1,
+                        radius=2.2)
 
     g._circle_embedding([c0, c1], shift=.5)
+    if immutable:
+        return g.relabel(inplace=False, immutable=True)
     g.relabel()
     return g
 
-def BrinkmannGraph():
+
+def BrinkmannGraph(immutable=False):
     r"""
     Return the Brinkmann graph.
 
     For more information, see the :wikipedia:`Brinkmann_graph`.
+
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES:
 
@@ -1256,7 +1434,7 @@ def BrinkmannGraph():
 
         sage: G = graphs.BrinkmannGraph(); G
         Brinkmann graph: Graph on 21 vertices
-        sage: G.show()  # long time
+        sage: G.show()                          # long time                             # needs sage.plot
         sage: G.order()
         21
         sage: G.size()
@@ -1277,61 +1455,56 @@ def BrinkmannGraph():
 
     The Brinkmann graph is also Hamiltonian with chromatic number 4::
 
-        sage: G.is_hamiltonian()
+        sage: G.is_hamiltonian()                                                        # needs sage.numerical.mip
         True
         sage: G.chromatic_number()
         4
 
     Its automorphism group is isomorphic to `D_7`::
 
-        sage: ag = G.automorphism_group()
-        sage: ag.is_isomorphic(DihedralGroup(7))
+        sage: ag = G.automorphism_group()                                               # needs sage.groups
+        sage: ag.is_isomorphic(DihedralGroup(7))                                        # needs sage.groups
+        True
+
+    TESTS:
+
+    Check the behavior of parameter immutable::
+
+        sage: g = graphs.BrinkmannGraph()
+        sage: h = graphs.BrinkmannGraph(immutable=True)
+        sage: h.is_immutable()
+        True
+        sage: g.is_isomorphic(h)
         True
     """
     edge_dict = {
-        0: [2,5,7,13],
-        1: [3,6,7,8],
-        2: [4,8,9],
-        3: [5,9,10],
-        4: [6,10,11],
-        5: [11,12],
-        6: [12,13],
-        7: [15,20],
-        8: [14,16],
-        9: [15,17],
-        10: [16,18],
-        11: [17,19],
-        12: [18,20],
-        13: [14,19],
-        14: [17,18],
-        15: [18,19],
-        16: [19,20],
+        0: [2, 5, 7, 13],
+        1: [3, 6, 7, 8],
+        2: [4, 8, 9],
+        3: [5, 9, 10],
+        4: [6, 10, 11],
+        5: [11, 12],
+        6: [12, 13],
+        7: [15, 20],
+        8: [14, 16],
+        9: [15, 17],
+        10: [16, 18],
+        11: [17, 19],
+        12: [18, 20],
+        13: [14, 19],
+        14: [17, 18],
+        15: [18, 19],
+        16: [19, 20],
         17: [20]}
-    pos_dict = {
-        0: [0, 4],
-        1: [3.12732592987212, 2.49395920743493],
-        2: [3.89971164872729, -0.890083735825258],
-        3: [1.73553495647023, -3.60387547160968],
-        4: [-1.73553495647023, -3.60387547160968],
-        5: [-3.89971164872729, -0.890083735825258],
-        6: [-3.12732592987212, 2.49395920743493],
-        7: [0.867767478235116, 1.80193773580484],
-        8: [1.94985582436365, 0.445041867912629],
-        9: [1.56366296493606, -1.24697960371747],
-        10: [0, -2],
-        11: [-1.56366296493606, -1.24697960371747],
-        12: [-1.94985582436365, 0.445041867912629],
-        13: [-0.867767478235116, 1.80193773580484],
-        14: [0.433883739117558, 0.900968867902419],
-        15: [0.974927912181824, 0.222520933956314],
-        16: [0.781831482468030, -0.623489801858733],
-        17: [0, -1],
-        18: [-0.781831482468030, -0.623489801858733],
-        19: [-0.974927912181824, 0.222520933956315],
-        20: [-0.433883739117558, 0.900968867902419]}
-    return Graph(edge_dict, pos=pos_dict, name="Brinkmann graph")
+    g = Graph(edge_dict, format='dict_of_lists', name="Brinkmann graph",
+              immutable=immutable)
+    g._circle_embedding(range(7), radius=4, angle=pi/2)
+    g._circle_embedding(range(7, 14), radius=2, angle=pi/2 + pi/7)
+    g._circle_embedding(range(14, 21), radius=1, angle=pi/2 + pi/7)
+    return g
 
-def BrouwerHaemersGraph():
+
+def BrouwerHaemersGraph(immutable=False):
     r"""
     Return the Brouwer-Haemers Graph.
 
@@ -1341,20 +1514,35 @@ def BrouwerHaemersGraph():
     on Andries Brouwer's website
     <https://www.win.tue.nl/~aeb/graphs/Brouwer-Haemers.html>`_.
 
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
+
     EXAMPLES::
 
-        sage: g = graphs.BrouwerHaemersGraph()
-        sage: g
+        sage: g = graphs.BrouwerHaemersGraph(); g                                       # needs sage.modules
         Brouwer-Haemers: Graph on 81 vertices
 
     It is indeed strongly regular with parameters `(81,20,1,6)`::
 
-        sage: g.is_strongly_regular(parameters=True)  # long time
+        sage: g.is_strongly_regular(parameters=True)    # long time                     # needs sage.modules sage.rings.finite_rings
         (81, 20, 1, 6)
 
     Its has as eigenvalues `20,2` and `-7`::
 
-        sage: set(g.spectrum()) == {20,2,-7}
+        sage: set(g.spectrum()) == {20,2,-7}                                            # needs sage.modules sage.rings.finite_rings
+        True
+
+    TESTS:
+
+    Check the behavior of parameter immutable::
+
+        sage: g = graphs.BrouwerHaemersGraph()
+        sage: h = graphs.BrouwerHaemersGraph(immutable=True)
+        sage: h.is_immutable()
+        True
+        sage: g.is_isomorphic(h)
         True
     """
     from sage.rings.finite_rings.finite_field_constructor import FiniteField
@@ -1364,12 +1552,17 @@ def BrouwerHaemersGraph():
 
     d = 4
     q = 3
-    F = FiniteField(q,"x")
-    V = VectorSpace(F,d)
-    M = Matrix(F,identity_matrix(d))
-    M[1,1]=-1
-    G = Graph([[tuple(_) for _ in V], lambda x,y:(V(x)-V(y))*(M*(V(x)-V(y))) == 0], loops=False)
-    G.relabel()
+    F = FiniteField(q, "x")
+    V = VectorSpace(F, d)
+    M = Matrix(F, identity_matrix(d))
+    M[1, 1] = -1
+    G = Graph([[tuple(_) for _ in V],
+               lambda x, y: (V(x) - V(y))*(M*(V(x) - V(y))) == 0],
+               format='rule', loops=False, name="Brouwer-Haemers")
+    if immutable:
+        G = G.relabel(inplace=False, immutable=True)
+    else:
+        G.relabel()
     ordering = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17,
                 18, 19, 20, 21, 22, 23, 24, 25, 26, 48, 49, 50, 51, 52, 53,
                 45, 46, 47, 30, 31, 32, 33, 34, 35, 27, 28, 29, 39, 40, 41,
@@ -1377,10 +1570,10 @@ def BrouwerHaemersGraph():
                 78, 79, 80, 72, 73, 74, 75, 76, 77, 60, 61, 62, 54, 55, 56,
                 57, 58, 59]
     G._circle_embedding(ordering)
-    G.name("Brouwer-Haemers")
     return G
 
-def BuckyBall():
+
+def BuckyBall(immutable=False):
     r"""
     Return the Bucky Ball graph.
 
@@ -1388,6 +1581,11 @@ def BuckyBall():
     correspond precisely to the carbon atoms and bonds in buckminsterfullerene.
     When embedded on a sphere, its 12 pentagon and 20 hexagon faces are arranged
     exactly as the sections of a soccer ball.
+
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES:
 
@@ -1409,7 +1607,18 @@ def BuckyBall():
     The graph is returned along with an attractive embedding::
 
         sage: g = graphs.BuckyBall()  # long time
-        sage: g.plot(vertex_labels=False, vertex_size=10).show()  # long time
+        sage: g.plot(vertex_labels=False, vertex_size=10).show()        # long time, needs sage.plot
+
+    TESTS:
+
+    Check the behavior of parameter immutable::
+
+        sage: g = graphs.BuckyBall()
+        sage: h = graphs.BuckyBall(immutable=True)
+        sage: h.is_immutable()
+        True
+        sage: g.is_isomorphic(h)
+        True
     """
     edges = [(0, 2), (0, 48), (0, 59), (1, 3), (1, 9), (1, 58),
              (2, 3), (2, 36), (3, 17), (4, 6), (4, 8), (4, 12),
@@ -1427,78 +1636,75 @@ def BuckyBall():
              (48, 52), (49, 53), (49, 57), (50, 51), (50, 52), (51, 53),
              (54, 55), (54, 56), (55, 57), (56, 58), (57, 59), (58, 59)
              ]
-    g = Graph()
-    g.add_edges(edges)
-    g.name("Bucky Ball")
 
     pos = {
-        0 :  (1.00000000000000, 0.000000000000000),
-        1 :  (-1.00000000000000, 0.000000000000000),
-        2 :  (0.500000000000000, 0.866025403784439),
-        3 :  (-0.500000000000000, 0.866025403784439),
-        4 :  (-0.252886764483159, -0.146004241548845),
-        5 :  (-0.368953972399043, 0.0928336233191176),
-        6 :  (-0.217853192651371, -0.0480798425451855),
-        7 :  (-0.255589950938772, 0.0495517623332213),
-        8 :  (-0.390242139418333, -0.225306404242310),
-        9 :  (-0.586398703939125, -0.0441575936410641),
-        10:  (-0.113926229169631, -0.101751920396670),
-        11:  (-0.0461308635969359, -0.0928422349110366),
-        12:  (-0.150564961379772, -0.164626477859040),
-        13:  (-0.0848818904865275, -0.246123271631605),
-        14:  (-0.170708060452244, 0.196571509298384),
-        15:  (-0.0672882312715990, 0.212706320404226),
-        16:  (-0.264873262319233, 0.273106701265196),
-        17:  (-0.254957754106411, 0.529914971178085),
-        18:  (-0.103469165775548, 0.00647061768205703),
-        19:  (-0.113590051906687, 0.0655812470455896),
-        20:  (-0.145082862532183, -0.0477870484199328),
-        21:  (-0.179962687765901, 0.103901506225732),
-        22:  (0.0573383021786124, 0.0863716172289798),
-        23:  (0.0311566333625530, 0.149538968816603),
-        24:  (-0.0573383021786121, 0.0863716172289799),
-        25:  (-0.0311566333625527, 0.149538968816603),
-        26:  (-0.0517345828877740, 0.00161765442051429),
-        27:  (-0.0244663616211774, -0.0456122902452611),
-        28:  (0.0517345828877743, 0.00161765442051431),
-        29:  (0.0244663616211777, -0.0456122902452611),
-        30:  (-0.0272682212665964, 0.0439946358247470),
-        31:  (0.0272682212665968, 0.0439946358247470),
-        32:  (0.179962687765901, 0.103901506225732),
-        33:  (0.145082862532184, -0.0477870484199329),
-        34:  (0.113590051906687, 0.0655812470455895),
-        35:  (0.103469165775548, 0.00647061768205698),
-        36:  (0.254957754106411, 0.529914971178085),
-        37:  (0.264873262319233, 0.273106701265196),
-        38:  (0.0672882312715993, 0.212706320404226),
-        39:  (0.170708060452245, 0.196571509298384),
-        40:  (1.59594559789866e-16, 0.450612808484620),
-        41:  (2.01227923213310e-16, 0.292008483097691),
-        42:  (0.0848818904865278, -0.246123271631605),
-        43:  (0.150564961379773, -0.164626477859040),
-        44:  (0.0461308635969362, -0.0928422349110366),
-        45:  (0.113926229169631, -0.101751920396670),
-        46:  (1.66533453693773e-16, -0.207803012451463),
-        47:  (1.80411241501588e-16, -0.131162494091179),
-        48:  (0.586398703939126, -0.0441575936410641),
-        49:  (0.390242139418333, -0.225306404242310),
-        50:  (0.255589950938772, 0.0495517623332212),
-        51:  (0.217853192651372, -0.0480798425451855),
-        52:  (0.368953972399044, 0.0928336233191175),
-        53:  (0.252886764483159, -0.146004241548845),
-        54:  (-0.104080710079810, -0.365940324584313),
-        55:  (0.104080710079811, -0.365940324584313),
-        56:  (-0.331440949832714, -0.485757377537020),
-        57:  (0.331440949832715, -0.485757377537021),
-        58:  (-0.500000000000000, -0.866025403784438),
-        59:  (0.500000000000000, -0.866025403784439)
+        0: (1.00000000000000, 0.000000000000000),
+        1: (-1.00000000000000, 0.000000000000000),
+        2: (0.500000000000000, 0.866025403784439),
+        3: (-0.500000000000000, 0.866025403784439),
+        4: (-0.252886764483159, -0.146004241548845),
+        5: (-0.368953972399043, 0.0928336233191176),
+        6: (-0.217853192651371, -0.0480798425451855),
+        7: (-0.255589950938772, 0.0495517623332213),
+        8: (-0.390242139418333, -0.225306404242310),
+        9: (-0.586398703939125, -0.0441575936410641),
+        10: (-0.113926229169631, -0.101751920396670),
+        11: (-0.0461308635969359, -0.0928422349110366),
+        12: (-0.150564961379772, -0.164626477859040),
+        13: (-0.0848818904865275, -0.246123271631605),
+        14: (-0.170708060452244, 0.196571509298384),
+        15: (-0.0672882312715990, 0.212706320404226),
+        16: (-0.264873262319233, 0.273106701265196),
+        17: (-0.254957754106411, 0.529914971178085),
+        18: (-0.103469165775548, 0.00647061768205703),
+        19: (-0.113590051906687, 0.0655812470455896),
+        20: (-0.145082862532183, -0.0477870484199328),
+        21: (-0.179962687765901, 0.103901506225732),
+        22: (0.0573383021786124, 0.0863716172289798),
+        23: (0.0311566333625530, 0.149538968816603),
+        24: (-0.0573383021786121, 0.0863716172289799),
+        25: (-0.0311566333625527, 0.149538968816603),
+        26: (-0.0517345828877740, 0.00161765442051429),
+        27: (-0.0244663616211774, -0.0456122902452611),
+        28: (0.0517345828877743, 0.00161765442051431),
+        29: (0.0244663616211777, -0.0456122902452611),
+        30: (-0.0272682212665964, 0.0439946358247470),
+        31: (0.0272682212665968, 0.0439946358247470),
+        32: (0.179962687765901, 0.103901506225732),
+        33: (0.145082862532184, -0.0477870484199329),
+        34: (0.113590051906687, 0.0655812470455895),
+        35: (0.103469165775548, 0.00647061768205698),
+        36: (0.254957754106411, 0.529914971178085),
+        37: (0.264873262319233, 0.273106701265196),
+        38: (0.0672882312715993, 0.212706320404226),
+        39: (0.170708060452245, 0.196571509298384),
+        40: (1.59594559789866e-16, 0.450612808484620),
+        41: (2.01227923213310e-16, 0.292008483097691),
+        42: (0.0848818904865278, -0.246123271631605),
+        43: (0.150564961379773, -0.164626477859040),
+        44: (0.0461308635969362, -0.0928422349110366),
+        45: (0.113926229169631, -0.101751920396670),
+        46: (1.66533453693773e-16, -0.207803012451463),
+        47: (1.80411241501588e-16, -0.131162494091179),
+        48: (0.586398703939126, -0.0441575936410641),
+        49: (0.390242139418333, -0.225306404242310),
+        50: (0.255589950938772, 0.0495517623332212),
+        51: (0.217853192651372, -0.0480798425451855),
+        52: (0.368953972399044, 0.0928336233191175),
+        53: (0.252886764483159, -0.146004241548845),
+        54: (-0.104080710079810, -0.365940324584313),
+        55: (0.104080710079811, -0.365940324584313),
+        56: (-0.331440949832714, -0.485757377537020),
+        57: (0.331440949832715, -0.485757377537021),
+        58: (-0.500000000000000, -0.866025403784438),
+        59: (0.500000000000000, -0.866025403784439)
     }
 
-    g.set_pos(pos)
+    return Graph([range(60), edges], format='vertices_and_edges',
+                 pos=pos, immutable=immutable, name="Bucky Ball")
 
-    return g
 
-def GossetGraph():
+def GossetGraph(immutable=False):
     r"""
     Return the Gosset graph.
 
@@ -1506,6 +1712,11 @@ def GossetGraph():
     :meth:`~sage.geometry.polyhedron.library.Polytopes.Gosset_3_21` polytope. It
     has with 56 vertices and degree 27. For more information, see the
     :wikipedia:`Gosset_graph`.
+
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES::
 
@@ -1518,6 +1729,17 @@ def GossetGraph():
 
         sage: g.is_isomorphic(polytopes.Gosset_3_21().graph())  # not tested (~16s)
         True
+
+    TESTS:
+
+    Check the behavior of parameter immutable::
+
+        sage: g = graphs.GossetGraph()
+        sage: h = graphs.GossetGraph(immutable=True)
+        sage: h.is_immutable()
+        True
+        sage: g.is_isomorphic(h)
+        True
     """
     string = ('w~~~~rt{~Z\\ZxnvYZYmlfrb}|hDuhLlcmmMNf_^zzQGNYcP\\kcRZbaJjoNBx{'
               '?N~o^}?A`}F_Kbbm_[QZ\\_]Cj\\oN_dm{BzB{?]WIMM@tPQRYBYRPIuAyJgQv?'
@@ -1525,7 +1747,7 @@ def GossetGraph():
               'mITZ@_e[{KXn?YPABzvY?IcO`zvYg@caC\\zlf?BaGR]zb{?@wOjv`~w??N_n_~'
               '~w???^_^~~{')
 
-    G = Graph(string, name="Gosset Graph")
+    G = Graph(string, name="Gosset Graph", immutable=immutable)
 
     ordering = [0, 2, 4, 6, 43, 23, 50, 18, 28, 9, 8, 7, 44, 3, 26, 35, 16, 14,
                 33, 15, 54, 30, 17, 21, 10, 13, 36, 31, 55, 53, 51, 49, 12, 32,
@@ -1536,12 +1758,18 @@ def GossetGraph():
 
     return G
 
-def DoubleStarSnark():
+
+def DoubleStarSnark(immutable=False):
     r"""
     Return the double star snark.
 
     The double star snark is a 3-regular graph on 30 vertices. See the
     :wikipedia:`Double-star_snark`.
+
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES::
 
@@ -1552,57 +1780,73 @@ def DoubleStarSnark():
         45
         sage: g.chromatic_number()
         3
-        sage: g.is_hamiltonian()
+        sage: g.is_hamiltonian()                                                        # needs sage.numerical.mip
         False
-        sage: g.automorphism_group().cardinality()
+        sage: g.automorphism_group().cardinality()                                      # needs sage.groups
         80
-        sage: g.show()
+        sage: g.show()                                                                  # needs sage.plot
+
+    TESTS:
+
+    Check the behavior of parameter immutable::
+
+        sage: g = graphs.DoubleStarSnark()
+        sage: h = graphs.DoubleStarSnark(immutable=True)
+        sage: h.is_immutable()
+        True
+        sage: g.is_isomorphic(h)
+        True
     """
+    d = {0: [1, 14, 15],
+         1: [0, 2, 11],
+         2: [1, 3, 7],
+         3: [2, 4, 18],
+         4: [3, 5, 14],
+         5: [10, 4, 6],
+         6: [5, 21, 7],
+         7: [8, 2, 6],
+         8: [9, 13, 7],
+         9: [24, 8, 10],
+         10: [9, 11, 5],
+         11: [1, 10, 12],
+         12: [11, 27, 13],
+         13: [8, 12, 14],
+         14: [0, 4, 13],
+         15: [0, 16, 29],
+         16: [15, 20, 23],
+         17: [25, 18, 28],
+         18: [3, 17, 19],
+         19: [18, 26, 23],
+         20: [16, 28, 21],
+         21: [20, 6, 22],
+         22: [26, 21, 29],
+         23: [16, 24, 19],
+         24: [25, 9, 23],
+         25: [24, 17, 29],
+         26: [27, 19, 22],
+         27: [12, 26, 28],
+         28: [17, 27, 20],
+         29: [25, 22, 15]}
 
-    d = { 0: [1, 14, 15]
-        , 1: [0, 2, 11]
-        , 2: [1, 3, 7]
-        , 3: [2, 4, 18]
-        , 4: [3, 5, 14]
-        , 5: [10, 4, 6]
-        , 6: [5, 21, 7]
-        , 7: [8, 2, 6]
-        , 8: [9, 13, 7]
-        , 9: [24, 8, 10]
-        , 10: [9, 11, 5]
-        , 11: [1, 10, 12]
-        , 12: [11, 27, 13]
-        , 13: [8, 12, 14]
-        , 14: [0, 4, 13]
-        , 15: [0, 16, 29]
-        , 16: [15, 20, 23]
-        , 17: [25, 18, 28]
-        , 18: [3, 17, 19]
-        , 19: [18, 26, 23]
-        , 20: [16, 28, 21]
-        , 21: [20, 6, 22]
-        , 22: [26, 21, 29]
-        , 23: [16, 24, 19]
-        , 24: [25, 9, 23]
-        , 25: [24, 17, 29]
-        , 26: [27, 19, 22]
-        , 27: [12, 26, 28]
-        , 28: [17, 27, 20]
-        , 29: [25, 22, 15]
-        }
-
-    g = Graph(d, format='dict_of_lists', name="Double star snark")
+    g = Graph(d, format='dict_of_lists', name="Double star snark",
+              immutable=immutable)
     g._circle_embedding(list(range(15)), radius=2)
     g._circle_embedding(list(range(15, 30)), radius=1.4)
 
     return g
 
-def MeredithGraph():
+
+def MeredithGraph(immutable=False):
     r"""
     Return the Meredith Graph.
 
     The Meredith Graph is a 4-regular 4-connected non-hamiltonian graph. For
     more information on the Meredith Graph, see the :wikipedia:`Meredith_graph`.
+
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES::
 
@@ -1621,11 +1865,10 @@ def MeredithGraph():
         4
         sage: g.chromatic_number()
         3
-        sage: g.is_hamiltonian()  # long time
+        sage: g.is_hamiltonian()                # long time                             # needs sage.numerical.mip
         False
     """
     g = Graph(name="Meredith Graph")
-    g.add_vertex(0)
 
     # Edges between copies of K_{4,3}
     for i in range(5):
@@ -1642,24 +1885,31 @@ def MeredithGraph():
                 g.add_edge(('outer', i, j), ('outer', i, k + 4))
 
     g._circle_embedding(sum([[('outer', i, j) for j in range(4)] + 10 * [0] for i in range(5)], []),
-                            radius=1, shift=2)
+                        radius=1, shift=2)
     g._circle_embedding(sum([[('outer', i, j) for j in range(4, 7)] + 10 * [0] for i in range(5)], []),
-                            radius=1.2, shift=2.2)
+                        radius=1.2, shift=2.2)
     g._circle_embedding(sum([[('inner', i, j) for j in range(4)] + 7 * [0] for i in range(5)], []),
-                            radius=.6, shift=1.24)
+                        radius=.6, shift=1.24)
     g._circle_embedding(sum([[('inner', i, j) for j in range(4, 7)] + 5 * [0] for i in range(5)], []),
-                            radius=.4, shift=1.05)
+                        radius=.4, shift=1.05)
 
-    g.delete_vertex(0)
+    if immutable:
+        return g.relabel(inplace=False, immutable=True)
     g.relabel()
     return g
 
-def KittellGraph():
+
+def KittellGraph(immutable=False):
     r"""
     Return the Kittell Graph.
 
     For more information, see the `Wolfram page about the Kittel Graph
     <http://mathworld.wolfram.com/KittellGraph.html>`_.
+
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES::
 
@@ -1688,20 +1938,21 @@ def KittellGraph():
                16: [3, 12, 5, 6, 15], 17: [18, 19, 22, 6, 15],
                18: [8, 17, 19, 6, 7], 19: [8, 9, 17, 18, 20, 22],
                20: [9, 10, 19, 21, 22], 21: [10, 11, 20, 22, 15],
-               22: [17, 19, 20, 21, 15]},
-              name = "Kittell Graph")
+               22: [17, 19, 20, 21, 15]}, format="dict_of_lists",
+              name="Kittell Graph", immutable=immutable)
 
     g._circle_embedding(list(range(3)), shift=.75)
     g._circle_embedding(list(range(3, 13)), radius=.4)
     g._circle_embedding(list(range(15, 22)), radius=.2, shift=-.15)
-    pos = g.get_pos()
+    pos = g._pos
     pos[13] = (-.65, -.35)
     pos[14] = (.65, -.35)
     pos[22] = (0, 0)
 
     return g
 
-def CameronGraph():
+
+def CameronGraph(immutable=False):
     r"""
     Return the Cameron graph.
 
@@ -1711,6 +1962,11 @@ def CameronGraph():
     For more information on the Cameron graph, see
     `<https://www.win.tue.nl/~aeb/graphs/Cameron.html>`_.
 
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
+
     EXAMPLES::
 
         sage: g = graphs.CameronGraph()
@@ -1718,18 +1974,21 @@ def CameronGraph():
         231
         sage: g.size()
         3465
-        sage: g.is_strongly_regular(parameters = True) # long time
+        sage: g.is_strongly_regular(parameters=True)    # long time
         (231, 30, 9, 3)
     """
     from sage.groups.perm_gps.permgroup_named import MathieuGroup
     from itertools import combinations
     g = Graph(name="Cameron Graph")
-    sets = MathieuGroup(22).orbit((1, 2, 3, 7, 10, 20), action="OnSets")
+    sets = MathieuGroup(22).orbit((1, 2, 3, 7, 10, 20), action='OnSets')
     for s in sets:
         for a, b, c, d in combinations(set(s), 4):
             g.add_edges([((a, b), (c, d)), ((a, c), (b, d)), ((a, d), (b, c))])
 
-    g.relabel()
+    if immutable:
+        g = g.relabel(inplace=False, immutable=True)
+    else:
+        g.relabel()
     ordering = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 15, 18, 19, 20,
                 21, 24, 25, 26, 27, 29, 31, 34, 35, 38, 39, 96, 97, 101, 105,
                 51, 117, 198, 32, 196, 201, 131, 167, 199, 197, 86, 102, 195,
@@ -1751,7 +2010,8 @@ def CameronGraph():
     g._circle_embedding(ordering)
     return g
 
-def ChvatalGraph():
+
+def ChvatalGraph(immutable=False):
     r"""
     Return the Chvatal graph.
 
@@ -1759,6 +2019,11 @@ def ChvatalGraph():
     conjecture that for every `m`, `n`, there is an `m`-regular, `m`-chromatic
     graph of girth at least `n`. For more information, see the
     :wikipedia:`Chv%C3%A1tal_graph`.
+
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES:
 
@@ -1781,37 +2046,37 @@ def ChvatalGraph():
 
     TESTS::
 
-        sage: import networkx
+        sage: import networkx                                                           # needs networkx
         sage: G = graphs.ChvatalGraph()
-        sage: G.is_isomorphic(Graph(networkx.chvatal_graph()))
+        sage: G.is_isomorphic(Graph(networkx.chvatal_graph()))                          # needs networkx
         True
     """
-    edges = {0:[1, 4, 6, 9], 1:[2, 5, 7], 2:[3, 6, 8], 3:[4, 7, 9], 4:[5, 8],
-             5:[10, 11], 6:[10, 11], 7:[8, 11], 8:[10], 9:[10, 11]}
-    pos_dict = {}
-    for i in range(5, 10):
-        x = float(cos((pi / 2) + ((2 * pi) / 5) * i))
-        y = float(sin((pi / 2) + ((2 * pi) / 5) * i))
-        pos_dict[i] = (x, y)
-    for i in range(5):
-        x = float(2 * (cos((pi / 2) + ((2 * pi) / 5) * (i - 5))))
-        y = float(2 * (sin((pi / 2) + ((2 * pi) / 5) * (i - 5))))
-        pos_dict[i] = (x, y)
-    pos_dict[10] = (0.5, 0)
-    pos_dict[11] = (-0.5, 0)
+    edges = {0: [1, 4, 6, 9], 1: [2, 5, 7], 2: [3, 6, 8], 3: [4, 7, 9],
+             4: [5, 8], 5: [10, 11], 6: [10, 11], 7: [8, 11], 8: [10],
+             9: [10, 11]}
+    g = Graph(edges, format='dict_of_lists', name="Chvatal graph",
+              immutable=immutable)
+    g._circle_embedding(range(5), radius=4, angle=pi/2)
+    g._circle_embedding(range(5, 10), radius=2, angle=pi/2)
+    g._circle_embedding(range(10, 12), radius=1)
+    return g
 
-    return Graph(edges, pos=pos_dict, name="Chvatal graph")
 
-def ClebschGraph():
+def ClebschGraph(immutable=False):
     r"""
     Return the Clebsch graph.
 
     See the :wikipedia:`Clebsch_graph` for more information.
 
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
+
     EXAMPLES::
 
         sage: g = graphs.ClebschGraph()
-        sage: g.automorphism_group().cardinality()
+        sage: g.automorphism_group().cardinality()                                      # needs sage.groups
         1920
         sage: g.girth()
         4
@@ -1819,35 +2084,41 @@ def ClebschGraph():
         4
         sage: g.diameter()
         2
-        sage: g.show(figsize=[10, 10]) # long time
+        sage: g.show(figsize=[10, 10])          # long time                             # needs sage.plot
     """
-    g = Graph(pos={})
-    x = 0
-    for i in range(8):
-        g.add_edge(x % 16, (x + 1) % 16)
-        g.add_edge(x % 16, (x + 6) % 16)
-        g.add_edge(x % 16, (x + 8) % 16)
-        x += 1
-        g.add_edge(x % 16, (x + 3) % 16)
-        g.add_edge(x % 16, (x + 2) % 16)
-        g.add_edge(x % 16, (x + 8) % 16)
-        x += 1
+    def edges():
+        x = 0
+        for i in range(8):
+            yield (x % 16, (x + 1) % 16)
+            yield (x % 16, (x + 6) % 16)
+            yield (x % 16, (x + 8) % 16)
+            x += 1
+            yield (x % 16, (x + 3) % 16)
+            yield (x % 16, (x + 2) % 16)
+            yield (x % 16, (x + 8) % 16)
+            x += 1
 
+    g = Graph([range(16), edges()], format="vertices_and_edges",
+              name="Clebsch graph", immutable=immutable)
     g._circle_embedding(list(range(16)), shift=.5)
-    g.name("Clebsch graph")
-
     return g
 
-def CoxeterGraph():
+
+def CoxeterGraph(immutable=False):
     r"""
     Return the Coxeter graph.
 
     See the :wikipedia:`Coxeter_graph`.
 
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
+
     EXAMPLES::
 
         sage: g = graphs.CoxeterGraph()
-        sage: g.automorphism_group().cardinality()
+        sage: g.automorphism_group().cardinality()                                      # needs sage.groups
         336
         sage: g.girth()
         7
@@ -1855,27 +2126,178 @@ def CoxeterGraph():
         3
         sage: g.diameter()
         4
-        sage: g.show(figsize=[10, 10])  # long time
+        sage: g.show(figsize=[10, 10])          # long time                             # needs sage.plot
     """
-    g = Graph({
-            27: [6, 22, 14],
-            24: [0, 7, 18],
-            25: [8, 15, 2],
-            26: [10, 16, 23],
-            }, pos={})
-
-    g.add_cycle(list(range(24)))
-    g.add_edges([(5, 11), (9, 20), (12, 1), (13, 19), (17, 4), (3, 21)])
-
+    from itertools import chain
+    E1 = ((0, 24), (2, 25), (6, 27), (7, 24), (8, 25), (10, 26), (14, 27),
+          (15, 25), (16, 26), (18, 24), (22, 27), (23, 26))
+    E2 = ((i, i + 1) for i in range(23))
+    E3 = ((0, 23),)
+    E4 = ((5, 11), (9, 20), (12, 1), (13, 19), (17, 4), (3, 21))
+    g = Graph([range(28), chain(E1, E2, E3, E4)], format="vertices_and_edges",
+              name="Coxeter Graph", immutable=immutable)
     g._circle_embedding(list(range(24)))
     g._circle_embedding([24, 25, 26], radius=.5)
-    g.get_pos()[27] = (0, 0)
-
-    g.name("Coxeter Graph")
-
+    g._pos[27] = (0, 0)
     return g
 
-def DejterGraph():
+
+def CubeplexGraph(embedding='LM', immutable=False):
+    r"""
+    Return the Cubeplex graph.
+
+    The Cubeplex graph is the cubic hamiltonian graph of order 12 that
+    corresponds to the graph labeled as `\Gamma_1` in Fischer and Little
+    [FiLi2001]_. It has LCF notation `[-6, -5, -3, -6, 3, 5, -6, -3, 5, -6, -5,
+    3]`.
+
+    The Fischer-Little Theorem [FiLi2001]_ may be stated as follows [LM2024]_:
+
+    A near-bipartite graph is non-Pfaffian if and only if it contains one of
+    the graphs `K_{3, 3}`, `\Gamma_1` and `\Gamma_2` as an `S`-minor.
+
+    Norine and Thomas [NT2007]_ use the term ``Cubeplex`` to describe one of
+    the 12-vertex cubic graphs, `\Gamma_1` and `\Gamma_2`, as defined by
+    Fischer and Little [FiLi2001]_. However, the figure in their paper that
+    supposedly provides embeddings for the graphs labeled Cubeplex and Twinplex
+    actually shows both embeddings corresponding to Fischer and Little's
+    `\Gamma_1`, which is the Cubeplex graph. Followingly, for
+    ``embedding='NT'``, we present only the embedding that is shown by the
+    labeling ``Cubeplex`` in the paper of Norine and Thomas [NT2007]_.
+
+    PLOTTING:
+
+    Upon construction, the position dictionary is filled to override
+    the spring-layout algorithm. For different values of the parameter
+    ``embedding``, the Cubeplex graph is displayed as it is mentioned in the
+    respective paper/ book.
+
+    INPUT:
+
+    - ``embedding`` -- string (default: ``'LM'``)
+
+      - ``'LM'`` displays the embedding as shown for `\Gamma_1` by Lucchesi and
+        Murty [LM2024]_
+
+      - ``'FL'`` displays the embedding as shown for `\Gamma_1` by Fischer and
+        Little [FiLi2001]_
+
+      - ``'NT'`` displays the embedding as shown for the ``Cubeplex`` by Norine
+        and Thomas [NT2007]_
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
+
+    OUTPUT:
+
+    - ``G`` -- the Cubeplex graph; note that a :class:`ValueError` is returned
+      if ``embedding`` is none of ``'FT'``, ``'NT'`` or ``'LM'``
+
+    EXAMPLES:
+
+    Construct and show the Cubeplex graph::
+
+        sage: g = graphs.CubeplexGraph()
+        sage: g.name()
+        'Cubeplex Graph'
+        sage: g.order()
+        12
+        sage: g.size()
+        18
+        sage: g.girth()
+        4
+        sage: g.diameter()
+        3
+        sage: g.is_hamiltonian()
+        True
+        sage: g.crossing_number()
+        1
+        sage: g.show()                          # long time                             # needs sage.plot
+
+    TESTS:
+
+    Note that all three embeddings refer to the same graph, the Cubeplex graph,
+    aka `\Gamma_1`::
+
+        sage: fl = graphs.CubeplexGraph(embedding='FL')
+        sage: nt = graphs.CubeplexGraph(embedding='NT')
+        sage: lm = graphs.CubeplexGraph(embedding='LM')
+        sage: fl.is_isomorphic(nt) and fl.is_isomorphic(lm)
+        True
+
+    The input parameter must be one of 'FL', 'NT' or 'LM'::
+
+        sage: g = graphs.CubeplexGraph(embedding='embedding')
+        Traceback (most recent call last):
+        ...
+        ValueError: parameter 'embedding' must be 'FL', 'NT' or 'LM'
+
+    .. SEEALSO::
+
+        :meth:`~sage.graphs.graph_generators.GraphGenerators.TwinplexGraph`
+
+    AUTHORS:
+
+    - Janmenjaya Panda (2024-08-03)
+    """
+    from itertools import chain
+    from math import pi
+
+    if embedding == 'FL':
+        E1 = ((i, i + 1) for i in range(11))
+        E2 = ((0, 11),)
+        E3 = ((0, 3), (1, 6), (2, 8), (4, 9), (5, 11), (7, 10))
+        G = Graph([range(12), chain(E1, E2, E3)], format="vertices_and_edges",
+                  name='Cubeplex Graph', immutable=immutable)
+        G._circle_embedding(list(range(12)), angle=2*pi/3)
+
+    elif embedding == 'NT':
+        pos_dict = {
+            0: (1, 2),
+            1: (3, 2),
+            2: (0, 1),
+            3: (1, 1),
+            4: (2, 1),
+            5: (3, 1),
+            6: (4, 1),
+            7: (0, -1),
+            8: (1, 0),
+            9: (2, 0),
+            10: (3, 0),
+            11: (4, -1),
+        }
+
+        edges = ((0, 2), (0, 4), (0, 6), (1, 3), (1, 5), (1, 6),
+                 (2, 7), (2, 8), (3, 7), (3, 8), (4, 9), (4, 10),
+                 (5, 9), (5, 10), (6, 11), (7, 11), (8, 9), (10, 11))
+        G = Graph([range(12), edges], format="vertices_and_edges", pos=pos_dict,
+                  name='Cubeplex Graph', immutable=immutable)
+
+    elif embedding == 'LM':
+        pos_dict = {
+            8: (0, 1),
+            9: (1, 0),
+            10: (-3*cos(pi/16), -3*sin(pi/16)),
+            11: (3*cos(pi/16), -3*sin(pi/16))
+        }
+
+        for v in range(8):
+            t = pi * (v+2)/4
+            pos_dict[v] = (-2*cos(t), 2*sin(t))
+
+        edges = ((0, 1), (0, 7), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 7),
+                 (0, 8), (1, 11), (2, 9), (3, 11), (4, 8),
+                 (5, 10), (6, 9), (7, 10), (8, 9), (10, 11))
+        G = Graph([range(12), edges], format="vertices_and_edges", pos=pos_dict,
+                  name='Cubeplex Graph', immutable=immutable)
+
+    else:
+        raise ValueError("parameter 'embedding' must be 'FL', 'NT' or 'LM'")
+
+    return G
+
+
+def DejterGraph(immutable=False):
     r"""
     Return the Dejter graph.
 
@@ -1883,13 +2305,18 @@ def DejterGraph():
     the Hamming code of length 7. It is 6-regular, with 112 vertices and 336
     edges. For more information, see the :wikipedia:`Dejter_graph`.
 
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
+
     EXAMPLES::
 
-        sage: g = graphs.DejterGraph(); g
+        sage: g = graphs.DejterGraph(); g                                               # needs sage.rings.finite_rings
         Dejter Graph: Graph on 112 vertices
-        sage: g.is_regular(k=6)
+        sage: g.is_regular(k=6)                                                         # needs sage.rings.finite_rings
         True
-        sage: g.girth()
+        sage: g.girth()                                                                 # needs sage.rings.finite_rings
         4
     """
     from sage.graphs.generators.families import CubeGraph
@@ -1900,13 +2327,21 @@ def DejterGraph():
     g.delete_vertices(["".join(map(str, x))
                        for x in HammingCode(FiniteField(2), 3)])
     g.name("Dejter Graph")
+    if immutable:
+        return g.copy(immutable=True)
     return g
 
-def DesarguesGraph():
+
+def DesarguesGraph(immutable=False):
     """
     Return the Desargues graph.
 
-    PLOTTING: The layout chosen is the same as on the cover of [Har1994]_.
+    PLOTTING: The layout chosen is the same as on the cover of [Har1969]_.
+
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES::
 
@@ -1914,18 +2349,23 @@ def DesarguesGraph():
         sage: L = graphs.LCFGraph(20,[5,-5,9,-9],5)
         sage: D.is_isomorphic(L)
         True
-        sage: D.show()  # long time
+        sage: D.show()                          # long time                             # needs sage.plot
     """
     from sage.graphs.generators.families import GeneralizedPetersenGraph
-    G = GeneralizedPetersenGraph(10, 3)
-    G.name("Desargues Graph")
-    return G
+    return GeneralizedPetersenGraph(10, 3, immutable=immutable,
+                                    name="Desargues Graph")
 
-def DurerGraph():
+
+def DurerGraph(immutable=False):
     r"""
     Return the Dürer graph.
 
     For more information, see the :wikipedia:`D%C3%BCrer_graph`.
+
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES:
 
@@ -1952,43 +2392,27 @@ def DurerGraph():
 
     Its automorphism group is isomorphic to `D_6`::
 
-        sage: ag = G.automorphism_group()
-        sage: ag.is_isomorphic(DihedralGroup(6))
+        sage: ag = G.automorphism_group()                                               # needs sage.groups
+        sage: ag.is_isomorphic(DihedralGroup(6))                                        # needs sage.groups
         True
     """
-    edge_dict = {
-        0: [1,5,6],
-        1: [2,7],
-        2: [3,8],
-        3: [4,9],
-        4: [5,10],
-        5: [11],
-        6: [8,10],
-        7: [9,11],
-        8: [10],
-        9: [11]}
-    pos_dict = {
-        0: [2, 0],
-        1: [1, 1.73205080756888],
-        2: [-1, 1.73205080756888],
-        3: [-2, 0],
-        4: [-1, -1.73205080756888],
-        5: [1, -1.73205080756888],
-        6: [1, 0],
-        7: [0.5, 0.866025403784439],
-        8: [-0.5, 0.866025403784439],
-        9: [-1, 0],
-        10: [-0.5, -0.866025403784439],
-        11: [0.5, -0.866025403784439]}
-    return Graph(edge_dict, pos=pos_dict, name="Durer graph")
+    from sage.graphs.generators.families import GeneralizedPetersenGraph
+    return GeneralizedPetersenGraph(6, 2, immutable=immutable,
+                                    name="Durer graph")
 
-def DyckGraph():
+
+def DyckGraph(immutable=False):
     """
     Return the Dyck graph.
 
     For more information, see the `MathWorld article on the Dyck graph
     <http://mathworld.wolfram.com/DyckGraph.html>`_ or the
     :wikipedia:`Dyck_graph`.
+
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES:
 
@@ -2011,7 +2435,7 @@ def DyckGraph():
 
         sage: G.is_planar()
         False
-        sage: G.is_hamiltonian()
+        sage: G.is_hamiltonian()                                                        # needs sage.numerical.mip
         True
         sage: G.is_bipartite()
         True
@@ -2029,12 +2453,12 @@ def DyckGraph():
 
         sage: G.chromatic_number()
         2
-        sage: G.automorphism_group().cardinality()
+        sage: G.automorphism_group().cardinality()                                      # needs sage.groups
         192
 
     It is a non-integral graph as it has irrational eigenvalues::
 
-        sage: G.characteristic_polynomial().factor()
+        sage: G.characteristic_polynomial().factor()                                    # needs sage.libs.pari sage.modules
         (x - 3) * (x + 3) * (x - 1)^9 * (x + 1)^9 * (x^2 - 5)^6
 
     It is a toroidal graph, and its embedding on a torus is dual to an embedding
@@ -2045,8 +2469,8 @@ def DyckGraph():
     for i in range(8):
         pos_dict[i] = [float(cos((2*i) * pi/8)),
                        float(sin((2*i) * pi/8))]
-        pos_dict[8 + i]  = [0.75 * pos_dict[i][0],
-                            0.75 * pos_dict[i][1]]
+        pos_dict[8 + i] = [0.75 * pos_dict[i][0],
+                           0.75 * pos_dict[i][1]]
         pos_dict[16 + i] = [0.50 * pos_dict[i][0],
                             0.50 * pos_dict[i][1]]
         pos_dict[24 + i] = [0.25 * pos_dict[i][0],
@@ -2072,14 +2496,21 @@ def DyckGraph():
         0O27: [0O16, 0O10,   0O37], 0O37: [0O27,   0O34, 0O32],
     }
 
-    return Graph(edge_dict, pos=pos_dict, name="Dyck graph")
+    return Graph(edge_dict, format="dict_of_lists", pos=pos_dict,
+                 name="Dyck graph", immutable=immutable)
 
-def HortonGraph():
+
+def HortonGraph(immutable=False):
     r"""
     Return the Horton Graph.
 
     The Horton graph is a cubic 3-connected non-hamiltonian graph. For more
     information, see the :wikipedia:`Horton_graph`.
+
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES::
 
@@ -2098,7 +2529,7 @@ def HortonGraph():
         96
         sage: g.chromatic_number()
         2
-        sage: g.is_hamiltonian()  # not tested -- veeeery long
+        sage: g.is_hamiltonian()                # not tested (veeeery long)             # needs sage.numerical.mip
         False
     """
     g = Graph(name="Horton Graph")
@@ -2111,7 +2542,7 @@ def HortonGraph():
     lcf.delete_edge(7, 8)
 
     for i in range(6):
-        for u,v in lcf.edge_iterator(labels=False):
+        for u, v in lcf.edge_iterator(labels=False):
             g.add_edge((i, u), (i, v))
 
     # Modifying the groups and linking them together
@@ -2139,13 +2570,19 @@ def HortonGraph():
 
     g.relabel()
 
-    return g
+    return g.copy(immutable=True) if immutable else g
 
-def EllinghamHorton54Graph():
+
+def EllinghamHorton54Graph(immutable=False):
     r"""
     Return the Ellingham-Horton 54-graph.
 
     For more information, see the :wikipedia:`Ellingham-Horton_graph`.
+
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES:
 
@@ -2157,14 +2594,14 @@ def EllinghamHorton54Graph():
 
     It is 3-connected and bipartite::
 
-        sage: g.vertex_connectivity()  # not tested - too long
+        sage: g.vertex_connectivity()   # not tested - too long
         3
         sage: g.is_bipartite()
         True
 
     It is not Hamiltonian::
 
-        sage: g.is_hamiltonian()  # not tested - too long
+        sage: g.is_hamiltonian()                # not tested                            # needs sage.numerical.mip
         False
 
     ... and it has a nice drawing ::
@@ -2173,7 +2610,7 @@ def EllinghamHorton54Graph():
 
     TESTS::
 
-        sage: g.show()  # long time
+        sage: g.show()                          # long time                             # needs sage.plot
     """
     edge_dict = {
         0: [1, 11, 15], 1: [2, 47], 2: [3, 13], 3: [4, 8], 4: [5, 15],
@@ -2186,8 +2623,8 @@ def EllinghamHorton54Graph():
         40: [41, 45, 46], 41: [47], 42: [48, 43], 43: [49, 44], 44: [50, 45],
         45: [51], 46: [49], 50: [52], 51: [53], 52: [53]}
 
-    g = Graph(data=edge_dict, format="dict_of_lists",
-                  name="Ellingham-Horton 54-graph")
+    g = Graph(data=edge_dict, format='dict_of_lists',
+              name="Ellingham-Horton 54-graph", immutable=immutable)
 
     # The set of vertices on top is 0..15
     # Bottom left is 16..33
@@ -2207,7 +2644,7 @@ def EllinghamHorton54Graph():
     g._circle_embedding(list(range(40, 46)), center=(1.5, -1), radius=.5)
     g._circle_embedding(list(range(46, 52)), center=(1.5, -1), radius=.7)
 
-    d = g.get_pos()
+    d = g._pos
     d[52] = (-.3, -2.5)
     d[53] = (.3, -2.5)
     d[31] = (-2.2, -.9)
@@ -2217,11 +2654,17 @@ def EllinghamHorton54Graph():
 
     return g
 
-def EllinghamHorton78Graph():
+
+def EllinghamHorton78Graph(immutable=False):
     r"""
     Return the Ellingham-Horton 78-graph.
 
     For more information, see the :wikipedia:`Ellingham%E2%80%93Horton_graph`
+
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES:
 
@@ -2233,23 +2676,23 @@ def EllinghamHorton78Graph():
 
     It is 3-connected and bipartite::
 
-        sage: g.vertex_connectivity()  # not tested - too long
+        sage: g.vertex_connectivity()   # not tested (too long)
         3
         sage: g.is_bipartite()
         True
 
     It is not Hamiltonian::
 
-        sage: g.is_hamiltonian()  # not tested - too long
+        sage: g.is_hamiltonian()                # not tested                            # needs sage.numerical.mip
         False
 
     ... and it has a nice drawing ::
 
-        sage: g.show(figsize=[10,10])  # not tested - too long
+        sage: g.show(figsize=[10,10])   # not tested (too long)
 
     TESTS::
 
-        sage: g.show(figsize=[10, 10])  # not tested - too long
+        sage: g.show(figsize=[10, 10])  # not tested (too long)
     """
     g = Graph({
             0: [1, 5, 60], 1: [2, 12], 2: [3, 7], 3: [4, 14], 4: [5, 9],
@@ -2267,16 +2710,17 @@ def EllinghamHorton78Graph():
             55: [56, 59], 56: [57], 57: [58], 58: [75], 59: [75],
             60: [61, 64], 61: [62, 71], 62: [63, 77], 63: [67],
             64: [65, 69], 65: [77], 66: [70, 73], 67: [68, 73],
-            68: [69, 76], 70: [71, 76], 76: [77]}, pos={})
+            68: [69, 76], 70: [71, 76], 76: [77]}, format="dict_of_lists",
+            name="Ellingham-Horton 78-graph", immutable=immutable)
 
     g._circle_embedding(list(range(15)), center=(-2.5, 1.5))
     g._circle_embedding(list(range(15, 30)), center=(-2.5, -1.5))
     g._circle_embedding([30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41,
-        42, 74, 43, 44], center=(2.5, 1.5))
+                         42, 74, 43, 44], center=(2.5, 1.5))
     g._circle_embedding([45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56,
-        57, 58, 75, 59], center=(2.5, -1.5))
+                         57, 58, 75, 59], center=(2.5, -1.5))
 
-    d = g.get_pos()
+    d = g._pos
 
     d[76] = (-.2, -.1)
     d[77] = (.2, .1)
@@ -2290,14 +2734,19 @@ def EllinghamHorton78Graph():
     g._line_embedding([66, 73, 67, 68, 69], first=(1.2, -2), last=(-.8, -2))
     g._line_embedding([66, 70, 71], first=(.7, -1.5), last=(-1, -1.5))
 
-    g.name("Ellingham-Horton 78-graph")
     return g
 
-def ErreraGraph():
+
+def ErreraGraph(immutable=False):
     r"""
     Return the Errera graph.
 
     For more information, see the :wikipedia:`Errera_graph`.
+
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES:
 
@@ -2316,7 +2765,7 @@ def ErreraGraph():
     The Errera graph is Hamiltonian with radius 3, diameter 4, girth 3, and
     chromatic number 4::
 
-        sage: G.is_hamiltonian()
+        sage: G.is_hamiltonian()                                                        # needs sage.numerical.mip
         True
         sage: G.radius()
         3
@@ -2338,39 +2787,46 @@ def ErreraGraph():
     The automorphism group of the Errera graph is isomorphic to the dihedral
     group of order 20::
 
-        sage: ag = G.automorphism_group()
-        sage: ag.is_isomorphic(DihedralGroup(10))
+        sage: ag = G.automorphism_group()                                               # needs sage.groups
+        sage: ag.is_isomorphic(DihedralGroup(10))                                       # needs sage.groups
         True
     """
     edge_dict = {
-        0: [1,7,14,15,16],
-        1: [2,9,14,15],
-        2: [3,8,9,10,14],
-        3: [4,9,10,11],
-        4: [5,10,11,12],
-        5: [6,11,12,13],
-        6: [7,8,12,13,16],
-        7: [13,15,16],
-        8: [10,12,14,16],
-        9: [11,13,15],
+        0: [1, 7, 14, 15, 16],
+        1: [2, 9, 14, 15],
+        2: [3, 8, 9, 10, 14],
+        3: [4, 9, 10, 11],
+        4: [5, 10, 11, 12],
+        5: [6, 11, 12, 13],
+        6: [7, 8, 12, 13, 16],
+        7: [13, 15, 16],
+        8: [10, 12, 14, 16],
+        9: [11, 13, 15],
         10: [12],
         11: [13],
         13: [15],
         14: [16]}
-    return Graph(edge_dict, name="Errera graph")
+    return Graph(edge_dict, format="dict_of_lists",
+                 name="Errera graph", immutable=immutable)
 
-def F26AGraph():
+
+def F26AGraph(immutable=False):
     r"""
     Return the F26A graph.
 
     The F26A graph is a symmetric bipartite cubic graph with 26 vertices and 39
     edges. For more information, see the :wikipedia:`F26A_graph`.
 
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
+
     EXAMPLES::
 
         sage: g = graphs.F26AGraph(); g
         F26A Graph: Graph on 26 vertices
-        sage: g.order(),g.size()
+        sage: g.order(), g.size()
         (26, 39)
         sage: g.automorphism_group().cardinality()
         78
@@ -2382,11 +2838,10 @@ def F26AGraph():
         (x - 3) * (x + 3) * (x^4 - 5*x^2 + 3)^6
     """
     from sage.graphs.generators.families import LCFGraph
-    g= LCFGraph(26, [7, -7], 13)
-    g.name("F26A Graph")
-    return g
+    return LCFGraph(26, [7, -7], 13, immutable=immutable, name="F26A Graph")
 
-def FlowerSnark():
+
+def FlowerSnark(immutable=False):
     """
     Return a Flower Snark.
 
@@ -2399,6 +2854,11 @@ def FlowerSnark():
     the spring-layout algorithm. By convention, the nodes are drawn 0-14 on the
     outer circle, and 15-19 in an inner pentagon.
 
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
+
     EXAMPLES: Inspect a flower snark::
 
         sage: F = graphs.FlowerSnark()
@@ -2409,27 +2869,28 @@ def FlowerSnark():
 
     Now show it::
 
-        sage: F.show()  # long time
+        sage: F.show()                          # long time                             # needs sage.plot
     """
-    pos_dict = {}
-    for i in range(15):
-        x = float(2.5*(cos((pi/2) + ((2*pi)/15)*i)))
-        y = float(2.5*(sin((pi/2) + ((2*pi)/15)*i)))
-        pos_dict[i] = (x,y)
-    for i in range(15,20):
-        x = float(cos((pi/2) + ((2*pi)/5)*i))
-        y = float(sin((pi/2) + ((2*pi)/5)*i))
-        pos_dict[i] = (x,y)
     d = {0: [1, 14, 15], 1: [2, 11], 2: [3, 7], 3: [2, 4, 16], 4: [5, 14],
          5: [6, 10], 6: [5, 7, 17], 8: [7, 9, 13], 9: [10, 18], 11: [10, 12],
          12: [13, 19], 13: [14], 15: [19], 16: [15, 17], 18: [17, 19]}
-    return Graph(d, format="dict_of_lists", pos=pos_dict, name="Flower Snark")
+    g = Graph(d, format='dict_of_lists', name="Flower Snark",
+              immutable=immutable)
+    g._circle_embedding(range(15), radius=2.5, angle=pi/2)
+    g._circle_embedding(range(15, 20), radius=1, angle=pi/2)
+    return g
 
-def FolkmanGraph():
+
+def FolkmanGraph(immutable=False):
     """
     Return the Folkman graph.
 
     See the :wikipedia:`Folkman_graph`.
+
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES::
 
@@ -2448,7 +2909,7 @@ def FolkmanGraph():
         2
         sage: g.is_eulerian()
         True
-        sage: g.is_hamiltonian()
+        sage: g.is_hamiltonian()                                                        # needs sage.numerical_mip
         True
         sage: g.is_vertex_transitive()
         False
@@ -2456,15 +2917,20 @@ def FolkmanGraph():
         True
     """
     from sage.graphs.generators.families import LCFGraph
-    g= LCFGraph(20, [5, -7, -7, 5], 5)
-    g.name("Folkman Graph")
-    return g
+    return LCFGraph(20, [5, -7, -7, 5], 5, immutable=immutable,
+                    name="Folkman Graph")
 
-def FosterGraph():
+
+def FosterGraph(immutable=False):
     """
     Return the Foster graph.
 
     See the :wikipedia:`Foster_graph`.
+
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES::
 
@@ -2479,19 +2945,24 @@ def FosterGraph():
         10
         sage: g.automorphism_group().cardinality()
         4320
-        sage: g.is_hamiltonian()
+        sage: g.is_hamiltonian()                                                        # needs sage.numerical_mip
         True
     """
     from sage.graphs.generators.families import LCFGraph
-    g= LCFGraph(90, [17, -9, 37, -37, 9, -17], 15)
-    g.name("Foster Graph")
-    return g
+    return LCFGraph(90, [17, -9, 37, -37, 9, -17], 15,
+                    immutable=immutable, name="Foster Graph")
 
-def FranklinGraph():
+
+def FranklinGraph(immutable=False):
     r"""
     Return the Franklin graph.
 
     For more information, see the :wikipedia:`Franklin_graph`.
+
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES:
 
@@ -2510,7 +2981,7 @@ def FranklinGraph():
     The Franklin graph is a Hamiltonian, bipartite graph with radius 3, diameter
     3, and girth 4::
 
-        sage: G.is_hamiltonian()
+        sage: G.is_hamiltonian()                                                        # needs sage.numerical_mip
         True
         sage: G.is_bipartite()
         True
@@ -2531,32 +3002,24 @@ def FranklinGraph():
         2
     """
     edge_dict = {
-        0: [1,5,6],
-        1: [2,7],
-        2: [3,8],
-        3: [4,9],
-        4: [5,10],
+        0: [1, 5, 6],
+        1: [2, 7],
+        2: [3, 8],
+        3: [4, 9],
+        4: [5, 10],
         5: [11],
-        6: [7,9],
+        6: [7, 9],
         7: [10],
-        8: [9,11],
+        8: [9, 11],
         10: [11]}
-    pos_dict = {
-        0: [2, 0],
-        1: [1, 1.73205080756888],
-        2: [-1, 1.73205080756888],
-        3: [-2, 0],
-        4: [-1, -1.73205080756888],
-        5: [1, -1.73205080756888],
-        6: [1, 0],
-        7: [0.5, 0.866025403784439],
-        8: [-0.5, 0.866025403784439],
-        9: [-1, 0],
-        10: [-0.5, -0.866025403784439],
-        11: [0.5, -0.866025403784439]}
-    return Graph(edge_dict, pos=pos_dict, name="Franklin graph")
+    g = Graph(edge_dict, format='dict_of_lists', name="Franklin graph",
+              immutable=immutable)
+    g._circle_embedding(range(6), radius=2)
+    g._circle_embedding(range(6, 12), radius=1)
+    return g
 
-def FruchtGraph():
+
+def FruchtGraph(immutable=False):
     """
     Return a Frucht Graph.
 
@@ -2568,6 +3031,11 @@ def FruchtGraph():
     outer circle, with the next four on an inner circle and the last in the
     center.
 
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
+
     EXAMPLES::
 
         sage: FRUCHT = graphs.FruchtGraph()
@@ -2575,34 +3043,35 @@ def FruchtGraph():
         Frucht graph: Graph on 12 vertices
         sage: FRUCHT.graph6_string()
         'KhCKM?_EGK?L'
-        sage: (graphs.FruchtGraph()).show()  # long time
+        sage: (graphs.FruchtGraph()).show()     # long time
 
     TESTS::
 
-        sage: import networkx
+        sage: import networkx                                                           # needs networkx
         sage: G = graphs.FruchtGraph()
-        sage: G.is_isomorphic(Graph(networkx.frucht_graph()))
+        sage: G.is_isomorphic(Graph(networkx.frucht_graph()))                           # needs networkx
         True
     """
-    edges = {0:[1, 6, 7], 1:[2, 7], 2:[3, 8], 3:[4, 9], 4:[5, 9],
-             5:[6, 10], 6:[10], 7:[11], 8:[9, 11], 10:[11]}
-    pos_dict = {}
-    for i in range(7):
-        x = float(2*(cos((pi/2) + ((2*pi)/7)*i)))
-        y = float(2*(sin((pi/2) + ((2*pi)/7)*i)))
-        pos_dict[i] = (x,y)
-    pos_dict[7] = (0,1)
-    pos_dict[8] = (-1,0)
-    pos_dict[9] = (0,-1)
-    pos_dict[10] = (1,0)
-    pos_dict[11] = (0,0)
-    return Graph(edges, pos=pos_dict, name="Frucht graph")
+    edges = {0: [1, 6, 7], 1: [2, 7], 2: [3, 8], 3: [4, 9], 4: [5, 9],
+             5: [6, 10], 6: [10], 7: [11], 8: [9, 11], 10: [11]}
+    g = Graph(edges, format='dict_of_lists', name="Frucht graph",
+              immutable=immutable)
+    g._circle_embedding(range(7), radius=2, angle=pi/2)
+    g._circle_embedding(range(7, 11), radius=1, angle=pi/2)
+    g._pos[11] = (0, 0)
+    return g
 
-def GoldnerHararyGraph():
+
+def GoldnerHararyGraph(immutable=False):
     r"""
     Return the Goldner-Harary graph.
 
     For more information, see the :wikipedia:`Goldner%E2%80%93Harary_graph`.
+
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES:
 
@@ -2634,19 +3103,19 @@ def GoldnerHararyGraph():
 
         sage: G.chromatic_number()
         4
-        sage: ag = G.automorphism_group()
-        sage: ag.is_isomorphic(DihedralGroup(6))
+        sage: ag = G.automorphism_group()                                               # needs sage.groups
+        sage: ag.is_isomorphic(DihedralGroup(6))                                        # needs sage.groups
         True
     """
     edge_dict = {
-        0: [1,3,4],
-        1: [2,3,4,5,6,7,10],
-        2: [3,7],
-        3: [7,8,9,10],
-        4: [3,5,9,10],
+        0: [1, 3, 4],
+        1: [2, 3, 4, 5, 6, 7, 10],
+        2: [3, 7],
+        3: [7, 8, 9, 10],
+        4: [3, 5, 9, 10],
         5: [10],
-        6: [7,10],
-        7: [8,10],
+        6: [7, 10],
+        7: [8, 10],
         8: [10],
         9: [10]}
 
@@ -2663,13 +3132,20 @@ def GoldnerHararyGraph():
         9: (-0.5, -0.5),
         10: (0, 0)}
 
-    return Graph(edge_dict, pos = pos, name="Goldner-Harary graph")
+    return Graph(edge_dict, format="dict_of_lists", pos=pos,
+                 name="Goldner-Harary graph", immutable=immutable)
 
-def GolombGraph():
+
+def GolombGraph(immutable=False):
     r"""
     Return the Golomb graph.
 
     See the :wikipedia:`Golomb_graph` for more information.
+
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES:
 
@@ -2677,11 +3153,12 @@ def GolombGraph():
     and 18 edges. It has chromatic number 4, diameter 3, radius 2 and
     girth 3. It can be drawn in the plane as a unit distance graph::
 
-        sage: G = graphs.GolombGraph(); G
+        sage: G = graphs.GolombGraph(); G                                               # needs sage.symbolic
         Golomb graph: Graph on 10 vertices
-        sage: pos = G.get_pos()
-        sage: dist2 = lambda u,v:(u[0]-v[0])**2 + (u[1]-v[1])**2
-        sage: all(dist2(pos[u], pos[v]) == 1 for u, v in G.edge_iterator(labels=None))
+        sage: pos = G.get_pos()                                                         # needs sage.symbolic
+        sage: def dist2(u, v):
+        ....:     return (u[0]-v[0])**2 + (u[1]-v[1])**2
+        sage: all(dist2(pos[u], pos[v]) == 1 for u, v in G.edge_iterator(labels=None))  # needs sage.symbolic
         True
     """
     edge_dict = {
@@ -2705,9 +3182,11 @@ def GolombGraph():
         7: [- QQ('1/2'), QQ('1/2') * sqrt(3)],
         8: [QQ('1/2'), QQ('1/2') * sqrt(3)],
         9: [0, 0]}
-    return Graph(edge_dict, pos=pos_dict, name="Golomb graph")
+    return Graph(edge_dict, format="dict_of_lists", pos=pos_dict,
+                 name="Golomb graph", immutable=immutable)
 
-def GrayGraph(embedding=1):
+
+def GrayGraph(embedding=1, immutable=False):
     r"""
     Return the Gray graph.
 
@@ -2715,8 +3194,11 @@ def GrayGraph(embedding=1):
 
     INPUT:
 
-    - ``embedding`` -- integer (default: ``1``); two embeddings are available,
+    - ``embedding`` -- integer (default: `1`); two embeddings are available,
       and can be selected by setting ``embedding`` to 1 or 2
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES::
 
@@ -2729,8 +3211,8 @@ def GrayGraph(embedding=1):
         8
         sage: g.diameter()
         6
-        sage: g.show(figsize=[10, 10])   # long time
-        sage: graphs.GrayGraph(embedding=2).show(figsize=[10, 10])  # long time
+        sage: g.show(figsize=[10, 10])          # long time                             # needs sage.plot
+        sage: graphs.GrayGraph(embedding=2).show(figsize=[10, 10])      # long time, needs sage.plot
 
     TESTS::
 
@@ -2740,8 +3222,8 @@ def GrayGraph(embedding=1):
         ValueError: the value of embedding must be 1, 2, or 3
     """
     from sage.graphs.generators.families import LCFGraph
-    g = LCFGraph(54, [-25, 7, -7, 13, -13, 25], 9)
-    g.name("Gray graph")
+    g = LCFGraph(54, [-25, 7, -7, 13, -13, 25], 9,
+                 immutable=immutable, name="Gray graph")
 
     if embedding == 1:
         o = g.automorphism_group(orbits=True)[-1]
@@ -2753,13 +3235,19 @@ def GrayGraph(embedding=1):
 
     return g
 
-def GrotzschGraph():
+
+def GrotzschGraph(immutable=False):
     r"""
     Return the Grötzsch graph.
 
     The Grötzsch graph is an example of a triangle-free graph with chromatic
     number equal to 4. For more information, see the
     :wikipedia:`Gr%C3%B6tzsch_graph`.
+
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES:
 
@@ -2768,7 +3256,7 @@ def GrotzschGraph():
 
         sage: G = graphs.GrotzschGraph(); G
         Grotzsch graph: Graph on 11 vertices
-        sage: G.is_hamiltonian()
+        sage: G.is_hamiltonian()                                                        # needs sage.numerical.mip
         True
         sage: G.order()
         11
@@ -2792,32 +3280,28 @@ def GrotzschGraph():
 
         sage: G.chromatic_number()
         4
-        sage: ag = G.automorphism_group()
-        sage: ag.is_isomorphic(DihedralGroup(5))
+        sage: ag = G.automorphism_group()                                               # needs sage.groups
+        sage: ag.is_isomorphic(DihedralGroup(5))                                        # needs sage.groups
         True
     """
-    edges = [(0, u) for u in range(1, 6)]
-    edges.append((10, 6))
-    edges.append((10, 1))
-    edges.append((6, 5))
+    from itertools import chain
+    E1 = ((0, u) for u in range(1, 6))
+    E2 = ((10, 6), (10, 1), (6, 5))
+    E3 = ((u, u + 1) for u in range(6, 10))
+    E4 = ((u, u - 4) for u in range(6, 10))
+    E5 = ((u, u - 6) for u in range(7, 11))
 
-    for u in range(6, 10):
-        edges.append((u, u + 1))
-        edges.append((u, u - 4))
+    g = Graph([range(11), chain(E1, E2, E3, E4, E5)],
+              format='vertices_and_edges', name="Grotzsch graph",
+              immutable=immutable)
+    g._circle_embedding(range(1, 6), radius=1, angle=pi/2)
+    g._circle_embedding(range(6, 11), radius=2, angle=pi/2)
+    g._pos[0] = (0, 0)
 
-    for u in range(7, 11):
-        edges.append((u, u - 6))
+    return g
 
-    pos = {}
-    pos[0] = (0,0)
-    for u in range(1, 6):
-        theta = (u - 1) * 2 * pi / 5
-        pos[u] = (float(5 * sin(theta)), float(5 * cos(theta)))
-        pos[u + 5] = (2 * pos[u][0], 2 * pos[u][1])
 
-    return Graph(edges, format='list_of_edges', pos=pos, name="Grotzsch graph")
-
-def HeawoodGraph():
+def HeawoodGraph(immutable=False):
     """
     Return a Heawood graph.
 
@@ -2832,6 +3316,11 @@ def HeawoodGraph():
     circular layout with the first node appearing at the top, and then
     continuing counterclockwise.
 
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
+
     EXAMPLES::
 
         sage: H = graphs.HeawoodGraph()
@@ -2839,29 +3328,34 @@ def HeawoodGraph():
         Heawood graph: Graph on 14 vertices
         sage: H.graph6_string()
         'MhEGHC@AI?_PC@_G_'
-        sage: (graphs.HeawoodGraph()).show()  # long time
+        sage: (graphs.HeawoodGraph()).show()    # long time                             # needs sage.plot
 
     TESTS::
 
-        sage: import networkx
+        sage: import networkx                                                           # needs networkx
         sage: G = graphs.HeawoodGraph()
-        sage: G.is_isomorphic(Graph(networkx.heawood_graph()))
+        sage: G.is_isomorphic(Graph(networkx.heawood_graph()))                          # needs networkx
         True
     """
-    edges = {0:[1, 5, 13], 1:[2, 10], 2:[3, 7], 3:[4, 12], 4:[5, 9], 5:[6],
-             6:[7, 11], 7:[8], 8:[9, 13], 9:[10], 10:[11], 11:[12], 12:[13]}
-    pos_dict = {}
-    for i in range(14):
-        x = float(cos((pi/2) + (pi/7)*i))
-        y = float(sin((pi/2) + (pi/7)*i))
-        pos_dict[i] = (x,y)
-    return Graph(edges, pos=pos_dict, name="Heawood graph")
+    edges = {0: [1, 5, 13], 1: [2, 10], 2: [3, 7], 3: [4, 12], 4: [5, 9],
+             5: [6], 6: [7, 11], 7: [8], 8: [9, 13], 9: [10], 10: [11],
+             11: [12], 12: [13]}
+    g = Graph(edges, format='dict_of_lists', name="Heawood graph",
+              immutable=immutable)
+    g._circle_embedding(range(14), radius=1, angle=pi/2)
+    return g
 
-def HerschelGraph():
+
+def HerschelGraph(immutable=False):
     r"""
     Return the Herschel graph.
 
     For more information, see the :wikipedia:`Herschel_graph`.
+
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES:
 
@@ -2896,62 +3390,72 @@ def HerschelGraph():
 
         sage: G.chromatic_number()
         2
-        sage: ag = G.automorphism_group()
-        sage: ag.is_isomorphic(DihedralGroup(6))
+        sage: ag = G.automorphism_group()                                               # needs sage.groups
+        sage: ag.is_isomorphic(DihedralGroup(6))                                        # needs sage.groups
         True
     """
     edge_dict = {
-        0: [1,3,4],
-        1: [2,5,6],
-        2: [3,7],
-        3: [8,9],
-        4: [5,9],
+        0: [1, 3, 4],
+        1: [2, 5, 6],
+        2: [3, 7],
+        3: [8, 9],
+        4: [5, 9],
         5: [10],
-        6: [7,10],
+        6: [7, 10],
         7: [8],
         8: [10],
         9: [10]}
-    pos_dict = {
-        0: [2, 0],
-        1: [0, 2],
-        2: [-2, 0],
-        3: [0, -2],
-        4: [1, 0],
-        5: [0.5, 0.866025403784439],
-        6: [-0.5, 0.866025403784439],
-        7: [-1, 0],
-        8: [-0.5, -0.866025403784439],
-        9: [0.5, -0.866025403784439],
-        10: [0, 0]}
-    return Graph(edge_dict, pos=pos_dict, name="Herschel graph")
+    g = Graph(edge_dict, format='dict_of_lists', name="Herschel graph",
+              immutable=immutable)
+    g._circle_embedding(range(4), radius=2)
+    g._circle_embedding(range(4, 10), radius=1)
+    g._pos[10] = (0, 0)
+    return g
 
-def GritsenkoGraph():
+
+def GritsenkoGraph(immutable=False):
     r"""
-    Return SRG(65, 32, 15, 16) constructed by Gritsenko
+    Return SRG(65, 32, 15, 16) constructed by Gritsenko.
 
-    We took the adjacency matrix from O.Gritsenko's [Gri2021]_ and extracted orbits
-    of the automorphism group on the edges.
+    We took the adjacency matrix from O. Gritsenko's [Gri2021]_ and extracted
+    orbits of the automorphism group on the edges.
+
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES::
 
-        sage: H = graphs.GritsenkoGraph(); H
+        sage: H = graphs.GritsenkoGraph(); H                                            # needs sage.groups
         Gritsenko strongly regular graph: Graph on 65 vertices
-        sage: H.is_strongly_regular(parameters=True)
+        sage: H.is_strongly_regular(parameters=True)                                    # needs sage.groups
         (65, 32, 15, 16)
     """
     from sage.groups.perm_gps.permgroup import PermutationGroup
     from functools import reduce
-    a=PermutationGroup([
-     '(0)(1,17,2,18)(3,6,4,5)(7,31,8,32)(9,25,10,26)(11,14,12,13)(15,24,16,23)(19,22,20,21)(27,29,28,30)(33,35,34,36)(37,61,38,62)(39,55,40,56)(41,43,42,44)(45,53,46,54)(47,63,48,64)(49,52,50,51)(57,59,58,60)',
-     '(0)(1,20,32,6,9,27,23,13,2,19,31,5,10,28,24,14)(3,8,22,18,11,15,29,25,4,7,21,17,12,16,30,26)(33,37,52,63,41,46,60,55,34,38,51,64,42,45,59,56)(35,39,58,53,44,47,49,62,36,40,57,54,43,48,50,61)'])
-    return Graph( # use the union of the orbits of a on the edges
-        reduce(lambda x,y: x+y, map(lambda o: a.orbit(o,action='OnSets'),
-            [(0,1), (1,2), (1,6), (1,7), (1,9), (1,11), (1,14), (1,21), (1,24), (1,36), (1,38), (1,40), (1,42),
-             (1,44), (1,47), (1,48), (1,50), (1,52), (1,54), (1,55), (1,56), (1,58), (1,62), (1,63), (1,64), (33,35),
-             (33,38), (33,46), (33,47), (33,49), (33,51), (33,57), (33,61)])),
-        format='list_of_edges', name="Gritsenko strongly regular graph")
+    p = '(0)(1,17,2,18)(3,6,4,5)(7,31,8,32)(9,25,10,26)(11,14,12,13)'
+    p += '(15,24,16,23)(19,22,20,21)(27,29,28,30)(33,35,34,36)(37,61,38,62)'
+    p += '(39,55,40,56)(41,43,42,44)(45,53,46,54)(47,63,48,64)(49,52,50,51)'
+    p += '(57,59,58,60)'
+    q = '(0)(1,20,32,6,9,27,23,13,2,19,31,5,10,28,24,14)'
+    q += '(3,8,22,18,11,15,29,25,4,7,21,17,12,16,30,26)'
+    q += '(33,37,52,63,41,46,60,55,34,38,51,64,42,45,59,56)'
+    q += '(35,39,58,53,44,47,49,62,36,40,57,54,43,48,50,61)'
+    a = PermutationGroup([p, q])
+    edges = [(0, 1), (1, 2), (1, 6), (1, 7), (1, 9), (1, 11), (1, 14), (1, 21),
+             (1, 24), (1, 36), (1, 38), (1, 40), (1, 42), (1, 44), (1, 47),
+             (1, 48), (1, 50), (1, 52), (1, 54), (1, 55), (1, 56), (1, 58),
+             (1, 62), (1, 63), (1, 64), (33, 35), (33, 38), (33, 46), (33, 47),
+             (33, 49), (33, 51), (33, 57), (33, 61)]
+    # use the union of the orbits of a on the edges
+    return Graph(reduce(lambda x, y: x + y,
+                        (a.orbit(o, action='OnSets') for o in edges)),
+                 format='list_of_edges', immutable=immutable,
+                 name="Gritsenko strongly regular graph")
 
-def HigmanSimsGraph(relabel=True):
+
+def HigmanSimsGraph(relabel=True, immutable=False):
     r"""
     Return the Higman-Sims graph.
 
@@ -2979,9 +3483,10 @@ def HigmanSimsGraph(relabel=True):
       vertex `z` (zero through four) of that pentagon or pentagram. See
       [Haf2004]_ for more.
 
-    OUTPUT:
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
-    The Higman-Sims graph.
+    OUTPUT: the Higman-Sims graph
 
     EXAMPLES:
 
@@ -3005,13 +3510,26 @@ def HigmanSimsGraph(relabel=True):
 
         sage: H = graphs.HigmanSimsGraph()
         sage: G = H.automorphism_group()
-        sage: g=G.order(); g
+        sage: g = G.order(); g
         88704000
         sage: K = G.normal_subgroups()[1]
         sage: K.is_simple()
         True
         sage: g//K.order()
         2
+
+    TESTS:
+
+    Check the behavior of parameter immutable::
+
+        sage: graphs.HigmanSimsGraph(relabel=True, immutable=True).is_immutable()
+        True
+        sage: graphs.HigmanSimsGraph(relabel=False, immutable=True).is_immutable()
+        True
+        sage: graphs.HigmanSimsGraph(relabel=True, immutable=False).is_immutable()
+        False
+        sage: graphs.HigmanSimsGraph(relabel=False, immutable=False).is_immutable()
+        False
 
     AUTHOR:
 
@@ -3023,8 +3541,8 @@ def HigmanSimsGraph(relabel=True):
     # Four groups of either five pentagons, or five pentagrams 4 x 5 x 5 = 100
     # vertices
     # First digit is "group", second is "penta{gon|gram}", third is "vertex"
-    vlist = ['%d%d%d'%(g, p, v)
-                    for g in range(4) for p in range(5) for v in range(5)]
+    vlist = ['%d%d%d' % (g, p, v)
+             for g in range(4) for p in range(5) for v in range(5)]
     HS.add_vertices(vlist)
 
     # Edges: Within groups 0 and 2, joined as pentagons
@@ -3035,72 +3553,64 @@ def HigmanSimsGraph(relabel=True):
             shift += 1
         for p in range(5):
             for v in range(5):
-                HS.add_edge(('%d%d%d'%(g, p, v), '%d%d%d'%(g, p, (v + shift) % 5)))
+                HS.add_edge(('%d%d%d' % (g, p, v), '%d%d%d' % (g, p, (v + shift) % 5)))
 
     # Edges: group 0 to group 1
     for x in range(5):
         for m in range(5):
             for c in range(5):
                 y = (m * x + c) % 5
-                HS.add_edge(('0%d%d'%(x, y), '1%d%d'%(m, c)))
+                HS.add_edge(('0%d%d' % (x, y), '1%d%d' % (m, c)))
 
     # Edges: group 1 to group 2
     for m in range(5):
         for A in range(5):
             for B in range(5):
                 c = (2 * (m - A) * (m - A) + B) % 5
-                HS.add_edge(('1%d%d'%(m, c), '2%d%d'%(A, B)))
+                HS.add_edge(('1%d%d' % (m, c), '2%d%d' % (A, B)))
 
     # Edges: group 2 to group 3
     for A in range(5):
         for a in range(5):
             for b in range(5):
-                B = (2*A*A + 3*a*A - a*a+b) % 5
-                HS.add_edge(('2%d%d'%(A, B), '3%d%d'%(a, b)))
+                B = (2*A*A + 3*a*A - a*a + b) % 5
+                HS.add_edge(('2%d%d' % (A, B), '3%d%d' % (a, b)))
 
     # Edges: group 3 to group 0
     for a in range(5):
         for b in range(5):
             for x in range(5):
-                y = ((x - a) * (x - a) + b)%5
-                HS.add_edge(('3%d%d'%(a, b), '0%d%d'%(x, y)))
+                y = ((x - a) * (x - a) + b) % 5
+                HS.add_edge(('3%d%d' % (a, b), '0%d%d' % (x, y)))
 
     # Edges: group 0 to group 2
     for x in range(5):
         for A in range(5):
             for B in range(5):
                 y = (3*x*x + A*x + B + 1) % 5
-                HS.add_edge(('0%d%d'%(x, y), '2%d%d'%(A, B)))
+                HS.add_edge(('0%d%d' % (x, y), '2%d%d' % (A, B)))
                 y = (3*x*x + A*x + B - 1) % 5
-                HS.add_edge(('0%d%d'%(x, y), '2%d%d'%(A, B)))
+                HS.add_edge(('0%d%d' % (x, y), '2%d%d' % (A, B)))
 
     # Edges: group 1 to group 3
     for m in range(5):
         for a in range(5):
             for b in range(5):
-                c = (m*(m-a) + b + 2) % 5
-                HS.add_edge(('1%d%d'%(m, c), '3%d%d'%(a, b)))
-                c = (m*(m-a) + b - 2) % 5
-                HS.add_edge(('1%d%d'%(m, c), '3%d%d'%(a, b)))
+                c = (m*(m - a) + b + 2) % 5
+                HS.add_edge(('1%d%d' % (m, c), '3%d%d' % (a, b)))
+                c = (m*(m - a) + b - 2) % 5
+                HS.add_edge(('1%d%d' % (m, c), '3%d%d' % (a, b)))
 
-    # Rename to integer vertex labels, creating dictionary
-    # Or not, and create identity mapping
+    # Layout vertices in a circle, in the order given in vlist
+    HS._circle_embedding(vlist, radius=10, angle=pi/2)
+    if immutable:
+        return HS.relabel(inplace=False, immutable=True) if relabel else HS.copy(immutable=True)
     if relabel:
-        vmap = HS.relabel(range(100), return_map=True)
-    else:
-        vmap = {v: v for v in vlist}
-    # Layout vertices in a circle
-    # In the order given in vlist
-    # Using labels from vmap
-    pos_dict = {}
-    for i in range(100):
-        x = float(cos((pi/2) + ((2*pi)/100)*i))
-        y = float(sin((pi/2) + ((2*pi)/100)*i))
-        pos_dict[vmap[vlist[i]]] = (x, y)
-    HS.set_pos(pos_dict)
+        HS.relabel(range(100))
     return HS
 
-def HoffmanSingletonGraph():
+
+def HoffmanSingletonGraph(immutable=False):
     r"""
     Return the Hoffman-Singleton graph.
 
@@ -3120,6 +3630,11 @@ def HoffmanSingletonGraph():
     the spring-layout algorithm. A novel algorithm written by Tom Boothby gives
     a random layout which is pleasing to the eye.
 
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
+
     EXAMPLES::
 
         sage: HS = graphs.HoffmanSingletonGraph()
@@ -3129,7 +3644,7 @@ def HoffmanSingletonGraph():
         5
         sage: HS.diameter()
         2
-        sage: HS.num_verts()
+        sage: HS.n_vertices()
         50
 
     Note that you get a different layout each time you create the graph.  ::
@@ -3141,29 +3656,34 @@ def HoffmanSingletonGraph():
         (-0.904..., 0.425...)
     """
     H = Graph({
-        'q00':['q01'], 'q01':['q02'], 'q02':['q03'], 'q03':['q04'], 'q04':['q00'],
-        'q10':['q11'], 'q11':['q12'], 'q12':['q13'], 'q13':['q14'], 'q14':['q10'],
-        'q20':['q21'], 'q21':['q22'], 'q22':['q23'], 'q23':['q24'], 'q24':['q20'],
-        'q30':['q31'], 'q31':['q32'], 'q32':['q33'], 'q33':['q34'], 'q34':['q30'],
-        'q40':['q41'], 'q41':['q42'], 'q42':['q43'], 'q43':['q44'], 'q44':['q40'],
-        'p00':['p02'], 'p02':['p04'], 'p04':['p01'], 'p01':['p03'], 'p03':['p00'],
-        'p10':['p12'], 'p12':['p14'], 'p14':['p11'], 'p11':['p13'], 'p13':['p10'],
-        'p20':['p22'], 'p22':['p24'], 'p24':['p21'], 'p21':['p23'], 'p23':['p20'],
-        'p30':['p32'], 'p32':['p34'], 'p34':['p31'], 'p31':['p33'], 'p33':['p30'],
-        'p40':['p42'], 'p42':['p44'], 'p44':['p41'], 'p41':['p43'], 'p43':['p40']})
+        'q00': ['q01'], 'q01': ['q02'], 'q02': ['q03'], 'q03': ['q04'], 'q04': ['q00'],
+        'q10': ['q11'], 'q11': ['q12'], 'q12': ['q13'], 'q13': ['q14'], 'q14': ['q10'],
+        'q20': ['q21'], 'q21': ['q22'], 'q22': ['q23'], 'q23': ['q24'], 'q24': ['q20'],
+        'q30': ['q31'], 'q31': ['q32'], 'q32': ['q33'], 'q33': ['q34'], 'q34': ['q30'],
+        'q40': ['q41'], 'q41': ['q42'], 'q42': ['q43'], 'q43': ['q44'], 'q44': ['q40'],
+        'p00': ['p02'], 'p02': ['p04'], 'p04': ['p01'], 'p01': ['p03'], 'p03': ['p00'],
+        'p10': ['p12'], 'p12': ['p14'], 'p14': ['p11'], 'p11': ['p13'], 'p13': ['p10'],
+        'p20': ['p22'], 'p22': ['p24'], 'p24': ['p21'], 'p21': ['p23'], 'p23': ['p20'],
+        'p30': ['p32'], 'p32': ['p34'], 'p34': ['p31'], 'p31': ['p33'], 'p33': ['p30'],
+        'p40': ['p42'], 'p42': ['p44'], 'p44': ['p41'], 'p41': ['p43'], 'p43': ['p40']})
     for j in range(5):
         for i in range(5):
             for k in range(5):
                 con = (i + j*k) % 5
-                H.add_edge(('q%d%d'%(k, con),'p%d%d'%(j, i)))
+                H.add_edge(('q%d%d' % (k, con), 'p%d%d' % (j, i)))
     H.name('Hoffman-Singleton graph')
     from sage.combinat.permutation import Permutations
     from sage.misc.prandom import randint
     P = Permutations([1, 2, 3, 4])
     qpp = [0] + list(P[randint(0, 23)])
     ppp = [0] + list(P[randint(0, 23)])
-    qcycle = lambda i, s: ['q%s%s'%(i, (j + s) % 5) for j in qpp]
-    pcycle = lambda i, s: ['p%s%s'%(i, (j + s) % 5) for j in ppp]
+
+    def qcycle(i, s):
+        return ['q%s%s' % (i, (j + s) % 5) for j in qpp]
+
+    def pcycle(i, s):
+        return ['p%s%s' % (i, (j + s) % 5) for j in ppp]
+
     l = 0
     s = 0
     D = []
@@ -3176,36 +3696,40 @@ def HoffmanSingletonGraph():
             D.append(p)
         vv = 'q%s' % (int(p[1]) + 1)
         v = [v[-1] for v in H.neighbors(p) if v[:2] == vv]
-        if len(v):
+        if v:
             s = int(v[0])
         l += 1
-    map = H.relabel(range(50), return_map=True)
-    pos_dict = {}
-    for i in range(50):
-        x = float(cos((pi/2) + ((2*pi)/50)*i))
-        y = float(sin((pi/2) + ((2*pi)/50)*i))
-        pos_dict[map[D[i]]] = (x, y)
-    H.set_pos(pos_dict)
+    if immutable:
+        H, mymap = H.relabel(inplace=False, immutable=True, return_map=True)
+    else:
+        mymap = H.relabel(range(50), return_map=True)
+    H._circle_embedding([mymap[d] for d in D], angle=pi/2)
     return H
 
-def HoffmanGraph():
+
+def HoffmanGraph(immutable=False):
     r"""
     Return the Hoffman Graph.
 
     See the :wikipedia:`Hoffman_graph`.
+
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES::
 
         sage: g = graphs.HoffmanGraph()
         sage: g.is_bipartite()
         True
-        sage: g.is_hamiltonian()  # long time
+        sage: g.is_hamiltonian()                # long time                             # needs sage.numerical.mip
         True
         sage: g.radius()
         3
         sage: g.diameter()
         4
-        sage: g.automorphism_group().cardinality()
+        sage: g.automorphism_group().cardinality()                                      # needs sage.groups
         48
     """
     g = Graph({
@@ -3221,21 +3745,25 @@ def HoffmanGraph():
             9: [11, 13],
             10: [12, 15],
             11: [14],
-            13: [15]})
+            13: [15]},
+            name="Hoffman Graph", immutable=immutable)
 
     g._circle_embedding(list(range(8)))
     g._circle_embedding(list(range(8, 14)), radius=.7, shift=.5)
     g._circle_embedding([14, 15], radius=.1)
-
-    g.name("Hoffman Graph")
-
     return g
 
-def HoltGraph():
+
+def HoltGraph(immutable=False):
     r"""
     Return the Holt graph (also called the Doyle graph).
 
     See the :wikipedia:`Holt_graph`.
+
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES::
 
@@ -3243,11 +3771,11 @@ def HoltGraph():
         Holt graph: Graph on 27 vertices
         sage: g.is_regular()
         True
-        sage: g.is_vertex_transitive()
+        sage: g.is_vertex_transitive()                                                  # needs sage.groups
         True
         sage: g.chromatic_number()
         3
-        sage: g.is_hamiltonian()  # long time
+        sage: g.is_hamiltonian()                # long time                             # needs sage.numerical.mip
         True
         sage: g.radius()
         3
@@ -3255,25 +3783,28 @@ def HoltGraph():
         3
         sage: g.girth()
         5
-        sage: g.automorphism_group().cardinality()
+        sage: g.automorphism_group().cardinality()                                      # needs sage.groups
         54
     """
-    g = Graph(loops=False, name="Holt graph", pos={})
-    for x in range(9):
-        for y in range(3):
-            g.add_edge((x, y), ((4 * x + 1) % 9, (y - 1) % 3))
-            g.add_edge((x, y), ((4 * x - 1) % 9, (y - 1) % 3))
-            g.add_edge((x, y), ((7 * x + 7) % 9, (y + 1) % 3))
-            g.add_edge((x, y), ((7 * x - 7) % 9, (y + 1) % 3))
+    def edges():
+        for x in range(9):
+            for y in range(3):
+                yield ((x, y), ((4 * x + 1) % 9, (y - 1) % 3))
+                yield ((x, y), ((4 * x - 1) % 9, (y - 1) % 3))
+                yield ((x, y), ((7 * x + 7) % 9, (y + 1) % 3))
+                yield ((x, y), ((7 * x - 7) % 9, (y + 1) % 3))
 
+    g = Graph(edges(), format="list_of_edges", loops=False,
+              name="Holt graph", immutable=immutable)
     for j in range(0, 6, 2):
         g._line_embedding([(x, j / 2) for x in range(9)],
-                        first=(cos(2 * j * pi / 6), sin(2 * j * pi / 6)),
-                        last=(cos(2 * (j + 1) * pi / 6), sin(2 * (j + 1) * pi / 6)))
+                          first=(cos(2 * j * pi / 6), sin(2 * j * pi / 6)),
+                          last=(cos(2 * (j + 1) * pi / 6), sin(2 * (j + 1) * pi / 6)))
 
     return g
 
-def KrackhardtKiteGraph():
+
+def KrackhardtKiteGraph(immutable=False):
     """
     Return a Krackhardt kite graph with 10 nodes.
 
@@ -3297,27 +3828,34 @@ def KrackhardtKiteGraph():
     other nodes in the graph (i.e.: Closeness Centrality).  Please execute the
     example for visualization.
 
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
+
     EXAMPLES:
 
     Construct and show a Krackhardt kite graph ::
 
         sage: g = graphs.KrackhardtKiteGraph()
-        sage: g.show()  # long time
+        sage: g.show()                          # long time                             # needs sage.plot
 
     TESTS::
 
-        sage: import networkx
+        sage: import networkx                                                           # needs networkx
         sage: G = graphs.KrackhardtKiteGraph()
-        sage: G.is_isomorphic(Graph(networkx.krackhardt_kite_graph()))
+        sage: G.is_isomorphic(Graph(networkx.krackhardt_kite_graph()))                  # needs networkx
         True
     """
     edges = {0: [1, 2, 3, 5], 1: [3, 4, 6], 2: [3, 5], 3: [4, 5, 6],
              4: [6], 5: [6, 7], 6: [7], 7: [8], 8: [9]}
     pos_dict = {0: (-1, 4), 1: (1, 4), 2: (-2, 3), 3: (0, 3), 4: (2, 3),
                 5: (-1, 2), 6: (1, 2), 7: (0, 1), 8: (0, 0), 9: (0, -1)}
-    return Graph(edges, pos=pos_dict, name="Krackhardt Kite Graph")
+    return Graph(edges, format="dict_of_lists", pos=pos_dict,
+                 name="Krackhardt Kite Graph", immutable=immutable)
 
-def Klein3RegularGraph():
+
+def Klein3RegularGraph(immutable=False):
     r"""
     Return the Klein 3-regular graph.
 
@@ -3325,6 +3863,11 @@ def Klein3RegularGraph():
     surface of genus 3. It is the dual of
     :meth:`~sage.graphs.graph_generators.GraphGenerators.Klein7RegularGraph`.
     For more information, see the :wikipedia:`Klein_graphs`.
+
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES::
 
@@ -3334,22 +3877,23 @@ def Klein3RegularGraph():
         (56, 84)
         sage: g.girth()
         7
-        sage: g.automorphism_group().cardinality()
+        sage: g.automorphism_group().cardinality()                                      # needs sage.groups
         336
         sage: g.chromatic_number()
         3
     """
     g3 = Graph(':w`_GKWDBap`CMWFCpWsQUNdBwwuXPHrg`U`RIqypehVLqgHupYcFJyAv^Prk]'
                'EcarHwIVHAKh|\\tLVUxT]`ZDTJ{Af[o_AuKs{r_?ef',
-               loops=False, multiedges=False)
+               loops=False, multiedges=False, immutable=immutable,
+               name="Klein 3-regular Graph")
     g3._circle_embedding([0, 2, 3, 4, 6, 8, 14, 1, 37, 30, 34, 48, 55, 43, 40,
                           45, 18, 20, 47, 42, 23, 17, 16, 10, 41, 11, 49, 25,
                           51, 26, 54, 9, 22, 15, 21, 12, 24, 7, 52, 31, 32, 36,
                           46, 35, 29, 50, 27, 19, 28, 5, 33, 13, 53, 39, 38, 44])
-    g3.name("Klein 3-regular Graph")
     return g3
 
-def Klein7RegularGraph():
+
+def Klein7RegularGraph(immutable=False):
     r"""
     Return the Klein 7-regular graph.
 
@@ -3357,6 +3901,11 @@ def Klein7RegularGraph():
     genus 3. It is the dual of
     :meth:`~sage.graphs.graph_generators.GraphGenerators.Klein3RegularGraph`.
     For more information, see the :wikipedia:`Klein_graphs`.
+
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES::
 
@@ -3366,19 +3915,20 @@ def Klein7RegularGraph():
         (24, 84)
         sage: g.girth()
         3
-        sage: g.automorphism_group().cardinality()
+        sage: g.automorphism_group().cardinality()                                      # needs sage.groups
         336
         sage: g.chromatic_number()
         4
     """
-    g7 = Graph(':W__@`AaBbC_CDbDcE`F_AG_@DEH_IgHIJbFGIKaFHILeFGHMdFKN_EKOPaCNP'+
-               'Q`HOQRcGLRS`BKMSTdJKLPTU',loops=False,multiedges=False)
+    g7 = Graph(':W__@`AaBbC_CDbDcE`F_AG_@DEH_IgHIJbFGIKaFHILeFGHMdFKN_EKOPaCNP'
+               'Q`HOQRcGLRS`BKMSTdJKLPTU', loops=False, multiedges=False,
+               name="Klein 7-regular Graph", immutable=immutable)
     g7._circle_embedding([0, 2, 3, 1, 9, 16, 20, 21, 4, 19, 17, 7, 15,
                           10, 8, 13, 11, 5, 23, 22, 14, 12, 18, 6])
-    g7.name("Klein 7-regular Graph")
     return g7
 
-def LocalMcLaughlinGraph():
+
+def LocalMcLaughlinGraph(immutable=False):
     r"""
     Return the local McLaughlin graph.
 
@@ -3388,22 +3938,30 @@ def LocalMcLaughlinGraph():
     considering the stabilizer of a point: one of its orbits has cardinality
     162.
 
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
+
     EXAMPLES::
 
-        sage: g = graphs.LocalMcLaughlinGraph(); g  # long time # optional - gap_packages
+        sage: g = graphs.LocalMcLaughlinGraph(); g      # long time, optional - gap_package_design
         Local McLaughlin Graph: Graph on 162 vertices
-        sage: g.is_strongly_regular(parameters=True)  # long time # optional - gap_packages
+        sage: g.is_strongly_regular(parameters=True)    # long time, optional - gap_package_design
         (162, 56, 10, 24)
     """
     g = McLaughlinGraph()
     orbits = g.automorphism_group().stabilizer(1).orbits()
     orbit = [x for x in orbits if len(x) == 162][0]
     g = g.subgraph(vertices=orbit)
-    g.relabel()
     g.name("Local McLaughlin Graph")
+    if immutable:
+        return g.relabel(inplace=False, immutable=True)
+    g.relabel()
     return g
 
-def LjubljanaGraph(embedding=1):
+
+def LjubljanaGraph(embedding=1, immutable=False):
     r"""
     Return the Ljubljana Graph.
 
@@ -3415,8 +3973,11 @@ def LjubljanaGraph(embedding=1):
 
     INPUT:
 
-    - ``embedding`` -- integer (default: ``1``); two embeddings are available,
+    - ``embedding`` -- integer (default: `1`); two embeddings are available,
       and can be selected by setting ``embedding`` to 1 or 2
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES::
 
@@ -3429,8 +3990,8 @@ def LjubljanaGraph(embedding=1):
         10
         sage: g.diameter()
         8
-        sage: g.show(figsize=[10, 10])   # long time
-        sage: graphs.LjubljanaGraph(embedding=2).show(figsize=[10, 10])   # long time
+        sage: g.show(figsize=[10, 10])          # long time                             # needs sage.plot
+        sage: graphs.LjubljanaGraph(embedding=2).show(figsize=[10, 10])         # long time, needs sage.plot
 
     TESTS::
 
@@ -3445,8 +4006,7 @@ def LjubljanaGraph(embedding=1):
          -39, 33, -9, -51, 51, -47, -33, 19, 51, -21, 29, 21, -31, -39]
 
     from sage.graphs.generators.families import LCFGraph
-    g = LCFGraph(112, L, 2)
-    g.name("Ljubljana graph")
+    g = LCFGraph(112, L, 2, immutable=immutable, name="Ljubljana graph")
 
     if embedding == 1:
         dh = HeawoodGraph().get_pos()
@@ -3474,14 +4034,15 @@ def LjubljanaGraph(embedding=1):
         # circles are slowly shifted to obtain a symmetric drawing.
         for i, (u, vertices) in enumerate(d.items()):
             g._circle_embedding(vertices, center=dh[u], radius=.1,
-                    shift=8.*i/14)
+                                shift=8.*i/14)
 
     elif embedding != 2:
         raise ValueError("the value of embedding must be 1 or 2")
 
     return g
 
-def LivingstoneGraph():
+
+def LivingstoneGraph(immutable=False):
     r"""
     Return the Livingstone Graph.
 
@@ -3490,28 +4051,35 @@ def LivingstoneGraph():
     <sage.groups.perm_gps.permgroup_named.JankoGroup>`. For more information,
     see the :wikipedia:`Livingstone_graph`.
 
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
+
     EXAMPLES::
 
-        sage: g = graphs.LivingstoneGraph()  # optional - internet
-        sage: g.order()  # optional - internet
+        sage: # optional - internet
+        sage: g = graphs.LivingstoneGraph()
+        sage: g.order()
         266
-        sage: g.size()  # optional - internet
+        sage: g.size()
         1463
-        sage: g.girth()  # optional - internet
+        sage: g.girth()
         5
-        sage: g.is_vertex_transitive()  # optional - internet
+        sage: g.is_vertex_transitive()
         True
-        sage: g.is_distance_regular()  # optional - internet
+        sage: g.is_distance_regular()
         True
     """
     from sage.groups.perm_gps.permgroup_named import JankoGroup
     from sage.graphs.graph import Graph
     G = JankoGroup(1)
-    g = Graph(name="Livingstone Graph")
-    g.add_edges(map(tuple, G.orbit((1, 24), action="OnSets")))
-    return g
+    return Graph(map(tuple, G.orbit((1, 24), action='OnSets')),
+                 format="list_of_edges", immutable=immutable,
+                 name="Livingstone Graph")
 
-def M22Graph():
+
+def M22Graph(immutable=False):
     r"""
     Return the M22 graph.
 
@@ -3521,6 +4089,11 @@ def M22Graph():
     For more information on the `M_{22}` graph, see
     `<https://www.win.tue.nl/~aeb/graphs/M22.html>`_.
 
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
+
     EXAMPLES::
 
         sage: g = graphs.M22Graph()
@@ -3528,13 +4101,16 @@ def M22Graph():
         77
         sage: g.size()
         616
-        sage: g.is_strongly_regular(parameters = True)
+        sage: g.is_strongly_regular(parameters=True)
         (77, 16, 0, 4)
     """
     from sage.groups.perm_gps.permgroup_named import MathieuGroup
-    sets = [tuple(_) for _ in MathieuGroup(22).orbit((1,2,3,7,10,20), action = "OnSets")]
-    g = Graph([sets, lambda x,y : not any(xx in y for xx in x)], name="M22 Graph")
-    g.relabel()
+    sets = [tuple(_) for _ in MathieuGroup(22).orbit((1, 2, 3, 7, 10, 20), action='OnSets')]
+    g = Graph([sets, lambda x, y: not any(xx in y for xx in x)], name="M22 Graph")
+    if immutable:
+        g = g.relabel(inplace=False, immutable=True)
+    else:
+        g.relabel()
     ordering = [0, 1, 3, 4, 5, 6, 7, 10, 12, 19, 20, 31, 2, 24, 35, 34, 22, 32,
                 36, 23, 27, 25, 40, 26, 16, 71, 61, 63, 50, 68, 39, 52, 48, 44,
                 69, 28, 9, 64, 60, 17, 38, 49, 45, 65, 14, 70, 72, 21, 43, 56,
@@ -3545,7 +4121,8 @@ def M22Graph():
 
     return g
 
-def MarkstroemGraph():
+
+def MarkstroemGraph(immutable=False):
     r"""
     Return the Markström Graph.
 
@@ -3553,6 +4130,11 @@ def MarkstroemGraph():
     8, but containing cycles of length 16. For more information, see the
     `Wolfram page about the Markström Graph
     <http://mathworld.wolfram.com/MarkstroemGraph.html>`_.
+
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES::
 
@@ -3565,11 +4147,11 @@ def MarkstroemGraph():
         True
         sage: g.is_regular(3)
         True
-        sage: g.subgraph_search(graphs.CycleGraph(4)) is None
+        sage: g.subgraph_search(graphs.CycleGraph(4)) is None                           # needs sage.modules
         True
-        sage: g.subgraph_search(graphs.CycleGraph(8)) is None
+        sage: g.subgraph_search(graphs.CycleGraph(8)) is None                           # needs sage.modules
         True
-        sage: g.subgraph_search(graphs.CycleGraph(16))
+        sage: g.subgraph_search(graphs.CycleGraph(16))                                  # needs sage.modules
         Subgraph of (Markstroem Graph): Graph on 16 vertices
     """
     g = Graph(name="Markstroem Graph")
@@ -3590,9 +4172,10 @@ def MarkstroemGraph():
     g._circle_embedding([21, 22, 23], radius=.15, shift=.25)
     g._circle_embedding(list(range(9)))
 
-    return g
+    return g.copy(immutable=True) if immutable else g
 
-def McGeeGraph(embedding=2):
+
+def McGeeGraph(embedding=2, immutable=False):
     r"""
     Return the McGee Graph.
 
@@ -3600,8 +4183,11 @@ def McGeeGraph(embedding=2):
 
     INPUT:
 
-    - ``embedding`` -- integer (default: ``2``); two embeddings are available,
+    - ``embedding`` -- integer (default: `2`); two embeddings are available,
       and can be selected by setting ``embedding`` to 1 or 2
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES::
 
@@ -3614,8 +4200,8 @@ def McGeeGraph(embedding=2):
         7
         sage: g.diameter()
         4
-        sage: g.show()
-        sage: graphs.McGeeGraph(embedding=1).show()  # long time
+        sage: g.show()                                                                  # needs sage.plot
+        sage: graphs.McGeeGraph(embedding=1).show()     # long time                     # needs sage.plot
 
     TESTS::
 
@@ -3625,13 +4211,12 @@ def McGeeGraph(embedding=2):
         ValueError: the value of embedding must be 1 or 2
     """
     from sage.graphs.generators.families import LCFGraph
-    g = LCFGraph(24, [12, 7, -7], 8)
-    g.name('McGee graph')
+    g = LCFGraph(24, [12, 7, -7], 8, immutable=immutable, name='McGee graph')
 
     if embedding == 1:
         return g
 
-    elif embedding == 2:
+    if embedding == 2:
 
         o = [[7, 2, 13, 8, 19, 14, 1, 20],
              [5, 4, 11, 10, 17, 16, 23, 22],
@@ -3643,10 +4228,10 @@ def McGeeGraph(embedding=2):
 
         return g
 
-    else:
-        raise ValueError("the value of embedding must be 1 or 2")
+    raise ValueError("the value of embedding must be 1 or 2")
 
-def McLaughlinGraph():
+
+def McLaughlinGraph(immutable=False):
     r"""
     Return the McLaughlin Graph.
 
@@ -3661,12 +4246,17 @@ def McLaughlinGraph():
 
         To create this graph you must have the gap_packages spkg installed.
 
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
+
     EXAMPLES::
 
-        sage: g = graphs.McLaughlinGraph()  # optional gap_packages
-        sage: g.is_strongly_regular(parameters=True)  # optional gap_packages
+        sage: g = graphs.McLaughlinGraph()              # optional - gap_package_design
+        sage: g.is_strongly_regular(parameters=True)    # optional - gap_package_design
         (275, 112, 30, 56)
-        sage: set(g.spectrum()) == {112, 2, -28}  # optional gap_packages
+        sage: set(g.spectrum()) == {112, 2, -28}        # optional - gap_package_design
         True
     """
     from sage.combinat.designs.block_design import WittDesign
@@ -3675,12 +4265,12 @@ def McLaughlinGraph():
 
     blocks = [Set(_) for _ in WittDesign(23).blocks()]
 
-    B = [b for b in blocks if 0     in b]
+    B = [b for b in blocks if 0 in b]
     C = [b for b in blocks if 0 not in b]
-    g = Graph()
+    g = Graph(name="McLaughlin")
     for b in B:
         for x in range(1, 23):
-            if not x in b:
+            if x not in b:
                 g.add_edge(b, x)
 
     for b in C:
@@ -3701,12 +4291,15 @@ def McLaughlinGraph():
                 g.add_edge(b, c)
 
     # Here we relabel the elements of g in an architecture-independent way
-    g.relabel({v: i for i, v in enumerate(list(range(1, 23)) +
-                                          sorted(blocks, key=sorted))})
-    g.name("McLaughlin")
+    perm = {v: i for i, v in enumerate(list(range(1, 23)) +
+                                       sorted(blocks, key=sorted))}
+    if immutable:
+        return g.relabel(perm=perm, inplace=False, immutable=True)
+    g.relabel(perm=perm)
     return g
 
-def MoebiusKantorGraph():
+
+def MoebiusKantorGraph(immutable=False):
     """
     Return a Möbius-Kantor Graph.
 
@@ -3720,6 +4313,11 @@ def MoebiusKantorGraph():
 
     PLOTTING: See the plotting section for the generalized Petersen graphs.
 
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
+
     EXAMPLES::
 
         sage: MK = graphs.MoebiusKantorGraph()
@@ -3727,18 +4325,23 @@ def MoebiusKantorGraph():
         Moebius-Kantor Graph: Graph on 16 vertices
         sage: MK.graph6_string()
         'OhCGKE?O@?ACAC@I?Q_AS'
-        sage: (graphs.MoebiusKantorGraph()).show()  # long time
+        sage: (graphs.MoebiusKantorGraph()).show()      # long time                     # needs sage.plot
     """
     from sage.graphs.generators.families import GeneralizedPetersenGraph
-    G = GeneralizedPetersenGraph(8, 3)
-    G.name("Moebius-Kantor Graph")
-    return G
+    return GeneralizedPetersenGraph(8, 3, immutable=immutable,
+                                    name="Moebius-Kantor Graph")
 
-def MoserSpindle():
+
+def MoserSpindle(immutable=False):
     r"""
     Return the Moser spindle.
 
     For more information, see the :wikipedia:`Moser_spindle`.
+
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES:
 
@@ -3755,7 +4358,7 @@ def MoserSpindle():
 
     It is a Hamiltonian graph with radius 2, diameter 2, and girth 3::
 
-        sage: G.is_hamiltonian()
+        sage: G.is_hamiltonian()                                                        # needs sage.numerical.mip
         True
         sage: G.radius()
         2
@@ -3788,18 +4391,101 @@ def MoserSpindle():
         0: [QQ('1/2'), 0],
         1: [- QQ('1/2'), 0],
         2: [- QQ('1/12') * sqrt(33) - QQ('1/4'),
-            QQ('1/2') * sqrt( QQ('1/6') * sqrt(33) + QQ('17/6'))],
+            QQ('1/2') * sqrt(QQ('1/6') * sqrt(33) + QQ('17/6'))],
         3: [0, QQ('1/2') * sqrt(11)],
         4: [QQ('1/12') * sqrt(33) + QQ('1/4'),
-            QQ('1/2') * sqrt( QQ('1/6') * sqrt(33) + QQ('17/6'))],
+            QQ('1/2') * sqrt(QQ('1/6') * sqrt(33) + QQ('17/6'))],
         5: [QQ('1/12') * sqrt(33) - QQ('1/4'),
             QQ('1/2') * sqrt(- QQ('1/6') * sqrt(33) + QQ('17/6'))],
         6: [- QQ('1/12') * sqrt(33) + QQ('1/4'),
             QQ('1/2') * sqrt(- QQ('1/6') * sqrt(33) + QQ('17/6'))]}
-    return Graph(edge_dict, pos=pos_dict, name="Moser spindle")
+    return Graph(edge_dict, format="dict_of_lists", pos=pos_dict,
+                 name="Moser spindle", immutable=immutable)
 
 
-def NauruGraph(embedding=2):
+def MurtyGraph(immutable=False):
+    r"""
+    Return the Murty graph.
+
+    Consider the complete bipartite graph `K_{3, 3}`. There is a set of three
+    black vertices and a set of three white vertices. Now, consider splicing
+    the complete graph `K_4` with one of the black vertices, this generates the
+    graph `K_4 \odot K_{3, 3}`. The Murty graph is obtained from
+    `K_4 \odot K_{3, 3}` with the addition of an edge joining the remaining two
+    black vertices. The Murty graph is free of conformal bicycles; in
+    other words, the Murty graph is an example of a graph that is Birkhoff-von
+    Neumann as well as PM-compact.
+
+    This is the smallest brick that is Birkhoff-von Neumann, aka a solid
+    brick, but is not odd-intercyclic. It is in this context that
+    Prof. U.S.R. Murty first stumbled upon this graph, and it also appears in
+    the work of Carvalho, Lucchesi, and Murty [CLM2006]_.
+
+    PLOTTING:
+
+    Upon construction, the position dictionary is filled to override
+    the spring-layout algorithm. By convention, the Murty graph is
+    displayed as mentioned in the paper [CKWL2019]_, with the first two
+    (noncubic) vertices on the top row, the second three vertices (that form a
+    stable set) in the middle row, and the remaining three vertices (that form
+    a triangle) at the bottom.
+
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
+
+    OUTPUT:
+
+    - ``G`` -- the Murty graph
+
+    EXAMPLES:
+
+    Construct and show the Murty graph::
+
+        sage: g = graphs.MurtyGraph()
+        sage: g.name()
+        'Murty Graph'
+        sage: g.order()
+        8
+        sage: g.size()
+        13
+        sage: g.girth()
+        3
+        sage: g.diameter()
+        2
+        sage: g.is_hamiltonian()
+        True
+        sage: g.show()                          # long time                             # needs sage.plot
+
+    REFERENCES:
+
+    - [CKWL2019]_
+    - [CLM2006]_
+    - [LM2024]_
+
+    AUTHORS:
+
+    - Janmenjaya Panda (2024-08-03)
+    """
+    pos_dict = {
+        0: (-0.5, sqrt(3)/2),
+        1: (0.5, sqrt(3)/2),
+        2: (-1, 0),
+        3: (0, 0),
+        4: (1, 0),
+        5: (-0.5, -1 - sqrt(3)/2),
+        6: (0, -1),
+        7: (0.5, -1 - sqrt(3)/2)
+    }
+
+    edges = ((0, 1), (0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 4),
+             (2, 5), (3, 6), (4, 7), (5, 6), (5, 7), (6, 7))
+    return Graph([range(8), edges], format="vertices_and_edges", pos=pos_dict,
+                 name="Murty Graph", immutable=immutable)
+
+
+def NauruGraph(embedding=2, immutable=False):
     """
     Return the Nauru Graph.
 
@@ -3807,8 +4493,11 @@ def NauruGraph(embedding=2):
 
     INPUT:
 
-    - ``embedding`` -- integer (default: ``2``); two embeddings are available,
+    - ``embedding`` -- integer (default: `2`); two embeddings are available,
       and can be selected by setting ``embedding`` to 1 or 2
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES::
 
@@ -3821,8 +4510,8 @@ def NauruGraph(embedding=2):
         6
         sage: g.diameter()
         4
-        sage: g.show()
-        sage: graphs.NauruGraph(embedding=1).show()  # long time
+        sage: g.show()                                                                  # needs sage.plot
+        sage: graphs.NauruGraph(embedding=1).show()     # long time                     # needs sage.plot
 
     TESTS::
 
@@ -3833,54 +4522,59 @@ def NauruGraph(embedding=2):
         sage: graphs.NauruGraph(embedding=1).is_isomorphic(g)
         True
     """
-
     if embedding == 1:
         from sage.graphs.generators.families import LCFGraph
-        g = LCFGraph(24, [5, -9, 7, -7, 9, -5], 4)
-        g.name('Nauru Graph')
-        return g
-    elif embedding == 2:
+        return LCFGraph(24, [5, -9, 7, -7, 9, -5], 4,
+                        immutable=immutable, name="Nauru Graph")
+    if embedding == 2:
         from sage.graphs.generators.families import GeneralizedPetersenGraph
-        g = GeneralizedPetersenGraph(12, 5)
-        g.name("Nauru Graph")
-        return g
-    else:
-        raise ValueError("the value of embedding must be 1 or 2")
+        return GeneralizedPetersenGraph(12, 5, immutable=immutable,
+                                        name="Nauru Graph")
+    raise ValueError("the value of embedding must be 1 or 2")
 
-def PappusGraph():
+
+def PappusGraph(immutable=False):
     """
     Return the Pappus graph, a graph on 18 vertices.
 
     The Pappus graph is cubic, symmetric, and distance-regular.
 
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
+
     EXAMPLES::
 
         sage: G = graphs.PappusGraph()
-        sage: G.show()  # long time
+        sage: G.show()                          # long time                             # needs sage.plot
         sage: L = graphs.LCFGraph(18, [5,7,-7,7,-7,-5], 3)
-        sage: L.show()  # long time
+        sage: L.show()                          # long time                             # needs sage.plot
         sage: G.is_isomorphic(L)
         True
     """
-    pos_dict = {}
-    for i in range(6):
-        pos_dict[i] = [float(cos(pi/2 + ((2*pi)/6)*i)),
-                       float(sin(pi/2 + ((2*pi)/6)*i))]
-        pos_dict[6 + i] = [(2/3.0)*float(cos(pi/2 + ((2*pi)/6)*i)),
-                           (2/3.0)*float(sin(pi/2 + ((2*pi)/6)*i))]
-        pos_dict[12 + i] = [(1/3.0)*float(cos(pi/2 + ((2*pi)/6)*i)),
-                            (1/3.0)*float(sin(pi/2 + ((2*pi)/6)*i))]
     edges = {0: [1, 5, 6], 1: [2, 7], 2: [3, 8], 3: [4, 9], 4: [5, 10], 5: [11],
              6: [13, 17], 7: [12, 14], 8: [13, 15], 9: [14, 16], 10: [15, 17],
              11: [12, 16], 12: [15], 13: [16], 14: [17]}
-    return Graph(edges, pos=pos_dict, name="Pappus Graph")
+    g = Graph(edges, format='dict_of_lists', name="Pappus Graph",
+              immutable=immutable)
+    g._circle_embedding(range(6), radius=3, angle=pi/2)
+    g._circle_embedding(range(6, 12), radius=2, angle=pi/2)
+    g._circle_embedding(range(12, 18), radius=1, angle=pi/2)
+    return g
 
-def PoussinGraph():
+
+def PoussinGraph(immutable=False):
     r"""
     Return the Poussin Graph.
 
     For more information on the Poussin Graph, see its corresponding `Wolfram
     page <http://mathworld.wolfram.com/PoussinGraph.html>`_.
+
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES::
 
@@ -3891,7 +4585,7 @@ def PoussinGraph():
         True
     """
     g = Graph({2: [7, 8, 3, 4], 1: [7, 6], 0: [6, 5, 4], 3: [5]},
-                  name="Poussin Graph")
+              name="Poussin Graph")
 
     g.add_cycle(list(range(3)))
     g.add_cycle(list(range(3, 9)))
@@ -3901,11 +4595,12 @@ def PoussinGraph():
     g._circle_embedding(list(range(3)), shift=.75)
     g._circle_embedding(list(range(3, 9)), radius=.4, shift=0)
     g._circle_embedding(list(range(9, 14)), radius=.2, shift=.4)
-    g.get_pos()[14] = (0,0)
+    g._pos[14] = (0,0)
 
-    return g
+    return g.copy(immutable=True) if immutable else g
 
-def PetersenGraph():
+
+def PetersenGraph(immutable=False):
     r"""
     Return the Petersen Graph.
 
@@ -3914,6 +4609,11 @@ def PetersenGraph():
 
     The Petersen Graph is a common counterexample. For example, it is not
     Hamiltonian.
+
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     PLOTTING: See the plotting section for the generalized Petersen graphs.
 
@@ -3924,16 +4624,18 @@ def PetersenGraph():
         ....:                          3:[2,4,8], 4:[0,3,9], 5:[0,7,8],
         ....:                          6:[1,8,9], 7:[2,5,9], 8:[3,5,6],
         ....:                          9:[4,6,7]})
-        sage: petersen_spring.show()  # long time
+        sage: petersen_spring.show()            # long time                             # needs sage.plot
         sage: petersen_database = graphs.PetersenGraph()
-        sage: petersen_database.show()  # long time
+        sage: petersen_database.show()          # long time                             # needs sage.plot
     """
     from sage.graphs.generators.families import GeneralizedPetersenGraph
-    P = GeneralizedPetersenGraph(5, 2)
-    P.name("Petersen graph")
+    P = GeneralizedPetersenGraph(5, 2, immutable=immutable,
+                                 name="Petersen graph")
+    P.is_projective_planar.set_cache(True)
     return P
 
-def PerkelGraph():
+
+def PerkelGraph(immutable=False):
     r"""
     Return the Perkel Graph.
 
@@ -3941,6 +4643,11 @@ def PerkelGraph():
     is the unique distance-regular graph with intersection array
     `(6,5,2;1,1,3)`. For more information, see the :wikipedia:`Perkel_graph` or
     https://www.win.tue.nl/~aeb/graphs/Perkel.html.
+
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES::
 
@@ -3954,18 +4661,27 @@ def PerkelGraph():
         g.add_edges(((0, i), (1, (i + j) % 19)) for j in [2, 5, 7])
         g.add_edges(((0, i), (2, (i + j) % 19)) for j in [5, -4, -8])
         g.add_edges(((1, i), (2, (i + j) % 19)) for j in [7, -4, -5])
-    g.relabel()
+    if immutable:
+        g = g.relabel(inplace=False, immutable=True)
+    else:
+        g.relabel()
     g._circle_embedding([0, 2, 3, 35, 8, 33, 45, 5, 53, 51, 18, 50, 29, 46, 30,
                          48, 40, 17, 20, 27, 43, 16, 7, 14, 6, 4, 15, 41, 24, 37,
                          28, 9, 55, 38, 19, 34, 39, 36, 54, 52, 44, 23, 12, 22,
                          32, 10, 13, 26, 1, 21, 42, 56, 49, 31, 47, 11, 25])
     return g
 
-def RobertsonGraph():
+
+def RobertsonGraph(immutable=False):
     """
     Return the Robertson graph.
 
     See the :wikipedia:`Robertson_graph`.
+
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES::
 
@@ -3979,21 +4695,21 @@ def RobertsonGraph():
         sage: g.girth()
         5
         sage: g.charpoly().factor()
-        (x - 4) * (x - 1)^2 * (x^2 + x - 5) * (x^2 + x - 1) * (x^2 - 3)^2 * (x^2 + x - 4)^2 * (x^2 + x - 3)^2
+        (x - 4) * (x - 1)^2 * (x^2 + x - 5) * (x^2 + x - 1)
+         * (x^2 - 3)^2 * (x^2 + x - 4)^2 * (x^2 + x - 3)^2
         sage: g.chromatic_number()
         3
-        sage: g.is_hamiltonian()
+        sage: g.is_hamiltonian()                                                        # needs sage.numerical.mip
         True
         sage: g.is_vertex_transitive()
         False
     """
     from sage.graphs.generators.families import LCFGraph
     lcf = [8, 4, 7, 4, 8, 5, 7, 4, 7, 8, 4, 5, 7, 8, 4, 8, 4, 8, 4]
-    g = LCFGraph(19, lcf, 1)
-    g.name("Robertson Graph")
-    return g
+    return LCFGraph(19, lcf, 1, immutable=immutable, name="Robertson Graph")
 
-def SchlaefliGraph():
+
+def SchlaefliGraph(immutable=False):
     r"""
     Return the Schläfli graph.
 
@@ -4011,17 +4727,22 @@ def SchlaefliGraph():
 
         Find a beautiful layout for this beautiful graph.
 
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
+
     EXAMPLES:
 
     Checking that the method actually returns the Schläfli graph::
 
         sage: S = graphs.SchlaefliGraph()
-        sage: S.is_strongly_regular(parameters = True)
+        sage: S.is_strongly_regular(parameters=True)
         (27, 16, 10, 8)
 
     The graph is vertex-transitive::
 
-        sage: S.is_vertex_transitive()
+        sage: S.is_vertex_transitive()                                                  # needs sage.groups
         True
 
     The neighborhood of each vertex is isomorphic to the complement of the
@@ -4031,15 +4752,15 @@ def SchlaefliGraph():
         sage: graphs.ClebschGraph().complement().is_isomorphic(neighborhood)
         True
     """
-    from sage.graphs.graph import Graph
-    G = Graph('ZBXzr|}^z~TTitjLth|dmkrmsl|if}TmbJMhrJX]YfFyTbmsseztKTvyhDvw')
+    G = Graph('ZBXzr|}^z~TTitjLth|dmkrmsl|if}TmbJMhrJX]YfFyTbmsseztKTvyhDvw',
+              name="Schläfli graph", immutable=immutable)
     order = [1, 8, 5, 10, 2, 6, 11, 15, 17, 13, 18, 12, 9, 24, 25, 3, 26, 7,
-                 16, 20, 23, 0, 21, 14, 22, 4, 19]
+             16, 20, 23, 0, 21, 14, 22, 4, 19]
     G._circle_embedding(order)
-    G.name("Schläfli graph")
     return G
 
-def ShrikhandeGraph():
+
+def ShrikhandeGraph(immutable=False):
     """
     Return the Shrikhande graph.
 
@@ -4051,6 +4772,11 @@ def ShrikhandeGraph():
 
         :meth:`Graph.is_strongly_regular` -- tests whether a graph is strongly
         regular and/or returns its parameters.
+
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES:
 
@@ -4075,7 +4801,7 @@ def ShrikhandeGraph():
 
         sage: G.is_planar()
         False
-        sage: G.is_hamiltonian()
+        sage: G.is_hamiltonian()                                                        # needs sage.numerical.mip
         True
         sage: G.is_eulerian()
         True
@@ -4093,12 +4819,12 @@ def ShrikhandeGraph():
 
         sage: G.chromatic_number()
         4
-        sage: G.automorphism_group().cardinality()
+        sage: G.automorphism_group().cardinality()                                      # needs sage.groups
         192
 
     It is an integral graph since it has only integral eigenvalues::
 
-        sage: G.characteristic_polynomial().factor()
+        sage: G.characteristic_polynomial().factor()                                    # needs sage.libs.pari sage.modules
         (x - 6) * (x - 2)^6 * (x + 2)^9
 
     It is a toroidal graph, and its embedding on a torus is dual to an
@@ -4130,9 +4856,11 @@ def ShrikhandeGraph():
         0O17: [0O11, 0O12, 0O14, 0O15,   0O06, 0O00]
     }
 
-    return Graph(edge_dict, pos=pos_dict, name="Shrikhande graph")
+    return Graph(edge_dict, format="dict_of_lists", pos=pos_dict,
+                 name="Shrikhande graph", immutable=immutable)
 
-def SylvesterGraph():
+
+def SylvesterGraph(immutable=False):
     """
     Return the Sylvester Graph.
 
@@ -4146,6 +4874,11 @@ def SylvesterGraph():
     .. SEEALSO::
 
         * :meth:`~sage.graphs.graph_generators.GraphGenerators.HoffmanSingletonGraph`.
+
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES::
 
@@ -4161,15 +4894,19 @@ def SylvesterGraph():
     g = HoffmanSingletonGraph()
     e = next(g.edge_iterator(labels=False))
     g.delete_vertices(g.neighbors(e[0]) + g.neighbors(e[1]))
-    g.relabel()
+    g.name("Sylvester Graph")
+    if immutable:
+        g = g.relabel(inplace=False, immutable=True)
+    else:
+        g.relabel()
     ordering = [0, 1, 2, 4, 5, 9, 16, 35, 15, 18, 20, 30, 22, 6, 33, 32, 14,
                 10, 28, 29, 7, 24, 23, 26, 19, 12, 13, 21, 11, 31, 3, 27, 25,
                 17, 8, 34]
     g._circle_embedding(ordering, shift=.5)
-    g.name("Sylvester Graph")
     return g
 
-def SimsGewirtzGraph():
+
+def SimsGewirtzGraph(immutable=False):
     r"""
     Return the Sims-Gewirtz Graph.
 
@@ -4186,6 +4923,11 @@ def SimsGewirtzGraph():
 
         * :meth:`~sage.graphs.graph_generators.GraphGenerators.HigmanSimsGraph`.
 
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
+
     EXAMPLES::
 
         sage: g = graphs.SimsGewirtzGraph(); g
@@ -4200,16 +4942,20 @@ def SimsGewirtzGraph():
     g = HigmanSimsGraph()
     e = next(g.edge_iterator(labels=False))
     g.delete_vertices(g.neighbors(e[0]) + g.neighbors(e[1]))
-    g.relabel()
+    g.name("Sims-Gewirtz Graph")
+    if immutable:
+        g = g.relabel(inplace=False, immutable=True)
+    else:
+        g.relabel()
     ordering = [0, 2, 3, 4, 6, 7, 8, 17, 1, 41, 49, 5, 22, 26, 11, 27, 15, 47,
                 53, 52, 38, 43, 44, 18, 20, 32, 19, 42, 54, 36, 51, 30, 33, 35,
                 37, 28, 34, 12, 29, 23, 55, 25, 40, 24, 9, 14, 48, 39, 45, 16,
                 13, 21, 31, 50, 10, 46]
     g._circle_embedding(ordering)
-    g.name("Sims-Gewirtz Graph")
     return g
 
-def SousselierGraph():
+
+def SousselierGraph(immutable=False):
     r"""
     Return the Sousselier Graph.
 
@@ -4217,6 +4963,11 @@ def SousselierGraph():
     edges. For more information, see :wikipedia:`Sousselier_graph` or
     the corresponding French
     `Wikipedia page <https://fr.wikipedia.org/wiki/Graphe_de_Sousselier>`_.
+
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES::
 
@@ -4229,12 +4980,12 @@ def SousselierGraph():
         2
         sage: g.diameter()
         3
-        sage: g.automorphism_group().cardinality()
+        sage: g.automorphism_group().cardinality()                                      # needs sage.groups
         2
-        sage: g.is_hamiltonian()
+        sage: g.is_hamiltonian()                                                        # needs sage.numerical.mip
         False
         sage: g.delete_vertex(g.random_vertex())
-        sage: g.is_hamiltonian()
+        sage: g.is_hamiltonian()                                                        # needs sage.numerical.mip
         True
     """
     g = Graph(name="Sousselier Graph")
@@ -4246,16 +4997,22 @@ def SousselierGraph():
     g.add_edges([(15, i) for i in range(15) if i % 3 == 1])
 
     g._circle_embedding(list(range(15)), shift=-.25)
-    g.get_pos()[15] = (0, 0)
+    g._pos[15] = (0, 0)
 
-    return g
+    return g.copy(immutable=True) if immutable else g
 
-def SzekeresSnarkGraph():
+
+def SzekeresSnarkGraph(immutable=False):
     r"""
     Return the Szekeres Snark Graph.
 
     The Szekeres graph is a snark with 50 vertices and 75 edges. For more
     information on this graph, see the :wikipedia:`Szekeres_snark`.
+
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES::
 
@@ -4282,17 +5039,19 @@ def SzekeresSnarkGraph():
         g.add_edge((i, 0), ((i + 1) % 5, 8))
         g.add_edge((i, 6), ((i + 2) % 5, 2))
         g._circle_embedding([(i, j) for j in range(9)],
-                          radius=.3,
-                          center=(cos(2 * (i + .25) * pi / 5),
-                                  sin(2 * (i + .25) * pi / 5)),
-                          shift=5.45 + 1.8 * i)
+                            radius=.3,
+                            center=(cos(2 * (i + .25) * pi / 5),
+                                    sin(2 * (i + .25) * pi / 5)),
+                            shift=5.45 + 1.8 * i)
 
     g._circle_embedding(c, radius=1, shift=.25)
-
+    if immutable:
+        return g.relabel(inplace=False, immutable=True)
     g.relabel()
     return g
 
-def ThomsenGraph():
+
+def ThomsenGraph(immutable=False):
     """
     Return the Thomsen Graph.
 
@@ -4301,6 +5060,11 @@ def ThomsenGraph():
 
     PLOTTING: See CompleteBipartiteGraph.
 
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
+
     EXAMPLES::
 
         sage: T = graphs.ThomsenGraph()
@@ -4308,19 +5072,24 @@ def ThomsenGraph():
         Thomsen graph: Graph on 6 vertices
         sage: T.graph6_string()
         'EFz_'
-        sage: (graphs.ThomsenGraph()).show() # long time
+        sage: (graphs.ThomsenGraph()).show()    # long time                             # needs sage.plot
     """
     from sage.graphs.generators.basic import CompleteBipartiteGraph
-    G = CompleteBipartiteGraph(3, 3)
-    G.name("Thomsen graph")
-    return G
+    return CompleteBipartiteGraph(3, 3, immutable=immutable,
+                                  name="Thomsen graph")
 
-def TietzeGraph():
+
+def TietzeGraph(immutable=False):
     r"""
     Return the Tietze Graph.
 
     For more information on the Tietze Graph, see the
     :wikipedia:`Tietze%27s_graph`.
+
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES::
 
@@ -4333,20 +5102,117 @@ def TietzeGraph():
         3
         sage: g.girth()
         3
-        sage: g.automorphism_group().cardinality()
+        sage: g.automorphism_group().cardinality()                                      # needs sage.groups
         12
-        sage: g.automorphism_group().is_isomorphic(groups.permutation.Dihedral(6))
+        sage: g.automorphism_group().is_isomorphic(groups.permutation.Dihedral(6))      # needs sage.groups
         True
     """
-    g = Graph([(0, 9), (3, 10), (6, 11), (1, 5), (2, 7), (4, 8)],
-                  name="Tietze Graph")
-    g.add_cycle(list(range(9)))
-    g.add_cycle([9, 10, 11])
+    edges = ((0, 1), (0, 8), (0, 9), (1, 2), (1, 5), (2, 3),
+             (2, 7), (3, 4), (3, 10), (4, 5), (4, 8), (5, 6),
+             (6, 7), (6, 11), (7, 8), (9, 10), (9, 11), (10, 11))
+    g = Graph([range(12), edges], format="vertices_and_edges",
+              name="Tietze Graph", immutable=immutable)
     g._circle_embedding(list(range(9)))
     g._circle_embedding([9, 10, 11], radius=.5)
     return g
 
-def TruncatedIcosidodecahedralGraph():
+
+def TricornGraph(immutable=False):
+    r"""
+    Return the Tricorn graph.
+
+    The Tricorn graph is obtained by splicing a complete graph `K_4` with the
+    the triangular circular ladder graph `\overline{C_6}`. (Note that this
+    generates a unique graph as both of the graphs `K_4` and `\overline{C_6}`
+    are vertex-transitive). It is a nonsolid brick. This matching covered graph
+    is one of the ten extremal cubic bricks. (A matching covered graph `G` is
+    *extremal* if `\Phi(G) = dim(\mathcal{Lin}(G))`, where `\Phi(G)` denotes
+    the number of perfect matchings of `G`, and `dim(\mathcal{Lin}(G))` stands
+    for the dimension of the linear space of `G`).
+
+    The Tricorn graph has no removable doubletons and has precisely three
+    removable edges. The wheel graph `W_5` and the complete graph `K_4` are
+    matching minors of the Tricorn graph.
+
+    As per a theorem of Lovász [Lov1983]_, each non bipartite matching covered
+    graph has a conformal subgraph which is either a bi-subdivision of `K_4` or
+    of `\overline{C_6}` or both. In their paper, Kothari and Murty [KM2015]_
+    characterized those planar bricks that are free of `\overline{C_6}` (that
+    is, the planar bricks that do not contain a bi-subdivision of
+    `\overline{C_6}` as a conformal subgraph). Besides two infinite families of
+    matching covered graphs (odd wheel graphs and staircase graphs of order
+    *4k*), the Tricorn graph is the only exception brick that is simple, planar
+    and free of `\overline{C_6}`.
+
+    PLOTTING:
+
+    Upon construction, the position dictionary is filled to override
+    the spring-layout algorithm. By convention, the Tricorn graph is
+    displayed as mentioned in the book [LM2024]_, with the central vertex being
+    the `0`-th one. Rest of the nine vertices are shown in groups of three,
+    one on the top, rest two on the bottom left and on the bottom right
+    corners respectively.
+
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
+
+    OUTPUT:
+
+    - ``G`` -- the Tricorn graph
+
+    EXAMPLES:
+
+    Construct and show the Tricorn graph; note that the edges `(2, 3)`,
+    `(5, 6)` and `(8, 9)` are the only removable edges of the Tricorn
+    graph::
+
+        sage: g = graphs.TricornGraph()
+        sage: g.name()
+        'Tricorn Graph'
+        sage: g.order()
+        10
+        sage: g.size()
+        15
+        sage: g.girth()
+        3
+        sage: g.diameter()
+        3
+        sage: g.is_hamiltonian()
+        True
+        sage: g.show()                          # long time                             # needs sage.plot
+
+    REFERENCES:
+
+    - [KM2015]_
+    - [LM2024]_
+    - [Lov1983]_
+
+    AUTHORS:
+
+    - Janmenjaya Panda (2024-08-02)
+    """
+    pos_dict = {
+        0: (0, 0),
+        1: (0, 1),
+        2: (1/2, 1 + sqrt(3)/2),
+        3: (-1/2, 1 + sqrt(3)/2),
+        4: (-sqrt(3)/2, -1/2),
+        5: (-sqrt(3)/2 - 1, -1/2),
+        6: (-sqrt(3)/2 - 1/2, -1/2 - sqrt(3)/2),
+        7: (sqrt(3)/2, -1/2),
+        8: (sqrt(3)/2 + 1/2, -1/2 - sqrt(3)/2),
+        9: (sqrt(3)/2 + 1, -1/2)
+    }
+    edges = ((0, 1), (0, 4), (0, 7), (1, 2), (1, 3), (2, 3), (2, 9), (3, 5),
+             (4, 5), (4, 6), (5, 6), (6, 8), (7, 8), (7, 9), (8, 9))
+
+    return Graph([range(10), edges], format="vertices_and_edges", pos=pos_dict,
+                 name="Tricorn Graph", immutable=immutable)
+
+
+def TruncatedIcosidodecahedralGraph(immutable=False):
     r"""
     Return the truncated icosidodecahedron.
 
@@ -4355,29 +5221,41 @@ def TruncatedIcosidodecahedralGraph():
     and 180 edges. For more information, see the
     :wikipedia:`Truncated_icosidodecahedron`.
 
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
+
     EXAMPLES:
 
     Unfortunately, this graph can not be constructed currently, due to numerical issues::
 
-        sage: g = graphs.TruncatedIcosidodecahedralGraph(); g
+        sage: g = graphs.TruncatedIcosidodecahedralGraph(); g                           # needs sage.geometry.polyhedron sage.groups sage.rings.number_field
         Traceback (most recent call last):
         ...
         ValueError: *Error: Numerical inconsistency is found.  Use the GMP exact arithmetic.
-        sage: g.order(), g.size()  # not tested
+        sage: g.order(), g.size()               # not tested                            # needs sage.geometry.polyhedron sage.groups sage.rings.number_field
         (120, 180)
     """
     from sage.geometry.polyhedron.library import polytopes
     # note that dropping exact=False here makes the construction take forever
-    G = polytopes.icosidodecahedron(exact=False).truncation().graph()
-    G.name("Truncated Icosidodecahedron")
+    T = polytopes.icosidodecahedron(exact=False).truncation()
+    G = T.graph(immutable=immutable)
+    G._name = "Truncated Icosidodecahedron"
     return G
 
-def TruncatedTetrahedralGraph():
+
+def TruncatedTetrahedralGraph(immutable=False):
     r"""
     Return the truncated tetrahedron.
 
     The truncated tetrahedron is an Archimedean solid with 12 vertices and 18
     edges. For more information, see the :wikipedia:`Truncated_tetrahedron`.
+
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES::
 
@@ -4385,21 +5263,27 @@ def TruncatedTetrahedralGraph():
         Truncated Tetrahedron: Graph on 12 vertices
         sage: g.order(), g.size()
         (12, 18)
-        sage: g.is_isomorphic(polytopes.simplex(3).truncation().graph())
+        sage: g.is_isomorphic(polytopes.simplex(3).truncation().graph())                # needs sage.geometry.polyhedron
         True
     """
-    g = Graph(':K`ESwC_EOyDl\\MCi', loops=False, multiedges=False)
+    g = Graph(':K`ESwC_EOyDl\\MCi', loops=False, multiedges=False,
+              name="Truncated Tetrahedron", immutable=immutable)
     g._circle_embedding(list(range(6)), radius=1)
     g._circle_embedding(list(range(6, 9)), radius=.6, shift=.25)
     g._circle_embedding(list(range(9, 12)), radius=.2, shift=.25)
-    g.name("Truncated Tetrahedron")
     return g
 
-def Tutte12Cage():
+
+def Tutte12Cage(immutable=False):
     r"""
     Return the Tutte 12-Cage.
 
     See the :wikipedia:`Tutte_12-cage`.
+
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES::
 
@@ -4412,17 +5296,16 @@ def Tutte12Cage():
         12
         sage: g.diameter()
         6
-        sage: g.show()
+        sage: g.show()                                                                  # needs sage.plot
     """
     L = [17, 27, -13, -59, -35, 35, -11, 13, -53, 53, -27, 21, 57, 11,
          -21, -57, 59, -17]
 
     from sage.graphs.generators.families import LCFGraph
-    g = LCFGraph(126, L, 7)
-    g.name("Tutte 12-Cage")
-    return g
+    return LCFGraph(126, L, 7, immutable=immutable, name="Tutte 12-Cage")
 
-def TutteCoxeterGraph(embedding=2):
+
+def TutteCoxeterGraph(embedding=2, immutable=False):
     r"""
     Return the Tutte-Coxeter graph.
 
@@ -4430,8 +5313,11 @@ def TutteCoxeterGraph(embedding=2):
 
     INPUT:
 
-    - ``embedding`` -- integer (default: ``2``); two embeddings are available,
+    - ``embedding`` -- integer (default: `2`); two embeddings are available,
       and can be selected by setting ``embedding`` to 1 or 2
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES::
 
@@ -4444,8 +5330,8 @@ def TutteCoxeterGraph(embedding=2):
         8
         sage: g.diameter()
         4
-        sage: g.show()
-        sage: graphs.TutteCoxeterGraph(embedding=1).show()  # long time
+        sage: g.show()                                                                  # needs sage.plot
+        sage: graphs.TutteCoxeterGraph(embedding=1).show()      # long time             # needs sage.plot
 
     TESTS::
 
@@ -4455,8 +5341,8 @@ def TutteCoxeterGraph(embedding=2):
         ValueError: the value of embedding must be 1 or 2
     """
     from sage.graphs.generators.families import LCFGraph
-    g = LCFGraph(30, [-13, -9, 7, -7, 9, 13], 5)
-    g.name("Tutte-Coxeter graph")
+    g = LCFGraph(30, [-13, -9, 7, -7, 9, 13], 5,
+                 immutable=immutable, name="Tutte-Coxeter graph")
 
     if embedding == 1:
         d = {
@@ -4480,13 +5366,19 @@ def TutteCoxeterGraph(embedding=2):
 
     return g
 
-def TutteGraph():
+
+def TutteGraph(immutable=False):
     r"""
     Return the Tutte Graph.
 
     The Tutte graph is a 3-regular, 3-connected, and planar non-hamiltonian
     graph. For more information on the Tutte Graph, see the
     :wikipedia:`Tutte_graph`.
+
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES::
 
@@ -4497,18 +5389,18 @@ def TutteGraph():
         69
         sage: g.is_planar()
         True
-        sage: g.vertex_connectivity()  # long time
+        sage: g.vertex_connectivity()           # long time                             # needs sage.numerical.mip
         3
         sage: g.girth()
         4
-        sage: g.automorphism_group().cardinality()
+        sage: g.automorphism_group().cardinality()                                      # needs sage.groups
         3
-        sage: g.is_hamiltonian()
+        sage: g.is_hamiltonian()                                                        # needs sage.numerical.mip
         False
     """
     g = Graph(name="Tutte Graph")
 
-    g.add_cycle([(i,j) for i in range(3) for j in range(3) ])
+    g.add_cycle([(i, j) for i in range(3) for j in range(3)])
     for i in range(3):
         g.add_cycle([(i, j) for j in range(9)])
         g.add_cycle([(i, j) for j in range(9, 14)])
@@ -4521,28 +5413,220 @@ def TutteGraph():
         g.add_edge((i, 4), (i, 14))
         g.add_edge((i, 9), (i, 14))
 
-    g._circle_embedding([(i, j) for i in range(3)  for j in range(6)], shift=.5)
+    g._circle_embedding([(i, j) for i in range(3) for j in range(6)], shift=.5)
     g._circle_embedding([(i, 14) for i in range(3)], radius=.3, shift=.25)
 
     for i in range(3):
         g._circle_embedding([(i, j) for j in range(3, 9)] + [0]*5,
-                          shift=3.7*(i-2)+.75,
-                          radius=.4,
-                          center=(.6*cos(2*(i+.25)*pi/3), .6*sin(2*(i+.25)*pi/3)))
+                            shift=3.7*(i - 2) + .75,
+                            radius=.4,
+                            center=(.6*cos(2*(i + .25)*pi/3), .6*sin(2*(i + .25)*pi/3)))
         g._circle_embedding([(i, j) for j in range(9, 14)],
-                          shift=1.7*(i-2)+1,
-                          radius=.2,
-                          center=(.6*cos(2*(i+.25)*pi/3), .6*sin(2*(i+.25)*pi/3)))
+                            shift=1.7*(i - 2) + 1,
+                            radius=.2,
+                            center=(.6*cos(2*(i + .25)*pi/3), .6*sin(2*(i + .25)*pi/3)))
 
-    g.get_pos()[0] = (0,0)
+    g._pos[0] = (0,0)
 
-    return g
+    return g.copy(immutable=True) if immutable else g
 
-def WagnerGraph():
+
+def TwinplexGraph(embedding='LM', immutable=False):
+    r"""
+    Return the Twinplex graph.
+
+    The Twinplex graph is a cubic hamiltonian graph of order 12 with the graph
+    crossing number 2 and has a girth 5 (that is the maximal girth among all
+    cubic graphs on 12 vertices [CHNP2020]_). It corresponds to the graph
+    labeled as `\Gamma_2` by Fischer and Little [FiLi2001]_. The Twinplex graph
+    has LCF notation `[-5, -4, 4, -4, 4, 5, -4, 5, -4, 4, -5, 4]`.
+
+    The Fischer-Little Theorem [FiLi2001]_ may be stated as follows [LM2024]_:
+
+    A near-bipartite graph is non-Pfaffian if and only if it contains one of
+    the graphs `K_{3, 3}`, `\Gamma_1` and `\Gamma_2` as an `S`-minor.
+
+    Norine and Thomas [NT2007]_ use the term ``Twinplex`` to describe one of
+    the 12-vertex cubic graphs, `\Gamma_1` and `\Gamma_2`, as defined by
+    Fischer and Little [FiLi2001]_. However, the figure in their paper that
+    supposedly provides embeddings for the graphs labeled Cubeplex and Twinplex
+    actually shows both embeddings corresponding to Fischer and Little's
+    `\Gamma_1`, which is the Cubeplex graph. Followingly, for
+    ``embedding='NT'``, we present a correct version of the Twinplex graph
+    with a slight modification of the embedding that is labeled as ``Twinplex``
+    in the paper of Norine and Thomas [NT2007]_.
+
+    PLOTTING:
+
+    Upon construction, the position dictionary is filled to override
+    the spring-layout algorithm. For different values of the parameter
+    ``embedding``, the Twinplex graph is displayed as it is mentioned in the
+    respective paper/ book. Note that for ``embedding='NT'``, a correct
+    embedding of the Twinplex graph is displayed with a minor modification to
+    the (incorrect) embedding shown in the paper [NT2007]_.
+
+    INPUT:
+
+    - ``embedding`` -- string (default: ``'LM'``)
+
+      - ``'LM'`` displays the embedding as shown for `\Gamma_2` by Lucchesi and
+        Murty [LM2024]_
+
+      - ``'FL'`` displays the embedding as shown for `\Gamma_2` by Fischer and
+        Little [FiLi2001]_
+
+      - ``'NT'`` displays the correct embedding with a minor modification to
+        the one shown as the (incorrect) ``Twinplex`` by Norine and Thomas
+        [NT2007]_
+
+      - ``'RST'`` displays the embedding as shown for the ``Twinplex`` by
+        Robertson, Seymour and Thomas [RST2019]_
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
+
+    OUTPUT:
+
+    - ``G`` -- the Twinplex graph; note that a :class:`ValueError` is returned
+      if ``embedding`` is none of ``'FT'``, ``'NT'``, ``'RST'`` or ``'LM'``
+
+    EXAMPLES:
+
+    Construct and show the Twinplex graph::
+
+        sage: g = graphs.TwinplexGraph()
+        sage: g.name()
+        'Twinplex Graph'
+        sage: g.order()
+        12
+        sage: g.size()
+        18
+        sage: g.girth()
+        5
+        sage: g.diameter()
+        3
+        sage: g.is_hamiltonian()
+        True
+        sage: g.crossing_number()
+        2
+        sage: g.show()                          # long time                             # needs sage.plot
+
+    TESTS:
+
+    Note that all four embeddings refer to the same graph, the Twinplex graph,
+    aka `\Gamma_2`::
+
+        sage: fl = graphs.TwinplexGraph(embedding='FL')
+        sage: nt = graphs.TwinplexGraph(embedding='NT')
+        sage: rst = graphs.TwinplexGraph(embedding='RST')
+        sage: lm = graphs.TwinplexGraph(embedding='LM')
+        sage: all(fl.is_isomorphic(g) for g in (nt, rst, lm))
+        True
+
+    The input parameter must be one of 'FL', 'NT', 'RST' or 'LM'::
+
+        sage: g = graphs.TwinplexGraph(embedding='embedding')
+        Traceback (most recent call last):
+        ...
+        ValueError: parameter 'embedding' must be 'FL', 'NT', 'LM' or 'RST'
+
+    .. SEEALSO::
+
+        :meth:`~sage.graphs.graph_generators.GraphGenerators.CubeplexGraph`
+
+    AUTHORS:
+
+    - Janmenjaya Panda (2024-08-03)
+    """
+    from itertools import chain
+    from math import pi
+
+    if embedding == 'FL':
+
+        E1 = ((i, i + 1) for i in range(11))
+        E2 = ((0, 11),)
+        E3 = ((0, 8), (1, 5), (2, 9), (3, 7), (4, 11), (6, 10))
+        G = Graph([range(12), chain(E1, E2, E3)], format="vertices_and_edges",
+                  name='Twinplex Graph', immutable=immutable)
+        G._circle_embedding(list(range(12)), angle=5*pi/12)
+
+    elif embedding == 'NT':
+        pos_dict = {
+            0: (1, 2),
+            1: (3, 2),
+            2: (0, 1),
+            3: (1, 1),
+            4: (2, 1),
+            5: (3, 1),
+            6: (4, 1),
+            7: (0, -1),
+            8: (1, 0),
+            9: (2, 0),
+            10: (3, 0),
+            11: (4, -1),
+        }
+        edges = ((0, 2), (0, 4), (0, 6), (1, 3), (1, 5), (1, 6),
+                 (2, 7), (2, 9), (3, 7), (3, 8), (4, 8), (4, 10),
+                 (5, 9), (5, 10), (6, 11), (7, 11), (8, 9), (10, 11))
+        G = Graph([range(12), edges], format="vertices_and_edges", pos=pos_dict,
+                  name='Twinplex Graph', immutable=immutable)
+
+    elif embedding == 'RST':
+        pos_dict = {
+            0: (-1, 3),
+            1: (1, 3),
+            2: (3, 1),
+            3: (3, -1),
+            4: (1, -3),
+            5: (-1, -3),
+            6: (-3, -1),
+            7: (-3, 1),
+            8: (-1, 1),
+            9: (1, 1),
+            10: (1, -1),
+            11: (-1, -1)
+        }
+        edges = ((0, 1), (0, 4), (0, 7), (1, 2), (1, 8), (2, 3),
+                 (2, 10), (3, 4), (3, 9), (4, 5), (5, 6), (5, 10),
+                 (6, 7), (6, 8), (7, 11), (8, 9), (9, 11), (10, 11))
+        G = Graph([range(12), edges], format="vertices_and_edges", pos=pos_dict,
+                  name='Twinplex Graph', immutable=immutable)
+
+    elif embedding == 'LM':
+        pos_dict = {
+            8: (0, 1),
+            9: (1, 0),
+            10: (-3*cos(pi/16), -3*sin(pi/16)),
+            11: (3*cos(pi/16), -3*sin(pi/16))
+        }
+
+        for v in range(8):
+            t = pi * (v+2)/4
+            pos_dict[v] = (-2*cos(t), 2*sin(t))
+
+        edges = ((0, 1), (0, 7), (0, 8), (1, 2), (1, 11), (2, 3),
+                 (2, 9), (3, 4), (3, 10), (4, 5), (4, 8), (5, 6),
+                 (5, 11), (6, 7), (6, 9), (7, 10), (8, 9), (10, 11))
+        G = Graph([range(12), edges], format="vertices_and_edges", pos=pos_dict,
+                  name='Twinplex Graph', immutable=immutable)
+
+    else:
+        raise ValueError("parameter 'embedding' must be 'FL', 'NT',"
+                         " 'LM' or 'RST'")
+
+    return G
+
+
+def WagnerGraph(immutable=False):
     """
     Return the Wagner Graph.
 
     See the :wikipedia:`Wagner_graph`.
+
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES::
 
@@ -4555,19 +5639,23 @@ def WagnerGraph():
         4
         sage: g.diameter()
         2
-        sage: g.show()
+        sage: g.show()                                                                  # needs sage.plot
     """
     from sage.graphs.generators.families import LCFGraph
-    g = LCFGraph(8, [4], 8)
-    g.name("Wagner Graph")
-    return g
+    return LCFGraph(8, [4], 8, immutable=immutable, name="Wagner Graph")
 
-def WatkinsSnarkGraph():
+
+def WatkinsSnarkGraph(immutable=False):
     r"""
     Return the Watkins Snark Graph.
 
     The Watkins Graph is a snark with 50 vertices and 75 edges. For more
     information, see the :wikipedia:`Watkins_snark`.
+
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES::
 
@@ -4583,11 +5671,12 @@ def WatkinsSnarkGraph():
 
     for i in range(5):
         g.add_cycle([(i, j) for j in range(9)])
-        g._circle_embedding([(i, j) for j in range(4)] + [0, 0, (i, 4), 0, 0]
-                                + [(i, j) for j in range(5, 9)],
-                          radius=.3,
-                          center=(cos(2*(i+.25)*pi/5), sin(2*(i+.25)*pi/5)),
-                          shift=2.7*i+7.55)
+        L = [(i, j) for j in range(4)] + [0, 0, (i, 4), 0, 0]
+        L.extend((i, j) for j in range(5, 9))
+        g._circle_embedding(L,
+                            radius=.3,
+                            center=(cos(2*(i + .25)*pi/5), sin(2*(i + .25)*pi/5)),
+                            shift=2.7*i + 7.55)
         g.add_edge((i, 5), ((i + 1) % 5, 0))
         g.add_edge((i, 8), ((i + 2) % 5, 3))
         g.add_edge((i, 1), i)
@@ -4596,9 +5685,10 @@ def WatkinsSnarkGraph():
         g.add_edge((i, 6), (i, 2))
 
     g._circle_embedding(list(range(5)), shift=.25, radius=1.1)
-    return g
+    return g.copy(immutable=True) if immutable else g
 
-def WienerArayaGraph():
+
+def WienerArayaGraph(immutable=False):
     r"""
     Return the Wiener-Araya Graph.
 
@@ -4606,6 +5696,11 @@ def WienerArayaGraph():
     67 edges. For more information, see the `Wolfram Page on the Wiener-Araya
     Graph <http://mathworld.wolfram.com/Wiener-ArayaGraph.html>`_ or
     :wikipedia:`Wiener-Araya_graph`.
+
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
 
     EXAMPLES::
 
@@ -4618,10 +5713,10 @@ def WienerArayaGraph():
         4
         sage: g.is_planar()
         True
-        sage: g.is_hamiltonian()  # not tested -- around 30s long
+        sage: g.is_hamiltonian()                # not tested (30s)                      # needs sage.numerical.mip
         False
         sage: g.delete_vertex(g.random_vertex())
-        sage: g.is_hamiltonian()
+        sage: g.is_hamiltonian()                                                        # needs sage.numerical.mip
         True
     """
     g = Graph(name="Wiener-Araya Graph")
@@ -4632,9 +5727,9 @@ def WienerArayaGraph():
     g.add_cycle([(3, i) for i in range(6)])
     g._circle_embedding([(0, i) for i in range(4)], shift=.5)
     g._circle_embedding(sum([[(1, 3 * i), (1, 3 * i + 1), 0, 0, 0, (1, 3 * i + 2), 0, 0, 0]
-                                 for i in range(4)], []),
-                      shift=4,
-                      radius=.65)
+                             for i in range(4)], []),
+                        shift=4,
+                        radius=.65)
     g._circle_embedding([(2, i) for i in range(20)], radius=.5)
     g._circle_embedding([(3, i) for i in range(6)], radius=.3, shift=.5)
 
@@ -4654,9 +5749,11 @@ def WienerArayaGraph():
     g.add_edge((3, 4), (2, 14))
     g.add_edge((3, 1), (3, 4))
 
-    g.get_pos().pop(0)
+    if immutable:
+        return g.relabel(inplace=False, immutable=True)
     g.relabel()
     return g
+
 
 def _EllipticLinesProjectivePlaneScheme(k):
     r"""
@@ -4676,7 +5773,7 @@ def _EllipticLinesProjectivePlaneScheme(k):
     TESTS::
 
         sage: from sage.graphs.generators.smallgraphs import _EllipticLinesProjectivePlaneScheme
-        sage: _EllipticLinesProjectivePlaneScheme(2)
+        sage: _EllipticLinesProjectivePlaneScheme(2)                                    # needs sage.libs.gap
         [
         [1 0 0 0 0 0]  [0 1 1 1 1 0]  [0 0 0 0 0 1]
         [0 1 0 0 0 0]  [1 0 1 1 0 1]  [0 0 0 0 1 0]
@@ -4697,12 +5794,12 @@ def _EllipticLinesProjectivePlaneScheme(k):
     gp = libgap.Action(g, libgap.Orbit(g, l, libgap.OnLines), libgap.OnLines)
     orbitals = gp.Orbits(list(product(gp.Orbit(1), gp.Orbit(1))),
                          libgap.OnTuples)
-    mats = map(lambda o: [(int(x[0]) - 1, int(x[1]) - 1) for x in o], orbitals)
+    mats = ([(int(x[0]) - 1, int(x[1]) - 1) for x in o] for o in orbitals)
     return [matrix((q * (q - 1)) // 2, lambda i, j: 1 if (i, j) in x else 0)
             for x in mats]
 
 
-def MathonStronglyRegularGraph(t):
+def MathonStronglyRegularGraph(t, immutable=False):
     r"""
     Return one of Mathon's graphs on 784 vertices.
 
@@ -4710,28 +5807,33 @@ def MathonStronglyRegularGraph(t):
 
     - ``t`` -- integer; the number of the graph, from 0 to 2
 
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
+
     EXAMPLES::
 
+        sage: # long time, needs sage.libs.gap
         sage: from sage.graphs.generators.smallgraphs import MathonStronglyRegularGraph
-        sage: G = MathonStronglyRegularGraph(0)        # long time
-        sage: G.is_strongly_regular(parameters=True)   # long time
+        sage: G = MathonStronglyRegularGraph(0)
+        sage: G.is_strongly_regular(parameters=True)
         (784, 243, 82, 72)
 
     TESTS::
 
-        sage: G = graphs.MathonStronglyRegularGraph(1)  # long time
-        sage: G.is_strongly_regular(parameters=True)  # long time
+        sage: # long time, needs sage.libs.gap
+        sage: G = graphs.MathonStronglyRegularGraph(1)
+        sage: G.is_strongly_regular(parameters=True)
         (784, 270, 98, 90)
-        sage: G = graphs.MathonStronglyRegularGraph(2)  # long time
-        sage: G.is_strongly_regular(parameters=True)  # long time
+        sage: G = graphs.MathonStronglyRegularGraph(2)
+        sage: G.is_strongly_regular(parameters=True)
         (784, 297, 116, 110)
-
     """
     from sage.graphs.generators.families import MathonPseudocyclicMergingGraph
     ES = _EllipticLinesProjectivePlaneScheme(3)
-    return MathonPseudocyclicMergingGraph(ES, t)
+    return MathonPseudocyclicMergingGraph(ES, t, immutable=immutable)
 
-def JankoKharaghaniGraph(v):
+
+def JankoKharaghaniGraph(v, immutable=False):
     r"""
     Return a `(936, 375, 150, 150)`-srg or a `(1800, 1029, 588, 588)`-srg.
 
@@ -4743,14 +5845,17 @@ def JankoKharaghaniGraph(v):
 
     - ``v`` -- integer; one of 936 or 1800
 
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
+
     EXAMPLES::
 
-        sage: g = graphs.JankoKharaghaniGraph(936)  # long time
-        sage: g.is_strongly_regular(parameters=True)  # long time
+        sage: g = graphs.JankoKharaghaniGraph(936)      # long time                     # needs sage.libs.pari
+        sage: g.is_strongly_regular(parameters=True)    # long time                     # needs sage.libs.pari
         (936, 375, 150, 150)
 
-        sage: g = graphs.JankoKharaghaniGraph(1800)  # not tested (30s)
-        sage: g.is_strongly_regular(parameters=True)  # not tested (30s)
+        sage: g = graphs.JankoKharaghaniGraph(1800)     # not tested (30s)
+        sage: g.is_strongly_regular(parameters=True)    # not tested (30s)
         (1800, 1029, 588, 588)
     """
     from sage.rings.finite_rings.finite_field_constructor import FiniteField as GF
@@ -4759,7 +5864,7 @@ def JankoKharaghaniGraph(v):
     # The notations of [JK02] are rather tricky, and so this code attempts to
     # stick as much as possible to the paper's variable names.
 
-    assert(v in [1800, 936])
+    assert v in [1800, 936]
 
     J = matrix.ones
     I = matrix.identity
@@ -4771,8 +5876,8 @@ def JankoKharaghaniGraph(v):
     D = ("--1-11", "-11-1-", "11-1--", "--11-1", "11---1", "1--11-")
     E = ("-1--11", "1-1--1", "-11-1-", "---111", "1-11--", "11-1--")
     F = ("-1-1-1", "11--1-", "--111-", "1-11--", "-11--1", "1---11")
-    B, C, D, E, F = [matrix([map({'1': 1, '-': -1}.get, r) for r in m])
-                         for m in [B, C, D, E, F]]
+    B, C, D, E, F = (matrix([map({'1': 1, '-': -1}.get, r) for r in m])
+                     for m in [B, C, D, E, F])
 
     H = [A, B, C, D, E, F]
     H = [[-x for x in H[6-i:]] + H[:6-i] for i in range(6)]
@@ -4786,7 +5891,7 @@ def JankoKharaghaniGraph(v):
     q = m * t + 1
     K = GF(q, 'alpha')
     a = K.primitive_element()
-    Ci= [[K(0)]] + [set(a**(k*j+i) for j in range(t)) for i in range(m)]
+    Ci = [[K(0)]] + [set(a**(k*j + i) for j in range(t)) for i in range(m)]
     Kelem_to_Ci = {v: i for i, s in enumerate(Ci) for v in s}  # maps v to [0,...,12]
 
     W = ([[0] + [1]*(len(K))] +
@@ -4795,10 +5900,10 @@ def JankoKharaghaniGraph(v):
     # The nonzero elements of W are considered as elements of C_12, generated by
     # a matrix Omega of order 12
     n = 18
-    U = matrix.circulant([int(i==1) for i in range(2 * n)])
+    U = matrix.circulant([int(i == 1) for i in range(2 * n)])
     N = matrix.diagonal([1 if i else -1 for i in range(2 * n)])
     Omega = (U * N)**6
-    assert(Omega**12 == I(36))
+    assert Omega**12 == I(36)
 
     # The value w_{ij} is understood in the paper as matrix generated by Omega
     # acting on the left of a matrix L, which we now define.
@@ -4808,24 +5913,26 @@ def JankoKharaghaniGraph(v):
     # w_ij represents in the paper the matrix w_{ij}*L. We perform this action while
     # computing what is noted '[ M w_{ij} ]' in the paper.
     D = [[M*0 if w == 0 else M*(Omega**w)*L for w in R]
-        for R in W]
+         for R in W]
     D = matrix.block(D)
 
     # for v=1800 the construction is slightly different, and we must add to D a
     # matrix which we now compute.
     if v == 1800:
-        abs = lambda M: matrix([[1 if x else 0 for x in R] for R in M.rows()])
+        def my_abs(M):
+            return matrix([[1 if x else 0 for x in R] for R in M.rows()])
 
-        M = (J(6)+I(6)).tensor_product(J(6))  # we define M = (J(6)+I(6)) x J(6)
-        D2 = [[M*0 if w == 0 else M*abs((Omega**w)*L) for w in R]  # '[ (J(6)+I(6)) x J(6) |w_{ij}| ]'
+        M = (J(6) + I(6)).tensor_product(J(6))  # we define M = (J(6)+I(6)) x J(6)
+        D2 = [[M*0 if w == 0 else M*my_abs((Omega**w)*L) for w in R]  # '[ (J(6)+I(6)) x J(6) |w_{ij}| ]'
               for R in W]
-        D = (D+matrix.block(D2))/2
+        D = (D + matrix.block(D2))/2
 
     return Graph([e for e, v in D.dict().items() if v == 1],
-                 multiedges=False,
-                 name="Janko-Kharaghani")
+                 format="list_of_edges", multiedges=False,
+                 name='Janko-Kharaghani', immutable=immutable)
 
-def JankoKharaghaniTonchevGraph():
+
+def JankoKharaghaniTonchevGraph(immutable=False):
     r"""
     Return a `(324,153,72,72)`-strongly regular graph from [JKT2001]_.
 
@@ -4833,10 +5940,15 @@ def JankoKharaghaniTonchevGraph():
     and B163 in the text as adjacencies of vertices 1 and 163, respectively, and
     taking the edge orbits of the group `G` provided.
 
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
+
     EXAMPLES::
 
-        sage: Gamma=graphs.JankoKharaghaniTonchevGraph()  # long time
-        sage: Gamma.is_strongly_regular(parameters=True)  # long time
+        sage: Gamma = graphs.JankoKharaghaniTonchevGraph()      # long time             # needs sage.libs.gap
+        sage: Gamma.is_strongly_regular(parameters=True)        # long time             # needs sage.libs.gap
         (324, 153, 72, 72)
     """
     from sage.misc.misc_c import prod
@@ -4844,29 +5956,29 @@ def JankoKharaghaniTonchevGraph():
     from sage.libs.gap.libgap import libgap
 
     m1 = prod(P((9 * x + k, 9 * x + k + 3, 9 * x + k + 6))
-                  for k in range(1, 4) for x in range(36))
+              for k in range(1, 4) for x in range(36))
     m2 = prod(P((3 * x + 1, 3 * x + 2, 3 * x + 3)) for x in range(108))
     t = prod(prod(map(P, [(9 * x + 2, 9 * x + 3), (9 * x + 4, 9 * x + 7),
                           (9 * x + 5, 9 * x + 9), (9 * x + 6, 9 * x + 8)]))
-                 for x in range(36))
+             for x in range(36))
     n1 = prod(prod(map(P, [(1 + x, 19 + x, 37 + x), (55 + x, 73 + x, 91 + x),
                            (109 + x, 127 + x, 145 + x), (163 + x, 181 + x, 199 + x),
                            (217 + x, 235 + x, 253 + x), (271 + x, 289 + x, 307 + x)]))
-                  for x in range(18))
+              for x in range(18))
     n2 = prod(prod(map(P, [(1 + x, 55 + x, 109 + x), (19 + x, 73 + x, 127 + x),
                            (37 + x, 91 + x, 145 + x), (163 + x, 217 + x, 271 + x),
                            (181 + x, 235 + x, 289 + x), (199 + x, 253 + x, 307 + x)]))
-                  for x in range(18))
+              for x in range(18))
     s = prod(prod(map(P, [(19 + x, 37 + x), (55 + x, 109 + x), (73 + x, 145 + x),
                           (91 + x, 127 + x), (181 + x, 199 + x), (217 + x, 271 + x),
                           (235 + x, 307 + x), (253 + x, 289 + x)]))
-                 for x in range(18))
+             for x in range(18))
     k = prod(prod(map(P, [(18 * x + 1, 18 * x + 10), (18 * x + 2, 18 * x + 11),
                           (18 * x + 3, 18 * x + 12), (18 * x + 4, 18 * x + 13),
                           (18 * x + 5, 18 * x + 14), (18 * x + 6, 18 * x + 15),
                           (18 * x + 7, 18 * x + 16), (18 * x + 8, 18 * x + 17),
                           (18 * x + 9, 18 * x + 18)]))
-                 for x in range(18))
+             for x in range(18))
     G = libgap.Group([libgap.PermList(p) for p in [m1, m2, t, n1, n2, s, k]])
     st = libgap.Group([libgap.PermList(p) for p in [t, s]])
     B1 = (19, 22, 25, 29, 30, 31, 33, 34, 35, 37, 40, 43, 47, 48, 49, 51, 52,
@@ -4891,14 +6003,18 @@ def JankoKharaghaniTonchevGraph():
             246, 254, 255, 256, 257, 259, 261, 262, 265, 268, 271, 276, 278,
             283, 284, 285, 286, 287, 288, 290, 291, 292, 293, 295, 297, 298,
             301, 304, 308, 309, 310, 312, 313, 314, 316, 317, 318)
-    Gamma=Graph(multiedges=False, name='Janko-Kharaghani-Tonchev')
+    Gamma = Graph(multiedges=False, name='Janko-Kharaghani-Tonchev')
     for i, b in ((1, B1), (163, B163)):
-        for j in map(lambda x: x[0], st.OrbitsDomain(b)):
-            Gamma.add_edges(map(tuple,G.Orbit(libgap.Set([i, j]), libgap.OnSets)))
+        for x in st.OrbitsDomain(b):
+            Gamma.add_edges(map(tuple, G.Orbit(libgap.Set([i, x[0]]),
+                                               libgap.OnSets)))
+    if immutable:
+        return Gamma.relabel(range(Gamma.order()), inplace=False, immutable=True)
     Gamma.relabel(range(Gamma.order()))
     return Gamma
 
-def IoninKharaghani765Graph():
+
+def IoninKharaghani765Graph(immutable=False):
     r"""
     Return a `(765, 192, 48, 48)`-strongly regular graph.
 
@@ -4984,14 +6100,19 @@ def IoninKharaghani765Graph():
         therefore `S` is an adjacency matrix of a strongly regular graph with
         parameters `(765, 192, 48, 48)`.
 
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
+
     EXAMPLES::
 
-        sage: g = graphs.IoninKharaghani765Graph(); g
+        sage: g = graphs.IoninKharaghani765Graph(); g                                   # needs sage.modules sage.rings.finite_rings
         Ionin-Kharaghani: Graph on 765 vertices
 
     TESTS::
 
-        sage: graphs.strongly_regular_graph(765, 192, 48, 48)
+        sage: graphs.strongly_regular_graph(765, 192, 48, 48)                           # needs sage.modules sage.rings.finite_rings
         Ionin-Kharaghani: Graph on 765 vertices
 
     .. TODO::
@@ -5039,17 +6160,21 @@ def IoninKharaghani765Graph():
                              for i in range(len(Xi))])
 
     # sigma = lambda Xi: Xi[1:] + [pi[Xi[0]]]
-    f_pow = lambda f, i, X: f_pow(f, i-1, f(X)) if i else X
+    def f_pow(f, i, X):
+        return f_pow(f, i-1, f(X)) if i else X
 
-    sigma2 = lambda Xi: Xi[1:] + [Xi[0]]
-    pi_vec = lambda x: [pi.get(_) for _ in x]
+    def sigma2(Xi):
+        return Xi[1:] + [Xi[0]]
+
+    def pi_vec(x):
+        return [pi.get(_) for _ in x]
 
     # The matrix W, with off-diagonal entries equal to integers 1,...,15
     # (instead of x^1,...,x^15)
     from sage.matrix.constructor import matrix
     GF16 = GF(16, 'x')
-    W = matrix( [[x + y for x in GF16] + [1] for y in GF16] +
-                [[1]*16 + [0]])
+    W = matrix([[x + y for x in GF16] + [1] for y in GF16] +
+               [[1]*16 + [0]])
     x = GF16.primitive_element()
     log_x = {x**i: i for i in range(15)}
     W = W.apply_map(lambda x: log_x[x] + 1 if x else 0)
@@ -5057,16 +6182,16 @@ def IoninKharaghani765Graph():
     # Associate a matrix to every entry of W
     int_to_matrix = {0: matrix.zero(45)}
     for i in range(15):
-        vec = [frozenset([]), L[0, 0], L[1, 0], L[2, 0], L[3, 0]]
+        vec = [frozenset(), L[0, 0], L[1, 0], L[2, 0], L[3, 0]]
         vec = f_pow(pi_vec, i % 3, vec)
         vec = f_pow(sigma2, i % 5, vec)
         int_to_matrix[i + 1] = N(vec)
 
     M2 = matrix.block([[int_to_matrix[x] for x in R] for R in W.rows()])
-    g = Graph(M2, name="Ionin-Kharaghani")
-    return g
+    return Graph(M2, name='Ionin-Kharaghani', immutable=immutable)
 
-def U42Graph216():
+
+def U42Graph216(immutable=False):
     r"""
     Return a (216,40,4,8)-strongly regular graph from [CRS2016]_.
 
@@ -5075,16 +6200,21 @@ def U42Graph216():
     and then doing the unique merging of the orbitals leading to a graph with
     the parameters in question.
 
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
+
     EXAMPLES::
 
-        sage: G=graphs.U42Graph216()  # optional - gap_packages (grape)
-        sage: G.is_strongly_regular(parameters=True)  # optional - gap_packages (grape)
+        sage: G=graphs.U42Graph216()                    # optional - gap_package_grape
+        sage: G.is_strongly_regular(parameters=True)    # optional - gap_package_grape
         (216, 40, 4, 8)
     """
     from sage.libs.gap.libgap import libgap
     from sage.features.gap import GapPackage
 
-    GapPackage("grape", spkg="gap_packages").require()
+    GapPackage("grape", spkg='gap_packages').require()
 
     adj_list = libgap.function_factory("""function()
                 local gg, hl, o216, a216, x, h, re, G;
@@ -5104,14 +6234,13 @@ def U42Graph216():
                 return List([1..216],x->Adjacency(G,x));
                 end;""")
 
-    adj = adj_list() # for each vertex, we get the list of vertices it is adjacent to
-    G = Graph(((i, int(j - 1))
-               for i, ni in enumerate(adj) for j in ni),
-               format='list_of_edges', multiedges=False)
-    G.name('U42Graph216')
-    return G
+    adj = adj_list()  # for each vertex, we get the list of vertices it is adjacent to
+    return Graph(((i, int(j - 1)) for i, ni in enumerate(adj) for j in ni),
+                 format='list_of_edges', multiedges=False,
+                 name='U42Graph216', immutable=immutable)
 
-def U42Graph540():
+
+def U42Graph540(immutable=False):
     r"""
     Return a (540,187,58,68)-strongly regular graph from [CRS2016]_.
 
@@ -5122,19 +6251,23 @@ def U42Graph540():
     orbitals, some leading to non-isomorphic graphs with the same parameters. We
     found the merging here using [FK1991]_.
 
+    INPUT:
+
+    - ``immutable`` -- boolean (default: ``False``); whether to return an
+      immutable or a mutable graph
+
     EXAMPLES::
 
-        sage: G=graphs.U42Graph540()  # optional - gap_packages (grape)
-        sage: G.is_strongly_regular(parameters=True)  # optional - gap_packages (grape)
+        sage: G = graphs.U42Graph540()                  # optional - gap_package_grape
+        sage: G.is_strongly_regular(parameters=True)    # optional - gap_package_grape
         (540, 187, 58, 68)
-
     """
     from sage.libs.gap.libgap import libgap
     from sage.features.gap import GapPackage
 
-    GapPackage("grape", spkg="gap_packages").require()
+    GapPackage("grape", spkg='gap_packages').require()
 
-    adj_list=libgap.function_factory("""function()
+    adj_list = libgap.function_factory("""function()
                 local f, o540, a540, x, oh, h, lo, G;
                 LoadPackage("grape");
                 f:=Sp(4,3);
@@ -5148,8 +6281,6 @@ def U42Graph540():
                 end;""")
 
     adj = adj_list()  # for each vertex, we get the list of vertices it is adjacent to
-    G = Graph(((i, int(j - 1))
-               for i, ni in enumerate(adj) for j in ni),
-               format='list_of_edges', multiedges=False)
-    G.name('U42Graph540')
-    return G
+    return Graph(((i, int(j - 1)) for i, ni in enumerate(adj) for j in ni),
+                 format='list_of_edges', multiedges=False,
+                 name='U42Graph540', immutable=immutable)

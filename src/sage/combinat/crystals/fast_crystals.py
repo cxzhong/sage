@@ -1,5 +1,6 @@
+# sage.doctest: needs sage.combinat sage.modules
 r"""
-Fast Rank Two Crystals
+Fast rank two crystals
 """
 # ****************************************************************************
 #       Copyright (C) 2007 Anne Schilling <anne at math.ucdavis.edu>
@@ -41,10 +42,10 @@ class FastCrystal(UniqueRepresentation, Parent):
 
     - ``cartan_type`` -- the Cartan type and must be either type `A_2`, `B_2`, or `C_2`
 
-    - ``shape`` -- A shape is of the form ``[l1,l2]`` where ``l1`` and ``l2``
+    - ``shape`` -- a shape is of the form ``[l1,l2]`` where ``l1`` and ``l2``
       are either integers or (in type `B_2`) half integers such that
       ``l1 - l2`` is integral. It is assumed that ``l1 >= l2 >= 0``. If
-      ``l1`` and ``l2` are integers, this will produce a crystal
+      ``l1`` and ``l2`` are integers, this will produce a crystal
       isomorphic to the one obtained by
       ``crystals.Tableaux(type, shape=[l1,l2])``. Furthermore
       ``crystals.FastRankTwo(['B', 2], l1+1/2, l2+1/2)`` produces a crystal
@@ -87,11 +88,22 @@ class FastCrystal(UniqueRepresentation, Parent):
         sage: C.cardinality()
         35
         sage: TestSuite(C).run()
+
+        sage: C = crystals.FastRankTwo(['A',2],shape=[2,1])
+        sage: C.list()
+        [[0, 0, 0],
+         [1, 0, 0],
+         [0, 1, 1],
+         [0, 2, 1],
+         [1, 2, 1],
+         [0, 1, 0],
+         [1, 1, 0],
+         [2, 1, 0]]
     """
     @staticmethod
-    def __classcall__(cls, cartan_type, shape, format = "string"):
+    def __classcall__(cls, cartan_type, shape, format='string'):
         """
-        Normalize the input arguments to ensure unique representation
+        Normalize the input arguments to ensure unique representation.
 
         EXAMPLES::
 
@@ -105,7 +117,7 @@ class FastCrystal(UniqueRepresentation, Parent):
         if len(shape) > 2:
             raise ValueError("The shape must have length <=2")
         shape = shape + (0,)*(2-len(shape))
-        return super(FastCrystal, cls).__classcall__(cls, cartan_type, shape, format)
+        return super().__classcall__(cls, cartan_type, shape, format)
 
     def __init__(self, ct, shape, format):
         """
@@ -115,8 +127,8 @@ class FastCrystal(UniqueRepresentation, Parent):
             The fast crystal for A2 with shape [4,1]
             sage: TestSuite(C).run()
         """
-        Parent.__init__(self, category = ClassicalCrystals())
-#        super(FastCrystal, self).__init__(category = FiniteEnumeratedSets())
+        Parent.__init__(self, category=ClassicalCrystals())
+#        super().__init__(category = FiniteEnumeratedSets())
         self._cartan_type = ct
         if ct[1] != 2:
             raise NotImplementedError
@@ -142,14 +154,14 @@ class FastCrystal(UniqueRepresentation, Parent):
         self.shape = shape
 
         for i in range(self.size):
-            target = [x for x in self.delpat[i]]
+            target = list(self.delpat[i])
 
             target[0] = target[0]-1
             e1 = None if target not in self.delpat else self.delpat.index(target)
             target[0] = target[0]+1+1
             f1 = None if target not in self.delpat else self.delpat.index(target)
 
-            target = [x for x in self.gampat[i]]
+            target = list(self.gampat[i])
             target[0] = target[0]-1
             e2 = None if target not in self.gampat else self.gampat.index(target)
             target[0] = target[0]+1+1
@@ -157,19 +169,17 @@ class FastCrystal(UniqueRepresentation, Parent):
 
             self._rootoperators.append([e1,f1,e2,f2])
 
-        if int(2*l1)%2 == 0:
-            l1_str = "%d"%l1
-            l2_str = "%d"%l2
+        if int(2*l1) % 2 == 0:
+            l1_str = "%d" % l1
+            l2_str = "%d" % l2
         else:
-            assert self._cartan_type[0] == 'B' and int(2*l2)%2 == 1
-            l1_str = "%d/2"%int(2*l1)
-            l2_str = "%d/2"%int(2*l2)
-        self.rename("The fast crystal for %s2 with shape [%s,%s]"%(ct[0],l1_str,l2_str))
+            assert self._cartan_type[0] == 'B' and int(2*l2) % 2 == 1
+            l1_str = "%d/2" % int(2*l1)
+            l2_str = "%d/2" % int(2*l2)
+        self.rename("The fast crystal for %s2 with shape [%s,%s]" % (ct[0],l1_str,l2_str))
         self.module_generators = [self(0)]
-#        self._list = ClassicalCrystal.list(self)
-        self._list = super(FastCrystal, self).list()
-#        self._digraph = ClassicalCrystal.digraph(self)
-        self._digraph = super(FastCrystal, self).digraph()
+        # self._digraph = ClassicalCrystal.digraph(self)
+        self._digraph = super().digraph()
         self._digraph_closure = self.digraph().transitive_closure()
 
     def _type_a_init(self, l1, l2):
@@ -210,9 +220,9 @@ class FastCrystal(UniqueRepresentation, Parent):
             4
         """
         if self._cartan_type[0] == 'B':
-            [m1, m2] = [l1+l2, l1-l2]
+            m1, m2 = l1 + l2, l1 - l2
         else:
-            [m1, m2] = [l1, l2]
+            m1, m2 = l1, l2
         for b in range(m2,-1,-1):
             for a in range(m1,m2-1,-1):
                 for c in range(b,a+1):
@@ -249,28 +259,9 @@ class FastCrystal(UniqueRepresentation, Parent):
             return value
         return self.element_class(self, value, self.format)
 
-    def list(self):
-        """
-        Return a list of the elements of self.
-
-        EXAMPLES::
-
-            sage: C = crystals.FastRankTwo(['A',2],shape=[2,1])
-            sage: C.list()
-            [[0, 0, 0],
-             [1, 0, 0],
-             [0, 1, 1],
-             [0, 2, 1],
-             [1, 2, 1],
-             [0, 1, 0],
-             [1, 1, 0],
-             [2, 1, 0]]
-        """
-        return self._list
-
     def digraph(self):
         """
-        Return the digraph associated to self.
+        Return the digraph associated to ``self``.
 
         EXAMPLES::
 
@@ -280,9 +271,9 @@ class FastCrystal(UniqueRepresentation, Parent):
         """
         return self._digraph
 
-    def cmp_elements(self, x,y):
+    def cmp_elements(self, x, y):
         r"""
-        Return True if and only if there is a path from x to y in the
+        Return ``True`` if and only if there is a path from `x` to `y` in the
         crystal graph.
 
         Because the crystal graph is classical, it is a directed acyclic
@@ -304,10 +295,9 @@ class FastCrystal(UniqueRepresentation, Parent):
         assert x.parent() == self and y.parent() == self
         if self._digraph_closure.has_edge(x,y):
             return -1
-        elif self._digraph_closure.has_edge(y,x):
+        if self._digraph_closure.has_edge(y,x):
             return 1
-        else:
-            return 0
+        return 0
 
     class Element(Element):
         def __init__(self, parent, value, format):
@@ -327,7 +317,7 @@ class FastCrystal(UniqueRepresentation, Parent):
 
         def weight(self):
             """
-            Return the weight of self.
+            Return the weight of ``self``.
 
             EXAMPLES::
 
@@ -345,11 +335,11 @@ class FastCrystal(UniqueRepresentation, Parent):
             delpat = self.parent().delpat[self.value]
             if self.parent()._cartan_type[0] == 'A':
                 delpat = delpat + [0,]
-            [alpha1, alpha2] = self.parent().weight_lattice_realization().simple_roots()
+            alpha1, alpha2 = self.parent().weight_lattice_realization().simple_roots()
             hwv = sum(self.parent().shape[i]*self.parent().weight_lattice_realization().monomial(i) for i in range(2))
             return hwv - (delpat[0]+delpat[2])*alpha1 - (delpat[1]+delpat[3])*alpha2
 
-        def _repr_(self):
+        def _repr_(self) -> str:
             """
             EXAMPLES::
 
@@ -359,12 +349,11 @@ class FastCrystal(UniqueRepresentation, Parent):
             """
             if self.format == "string":
                 return repr(self.parent().delpat[self.value])
-            elif self.format == "dual_string":
+            if self.format == "dual_string":
                 return repr(self.parent().gampat[self.value])
-            elif self.format == "simple":
+            if self.format == "simple":
                 return repr(self.value)
-            else:
-                raise NotImplementedError
+            raise NotImplementedError
 
         def __hash__(self):
             r"""
@@ -412,7 +401,7 @@ class FastCrystal(UniqueRepresentation, Parent):
 
         def e(self, i):
             """
-            Return the action of `e_i` on self.
+            Return the action of `e_i` on ``self``.
 
             EXAMPLES::
 
@@ -431,7 +420,7 @@ class FastCrystal(UniqueRepresentation, Parent):
 
         def f(self, i):
             """
-            Return the action of `f_i` on self.
+            Return the action of `f_i` on ``self``.
 
             EXAMPLES::
 

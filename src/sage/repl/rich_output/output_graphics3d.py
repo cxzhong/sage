@@ -1,42 +1,38 @@
-# -*- encoding: utf-8 -*-
 r"""
 Three-Dimensional Graphics Output Types
 
 This module defines the rich output types for 3-d scenes.
 """
-
-#*****************************************************************************
+# ****************************************************************************
 #       Copyright (C) 2015 Volker Braun <vbraun.name@gmail.com>
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
 #  as published by the Free Software Foundation; either version 2 of
 #  the License, or (at your option) any later version.
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
-
-
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 import os
+import importlib.resources
 
 from sage.cpython.string import bytes_to_str, FS_ENCODING
 from sage.repl.rich_output.output_basic import OutputBase
 from sage.repl.rich_output.buffer import OutputBuffer
 
 
-
 class OutputSceneJmol(OutputBase):
 
     def __init__(self, scene_zip, preview_png):
         """
-        JMol Scene
+        JMol Scene.
 
         By our (Sage) convention, the actual scene is called ``SCENE``
         inside the zip archive.
 
         INPUT:
 
-        - ``scene_zip`` -- string/bytes. The jmol scene (a zip archive).
+        - ``scene_zip`` -- string/bytes; the jmol scene (a zip archive)
 
-        - ``preview_png`` -- string/bytes. Preview as png file.
+        - ``preview_png`` -- string/bytes; preview as png file
 
         EXAMPLES::
 
@@ -56,9 +52,7 @@ class OutputSceneJmol(OutputBase):
         file. The launch script is often necessary to make jmol
         render the 3d scene.
 
-        OUTPUT:
-
-        String. The file name of a suitable launch script.
+        OUTPUT: string; the file name of a suitable launch script
 
         EXAMPLES::
 
@@ -85,14 +79,12 @@ class OutputSceneJmol(OutputBase):
     @classmethod
     def example(cls):
         r"""
-        Construct a sample Jmol output container
+        Construct a sample Jmol output container.
 
         This static method is meant for doctests, so they can easily
         construct an example.
 
-        OUTPUT:
-
-        An instance of :class:`OutputSceneJmol`.
+        OUTPUT: an instance of :class:`OutputSceneJmol`
 
         EXAMPLES::
 
@@ -110,15 +102,8 @@ class OutputSceneJmol(OutputBase):
             sage: rich_output.preview_png.get().startswith(b'\x89PNG')
             True
         """
-        from sage.env import SAGE_EXTCODE
-        example_png_filename = os.path.join(
-            SAGE_EXTCODE, 'doctest', 'rich_output', 'example.png')
-        with open(example_png_filename, 'rb') as f:
-            example_png = f.read()
-        scene_zip_filename = os.path.join(
-            SAGE_EXTCODE, 'doctest', 'rich_output', 'example_jmol.spt.zip')
-        with open(scene_zip_filename, 'rb') as f:
-            scene_zip = f.read()
+        example_png = importlib.resources.read_binary(__package__, 'example.png')
+        scene_zip = importlib.resources.read_binary(__package__, 'example_jmol.spt.zip')
         return cls(scene_zip, example_png)
 
 
@@ -126,11 +111,11 @@ class OutputSceneCanvas3d(OutputBase):
 
     def __init__(self, canvas3d):
         """
-        Canvas3d Scene
+        Canvas3d Scene.
 
         INPUT:
 
-        - ``canvas3d`` -- string/bytes. The canvas3d data.
+        - ``canvas3d`` -- string/bytes; the canvas3d data
 
         EXAMPLES::
 
@@ -143,14 +128,12 @@ class OutputSceneCanvas3d(OutputBase):
     @classmethod
     def example(cls):
         r"""
-        Construct a sample Canvas3D output container
+        Construct a sample Canvas3D output container.
 
         This static method is meant for doctests, so they can easily
         construct an example.
 
-        OUTPUT:
-
-        An instance of :class:`OutputSceneCanvas3d`.
+        OUTPUT: an instance of :class:`OutputSceneCanvas3d`
 
         EXAMPLES::
 
@@ -163,21 +146,19 @@ class OutputSceneCanvas3d(OutputBase):
             sage: rich_output.canvas3d.get_str()
             '[{"vertices":[{"x":1,"y":1,"z":1},...{"x":1,"y":-1,"z":-1}],"faces":[[0,1,2,3]],"color":"008000"}]'
         """
-        from sage.env import SAGE_EXTCODE
-        filename = os.path.join(
-            SAGE_EXTCODE, 'doctest', 'rich_output', 'example.canvas3d')
-        return cls(OutputBuffer.from_file(filename))
+        with importlib.resources.path(__package__, 'example.canvas3d') as filename:
+            return cls(OutputBuffer.from_file(filename))
 
 
 class OutputSceneThreejs(OutputBase):
 
     def __init__(self, html):
         """
-        Three.js Scene
+        Three.js Scene.
 
         INPUT:
 
-        - ``html`` -- string/bytes. The Three.js HTML data.
+        - ``html`` -- string/bytes; the Three.js HTML data
 
         EXAMPLES::
 
@@ -192,7 +173,7 @@ class OutputSceneWavefront(OutputBase):
 
     def __init__(self, obj, mtl):
         """
-        Wavefront `*.obj` Scene
+        Wavefront `*.obj` Scene.
 
         The Wavefront format consists of two files, an ``.obj`` file
         defining the geometry data (mesh points, normal vectors, ...)
@@ -200,11 +181,11 @@ class OutputSceneWavefront(OutputBase):
 
         INPUT:
 
-        - ``obj`` -- bytes. The Wavefront obj file format describing
-          the mesh shape.
+        - ``obj`` -- bytes; the Wavefront obj file format describing
+          the mesh shape
 
-        - ``mtl`` -- bytes. The Wavefront mtl file format describing
-          textures.
+        - ``mtl`` -- bytes; the Wavefront mtl file format describing
+          textures
 
         EXAMPLES::
 
@@ -226,11 +207,11 @@ class OutputSceneWavefront(OutputBase):
 
         INPUT:
 
-        - ``filename`` -- string. A filename.
+        - ``filename`` -- string; a filename
 
         OUTPUT:
 
-        This method returns nothing. A ``ValueError`` is raised if
+        This method returns nothing. A :exc:`ValueError` is raised if
         ``filename`` is not just a plain filename but contains a
         directory (relative or absolute).
 
@@ -258,7 +239,7 @@ class OutputSceneWavefront(OutputBase):
 
     def mtllib(self):
         """
-        Return the ``mtllib`` filename
+        Return the ``mtllib`` filename.
 
         The ``mtllib`` line in the Wavefront file format (``*.obj``)
         is the name of the separate texture file.
@@ -284,7 +265,7 @@ class OutputSceneWavefront(OutputBase):
 
     def obj_filename(self):
         """
-        Return the file name of the ``.obj`` file
+        Return the file name of the ``.obj`` file.
 
         This method saves the object and texture to separate files in
         a temporary directory and returns the object file name. This
@@ -333,14 +314,12 @@ class OutputSceneWavefront(OutputBase):
     @classmethod
     def example(cls):
         r"""
-        Construct a sample Canvas3D output container
+        Construct a sample Canvas3D output container.
 
         This static method is meant for doctests, so they can easily
         construct an example.
 
-        OUTPUT:
-
-        An instance of :class:`OutputSceneCanvas3d`.
+        OUTPUT: an instance of :class:`OutputSceneCanvas3d`
 
         EXAMPLES::
 
@@ -358,10 +337,8 @@ class OutputSceneWavefront(OutputBase):
             sage: rich_output.mtl.get_str()
             'newmtl texture177\nKa 0.2 0.2 0.5\nKd 0.4 0.4 1.0\nKs 0.0 0.0 0.0\nillum 1\nNs 1\nd 1\n'
         """
-        from sage.env import SAGE_EXTCODE
-        with_path = lambda x: os.path.join(
-            SAGE_EXTCODE, 'doctest', 'rich_output', 'example_wavefront', x)
-        return cls(
-            OutputBuffer.from_file(with_path('scene.obj')),
-            OutputBuffer.from_file(with_path('scene.mtl')),
-        )
+        with importlib.resources.path(__package__, 'example_wavefront_scene.obj') as filename:
+            scene_obj = OutputBuffer.from_file(filename)
+        with importlib.resources.path(__package__, 'example_wavefront_scene.mtl') as filename:
+            scene_mtl = OutputBuffer.from_file(filename)
+        return cls(scene_obj, scene_mtl)

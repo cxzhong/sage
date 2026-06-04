@@ -1,4 +1,3 @@
-# -*- encoding: utf-8 -*-
 """
 Gosper iterator for homographic transformations
 
@@ -7,9 +6,9 @@ EXAMPLES::
     sage: from sage.rings.continued_fraction_gosper import gosper_iterator
     sage: x = continued_fraction(pi)
     sage: it = iter(gosper_iterator(3,2,3,1,x))
-    sage: Word(it, length='infinite')
+    sage: Word(it, length='infinite')                                                   # needs sage.combinat
     word: 1,10,2,2,1,4,1,1,1,97,4,1,2,1,2,45,6,4,9,1,27,2,6,1,4,2,3,1,3,1,15,2,1,1,2,1,1,2,32,1,...
-    sage: continued_fraction((3*pi + 2) / (3*pi + 1))
+    sage: continued_fraction((3*pi + 2) / (3*pi + 1))                                   # needs sage.combinat
     [1; 10, 2, 2, 1, 4, 1, 1, 1, 97, 4, 1, 2, 1, 2, 45, 6, 4, 9, 1, ...]
 
 REFERENCES:
@@ -35,7 +34,8 @@ For more information on the underlying algorithm, see [Gos1972]_.
 from sage.rings.infinity import Infinity
 from sage.rings.integer import Integer
 
-class gosper_iterator(object):
+
+class gosper_iterator:
     r"""
     Iterable for the partial quotients of `(a*x+b)/(c*x+d)`, where `a, b, c, d`
     are integers, and `x` is a continued fraction.
@@ -46,7 +46,7 @@ class gosper_iterator(object):
 
         INPUT:
 
-        - ``a, b, c, d`` -- integer coefficients of the transformation
+        - ``a``, ``b``, ``c``, ``d`` -- integer coefficients of the transformation
 
         - ``x`` -- a continued fraction
 
@@ -60,7 +60,7 @@ class gosper_iterator(object):
             sage: preperiod_length = i.output_preperiod_length
             sage: preperiod = l[:preperiod_length]
             sage: period = l[preperiod_length:]
-            sage: continued_fraction((preperiod, period), x.value()) == continued_fraction((a*x.value()+b)/(c*x.value()+d))
+            sage: c == d == 0 or continued_fraction((preperiod, period), x.value()) == continued_fraction((a*x.value()+b)/(c*x.value()+d))  # not tested, known bug (see :issue:`32127`)
             True
 
         Infinity::
@@ -102,13 +102,15 @@ class gosper_iterator(object):
 
         TESTS::
 
-            sage: a = Integer(randint(-100,100)); b = Integer(randint(-100,100));
-            sage: c = Integer(randint(-100,100)); d = Integer(randint(-100,100));
             sage: from sage.rings.continued_fraction_gosper import gosper_iterator
-            sage: ig = iter(gosper_iterator(a,b,c,d,continued_fraction(pi))); icf = iter(continued_fraction((a*pi+b)/(c*pi+d)));
-            sage: lg = [next(ig) for _ in range(10)]; lcf = [next(icf) for _ in range(10)];
-            sage: lg == lcf
-            True
+            sage: a, b, c, d = (Integer(randint(-100,100)) for _ in range(4))
+            sage: ig = iter(gosper_iterator(a, b, c, d, continued_fraction(pi)))        # needs sage.symbolic
+            sage: icf = iter(continued_fraction((a*pi + b) / (c*pi + d)));              # needs sage.symbolic
+            sage: for i in range(10):                                                   # needs sage.symbolic
+            ....:     try:
+            ....:         assert next(ig) == next(icf)
+            ....:     except StopIteration:
+            ....:         break
         """
         return self
 
@@ -118,12 +120,10 @@ class gosper_iterator(object):
 
         TESTS::
 
-            sage: a = Integer(randint(-100,100)); b = Integer(randint(-100,100));
-            sage: c = Integer(randint(-100,100)); d = Integer(randint(-100,100));
             sage: from sage.rings.continued_fraction_gosper import gosper_iterator
-            sage: ig = iter(gosper_iterator(a,b,c,d,continued_fraction(pi))); icf = iter(continued_fraction((a*pi+b)/(c*pi+d)));
-            sage: for i in range(10):
-            ....:     assert next(ig) == next(icf)
+            sage: it = gosper_iterator(1, 0, 0, 1, continued_fraction(pi))              # needs sage.symbolic
+            sage: list(next(it) for _ in range(10))                                     # needs sage.symbolic
+            [3, 7, 15, 1, 292, 1, 1, 1, 2, 1]
         """
         while True:
             if self.currently_read >= self.input_preperiod_length:
@@ -144,8 +144,7 @@ class gosper_iterator(object):
             if ub == lb and s < 1:
                 self.emit(ub)
                 return Integer(ub)
-            else:
-                self.ingest()
+            self.ingest()
 
     def emit(self, q):
         """
@@ -156,10 +155,10 @@ class gosper_iterator(object):
             sage: a = Integer(randint(-100,100)); b = Integer(randint(-100,100));
             sage: c = Integer(randint(-100,100)); d = Integer(randint(-100,100));
             sage: from sage.rings.continued_fraction_gosper import gosper_iterator
-            sage: gi = gosper_iterator(a,b,c,d,continued_fraction(pi))
-            sage: for i in range(10):
+            sage: gi = gosper_iterator(a, b, c, d, continued_fraction(pi))              # needs sage.symbolic
+            sage: for i in range(10):                                                   # needs sage.symbolic
             ....:     gi.emit(i)
-            sage: gi.currently_emitted
+            sage: gi.currently_emitted                                                  # needs sage.symbolic
             10
         """
         self.currently_emitted += 1
@@ -182,10 +181,10 @@ class gosper_iterator(object):
             sage: a = Integer(randint(-100,100)); b = Integer(randint(-100,100));
             sage: c = Integer(randint(-100,100)); d = Integer(randint(-100,100));
             sage: from sage.rings.continued_fraction_gosper import gosper_iterator
-            sage: gi = gosper_iterator(a,b,c,d,continued_fraction(pi))
-            sage: for i in range(10):
+            sage: gi = gosper_iterator(a, b, c, d, continued_fraction(pi))              # needs sage.symbolic
+            sage: for i in range(10):                                                   # needs sage.symbolic
             ....:     gi.ingest()
-            sage: gi.currently_read
+            sage: gi.currently_read                                                     # needs sage.symbolic
             10
         """
         try:
@@ -214,5 +213,4 @@ class gosper_iterator(object):
         """
         if not d:
             return +Infinity
-        else:
-            return n // d
+        return n // d

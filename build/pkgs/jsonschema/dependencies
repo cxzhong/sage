@@ -1,5 +1,4 @@
-$(PYTHON) vcversioner attrs importlib_metadata pyrsistent | $(PYTHON_TOOLCHAIN)
+jsonschema_specifications rpds_py attrs fqdn isoduration jsonpointer uri_template webcolors referencing | $(PYTHON_TOOLCHAIN) $(PYTHON)
 
 ----------
 All lines of this file are ignored except the first.
-It is copied by SAGE_ROOT/build/make/install into SAGE_ROOT/build/make/Makefile.

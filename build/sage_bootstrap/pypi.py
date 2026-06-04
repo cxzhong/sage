@@ -4,15 +4,16 @@ PyPi Version Information
 """
 
 
-#*****************************************************************************
-#       Copyright (C) 2016 Volker Braun <vbraun.name@gmail.com>
+# ****************************************************************************
+#       Copyright (C) 2016      Volker Braun <vbraun.name@gmail.com>
+#                     2020-2023 Matthias Koeppe
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
 import logging
 log = logging.getLogger()
@@ -31,23 +32,27 @@ class PyPiNotFound(Exception):
 class PyPiError(Exception):
     pass
 
- 
+
 class PyPiVersion(object):
 
-    def __init__(self, package_name):
+    def __init__(self, package_name, source='normal'):
         self.name = package_name
         self.json = self._get_json()
         # Replace provided name with the canonical name
         self.name = self.json['info']['name']
+        if source == 'wheel':
+            self.python_version = 'py3'
+        else:
+            self.python_version = 'source'
 
     def _get_json(self):
         response = urllib.urlopen(self.json_url)
-        if response.getcode() != 200:    
+        if response.getcode() != 200:
             raise PyPiNotFound('%s not on pypi', self.name)
         data = response.read()
         text = data.decode('utf-8')
         return json.loads(text)
-        
+
     @property
     def json_url(self):
         return 'https://pypi.python.org/pypi/{0}/json'.format(self.name)
@@ -65,9 +70,10 @@ class PyPiVersion(object):
         Return the source url
         """
         for download in self.json['urls']:
-            if download['python_version'] == 'source':
+            if self.python_version in download['python_version']:
+                self.python_version = download['python_version']
                 return download['url']
-        raise PyPiError('No source url for %s found', self.name)
+        raise PyPiError('No %s url for %s found', self.python_version, self.name)
 
     @property
     def tarball(self):
@@ -75,9 +81,10 @@ class PyPiVersion(object):
         Return the source tarball name
         """
         for download in self.json['urls']:
-            if download['python_version'] == 'source':
+            if self.python_version in download['python_version']:
+                self.python_version = download['python_version']
                 return download['filename']
-        raise PyPiError('No source url for %s found', self.name)
+        raise PyPiError('No %s url for %s found', self.python_version, self.name)
 
     @property
     def package_url(self):
@@ -99,6 +106,20 @@ class PyPiVersion(object):
         Return the package summary
         """
         return self.json['info']['summary']
+
+    @property
+    def requires_dist(self):
+        """
+        Return the dependencies
+        """
+        return self.json['info']['requires_dist']
+
+    @property
+    def requires_python(self):
+        """
+        Return the requires_python attribute
+        """
+        return self.json['info']['requires_python']
 
     def update(self, package=None):
         if package is None:

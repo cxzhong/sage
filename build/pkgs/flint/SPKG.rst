@@ -4,8 +4,8 @@ flint: Fast Library for Number Theory
 Description
 -----------
 
-FLINT is a C library for doing number theory, maintained by William
-Hart.
+FLINT is a C library for doing number theory, maintained by
+Fredrik Johansson.
 
 Website: http://www.flintlib.org
 
@@ -20,11 +20,4 @@ Upstream Contact
 
 -  flint-devel Gougle Group
    (http://groups.google.co.uk/group/flint-devel)
--  William Hart
-
-Dependencies
-------------
-
--  MPIR
--  MPFR
--  NTL
+-  Fredrik Johansson

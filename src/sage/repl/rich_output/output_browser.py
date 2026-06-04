@@ -1,4 +1,3 @@
-# -*- encoding: utf-8 -*-
 r"""
 Rich Output for the Browser
 """
@@ -12,11 +11,12 @@ from sage.repl.rich_output.buffer import OutputBuffer
 latex_re = re.compile(r'<html>(?P<mathstart>\\\[|\\\()(?P<latex>.*)(?P<mathend>\\\]|\\\))</html>',
                       flags=re.DOTALL)
 
+
 class OutputHtml(OutputBase):
 
     def __init__(self, html):
         """
-        HTML Output
+        HTML Output.
 
         INPUT:
 
@@ -40,24 +40,24 @@ class OutputHtml(OutputBase):
         # pdf export of a notebook
         m = latex_re.match(html)
         if m:
+            mathjax_string = m.group('latex')
+            latex_string = mathjax_string.replace('&lt;', '<')
             if m.group('mathstart') == r'\[' and m.group('mathend') == r'\]':
-                self.latex = OutputBuffer('$$' + m.group('latex') + '$$')
+                self.latex = OutputBuffer('$$' + latex_string + '$$')
             else:
-                self.latex = OutputBuffer('$' + m.group('latex') + '$')
+                self.latex = OutputBuffer('$' + latex_string + '$')
         else:
             self.latex = None
 
     @classmethod
     def example(cls):
         r"""
-        Construct a sample Html output container
+        Construct a sample Html output container.
 
         This static method is meant for doctests, so they can easily
         construct an example.
 
-        OUTPUT:
-
-        An instance of :class:`OutputHtml`.
+        OUTPUT: an instance of :class:`OutputHtml`
 
         EXAMPLES::
 
@@ -86,7 +86,7 @@ class OutputHtml(OutputBase):
 
     def with_html_tag(self):
         r"""
-        Return the HTML code surrounded by ``<html>`` tag
+        Return the HTML code surrounded by ``<html>`` tag.
 
         This is just a convenience method.
 

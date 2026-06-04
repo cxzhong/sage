@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Representations of objects
 """
@@ -24,7 +23,7 @@ from sage.repl.display.util import format_list
 _baseclass_reprs = (object.__repr__,)
 
 
-class ObjectReprABC(object):
+class ObjectReprABC:
     """
     The abstract base class of an object representer.
 
@@ -35,9 +34,7 @@ class ObjectReprABC(object):
         """
         Return string representation.
 
-        OUTPUT:
-
-        String.
+        OUTPUT: string
 
         EXAMPLES::
 
@@ -53,15 +50,15 @@ class ObjectReprABC(object):
 
         INPUT:
 
-        - ``obj`` -- anything. Object to format.
+        - ``obj`` -- anything; object to format
 
-        - ``p`` -- PrettyPrinter instance.
+        - ``p`` -- PrettyPrinter instance
 
-        - ``cycle`` -- boolean. Whether there is a cycle.
+        - ``cycle`` -- boolean; whether there is a cycle
 
         OUTPUT:
 
-        Boolean. Whether the representer is applicable to ``obj``. If
+        boolean; whether the representer is applicable to ``obj``. If
         ``True``, the string representation is appended to ``p``.
 
         EXAMPLES::
@@ -79,11 +76,9 @@ class ObjectReprABC(object):
 
         INPUT:
 
-        - ``obj`` -- anything. Object to format.
+        - ``obj`` -- anything; object to format
 
-        OUTPUT:
-
-        String.
+        OUTPUT: string
 
         EXAMPLES::
 
@@ -98,15 +93,14 @@ class ObjectReprABC(object):
         if ok:
             p.flush()
             return stream.getvalue()
-        else:
-            return '--- object not handled by representer ---'
+        return '--- object not handled by representer ---'
 
 
 class SomeIPythonRepr(ObjectReprABC):
 
     def __init__(self):
         """
-        Some selected representers from IPython
+        Some selected representers from IPython.
 
         EXAMPLES::
 
@@ -124,20 +118,20 @@ class SomeIPythonRepr(ObjectReprABC):
         self._type_repr = type_repr
 
     def __call__(self, obj, p, cycle):
-        """
+        r"""
         Format object.
 
         INPUT:
 
-        - ``obj`` -- anything. Object to format.
+        - ``obj`` -- anything; object to format
 
-        - ``p`` -- PrettyPrinter instance.
+        - ``p`` -- PrettyPrinter instance
 
-        - ``cycle`` -- boolean. Whether there is a cycle.
+        - ``cycle`` -- boolean; whether there is a cycle
 
         OUTPUT:
 
-        Boolean. Whether the representer is applicable to ``obj``. If
+        boolean; whether the representer is applicable to ``obj``. If
         ``True``, the string representation is appended to ``p``.
 
         EXAMPLES::
@@ -146,7 +140,17 @@ class SomeIPythonRepr(ObjectReprABC):
             sage: pp = SomeIPythonRepr()
             sage: pp.format_string(set([1, 2, 3]))
             '{1, 2, 3}'
+
+        TESTS::
+
+            sage: pp.format_string(Sequence([[1]*20, [2]*20]))
+            '[[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],\n [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2]]'
         """
+        if hasattr(type(obj), '_repr_pretty_'):
+            # standard method for classes to extend pretty library
+            # see https://ipython.readthedocs.io/en/stable/api/generated/IPython.lib.pretty.html#extending
+            obj._repr_pretty_(p, cycle)
+            return True
         try:
             pretty_repr = self._type_repr[type(obj)]
         except KeyError:
@@ -157,7 +161,7 @@ class SomeIPythonRepr(ObjectReprABC):
 
 class LargeMatrixHelpRepr(ObjectReprABC):
     """
-    Representation including help for large Sage matrices
+    Representation including help for large Sage matrices.
 
     .. automethod:: __call__
     """
@@ -168,42 +172,40 @@ class LargeMatrixHelpRepr(ObjectReprABC):
 
         INPUT:
 
-        - ``obj`` -- anything. Object to format.
+        - ``obj`` -- anything; object to format
 
-        - ``p`` -- PrettyPrinter instance.
+        - ``p`` -- PrettyPrinter instance
 
-        - ``cycle`` -- boolean. Whether there is a cycle.
+        - ``cycle`` -- boolean; whether there is a cycle
 
         OUTPUT:
 
-        Boolean. Whether the representer is applicable to ``obj``. If
+        boolean; whether the representer is applicable to ``obj``. If
         ``True``, the string representation is appended to ``p``.
 
         EXAMPLES::
 
+            sage: # needs sage.modules
             sage: from sage.repl.display.fancy_repr import LargeMatrixHelpRepr
             sage: M = identity_matrix(40)
             sage: pp = LargeMatrixHelpRepr()
             sage: pp.format_string(M)
-            "40 x 40 dense matrix over Integer Ring (use the '.str()' method to see the entries)"
+            "40 x 40 dense matrix over Integer Ring (use the '.str()' method...)"
             sage: pp.format_string([M, M])
             '--- object not handled by representer ---'
 
         Leads to::
 
-            sage: M
-            40 x 40 dense matrix over Integer Ring (use the '.str()' method to see the entries)
-            sage: [M, M]
+            sage: M                                                                     # needs sage.modules
+            40 x 40 dense matrix over Integer Ring (use the '.str()' method...)
+            sage: [M, M]                                                                # needs sage.modules
             [40 x 40 dense matrix over Integer Ring,
              40 x 40 dense matrix over Integer Ring]
         """
         if not p.toplevel():
             # Do not print the help for matrices inside containers
             return False
-        try:
-            from sage.matrix.matrix1 import Matrix
-        except ModuleNotFoundError:
-            return False
+        from sage.structure.element import Matrix
         if not isinstance(obj, Matrix):
             return False
         from sage.matrix.constructor import options
@@ -217,26 +219,26 @@ class LargeMatrixHelpRepr(ObjectReprABC):
 
 class PlainPythonRepr(ObjectReprABC):
     """
-    The ordinary Python representation
+    The ordinary Python representation.
 
     .. automethod:: __call__
     """
 
     def __call__(self, obj, p, cycle):
         r"""
-        Format matrix.
+        Format object.
 
         INPUT:
 
-        - ``obj`` -- anything. Object to format.
+        - ``obj`` -- anything; object to format
 
-        - ``p`` -- PrettyPrinter instance.
+        - ``p`` -- PrettyPrinter instance
 
-        - ``cycle`` -- boolean. Whether there is a cycle.
+        - ``cycle`` -- boolean; whether there is a cycle
 
         OUTPUT:
 
-        Boolean. Whether the representer is applicable to ``obj``. If
+        boolean; whether the representer is applicable to ``obj``. If
         ``True``, the string representation is appended to ``p``.
 
         EXAMPLES::
@@ -244,14 +246,14 @@ class PlainPythonRepr(ObjectReprABC):
             sage: from sage.repl.display.fancy_repr import PlainPythonRepr
             sage: pp = PlainPythonRepr()
             sage: pp.format_string(type(1))
-            "<type 'sage.rings.integer.Integer'>"
+            "<class 'sage.rings.integer.Integer'>"
 
         Do not swallow a trailing newline at the end of the output of
         a custom representer. Note that it is undesirable to have a
         trailing newline, and if we don't display it you can't fix
         it::
 
-            sage: class Newline(object):
+            sage: class Newline():
             ....:     def __repr__(self):
             ....:         return 'newline\n'
             sage: n = Newline()
@@ -289,7 +291,7 @@ class PlainPythonRepr(ObjectReprABC):
 
 class TallListRepr(ObjectReprABC):
     """
-    Special representation for lists with tall entries (e.g. matrices)
+    Special representation for lists with tall entries (e.g. matrices).
 
     .. automethod:: __call__
     """
@@ -300,27 +302,27 @@ class TallListRepr(ObjectReprABC):
 
         INPUT:
 
-        - ``obj`` -- anything. Object to format.
+        - ``obj`` -- anything; object to format
 
-        - ``p`` -- PrettyPrinter instance.
+        - ``p`` -- PrettyPrinter instance
 
-        - ``cycle`` -- boolean. Whether there is a cycle.
+        - ``cycle`` -- boolean; whether there is a cycle
 
         OUTPUT:
 
-        Boolean. Whether the representer is applicable to ``obj``. If
+        boolean; whether the representer is applicable to ``obj``. If
         ``True``, the string representation is appended to ``p``.
 
         EXAMPLES::
 
             sage: from sage.repl.display.fancy_repr import TallListRepr
             sage: format_list = TallListRepr().format_string
-            sage: format_list([1, 2, identity_matrix(2)])
+            sage: format_list([1, 2, identity_matrix(2)])                               # needs sage.modules
             '[\n      [1 0]\n1, 2, [0 1]\n]'
 
-        Check that :trac:`18743` is fixed::
+        Check that :issue:`18743` is fixed::
 
-            sage: class Foo(object):
+            sage: class Foo():
             ....:     def __repr__(self):
             ....:         return '''BBB    AA   RRR
             ....: B  B  A  A  R  R

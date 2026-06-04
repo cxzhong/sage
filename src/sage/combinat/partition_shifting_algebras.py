@@ -1,6 +1,6 @@
-# -*- coding: utf-8 -*-
+# sage.doctest: needs sage.combinat sage.modules
 r"""
-Partition Shifting Algebras
+Partition shifting algebras
 
 This module contains families of operators that act on partitions or,
 more generally, integer sequences. In particular, this includes Young's
@@ -10,7 +10,7 @@ case is acting on partitions.
 
 AUTHORS:
 
-- Matthew Lancellotti, George H. Seelinger (2018): Initial version
+- Matthew Lancellotti, George H. Seelinger (2018): initial version
 """
 # ****************************************************************************
 #  Copyright (C) 2018 Matthew Lancellotti <mvlancellotti@gmail.com>
@@ -28,7 +28,8 @@ from sage.combinat.partition import _Partitions, Partition
 from sage.combinat.sf.sf import SymmetricFunctions
 from sage.misc.fast_methods import Singleton
 from sage.misc.cachefunc import cached_method
-from sage.rings.all import QQ, NonNegativeIntegerSemiring
+from sage.rings.rational_field import QQ
+from sage.rings.semirings.non_negative_integer_semiring import NonNegativeIntegerSemiring
 from sage.rings.integer_ring import ZZ
 
 
@@ -50,6 +51,7 @@ class ShiftingSequenceSpace(Singleton, Parent):
         sage: (0.5, 1) in S
         False
     """
+
     def __init__(self):
         r"""
         Initialize ``self``.
@@ -90,7 +92,7 @@ class ShiftingSequenceSpace(Singleton, Parent):
         r"""
         Verify that ``seq`` is a valid shifting sequence.
 
-        If it is not, raise a ``ValueError``.
+        If it is not, raise a :exc:`ValueError`.
 
         EXAMPLES::
 
@@ -162,7 +164,7 @@ class ShiftingOperatorAlgebra(CombinatorialFreeModule):
 
     - ``base_ring`` -- (default: ``QQ['t']``) the base ring
 
-    - ``prefix`` -- (default: ``"S"``) the label for the shifting operators
+    - ``prefix`` -- (default: ``'S'``) the label for the shifting operators
 
     EXAMPLES::
 
@@ -232,6 +234,7 @@ class ShiftingOperatorAlgebra(CombinatorialFreeModule):
         sage: s(op(h[3,2,1]))
         s[3, 2, 1]
     """
+
     def __init__(self, base_ring=QQ['t'], prefix='S'):
         r"""
         Initialize ``self``.
@@ -398,8 +401,7 @@ class ShiftingOperatorAlgebra(CombinatorialFreeModule):
         gamma = sorted(supp, reverse=True)
         if gamma in _Partitions:
             return self._sym_h(gamma)
-        else:
-            return self._sym_h.zero()
+        return self._sym_h.zero()
 
     def _supp_to_s(self, gamma):
         r"""
@@ -436,8 +438,7 @@ class ShiftingOperatorAlgebra(CombinatorialFreeModule):
             sort_combined = sorted(combined, reverse=True)
             new_gamma = [sc - r for sc, r in zip(sort_combined, rho)]
             return sign * self._sym_s(_Partitions(new_gamma))
-        else:
-            return self._sym_s.zero()
+        return self._sym_s.zero()
 
     def build_and_register_conversion(self, support_map, codomain):
         r"""
@@ -532,6 +533,7 @@ class ShiftingOperatorAlgebra(CombinatorialFreeModule):
         r"""
         An element of a :class:`ShiftingOperatorAlgebra`.
         """
+
         def __call__(self, operand):
             r"""
             Call method for shifting sequence operators to act on objects.

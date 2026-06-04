@@ -14,13 +14,15 @@ Generate cdd ``.ext`` / ``.ine`` file format
 from .misc import _set_to_None_if_empty, _common_length_of, _to_space_separated_string
 
 #########################################################################
+
+
 def cdd_Vrepresentation(cdd_type, vertices, rays, lines, file_output=None):
     r"""
     Return a string containing the V-representation in cddlib's ext format.
 
     INPUT:
 
-    - ``file_output`` (string; optional) -- a filename to which the
+    - ``file_output`` -- string (optional); a filename to which the
       representation should be written. If set to ``None`` (default),
       representation is returned as a string.
 
@@ -50,8 +52,8 @@ def cdd_Vrepresentation(cdd_type, vertices, rays, lines, file_output=None):
         sage: cdd_Vrepresentation('rational', [[0,0]], [[1,0]], [[0,1]], file_output=filename)
     """
     vertices = _set_to_None_if_empty(vertices)
-    rays     = _set_to_None_if_empty(rays)
-    lines    = _set_to_None_if_empty(lines)
+    rays = _set_to_None_if_empty(rays)
+    lines = _set_to_None_if_empty(lines)
 
     num, ambient_dim = _common_length_of(vertices, rays, lines)
 
@@ -61,7 +63,7 @@ def cdd_Vrepresentation(cdd_type, vertices, rays, lines, file_output=None):
         num += 1
 
     if cdd_type == 'real':
-        from sage.rings.all import RDF
+        from sage.rings.real_double import RDF
         base_ring = RDF
     else:
         base_ring = None
@@ -92,13 +94,15 @@ def cdd_Vrepresentation(cdd_type, vertices, rays, lines, file_output=None):
         return s
 
 #########################################################################
+
+
 def cdd_Hrepresentation(cdd_type, ieqs, eqns, file_output=None):
     r"""
     Return a string containing the H-representation in cddlib's ine format.
 
     INPUT:
 
-    - ``file_output`` (string; optional) -- a filename to which the
+    - ``file_output`` -- string (optional); a filename to which the
       representation should be written. If set to ``None`` (default),
       representation is returned as a string.
 
@@ -115,20 +119,20 @@ def cdd_Hrepresentation(cdd_type, ieqs, eqns, file_output=None):
         sage: cdd_Hrepresentation('rational', None, [[0,1]], file_output=filename)
     """
     ieqs = _set_to_None_if_empty(ieqs)
-    eqns  = _set_to_None_if_empty(eqns)
+    eqns = _set_to_None_if_empty(eqns)
 
     num, ambient_dim = _common_length_of(ieqs, eqns)
     ambient_dim -= 1
 
     if cdd_type == 'real':
-        from sage.rings.all import RDF
+        from sage.rings.real_double import RDF
         base_ring = RDF
     else:
         base_ring = None
 
     s = 'H-representation\n'
     if eqns is not None:
-        assert len(eqns)>0
+        assert len(eqns) > 0
         n = len(eqns)
         s += "linearity " + repr(n) + ' '
         s += _to_space_separated_string(range(1,n+1)) + '\n'

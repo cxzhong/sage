@@ -1,3 +1,4 @@
+# sage.doctest: needs sage.rings.finite_rings
 r"""
 Semimonomial transformation group
 
@@ -51,13 +52,17 @@ TESTS::
     sage: TestSuite(S).run()
     sage: TestSuite(S.an_element()).run()
 """
-from sage.rings.integer import Integer
+from __future__ import annotations
 
 from sage.groups.group import FiniteGroup
 from sage.structure.unique_representation import UniqueRepresentation
 from sage.categories.action import Action
 from sage.combinat.permutation import Permutation
 from sage.groups.semimonomial_transformations.semimonomial_transformation import SemimonomialTransformation
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from sage.rings.integer import Integer
 
 
 class SemimonomialTransformationGroup(FiniteGroup, UniqueRepresentation):
@@ -104,13 +109,17 @@ class SemimonomialTransformationGroup(FiniteGroup, UniqueRepresentation):
         sage: g = S(v = [2, a, 1, 2])
         sage: h = S(perm = Permutation('(1,2,3,4)'), autom=F.hom([a**3]))
         sage: g*h
-        ((2, a, 1, 2); (1,2,3,4), Ring endomorphism of Finite Field in a of size 3^2 Defn: a |--> 2*a + 1)
+        ((2, a, 1, 2); (1,2,3,4),
+         Ring endomorphism of Finite Field in a of size 3^2 Defn: a |--> 2*a + 1)
         sage: h*g
-        ((2*a + 1, 1, 2, 2); (1,2,3,4), Ring endomorphism of Finite Field in a of size 3^2 Defn: a |--> 2*a + 1)
+        ((2*a + 1, 1, 2, 2); (1,2,3,4),
+         Ring endomorphism of Finite Field in a of size 3^2 Defn: a |--> 2*a + 1)
         sage: S(g)
-        ((2, a, 1, 2); (), Ring endomorphism of Finite Field in a of size 3^2 Defn: a |--> a)
+        ((2, a, 1, 2); (),
+         Ring endomorphism of Finite Field in a of size 3^2 Defn: a |--> a)
         sage: S(1)
-        ((1, 1, 1, 1); (), Ring endomorphism of Finite Field in a of size 3^2 Defn: a |--> a)
+        ((1, 1, 1, 1); (),
+         Ring endomorphism of Finite Field in a of size 3^2 Defn: a |--> a)
     """
     Element = SemimonomialTransformation
 
@@ -122,11 +131,9 @@ class SemimonomialTransformationGroup(FiniteGroup, UniqueRepresentation):
 
         - ``R`` -- a ring
 
-        - ``len`` -- the  degree of the monomial group
+        - ``len`` -- the degree of the monomial group
 
-        OUTPUT:
-
-        - the complete semimonomial group
+        OUTPUT: the complete semimonomial group
 
         EXAMPLES::
 
@@ -139,7 +146,7 @@ class SemimonomialTransformationGroup(FiniteGroup, UniqueRepresentation):
         self._len = len
 
         from sage.categories.finite_groups import FiniteGroups
-        super(SemimonomialTransformationGroup, self).__init__(category=FiniteGroups())
+        super().__init__(category=FiniteGroups())
 
     def _element_constructor_(self, arg1, v=None, perm=None, autom=None, check=True):
         r"""
@@ -148,13 +155,13 @@ class SemimonomialTransformationGroup(FiniteGroup, UniqueRepresentation):
 
         INPUT:
 
-        - ``arg1`` (optional) -- either the integers 0, 1 or an element of ``self``
+        - ``arg1`` -- (optional) either the integers 0, 1 or an element of ``self``
 
-        - ``v`` (optional) -- a vector of length ``self.degree()``
+        - ``v`` -- (optional) a vector of length ``self.degree()``
 
-        - ``perm`` (optional) -- a permutation of degree ``self.degree()``
+        - ``perm`` -- (optional) a permutation of degree ``self.degree()``
 
-        - ``autom`` (optional) -- an automorphism of the ring
+        - ``autom`` -- (optional) an automorphism of the ring
 
         EXAMPLES::
 
@@ -209,20 +216,19 @@ class SemimonomialTransformationGroup(FiniteGroup, UniqueRepresentation):
                     raise TypeError('%s of type %s' % (autom, type(autom)) +
                                     ' is not coerceable to an automorphism')
             return self.Element(self, v, perm, autom)
-        else:
-            try:
-                if arg1.parent() is self:
-                    return arg1
-            except AttributeError:
-                pass
-            try:
-                from sage.rings.integer import Integer
-                if Integer(arg1) == 1:
-                    return self()
-            except TypeError:
-                pass
-            raise TypeError('the first argument must be an integer' +
-                            ' or an element of this group')
+        try:
+            if arg1.parent() is self:
+                return arg1
+        except AttributeError:
+            pass
+        try:
+            from sage.rings.integer import Integer
+            if Integer(arg1) == 1:
+                return self()
+        except TypeError:
+            pass
+        raise TypeError('the first argument must be an integer' +
+                        ' or an element of this group')
 
     def base_ring(self):
         r"""
@@ -255,12 +261,12 @@ class SemimonomialTransformationGroup(FiniteGroup, UniqueRepresentation):
         EXAMPLES::
 
             sage: F.<a> = GF(4)
-            sage: SemimonomialTransformationGroup(F, 3).an_element() # indirect doctest
+            sage: SemimonomialTransformationGroup(F, 3).an_element()  # indirect doctest
             ((a, 1, 1); (1,3,2), Ring endomorphism of Finite Field in a of size 2^2 Defn: a |--> a + 1)
         """
         R = self.base_ring()
         v = [R.primitive_element()] + [R.one()] * (self.degree() - 1)
-        p = Permutation([self.degree()] + [i for i in range(1, self.degree())])
+        p = Permutation([self.degree()] + list(range(1, self.degree())))
 
         if not R.is_prime_field():
             f = R.hom([R.gen()**R.characteristic()])
@@ -274,9 +280,9 @@ class SemimonomialTransformationGroup(FiniteGroup, UniqueRepresentation):
 
             sage: F.<a> = GF(4)
             sage: S = SemimonomialTransformationGroup(F, 3)
-            sage: 1 in S # indirect doctest
+            sage: 1 in S  # indirect doctest
             True
-            sage: a in S # indirect doctest
+            sage: a in S  # indirect doctest
             False
         """
         try:
@@ -285,7 +291,7 @@ class SemimonomialTransformationGroup(FiniteGroup, UniqueRepresentation):
             return False
         return True
 
-    def gens(self):
+    def gens(self) -> tuple:
         r"""
         Return a tuple of generators of ``self``.
 
@@ -293,20 +299,23 @@ class SemimonomialTransformationGroup(FiniteGroup, UniqueRepresentation):
 
             sage: F.<a> = GF(4)
             sage: SemimonomialTransformationGroup(F, 3).gens()
-            [((a, 1, 1); (), Ring endomorphism of Finite Field in a of size 2^2
-              Defn: a |--> a), ((1, 1, 1); (1,2,3), Ring endomorphism of Finite Field in a of size 2^2
-              Defn: a |--> a), ((1, 1, 1); (1,2), Ring endomorphism of Finite Field in a of size 2^2
-              Defn: a |--> a), ((1, 1, 1); (), Ring endomorphism of Finite Field in a of size 2^2
-              Defn: a |--> a + 1)]
+            (((a, 1, 1); (),
+              Ring endomorphism of Finite Field in a of size 2^2 Defn: a |--> a),
+             ((1, 1, 1); (1,2,3),
+              Ring endomorphism of Finite Field in a of size 2^2 Defn: a |--> a),
+             ((1, 1, 1); (1,2),
+              Ring endomorphism of Finite Field in a of size 2^2 Defn: a |--> a),
+             ((1, 1, 1); (),
+              Ring endomorphism of Finite Field in a of size 2^2 Defn: a |--> a + 1))
         """
         from sage.groups.perm_gps.permgroup_named import SymmetricGroup
         R = self.base_ring()
         l = [self(v=([R.primitive_element()] + [R.one()] * (self.degree() - 1)))]
-        for g in SymmetricGroup(self.degree()).gens():
-            l.append(self(perm=Permutation(g)))
+        l.extend(self(perm=Permutation(g))
+                 for g in SymmetricGroup(self.degree()).gens())
         if R.is_field() and not R.is_prime_field():
             l.append(self(autom=R.hom([R.primitive_element()**R.characteristic()])))
-        return l
+        return tuple(l)
 
     def order(self) -> Integer:
         r"""
@@ -318,7 +327,7 @@ class SemimonomialTransformationGroup(FiniteGroup, UniqueRepresentation):
             sage: SemimonomialTransformationGroup(F, 5).order() == (4-1)**5 * factorial(5) * 2
             True
         """
-        from sage.functions.other import factorial
+        from sage.arith.misc import factorial
         from sage.categories.homset import End
         n = self.degree()
         R = self.base_ring()
@@ -348,7 +357,7 @@ class SemimonomialTransformationGroup(FiniteGroup, UniqueRepresentation):
             sage: s*v   # indirect doctest
             (0, 1, 0)
             sage: M = MatrixSpace(F, 3).one()
-            sage: s*M # indirect doctest
+            sage: s*M   # indirect doctest
             [    0     1     0]
             [    0     0     1]
             [a + 1     0     0]
@@ -375,7 +384,7 @@ class SemimonomialTransformationGroup(FiniteGroup, UniqueRepresentation):
         EXAMPLES::
 
             sage: F.<a> = GF(4)
-            sage: SemimonomialTransformationGroup(F, 3) # indirect doctest
+            sage: SemimonomialTransformationGroup(F, 3)  # indirect doctest
             Semimonomial transformation group over Finite Field in a of size 2^2 of degree 3
         """
         return ('Semimonomial transformation group over %s' % self.base_ring() +
@@ -388,7 +397,7 @@ class SemimonomialTransformationGroup(FiniteGroup, UniqueRepresentation):
         EXAMPLES::
 
             sage: F.<a> = GF(4)
-            sage: latex(SemimonomialTransformationGroup(F, 3)) # indirect doctest
+            sage: latex(SemimonomialTransformationGroup(F, 3))  # indirect doctest
             \left(\Bold{F}_{2^{2}}^3\wr\langle (1,2,3), (1,2) \rangle \right) \rtimes \operatorname{Aut}(\Bold{F}_{2^{2}})
         """
         from sage.groups.perm_gps.permgroup_named import SymmetricGroup
@@ -469,7 +478,7 @@ class SemimonomialActionMat(Action):
             sage: F.<a> = GF(4)
             sage: s = SemimonomialTransformationGroup(F, 3).an_element()
             sage: M = MatrixSpace(F, 3).one()
-            sage: s*M # indirect doctest
+            sage: s*M  # indirect doctest
             [    0     1     0]
             [    0     0     1]
             [a + 1     0     0]
@@ -496,7 +505,7 @@ class SemimonomialActionMat(Action):
             sage: F.<a> = GF(4)
             sage: s = SemimonomialTransformationGroup(F, 3).an_element()
             sage: M = MatrixSpace(F, 3).one()
-            sage: s*M # indirect doctest
+            sage: s*M  # indirect doctest
             [    0     1     0]
             [    0     0     1]
             [a + 1     0     0]

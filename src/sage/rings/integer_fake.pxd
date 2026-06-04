@@ -17,7 +17,8 @@ This provides two functions:
 
 TESTS::
 
-    sage: cython('''
+    sage: cython(                                                                       # needs sage.misc.cython
+    ....: '''
     ....: from sage.rings.integer_fake cimport Integer_AS_MPZ, is_Integer
     ....: from sage.rings.integer cimport Integer
     ....: cdef Integer x = Integer(123456789)
@@ -26,15 +27,15 @@ TESTS::
     ....: ''')
 """
 
-#*****************************************************************************
+# ***************************************************************************
 #       Copyright (C) 2017 Jeroen Demeyer <J.Demeyer@UGent.be>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ***************************************************************************
 
 from cpython.ref cimport PyTypeObject, Py_TYPE
 from sage.libs.gmp.types cimport mpz_ptr
@@ -45,7 +46,7 @@ cdef extern from "integer_fake.h":
     bint unlikely(bint c)       # Defined by Cython
 
 
-cdef inline bint is_Integer(x):
+cdef inline bint is_Integer(x) noexcept:
     global Integer
     if unlikely(Integer is NULL):
         import sage.rings.integer

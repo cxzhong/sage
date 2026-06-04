@@ -11,6 +11,7 @@ Filtered Algebras
 from sage.misc.abstract_method import abstract_method
 from sage.categories.filtered_modules import FilteredModulesCategory
 
+
 class FilteredAlgebras(FilteredModulesCategory):
     r"""
     The category of filtered algebras.
@@ -59,4 +60,3 @@ class FilteredAlgebras(FilteredModulesCategory):
                  the universal enveloping algebra of
                  Lie algebra of RR^3 with cross product over Integer Ring
             """
-

@@ -9,9 +9,10 @@ Graded bialgebras with basis
 #                  http://www.gnu.org/licenses/
 #******************************************************************************
 
+
 def GradedBialgebrasWithBasis(base_ring):
     """
-    The category of graded bialgebras with a distinguished basis
+    The category of graded bialgebras with a distinguished basis.
 
     EXAMPLES::
 
@@ -26,5 +27,5 @@ def GradedBialgebrasWithBasis(base_ring):
 
         sage: TestSuite(C).run()
     """
-    from sage.categories.all import BialgebrasWithBasis
+    from sage.categories.bialgebras_with_basis import BialgebrasWithBasis
     return BialgebrasWithBasis(base_ring).Graded()

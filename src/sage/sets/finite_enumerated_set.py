@@ -23,7 +23,7 @@ from sage.categories.finite_enumerated_sets import FiniteEnumeratedSets
 from sage.categories.sets_cat import EmptySetError
 from sage.rings.integer import Integer
 
-#################################################################
+
 class FiniteEnumeratedSet(UniqueRepresentation, Parent):
     """
     A class for finite enumerated set.
@@ -35,7 +35,6 @@ class FiniteEnumeratedSet(UniqueRepresentation, Parent):
     which is a parent with an interface consistent with
     ``EnumeratedSets`` and has unique representation.
     The list of the elements is expanded in memory.
-
 
     EXAMPLES::
 
@@ -97,9 +96,7 @@ class FiniteEnumeratedSet(UniqueRepresentation, Parent):
             sage: S2 is S3
             True
         """
-        return super(FiniteEnumeratedSet, cls).__classcall__(
-                cls,
-                tuple(iterable))
+        return super().__classcall__(cls, tuple(iterable))
 
     def __init__(self, elements):
         """
@@ -109,9 +106,9 @@ class FiniteEnumeratedSet(UniqueRepresentation, Parent):
             sage: TestSuite(FiniteEnumeratedSet([])).run()
         """
         self._elements = elements
-        Parent.__init__(self, facade = True, category = FiniteEnumeratedSets())
+        Parent.__init__(self, facade=True, category=FiniteEnumeratedSets())
 
-    def __bool__(self):
+    def __bool__(self) -> bool:
         r"""
         Conversion to boolean.
 
@@ -123,8 +120,6 @@ class FiniteEnumeratedSet(UniqueRepresentation, Parent):
             False
         """
         return bool(self._elements)
-
-    __nonzero__ = __bool__
 
     def _repr_(self):
         """
@@ -167,7 +162,7 @@ class FiniteEnumeratedSet(UniqueRepresentation, Parent):
 
     def __iter__(self):
         r"""
-        Iterator over the element of self.
+        Iterator over the element of ``self``.
 
         EXAMPLES::
 
@@ -202,8 +197,8 @@ class FiniteEnumeratedSet(UniqueRepresentation, Parent):
 
     def first(self):
         r"""
-        Return the first element of the enumeration or raise an EmptySetError if
-        the set is empty.
+        Return the first element of the enumeration or raise an
+        :exc:`EmptySetError` if the set is empty.
 
         EXAMPLES::
 
@@ -217,8 +212,8 @@ class FiniteEnumeratedSet(UniqueRepresentation, Parent):
 
     def last(self):
         r"""
-        Returns the last element of the iteration or raise an EmptySetError if
-        the set is empty.
+        Return the last element of the iteration or raise an
+        :exc:`EmptySetError` if the set is empty.
 
         EXAMPLES::
 
@@ -263,7 +258,7 @@ class FiniteEnumeratedSet(UniqueRepresentation, Parent):
 
     def rank(self, x):
         """
-        Returns the index of ``x`` in this finite enumerated set.
+        Return the index of ``x`` in this finite enumerated set.
 
         EXAMPLES::
 
@@ -275,7 +270,7 @@ class FiniteEnumeratedSet(UniqueRepresentation, Parent):
 
     index = rank
 
-    def unrank(self,i):
+    def unrank(self, i):
         r"""
         Return the element at position ``i``.
 
@@ -293,7 +288,7 @@ class FiniteEnumeratedSet(UniqueRepresentation, Parent):
             sage: S[-4]
             Traceback (most recent call last):
             ...
-            IndexError: list index out of range
+            IndexError: index out of range
         """
         return self._elements[i]
 
@@ -318,7 +313,7 @@ class FiniteEnumeratedSet(UniqueRepresentation, Parent):
         to be instances of :class:`Element`).
 
         Since :class:`FiniteEnumeratedSets` is often a facade over
-        plain Python objects, :trac:`16280` introduced this method
+        plain Python objects, :issue:`16280` introduced this method
         which works around this limitation by calling directly
         :meth:`_element_constructor_` whenever ``el`` is not an
         :class:`Element`. Otherwise :meth:`Parent.__call__` is called
@@ -332,7 +327,7 @@ class FiniteEnumeratedSet(UniqueRepresentation, Parent):
         If the :meth:`Parent.__call__` fails, then we try
         :meth:`_element_constructor_` directly as the element returned
         may not be a subclass of :class:`Element`, which is currently
-        not supported (see :trac:`19553`).
+        not supported (see :issue:`19553`).
 
         EXAMPLES::
 
@@ -362,13 +357,13 @@ class FiniteEnumeratedSet(UniqueRepresentation, Parent):
             sage: F('a')
             'a'
 
-        Check that :trac:`19554` is fixed::
+        Check that :issue:`19554` is fixed::
 
             sage: S = FiniteEnumeratedSet(range(5))
             sage: S(1)
             1
             sage: type(S(1))
-            <type 'int'>
+            <class 'int'>
         """
         if not isinstance(el, Element):
             return self._element_constructor_(el)
@@ -385,7 +380,7 @@ class FiniteEnumeratedSet(UniqueRepresentation, Parent):
 
         - ``el`` -- an element of ``self``
 
-        If ``el`` is not an element of ``self``, a :class:`ValueError`
+        If ``el`` is not an element of ``self``, a :exc:`ValueError`
         is raised.
 
         TESTS::
@@ -406,5 +401,5 @@ class FiniteEnumeratedSet(UniqueRepresentation, Parent):
         """
         try:
             return self._elements[self.rank(el)]
-        except (ValueError,KeyError):
-            raise ValueError("%s not in %s"%(el, self))
+        except (ValueError, KeyError):
+            raise ValueError("%s not in %s" % (el, self))

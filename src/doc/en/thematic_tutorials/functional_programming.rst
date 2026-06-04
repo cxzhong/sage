@@ -245,7 +245,7 @@ uses ``reduce`` and the built-in function ``operator.add`` to add
 together all integers in a given list. This is followed by using
 ``sum`` to accomplish the same task::
 
-    sage: from functools import reduce # py3
+    sage: from functools import reduce
     sage: from operator import add
     sage: L = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
     sage: reduce(add, L)
@@ -261,7 +261,7 @@ is then implemented using the functions ``operator.add`` and
 ``reduce`` and ``map``. We then show how ``sum`` and ``map`` could be
 combined to produce the same result. ::
 
-    sage: from functools import reduce # py3
+    sage: from functools import reduce
     sage: from operator import add
     sage: from operator import mul
     sage: U = [1, 2, 3]
@@ -283,7 +283,7 @@ using ``sum`` as was done previously. The version below uses
 ``operator.add`` and defines ``mul3`` to multiply three numbers
 instead of two. ::
 
-    sage: from functools import reduce # py3
+    sage: from functools import reduce
     sage: def crt(A, M):
     ....:     from operator import add
     ....:     Mprod = prod(M)
@@ -396,14 +396,10 @@ by A. M. Kuchling. Steven F. Lott's book
 `Building Skills in Python <http://homepage.mac.com/s_lott/books/python.html#book-python>`_
 has a chapter on
 `Functional Programming using Collections <http://homepage.mac.com/s_lott/books/python/html/p02/p02c10_adv_seq.html>`_.
-See also the chapter
-`Functional Programming <http://www.diveintopython.net/functional_programming/index.html>`_
-from Mark Pilgrim's book
-`Dive Into Python <http://www.diveintopython.net/>`_.
 
 You might also want to consider experimenting with
 `Haskell <http://www.haskell.org>`_
 for expressing mathematical concepts. For an example of Haskell in
 expressing mathematical algorithms, see J. Gibbons' article
-`Unbounded Spigot Algorithms for the Digits of Pi <http://www.maa.org/pubs/monthly_apr06_toc.html>`_
+`Unbounded Spigot Algorithms for the Digits of Pi <https://www.cs.ox.ac.uk/people/jeremy.gibbons/publications/spigot.pdf>`_
 in the American Mathematical Monthly.

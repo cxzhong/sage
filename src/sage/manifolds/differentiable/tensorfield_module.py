@@ -23,13 +23,14 @@ REFERENCES:
 - [KN1963]_
 - [Lee2013]_
 - [ONe1983]_
-
 """
 
 # *****************************************************************************
-#       Copyright (C) 2015 Eric Gourgoulhon <eric.gourgoulhon@obspm.fr>
-#       Copyright (C) 2015 Michal Bejger <bejger@camk.edu.pl>
-#       Copyright (C) 2016 Travis Scrimshaw <tscrimsh@umn.edu>
+#       Copyright (C) 2015-2018 Eric Gourgoulhon <eric.gourgoulhon@obspm.fr>
+#                     2015      Michal Bejger <bejger@camk.edu.pl>
+#                     2016      Travis Scrimshaw <tscrimsh@umn.edu>
+#                     2020      Michael Jung
+#                     2022      Matthias Koeppe
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
 #  as published by the Free Software Foundation; either version 2 of
@@ -37,27 +38,32 @@ REFERENCES:
 #                  https://www.gnu.org/licenses/
 # *****************************************************************************
 
-from sage.misc.cachefunc import cached_method
-from sage.structure.unique_representation import UniqueRepresentation
-from sage.structure.parent import Parent
 from sage.categories.modules import Modules
-from sage.tensor.modules.tensor_free_module import TensorFreeModule
+from sage.manifolds.differentiable.automorphismfield import (
+    AutomorphismField,
+    AutomorphismFieldParal,
+)
+from sage.manifolds.differentiable.diff_form import DiffForm, DiffFormParal
+from sage.manifolds.differentiable.multivectorfield import (
+    MultivectorField,
+    MultivectorFieldParal,
+)
 from sage.manifolds.differentiable.tensorfield import TensorField
 from sage.manifolds.differentiable.tensorfield_paral import TensorFieldParal
-from sage.manifolds.differentiable.diff_form import (DiffForm,
-                                                     DiffFormParal)
-from sage.manifolds.differentiable.multivectorfield import (MultivectorField,
-                                                            MultivectorFieldParal)
-from sage.manifolds.differentiable.automorphismfield import (AutomorphismField,
-                                                             AutomorphismFieldParal)
+from sage.misc.cachefunc import cached_method
+from sage.structure.parent import Parent
+from sage.structure.unique_representation import UniqueRepresentation
+from sage.tensor.modules.reflexive_module import ReflexiveModule_tensor
+from sage.tensor.modules.tensor_free_module import TensorFreeModule
 
-class TensorFieldModule(UniqueRepresentation, Parent):
+
+class TensorFieldModule(UniqueRepresentation, ReflexiveModule_tensor):
     r"""
     Module of tensor fields of a given type `(k,l)` along a differentiable
     manifold `U` with values on a differentiable manifold `M`, via a
     differentiable map `U \rightarrow M`.
 
-    Given two non-negative integers `k` and `l` and a differentiable map
+    Given two nonnegative integers `k` and `l` and a differentiable map
 
     .. MATH::
 
@@ -123,14 +129,15 @@ class TensorFieldModule(UniqueRepresentation, Parent):
     `T^{(2,0)}(M)` is a module over the algebra `C^k(M)`::
 
         sage: T20.category()
-        Category of modules over Algebra of differentiable scalar fields on the
-         2-dimensional differentiable manifold M
+        Category of tensor products of modules over Algebra of differentiable scalar fields
+         on the 2-dimensional differentiable manifold M
         sage: T20.base_ring() is M.scalar_field_algebra()
         True
 
     `T^{(2,0)}(M)` is not a free module::
 
-        sage: isinstance(T20, FiniteRankFreeModule)
+        sage: from sage.tensor.modules.finite_rank_free_module import FiniteRankFreeModule_abstract
+        sage: isinstance(T20, FiniteRankFreeModule_abstract)
         False
 
     because `M = S^2` is not parallelizable::
@@ -142,7 +149,7 @@ class TensorFieldModule(UniqueRepresentation, Parent):
     free module, since `U` is parallelizable (being a coordinate domain)::
 
         sage: T20U = U.tensor_field_module((2,0))
-        sage: isinstance(T20U, FiniteRankFreeModule)
+        sage: isinstance(T20U, FiniteRankFreeModule_abstract)
         True
         sage: U.is_manifestly_parallelizable()
         True
@@ -225,10 +232,15 @@ class TensorFieldModule(UniqueRepresentation, Parent):
         [1 0]
         [0 1]
 
+    TESTS::
+
+        sage: T11.tensor_factors()
+        [Module X(M) of vector fields on the 2-dimensional differentiable manifold M,
+        Module Omega^1(M) of 1-forms on the 2-dimensional differentiable manifold M]
     """
     Element = TensorField
 
-    def __init__(self, vector_field_module, tensor_type):
+    def __init__(self, vector_field_module, tensor_type, category=None):
         r"""
         Construct a module of tensor fields taking values on a (a priori) not
         parallelizable differentiable manifold.
@@ -256,7 +268,6 @@ class TensorFieldModule(UniqueRepresentation, Parent):
         In the above test suite, ``_test_elements`` is skipped because of the
         ``_test_pickling`` error of the elements (to be fixed in
         :class:`~sage.manifolds.differentiable.tensorfield.TensorField`)
-
         """
         domain = vector_field_module._domain
         dest_map = vector_field_module._dest_map
@@ -280,7 +291,8 @@ class TensorFieldModule(UniqueRepresentation, Parent):
         # the member self._ring is created for efficiency (to avoid calls to
         # self.base_ring()):
         self._ring = domain.scalar_field_algebra()
-        Parent.__init__(self, base=self._ring, category=Modules(self._ring))
+        category = Modules(self._ring).TensorProducts().or_subcategory(category)
+        Parent.__init__(self, base=self._ring, category=category)
         self._domain = domain
         self._dest_map = dest_map
         self._ambient_domain = vector_field_module._ambient_domain
@@ -303,11 +315,10 @@ class TensorFieldModule(UniqueRepresentation, Parent):
             Tensor field t of type (2,0) on the 2-dimensional differentiable
              manifold M
             sage: t.display(c_xy.frame())
-            t = (x + 1) d/dx*d/dx + 2 d/dx*d/dy + x*y d/dy*d/dx
-             + (-y + 3) d/dy*d/dy
+            t = (x + 1) ∂/∂x⊗∂/∂x + 2 ∂/∂x⊗∂/∂y + x*y ∂/∂y⊗∂/∂x
+             + (-y + 3) ∂/∂y⊗∂/∂y
             sage: T20(0) is T20.zero()
             True
-
         """
         try:
             if comp.is_trivial_zero():
@@ -372,9 +383,8 @@ class TensorFieldModule(UniqueRepresentation, Parent):
                 and self._domain.is_subset(comp._domain)
                 and self._ambient_domain.is_subset(comp._ambient_domain)):
                 return comp.restrict(self._domain)
-            else:
-               raise TypeError("cannot convert the {}".format(comp) +
-                               " to an element of {}".format(self))
+            raise TypeError("cannot convert the {}".format(comp) +
+                            " to an element of {}".format(self))
         if not isinstance(comp, (list, tuple)):
             raise TypeError("cannot convert the {} ".format(comp) +
                             "to an element of {}".format(self))
@@ -400,17 +410,15 @@ class TensorFieldModule(UniqueRepresentation, Parent):
             sage: T31._an_element_()
             Tensor field of type (3,1) on the 2-dimensional differentiable
              manifold M
-
         """
         resu = self.element_class(self._vmodule, self._tensor_type)
-        # Non-trivial open covers of the domain:
-        open_covers = self._domain.open_covers()[1:]  # the open cover 0 is trivial
-        if open_covers != []:
-            oc = open_covers[0]  # the first non-trivial open cover is selected
+        for oc in self._domain.open_covers(trivial=False):
+            # the first non-trivial open cover is selected
             for dom in oc:
                 vmodule_dom = dom.vector_field_module(dest_map=self._dest_map.restrict(dom))
                 tmodule_dom = vmodule_dom.tensor_module(*(self._tensor_type))
                 resu.set_restriction(tmodule_dom._an_element_())
+            return resu
         return resu
 
     def _coerce_map_from_(self, other):
@@ -435,14 +443,12 @@ class TensorFieldModule(UniqueRepresentation, Parent):
             sage: T11 = M.tensor_field_module((1,1))
             sage: T11._coerce_map_from_(M.automorphism_field_group())
             True
-
         """
-        from sage.manifolds.differentiable.diff_form_module import \
-                                                          DiffFormModule
-        from sage.manifolds.differentiable.multivector_module import \
-                                                       MultivectorModule
-        from sage.manifolds.differentiable.automorphismfield_group \
-                                           import AutomorphismFieldGroup
+        from sage.manifolds.differentiable.automorphismfield_group import (
+            AutomorphismFieldGroup,
+        )
+        from sage.manifolds.differentiable.diff_form_module import DiffFormModule
+        from sage.manifolds.differentiable.multivector_module import MultivectorModule
         if isinstance(other, (TensorFieldModule, TensorFieldFreeModule)):
             # coercion by domain restriction
             return (self._tensor_type == other._tensor_type
@@ -479,7 +485,6 @@ class TensorFieldModule(UniqueRepresentation, Parent):
             sage: T13  # indirect doctest
             Module T^(1,3)(M) of type-(1,3) tensors fields on the 2-dimensional
              differentiable manifold M
-
         """
         description = "Module "
         if self._name is not None:
@@ -506,12 +511,10 @@ class TensorFieldModule(UniqueRepresentation, Parent):
             '\\mathcal{T}^{(1,3)}\\left(M\\right)'
             sage: latex(T13)  # indirect doctest
             \mathcal{T}^{(1,3)}\left(M\right)
-
         """
         if self._latex_name is None:
-            return r'\mbox{' + str(self) + r'}'
-        else:
-           return self._latex_name
+            return r'\text{' + str(self) + r'}'
+        return self._latex_name
 
     def base_module(self):
         r"""
@@ -535,7 +538,6 @@ class TensorFieldModule(UniqueRepresentation, Parent):
             sage: T13.base_module().base_ring()
             Algebra of differentiable scalar fields on the 2-dimensional
              differentiable manifold M
-
         """
         return self._vmodule
 
@@ -543,10 +545,8 @@ class TensorFieldModule(UniqueRepresentation, Parent):
         r"""
         Return the tensor type of ``self``.
 
-        OUTPUT:
-
-        - pair `(k,l)` of non-negative integers such that the tensor fields
-          belonging to this module are of type `(k,l)`
+        OUTPUT: pair `(k,l)` of nonnegative integers such that the tensor
+        fields belonging to this module are of type `(k,l)`
 
         EXAMPLES::
 
@@ -557,7 +557,6 @@ class TensorFieldModule(UniqueRepresentation, Parent):
             sage: T20 = M.tensor_field_module((2,0))
             sage: T20.tensor_type()
             (2, 0)
-
         """
         return self._tensor_type
 
@@ -588,13 +587,14 @@ class TensorFieldModule(UniqueRepresentation, Parent):
 
 #***********************************************************************
 
+
 class TensorFieldFreeModule(TensorFreeModule):
     r"""
     Free module of tensor fields of a given type `(k,l)` along a
     differentiable manifold `U` with values on a parallelizable manifold `M`,
     via a differentiable map `U \rightarrow M`.
 
-    Given two non-negative integers `k` and `l` and a differentiable map
+    Given two nonnegative integers `k` and `l` and a differentiable map
 
     .. MATH::
 
@@ -652,14 +652,15 @@ class TensorFieldFreeModule(TensorFreeModule):
     `T^{(2,0)}(\RR^3)` is a module over the algebra `C^k(\RR^3)`::
 
         sage: T20.category()
-        Category of finite dimensional modules over Algebra of differentiable
-         scalar fields on the 3-dimensional differentiable manifold R^3
+        Category of tensor products of finite dimensional modules over
+         Algebra of differentiable scalar fields on the 3-dimensional differentiable manifold R^3
         sage: T20.base_ring() is M.scalar_field_algebra()
         True
 
     `T^{(2,0)}(\RR^3)` is a free module::
 
-        sage: isinstance(T20, FiniteRankFreeModule)
+        sage: from sage.tensor.modules.finite_rank_free_module import FiniteRankFreeModule_abstract
+        sage: isinstance(T20, FiniteRankFreeModule_abstract)
         True
 
     because `M = \RR^3` is parallelizable::
@@ -728,7 +729,6 @@ class TensorFieldFreeModule(TensorFreeModule):
         [1 0 0]
         [0 1 0]
         [0 0 1]
-
     """
     Element = TensorFieldParal
 
@@ -749,7 +749,6 @@ class TensorFieldFreeModule(TensorFreeModule):
             sage: T12 is M.tensor_field_module((1,2))
             True
             sage: TestSuite(T12).run()
-
         """
         domain = vector_field_module._domain
         dest_map = vector_field_module._dest_map
@@ -792,12 +791,11 @@ class TensorFieldFreeModule(TensorFreeModule):
             Tensor field t of type (1,2) on the 2-dimensional
              differentiable manifold M
             sage: t.display()
-            t = x d/dx*dx*dx - y d/dx*dx*dy + 2 d/dx*dy*dx + y d/dx*dy*dy
-             + (x + 1) d/dy*dx*dx + y^2 d/dy*dx*dy + x^2 d/dy*dy*dx
-             + 3 d/dy*dy*dy
+            t = x ∂/∂x⊗dx⊗dx - y ∂/∂x⊗dx⊗dy + 2 ∂/∂x⊗dy⊗dx + y ∂/∂x⊗dy⊗dy
+             + (x + 1) ∂/∂y⊗dx⊗dx + y^2 ∂/∂y⊗dx⊗dy + x^2 ∂/∂y⊗dy⊗dx
+             + 3 ∂/∂y⊗dy⊗dy
             sage: T12(0) is T12.zero()
             True
-
         """
         try:
             if comp.is_trivial_zero():
@@ -863,9 +861,8 @@ class TensorFieldFreeModule(TensorFreeModule):
                 and self._ambient_domain.is_subset(
                                                  comp._ambient_domain)):
                 return comp.restrict(self._domain)
-            else:
-                raise TypeError("cannot convert the {}".format(comp) +
-                                " to an element of {}".format(self))
+            raise TypeError("cannot convert the {}".format(comp) +
+                            " to an element of {}".format(self))
         if not isinstance(comp, (list, tuple)):
             raise TypeError("cannot convert the {} ".format(comp) +
                             "to an element of {}".format(self))
@@ -902,14 +899,14 @@ class TensorFieldFreeModule(TensorFreeModule):
             sage: T11 = M.tensor_field_module((1,1))
             sage: T11._coerce_map_from_(M.automorphism_field_group())
             True
-
         """
-        from sage.manifolds.differentiable.diff_form_module import \
-                                                      DiffFormFreeModule
-        from sage.manifolds.differentiable.multivector_module import \
-                                                   MultivectorFreeModule
-        from sage.manifolds.differentiable.automorphismfield_group \
-                                      import AutomorphismFieldParalGroup
+        from sage.manifolds.differentiable.automorphismfield_group import (
+            AutomorphismFieldParalGroup,
+        )
+        from sage.manifolds.differentiable.diff_form_module import DiffFormFreeModule
+        from sage.manifolds.differentiable.multivector_module import (
+            MultivectorFreeModule,
+        )
         if isinstance(other, (TensorFieldModule, TensorFieldFreeModule)):
             # coercion by domain restriction
             return (self._tensor_type == other._tensor_type
@@ -947,7 +944,6 @@ class TensorFieldFreeModule(TensorFreeModule):
             sage: T12  # indirect doctest
             Free module T^(1,2)(M) of type-(1,2) tensors fields on the
              2-dimensional differentiable manifold M
-
         """
         description = "Free module "
         if self._name is not None:
@@ -961,4 +957,3 @@ class TensorFieldFreeModule(TensorFreeModule):
             description += "along the {}".format(self._domain) + \
                            " mapped into the {}".format(self._ambient_domain)
         return description
-

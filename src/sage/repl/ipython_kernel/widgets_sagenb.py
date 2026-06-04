@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 r"""
 Functions to construct widgets, based on the old SageNB interface.
 
@@ -15,7 +14,7 @@ EXAMPLES::
 
     sage: from sage.repl.ipython_kernel.widgets_sagenb import text_control
     sage: text_control("Hello World!")
-    HTMLText(value=u'Hello World!')
+    HTMLText(value='Hello World!')
 """
 
 # ****************************************************************************
@@ -29,24 +28,26 @@ EXAMPLES::
 # ****************************************************************************
 
 from ipywidgets.widgets import (IntSlider, IntRangeSlider, FloatSlider,
-        FloatRangeSlider, SelectionSlider,
-        Checkbox, ToggleButtons, Dropdown)
+                                FloatRangeSlider, SelectionSlider,
+                                Checkbox, ToggleButtons, Dropdown)
 from .widgets import (TransformText, TransformTextarea,
-        TransformIntSlider, TransformIntRangeSlider,
-        TransformFloatSlider, TransformFloatRangeSlider,
-        EvalText, EvalTextarea, SageColorPicker, Grid)
+                      TransformIntSlider, TransformIntRangeSlider,
+                      TransformFloatSlider, TransformFloatRangeSlider,
+                      EvalText, EvalTextarea, SageColorPicker, Grid)
 from ipywidgets.widgets.interaction import _get_min_max_value
 from collections.abc import Iterable, Sequence
 from numbers import Integral, Rational, Real
 
-from sage.structure.all import parent
 from sage.arith.srange import srange
-from sage.plot.colors import Color
-from sage.symbolic.ring import SR
-from sage.rings.all import RR
-
+from sage.misc.lazy_import import lazy_import
+from sage.structure.element import parent
 
 from .widgets import HTMLText as text_control
+
+lazy_import('sage.symbolic.ring', 'SymbolicRing')
+
+
+Color = None
 
 
 def input_box(default=None, label=None, type=None, width=80, height=1):
@@ -57,7 +58,7 @@ def input_box(default=None, label=None, type=None, width=80, height=1):
 
     - ``default`` -- initial value
 
-    - ``label`` -- optional label
+    - ``label`` -- (optional)
 
     - ``type`` -- function of one variable or ``None``. if ``type`` is
       ``str``, the value of this widget for interactive functions is
@@ -69,7 +70,7 @@ def input_box(default=None, label=None, type=None, width=80, height=1):
     - ``width`` -- width of the box
 
     - ``height`` -- if ``height > 1``, create a textarea instead of a
-      single-line textbox.
+      single-line textbox
 
     EXAMPLES::
 
@@ -79,7 +80,7 @@ def input_box(default=None, label=None, type=None, width=80, height=1):
 
         sage: w = input_box("4+5", type=str, label="enter a string")
         sage: w
-        TransformText(value=u'4+5', description=u'enter a string', layout=Layout(max_width=u'81em'))
+        TransformText(value='4+5', description='enter a string', layout=Layout(max_width='81em'))
         sage: w.get_interact_value()
         '4+5'
 
@@ -87,16 +88,16 @@ def input_box(default=None, label=None, type=None, width=80, height=1):
 
         sage: w = input_box("4+5")
         sage: w
-        EvalText(value=u'4+5', layout=Layout(max_width=u'81em'))
+        EvalText(value='4+5', layout=Layout(max_width='81em'))
         sage: w.get_interact_value()
         9
 
     With a different ``type``, the text is evaluated and ``type`` is
-    called on it:
+    called on it::
 
         sage: w = input_box("4+5", type=float)
         sage: w
-        EvalText(value=u'4+5', layout=Layout(max_width=u'81em'))
+        EvalText(value='4+5', layout=Layout(max_width='81em'))
         sage: w.get_interact_value()
         9.0
 
@@ -104,7 +105,7 @@ def input_box(default=None, label=None, type=None, width=80, height=1):
 
         sage: w = input_box("4+5", type=sqrt)
         sage: w
-        EvalText(value=u'4+5', layout=Layout(max_width=u'81em'))
+        EvalText(value='4+5', layout=Layout(max_width='81em'))
         sage: w.get_interact_value()
         3
 
@@ -112,10 +113,10 @@ def input_box(default=None, label=None, type=None, width=80, height=1):
 
         sage: w = input_box("4+5", width=100, height=1)
         sage: w
-        EvalText(value=u'4+5', layout=Layout(max_width=u'101em'))
+        EvalText(value='4+5', layout=Layout(max_width='101em'))
         sage: w = input_box("4+5", width=100, height=5)
         sage: w
-        EvalTextarea(value=u'4+5', layout=Layout(max_width=u'101em'))
+        EvalTextarea(value='4+5', layout=Layout(max_width='101em'))
 
     TESTS::
 
@@ -131,12 +132,19 @@ def input_box(default=None, label=None, type=None, width=80, height=1):
             cls = TransformTextarea
         else:
             cls = TransformText
-    elif type is Color:
-        # This is special-cased by SageNB (with a non-trivial
-        # implementation!), but it doesn't seem to be used in practice
-        # because we have a SageColorPicker widget.
-        raise NotImplementedError("type=Color is not supported")
     else:
+        global Color
+        if Color is None:
+            try:
+                from sage.plot.colors import Color
+            except ImportError:
+                pass
+        if type is Color:
+            # This is special-cased by SageNB (with a non-trivial
+            # implementation!), but it doesn't seem to be used in practice
+            # because we have a SageColorPicker widget.
+            raise NotImplementedError("type=Color is not supported")
+
         kwds["transform"] = type
         if height > 1:
             cls = EvalTextarea
@@ -147,7 +155,7 @@ def input_box(default=None, label=None, type=None, width=80, height=1):
     if label is not None:
         kwds["description"] = label
     w = cls(**kwds)
-    w.layout.max_width = str(width+1) + "em"
+    w.layout.max_width = str(width + 1) + "em"
     return w
 
 
@@ -165,22 +173,21 @@ def slider(vmin, vmax=None, step_size=None, default=None, label=None, display_va
 
     For a selection slider (select a value from a list of values):
 
-    - ``vmin`` -- a list of possible values for the slider
+    - ``vmin`` -- list of possible values for the slider
 
     For all sliders:
 
     - ``default`` -- initial value
 
-    - ``label`` -- optional label
+    - ``label`` -- (optional)
 
-    - ``display_value`` -- (boolean) if ``True``, display the current
-      value.
+    - ``display_value`` -- boolean; if ``True``, display the current value
 
     EXAMPLES::
 
         sage: from sage.repl.ipython_kernel.all_jupyter import slider
         sage: slider(5, label="slide me")
-        TransformIntSlider(value=5, description=u'slide me', min=5)
+        TransformIntSlider(value=5, description='slide me', min=5)
         sage: slider(5, 20)
         TransformIntSlider(value=5, max=20, min=5)
         sage: slider(5, 20, 0.5)
@@ -234,6 +241,14 @@ def slider(vmin, vmax=None, step_size=None, default=None, label=None, display_va
         True
         sage: slider(5, display_value=False).readout
         False
+
+    Symbolic subrings work like ``SR``::
+
+        sage: SCR = SR.subring(no_variables=True)
+        sage: w = slider(SCR(e), SCR(pi)); w
+        TransformFloatSlider(value=2.718281828459045, max=3.141592653589793, min=2.718281828459045)
+        sage: parent(w.get_interact_value())
+        Real Field with 53 bits of precision
     """
     kwds = {"readout": display_value}
     if label:
@@ -250,6 +265,7 @@ def slider(vmin, vmax=None, step_size=None, default=None, label=None, display_va
             raise NotImplementedError("range_slider does not support a list of values")
         options = list(vmin)
         # Find default in options
+
         def err(v):
             if v is default:
                 return (-1, 0)
@@ -271,7 +287,8 @@ def slider(vmin, vmax=None, step_size=None, default=None, label=None, display_va
     p = parent(sum(x for x in (vmin, vmax, step_size) if x is not None))
 
     # Change SR to RR
-    if p is SR:
+    if isinstance(p, SymbolicRing):
+        from sage.rings.real_mpfr import RR
         p = RR
 
     # Convert all inputs to the common parent
@@ -345,16 +362,15 @@ def range_slider(*args, **kwds):
 
     - ``default`` -- initial value, given as a 2-tuple
 
-    - ``label`` -- optional label
+    - ``label`` -- (optional)
 
-    - ``display_value`` -- (boolean) if ``True``, display the current
-      value.
+    - ``display_value`` -- boolean; if ``True``, display the current value
 
     EXAMPLES::
 
         sage: from sage.repl.ipython_kernel.all_jupyter import range_slider
         sage: range_slider(5, label="slide me")
-        TransformIntRangeSlider(value=(28, 76), description=u'slide me', min=5)
+        TransformIntRangeSlider(value=(28, 76), description='slide me', min=5)
         sage: range_slider(5, 20)
         TransformIntRangeSlider(value=(8, 16), max=20, min=5)
         sage: range_slider(5, 20, 0.5)
@@ -401,15 +417,15 @@ def checkbox(default=True, label=None):
 
     INPUT:
 
-    - ``default`` -- (boolean) initial value
+    - ``default`` -- boolean; initial value
 
-    - ``label`` -- optional label
+    - ``label`` -- (optional)
 
     EXAMPLES::
 
         sage: from sage.repl.ipython_kernel.all_jupyter import checkbox
         sage: checkbox(label="toggle me")
-        Checkbox(value=True, description=u'toggle me')
+        Checkbox(value=True, description='toggle me')
         sage: checkbox(default=0)
         Checkbox(value=False)
     """
@@ -428,21 +444,21 @@ def selector(values, label=None, default=None, nrows=None, ncols=None, width=Non
 
     INPUT:
 
-    - ``values`` -- a list of values to choose from (see examples below
+    - ``values`` -- list of values to choose from (see examples below
       for the accepted formats for this)
 
-    - ``label`` -- optional label
+    - ``label`` -- (optional)
 
     - ``default`` -- initial value
 
-    - ``buttons`` -- (boolean) if True, display buttons instead of a
+    - ``buttons`` -- boolean; if ``True``, display buttons instead of a
       dropdown box
 
     EXAMPLES::
 
         sage: from sage.repl.ipython_kernel.all_jupyter import selector
         sage: selector(range(5), label="choose one")
-        Dropdown(description=u'choose one', options=(0, 1, 2, 3, 4), value=0)
+        Dropdown(description='choose one', options=(0, 1, 2, 3, 4), value=0)
         sage: selector(range(5), buttons=True, default=4)
         ToggleButtons(index=4, options=(0, 1, 2, 3, 4), value=4)
 
@@ -454,20 +470,7 @@ def selector(values, label=None, default=None, nrows=None, ncols=None, width=Non
         sage: selector([(1,"one"), (2,"two"), (3,"three")], buttons=True)
         ToggleButtons(options=(('one', 1), ('two', 2), ('three', 3)), value=1)
 
-    A dict of ``label:value`` pairs is also allowed. Since a ``dict``
-    is not ordered, it is better to use an :class:`OrderedDict`::
-
-        sage: from collections import OrderedDict
-        sage: selector(OrderedDict(one=1, two=2, three=3))  # py2
-        Dropdown(options=OrderedDict([('one', 1), ('three', 3), ('two', 2)]), value=1)
-        sage: selector(OrderedDict(one=1, two=2, three=3))  # py3
-        Dropdown(options=OrderedDict([('one', 1), ('two', 2), ('three', 3)]), value=1)
-        sage: selector(OrderedDict(one=1, two=2, three=3), buttons=True) # py2
-        ToggleButtons(options=OrderedDict([('one', 1), ('three', 3), ('two', 2)]), value=1)
-        sage: selector(OrderedDict(one=1, two=2, three=3), buttons=True) # py3
-        ToggleButtons(options=OrderedDict([('one', 1), ('two', 2), ('three', 3)]), value=1)
-
-    The values can be any kind of object:
+    The values can be any kind of object::
 
         sage: selector([sin(x^2), GF(29), EllipticCurve('37a1')])
         Dropdown(options=(sin(x^2), Finite Field of size 29, Elliptic Curve defined by y^2 + y = x^3 - x over Rational Field), value=sin(x^2))
@@ -512,7 +515,7 @@ def input_grid(nrows, ncols, default=None, label=None, to_value=None, width=4):
     - ``default`` -- initial value (given as a list of lists, a single
       constant value or a flat list)
 
-    - ``label`` -- optional label
+    - ``label`` -- (optional)
 
     - ``to_value`` -- function to be called to get the value for
       interactive functions
@@ -522,15 +525,15 @@ def input_grid(nrows, ncols, default=None, label=None, to_value=None, width=4):
     EXAMPLES::
 
         sage: from sage.repl.ipython_kernel.all_jupyter import input_grid
-        sage: input_grid(2, 2, default=42, label="answers")
-        Grid(value=[[42, 42], [42, 42]], children=(Label(value=u'answers'), VBox(children=(EvalText(value=u'42', layout=Layout(max_width=u'5em')), EvalText(value=u'42', layout=Layout(max_width=u'5em')))), VBox(children=(EvalText(value=u'42', layout=Layout(max_width=u'5em')), EvalText(value=u'42', layout=Layout(max_width=u'5em'))))))
+        sage: input_grid(2, 2, default=42, label='answers')
+        Grid(value=[[42, 42], [42, 42]], children=(Label(value='answers'), VBox(children=(EvalText(value='42', layout=Layout(max_width='5em')), EvalText(value='42', layout=Layout(max_width='5em')))), VBox(children=(EvalText(value='42', layout=Layout(max_width='5em')), EvalText(value='42', layout=Layout(max_width='5em'))))))
         sage: w = input_grid(2, 2, default=[[cos(x), sin(x)], [-sin(x), cos(x)]], to_value=matrix); w
-        Grid(value=[[cos(x), sin(x)], [-sin(x), cos(x)]], children=(Label(value=u''), VBox(children=(EvalText(value=u'cos(x)', layout=Layout(max_width=u'5em')), EvalText(value=u'-sin(x)', layout=Layout(max_width=u'5em')))), VBox(children=(EvalText(value=u'sin(x)', layout=Layout(max_width=u'5em')), EvalText(value=u'cos(x)', layout=Layout(max_width=u'5em'))))))
+        Grid(value=[[cos(x), sin(x)], [-sin(x), cos(x)]], children=(Label(value=''), VBox(children=(EvalText(value='cos(x)', layout=Layout(max_width='5em')), EvalText(value='-sin(x)', layout=Layout(max_width='5em')))), VBox(children=(EvalText(value='sin(x)', layout=Layout(max_width='5em')), EvalText(value='cos(x)', layout=Layout(max_width='5em'))))))
         sage: w.get_interact_value()
         [ cos(x)  sin(x)]
         [-sin(x)  cos(x)]
         sage: w = input_grid(2, 2, default=[1, x, x^2, x^3], to_value=lambda x: x[1][1]); w
-        Grid(value=[[1, x], [x^2, x^3]], children=(Label(value=u''), VBox(children=(EvalText(value=u'1', layout=Layout(max_width=u'5em')), EvalText(value=u'x^2', layout=Layout(max_width=u'5em')))), VBox(children=(EvalText(value=u'x', layout=Layout(max_width=u'5em')), EvalText(value=u'x^3', layout=Layout(max_width=u'5em'))))))
+        Grid(value=[[1, x], [x^2, x^3]], children=(Label(value=''), VBox(children=(EvalText(value='1', layout=Layout(max_width='5em')), EvalText(value='x^2', layout=Layout(max_width='5em')))), VBox(children=(EvalText(value='x', layout=Layout(max_width='5em')), EvalText(value='x^3', layout=Layout(max_width='5em'))))))
         sage: w.get_interact_value()
         x^3
     """
@@ -564,15 +567,15 @@ def color_selector(default=(0, 0, 1), label=None, widget=None, hide_box=False):
 
     - ``default`` -- initial value
 
-    - ``label`` -- optional label
+    - ``label`` -- (optional)
 
-    - ``hide_box`` -- (boolean) if True, do not show the textbox
+    - ``hide_box`` -- boolean; if ``True``, do not show the textbox
 
     EXAMPLES::
 
         sage: from sage.repl.ipython_kernel.all_jupyter import color_selector
         sage: w = color_selector("orange", label="color me"); w
-        SageColorPicker(value='#ffa500', description=u'color me')
+        SageColorPicker(value='#ffa500', description='color me')
         sage: w.get_interact_value()
         RGB color (1.0, 0.6470588235294118, 0.0)
         sage: color_selector(Color(0.1, 0.2, 0.3))

@@ -20,16 +20,17 @@ AUTHORS:
 #
 #  The full text of the GPL is available at:
 #
-#                  http://www.gnu.org/licenses/
+#                  https://www.gnu.org/licenses/
 # ****************************************************************************
 
 from sage.structure.parent import Parent
 from sage.structure.unique_representation import UniqueRepresentation
 from sage.categories.finite_enumerated_sets import FiniteEnumeratedSets
-from sage.misc.all import prod
+from sage.misc.misc_c import prod
 from sage.misc.prandom import random, randrange
 from sage.rings.polynomial.polynomial_ring_constructor import PolynomialRing
-from sage.rings.all import ZZ, QQ
+from sage.rings.integer_ring import ZZ
+from sage.rings.rational_field import QQ
 from sage.rings.integer import Integer
 from sage.combinat.combinat import CombinatorialElement
 from sage.combinat.permutation import Permutation, Permutations
@@ -49,6 +50,7 @@ class Derangement(CombinatorialElement):
         sage: elt = D([4,3,2,1])
         sage: TestSuite(elt).run()
     """
+
     def to_permutation(self):
         """
         Return the permutation corresponding to ``self``.
@@ -64,10 +66,10 @@ class Derangement(CombinatorialElement):
             sage: D[0].to_permutation()
             Traceback (most recent call last):
             ...
-            ValueError: Can only convert to a permutation for derangements of [1, 2, ..., n]
+            ValueError: can only convert to a permutation for derangements of [1, 2, ..., n]
         """
         if self.parent()._set != tuple(range(1, len(self) + 1)):
-            raise ValueError("Can only convert to a permutation for derangements of [1, 2, ..., n]")
+            raise ValueError("can only convert to a permutation for derangements of [1, 2, ..., n]")
         return Permutation(list(self))
 
 
@@ -87,7 +89,7 @@ class Derangements(UniqueRepresentation, Parent):
 
     INPUT:
 
-    - ``x`` -- Can be an integer which corresponds to derangements of
+    - ``x`` -- can be an integer which corresponds to derangements of
       `\{1, 2, 3, \ldots, x\}`, a list, or a string
 
     REFERENCES:
@@ -145,8 +147,8 @@ class Derangements(UniqueRepresentation, Parent):
             True
         """
         if x in ZZ:
-            x = list(range(1, x + 1))
-        return super(Derangements, cls).__classcall__(cls, tuple(x))
+            x = tuple(range(1, x + 1))
+        return super().__classcall__(cls, tuple(x))
 
     def __init__(self, x):
         """
@@ -197,7 +199,7 @@ class Derangements(UniqueRepresentation, Parent):
         if isinstance(der, Derangement):
             if der.parent() is self:
                 return der
-            raise ValueError("Cannot convert %s to an element of %s" % (der, self))
+            raise ValueError("cannot convert %s to an element of %s" % (der, self))
         return self.element_class(self, der)
 
     Element = Derangement
@@ -279,6 +281,9 @@ class Derangements(UniqueRepresentation, Parent):
             sage: D = Derangements([1,1,2,2,2])
             sage: D.list()
             []
+            sage: D = Derangements(0)
+            sage: D.list()
+            [[]]
         """
         if self.__multi:
             for p in Permutations(self._set):
@@ -307,7 +312,10 @@ class Derangements(UniqueRepresentation, Parent):
              [3, 4, 1, 2],
              [2, 1, 4, 3]]
         """
-        if n <= 1:
+        if n == 0:
+            yield []
+            return
+        elif n == 1:
             return
         elif n == 2:
             yield [2, 1]
@@ -340,9 +348,9 @@ class Derangements(UniqueRepresentation, Parent):
             sage: D._fixed_point([5,4,3,2,1])
             True
         """
-        return any(x == y for (x, y) in zip(a, self._set))
+        return any(x == y for x, y in zip(a, self._set))
 
-    def _count_der(self, n):
+    def _count_der(self, n) -> Integer:
         """
         Count the number of derangements of `n` using the recursion
         `D_2 = 1, D_3 = 2, D_n = (n-1) (D_{n-1} + D_{n-2})`.
@@ -357,7 +365,9 @@ class Derangements(UniqueRepresentation, Parent):
             sage: D._count_der(5)
             44
         """
-        if n <= 1:
+        if n == 0:
+            return Integer(1)
+        if n == 1:
             return Integer(0)
         if n == 2:
             return Integer(1)
@@ -374,8 +384,10 @@ class Derangements(UniqueRepresentation, Parent):
 
     def cardinality(self):
         r"""
-        Counts the number of derangements of a positive integer, a
-        list, or a string.  The list or string may contain repeated
+        Count the number of derangements of a positive integer, a list,
+        or a string.
+
+        The list or string may contain repeated
         elements.  If an integer `n` is given, the value returned
         is the number of derangements of `[1, 2, 3, \ldots, n]`.
 
@@ -413,23 +425,25 @@ class Derangements(UniqueRepresentation, Parent):
             sage: D = Derangements([1,1,2,2,2])
             sage: D.cardinality()
             0
+            sage: D = Derangements(0)
+            sage: D.cardinality()
+            1
         """
         if self.__multi:
             sL = set(self._set)
             A = [self._set.count(i) for i in sL]
             R = PolynomialRing(QQ, 'x', len(A))
-            S = sum(i for i in R.gens())
-            e = prod((S - x)**y for (x, y) in zip(R.gens(), A))
-            return Integer(e.coefficient(dict([(x, y) for (x, y) in zip(R.gens(), A)])))
+            S = sum(R.gens())
+            e = prod((S - x)**y for x, y in zip(R.gens(), A))
+            return Integer(e.coefficient(dict(zip(R.gens(), A))))
         return self._count_der(len(self._set))
 
     def _rand_der(self):
         r"""
-        Produces a random derangement of `[1, 2, \ldots, n]`.
+        Return a random derangement of `[1, 2, \ldots, n]`.
 
-        This is an
-        implementation of the algorithm described by Martinez et. al. in
-        [MPP2008]_.
+        This is an implementation of the algorithm described by
+        Martinez et. al. in [MPP2008]_.
 
         EXAMPLES::
 
@@ -443,14 +457,14 @@ class Derangements(UniqueRepresentation, Parent):
         mark = [x < 0 for x in A]
         i, u = n, n
         while u >= 2:
-            if not(mark[i - 1]):
+            if not mark[i - 1]:
                 while True:
                     j = randrange(1, i)
-                    if not(mark[j - 1]):
+                    if not mark[j - 1]:
                         A[i - 1], A[j - 1] = A[j - 1], A[i - 1]
                         break
                 p = random()
-                if p < (u - 1) * self._count_der(u - 2) // self._count_der(u):
+                if p * self._count_der(u) < (u - 1) * self._count_der(u - 2):
                     mark[j - 1] = True
                     u -= 1
                 u -= 1
@@ -458,22 +472,17 @@ class Derangements(UniqueRepresentation, Parent):
         return A
 
     def random_element(self):
-        r"""
-        Produces all derangements of a positive integer, a list, or
-        a string.  The list or string may contain repeated elements.
-        If an integer `n` is given, then a random
-        derangements of `[1, 2, 3, \ldots, n]` is returned
+        r"""Return a random derangement.
 
-        For an integer, or a list or string with all elements
-        distinct, the value is obtained by an algorithm described in
-        [MPP2008]_. For a list or string with repeated elements the
-        derangement is formed by choosing an element at random from the list of
-        all possible derangements.
+        If the elements of the underlying multiset are all distinct,
+        an algorithm described in [MPP2008]_ is used.  For a list or
+        string with repeated elements the derangement is formed by
+        choosing an element at random from the list of all possible
+        derangements.
 
         OUTPUT:
 
-        A single list or string containing a derangement, or an
-        empty list if there are no derangements.
+        A derangement, or an empty list if there are no derangements.
 
         EXAMPLES::
 
@@ -498,10 +507,17 @@ class Derangements(UniqueRepresentation, Parent):
 
         TESTS:
 
-        Check that index error discovered in :trac:`29974` is fixed::
+        Check that index error discovered in :issue:`29974` is fixed::
 
             sage: D = Derangements([1,1,2,2])
             sage: _ = [D.random_element() for _ in range(20)]
+
+        Check that we do not produce a derangement of a single
+        element::
+
+            sage: D = Derangements(1)
+            sage: D.random_element()
+            []
         """
         if self.__multi:
             L = list(self)
@@ -509,5 +525,8 @@ class Derangements(UniqueRepresentation, Parent):
                 return self.element_class(self, [])
             i = randrange(len(L))
             return L[i]
+
+        if len(self._set) == 1:
+            return self.element_class(self, [])
         temp = self._rand_der()
         return self.element_class(self, [self._set[ii - 1] for ii in temp])

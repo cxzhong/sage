@@ -1,9 +1,11 @@
+import base64 as uu
 import gzip
-from io import StringIO
-import uu
 import re
+from io import StringIO
 from types import ModuleType
-from .PyPolyBoRi import Polynomial
+
+from sage.rings.polynomial.pbori.PyPolyBoRi import Polynomial
+
 AUTO = "auto"
 SINGLE = "single"
 
@@ -33,24 +35,21 @@ def load_ref_raw(s):
     s = re.sub(r"\.", "/", s)
 
     ref_file = "ref/" + s + ".ref"
-    res_f = open(ref_file)
-    res = res_f.read()
-    res_f.close()
+    with open(ref_file) as res_f:
+        res = res_f.read()
     return res
 
 
-def load_ref(s, ordering="lp", blocks=SINGLE):
+def load_ref(s, ordering='lp', blocks=SINGLE):
     return load_ref_gz_uu(s, ordering, blocks)
 
 
 def ordering_suffix(o, blocks=None):
     if o == "lp":
         return ""
-    else:
-        if re.match("block", o):
-            return "." + o + "_" + reencode_blocks(blocks)
-        else:
-            return "." + o
+    if re.match("block", o):
+        return "." + o + "_" + reencode_blocks(blocks)
+    return "." + o
 
 
 def number_of_declared_vars(data):
@@ -71,21 +70,21 @@ def load_ref_gz_uu(s, o, b):
     uu.decode(ref_file, res)
     res = res.getvalue()
     res = StringIO(res)
-    res = gzip.GzipFile(fileobj=res, mode="r").read()
+    res = gzip.GzipFile(fileobj=res, mode='r').read()
     res = res.replace(" ", "")
     return res
 
 
 def convert_refs(ref_file_orig):
-    content = open(ref_file_orig).read()
+    with open(ref_file_orig) as file:
+        content = file.read()
     buf_out = StringIO()
-    zipped = gzip.GzipFile(filename=ref_file_orig, mode="w", fileobj=buf_out)
+    zipped = gzip.GzipFile(filename=ref_file_orig, mode='w', fileobj=buf_out)
     zipped.write(content)
     zipped.close()
     val = buf_out.getvalue()
-    out = open(ref_file_orig + ".gz.uu", "w")
-    uu.encode(out_file=out, in_file=StringIO(val))
-    out.close()
+    with open(ref_file_orig + ".gz.uu", "w") as out:
+        uu.encode(out_file=out, in_file=StringIO(val))
 
 
 def dyn_generate(content, name):
@@ -110,21 +109,19 @@ def clean_data(data):
             delattr(data, a)
 
 
-def load_data(file_name, base_dir="./"):
+def load_data(file_name, base_dir='./'):
     in_file = file_name
     if not re.match("^data", in_file):
         in_file = "data/" + in_file
     in_file = re.sub(r".py$", "", in_file)
     in_file = re.sub(r"\.", "/", in_file)
     in_file = in_file + ".py"
-    in_file = open(base_dir + in_file).read()
+    with open(base_dir + in_file) as f:
+        in_file = f.read()
     return dyn_generate(in_file, "pb_data")
 
 
 def load_file(file_name):
-
-    in_file = file_name
-
-    in_file = open(in_file).read()
-
+    with open(file_name) as f:
+        in_file = f.read()
     return dyn_generate(in_file, "pb_data")

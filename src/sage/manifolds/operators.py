@@ -31,10 +31,9 @@ module :mod:`~sage.misc.functional`.
 AUTHORS:
 
 - Eric Gourgoulhon (2018): initial version
-
 """
 
-#*****************************************************************************
+# *****************************************************************************
 #       Copyright (C) 2018 Eric Gourgoulhon <eric.gourgoulhon@obspm.fr>
 #
 # This program is free software: you can redistribute it and/or modify
@@ -42,7 +41,8 @@ AUTHORS:
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
 #                  http://www.gnu.org/licenses/
-#*****************************************************************************
+# *****************************************************************************
+
 
 def grad(scalar):
     r"""
@@ -92,9 +92,9 @@ def grad(scalar):
     :meth:`~sage.manifolds.differentiable.scalarfield.DiffScalarField.gradient`
     of :class:`~sage.manifolds.differentiable.scalarfield.DiffScalarField` for
     more details and examples.
-
     """
     return scalar.gradient()
+
 
 def div(tensor):
     r"""
@@ -157,8 +157,8 @@ def div(tensor):
         sage: s = div(v); s
         Scalar field div(v) on the Euclidean plane E^2
         sage: s.display()
-        div(v): E^2 --> R
-           (x, y) |--> x*cos(x*y) - y*sin(x*y)
+        div(v): E^2 → ℝ
+           (x, y) ↦ x*cos(x*y) - y*sin(x*y)
         sage: s.expr()
         x*cos(x*y) - y*sin(x*y)
 
@@ -166,9 +166,9 @@ def div(tensor):
     :meth:`~sage.manifolds.differentiable.tensorfield.TensorField.divergence`
     of :class:`~sage.manifolds.differentiable.tensorfield.TensorField` for
     more details and examples.
-
     """
     return tensor.divergence()
+
 
 def curl(vector):
     r"""
@@ -234,9 +234,9 @@ def curl(vector):
     :meth:`~sage.manifolds.differentiable.vectorfield.VectorField.curl`
     of :class:`~sage.manifolds.differentiable.vectorfield.VectorField` for more
     details and examples.
-
     """
     return vector.curl()
+
 
 def laplacian(field):
     r"""
@@ -277,8 +277,8 @@ def laplacian(field):
         sage: Df = laplacian(f); Df
         Scalar field Delta(f) on the Euclidean plane E^2
         sage: Df.display()
-        Delta(f): E^2 --> R
-           (x, y) |--> -(x^2 + y^2)*sin(x*y)
+        Delta(f): E^2 → ℝ
+           (x, y) ↦ -(x^2 + y^2)*sin(x*y)
         sage: Df.expr()
         -(x^2 + y^2)*sin(x*y)
 
@@ -295,9 +295,9 @@ def laplacian(field):
     :meth:`~sage.manifolds.differentiable.tensorfield.TensorField.laplacian`
     of :class:`~sage.manifolds.differentiable.tensorfield.TensorField` for
     more details and examples.
-
     """
     return field.laplacian()
+
 
 def dalembertian(field):
     r"""
@@ -341,8 +341,8 @@ def dalembertian(field):
         sage: Df = dalembertian(f); Df
         Scalar field Box(f) on the 2-dimensional Lorentzian manifold M
         sage: Df.display()
-        Box(f): M --> R
-           (t, x) |--> 0
+        Box(f): M → ℝ
+           (t, x) ↦ 0
 
     See the method
     :meth:`~sage.manifolds.differentiable.scalarfield.DiffScalarField.dalembertian`
@@ -351,8 +351,8 @@ def dalembertian(field):
     :meth:`~sage.manifolds.differentiable.tensorfield.TensorField.dalembertian`
     of :class:`~sage.manifolds.differentiable.tensorfield.TensorField` for
     more details and examples.
-
     """
     return field.dalembertian()
+
 
 # NB: norm() is already defined in src/sage/misc/functional.py

@@ -10,8 +10,8 @@ When `n \in \Z`, you can construct these groups as follows::
 
 You can create random elements::
 
-    sage: [G.random_element() for _ in range(4)]
-    [15/16, 0, 1/2, 139/190]
+    sage: all(G.random_element().parent() is G for _ in range(4))
+    True
 
 There is an iterator over the (infinitely many) elements::
 
@@ -31,7 +31,8 @@ There is an iterator over the (infinitely many) elements::
 
 from sage.structure.parent import Parent
 from sage.structure.unique_representation import UniqueRepresentation
-from sage.rings.all import ZZ, QQ
+from sage.rings.integer_ring import ZZ
+from sage.rings.rational_field import QQ
 from sage.categories.commutative_additive_groups import CommutativeAdditiveGroups
 from .qmodnz_element import QmodnZ_Element
 
@@ -46,16 +47,13 @@ class QmodnZ(Parent, UniqueRepresentation):
 
     #. ``QmodnZ(n)``, where
 
-        - `n` -- a rational number (including 0 or negative rational numbers).
+        - ``n`` -- a rational number (including 0 or negative rational numbers)
 
     #. ``QQ/(n*ZZ)``, where
 
-        - `n` -- an integer (including 0 or negative integers).
+        - ``n`` -- integer (including 0 or negative integers)
 
-
-    OUTPUT:
-
-    The abelian group `\Q/n\Z`.
+    OUTPUT: the abelian group `\Q/n\Z`
 
     EXAMPLES::
 
@@ -71,7 +69,7 @@ class QmodnZ(Parent, UniqueRepresentation):
     """
     Element = QmodnZ_Element
 
-    def __init__(self, n=1):
+    def __init__(self, n=1) -> None:
         r"""
         Initialization.
 
@@ -92,7 +90,7 @@ class QmodnZ(Parent, UniqueRepresentation):
         Parent.__init__(self, base=ZZ, category=category)
         self._populate_coercion_lists_(coerce_list=[QQ])
 
-    def _repr_(self):
+    def _repr_(self) -> str:
         r"""
         Display the group.
 
@@ -110,10 +108,9 @@ class QmodnZ(Parent, UniqueRepresentation):
         """
         if self.n == 1:
             return "Q/Z"
-        elif self.n in ZZ:
+        if self.n in ZZ:
             return "Q/%sZ" % self.n
-        else:
-            return "Q/(%s)Z" % self.n
+        return "Q/(%s)Z" % self.n
 
     def _coerce_map_from_(self, S):
         r"""
@@ -158,7 +155,7 @@ class QmodnZ(Parent, UniqueRepresentation):
         """
         return self.element_class(self, QQ(x))
 
-    def an_element(self):
+    def _an_element_(self):
         """
         Return an element, for use in coercion system.
 
@@ -169,7 +166,7 @@ class QmodnZ(Parent, UniqueRepresentation):
         """
         return self(0)
 
-    def some_elements(self):
+    def some_elements(self) -> list:
         """
         Return some elements, for use in testing.
 
@@ -179,7 +176,7 @@ class QmodnZ(Parent, UniqueRepresentation):
             sage: len(L)
             92
         """
-        return list(set(self(x) for x in QQ.some_elements()))
+        return list({self(x) for x in QQ.some_elements()})
 
     def random_element(self):
         r"""
@@ -192,12 +189,8 @@ class QmodnZ(Parent, UniqueRepresentation):
         EXAMPLES::
 
             sage: G = QQ/(6*ZZ)
-            sage: G.random_element()
-            47/16
-            sage: G.random_element()
-            1
-            sage: G.random_element()
-            3/5
+            sage: G.random_element().parent() is G
+            True
         """
         if self.n == 0:
             return self(QQ.random_element())

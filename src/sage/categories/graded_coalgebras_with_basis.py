@@ -14,6 +14,7 @@ from sage.misc.cachefunc import cached_method
 from sage.categories.graded_modules import GradedModulesCategory
 from sage.categories.signed_tensor import SignedTensorProductsCategory
 
+
 class GradedCoalgebrasWithBasis(GradedModulesCategory):
     """
     The category of graded coalgebras with a distinguished basis.
@@ -47,4 +48,3 @@ class GradedCoalgebrasWithBasis(GradedModulesCategory):
                  Category of signed tensor products of graded coalgebras over Rational Field]
             """
             return [self.base_category()]
-

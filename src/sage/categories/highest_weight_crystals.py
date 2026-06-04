@@ -1,18 +1,20 @@
+# sage.doctest: needs sage.combinat sage.graphs
 r"""
 Highest Weight Crystals
 """
-#*****************************************************************************
+# ****************************************************************************
 #  Copyright (C) 2010    Anne Schilling <anne at math.ucdavis.edu>
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
-#                  http://www.gnu.org/licenses/
-#******************************************************************************
+#                  https://www.gnu.org/licenses/
+# *****************************************************************************
 
 from sage.misc.cachefunc import cached_method
 from sage.categories.category_singleton import Category_singleton
 from sage.categories.crystals import (Crystals, CrystalHomset,
                                       CrystalMorphismByGenerators)
 from sage.categories.tensor import TensorProductsCategory
+
 
 class HighestWeightCrystals(Category_singleton):
     """
@@ -62,6 +64,8 @@ class HighestWeightCrystals(Category_singleton):
         running ._test_new() . . . pass
         running ._test_not_implemented_methods() . . . pass
         running ._test_pickling() . . . pass
+        running ._test_random() . . . pass
+        running ._test_rank() . . . pass
         running ._test_some_elements() . . . pass
         running ._test_stembridge_local_axioms() . . . pass
     """
@@ -77,7 +81,7 @@ class HighestWeightCrystals(Category_singleton):
 
     def example(self):
         """
-        Returns an example of highest weight crystals, as per
+        Return an example of highest weight crystals, as per
         :meth:`Category.example`.
 
         EXAMPLES::
@@ -109,15 +113,14 @@ class HighestWeightCrystals(Category_singleton):
     class ParentMethods:
 
         @cached_method
-        def highest_weight_vectors(self):
+        def highest_weight_vectors(self) -> tuple:
             r"""
-            Returns the highest weight vectors of ``self``
+            Return the highest weight vectors of ``self``.
 
             This default implementation selects among the module
             generators those that are highest weight, and caches the result.
             A crystal element `b` is highest weight if `e_i(b)=0` for all `i` in the
             index set.
-
 
             EXAMPLES::
 
@@ -128,7 +131,8 @@ class HighestWeightCrystals(Category_singleton):
             ::
 
                 sage: C = crystals.Letters(['A',2])
-                sage: T = crystals.TensorProduct(C,C,C,generators=[[C(2),C(1),C(1)],[C(1),C(2),C(1)]])
+                sage: T = crystals.TensorProduct(C, C, C, generators=[[C(2),C(1),C(1)],
+                ....:                                                 [C(1),C(2),C(1)]])
                 sage: T.highest_weight_vectors()
                 ([2, 1, 1], [1, 2, 1])
             """
@@ -136,7 +140,7 @@ class HighestWeightCrystals(Category_singleton):
 
         def highest_weight_vector(self):
             r"""
-            Returns the highest weight vector if there is a single one;
+            Return the highest weight vector if there is a single one;
             otherwise, raises an error.
 
             Caveat: this assumes that :meth:`.highest_weight_vectors`
@@ -148,11 +152,10 @@ class HighestWeightCrystals(Category_singleton):
                 sage: C.highest_weight_vector()
                 1
             """
-            hw = self.highest_weight_vectors();
+            hw = self.highest_weight_vectors()
             if len(hw) == 1:
                 return hw[0]
-            else:
-                raise RuntimeError("The crystal does not have exactly one highest weight vector")
+            raise RuntimeError("The crystal does not have exactly one highest weight vector")
 
         # TODO: Not every highest weight crystal is a lowest weight crystal
         @cached_method
@@ -174,22 +177,23 @@ class HighestWeightCrystals(Category_singleton):
             ::
 
                 sage: C = crystals.Letters(['A',2])
-                sage: T = crystals.TensorProduct(C,C,C,generators=[[C(2),C(1),C(1)],[C(1),C(2),C(1)]])
+                sage: T = crystals.TensorProduct(C, C, C,generators=[[C(2),C(1),C(1)],
+                ....:                                                [C(1),C(2),C(1)]])
                 sage: T.lowest_weight_vectors()
                 ([3, 2, 3], [3, 3, 2])
             """
             return tuple(g for g in self if g.is_lowest_weight())
 
-        def __iter__(self, index_set=None, max_depth = float("inf")):
+        def __iter__(self, index_set=None, max_depth=float("inf")):
             """
-            Returns the iterator of ``self``.
+            Return the iterator of ``self``.
 
             INPUT:
 
-            - ``index_set`` -- (Default: ``None``) The index set; if ``None``
+            - ``index_set`` -- (default: ``None``) the index set; if ``None``
               then use the index set of the crystal
 
-            - ``max_depth`` -- (Default: infinity) The maximum depth to build
+            - ``max_depth`` -- (default: infinity) the maximum depth to build
 
             EXAMPLES::
 
@@ -249,13 +253,13 @@ class HighestWeightCrystals(Category_singleton):
 
             - ``q`` -- the (generic) parameter `q`
 
-            - ``prec`` -- (default: ``None``) The precision of the power
+            - ``prec`` -- (default: ``None``) the precision of the power
               series ring to use if the crystal is not known to be finite
               (i.e. the number of terms returned).
               If ``None``, then the result is returned as a lazy power series.
 
-            - ``use_product`` -- (default: ``False``) if we have a finite
-              crystal and ``True``, use the product formula
+            - ``use_product`` -- boolean (default: ``False``); if we have a
+              finite crystal and ``True``, use the product formula
 
             EXAMPLES::
 
@@ -322,14 +326,9 @@ class HighestWeightCrystals(Category_singleton):
                 1 + q + 2*q^2 + 2*q^3 + 4*q^4 + 5*q^5 + 7*q^6
                  + 9*q^7 + 13*q^8 + 16*q^9 + O(q^10)
                 sage: qdim = C.q_dimension(); qdim
-                1 + q + 2*q^2 + 2*q^3 + 4*q^4 + 5*q^5 + 7*q^6
-                 + 9*q^7 + 13*q^8 + 16*q^9 + 22*q^10 + O(x^11)
-                sage: qdim.compute_coefficients(15)
-                sage: qdim
-                1 + q + 2*q^2 + 2*q^3 + 4*q^4 + 5*q^5 + 7*q^6
-                 + 9*q^7 + 13*q^8 + 16*q^9 + 22*q^10 + 27*q^11
-                 + 36*q^12 + 44*q^13 + 57*q^14 + 70*q^15 + O(x^16)
-
+                1 + q + 2*q^2 + 2*q^3 + 4*q^4 + 5*q^5 + 7*q^6 + O(q^7)
+                sage: qdim[:16]
+                [1, 1, 2, 2, 4, 5, 7, 9, 13, 16, 22, 27, 36, 44, 57, 70]
             """
             from sage.rings.integer_ring import ZZ
             WLR = self.weight_lattice_realization()
@@ -344,7 +343,7 @@ class HighestWeightCrystals(Category_singleton):
                     deg += 1
                     yield len(next)
                     todo = next
-                    next = set([])
+                    next = set()
                     while todo:
                         x = todo.pop()
                         for i in I:
@@ -375,7 +374,7 @@ class HighestWeightCrystals(Category_singleton):
             elif prec is None:
                 # If we're here, we may not be a finite crystal.
                 # In fact, we're probably infinite.
-                from sage.combinat.species.series import LazyPowerSeriesRing
+                from sage.rings.lazy_series_ring import LazyPowerSeriesRing
                 if q is None:
                     P = LazyPowerSeriesRing(ZZ, names='q')
                 else:
@@ -383,14 +382,13 @@ class HighestWeightCrystals(Category_singleton):
                 if not isinstance(P, LazyPowerSeriesRing):
                     raise TypeError("the parent of q must be a lazy power series ring")
                 ret = P(iter_by_deg(mg))
-                ret.compute_coefficients(10)
                 return ret
 
             from sage.rings.power_series_ring import PowerSeriesRing, PowerSeriesRing_generic
             if q is None:
                 q = PowerSeriesRing(ZZ, 'q', default_prec=prec).gen(0)
             P = q.parent()
-            ret = P.sum(c * q**deg for deg,c in enumerate(iter_by_deg(mg)))
+            ret = P.sum(c * q**deg for deg, c in enumerate(iter_by_deg(mg)))
             if ret.degree() == max_deg and isinstance(P, PowerSeriesRing_generic):
                 ret = P(ret, prec)
             return ret
@@ -413,7 +411,8 @@ class HighestWeightCrystals(Category_singleton):
             The sole purpose of this method is to construct the homset as a
             :class:`~sage.categories.highest_weight_crystals.HighestWeightCrystalHomset`.
             If ``category`` is specified and is not a subcategory of
-            :class:`HighestWeightCrystals`, a ``TypeError`` is raised instead
+            :class:`HighestWeightCrystals`, a :exc:`TypeError` is raised
+            instead
 
             This method is not meant to be called directly. Please use
             :func:`sage.categories.homset.Hom` instead.
@@ -431,7 +430,7 @@ class HighestWeightCrystals(Category_singleton):
             TESTS:
 
             Check that we fallback first to trying a crystal homset
-            (:trac:`19458`)::
+            (:issue:`19458`)::
 
                 sage: Binf = crystals.infinity.Tableaux(['A',2])
                 sage: Bi = crystals.elementary.Elementary(Binf.cartan_type(), 1)
@@ -497,7 +496,7 @@ class HighestWeightCrystals(Category_singleton):
                 raise NotImplementedError("crystals not known to be finite must"
                                           " specify either the subset or depth")
 
-            from sage.graphs.all import DiGraph
+            from sage.graphs.digraph import DiGraph
             if index_set is None:
                 index_set = self.index_set()
 
@@ -522,7 +521,7 @@ class HighestWeightCrystals(Category_singleton):
             G = DiGraph(d)
             from sage.graphs.dot2tex_utils import have_dot2tex
             if have_dot2tex():
-                G.set_latex_options(format="dot2tex",
+                G.set_latex_options(format='dot2tex',
                                     edge_labels=True,
                                     color_by_label=self.cartan_type()._index_set_coloring)
             return G
@@ -670,10 +669,10 @@ class HighestWeightCrystals(Category_singleton):
 
         class ParentMethods:
             """
-            Implements operations on tensor products of crystals.
+            Implement operations on tensor products of crystals.
             """
             @cached_method
-            def highest_weight_vectors(self):
+            def highest_weight_vectors(self) -> tuple:
                 r"""
                 Return the highest weight vectors of ``self``.
 
@@ -765,7 +764,7 @@ class HighestWeightCrystals(Category_singleton):
                     ...
                     NotImplementedError: not implemented for infinite crystals
 
-                Check that :trac:`30493` is fixed::
+                Check that :issue:`30493` is fixed::
 
                     sage: CW = CartanType("G", 2)
                     sage: C = crystals.Letters(CW)
@@ -834,6 +833,7 @@ class HighestWeightCrystals(Category_singleton):
 ###############################################################################
 ## Morphisms
 
+
 class HighestWeightCrystalMorphism(CrystalMorphismByGenerators):
     r"""
     A virtual crystal morphism whose domain is a highest weight crystal.
@@ -854,7 +854,8 @@ class HighestWeightCrystalMorphism(CrystalMorphismByGenerators):
       for the weight, `\varepsilon` and `\varphi`
     - ``gens`` -- (optional) a list of generators to define the morphism;
       the default is to use the highest weight vectors of the crystal
-    - ``check`` -- (default: ``True``) check if the crystal morphism is valid
+    - ``check`` -- boolean (default: ``True``); check if the crystal morphism
+      is valid
     """
     def __init__(self, parent, on_gens, cartan_type=None,
                  virtualization=None, scaling_factors=None,
@@ -949,6 +950,7 @@ class HighestWeightCrystalMorphism(CrystalMorphismByGenerators):
                 s += [j]*sf
             cur = cur.f_string(s)
         return cur
+
 
 class HighestWeightCrystalHomset(CrystalHomset):
     """

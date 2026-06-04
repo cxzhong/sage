@@ -31,10 +31,10 @@ vai al link http://www.sagemath.org/download-source.html
 per scaricare l'archivio TAR di qualunque rilascio di Sage.
 
 Le sessioni di lavoro Notebook di Sage sono eseguite all'interno di
-un browser web. Puoi lancianer il Notebook di sage attraverso il
+un browser web. Puoi lanciare il Notebook di sage attraverso il
 seguente comando purché ``sage`` sia nella variabile ``PATH``
 
-.. CODE-BLOCK:: shell-session
+.. code-block:: console
 
     $ sage -notebook
 
@@ -45,7 +45,7 @@ Quali sono i prerequisiti di Sage?
 La maggior parte delle dipendenze sono incluse all'interno di Sage.
 Nella maggior parte dei casi puoi scaricare il binario precompilato
 ed usarlo senza dover installare alcun pacchetto dipendente. Se usi
-Windows avrai bisogno di intallare
+Windows avrai bisogno di installare
 `VirtualBox <http://www.virtualbox.org>`_,
 che puoi scaricare dal link http://www.virtualbox.org/wiki/Downloads.
 Dopo aver installato VirtualBox devi scaricare una distribuzione di
@@ -68,9 +68,9 @@ questi prerequisiti come segue::
     sudo apt-get install build-essential m4
 
 Se hai un sistema multiprocessore puoi scegliere una
-copilazione parallela di Sage. Il comando ::
+compilazione parallela di Sage. Il comando ::
 
-    export MAKE='make -j8'
+    export MAKEFLAGS='-j8'
 
 abiliterà 8 threads per quelle parti della compilazione che supportano
 il parallelismo. Al posto del numero 8 metti il numero di
@@ -80,25 +80,25 @@ processori/core del tuo sistema.
 Come posso far riconoscere la mia attuale installazione di Tcl/Tk all'interprete Python di Sage?
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-Potresti avere la libreria Tcl/Tk installata e l'interprete Python del
-tuo sistema la riconosce ma l'interprete Python di Sage no.
-Per risolvere questo ti basta installare la libreria di sviluppo
-Tcl/Tk. Su Ubuntu lancia, da riga di comando::
+Sage usa l'interprete Python selezionato in fase di compilazione. Per usare
+le librerie Tcl/Tk in Sage, assicurati che questa installazione di Python
+fornisca il modulo ``tkinter``. Su Ubuntu, questo di solito si ottiene
+installando::
 
-    sudo apt-get install tk8.5-dev
+    sudo apt-get install python3-tk
 
-o qualcosa di simile. Poi reinstalla l'iterprete Python di Sage con::
+o un pacchetto con un nome simile, ad esempio ``python3-tkinter``.
 
-    sage -f python
+Se stai usando un Python esterno, controlla prima proprio quell'interprete::
 
-Questo aggancerà automaticamente la libreria Tcl/Tk.
-Dopo aver reinstallato correttamente l'interprete Python di Sage,
-lancia i seguenti comandi dall'interfaccia a riga di comando di Sage::
+    "$PYTHON3" -c "import tkinter"
 
-    import _tkinter
-    import Tkinter
+Dopo aver ricompilato o reinstallato Sage con quell'interprete, puoi anche
+controllare dalla riga di comando di Sage che Tcl/Tk sia disponibile::
 
-Se non ti viene segnalato alcun errore di ``ImportError``
+    import tkinter
+
+Se non ti viene segnalato alcun errore di :class:`ImportError`
 allora il problema è risolto.
 
 
@@ -107,16 +107,17 @@ Come faccio ad importare Sage in uno script Python?
 
 Puoi importare Sage in uno script Python come faresti con una libreria.
 La cosa a cui fare attenzione è che devi lanciare quello script Python
-usando l'interprete Python interno a Sage
-(versione 3.7.x per Sage 9.2).
+all'interno dell'ambiente Python di Sage. In una build da sorgente,
+Sage crea questo ambiente a partire dall'interprete Python esterno
+selezionato in fase di compilazione.
 Per importare Sage metti la seguente istruzione in
 cima al tuo script Python::
 
     from sage.all import *
 
 Quando poi esegui il tuo script devi lanciare Sage con l'opzione
-``-python`` che farà sì che venga eseguito dalla versione
-dell'interprete interna a Sage. Ad esempio, se Sage è nella tua
+``-python`` che farà sì che venga eseguito in questo ambiente
+Python. Ad esempio, se Sage è nella tua
 variabile d'ambiente ``PATH``, puoi scrivere::
 
     sage -python /path/to/my/script.py
@@ -128,7 +129,7 @@ Puoi poi lanciare tale script Sage in questo modo::
 
     sage /path/to/my/script.sage
 
-Questo si occuperà di caricare le variabili d'ambiente necesssarie
+Questo si occuperà di caricare le variabili d'ambiente necessarie
 ed eseguire gli import di default al posto tuo.
 
 
@@ -154,25 +155,6 @@ Posso usare Sage con la versione 3.x di Python?
 """""""""""""""""""""""""""""""""""""""""""""""
 
 Dalla versione 9.0 del Gennaio 2020, SageMath utilizza Python 3.
-
-
-Ho scaricato il binario di Sage e va in crash quando lo lancio, con il messaggio "illegal instruction" (istruzione non permessa). Cosa posso fare?
-""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-
-Un modo di risolvere è compilare Sage interamente dal codice sorgente.
-Un'altra possibilità è correggere la tua installazione di Sage con la
-ricompilazione dei componenti MPIR e ATLAS (richiede da 15 a 20 minuti),
-da effettuarsi da riga di comando a partire dalla cartella
-``SAGE_ROOT`` della tua installazione con le 2 istruzioni::
-
-    rm spkg/installed/mpir* spkg/installed/atlas*
-    make
-
-È possibile che i binari siano stati compilati per un'architettura più
-recente di quella della tua macchina. Nessuno ha ancora trovato un
-modo di compilare Sage in maniera che MPIR ed ATLAS funzionino su
-qualunque hardware. Questo sarà prima o poi risolto.
-Qualunque aiuto in tal senso sarà apprezzato.
 
 
 Ho usato Debian/Ubuntu per installare la versione 3.0.5 di Sage ed essa sta dando un sacco di errori. Cosa posso fare?
@@ -208,15 +190,15 @@ o qualunque fallimento nei doctest.
 Le funzionalità di base di Sage dovrebbero risultare facili da imparare
 quanto le basi di Python. Molti tutorial sono disponibili in rete
 per aiutarti ad imparare Sage. Per trarre il massimo da Sage
-ti consigliamo di impararare qualche elemento del linguaggio Python.
+ti consigliamo di imparare qualche elemento del linguaggio Python.
 Segue una lista, incompleta, di risorse su Python.
 Altre risorse possono essere trovate cercando sul web.
 
 * `Building Skills in Python <http://homepage.mac.com/s_lott/books/python.html>`_
   di Steven F. Lott
-* `Dive into Python <http://www.diveintopython.net>`_
+* `Dive into Python <https://diveintopython3.net>`_
   di Mark Pilgrim
-* `How to Think Like a Computer Scientist <http://www.openbookproject.net/thinkCSpy>`_
+* `How to Think Like a Computer Scientist <https://www.openbookproject.net/thinkcs/python/english3e/>`_
   di Jeffrey Elkner, Allen B. Downey, and Chris Meyers
 * `Official Python Tutorial <http://docs.python.org/tutorial>`_
 * `Python <http://www.python.org>`_ home page e
@@ -289,7 +271,7 @@ successiva nell'elenco. Questa funzionalità ti permette di recuperare
 dalla "history" tante righe consecutive quante vuoi.
 Ma Sage non ha una funzionalità simile: la riga di comando
 `IPython <http://ipython.scipy.org>`_ utilizza la libreria "readline"
-(via pyreadline), che evidentemente non supporta questa funzionalit.
+(via pyreadline), che evidentemente non supporta questa funzionalità.
 Magma ha una sua propria libreria personalizzata simile alla
 "readline" che invece supporta questa funzionalità.
 (Dal momento che moltissime persone hanno richiesto questa
@@ -311,7 +293,7 @@ anello base, come puoi vedere facendo::
     sage: preparse("stats.uniform(0,15).ppf([0.5,0.7])")
     "stats.uniform(Integer(0),Integer(15)).ppf([RealNumber('0.5'),RealNumber('0.7')])"
 
-Sfortunamente il supporto che NumPy fornisce a questi tipi avanzati di
+Sfortunatamente il supporto che NumPy fornisce a questi tipi avanzati di
 Sage, quali ``Integer`` o ``RealNumber``
 (numeri reali di precisione arbitraria), non è del 100%.
 Per risolvere ridefinisci ``Integer`` e/o ``RealNumber`` per cambiare
@@ -322,8 +304,8 @@ anziché Integer di Sage. Ad esempio::
 
     sage: RealNumber = float; Integer = int
     sage: from scipy import stats
-    sage: stats.ttest_ind(list([1,2,3,4,5]),list([2,3,4,5,.6]))
-    Ttest_indResult(statistic=0.0767529..., pvalue=0.940704...)
+    sage: stats.ttest_ind([1,2,3,4,5], [2,3,4,5,.6])
+    Ttest...Result(statistic=...0.0767529..., pvalue=...0.940704...)
     sage: stats.uniform(0,15).ppf([0.5,0.7])
     array([  7.5,  10.5])
 
@@ -461,28 +443,6 @@ riattivare successivamente l'interfaccia grafica, prima di tentare di
 accedere tramite un'interfaccia testuale.
 
 
-Sage 2.9 o superiore non riesce a compilare ATLAS su Linux. Come posso risolvere?
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-
-La causa più probabile è l'abilitazione della gestione
-dell'alimentazione. Disabilitala per risolvere il problema.
-In base al tuo tipo di distribuzione ciò si può fare da interfaccia
-grafica oppure no. Digita da riga di comando, come utente root,
-quanto segue, per ogni CPU presente sul tuo sistema::
-
-    /usr/bin/cpufreq-selector -g performance -c #number CPU
-
-Su Ubuntu, prova a disabilitare “Power Manager”
-(gestione alimentazione) via
-
-.. CODE-BLOCK:: text
-
-    System --> Preferences --> Sessions
-
-nel menu “Startup Programs” (programmi di avvio) o
-utilizzando ``cpufreq-set`` da riga di comando.
-
-
 Quando lancio Sage, SELinux segnala che "/path/to/libpari-gmp.so.2" richiede "text-relocation" (riallocazione del testo). Come posso risolvere?
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
@@ -507,37 +467,6 @@ Come posso eseguire Sage come demone/servizio?
 
 Ci sono parecchie possibilità. Puoi usare i programmi a riga di comando
 ``screen``, ``nohup`` o ``disown``.
-
-
-Il comando show (mostra) per la visualizzazione di oggetti 3D non funziona.
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-
-La visualizzazione 3D in tempo reale per Sage dalla versione 6.4 in
-avanti usa il pacchetto `Jmol/JSmol <http://jmol.sourceforge.net>`_.
-Dalla linea di comando viene utilizzata l'applicazione Java Jmol,
-mentre per la visualizzazione dal browser viene usato puro javascript
-oppura una Java applet. In genere nei browser è usato javascript puro
-per evitare problemi con quei browser che non supportano i plugin per
-le applet Java (ad esempio Chrome). In ogni worksheet su browser c'è
-una casella da spuntare prima di generare una vista tridimensionale
-qualora l'utente voglia usare l'applet Java (essa è un po' più veloce
-con viste complicate).
-
-La ragione più probabile di un malfunzionamento è che non hai
-installato l'ambiente runtime di Java (JRE) o che è più vecchio della
-versione 1.7. Se le cose funzionano dalla riga di comando,
-un'altra possibilità è che il tuo browser non abbia il plugin giusto
-per supportare le Java applet (al momento, nel 2014, tali plugin non
-lavorano con la maggior parte delle versioni di Chrome). Assicurati di
-aver installato il plugin IcedTea (su Linux vedi il tuo gestore dei
-pacchetti) o il plugin di Oracle Java
-(vedi: `IcedTea <http://icedtea.classpath.org/wiki/IcedTea-Web>`_
-e `Java <https://java.com/en/download/help/index_installing.xml>`_).
-
-Se stai usando un server Sage sul web e anche la visualizzazione
-tramite javascript non funziona, potresti avere un problema con la
-funzionalità javascript del tuo browser, o potresti aver disabilitato
-javascript.
 
 
 Posso usare gli strumenti di Sage in un ambiente commerciale?
@@ -589,7 +518,7 @@ Per saperne di più digita quanto segue al prompt di Sage ::
 
     sage.rings.finite_field_givaro.FiniteField_givaro.
 
-Poi premi TAB, ed usa ``??`` per avere più informationi su ogni
+Poi premi TAB, ed usa ``??`` per avere più informazioni su ogni
 funzione. Ad esempio::
 
     sage.rings.finite_field_givaro.FiniteField_givaro.one??
@@ -611,7 +540,7 @@ Se è così, prova a fare questo: crea (o modifica se c'è già) il file
     limit maxproc 512 2048
 
 Poi riavvia. Vedi
-`il seguente link <http://www.macosxhints.com/article.php?story=20050709233920660>`_
+`il seguente link <https://web.archive.org/web/20051106134912/http://www.macosxhints.com/article.php?story=20050709233920660>`_
 per maggiori dettagli.
 
 Come disegno la radice cubica (o altre radici dispari) di numeri negativi?
@@ -631,8 +560,7 @@ Tuttavia, nota che il metodo più diretto::
 produce il grafico corretto solo per valori di `x` positivi. La
 *ragione* per cui ciò avviene è che Sage restituisce dei numeri
 complessi per le radici dispari di numeri negativi, quando queste sono
-approssimate, il che è una `convenzione standard
-<https://en.wikipedia.org/wiki/Cube_root#Complex_numbers>`_::
+approssimate, il che è una :wikipedia:`convenzione standard <Cube_root#Complex_numbers>`::
 
     sage: numerical_approx( (-1)^(1/3) )
     0.500000000000000 + 0.866025403784439*I
@@ -704,7 +632,7 @@ Con degli oggetti "a" e "b" ed una funzione "f" ho digitato accidentalmente "f(a
 
 Questo è dovuto a come sono definite le funzioni in Sage con la
 notazione ``f(x)=expr`` usando il preparser. Nota anche che se fai
-quest'errore in un costrutto ``if``, avrai un errore ``SyntaxError``
+quest'errore in un costrutto ``if``, avrai un errore :class:`SyntaxError`
 prima di qualunque altro comportamento errato, quindi, in questo caso,
 non hai il problema.
 
@@ -716,24 +644,17 @@ come questo.
 
 * Linux (assumendo che hai Sage nella cartella ``/usr/bin``):
 
-  .. CODE-BLOCK:: shell-session
+  .. code-block:: console
 
     $ env BROWSER=opera /usr/bin/sage --notebook
 
 * Mac (assumendo che tu sia nella cartella dove hai scaricato Sage).
   Con il notebook Jupyter:
 
-  .. CODE-BLOCK:: shell-session
+  .. code-block:: console
 
     $ BROWSER='open -a Firefox %s' ./sage --notebook jupyter
     $ BROWSER='open -a Google\ Chrome %s' ./sage --notebook jupyter
-
-  Con il vecchio notebook SageNB:
-
-  .. CODE-BLOCK:: shell-session
-
-    $ BROWSER='open -a Firefox' ./sage --notebook
-    $ BROWSER='open -a Google\ Chrome' ./sage --notebook
 
 
 Dov'è il codice sorgente di ``<function>``?
@@ -747,10 +668,10 @@ accessibili tramite la linea di comando IPython con il comando ``??``::
     Source:
     ...
 
-Tuttabia gli oggetti che sono construiti in Python o IPython sono
+Tuttavia gli oggetti che sono costruiti in Python o IPython sono
 compilati e non verranno visualizzati. Ci sono molte funzioni in Sage
-construite come funzioni simboliche, i.e. possono essere usate come
+costruite come funzioni simboliche, i.e. possono essere usate come
 parte di espressioni simboliche senza dover essere calcolate.
 Il loro codice sorgente potrebbe non essere accessibile dalla linea di
-comando, sopratutto per le funzioni elementaru, poiché sono scritte
+comando, sopratutto per le funzioni elementari, poiché sono scritte
 in C++ (per ragioni di efficienza).

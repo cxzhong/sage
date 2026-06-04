@@ -1,5 +1,5 @@
 """
-`p`-Adic Generic Nodes
+`p`-adic Generic Nodes
 
 This file contains a bunch of intermediate classes for the `p`-adic
 parents, allowing a function to be implemented at the right level of
@@ -23,7 +23,7 @@ AUTHORS:
 
 from sage.rings.padics.local_generic import LocalGeneric
 from sage.rings.padics.padic_generic import pAdicGeneric
-from sage.rings.ring import EuclideanDomain, Field
+import sage.rings.abc
 from sage.rings.padics.padic_base_generic import pAdicBaseGeneric
 from sage.rings.integer_ring import ZZ
 from sage.rings.rational_field import QQ
@@ -70,6 +70,7 @@ class CappedAbsoluteGeneric(LocalGeneric):
         """
         return 'capped-abs'
 
+
 class CappedRelativeGeneric(LocalGeneric):
     def is_capped_relative(self):
         """
@@ -106,6 +107,7 @@ class CappedRelativeGeneric(LocalGeneric):
             'capped-rel'
         """
         return 'capped-rel'
+
 
 class FixedModGeneric(LocalGeneric):
     def is_fixed_mod(self):
@@ -144,6 +146,7 @@ class FixedModGeneric(LocalGeneric):
             'fixed-mod'
         """
         return 'fixed-mod'
+
 
 class FloatingPointGeneric(LocalGeneric):
     def is_floating_point(self):
@@ -186,7 +189,7 @@ class FloatingPointGeneric(LocalGeneric):
         Test the distributivity of `*` on `+` on (not necessarily
         all) elements of this set.
 
-        p-adic floating point rings only satisfy distributivity
+        `p`-adic floating point rings only satisfy distributivity
         up to a precision that depends on the elements.
 
         INPUT:
@@ -254,17 +257,27 @@ class FloatingPointGeneric(LocalGeneric):
         tester = self._tester(**options)
         S = tester.some_elements()
         from sage.misc.misc import some_tuples
-        for x,y,z in some_tuples(S, 3, tester._max_runs):
+        for x, y, z in some_tuples(S, 3, tester._max_runs):
             tester.assertTrue(((x + y) + z).is_equal_to(x + (y + z), min(x.precision_absolute(), y.precision_absolute(), z.precision_absolute())))
+
 
 class FloatingPointRingGeneric(FloatingPointGeneric):
     pass
-class FloatingPointFieldGeneric(FloatingPointGeneric):#, sage.rings.ring.Field):
+
+
+class FloatingPointFieldGeneric(FloatingPointGeneric):
+    # in category of Fields()
     pass
+
+
 class CappedRelativeRingGeneric(CappedRelativeGeneric):
     pass
-class CappedRelativeFieldGeneric(CappedRelativeGeneric):#, sage.rings.ring.Field):
+
+
+class CappedRelativeFieldGeneric(CappedRelativeGeneric):
+    # in category of Fields()
     pass
+
 
 class pAdicLatticeGeneric(pAdicGeneric):
     r"""
@@ -272,20 +285,20 @@ class pAdicLatticeGeneric(pAdicGeneric):
 
     INPUT:
 
-    - `p` -- the underlying prime number
+    - ``p`` -- the underlying prime number
 
     - ``prec`` -- the precision
 
-    - ``subtype`` -- either ``"cap"`` or ``"float"``,
+    - ``subtype`` -- either ``'cap'`` or ``'float'``,
       specifying the precision model used for tracking precision
 
-    - ``label`` -- a string or ``None`` (default: ``None``)
+    - ``label`` -- string or ``None`` (default: ``None``)
 
     TESTS::
 
         sage: R = ZpLC(17)   # indirect doctest
         doctest:...: FutureWarning: This class/method/function is marked as experimental. It, its functionality or its interface might change without a formal deprecation.
-        See http://trac.sagemath.org/23505 for details.
+        See https://github.com/sagemath/sage/issues/23505 for details.
         sage: R._prec_type()
         'lattice-cap'
 
@@ -301,7 +314,7 @@ class pAdicLatticeGeneric(pAdicGeneric):
         sage: R._prec_type()
         'lattice-float'
     """
-    def __init__(self, p, prec, print_mode, names, label=None):
+    def __init__(self, p, prec, print_mode, names, label=None, category=None):
         """
         Initialization.
 
@@ -344,7 +357,7 @@ class pAdicLatticeGeneric(pAdicGeneric):
         else:
             raise ValueError("subtype must be either 'cap' or 'float'")
         self._element_class = self.__make_element_class__(element_class)
-        pAdicGeneric.__init__(self, self, p, prec, print_mode, names, None)
+        pAdicGeneric.__init__(self, self, p, prec, print_mode, names, None, category=category)
 
     def _prec_type(self):
         """
@@ -411,8 +424,7 @@ class pAdicLatticeGeneric(pAdicGeneric):
         """
         if self._prec_cap_relative is not infinity:
             return self._prec_cap_relative
-        else:
-            return self._prec_cap_absolute
+        return self._prec_cap_absolute
 
     def _precision_cap(self):
         """
@@ -430,8 +442,7 @@ class pAdicLatticeGeneric(pAdicGeneric):
         """
         if self._subtype == 'cap':
             return (self._prec_cap_relative, self._prec_cap_absolute)
-        else:
-            return self._prec_cap_relative
+        return self._prec_cap_relative
 
     def precision_cap_relative(self):
         """
@@ -523,8 +534,8 @@ class pAdicLatticeGeneric(pAdicGeneric):
         with matrices::
 
             sage: R = ZpLC(5, label='matrices')
-            sage: M = random_matrix(R, 4, 4)
-            sage: d = M.determinant()
+            sage: M = random_matrix(R, 4, 4)                                            # needs sage.geometry.polyhedron
+            sage: d = M.determinant()                                                   # needs sage.geometry.polyhedron
 
         Now, if we want to do another unrelated computation, we can
         use a different label::
@@ -546,9 +557,9 @@ class pAdicLatticeGeneric(pAdicGeneric):
 
         INPUT:
 
-        - ``x``: the datum from which the element is created
+        - ``x`` -- the datum from which the element is created
 
-        - ``prec`` -- an integer or ``None`` (the default); the
+        - ``prec`` -- integer or ``None`` (the default); the
           absolute precision of the created element
 
         NOTE:
@@ -577,10 +588,9 @@ class pAdicLatticeGeneric(pAdicGeneric):
         try:
             if prec is None:
                 return x._copy(parent=self)
-            elif x.parent() is self:
+            if x.parent() is self:
                 return x.add_bigoh(prec)
-            else:
-                return x._copy(parent=self).add_bigoh(prec)
+            return x._copy(parent=self).add_bigoh(prec)
         except (TypeError, ValueError, AttributeError):
             pass
         return self._element_class(self, x, prec)
@@ -612,11 +622,11 @@ class pAdicLatticeGeneric(pAdicGeneric):
             sage: x + y
             2 + O(2^11)
 
-            sage: R.precision().diffused_digits([x,y])
+            sage: R.precision().diffused_digits([x,y])                                  # needs sage.geometry.polyhedron
             6
 
         As a consequence, if we convert ``x`` and ``y`` separately, we
-        loose some precision::
+        lose some precision::
 
             sage: R2 = ZpLC(2, label='copy')
             sage: x2 = R2(x); y2 = R2(y)
@@ -627,25 +637,25 @@ class pAdicLatticeGeneric(pAdicGeneric):
             sage: x2 + y2
             2 + O(2^5)
 
-            sage: R2.precision().diffused_digits([x2,y2])
+            sage: R2.precision().diffused_digits([x2,y2])                               # needs sage.geometry.polyhedron
             0
 
         On the other hand, this issue disappears when we use multiple
         conversion::
 
-            sage: x2,y2 = R2.convert_multiple(x,y)
-            sage: x2 + y2
+            sage: x2,y2 = R2.convert_multiple(x,y)                                      # needs sage.geometry.polyhedron
+            sage: x2 + y2                                                               # needs sage.rings.padics
             2 + O(2^11)
 
-            sage: R2.precision().diffused_digits([x2,y2])
+            sage: R2.precision().diffused_digits([x2,y2])                               # needs sage.geometry.polyhedron
             6
         """
         p = self.prime()
 
         # We sort elements by precision lattice
-        elt_by_prec = { }
-        elt_other = [ ]
-        indices = { }
+        elt_by_prec = {}
+        elt_other = []
+        indices = {}
         for i in range(len(elts)):
             x = elts[i]
             idx = id(x)
@@ -682,10 +692,9 @@ class pAdicLatticeGeneric(pAdicGeneric):
                 except PrecisionError:
                     raise NotImplementedError("multiple conversion of a set of variables for which the module precision is not a lattice is not implemented yet")
                 for j in range(len(L)):
-                    x = L[j]; dx = [ ]
-                    for i in range(j):
-                        dx.append([L[i], lattice[i,j]])
-                    prec = lattice[j,j].valuation(p)
+                    x = L[j]
+                    dx = [[L[i], lattice[i, j]] for i in range(j)]
+                    prec = lattice[j, j].valuation(p)
                     y = self._element_class(self, x.value(), prec, dx=dx, dx_mode='values', check=False, reduce=False)
                     for i in indices[id(x)]:
                         ans[i] = y
@@ -699,20 +708,21 @@ class pAdicLatticeGeneric(pAdicGeneric):
         # We return the created elements
         return ans
 
+
 class pAdicRelaxedGeneric(pAdicGeneric):
     r"""
     Generic class for relaxed `p`-adics.
 
     INPUT:
 
-    - `p` -- the underlying prime number
+    - ``p`` -- the underlying prime number
 
     - ``prec`` -- the default precision
 
     TESTS::
 
-        sage: R = ZpER(17)   # indirect doctest
-        sage: R._prec_type()
+        sage: R = ZpER(17)   # indirect doctest                                         # needs sage.libs.flint
+        sage: R._prec_type()                                                            # needs sage.libs.flint
         'relaxed'
     """
     def _get_element_class(self, name=None):
@@ -721,7 +731,7 @@ class pAdicRelaxedGeneric(pAdicGeneric):
 
         INPUT:
 
-        - ``name`` -- a string or ``None`` (default: ``None``); if ``None``,
+        - ``name`` -- string or ``None`` (default: ``None``); if ``None``,
           return the generic class from which all the others derive
 
         TESTS::
@@ -729,17 +739,14 @@ class pAdicRelaxedGeneric(pAdicGeneric):
             sage: R = ZpER(5)
             sage: R._get_element_class()
             <class 'sage.rings.padics.padic_relaxed_element.pAdicRelaxedElement'>
-
             sage: R._get_element_class("add")
             <class 'sage.rings.padics.padic_relaxed_element.pAdicRelaxedElement_add'>
-
             sage: R._get_element_class("unknown")
             <class 'sage.rings.padics.padic_relaxed_element.pAdicRelaxedElement_unknown'>
-
             sage: R._get_element_class("foobar")
             Traceback (most recent call last):
             ...
-            AttributeError: module 'sage.rings.padics.padic_relaxed_element' has no attribute 'pAdicRelaxedElement_foobar'
+            AttributeError: module 'sage.rings.padics.padic_relaxed_element' has no attribute 'pAdicRelaxedElement_foobar'...
         """
         if name is None:
             return self.Element
@@ -753,7 +760,7 @@ class pAdicRelaxedGeneric(pAdicGeneric):
 
         EXAMPLES::
 
-            sage: ZpER(5)._prec_type()
+            sage: ZpER(5)._prec_type()                                                  # needs sage.libs.flint
             'relaxed'
         """
         return 'relaxed'
@@ -767,8 +774,8 @@ class pAdicRelaxedGeneric(pAdicGeneric):
             sage: R = Zp(5)
             sage: R.is_relaxed()
             False
-            sage: S = ZpER(5)
-            sage: S.is_relaxed()
+            sage: S = ZpER(5)                                                           # needs sage.libs.flint
+            sage: S.is_relaxed()                                                        # needs sage.libs.flint
             True
         """
         return True
@@ -776,7 +783,7 @@ class pAdicRelaxedGeneric(pAdicGeneric):
     def is_secure(self):
         r"""
         Return ``False`` if this `p`-adic relaxed ring is not secure
-        (i.e. if indistinguishable elements at the working precision
+        (i.e., if indistinguishable elements at the working precision
         are considered as equal); ``True`` otherwise (in which case,
         an error is raised when equality cannot be decided).
 
@@ -812,13 +819,12 @@ class pAdicRelaxedGeneric(pAdicGeneric):
 
         EXAMPLES::
 
-            sage: R = ZpER(5, print_mode="digits")
+            sage: R = ZpER(5, print_mode='digits')
             sage: R.default_prec()
             20
             sage: R(1/17)
             ...34024323104201213403
-
-            sage: S = ZpER(5, prec=10, print_mode="digits")
+            sage: S = ZpER(5, prec=10, print_mode='digits')
             sage: S.default_prec()
             10
             sage: S(1/17)
@@ -837,8 +843,8 @@ class pAdicRelaxedGeneric(pAdicGeneric):
 
         EXAMPLES::
 
-            sage: R = ZpER(5, print_mode="digits")
-            sage: R.halting_prec()
+            sage: R = ZpER(5, print_mode='digits')                                      # needs sage.libs.flint
+            sage: R.halting_prec()                                                      # needs sage.libs.flint
             40
         """
         return self._halting_prec
@@ -850,8 +856,8 @@ class pAdicRelaxedGeneric(pAdicGeneric):
 
         EXAMPLES::
 
-            sage: R = ZpER(5)
-            sage: R.precision_cap()
+            sage: R = ZpER(5)                                                           # needs sage.libs.flint
+            sage: R.precision_cap()                                                     # needs sage.libs.flint
             +Infinity
         """
         return infinity
@@ -880,28 +886,24 @@ class pAdicRelaxedGeneric(pAdicGeneric):
 
         - ``x`` -- the datum from which the element is created
 
-        - ``prec`` -- an integer or ``None`` (default: ``None``);
+        - ``prec`` -- integer or ``None`` (default: ``None``);
           if given, bound the precision of the element to ``prec``
 
         EXAMPLES::
 
             sage: R = ZpER(7, prec=5)
-
-            sage: a = R(17/71)
-            sage: a
+            sage: a = R(17/71); a
             3 + 3*7^2 + 4*7^3 + 4*7^4 + ...
             sage: a.precision_absolute()
             +Infinity
-
-            sage: b = R(17/71, prec=10)
-            sage: b
+            sage: b = R(17/71, prec=10); b
             3 + 3*7^2 + 4*7^3 + 4*7^4 + 2*7^5 + 7^6 + 5*7^8 + 5*7^9 + O(7^10)
             sage: b.precision_absolute()
             10
 
         TESTS::
 
-            sage: R(1/7)
+            sage: R(1/7)                                                                # needs sage.libs.flint
             Traceback (most recent call last):
             ...
             ValueError: negative valuation
@@ -912,13 +914,13 @@ class pAdicRelaxedGeneric(pAdicGeneric):
             sage: c = S(7^5)
             sage: c
             7^5 + O(7^25)
-            sage: R(c)
+            sage: R(c)                                                                  # needs sage.libs.flint
             7^5 + O(7^25)
         """
         parent = x.parent()
         if parent is self and prec is None:
             return x
-        elif isinstance(parent, pAdicRelaxedGeneric):
+        if isinstance(parent, pAdicRelaxedGeneric):
             if parent.Element is self.Element:
                 if not self.is_field() and x.valuation() < 0:
                     raise ValueError("negative valuation")
@@ -962,10 +964,10 @@ class pAdicRelaxedGeneric(pAdicGeneric):
 
         EXAMPLES::
 
-            sage: R = ZpER(7, prec=5)
-            sage: R.an_element()
+            sage: R = ZpER(7, prec=5)                                                   # needs sage.libs.flint
+            sage: R.an_element()                                                        # needs sage.libs.flint
             7 + O(7^5)
-            sage: R.an_element(unbounded=True)
+            sage: R.an_element(unbounded=True)                                          # needs sage.libs.flint
             7 + ...
         """
         p = self(self.prime())
@@ -981,8 +983,8 @@ class pAdicRelaxedGeneric(pAdicGeneric):
 
         EXAMPLES::
 
-            sage: R = ZpER(7, prec=5)
-            sage: R.some_elements()
+            sage: R = ZpER(7, prec=5)                                                   # needs sage.libs.flint
+            sage: R.some_elements()                                                     # needs sage.libs.flint
             [O(7^5),
              1 + O(7^5),
              7 + O(7^5),
@@ -990,7 +992,7 @@ class pAdicRelaxedGeneric(pAdicGeneric):
              1 + 5*7 + 3*7^2 + 6*7^3 + O(7^5),
              7 + 6*7^2 + 6*7^3 + 6*7^4 + O(7^5)]
 
-            sage: R.some_elements(unbounded=True)
+            sage: R.some_elements(unbounded=True)                                       # needs sage.libs.flint
             [0,
              1 + ...,
              7 + ...,
@@ -1003,9 +1005,9 @@ class pAdicRelaxedGeneric(pAdicGeneric):
         one = self.one()
         L = [self.zero(), one, p, a, (one+p+p).inverse_of_unit(), p-p**2]
         if self.is_field():
-            L.extend([~(p-p-a),p**(-20)])
+            L.extend([~(p-p-a), p**(-20)])
         if not unbounded:
-            L = [ x.at_precision_absolute() for x in L ]
+            return [x.at_precision_absolute() for x in L]
         return L
 
     def unknown(self, start_val=0, digits=None):
@@ -1014,10 +1016,10 @@ class pAdicRelaxedGeneric(pAdicGeneric):
 
         INPUT:
 
-        - ``start_val`` -- an integer (default: 0); a lower bound on the
+        - ``start_val`` -- integer (default: 0); a lower bound on the
           valuation of the returned element
 
-        - ``digits`` -- an element, a list or ``None`` (default: ``None``);
+        - ``digits`` -- an element, a list, or ``None`` (default: ``None``);
           the first digit or the list of the digits of the returned element
 
         NOTE:
@@ -1026,7 +1028,7 @@ class pAdicRelaxedGeneric(pAdicGeneric):
         of the previous ones. This method is used to declare a self-referent
         number (and optionally, to set its first digits).
         The definition of the number itself will be given afterwords using
-        to method meth:`sage.rings.padics.relaxed_template.RelaxedElement_unknown.set`
+        to method :meth:`sage.rings.padics.relaxed_template.RelaxedElement_unknown.set`
         of the element.
 
         EXAMPLES:
@@ -1043,7 +1045,7 @@ class pAdicRelaxedGeneric(pAdicGeneric):
             sage: a
             O(5^0)
 
-        We can now use the method meth:`sage.rings.padics.relaxed_template.RelaxedElement_unknown.set`
+        We can now use the method :meth:`sage.rings.padics.relaxed_template.RelaxedElement_unknown.set`
         to define `a`. Below, for example, we say that the digits of `a` have to
         agree with the digits of `1 + 5 a`. Note that the factor `5` shifts the
         digits; the `n`-th digit of `a` is then defined by the previous ones::
@@ -1072,14 +1074,12 @@ class pAdicRelaxedGeneric(pAdicGeneric):
             sage: u = R.unknown()
             sage: v = R.unknown()
             sage: w = R.unknown()
-
             sage: u.set(1 + 2*v + 3*w^2 + 5*u*v*w)
             True
             sage: v.set(2 + 4*w + sqrt(1 + 5*u + 10*v + 15*w))
             True
             sage: w.set(3 + 25*(u*v + v*w + u*w))
             True
-
             sage: u
             3 + 3*5 + 4*5^2 + 5^3 + 3*5^4 + 5^5 + 5^6 + 3*5^7 + 5^8 + 3*5^9 + ...
             sage: v
@@ -1112,36 +1112,36 @@ class pAdicRelaxedGeneric(pAdicGeneric):
 
         INPUT:
 
-        - ``integral`` -- a boolean (default: ``False``); if ``True``,
+        - ``integral`` -- boolean (default: ``False``); if ``True``,
           return a random element in the ring of integers of this ring
 
-        - ``prec`` -- an integer or ``None`` (default: ``None``);
+        - ``prec`` -- integer or ``None`` (default: ``None``);
           if given, bound the precision of the output to ``prec``
 
         EXAMPLES::
 
-            sage: R = ZpER(5, prec=10)
+            sage: R = ZpER(5, prec=10)                                                  # needs sage.libs.flint
 
         By default, this method returns a unbounded element::
 
-            sage: a = R.random_element()
-            sage: a  # random
+            sage: a = R.random_element()                                                # needs sage.libs.flint
+            sage: a  # random                                                           # needs sage.libs.flint
             4 + 3*5 + 3*5^2 + 5^3 + 3*5^4 + 2*5^5 + 2*5^6 + 5^7 + 5^9 + ...
-            sage: a.precision_absolute()
+            sage: a.precision_absolute()                                                # needs sage.libs.flint
             +Infinity
 
         The precision can be bounded by passing in a precision::
 
-            sage: b = R.random_element(prec=15)
-            sage: b  # random
-            2 + 3*5^2 + 5^3 + 3*5^4 + 5^5 + 3*5^6 + 3*5^8 + 3*5^9 + 4*5^10 + 5^11 + 4*5^12 + 5^13 + 2*5^14 + O(5^15)
-            sage: b.precision_absolute()
+            sage: b = R.random_element(prec=15)                                         # needs sage.libs.flint
+            sage: b  # random                                                           # needs sage.libs.flint
+            2 + 3*5^2 + 5^3 + 3*5^4 + 5^5 + 3*5^6 + 3*5^8 + 3*5^9 + 4*5^10
+             + 5^11 + 4*5^12 + 5^13 + 2*5^14 + O(5^15)
+            sage: b.precision_absolute()                                                # needs sage.libs.flint
             15
         """
         if integral or (not self.is_field()):
             return self._get_element_class('random')(self, 0, prec)
-        else:
-            return self._get_element_class('random')(self, None, prec)
+        return self._get_element_class('random')(self, None, prec)
 
     def teichmuller(self, x):
         r"""
@@ -1149,8 +1149,8 @@ class pAdicRelaxedGeneric(pAdicGeneric):
 
         EXAMPLES::
 
-            sage: R = ZpER(5, print_mode="digits")
-            sage: R.teichmuller(2)
+            sage: R = ZpER(5, print_mode='digits')                                      # needs sage.libs.flint
+            sage: R.teichmuller(2)                                                      # needs sage.libs.flint
             ...40423140223032431212
         """
         x = self(x)
@@ -1165,8 +1165,8 @@ class pAdicRelaxedGeneric(pAdicGeneric):
 
         EXAMPLES::
 
-            sage: R = ZpER(7, print_mode="digits")
-            sage: R.teichmuller_system()
+            sage: R = ZpER(7, print_mode='digits')                                      # needs sage.libs.flint
+            sage: R.teichmuller_system()                                                # needs sage.libs.flint
             [...00000000000000000001,
              ...16412125443426203642,
              ...16412125443426203643,
@@ -1178,22 +1178,8 @@ class pAdicRelaxedGeneric(pAdicGeneric):
         return [ self.teichmuller(ZZ(i)) for i in R if i != 0 ]
 
 
-def is_pAdicRing(R):
-    """
-    Return ``True`` if and only if ``R`` is a `p`-adic ring (not a
-    field).
-
-    EXAMPLES::
-
-        sage: is_pAdicRing(Zp(5))
-        True
-        sage: is_pAdicRing(RR)
-        False
-    """
-    return isinstance(R, pAdicRingGeneric)
-
-class pAdicRingGeneric(pAdicGeneric, EuclideanDomain):
-    def is_field(self, proof = True):
+class pAdicRingGeneric(pAdicGeneric, sage.rings.abc.pAdicRing):
+    def is_field(self, proof=True):
         """
         Return whether this ring is actually a field, ie ``False``.
 
@@ -1204,19 +1190,16 @@ class pAdicRingGeneric(pAdicGeneric, EuclideanDomain):
         """
         return False
 
-
     def krull_dimension(self):
         r"""
-        Return the Krull dimension of self, i.e. 1
+        Return the Krull dimension of self, i.e. 1.
 
         INPUT:
 
-        - self -- a `p`-adic ring
+        - ``self`` -- a `p`-adic ring
 
-        OUTPUT:
-
-        - the Krull dimension of self.  Since self is a `p`-adic ring,
-          this is 1.
+        OUTPUT: the Krull dimension of ``self``.  Since ``self`` is a `p`-adic
+        ring, this is 1.
 
         EXAMPLES::
 
@@ -1233,27 +1216,27 @@ class pAdicRingGeneric(pAdicGeneric, EuclideanDomain):
 
         INPUT:
 
-         - ``f``, ``g`` - the polynomials of which to take the xgcd
+        - ``f``, ``g`` -- the polynomials of which to take the xgcd
 
         OUTPUT:
 
-         - A tuple (a, b, c) which satisfies ``a = b*f + c*g``. There
-           is no guarantee that a, b, and c are minimal.
+        A tuple (a, b, c) which satisfies a = b*f + c*g. There
+        is no guarantee that a, b, and c are minimal.
 
         .. WARNING::
 
             The computations are performed using the standard Euclidean
             algorithm which might produce mathematically incorrect results in
-            some cases. See :trac:`13439`.
+            some cases. See :issue:`13439`.
 
         EXAMPLES::
 
-            sage: R.<x> = Zp(3,3)[]
-            sage: f = x + 1
-            sage: f.xgcd(f^2)
+            sage: R.<x> = Zp(3,3)[]                                                     # needs sage.libs.ntl
+            sage: f = x + 1                                                             # needs sage.libs.ntl
+            sage: f.xgcd(f^2)                                                           # needs sage.libs.ntl
             ((1 + O(3^3))*x + 1 + O(3^3), 1 + O(3^3), 0)
 
-        We check that :trac:`13439` has been fixed::
+        We check that :issue:`13439` has been fixed::
 
             sage: R.<x> = Zp(3,3)[]
             sage: f = 3*x + 7
@@ -1303,9 +1286,9 @@ class pAdicRingGeneric(pAdicGeneric, EuclideanDomain):
 
         INPUT:
 
-         - ``f``, ``g`` - the polynomials of which to take the gcd
+        - ``f``, ``g`` -- the polynomials of which to take the gcd
 
-        OUTPUT: A polynomial
+        OUTPUT: a polynomial
 
         EXAMPLES::
 
@@ -1319,22 +1302,17 @@ class pAdicRingGeneric(pAdicGeneric, EuclideanDomain):
         return self._xgcd_univariate_polynomial(f, g)[0]
 
 
-def is_pAdicField(R):
-    """
-    Return ``True`` if and only if ``R`` is a `p`-adic field.
+class pAdicFieldGeneric(pAdicGeneric, sage.rings.abc.pAdicField):
+    def is_field(self, proof=True):
+        """
+        Return whether this ring is actually a field, ie ``True``.
 
-    EXAMPLES::
+        EXAMPLES::
 
-        sage: is_pAdicField(Zp(17))
-        False
-        sage: is_pAdicField(Qp(17))
-        True
-    """
-    return isinstance(R, pAdicFieldGeneric)
-
-
-class pAdicFieldGeneric(pAdicGeneric, Field):
-    pass
+            sage: Qp(5).is_field()
+            True
+        """
+        return True
 
     #def class_field(self, group=None, map=None, generators=None):
     #    raise NotImplementedError
@@ -1366,31 +1344,43 @@ class pAdicFieldGeneric(pAdicGeneric, Field):
     #def subfields_of_degree(self, n):
     #    raise NotImplementedError
 
+
 class pAdicFixedModRingGeneric(pAdicRingGeneric, FixedModGeneric):
     pass
+
+
 class pAdicCappedAbsoluteRingGeneric(pAdicRingGeneric, CappedAbsoluteGeneric):
     pass
+
+
 class pAdicCappedRelativeRingGeneric(pAdicRingGeneric, CappedRelativeRingGeneric):
     pass
+
+
 class pAdicCappedRelativeFieldGeneric(pAdicFieldGeneric, CappedRelativeFieldGeneric):
     pass
+
+
 class pAdicFloatingPointRingGeneric(pAdicRingGeneric, FloatingPointRingGeneric):
     pass
+
+
 class pAdicFloatingPointFieldGeneric(pAdicFieldGeneric, FloatingPointFieldGeneric):
     pass
+
 
 class pAdicRingBaseGeneric(pAdicBaseGeneric, pAdicRingGeneric):
     def construction(self, forbid_frac_field=False):
         """
-        Return the functorial construction of self, namely,
-        completion of the rational numbers with respect a given prime.
+        Return the functorial construction of ``self``, namely,
+        completion of the rational numbers with respect to a given prime.
 
         Also preserves other information that makes this field unique
-        (e.g. precision, rounding, print mode).
+        (e.g., precision, rounding, print mode).
 
         INPUT:
 
-        - ``forbid_frac_field`` -- ignored, for compatibility with other p-adic types.
+        - ``forbid_frac_field`` -- ignored, for compatibility with other `p`-adic types
 
         EXAMPLES::
 
@@ -1411,36 +1401,42 @@ class pAdicRingBaseGeneric(pAdicBaseGeneric, pAdicRingGeneric):
             sage: S = F(Z)
             sage: S._precision_cap()
             (31, 41)
+
+        The `secure` attribute for relaxed type is included in the functor::
+
+            sage: R = ZpER(5, secure=True)                                              # needs sage.libs.flint
+            sage: R.construction()                                                      # needs sage.libs.flint
+            (Completion[5, prec=(20, 40, True)], Integer Ring)
         """
         from sage.categories.pushout import CompletionFunctor
         extras = {'print_mode':self._printer.dict(), 'type':self._prec_type(), 'names':self._names}
         if hasattr(self, '_label'):
             extras['label'] = self._label
         if self._prec_type() == "relaxed":
-            prec = (self._default_prec, self._halting_prec)
+            prec = (self._default_prec, self._halting_prec, self._secure)
         else:
             prec = self._precision_cap()
         return (CompletionFunctor(self.prime(), prec, extras), ZZ)
 
     def random_element(self, algorithm='default'):
         r"""
-        Return a random element of self, optionally using the
-        algorithm argument to decide how it generates the
+        Return a random element of ``self``, optionally using the
+        ``algorithm`` argument to decide how it generates the
         element. Algorithms currently implemented:
 
-        - default: Choose `a_i`, `i >= 0`, randomly between `0` and
+        - ``'default'``: Choose `a_i`, `i \geq 0`, randomly between `0` and
           `p-1` until a nonzero choice is made. Then continue choosing
           `a_i` randomly between `0` and `p-1` until we reach
           precision_cap, and return `\sum a_i p^i`.
 
         EXAMPLES::
 
-            sage: Zp(5,6).random_element()
-            3 + 3*5 + 2*5^2 + 3*5^3 + 2*5^4 + 5^5 + O(5^6)
-            sage: ZpCA(5,6).random_element()
-            4*5^2 + 5^3 + O(5^6)
-            sage: ZpFM(5,6).random_element()
-            2 + 4*5^2 + 2*5^4 + 5^5
+            sage: Zp(5,6).random_element().parent() is Zp(5,6)
+            True
+            sage: ZpCA(5,6).random_element().parent() is ZpCA(5,6)
+            True
+            sage: ZpFM(5,6).random_element().parent() is ZpFM(5,6)
+            True
         """
         if (algorithm == 'default'):
             if self.is_capped_relative():
@@ -1450,10 +1446,8 @@ class pAdicRingBaseGeneric(pAdicBaseGeneric, pAdicRingGeneric):
                     i += 1
                     a_i = ZZ.random_element(self.prime())
                 return self((self.prime()**i)*(a_i + self.prime()*ZZ.random_element(self.prime_pow.pow_Integer_Integer(self.precision_cap()-1))))
-            else:
-                return self(ZZ.random_element(self.prime_pow.pow_Integer_Integer(self.precision_cap())))
-        else:
-            raise NotImplementedError("Don't know %s algorithm"%algorithm)
+            return self(ZZ.random_element(self.prime_pow.pow_Integer_Integer(self.precision_cap())))
+        raise NotImplementedError("Don't know %s algorithm" % algorithm)
 
     #def unit_group(self):
     #    raise NotImplementedError
@@ -1464,10 +1458,11 @@ class pAdicRingBaseGeneric(pAdicBaseGeneric, pAdicRingGeneric):
     #def principal_unit_group(self):
     #    raise NotImplementedError
 
+
 class pAdicFieldBaseGeneric(pAdicBaseGeneric, pAdicFieldGeneric):
     def composite(self, subfield1, subfield2):
         r"""
-        Return the composite of two subfields of self, i.e., the
+        Return the composite of two subfields of ``self``, i.e., the
         largest subfield containing both
 
         INPUT:
@@ -1476,9 +1471,7 @@ class pAdicFieldBaseGeneric(pAdicBaseGeneric, pAdicFieldGeneric):
         - ``subfield1`` -- a subfield
         - ``subfield2`` -- a subfield
 
-        OUTPUT:
-
-        - the composite of subfield1 and subfield2
+        OUTPUT: the composite of ``subfield1`` and ``subfield2``
 
         EXAMPLES::
 
@@ -1492,16 +1485,16 @@ class pAdicFieldBaseGeneric(pAdicBaseGeneric, pAdicFieldGeneric):
 
     def subfields_of_degree(self, n):
         r"""
-        Return the number of subfields of self of degree `n`
+        Return the number of subfields of ``self`` of degree `n`.
 
         INPUT:
 
         - ``self`` -- a `p`-adic field
-        - ``n`` -- an integer
+        - ``n`` -- integer
 
         OUTPUT:
 
-        - integer -- the number of subfields of degree ``n`` over self.base_ring()
+        integer -- the number of subfields of degree `n` over ``self.base_ring()``
 
         EXAMPLES::
 
@@ -1511,21 +1504,18 @@ class pAdicFieldBaseGeneric(pAdicBaseGeneric, pAdicFieldGeneric):
         """
         if n == 1:
             return 1
-        else:
-            return 0
+        return 0
 
     def subfield(self, list):
         r"""
-        Return the subfield generated by the elements in list
+        Return the subfield generated by the elements in ``list``.
 
         INPUT:
 
         - ``self`` -- a `p`-adic field
-        - ``list`` -- a list of elements of ``self``
+        - ``list`` -- list of elements of ``self``
 
-        OUTPUT:
-
-        - the subfield of ``self`` generated by the elements of list
+        OUTPUT: the subfield of ``self`` generated by the elements of ``list``
 
         EXAMPLES::
 
@@ -1543,7 +1533,7 @@ class pAdicFieldBaseGeneric(pAdicBaseGeneric, pAdicFieldGeneric):
         completion of the rational numbers with respect a given prime.
 
         Also preserves other information that makes this field unique
-        (e.g. precision, rounding, print mode).
+        (e.g., precision, rounding, print mode).
 
         INPUT:
 
@@ -1583,6 +1573,12 @@ class pAdicFieldBaseGeneric(pAdicBaseGeneric, pAdicFieldGeneric):
             sage: S = F(Z)
             sage: S._precision_cap()
             (31, 41)
+
+        The `secure` attribute for relaxed type is included in the functor::
+
+            sage: K = QpER(5, secure=True)                                              # needs sage.libs.flint
+            sage: K.construction(forbid_frac_field=True)                                # needs sage.libs.flint
+            (Completion[5, prec=(20, 40, True)], Rational Field)
         """
         from sage.categories.pushout import FractionField, CompletionFunctor
         if forbid_frac_field:
@@ -1590,9 +1586,8 @@ class pAdicFieldBaseGeneric(pAdicBaseGeneric, pAdicFieldGeneric):
             if hasattr(self, '_label'):
                 extras['label'] = self._label
             if self._prec_type() == "relaxed":
-                prec = (self._default_prec, self._halting_prec)
+                prec = (self._default_prec, self._halting_prec, self._secure)
             else:
                 prec = self._precision_cap()
             return (CompletionFunctor(self.prime(), prec, extras), QQ)
-        else:
-            return FractionField(), self.integer_ring()
+        return FractionField(), self.integer_ring()

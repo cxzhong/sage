@@ -5,15 +5,15 @@
 # distutils: extra_link_args = NTL_LIBEXTRA
 # distutils: language = c++
 
-#*****************************************************************************
+# ***************************************************************************
 #       Copyright (C) 2005 William Stein <wstein@gmail.com>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ***************************************************************************
 
 from sage.libs.gmp.mpz cimport mpz_get_si
 include 'misc.pxi'
@@ -23,7 +23,7 @@ from sage.rings.integer cimport Integer
 
 zz_pContextDict = {}
 
-cdef class ntl_zz_pContext_class(object):
+cdef class ntl_zz_pContext_class():
     def __init__(self, long v):
         """
         EXAMPLES::
@@ -51,7 +51,7 @@ cdef class ntl_zz_pContext_class(object):
         if v > NTL_SP_BOUND:
             raise ValueError("Modulus (=%s) is too big" % v)
         elif v < 2:
-            # Trac 13940: only moduli greater than one are supported.
+            # Issue 13940: only moduli greater than one are supported.
             raise ValueError("Modulus (=%s) is too small" % v)
 
         self.x = zz_pContext_c(v)
@@ -60,15 +60,17 @@ cdef class ntl_zz_pContext_class(object):
 
     def __reduce__(self):
         """
-        sage: c=ntl.zz_pContext(13)
-        sage: loads(dumps(c)) is c
-        True
+        EXAMPLES::
+
+            sage: c=ntl.zz_pContext(13)
+            sage: loads(dumps(c)) is c
+            True
         """
         return ntl_zz_pContext, (self.p,)
 
     def modulus(self):
         """
-        Print the modulus for self.
+        Print the modulus for ``self``.
 
         EXAMPLES::
 
@@ -90,7 +92,7 @@ cdef class ntl_zz_pContext_class(object):
         """
         self.restore_c()
 
-    cdef void restore_c(self):
+    cdef void restore_c(self) noexcept:
         """
         Actual code for the above.
 
@@ -104,7 +106,7 @@ cdef class ntl_zz_pContext_class(object):
         self.x.restore()
 
 
-def ntl_zz_pContext( v ):
+def ntl_zz_pContext(v):
     """
     Creation function for a zz_p context.
 

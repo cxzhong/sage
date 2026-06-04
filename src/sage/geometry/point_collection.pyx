@@ -67,45 +67,21 @@ for one of them, it becomes available to all others as well, eliminating the
 need to spend time and memory four times.
 """
 
-#*****************************************************************************
+# ***************************************************************************
 #       Copyright (C) 2012 Andrey Novoseltsev <novoselt@gmail.com>
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
 #  as published by the Free Software Foundation; either version 2 of
 #  the License, or (at your option) any later version.
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ***************************************************************************
 
 from sage.structure.sage_object cimport SageObject
 from sage.structure.richcmp cimport richcmp_not_equal, richcmp
 
 from sage.geometry.toric_lattice import ToricLattice
-from sage.matrix.all import matrix
-from sage.misc.all import latex
-
-
-def is_PointCollection(x):
-    r"""
-    Check if ``x`` is a :class:`point collection <PointCollection>`.
-
-    INPUT:
-
-    - ``x`` -- anything.
-
-    OUTPUT:
-
-    - ``True`` if ``x`` is a point collection and ``False`` otherwise.
-
-    EXAMPLES::
-
-        sage: from sage.geometry.point_collection import is_PointCollection
-        sage: is_PointCollection(1)
-        False
-        sage: c = Cone([(0,0,1), (1,0,1), (0,1,1), (1,1,1)])
-        sage: is_PointCollection(c.rays())
-        True
-    """
-    return isinstance(x, PointCollection)
+from sage.matrix.constructor import matrix
+from sage.misc.latex import latex
 
 
 _output_format = "default"
@@ -129,12 +105,10 @@ cdef class PointCollection(SageObject):
       if ``points`` are already accessible to you as a :class:`tuple`, it is
       preferable to use it for speed and memory consumption reasons;
 
-    - ``module`` -- an ambient module for ``points``. If ``None``, it will be
-      determined as :func:`parent` of the first point. Of course, this cannot
-      be done if there are no points, so in this case you must give an
-      appropriate ``module`` directly. Note that ``None`` is *not* the default
-      value - you always *must* give this argument explicitly, even if it is
-      ``None``.
+    - ``module`` -- an ambient module for ``points``. If ``None`` (the default),
+      it will be determined as :func:`parent` of the first point. Of course, this
+      cannot be done if there are no points, so in this case you must give an
+      appropriate ``module`` directly.
 
     OUTPUT:
 
@@ -168,9 +142,32 @@ cdef class PointCollection(SageObject):
             over the principal ideal domain Integer Ring
             sage: TestSuite(c).run()
         """
-        super(PointCollection, self).__init__()
+        super().__init__()
         self._points = tuple(points)
         self._module = self._points[0].parent() if module is None else module
+
+    def _sage_input_(self, sib, coerced):
+        r"""
+        Return Sage command to reconstruct ``self``.
+
+        See :mod:`sage.misc.sage_input` for details.
+
+        EXAMPLES::
+
+            sage: c = Cone([(0,0,1), (1,0,1), (0,1,1), (1,1,1)]).rays()
+            sage: sage_input(c, verify=True)
+            # Verified
+            sage.geometry.point_collection.PointCollection((vector(ZZ, [0, 0, 1]), vector(ZZ, [1, 0, 1]), vector(ZZ, [0, 1, 1]), vector(ZZ, [1, 1, 1])))
+
+            sage: c = sage.geometry.point_collection.PointCollection([], ToricLattice(2, 'U'))
+            sage: sage_input(c, verify=True)
+            # Verified
+            sage.geometry.point_collection.PointCollection((), ToricLattice(2, 'U', 'U*', 'U', 'U^*'))
+        """
+        args = [sib(self._points)]
+        if not self._points or self._module is not self._points[0].parent():
+            args.append(sib(self._module))
+        return sib.name('sage.geometry.point_collection.PointCollection')(*args)
 
     def __add__(left, right):
         r"""
@@ -180,11 +177,9 @@ cdef class PointCollection(SageObject):
 
         - ``left`` -- a :class:`PointCollection`;
 
-        - ``right`` -- a :class:`PointCollection`.
+        - ``right`` -- a :class:`PointCollection`
 
-        OUTPUT:
-
-        - a :class:`PointCollection`.
+        OUTPUT: a :class:`PointCollection`
 
         TESTS::
 
@@ -205,7 +200,7 @@ cdef class PointCollection(SageObject):
             raise NotImplementedError
         cdef PointCollection left_pc = left
         cdef PointCollection right_pc = right
-        if not left_pc._module is right_pc._module:
+        if left_pc._module is not right_pc._module:
             raise NotImplementedError
         return PointCollection(left_pc._points + right_pc._points,
                                left_pc._module)
@@ -218,9 +213,7 @@ cdef class PointCollection(SageObject):
 
         - a list of integers (as a single or many arguments).
 
-        OUTPUT:
-
-        - a :class:`point collection <PointCollection>`.
+        OUTPUT: a :class:`point collection <PointCollection>`
 
         TESTS::
 
@@ -246,17 +239,15 @@ cdef class PointCollection(SageObject):
         else:
             return PointCollection([self[i] for i in args], self._module)
 
-    def __richcmp__(self, right, op):
+    def __richcmp__(self, other, op: int) -> bool:
         r"""
-        Compare ``self`` and ``right`` according to the operator ``op``.
+        Compare ``self`` and ``other`` according to the operator ``op``.
 
         INPUT:
 
-        - ``right`` -- another PointCollection
+        - ``other`` -- another PointCollection
 
-        OUTPUT:
-
-        boolean
+        OUTPUT: boolean
 
         First compare according to the underlying :meth:`module`
         and then according to the list of points.
@@ -270,18 +261,18 @@ cdef class PointCollection(SageObject):
             sage: c == d
             False
         """
-        cdef PointCollection left_pc, right_pc
+        cdef PointCollection left_pc, other_pc
         try:
             left_pc = <PointCollection?>self
-            right_pc = <PointCollection?>right
+            other_pc = <PointCollection?>other
         except TypeError:
             return NotImplemented
 
         left_m = left_pc._module
-        right_m = right_pc._module
-        if left_m != right_m:
-            return richcmp_not_equal(left_m, right_m, op)
-        return richcmp(left_pc._points, right_pc._points, op)
+        other_m = other_pc._module
+        if left_m != other_m:
+            return richcmp_not_equal(left_m, other_m, op)
+        return richcmp(left_pc._points, other_pc._points, op)
 
     def __getitem__(self, n):
         r"""
@@ -289,11 +280,9 @@ cdef class PointCollection(SageObject):
 
         INPUT:
 
-        - ``n`` -- an integer.
+        - ``n`` -- integer
 
-        OUTPUT:
-
-        - a point, an element of the ambient :meth:`module` of ``self``.
+        OUTPUT: a point, an element of the ambient :meth:`module` of ``self``
 
         EXAMPLES::
 
@@ -307,9 +296,7 @@ cdef class PointCollection(SageObject):
         r"""
         Return the hash of ``self``.
 
-        OUTPUT:
-
-        - an integer.
+        OUTPUT: integer
 
         TESTS::
 
@@ -323,9 +310,7 @@ cdef class PointCollection(SageObject):
         r"""
         Return an iterator over points of ``self``.
 
-        OUTPUT:
-
-        - an iterator.
+        OUTPUT: an iterator
 
         TESTS::
 
@@ -342,9 +327,7 @@ cdef class PointCollection(SageObject):
         r"""
         Return the number of points in ``self``.
 
-        OUTPUT:
-
-        - an integer.
+        OUTPUT: integer
 
         EXAMPLES::
 
@@ -358,9 +341,7 @@ cdef class PointCollection(SageObject):
         r"""
         Return a list of points of ``self``.
 
-        OUTPUT:
-
-        - a list.
+        OUTPUT: list
 
         TESTS::
 
@@ -456,9 +437,7 @@ cdef class PointCollection(SageObject):
         r"""
         Return the tuple of points of ``self``.
 
-        OUTPUT:
-
-        - a tuple.
+        OUTPUT: a tuple
 
         TESTS::
 
@@ -472,9 +451,7 @@ cdef class PointCollection(SageObject):
         r"""
         Return a LaTeX representation of ``self``.
 
-        OUTPUT:
-
-        - a string.
+        OUTPUT: string
 
         TESTS::
 
@@ -502,11 +479,9 @@ cdef class PointCollection(SageObject):
         INPUT:
 
         - ``ring`` -- a base ring for the returned matrix (default: base ring of
-          :meth:`module` of ``self``).
+          :meth:`module` of ``self``)
 
-        OUTPUT:
-
-        - a :class:`matrix <Matrix>`.
+        OUTPUT: a :class:`matrix <Matrix>`
 
         EXAMPLES::
 
@@ -526,9 +501,7 @@ cdef class PointCollection(SageObject):
         r"""
         Return a string representation of ``self``.
 
-        OUTPUT:
-
-        - a string.
+        OUTPUT: string
 
         TESTS::
 
@@ -606,9 +579,7 @@ cdef class PointCollection(SageObject):
         r"""
         Return the number of points in ``self``.
 
-        OUTPUT:
-
-        - an integer.
+        OUTPUT: integer
 
         EXAMPLES::
 
@@ -630,9 +601,7 @@ cdef class PointCollection(SageObject):
           default, the direct sum of the ambient modules of ``self`` and
           ``other`` is constructed.
 
-        OUTPUT:
-
-        - a :class:`point collection <PointCollection>`.
+        OUTPUT: a :class:`point collection <PointCollection>`
 
         EXAMPLES::
 
@@ -644,7 +613,7 @@ cdef class PointCollection(SageObject):
             N+N(1, 1, 1, 1, 1, 1)
             in 6-d lattice N+N
         """
-        assert is_PointCollection(other)
+        assert isinstance(other, PointCollection)
         if module is None:
             module = self._module.direct_sum(other.module())
         P = [list(p) for p in self]
@@ -658,9 +627,7 @@ cdef class PointCollection(SageObject):
         r"""
         Return a matrix whose columns are points of ``self``.
 
-        OUTPUT:
-
-        - a :class:`matrix <Matrix>`.
+        OUTPUT: a :class:`matrix <Matrix>`
 
         EXAMPLES::
 
@@ -678,9 +645,7 @@ cdef class PointCollection(SageObject):
 
         .. NOTE:: You can use either :meth:`dim` or :meth:`dimension`.
 
-        OUTPUT:
-
-        - an integer.
+        OUTPUT: integer
 
         EXAMPLES::
 
@@ -724,18 +689,16 @@ cdef class PointCollection(SageObject):
 
         INPUT:
 
-        - ``point`` -- a point of ``self``;
+        - ``point`` -- a point of ``self``
 
         - ``start`` -- (optional) an integer, if given, the search will start
-          at this position;
+          at this position
 
         - ``stop`` -- (optional) an integer, if given, the search will stop
-          at this position.
+          at this position
 
-        OUTPUT:
-
-        - an integer if ``point`` is in ``self[start:stop]``, otherwise a
-          ``ValueError`` exception is raised.
+        OUTPUT: an integer if ``point`` is in ``self[start:stop]``, otherwise a
+        :exc:`ValueError` exception is raised
 
         EXAMPLES::
 
@@ -761,9 +724,7 @@ cdef class PointCollection(SageObject):
         r"""
         Return a matrix whose rows are points of ``self``.
 
-        OUTPUT:
-
-        - a :class:`matrix <Matrix>`.
+        OUTPUT: a :class:`matrix <Matrix>`
 
         EXAMPLES::
 
@@ -785,9 +746,7 @@ cdef class PointCollection(SageObject):
         r"""
         Return the ambient module of ``self``.
 
-        OUTPUT:
-
-        - a :class:`module <FreeModule_generic>`.
+        OUTPUT: a :class:`module <FreeModule_generic>`
 
         EXAMPLES::
 
@@ -887,9 +846,7 @@ cdef class PointCollection(SageObject):
         r"""
         Return points of ``self`` as a :class:`frozenset`.
 
-        OUTPUT:
-
-        - a :class:`frozenset`.
+        OUTPUT: a :class:`frozenset`
 
         EXAMPLES::
 
@@ -907,7 +864,7 @@ cdef class PointCollection(SageObject):
 
         INPUT:
 
-        - ``f`` -- a file opened for writing.
+        - ``f`` -- a file opened for writing
 
         EXAMPLES::
 
@@ -934,28 +891,28 @@ def read_palp_point_collection(f, lattice=None, permutation=False):
     Read and return a point collection from an opened file.
 
     Data must be in PALP format:
-   
+
         * the first input line starts with two integers `m` and `n`, the number
           of points and the number of components of each;
-    
+
         * the rest of the first line may contain a permutation;
-    
+
         * the next `m` lines contain `n` numbers each.
-        
+
     .. NOTE::
-    
+
         If `m` < `n`, it is assumed (for compatibility with PALP) that the
         matrix is transposed, i.e. that each column is a point.
 
     INPUT:
 
-    - ``f`` -- an opened file with PALP output.
-    
+    - ``f`` -- an opened file with PALP output
+
     - ``lattice`` -- the lattice for points. If not given, the
       :class:`toric lattice <sage.geometry.toric_lattice.ToricLatticeFactory>`
       `M` of dimension `n` will be used.
 
-    - ``permutation`` -- (default: ``False``) if ``True``, try to retrieve
+    - ``permutation`` -- boolean (default: ``False``); if ``True``, try to retrieve
       the permutation. This parameter makes sense only when PALP computed the
       normal form of a lattice polytope.
 
@@ -1003,13 +960,13 @@ def read_palp_point_collection(f, lattice=None, permutation=False):
         # Typical situation: a point on each line
         lattice = lattice or ToricLattice(n).dual()
         points = [lattice.element_class(lattice, f.readline().split())
-                for i in range(m)]
+                  for i in range(m)]
     else:
         # Also may appear as PALP output, e.g. points of 3-d polytopes
         lattice = lattice or ToricLattice(m).dual()
         data = [f.readline().split() for j in range(m)]
         points = [lattice.element_class(lattice, [data[j][i] for j in range(m)])
-                for i in range(n)]
+                  for i in range(n)]
     for p in points:
         p.set_immutable()
     pc = PointCollection(points, lattice)

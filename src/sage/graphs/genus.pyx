@@ -24,24 +24,23 @@ where `E`, `V`, and `F` denote the number of orbits of `e`, `v`, and
 
 We make several optimizations to the naive algorithm, which are
 described throughout the file.
-
 """
 
-#*****************************************************************************
+# ****************************************************************************
 #         Copyright (C) 2010 Tom Boothby <tomas.boothby@gmail.com>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
 from libc.string cimport memcpy
-from sage.ext.memory_allocator cimport MemoryAllocator
+from memory_allocator cimport MemoryAllocator
 from cysignals.signals cimport sig_on, sig_off
 
-cimport sage.combinat.permutation_cython
+# cimport sage.combinat.permutation_cython
 
 from sage.combinat.permutation_cython cimport next_swap, reset_swap
 
@@ -49,13 +48,14 @@ from sage.graphs.base.dense_graph cimport DenseGraph
 from sage.graphs.graph import Graph
 
 
-cdef inline int edge_map(int i):
+cdef inline int edge_map(int i) noexcept:
     """
     We might as well make the edge map nice, since the vertex map is so
     slippery.  This is the fastest way I could find to establish the
     correspondence `i <-> i + 1` if `i` is even.
     """
-    return i - 2 * ( i & 1) + 1
+    return i - 2 * (i & 1) + 1
+
 
 cdef class simple_connected_genus_backtracker:
     r"""
@@ -101,7 +101,6 @@ cdef class simple_connected_genus_backtracker:
         sage: bt = sage.graphs.genus.simple_connected_genus_backtracker(G._backend.c_graph()[0])
         sage: bt.genus()
         2
-
     """
     cdef MemoryAllocator mem
     cdef int **vertex_darts
@@ -125,7 +124,6 @@ cdef class simple_connected_genus_backtracker:
             sage: gb = sage.graphs.genus.simple_connected_genus_backtracker(G._backend.c_graph()[0])
             sage: gb.genus()
             0
-
         """
         self.num_darts = G.num_arcs
         self.num_verts = G.num_verts
@@ -135,20 +133,20 @@ cdef class simple_connected_genus_backtracker:
 
         # Allocate arrays
         self.mem = MemoryAllocator()
-        self.degree       = <int *> self.mem.malloc(self.num_verts * sizeof(int))
-        self.face_map     = <int *> self.mem.malloc(self.num_darts * sizeof(int))
-        self.visited      = <int *> self.mem.malloc(self.num_darts * sizeof(int))
-        self.face_freeze  = <int *> self.mem.malloc(self.num_darts * sizeof(int))
+        self.degree = <int *> self.mem.malloc(self.num_verts * sizeof(int))
+        self.face_map = <int *> self.mem.malloc(self.num_darts * sizeof(int))
+        self.visited = <int *> self.mem.malloc(self.num_darts * sizeof(int))
+        self.face_freeze = <int *> self.mem.malloc(self.num_darts * sizeof(int))
         self.vertex_darts = <int **>self.mem.malloc(self.num_verts * sizeof(int *))
-        self.swappers     = <int **>self.mem.malloc(self.num_verts * sizeof(int *))
-        cdef int *w       = <int *> self.mem.malloc((self.num_verts + self.num_darts) * sizeof(int))
-        cdef int *s       = <int *> self.mem.malloc(2 * (self.num_darts - self.num_verts) * sizeof(int))
+        self.swappers = <int **>self.mem.malloc(self.num_verts * sizeof(int *))
+        cdef int *w = <int *> self.mem.malloc((self.num_verts + self.num_darts) * sizeof(int))
+        cdef int *s = <int *> self.mem.malloc(2 * (self.num_darts - self.num_verts) * sizeof(int))
 
-        cdef int i, j, du, dv, u, v
+        cdef int i, j, dv, u, v
 
         for v in range(self.num_verts):
             if not G.has_vertex(v):
-                raise ValueError("Please relabel G so vertices are 0, ..., n-1")
+                raise ValueError("please relabel G so vertices are 0, ..., n-1")
 
             dv = G.in_degrees[v]
             self.degree[v] = 0
@@ -173,7 +171,7 @@ cdef class simple_connected_genus_backtracker:
                     self.vertex_darts[v][dv] = i + 1
                     self.degree[u] += 1
                     dv += 1
-                    i  += 2
+                    i += 2
 
             self.degree[v] = dv
 
@@ -203,13 +201,11 @@ cdef class simple_connected_genus_backtracker:
 #            print(self.face_map[v], end="")
 #        print(']')
 
-
-    cdef inline void freeze_face(self):
+    cdef inline void freeze_face(self) noexcept:
         """
         Quickly store the current face_map so we can recover
         the embedding it corresponds to later.
         """
-
         memcpy(self.face_freeze, self.face_map, self.num_darts * sizeof(int))
 
     def get_embedding(self):
@@ -238,7 +234,6 @@ cdef class simple_connected_genus_backtracker:
             sage: gb = sage.graphs.genus.simple_connected_genus_backtracker(G._backend.c_graph()[0])
             sage: gb.get_embedding()
             {}
-
         """
         if not self.num_verts:
             return {}
@@ -271,7 +266,7 @@ cdef class simple_connected_genus_backtracker:
 
         return embedding
 
-    cdef int run_cycle(self, int i):
+    cdef int run_cycle(self, int i) noexcept:
         r"""
         Mark off the orbit of `i` under face_map.
 
@@ -299,8 +294,8 @@ cdef class simple_connected_genus_backtracker:
             j = self.face_map[j]
         return 1
 
-    cdef void flip(self, int v, int i):
-        """
+    cdef void flip(self, int v, int i) noexcept:
+        r"""
         This is where the real work happens. Once cycles have been counted for
         the initial face_map, we make small local changes, and look at their
         effect on the number of cycles.
@@ -343,7 +338,6 @@ cdef class simple_connected_genus_backtracker:
         before the flip, the cycle breaks into three.  Otherwise, the number of
         cycles stays the same.
         """
-        cdef int cycles = 0
         cdef int *w = self.vertex_darts[v]
         cdef int *face_map = self.face_map
 
@@ -384,7 +378,6 @@ cdef class simple_connected_genus_backtracker:
 
             self.num_cycles += (2 * k + 1 - j) % 4
 
-
         face_map[e0] = v2
         face_map[e1] = f2
         face_map[e2] = v1
@@ -392,12 +385,11 @@ cdef class simple_connected_genus_backtracker:
         w[i] = v2
         w[i + 1] = v1
 
-
-    cdef int count_cycles(self):
+    cdef int count_cycles(self) noexcept:
         """
         Count all cycles.
         """
-        cdef int i, j, c, m
+        cdef int i
         self.num_cycles = 0
 
         for i in range(self.num_darts):
@@ -408,7 +400,7 @@ cdef class simple_connected_genus_backtracker:
 
     def genus(self, int style=1, int cutoff=0, bint record_embedding=False):
         r"""
-        Compute the minimal or maximal genus of self's graph.
+        Compute the minimal or maximal genus of ``self``'s graph.
 
         Note, this is a remarkably naive algorithm for a very difficult problem.
         Most interesting cases will take millennia to finish, with the exception
@@ -416,10 +408,10 @@ cdef class simple_connected_genus_backtracker:
 
         INPUT:
 
-        - ``style`` -- integer (default: ``1``); find minimum genus if 1,
+        - ``style`` -- integer (default: `1`); find minimum genus if 1,
           maximum genus if 2
 
-        - ``cutoff`` -- integer (default: ``0``); stop searching if search style
+        - ``cutoff`` -- integer (default: `0`); stop searching if search style
           is 1 and ``genus`` `\leq` ``cutoff``, or if style is 2 and ``genus``
           `\geq` ``cutoff``.  This is useful where the genus of the graph has a
           known bound.
@@ -428,10 +420,7 @@ cdef class simple_connected_genus_backtracker:
           to remember the best embedding seen. This embedding can be retrieved
           with ``self.get_embedding()``.
 
-        OUTPUT:
-
-            the minimal or maximal genus for self's graph.
-
+        OUTPUT: the minimal or maximal genus for ``self``'s graph
 
         EXAMPLES::
 
@@ -452,7 +441,7 @@ cdef class simple_connected_genus_backtracker:
             sage: gb.genus()
             0
         """
-        cdef int g, i
+        cdef int g
 
         # in the original genus implementation, this case resulted in infinite
         # recursion.  oops.  Let's skip that.
@@ -466,14 +455,14 @@ cdef class simple_connected_genus_backtracker:
         sig_off()
         return g
 
-    cdef void reset_swap(self, int v):
+    cdef void reset_swap(self, int v) noexcept:
         """
         Reset the swapper associated with vertex ``v``.
         """
         cdef int d = self.degree[v] - 1
         reset_swap(d, self.swappers[v], self.swappers[v] + d)
 
-    cdef int next_swap(self, int v):
+    cdef int next_swap(self, int v) noexcept:
         """
         Compute and return the next swap associated with the vertex ``v``.
         """
@@ -481,15 +470,14 @@ cdef class simple_connected_genus_backtracker:
         return next_swap(d, self.swappers[v], self.swappers[v] + d)
 
     cdef int genus_backtrack(self,
-                                 int cutoff,
-                                 bint record_embedding,
-                                 (int (*)(simple_connected_genus_backtracker,int,bint,int))check_embedding
-                                ):
+                             int cutoff,
+                             bint record_embedding,
+                             (int (*)(simple_connected_genus_backtracker, int, bint, int) noexcept) check_embedding) noexcept:
         """
         Here's the main backtracking routine.
 
-        We iterate over all embeddings of self's graph by considering all
-        cyclic orderings of `self.vertex_darts`.  We use the Steinhaus-
+        We iterate over all embeddings of ``self``'s graph by considering all
+        cyclic orderings of ``self.vertex_darts``.  We use the Steinhaus-
         Johnson-Trotter algorithm to enumerate these by walking over a poly-ary
         Gray code, and each time the Gray code would flip a bit, we apply the
         next adjacent transposition from S-J-T at that vertex.
@@ -529,7 +517,7 @@ cdef class simple_connected_genus_backtracker:
 cdef int min_genus_check(simple_connected_genus_backtracker self,
                          int cutoff,
                          bint record_embedding,
-                         int initial):
+                         int initial) noexcept:
     """
     Search for the minimal genus.
 
@@ -549,7 +537,7 @@ cdef int min_genus_check(simple_connected_genus_backtracker self,
 cdef int max_genus_check(simple_connected_genus_backtracker self,
                          int cutoff,
                          bint record_embedding,
-                         int initial):
+                         int initial) noexcept:
     """
     Same as min_genus_check, but search for a maximum.
     """
@@ -595,40 +583,38 @@ def simple_connected_graph_genus(G, set_embedding=False, check=True, minimal=Tru
 
     REFERENCES:
 
-    [1] http://www.springerlink.com/content/0776127h0r7548v7/
-
+    [1] :doi:`10.1007/s00373-007-0729-9`
     """
     cdef int style, cutoff
     oG = G  # original graph
 
     if minimal and G.is_planar(set_embedding=set_embedding):
         return 0
+
+    if check:
+        if not G.is_connected():
+            raise ValueError("cannot compute the genus of a disconnected graph")
+
+        if G.is_directed() or G.has_multiple_edges() or G.has_loops():
+            G = G.to_simple()
+
+    G, vmap = G.relabel(inplace=False, return_map=True)
+    backmap = {u: v for v, u in vmap.items()}
+    G = Graph(G, sparse=False)
+    GG = simple_connected_genus_backtracker(G._backend.c_graph()[0])
+
+    if minimal:
+        style = 1
+        cutoff = 1
     else:
-        if check:
-            if not G.is_connected():
-                raise ValueError("Cannot compute the genus of a disconnected graph")
+        style = 2
+        cutoff = 1 + (G.n_edges() - G.n_vertices()) / 2  # rounding here is ok
 
-            if G.is_directed() or G.has_multiple_edges() or G.has_loops():
-                G = G.to_simple()
-
-        G, vmap = G.relabel(inplace=False, return_map=True)
-        backmap = {u: v for v, u in vmap.items()}
-        G = Graph(G, sparse=False)
-        GG = simple_connected_genus_backtracker(G._backend.c_graph()[0])
-
-        if minimal:
-            style = 1
-            cutoff = 1
-        else:
-            style = 2
-            cutoff = 1 + (G.num_edges() - G.num_verts()) / 2 # rounding here is ok
-
-        g = GG.genus(style=style, cutoff=cutoff, record_embedding=set_embedding)
-        if set_embedding:
-            oE = {}
-            E = GG.get_embedding()
-            for v in E:
-                oE[backmap[v]] = [backmap[x] for x in E[v]]
-            oG.set_embedding(oE)
-        return g
-
+    g = GG.genus(style=style, cutoff=cutoff, record_embedding=set_embedding)
+    if set_embedding:
+        oE = {}
+        E = GG.get_embedding()
+        for v in E:
+            oE[backmap[v]] = [backmap[x] for x in E[v]]
+        oG.set_embedding(oE)
+    return g

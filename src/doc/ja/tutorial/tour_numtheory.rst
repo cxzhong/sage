@@ -113,7 +113,6 @@ Sageの ``sigma(n,k)`` 関数は， ``n`` の商の :math:`k` 乗の和を計算
     [[4], [3, 1], [2, 2], [2, 1, 1], [1, 1, 1, 1]]
 
 
-
 :math:`p` \-進数
 ------------------------
 
@@ -161,7 +160,7 @@ Sageには :math:`p` \-進数体も組込まれている．
     Univariate Quotient Polynomial Ring in a over Rational Field with modulus
     x^3 + x^2 - 2*x + 8
     sage: K.units()
-    (3*a^2 + 13*a + 13,)
+    (-3*a^2 - 13*a - 13,)
     sage: K.discriminant()
     -503
     sage: K.class_group()

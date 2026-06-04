@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 r"""
 Valuations which are scaled versions of another valuation
 
@@ -10,16 +9,15 @@ EXAMPLES::
 AUTHORS:
 
 - Julian Rüth (2016-11-10): initial version
-
 """
-#*****************************************************************************
+# ****************************************************************************
 #       Copyright (C) 2016-2017 Julian Rüth <julian.rueth@fsfe.org>
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
 #  as published by the Free Software Foundation; either version 2 of
 #  the License, or (at your option) any later version.
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
 from sage.structure.factory import UniqueFactory
 
@@ -34,7 +32,6 @@ class ScaledValuationFactory(UniqueFactory):
 
         sage: 3*ZZ.valuation(2) # indirect doctest
         3 * 2-adic valuation
-
     """
     def create_key(self, base, s):
         r"""
@@ -44,9 +41,9 @@ class ScaledValuationFactory(UniqueFactory):
 
             sage: 3*ZZ.valuation(2) is 2*(3/2*ZZ.valuation(2)) # indirect doctest
             True
-            
         """
-        from sage.rings.all import infinity, QQ
+        from sage.rings.infinity import infinity
+        from sage.rings.rational_field import QQ
         if s is infinity or s not in QQ or s <= 0:
             # for these values we can not return a TrivialValuation() in
             # create_object() because that would override that instance's
@@ -62,7 +59,7 @@ class ScaledValuationFactory(UniqueFactory):
             raise ValueError("s must not be 1")
 
         if isinstance(base, ScaledValuation_generic):
-            return self.create_key(base._base_valuation, s*base._scale)
+            return self.create_key(base._base_valuation, s * base._scale)
 
         return base, s
 
@@ -74,7 +71,6 @@ class ScaledValuationFactory(UniqueFactory):
 
             sage: 3*ZZ.valuation(2) # indirect doctest
             3 * 2-adic valuation
-
         """
         base, s = key
 
@@ -87,6 +83,7 @@ class ScaledValuationFactory(UniqueFactory):
 
 ScaledValuation = ScaledValuationFactory("sage.rings.valuation.scaled_valuation.ScaledValuation")
 
+
 class ScaledValuation_generic(DiscreteValuation):
     r"""
     A valuation which scales another ``base_valuation`` by a finite positive factor ``s``.
@@ -98,8 +95,7 @@ class ScaledValuation_generic(DiscreteValuation):
 
     TESTS::
 
-        sage: TestSuite(v).run() # long time
-
+        sage: TestSuite(v).run()                # long time                             # needs sage.geometry.polyhedron
     """
     def __init__(self, parent, base_valuation, s):
         r"""
@@ -117,11 +113,9 @@ class ScaledValuation_generic(DiscreteValuation):
             sage: from sage.rings.valuation.scaled_valuation import ScaledValuation_generic
             sage: isinstance(v, ScaledValuation_generic)
             True
-
         """
         DiscreteValuation.__init__(self, parent)
-
-        self._base_valuation = base_valuation 
+        self._base_valuation = base_valuation
         self._scale = s
 
     def _repr_(self):
@@ -132,9 +126,8 @@ class ScaledValuation_generic(DiscreteValuation):
 
             sage: 3*ZZ.valuation(2) # indirect doctest
             3 * 2-adic valuation
-
         """
-        return "%r * %r"%(self._scale, self._base_valuation)
+        return "%r * %r" % (self._scale, self._base_valuation)
 
     def residue_ring(self):
         r"""
@@ -145,7 +138,6 @@ class ScaledValuation_generic(DiscreteValuation):
             sage: v = 3*ZZ.valuation(2)
             sage: v.residue_ring()
             Finite Field of size 2
-
         """
         return self._base_valuation.residue_ring()
 
@@ -158,7 +150,6 @@ class ScaledValuation_generic(DiscreteValuation):
             sage: v = 3*ZZ.valuation(2)
             sage: v.uniformizer()
             2
-
         """
         return self._base_valuation.uniformizer()
 
@@ -171,7 +162,6 @@ class ScaledValuation_generic(DiscreteValuation):
             sage: v = 3*ZZ.valuation(2)
             sage: v(2)
             3
-
         """
         return self._scale * self._base_valuation(f)
 
@@ -184,7 +174,6 @@ class ScaledValuation_generic(DiscreteValuation):
             sage: v = 3*ZZ.valuation(2)
             sage: v.reduce(1)
             1
-
         """
         return self._base_valuation.reduce(f)
 
@@ -199,7 +188,6 @@ class ScaledValuation_generic(DiscreteValuation):
             sage: v = 3*ZZ.valuation(2)
             sage: v.lift(1)
             1
-
         """
         return self._base_valuation.lift(F)
 
@@ -210,10 +198,9 @@ class ScaledValuation_generic(DiscreteValuation):
         EXAMPLES::
 
             sage: v = 3*ZZ.valuation(5)
-            sage: v.extensions(GaussianIntegers().fraction_field())
+            sage: v.extensions(GaussianIntegers().fraction_field())                     # needs sage.rings.number_field
             [3 * [ 5-adic valuation, v(x + 2) = 1 ]-adic valuation,
              3 * [ 5-adic valuation, v(x + 3) = 1 ]-adic valuation]
-
         """
         return [ScaledValuation(w, self._scale) for w in self._base_valuation.extensions(ring)]
 
@@ -226,7 +213,6 @@ class ScaledValuation_generic(DiscreteValuation):
             sage: v = 3*QQ.valuation(5)
             sage: v.restriction(ZZ)
             3 * 5-adic valuation
-
         """
         restricted = self._base_valuation.restriction(ring)
         if restricted.is_trivial():
@@ -246,7 +232,6 @@ class ScaledValuation_generic(DiscreteValuation):
             sage: v3 = 12 * QQ.valuation(3)
             sage: v2._strictly_separating_element(v3)
             2/3
-
         """
         return self._base_valuation._strictly_separating_element(other)
 
@@ -263,7 +248,6 @@ class ScaledValuation_generic(DiscreteValuation):
             sage: v3 = 12 * QQ.valuation(3)
             sage: v2._weakly_separating_element(v3)
             2
-
         """
         return self._base_valuation._weakly_separating_element(other)
 
@@ -287,7 +271,6 @@ class ScaledValuation_generic(DiscreteValuation):
 
             sage: v2 > v2/2
             True
-
         """
         if self == other:
             return True
@@ -300,7 +283,7 @@ class ScaledValuation_generic(DiscreteValuation):
             assert not self.is_trivial()
             if self._base_valuation <= other:
                 return False
-        return super(ScaledValuation_generic, self)._ge_(other)
+        return super()._ge_(other)
 
     def _le_(self, other):
         r"""
@@ -322,7 +305,6 @@ class ScaledValuation_generic(DiscreteValuation):
 
             sage: v2 < v2/2
             False
-
         """
         return other / self._scale >= self._base_valuation
 
@@ -335,6 +317,5 @@ class ScaledValuation_generic(DiscreteValuation):
             sage: v2 = QQ.valuation(2)
             sage: (2*v2).value_semigroup()
             Additive Abelian Semigroup generated by -2, 2
-
         """
         return self._scale * self._base_valuation.value_semigroup()

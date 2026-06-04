@@ -10,11 +10,19 @@ Degenerate manifolds
 #                  https://www.gnu.org/licenses/
 # *****************************************************************************
 
-from sage.rings.infinity import infinity
-from sage.manifolds.structure import DegenerateStructure
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from sage.manifolds.differentiable.manifold import DifferentiableManifold
+from sage.manifolds.structure import DegenerateStructure
+from sage.rings.infinity import infinity
+
+if TYPE_CHECKING:
+    from sage.manifolds.differentiable.metric import DegenerateMetric
 
 ###############################################################################
+
 
 class DegenerateManifold(DifferentiableManifold):
     r"""
@@ -31,8 +39,8 @@ class DegenerateManifold(DifferentiableManifold):
 
     - ``n`` -- positive integer; dimension of the manifold
     - ``name`` -- string; name (symbol) given to the manifold
-    - ``metric_name`` -- (default: ``'g'``) string; name (symbol) given to the
-      metric
+    - ``metric_name`` -- (default: ``None``) string; name (symbol) given to the
+      metric; if ``None``, ``'g'`` is used
     - ``signature`` -- (default: ``None``) signature `S` of the metric as a
       tuple: `S = (n_+, n_-, n_0)`, where `n_+` (resp. `n_-`, resp. `n_0`) is the
       number of positive terms (resp. negative terms, resp. zero tems) in any
@@ -98,12 +106,12 @@ class DegenerateManifold(DifferentiableManifold):
     - [DB1996]_
     - [DS2010]_
     """
-    def __init__(self, n, name, metric_name='g', signature=None, base_manifold=None,
-                 diff_degree=infinity, latex_name=None,
+    def __init__(self, n, name, metric_name=None, signature=None,
+                 base_manifold=None, diff_degree=infinity, latex_name=None,
                  metric_latex_name=None, start_index=0, category=None,
                  unique_tag=None):
         r"""
-        Construct a pseudo-Riemannian manifold.
+        Construct a degenerate manifold.
 
         TESTS::
 
@@ -116,7 +124,6 @@ class DegenerateManifold(DifferentiableManifold):
             sage: M.metric()
             degenerate metric g on the 3-dimensional degenerate_metric manifold M
             sage: TestSuite(M).run()
-
         """
         if base_manifold and not isinstance(base_manifold, DegenerateManifold):
             raise TypeError("the argument 'base_manifold' must be a " +
@@ -130,7 +137,9 @@ class DegenerateManifold(DifferentiableManifold):
                                         category=category)
         self._metric = None # to be initialized by metric()
         self._metric_signature = signature
-        if not isinstance(metric_name, str):
+        if metric_name is None:
+            metric_name = 'g'
+        elif not isinstance(metric_name, str):
             raise TypeError("{} is not a string".format(metric_name))
         self._metric_name = metric_name
         if metric_latex_name is None:
@@ -141,7 +150,7 @@ class DegenerateManifold(DifferentiableManifold):
             self._metric_latex_name = metric_latex_name
 
     def metric(self, name=None, signature=None, latex_name=None,
-               dest_map=None):
+               dest_map=None) -> DegenerateMetric:
         r"""
         Return the metric giving the null manifold structure to the
         manifold, or define a new metric tensor on the manifold.
@@ -187,7 +196,7 @@ class DegenerateManifold(DifferentiableManifold):
 
             sage: g[1,1], g[2,2] = -1, 1
             sage: g.display()
-            g = -dx*dx + dy*dy
+            g = -dx⊗dx + dy⊗dy
             sage: g[:]
             [-1  0  0]
             [ 0  1  0]
@@ -202,7 +211,7 @@ class DegenerateManifold(DifferentiableManifold):
             sage: dx, dy = X.coframe()[1], X.coframe()[2]
             sage: b = dx*dx + dy*dy
             sage: b
-            Field of symmetric bilinear forms dx*dx+dy*dy on the 3-dimensional
+            Field of symmetric bilinear forms dx⊗dx+dy⊗dy on the 3-dimensional
             degenerate_metric manifold M
 
         We then use the metric method
@@ -212,7 +221,7 @@ class DegenerateManifold(DifferentiableManifold):
 
             sage: g.set(b)
             sage: g.display()
-            g = dx*dx + dy*dy
+            g = dx⊗dx + dy⊗dy
 
         Another metric can be defined on ``M`` by specifying a metric name
         distinct from that chosen at the creation of the manifold (which
@@ -223,7 +232,7 @@ class DegenerateManifold(DifferentiableManifold):
             degenerate metric h on the 3-dimensional degenerate_metric manifold M
             sage: h[1,1], h[2,2], h[3,3] = 1+y^2, 1+z^2, 1+x^2
             sage: h.display()
-            h = (y^2 + 1) dx*dx + (z^2 + 1) dy*dy + (x^2 + 1) dz*dz
+            h = (y^2 + 1) dx⊗dx + (z^2 + 1) dy⊗dy + (x^2 + 1) dz⊗dz
 
         The metric tensor ``h`` is distinct from the metric entering in the
         definition of the degenerate manifold ``M``::
@@ -241,7 +250,6 @@ class DegenerateManifold(DifferentiableManifold):
 
             sage: M.metric('g') is M.metric()
             True
-
         """
         if signature is None:
             signature = self._metric_signature
@@ -279,7 +287,7 @@ class DegenerateManifold(DifferentiableManifold):
         INPUT:
 
         - ``name`` -- name given to the open subset
-        - ``latex_name`` --  (default: ``None``) LaTeX symbol to denote the
+        - ``latex_name`` -- (default: ``None``) LaTeX symbol to denote the
           subset; if none is provided, it is set to ``name``
         - ``coord_def`` -- (default: {}) definition of the subset in
           terms of coordinates; ``coord_def`` must a be dictionary with keys
@@ -314,7 +322,7 @@ class DegenerateManifold(DifferentiableManifold):
             degenerate metric g on the Open subset U of the 3-dimensional
             degenerate_metric manifold M
             sage: gU.display()
-            g = -dx*dx + dy*dy
+            g = -dx⊗dx + dy⊗dy
             sage: gU is g.restrict(U)
             True
 
@@ -326,10 +334,9 @@ class DegenerateManifold(DifferentiableManifold):
             Open subset V of the 3-dimensional degenerate_metric manifold M
             sage: gV = V.metric()
             sage: gV.display()
-            g = -dx*dx + dy*dy
+            g = -dx⊗dx + dy⊗dy
             sage: gV is g.restrict(V)
             True
-
         """
         resu = DegenerateManifold(self._dim, name,
                                         metric_name=self._metric_name,
@@ -360,11 +367,11 @@ class DegenerateManifold(DifferentiableManifold):
         return resu
 
 
-
 #*******************************************************************************************
 
-from sage.manifolds.differentiable.tensorfield_paral import TensorFieldParal
 from sage.manifolds.differentiable.tensorfield import TensorField
+from sage.manifolds.differentiable.tensorfield_paral import TensorFieldParal
+
 
 class TangentTensor(TensorFieldParal):
     r"""
@@ -384,7 +391,7 @@ class TangentTensor(TensorFieldParal):
         Section of the lightcone of the Minkowski space with a hyperplane
         passing through the origin::
 
-            sage: M = Manifold(4, 'M', structure="Lorentzian")
+            sage: M = Manifold(4, 'M', structure='Lorentzian')
             sage: X.<t,x,y,z> = M.chart()
             sage: S = Manifold(2, 'S', ambient=M, structure='degenerate_metric')
             sage: X_S.<u,v> = S.chart()
@@ -403,7 +410,7 @@ class TangentTensor(TensorFieldParal):
             sage: T1 = M.tensor_field(1,1).along(Phi); T1[0,0] = 1
             sage: V1 = M.vector_field().along(Phi); V1[0] = 1; V1[1]=1
             sage: T1(V1).display()
-            d/dt
+            ∂/∂t
             sage: from sage.manifolds.differentiable.degenerate_submanifold import TangentTensor
             sage: T2 = TangentTensor(T1, Phi)
             sage: T2
@@ -412,22 +419,21 @@ class TangentTensor(TensorFieldParal):
              with values on the 4-dimensional Lorentzian manifold M
             sage: V2 = S.projection(V1)
             sage: T2(V2).display()
-            u/sqrt(u^2 + v^2) d/dt
+            u/sqrt(u^2 + v^2) ∂/∂t
 
         Of course `T1` and `T2` give the same output on vector fields tangent to S::
 
             sage: T1(xi.along(Phi)).display()
-            sqrt(u^2 + v^2) d/dt
+            sqrt(u^2 + v^2) ∂/∂t
             sage: T2(xi.along(Phi)).display()
-            sqrt(u^2 + v^2) d/dt
-
+            sqrt(u^2 + v^2) ∂/∂t
     """
     def __init__(self, tensor, embedding, screen=None):
         r"""
 
         TESTS::
 
-            sage: M = Manifold(4, 'M', structure="Lorentzian")
+            sage: M = Manifold(4, 'M', structure='Lorentzian')
             sage: X.<t,x,y,z> = M.chart()
             sage: S = Manifold(3, 'S', ambient=M, structure='degenerate_metric')
             sage: X_S.<u,v,w> = S.chart()
@@ -449,7 +455,6 @@ class TangentTensor(TensorFieldParal):
             Tensor field of type (1,1) along the degenerate hypersurface S embedded in
             4-dimensional differentiable manifold M with values on the 4-dimensional
             Lorentzian manifold M
-
         """
         if not isinstance(tensor, TensorField):
             raise TypeError("the second argument must be a tensor field")
@@ -472,7 +477,7 @@ class TangentTensor(TensorFieldParal):
         self.display(frame)
         for i in self._domain._ambient.index_generator(tensor.tensor_rank()):
             for j in range(len(i)):
-                if i[j]==self._domain._ambient._dim-self._domain._sindex-1:
+                if i[j] == self._domain._ambient._dim-self._domain._sindex-1:
                     self[frame, i] = 0
 
     def __call__(self, *args):
@@ -480,7 +485,7 @@ class TangentTensor(TensorFieldParal):
 
         TESTS::
 
-            sage: M = Manifold(4, 'M', structure="Lorentzian")
+            sage: M = Manifold(4, 'M', structure='Lorentzian')
             sage: X.<t,x,y,z> = M.chart()
             sage: S = Manifold(3, 'S', ambient=M, structure='degenerate_metric')
             sage: X_S.<u,v,w> = S.chart()
@@ -502,7 +507,6 @@ class TangentTensor(TensorFieldParal):
             Vector field along the degenerate hypersurface S embedded in
             4-dimensional differentiable manifold M with values on the 4-dimensional
             Lorentzian manifold M
-
         """
         for vector in args:
             try:
@@ -510,7 +514,7 @@ class TangentTensor(TensorFieldParal):
             except ValueError:
                 pass
             if not self._domain.is_tangent(vector):
-                raise ValueError("The provided vector field is not "+
+                raise ValueError("The provided vector field is not " +
                         "tangent to {}".format(self._domain._name))
         try:
             return TensorField.__call__(self._tensor.along(self._embedding), *args)
@@ -527,7 +531,7 @@ class TangentTensor(TensorFieldParal):
         Section of the lightcone of the Minkowski space with a hyperplane
         passing through the origin::
 
-            sage: M = Manifold(4, 'M', structure="Lorentzian")
+            sage: M = Manifold(4, 'M', structure='Lorentzian')
             sage: X.<t,x,y,z> = M.chart()
             sage: S = Manifold(2, 'S', ambient=M, structure='degenerate_metric')
             sage: X_S.<u,v> = S.chart()
@@ -550,6 +554,5 @@ class TangentTensor(TensorFieldParal):
             False
             sage: T3 is T1
             True
-
         """
         return self._tensor

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 r"""
 Rankers
 """
@@ -20,17 +19,16 @@ from sage.misc.callable_dict import CallableDict
 from sage.structure.parent import Parent
 from sage.categories.enumerated_sets import EnumeratedSets
 
+
 def from_list(l):
     """
-    Returns a ranker from the list l.
+    Return a ranker from the list l.
 
     INPUT:
 
-    -  ``l`` - a list
+    - ``l`` -- list
 
-    OUTPUT:
-
-    - ``[rank, unrank]`` - functions
+    OUTPUT: ``[rank, unrank]`` -- functions
 
     EXAMPLES::
 
@@ -71,7 +69,7 @@ def rank_from_list(l):
         sage: r('c')
         2
 
-    For non elements a ``ValueError`` is raised, as with the usual
+    For non elements a :exc:`ValueError` is raised, as with the usual
     ``index`` method of lists::
 
         sage: r('blah')
@@ -84,7 +82,7 @@ def rank_from_list(l):
     implementation detail::
 
         sage: type(r)
-        <... 'sage.misc.callable_dict.CallableDict'>
+        <class 'sage.misc.callable_dict.CallableDict'>
         sage: r
         {'a': 0, 'b': 1, 'c': 2}
 
@@ -106,9 +104,10 @@ def rank_from_list(l):
     """
     return CallableDict((x,i) for i,x in enumerate(l))
 
+
 def unrank_from_list(l):
     """
-    Returns an unrank function from a list.
+    Return an unrank function from a list.
 
     EXAMPLES::
 
@@ -123,9 +122,10 @@ def unrank_from_list(l):
     unrank = lambda j: l[j]
     return unrank
 
+
 def on_fly():
     """
-    Returns a pair of enumeration functions rank / unrank.
+    Return a pair of enumeration functions rank / unrank.
 
     rank assigns on the fly an integer, starting from 0, to any object
     passed as argument. The object should be hashable. unrank is the
@@ -151,13 +151,13 @@ def on_fly():
         sage: unrank(3)
         'd'
 
-    .. todo:: add tests as in combinat::rankers
+    .. TODO:: add tests as in combinat::rankers
     """
     def count():
         i = 0
         while True:
             yield i
-            i+=1
+            i += 1
 
     counter = count()
 
@@ -173,21 +173,22 @@ def on_fly():
 
     return [rank, unrank]
 
+
 def unrank(L, i):
     r"""
     Return the `i`-th element of `L`.
 
     INPUT:
 
-    - ``L`` -- a list, tuple, finite enumerated set, ...
-    - ``i`` -- an int or :class:`Integer`
+    - ``L`` -- list, tuple, finite enumerated set, etc.
+    - ``i`` -- integer
 
     The purpose of this utility is to give a uniform idiom to recover
     the `i`-th element of an object ``L``, whether ``L`` is a list,
     tuple (or more generally a :class:`collections.abc.Sequence`), an
     enumerated set, some old parent of Sage still implementing
     unranking in the method ``__getitem__``, or an iterable (see
-    :class:`collections.abc.Iterable`). See :trac:`15919`.
+    :class:`collections.abc.Iterable`). See :issue:`15919`.
 
     EXAMPLES:
 
@@ -245,7 +246,7 @@ def unrank(L, i):
         ...
         IndexError: index out of range
     """
-    if L in EnumeratedSets:
+    if L in EnumeratedSets():
         return L.unrank(i)
     if isinstance(L, Sequence):
         return L[i]
@@ -263,4 +264,4 @@ def unrank(L, i):
             return next(it)
         except StopIteration:
             raise IndexError("index out of range")
-    raise ValueError("Don't know how to unrank on {}".format(L))
+    raise ValueError("do not know how to unrank on {}".format(L))

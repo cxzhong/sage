@@ -9,7 +9,7 @@ TESTS::
 
     sage: R = ZpLC(2)
     doctest:...: FutureWarning: This class/method/function is marked as experimental. It, its functionality or its interface might change without a formal deprecation.
-    See http://trac.sagemath.org/23505 for details.
+    See https://github.com/sagemath/sage/issues/23505 for details.
     sage: prec = R.precision()
     sage: prec
     Precision lattice on 0 objects
@@ -32,7 +32,7 @@ TESTS::
 
 from collections import defaultdict
 
-from sage.misc.misc import walltime
+from sage.misc.timing import walltime
 
 from sage.structure.sage_object import SageObject
 from sage.structure.unique_representation import UniqueRepresentation
@@ -56,11 +56,12 @@ DEFAULT_THRESHOLD_DELETION = 50
 # The number of additional digits used for internal computations
 STARTING_ADDITIONAL_PREC = 5
 
+
 class pRational:
     r"""
     This class implements rational numbers viewed as elements of ``Qp``.
     In particular, it provides additional methods which are specific to
-    ``p``-adics (as ``p``-adic valuation).
+    `p`-adics (as `p`-adic valuation).
 
     Only for internal use.
 
@@ -70,10 +71,10 @@ class pRational:
 
     - ``x`` -- a rational number
 
-    - ``exponent`` -- an integer (default: 0)
+    - ``exponent`` -- integer (default: 0)
 
-    - ``valuation`` -- an integer or None (default: ``None``),
-      the ``p``-adic valuation of this element
+    - ``valuation`` -- integer or ``None`` (default: ``None``);
+      the `p`-adic valuation of this element
 
     If not ``None``, this method trusts the given value to the
     attribute ``valuation``.
@@ -108,7 +109,7 @@ class pRational:
     """
     def __init__(self, p, x, exponent=0, valuation=None):
         r"""
-        Construct the element ``x * p^exponent``
+        Construct the element ``x * p^exponent``.
 
         TESTS::
 
@@ -138,8 +139,7 @@ class pRational:
         """
         if self.exponent == 0:
             return repr(self.x)
-        else:
-            return "%s^%s * %s" % (self.p, self.exponent, self.x)
+        return "%s^%s * %s" % (self.p, self.exponent, self.x)
 
     def reduce(self, prec):
         r"""
@@ -147,7 +147,7 @@ class pRational:
 
         INPUT:
 
-        - ``prec`` -- an integer
+        - ``prec`` -- integer
 
         TESTS::
 
@@ -179,7 +179,7 @@ class pRational:
             exp -= valdenom
             if prec > exp:
                 modulo = self.p ** (prec - exp)
-                # probably we should use Newton iteration instead 
+                # probably we should use Newton iteration instead
                 # (but it is actually slower for now - Python implementation)
                 _, inv, _ = denom.xgcd(modulo)
                 x = (num*inv) % modulo
@@ -197,7 +197,7 @@ class pRational:
 
         INPUT:
 
-        - ``prec`` -- a nonnegative integer
+        - ``prec`` -- nonnegative integer
 
         TESTS::
 
@@ -219,7 +219,7 @@ class pRational:
 
     def normalize(self):
         r"""
-        Normalize this element, i.e. write it as ``p^v * u`` where 
+        Normalize this element, i.e. write it as ``p^v * u`` where
         ``u`` is coprime to `p`.
 
         TESTS::
@@ -259,7 +259,7 @@ class pRational:
 
     def is_p_power(self):
         r"""
-        Return true if this element is a power of `p`.
+        Return ``True`` if this element is a power of `p`.
 
         TESTS::
 
@@ -279,7 +279,7 @@ class pRational:
 
     def is_zero(self):
         r"""
-        Return true if this element vanishes.
+        Return ``True`` if this element vanishes.
 
         TESTS::
 
@@ -311,8 +311,10 @@ class pRational:
         p = self.p
         sexp = self.exponent
         oexp = other.exponent
-        if sexp is Infinity: return other
-        if oexp is Infinity: return self
+        if sexp is Infinity:
+            return other
+        if oexp is Infinity:
+            return self
         if self._valuation is None or other._valuation is None:
             val = None
         elif self._valuation < other._valuation:
@@ -323,8 +325,7 @@ class pRational:
             val = None
         if sexp < oexp:
             return self.__class__(p, self.x + other.x * p**(oexp-sexp), sexp, valuation=val)
-        else:
-            return self.__class__(p, self.x * p**(sexp-oexp) + other.x, oexp, valuation=val)
+        return self.__class__(p, self.x * p**(sexp-oexp) + other.x, oexp, valuation=val)
 
     def __sub__(self, other):
         r"""
@@ -400,7 +401,7 @@ class pRational:
         """
         Quotient with remainder.
 
-        Returns a pair `q`, `r` where `r` has the p-adic expansion of this element,
+        Returns a pair `q`, `r` where `r` has the `p`-adic expansion of this element,
         truncated at the valuation of other.
 
         EXAMPLES::
@@ -429,15 +430,13 @@ class pRational:
         if sx == 0:
             return (self.__class__(self.p, 0, 0, valuation=Infinity),
                     self.__class__(self.p, 0, 0, valuation=Infinity))
-        elif sval >= oval:
+        if sval >= oval:
             return (self.__class__(self.p, sx / ox, diff, valuation=diff),
                     self.__class__(self.p, 0, 0, valuation=Infinity))
-        else:
-            pd = self.p**(-diff)
-            sred = sx % pd
-            return (self.__class__(self.p, (sx - sred)/(pd*ox), 0),
-                    self.__class__(self.p, sred, sval, valuation=sval))
-
+        pd = self.p**(-diff)
+        sred = sx % pd
+        return (self.__class__(self.p, (sx - sred)/(pd*ox), 0),
+                self.__class__(self.p, sred, sval, valuation=sval))
 
     def __lshift__(self, n):
         r"""
@@ -445,7 +444,7 @@ class pRational:
 
         INPUT:
 
-        - ``n`` -- a relative integer
+        - ``n`` -- relative integer
 
         TESTS::
 
@@ -467,7 +466,7 @@ class pRational:
 
         INPUT:
 
-        - ``n`` -- a relative integer
+        - ``n`` -- relative integer
 
         TESTS::
 
@@ -502,7 +501,7 @@ class pRational:
     def xgcd(self, other):
         r"""
         Return the gcd of ``self`` and ``other`` together with two
-        element ``u`` and ``v`` such that ``u*self + v*other = gcd``.
+        elements ``u`` and ``v`` such that ``u*self + v*other = gcd``.
 
         The ``gcd`` is normalized so that it is a power of `p`.
 
@@ -560,7 +559,7 @@ class pRational:
 
     def list(self, prec):
         r"""
-        Return the list of the digits of this element (written in radix 
+        Return the list of the digits of this element (written in radix
         `p`) up to position ``prec``.
 
         The first zeros are omitted.
@@ -593,7 +592,7 @@ class pRational:
             return []
         p = self.p
         x = ZZ(self.x * p**(self.exponent - val))
-        l = [ ]
+        l = []
         for _ in range(val, prec):
             x, digit = x.quo_rem(p)
             l.append(digit)
@@ -609,7 +608,7 @@ class DifferentialPrecisionGeneric(SageObject):
 
     - ``p`` -- a prime number
 
-    - ``label`` -- a string, the label of the parents to which the elements
+    - ``label`` -- string; the label of the parents to which the elements
       belong that are tracked by this precision module
 
     .. NOTE::
@@ -631,17 +630,19 @@ class DifferentialPrecisionGeneric(SageObject):
             sage: from sage.rings.padics.lattice_precision import DifferentialPrecisionGeneric
             sage: isinstance(prec, DifferentialPrecisionGeneric)
             True
-
         """
         self._p = p
         self._label = label
-        self._elements = [ ]
-        self._matrix = { } # A dictionary whose keys are weak references to tracked elements
-                           # and values corresponding columns in the matrix
-                           # representing the precision lattice
-        self._collected_references = [ ]
-        self._marked_for_deletion = [ ]
-        self._approx_zero = pRational(p, ZZ(0))
+        self._elements = []
+
+        self._matrix = {}
+        # A dictionary whose keys are weak references to tracked
+        # elements and values corresponding columns in the matrix
+        # representing the precision lattice
+
+        self._collected_references = []
+        self._marked_for_deletion = []
+        self._approx_zero = pRational(p, ZZ.zero())
         self._threshold_deletion = DEFAULT_THRESHOLD_DELETION
         self._history_init = None
         self._history = None
@@ -671,13 +672,13 @@ class DifferentialPrecisionGeneric(SageObject):
 
         If a label has been specified, it is included in the representation::
 
-            sage: R = ZpLC(2, label="mylabel")
+            sage: R = ZpLC(2, label='mylabel')
             sage: R.precision()
             Precision lattice on 0 objects (label: mylabel)
         """
-        label = "" if self._label is None else " (label: %s)"%(self._label,)
-        count = "1 object" if len(self._elements) == 1 else "%s objects"%len(self._elements)
-        return "%s on %s%s"%(self._repr_type, count, label)
+        label = "" if self._label is None else " (label: %s)" % (self._label,)
+        count = "1 object" if len(self._elements) == 1 else "%s objects" % len(self._elements)
+        return "%s on %s%s" % (self._repr_type, count, label)
 
     def threshold_deletion(self, threshold=None):
         r"""
@@ -698,8 +699,8 @@ class DifferentialPrecisionGeneric(SageObject):
 
         INPUT:
 
-        - ``threshold`` -- a non-negative integer, ``Infinity`` or ``None``
-          (default: ``None``): if not ``None`` set the threshold to the given
+        - ``threshold`` -- nonnegative integer, ``Infinity`` or ``None``
+          (default: ``None``); if not ``None`` set the threshold to the given
           value.
 
         .. NOTE::
@@ -739,7 +740,7 @@ class DifferentialPrecisionGeneric(SageObject):
 
         EXAMPLES::
 
-            sage: R = ZpLC(2, label="mylabel")
+            sage: R = ZpLC(2, label='mylabel')
             sage: R.precision().prime()
             2
         """
@@ -747,7 +748,7 @@ class DifferentialPrecisionGeneric(SageObject):
 
     def _index(self, ref):
         r"""
-        Return the index of the column in the precision matrix that 
+        Return the index of the column in the precision matrix that
         corresponds to ``ref``.
 
         Only for internal use.
@@ -755,7 +756,7 @@ class DifferentialPrecisionGeneric(SageObject):
         TESTS::
 
             sage: from sage.rings.padics.lattice_precision import pAdicLatticeElementWeakProxy
-            sage: R = ZpLC(2, label="index")
+            sage: R = ZpLC(2, label='index')
             sage: prec = R.precision()
             sage: x = R(1, 10)
             sage: y = R(1, 5)
@@ -846,7 +847,7 @@ class DifferentialPrecisionGeneric(SageObject):
             sage: R = ZpLC(2)
             sage: x = R.random_element()
             sage: y = R.random_element()
-            sage: z = x*y # indirect doctest
+            sage: z = x*y  # indirect doctest
         """
         pass
 
@@ -877,16 +878,16 @@ class DifferentialPrecisionGeneric(SageObject):
     @abstract_method
     def del_elements(self, threshold=None):
         r"""
-        Delete (or mark for future deletion) the columns of precision 
-        matrix corresponding to elements that were collected by the 
+        Delete (or mark for future deletion) the columns of precision
+        matrix corresponding to elements that were collected by the
         garbage collector.
 
         INPUT:
 
-        - ``threshold`` -- an integer or ``None`` (default: ``None``):
+        - ``threshold`` -- integer or ``None`` (default: ``None``);
           a column whose distance to the right is greater than the
-          threshold is not erased but marked for deletion; 
-          if ``None``, always erase (never mark for deletion).
+          threshold is not erased but marked for deletion.
+          If ``None``, always erase (never mark for deletion).
 
         EXAMPLES::
 
@@ -896,19 +897,19 @@ class DifferentialPrecisionGeneric(SageObject):
             sage: x = R(1, 10)
             sage: prec
             Precision lattice on 1 object (label: del_elements)
-            sage: prec.precision_lattice()
+            sage: prec.precision_lattice()                                              # needs sage.geometry.polyhedron
             [1024]
 
             sage: del x
             sage: prec
             Precision lattice on 1 object (label: del_elements)
-            sage: prec.precision_lattice()
+            sage: prec.precision_lattice()                                              # needs sage.geometry.polyhedron
             [1024]
 
             sage: prec.del_elements()
             sage: prec
             Precision lattice on 0 objects (label: del_elements)
-            sage: prec.precision_lattice()
+            sage: prec.precision_lattice()                                              # needs sage.geometry.polyhedron
             []
         """
         pass
@@ -953,7 +954,7 @@ class DifferentialPrecisionGeneric(SageObject):
 
         INPUT:
 
-        - ``elements`` -- a list of elements or ``None`` (default: ``None``)
+        - ``elements`` -- list of elements or ``None`` (default: ``None``)
 
         EXAMPLES::
 
@@ -962,24 +963,24 @@ class DifferentialPrecisionGeneric(SageObject):
             sage: x = R(1, 10); y = R(1, 5)
             sage: u = x + y
             sage: v = x - y
-            sage: prec.precision_lattice()
+            sage: prec.precision_lattice()                                              # needs sage.geometry.polyhedron
             [         1024             0          1024          1024]
             [            0            32            32 1099511627744]
             [            0             0       2097152             0]
             [            0             0             0 1099511627776]
-            sage: prec.precision_lattice([u, v])
+            sage: prec.precision_lattice([u, v])                                        # needs sage.geometry.polyhedron
             [  32 2016]
             [   0 2048]
 
         If the precision module does not project to a lattice,
-        an error is raised.
+        an error is raised. ::
 
             sage: R = ZpLF(2, label='precision_lattice')
             sage: prec = R.precision()
             sage: x = R(1, 10); y = R(1, 5)
             sage: u = x + y
             sage: v = x - y
-            sage: prec.precision_lattice([x,y,u,v])
+            sage: prec.precision_lattice([x,y,u,v])                                     # needs sage.geometry.polyhedron
             Traceback (most recent call last):
             ...
             PrecisionError: the differential is not surjective
@@ -988,7 +989,7 @@ class DifferentialPrecisionGeneric(SageObject):
 
     def diffused_digits(self, elements=None):
         r"""
-        Return the number of diffused digits of precision within a 
+        Return the number of diffused digits of precision within a
         subset of elements.
 
         A diffused digit of precision is a known digit which is not
@@ -997,7 +998,7 @@ class DifferentialPrecisionGeneric(SageObject):
 
         The number of diffused digits of precision quantifies the
         quality of the approximation of the lattice precision by a
-        jagged precision (that is a precision which is split over 
+        jagged precision (that is a precision which is split over
         all variables).
 
         We refer to [CRV2018]_ for a detail exposition of the notion of
@@ -1011,9 +1012,9 @@ class DifferentialPrecisionGeneric(SageObject):
             sage: u = x + y
             sage: v = x - y
 
-            sage: prec.diffused_digits([x, y])
+            sage: prec.diffused_digits([x, y])                                          # needs sage.geometry.polyhedron
             0
-            sage: prec.diffused_digits([u, v])
+            sage: prec.diffused_digits([u, v])                                          # needs sage.geometry.polyhedron
             6
 
         The elements `u` and `v` are known at absolute precision `O(2^5)`.
@@ -1023,14 +1024,14 @@ class DifferentialPrecisionGeneric(SageObject):
 
         Here is another example with matrices::
 
-            sage: M = matrix(R, 2, 2, [R(3, 5), R(7, 5), R(1, 5), R(11, 1)])
-            sage: N = M^10
+            sage: M = matrix(R, 2, 2, [R(3, 5), R(7, 5), R(1, 5), R(11, 1)])            # needs sage.modules
+            sage: N = M^10                                                              # needs sage.modules
 
         The next syntax provides as easy way to select an interesting
         subset of variables (the selected subset consists of the four
         entries of the matrix ``N``)::
 
-            sage: prec.diffused_digits(N)
+            sage: prec.diffused_digits(N)                                               # needs sage.geometry.polyhedron sage.modules
             17
 
         Note that, in some cases, the number of diffused digits can be
@@ -1040,7 +1041,7 @@ class DifferentialPrecisionGeneric(SageObject):
             sage: prec = R.precision()
             sage: x = R(1, 10)
             sage: y = x
-            sage: prec.diffused_digits([x, y])
+            sage: prec.diffused_digits([x, y])                                          # needs sage.geometry.polyhedron
             +Infinity
         """
         try:
@@ -1057,11 +1058,11 @@ class DifferentialPrecisionGeneric(SageObject):
 
         INPUT:
 
-        - ``values`` -- a boolean (default: ``True``); if false,
+        - ``values`` -- boolean (default: ``True``); if ``False``,
           the method returns a list of weak references on tracked
           elements instead
 
-        - ``dead`` -- a boolean (default: ``True``); whether dead
+        - ``dead`` -- boolean (default: ``True``); whether dead
           elements for which the corresponding column is still not
           erased should be listed or not
 
@@ -1090,7 +1091,6 @@ class DifferentialPrecisionGeneric(SageObject):
              WeakProxy#...,
              WeakProxy#...,
              WeakProxy#...]
-
             sage: del x; del y
             sage: prec.tracked_elements()
             [None, None, 2 + O(2^5), O(2^5), None]
@@ -1099,9 +1099,9 @@ class DifferentialPrecisionGeneric(SageObject):
              WeakProxy#...,
              WeakProxy#...]
         """
-        ret = [ ref for ref in self._elements if dead or ref() is not None]
+        ret = [ref for ref in self._elements if dead or ref() is not None]
         if values:
-            ret = [ ref() for ref in ret ]
+            return [ref() for ref in ret]
         return ret
 
     # History
@@ -1110,7 +1110,7 @@ class DifferentialPrecisionGeneric(SageObject):
         r"""
         Enable history.
 
-        We refer to the documentation of the method :meth:`history` for 
+        We refer to the documentation of the method :meth:`history` for
         a complete documentation (including examples) about history.
 
         TESTS::
@@ -1126,21 +1126,22 @@ class DifferentialPrecisionGeneric(SageObject):
             sage: prec.history_enable()
             sage: print(prec.history())
              Timings
-               ---     
+               ---
 
         .. SEEALSO::
 
             :meth:`history`, :meth:`history_disable`, :meth:`history_clear`
         """
         if self._history is None:
-            self._history_init = ( len(self._elements), list(self._marked_for_deletion) )
-            self._history = [ ]
+            self._history_init = (len(self._elements),
+                                  list(self._marked_for_deletion))
+            self._history = []
 
     def history_disable(self):
         r"""
         Disable history.
 
-        We refer to the documentation of the method :meth:`history` for 
+        We refer to the documentation of the method :meth:`history` for
         a complete documentation (including examples) about history.
 
         TESTS::
@@ -1156,7 +1157,7 @@ class DifferentialPrecisionGeneric(SageObject):
             sage: prec.history_enable()
             sage: print(prec.history())
              Timings
-               ---     
+               ---
 
             sage: prec.history_disable()
             sage: print(prec.history())
@@ -1174,7 +1175,7 @@ class DifferentialPrecisionGeneric(SageObject):
         r"""
         Clear history.
 
-        We refer to the documentation of the method :meth:`history` for 
+        We refer to the documentation of the method :meth:`history` for
         a complete documentation (including examples) about history.
 
         TESTS::
@@ -1209,24 +1210,25 @@ class DifferentialPrecisionGeneric(SageObject):
         """
         if self._history is None:
             raise ValueError("History is not tracked")
-        self._history_init = ( len(self._elements), list(self._marked_for_deletion) )
-        self._history = [ ]
+        self._history_init = (len(self._elements),
+                              list(self._marked_for_deletion))
+        self._history = []
 
     def _format_history(self, time, status, timings):
         r"""
         Return a formatted output for the history.
-    
+
         This is a helper function for the method :meth:`history`.
-    
+
         TESTS::
-    
+
             sage: R = ZpLC(2, label='history_en')
             sage: prec = R.precision()
             sage: prec._format_history(1.23456789, ['o', 'o', 'o', 'o', 'o', 'o', '~', 'o', 'o'], true)
             '1.234568s  oooooo~oo'
             sage: prec._format_history(1.23456789, ['o', 'o', 'o', 'o', 'o', 'o', '~', 'o', 'o'], false)
             'oooooo~oo'
-    
+
             sage: prec._format_history(12.3456789, ['o', 'o', 'o', 'o', 'o', 'o', '~', 'o', 'o'], true)
             '  >= 10s   oooooo~oo'
             sage: prec._format_history(10^(-10), ['o', 'o', 'o', 'o', 'o', 'o', '~', 'o', 'o'], true)
@@ -1245,30 +1247,28 @@ class DifferentialPrecisionGeneric(SageObject):
             else:
                 s = "%.6fs" % time
             return s + "  " + status
-        else:
-            return status
-
+        return status
 
     def history(self, compact=True, separate_reduce=False, timings=True, output_type='asciiart'):
         r"""
         Show history.
 
-        The history records creations and deletions of elements attached 
+        The history records creations and deletions of elements attached
         to this precision lattice, together with many timings.
 
         INPUT:
 
-        - ``compact`` -- a boolean (default: ``True``); if true, all 
+        - ``compact`` -- boolean (default: ``True``); if ``True``, all
           consecutive operations of the same type appear on a single row
 
-        - ``separate_reduce`` -- a boolean (default: ``False``); specify
+        - ``separate_reduce`` -- boolean (default: ``False``); specify
           whether partial/full Hermite reduction should be displayed
           separately
 
-        - ``timings`` -- a boolean (default: ``True``); specify whether
+        - ``timings`` -- boolean (default: ``True``); specify whether
           timings should be displayed
 
-        - ``output_type`` -- only ``asciiart`` is implemented for now.
+        - ``output_type`` -- only ``asciiart`` is implemented for now
 
         IMPORTANT NOTE:
 
@@ -1288,12 +1288,12 @@ class DifferentialPrecisionGeneric(SageObject):
         At the beginning, the history is of course empty::
 
             sage: print(prec.history())
-             Timings     
+             Timings
                ---
 
         Now we start creating and deleting elements::
 
-            sage: L = [ R.random_element() for _ in range(20) ]
+            sage: L = [R.random_element() for _ in range(20)]
             sage: for p in range(20):
             ....:    if is_prime(p): L[p] = None
             sage: prec.del_elements()
@@ -1304,11 +1304,13 @@ class DifferentialPrecisionGeneric(SageObject):
             0.000009s  oo~~o~o~ooo~o~ooo~o~
             0.014250s  oooooooooooo
 
-        The legend is the following::
+        The legend is the following:
+
         - the symbol ``o`` represents a tracked element,
         - the symbol ``~`` represents an element which is marked for deletion.
 
         On the history, we see:
+
         - 1st line: twenty new elements were created
           (this corresponds to the affectation of the list ``L``);
         - 2nd line: elements at prime positions were marked for deletion
@@ -1347,8 +1349,8 @@ class DifferentialPrecisionGeneric(SageObject):
         Timings for automatic reduction do not appear because they are included
         in the timings for deletion.
 
-        The symbol ``R`` is used to symbolize a column which is under full 
-        Hermite reduction. Note that full Hermite reduction are never performed 
+        The symbol ``R`` is used to symbolize a column which is under full
+        Hermite reduction. Note that full Hermite reduction are never performed
         automatically but needs to be called by hand::
 
             sage: prec.reduce()
@@ -1376,8 +1378,8 @@ class DifferentialPrecisionGeneric(SageObject):
             sage: R = ZpLC(3)
             sage: prec = R.precision()
             sage: prec.history_enable()
-            sage: M = random_matrix(R, 5)
-            sage: d = M.determinant()
+            sage: M = random_matrix(R, 5)                                               # needs sage.geometry.polyhedron
+            sage: d = M.determinant()                                                   # needs sage.geometry.polyhedron
             sage: print(prec.history())  # somewhat random
                ---
             0.004212s  oooooooooooooooooooooooooooooooooooo
@@ -1434,7 +1436,7 @@ class DifferentialPrecisionGeneric(SageObject):
             status = n*['o']
             for index in mark:
                 status[index] = '~'
-            hist = [ self._format_history(-1, status, timings) ]
+            hist = [self._format_history(-1, status, timings)]
             oldevent = ''
             total_time = 0
             for (event, index, tme) in self._history:
@@ -1442,8 +1444,10 @@ class DifferentialPrecisionGeneric(SageObject):
                     if separate_reduce:
                         if status:
                             hist.append(self._format_history(total_time, status, timings))
-                        if event == 'partial reduce': code = 'r'
-                        else: code = 'R'
+                        if event == 'partial reduce':
+                            code = 'r'
+                        else:
+                            code = 'R'
                         status_red = status[:index] + (len(status) - index) * [code]
                         hist.append(self._format_history(tme, status_red, timings))
                         total_time = 0
@@ -1469,37 +1473,37 @@ class DifferentialPrecisionGeneric(SageObject):
             if status or oldevent == '':
                 hist.append(self._format_history(total_time, status, timings))
             return '\n'.join(hist)
-        else:
-            raise NotImplementedError
+        raise NotImplementedError
 
     def timings(self, action=None):
         r"""
-        Return cumulated timings (grouped by actions) since the last 
+        Return cumulated timings (grouped by actions) since the last
         time history has been cleared.
 
         INPUT:
 
-        - ``action`` -- ``None`` (the default), ``add``, ``mark``, ``del``,
-          ``partial reduce`` or ``full reduce``; if not None, return the 
+        - ``action`` -- ``None`` (default), ``'add'``, ``'mark'``, ``'del'``,
+          ``'partial reduce'`` or ``'full reduce'``; if not ``None``, return the
           cumulated timing corresponding to this action; otherwise, return
           a dictionary
 
         Here are the meanings of the keywords above:
-        - ``add``: time spent in adding new columns to the precision matrix
+
+        - ``'add'``: time spent in adding new columns to the precision matrix
           (corresponding to the creation of new elements)
-        - ``mark``: time spent in marking elements for deletion
-        - ``del``: time spent in deleting columns of the precision matrix
+        - ``'mark'``: time spent in marking elements for deletion
+        - ``'del'``: time spent in deleting columns of the precision matrix
           and re-echelonizing the matrix
-        - ``partial reduce``: time spent in partial Hermite reduction
-        - ``full reduce``: time spent in full Hermite reduction.
+        - ``'partial reduce'``: time spent in partial Hermite reduction
+        - ``'full reduce'``: time spent in full Hermite reduction.
 
         EXAMPLES::
 
             sage: R = ZpLC(2, label='timings')
             sage: prec = R.precision()
             sage: prec.history_enable()
-            sage: M = random_matrix(R, 5, 5)
-            sage: N = M^10
+            sage: M = random_matrix(R, 5, 5)                                            # needs sage.geometry.polyhedron
+            sage: N = M^10                                                              # needs sage.geometry.polyhedron
             sage: prec.timings()    # somewhat random
             {'add': 1.0530245304107666,
              'del': 0.24358701705932617,
@@ -1515,15 +1519,15 @@ class DifferentialPrecisionGeneric(SageObject):
         """
         if self._history is None:
             raise ValueError("History is not tracked")
-        tme_by_event = { 'add': 0, 'del': 0, 'mark': 0, 'partial reduce': 0, 'full reduce': 0 }
+        tme_by_event = {'add': 0, 'del': 0, 'mark': 0,
+                        'partial reduce': 0, 'full reduce': 0}
         for (event, _, tme) in self._history:
             tme_by_event[event] += tme
         if action is None:
             return tme_by_event
         if action in tme_by_event:
             return tme_by_event[action]
-        else:
-            raise ValueError("invalid event")
+        raise ValueError("invalid event")
 
 
 class PrecisionLattice(UniqueRepresentation, DifferentialPrecisionGeneric):
@@ -1538,8 +1542,8 @@ class PrecisionLattice(UniqueRepresentation, DifferentialPrecisionGeneric):
 
     - ``p`` -- a prime number
 
-    - ``label`` -- a string, the label of the parents to which the elements
-      tracked by this lattice belong.
+    - ``label`` -- string; the label of the parents to which the elements
+      tracked by this lattice belong
 
     .. NOTE::
 
@@ -1560,11 +1564,10 @@ class PrecisionLattice(UniqueRepresentation, DifferentialPrecisionGeneric):
             sage: R = ZpLC(2)
             sage: isinstance(R.precision(), PrecisionLattice)
             True
-
         """
         DifferentialPrecisionGeneric.__init__(self, p, label)
         self._repr_type = "Precision lattice"
-        self._capped = { }
+        self._capped = {}
 
     # We need to copy this method.
     # Indeed otherwise it is inherited from UniqueRepresentation
@@ -1584,20 +1587,20 @@ class PrecisionLattice(UniqueRepresentation, DifferentialPrecisionGeneric):
     def _index(self, ref):
         r"""
         Return the index of the element whose reference is ``ref``.
-    
+
         TESTS::
-    
+
             sage: from sage.rings.padics.lattice_precision import pAdicLatticeElementWeakProxy
-            sage: R = ZpLC(2, label="index")
+            sage: R = ZpLC(2, label='index')
             sage: prec = R.precision()
             sage: x = R(1, 10)
             sage: y = R(1, 5)
-    
+
             sage: prec._index(pAdicLatticeElementWeakProxy(x))
             0
             sage: prec._index(pAdicLatticeElementWeakProxy(y))
             1
-    
+
             sage: del x
             sage: prec.del_elements()
             sage: prec._index(pAdicLatticeElementWeakProxy(y))
@@ -1628,16 +1631,16 @@ class PrecisionLattice(UniqueRepresentation, DifferentialPrecisionGeneric):
 
         INPUT:
 
-        - ``index`` -- an integer, the starting row for which the reduction
+        - ``index`` -- integer; the starting row for which the reduction
           is performed
 
-        - ``partial`` -- a boolean (default: False) specifying whether a
+        - ``partial`` -- boolean (default: ``False``); specifying whether a
           partial or a full Hermite reduction should be performed
 
         NOTE:
 
-        The partial reduction has cost `O(m^2)` where `m` is the number of 
-        rows that need to be reduced (that is the difference between the 
+        The partial reduction has cost `O(m^2)` where `m` is the number of
+        rows that need to be reduced (that is the difference between the
         total number of rows and ``index``).
 
         The full Hermite reduction has cost `O(m^3)`.
@@ -1670,8 +1673,7 @@ class PrecisionLattice(UniqueRepresentation, DifferentialPrecisionGeneric):
                     col[i] = col[i].reduce(prec)
                     col[i].normalize()
                     dval = col[i].valuation() - prec
-                    if dval < diffval[i-index]:
-                        diffval[i-index] = dval
+                    diffval[i-index] = min(dval, diffval[i-index])
             # We update history
             if self._history is not None:
                 self._history.append(('partial reduce', index, walltime(tme)))
@@ -1686,7 +1688,8 @@ class PrecisionLattice(UniqueRepresentation, DifferentialPrecisionGeneric):
                 for i in range(index, j):
                     reduced = col[i].reduce(valpivot)
                     scalar = (col[i] - reduced) >> valpivot
-                    if scalar.is_zero(): continue
+                    if scalar.is_zero():
+                        continue
                     col[i] = reduced
                     col[i].normalize()
                     for j2 in range(j+1, n):
@@ -1709,20 +1712,20 @@ class PrecisionLattice(UniqueRepresentation, DifferentialPrecisionGeneric):
 
         - ``x`` -- the newly created element
 
-        - ``dx`` -- a dictionary representing the differential of ``x``
+        - ``dx`` -- dictionary representing the differential of ``x``
 
-        - ``bigoh`` -- an integer or ``None`` (default: ``None``): the 
+        - ``bigoh`` -- integer or ``None`` (default: ``None``); the
           bigoh to be added to the precision of ``x``; if ``None``, the
           default cap is used.
 
-        - ``dx_mode`` -- a string, either ``linear_combination`` (the default)
+        - ``dx_mode`` -- string; either ``linear_combination`` (the default)
           or ``values``
 
-        - ``capped`` -- a boolean, whether this element has been capped 
+        - ``capped`` -- boolean; whether this element has been capped
           according to the parent's cap
 
-        If ``dx_mode`` is ``linear_combination``, the dictionary ``dx`` 
-        encodes the expression of the differential of ``x``. 
+        If ``dx_mode`` is ``linear_combination``, the dictionary ``dx``
+        encodes the expression of the differential of ``x``.
         For example, if ``x`` was defined as ``x = y*z`` then:
 
         .. MATH::
@@ -1790,7 +1793,7 @@ class PrecisionLattice(UniqueRepresentation, DifferentialPrecisionGeneric):
 
         INPUT:
 
-        - ``threshold`` -- an integer or ``None`` (default: ``None``):
+        - ``threshold`` -- integer or ``None`` (default: ``None``);
           a column whose distance to the right is greater than the
           threshold is not erased
 
@@ -1802,19 +1805,19 @@ class PrecisionLattice(UniqueRepresentation, DifferentialPrecisionGeneric):
             sage: x = R(1, 10)
             sage: prec
             Precision lattice on 1 object (label: delelts)
-            sage: prec.precision_lattice()
+            sage: prec.precision_lattice()                                              # needs sage.geometry.polyhedron
             [1024]
 
             sage: del x
             sage: prec
             Precision lattice on 1 object (label: delelts)
-            sage: prec.precision_lattice()
+            sage: prec.precision_lattice()                                              # needs sage.geometry.polyhedron
             [1024]
 
             sage: prec.del_elements()
             sage: prec
             Precision lattice on 0 objects (label: delelts)
-            sage: prec.precision_lattice()
+            sage: prec.precision_lattice()                                              # needs sage.geometry.polyhedron
             []
         """
         n = len(self._elements)
@@ -1838,8 +1841,10 @@ class PrecisionLattice(UniqueRepresentation, DifferentialPrecisionGeneric):
         self._marked_for_deletion.sort(reverse=True)
         count = 0
         for index in self._marked_for_deletion:
-            if threshold is not None and index < n - threshold: break
-            n -= 1; count += 1
+            if threshold is not None and index < n - threshold:
+                break
+            n -= 1
+            count += 1
 
             tme = walltime()
             ref = self._elements[index]
@@ -1856,7 +1861,7 @@ class PrecisionLattice(UniqueRepresentation, DifferentialPrecisionGeneric):
                     self._capped[ref], capped = capped, capped or self._capped[ref]
                 else:
                     capped = capped or self._capped[ref]
-                      
+
                 d, u, v = col[i].xgcd(col[i+1])
                 up, vp = col[i+1]/d, col[i]/d
                 col[i] = d
@@ -1894,7 +1899,7 @@ class PrecisionLattice(UniqueRepresentation, DifferentialPrecisionGeneric):
 
             p^{prec} \Z_p dx \oplus \bigoplus_{y \neq x} \Q_p dy
 
-        This function may change at the same time the precision of 
+        This function may change at the same time the precision of
         other elements having the same parent.
 
         .. NOTE::
@@ -1937,7 +1942,8 @@ class PrecisionLattice(UniqueRepresentation, DifferentialPrecisionGeneric):
             rows = rows_by_val[v]
             piv = max(rows)
             for i in rows:
-                if i == piv: continue
+                if i == piv:
+                    continue
                 # We clear the entry on the i-th row
                 scalar = (col[i]/col[piv]).reduce(prec-v)
                 for j in range(piv,n):
@@ -2055,9 +2061,9 @@ class PrecisionLattice(UniqueRepresentation, DifferentialPrecisionGeneric):
 
         INPUT:
 
-        - ``elements`` -- a list of elements or ``None`` (default: ``None``)
+        - ``elements`` -- list of elements or ``None`` (default: ``None``)
 
-        - ``echelon`` -- a boolean (default: ``True``); whether the result
+        - ``echelon`` -- boolean (default: ``True``); whether the result
           should be in echelon form
 
         EXAMPLES::
@@ -2067,27 +2073,27 @@ class PrecisionLattice(UniqueRepresentation, DifferentialPrecisionGeneric):
             sage: x = R(1, 10); y = R(1, 5)
             sage: u = x + y
             sage: v = x - y
-            sage: prec.precision_lattice()
+            sage: prec.precision_lattice()                                              # needs sage.geometry.polyhedron
             [         1024             0          1024          1024]
             [            0            32            32 1099511627744]
             [            0             0       2097152             0]
             [            0             0             0 1099511627776]
-            sage: prec.precision_lattice([u, v])
+            sage: prec.precision_lattice([u, v])                                        # needs sage.geometry.polyhedron
             [  32 2016]
             [   0 2048]
 
         Here is another example with matrices::
 
-            sage: M = matrix(R, 2, 2, [R(3, 5), R(7, 5), R(1, 5), R(11, 1)])
-            sage: N = M^10
-            sage: prec.precision_lattice()
+            sage: M = matrix(R, 2, 2, [R(3, 5), R(7, 5), R(1, 5), R(11, 1)])            # needs sage.modules
+            sage: N = M^10                                                              # needs sage.modules
+            sage: prec.precision_lattice()                                              # needs sage.geometry.polyhedron sage.modules
             23 x 23 dense matrix over Integer Ring (use the '.str()' method to see the entries)
 
         The next syntax provides as easy way to select an interesting
         subset of variables (the selected subset consists of the four
         entries of the matrix ``N``)::
 
-            sage: prec.precision_lattice(N)
+            sage: prec.precision_lattice(N)                                             # needs sage.modules
             [  2048    512  28160 230400]
             [     0   2048  14336 258048]
             [     0      0  65536  65536]
@@ -2095,7 +2101,7 @@ class PrecisionLattice(UniqueRepresentation, DifferentialPrecisionGeneric):
 
         We can give a list of matrices as well::
 
-            sage: prec.precision_lattice([M, N])
+            sage: prec.precision_lattice([M, N])                                        # needs sage.modules
             [       32         0         0         0 226115584  96788480  52174848  82804736]
             [        0        32         0         0  52174848 121765888  11829248  28516352]
             [        0         0        32         0  96788480  42762240 121765888 199614464]
@@ -2114,9 +2120,9 @@ class PrecisionLattice(UniqueRepresentation, DifferentialPrecisionGeneric):
         val = 0
         for ref in elements:
             col = self._matrix[ref]
-            row = [ x.value() for x in col ]
+            row = [x.value() for x in col]
             valcol = min([ x.valuation() for x in col ])
-            if valcol < val: val = valcol
+            val = min(valcol, val)
             row += (n-len(row)) * [ZZ(0)]
             rows.append(row)
         from sage.matrix.constructor import matrix
@@ -2148,12 +2154,12 @@ class PrecisionModule(UniqueRepresentation, DifferentialPrecisionGeneric):
 
         - ``p`` -- a prime number
 
-        - ``label`` -- a string, the label of the parents to which belong
+        - ``label`` -- string; the label of the parents to which belong
           the elements tracked by this precision module
 
         NOTE:
 
-        The precision module is automatically initialized at the 
+        The precision module is automatically initialized at the
         creation of the parent.
 
         TESTS::
@@ -2191,7 +2197,7 @@ class PrecisionModule(UniqueRepresentation, DifferentialPrecisionGeneric):
         internally.
 
         It is slightly greater than the actual precision and increases
-        a bit (at a logarithmic rate) when new elements are created 
+        a bit (at a logarithmic rate) when new elements are created
         and/or computed.
 
         EXAMPLES::
@@ -2202,7 +2208,7 @@ class PrecisionModule(UniqueRepresentation, DifferentialPrecisionGeneric):
             sage: prec.internal_prec()
             25
 
-            sage: L = [ R.random_element() for _ in range(50) ]
+            sage: L = [R.random_element() for _ in range(50)]
             sage: prec.internal_prec()
             28
         """
@@ -2237,7 +2243,7 @@ class PrecisionModule(UniqueRepresentation, DifferentialPrecisionGeneric):
             sage: prec.dimension()
             2
 
-        Of course, it may also decrease when a sufficient 
+        Of course, it may also decrease when a sufficient
         number of variables are collected::
 
             sage: del x, y, u
@@ -2291,16 +2297,16 @@ class PrecisionModule(UniqueRepresentation, DifferentialPrecisionGeneric):
 
         - ``x`` -- the newly created element
 
-        - ``dx`` -- a dictionary representing the differential of ``x``
+        - ``dx`` -- dictionary representing the differential of ``x``
 
-        - ``bigoh`` -- an integer or ``None`` (default: ``None``): the 
-          bigoh to be added to the precision of ``x``; if ``None``, the
+        - ``bigoh`` -- integer or ``None`` (default: ``None``); the
+          bigoh to be added to the precision of ``x``. If ``None``, the
           default cap is used.
 
-        - ``dx_mode`` -- a string, either ``"linear_combination"`` (the
-          default) or ``"values"``
+        - ``dx_mode`` -- string; either ``'linear_combination'`` (the
+          default) or ``'values'``
 
-        If ``dx_mode`` is ``"linear_combination"``, the dictionary ``dx``
+        If ``dx_mode`` is ``'linear_combination'``, the dictionary ``dx``
         encodes the expression of the differential of ``x``.  For example, if
         ``x`` was defined as ``x = y*z`` then:
 
@@ -2312,7 +2318,7 @@ class PrecisionModule(UniqueRepresentation, DifferentialPrecisionGeneric):
         that the keys are not the elements themselves but weak references
         to them).
 
-        If ``dx_mode`` is ``"values"``, the dictionary ``dx`` directly
+        If ``dx_mode`` is ``'values'``, the dictionary ``dx`` directly
         specifies the entries that have to stored in the precision module.
         This mode is only used for multiple conversion between different
         parents (see :meth:`multiple_conversion`).
@@ -2386,8 +2392,8 @@ class PrecisionModule(UniqueRepresentation, DifferentialPrecisionGeneric):
 
         INPUT:
 
-        - ``threshold`` -- an integer or ``None`` (default: ``None``):
-          a non-pivot column whose distance to the right is greater than 
+        - ``threshold`` -- integer or ``None`` (default: ``None``);
+          a non-pivot column whose distance to the right is greater than
           the threshold is not erased but only marked for future deletion
 
         EXAMPLES::
@@ -2398,19 +2404,19 @@ class PrecisionModule(UniqueRepresentation, DifferentialPrecisionGeneric):
             sage: x = R(1, 10)
             sage: prec
             Precision module on 1 object (label: delelts)
-            sage: prec.precision_lattice()
+            sage: prec.precision_lattice()                                              # needs sage.geometry.polyhedron
             [1024]
 
             sage: del x
             sage: prec
             Precision module on 1 object (label: delelts)
-            sage: prec.precision_lattice()
+            sage: prec.precision_lattice()                                              # needs sage.geometry.polyhedron
             [1024]
 
             sage: prec.del_elements()
             sage: prec
             Precision module on 0 objects (label: delelts)
-            sage: prec.precision_lattice()
+            sage: prec.precision_lattice()                                              # needs sage.geometry.polyhedron
             []
         """
         # We mark new collected elements for deletion
@@ -2447,8 +2453,10 @@ class PrecisionModule(UniqueRepresentation, DifferentialPrecisionGeneric):
         self._marked_for_deletion.sort(reverse=True)
         count = 0
         for index in self._marked_for_deletion:
-            if threshold is not None and index < n - threshold: break
-            n -= 1; count += 1
+            if threshold is not None and index < n - threshold:
+                break
+            n -= 1
+            count += 1
 
             tme = walltime()
 
@@ -2462,7 +2470,7 @@ class PrecisionModule(UniqueRepresentation, DifferentialPrecisionGeneric):
                 end = n
                 while i < n:
                     col = self._matrix[self._elements[i]]
-                    if len(col) > length: 
+                    if len(col) > length:
                         end = i
                         break
                     v = col[-1].valuation()
@@ -2478,7 +2486,8 @@ class PrecisionModule(UniqueRepresentation, DifferentialPrecisionGeneric):
                 # No pivot was found. We re-echelonize
                 for i in range(start, end):
                     del self._matrix[self._elements[i]][-1]
-                if end == n: break
+                if end == n:
+                    break
                 # col is the column of index "end"
                 # its size is (length + 1)
                 d, u, v = col[length-1].xgcd(col[length])
@@ -2488,8 +2497,12 @@ class PrecisionModule(UniqueRepresentation, DifferentialPrecisionGeneric):
                 start = end + 1
                 for j in range(start, n):
                     col = self._matrix[self._elements[j]]
-                    a1 = u*col[length-1]; a2 = v*col[length]; a = a1 + a2
-                    b1 = up*col[length-1]; b2 = vp*col[length]; b = b1 + b2
+                    a1 = u*col[length-1]
+                    a2 = v*col[length]
+                    a = a1 + a2
+                    b1 = up*col[length-1]
+                    b2 = vp * col[length]
+                    b = b1 + b2
                     if a.valuation() > min(a1.valuation(), a2.valuation()) + self._zero_cap:
                         col[length-1] = self._approx_zero
                     else:
@@ -2525,7 +2538,7 @@ class PrecisionModule(UniqueRepresentation, DifferentialPrecisionGeneric):
 
             p^{prec} \Z_p dx \oplus \bigoplus_{y \neq x} \Q_p dy
 
-        This function may change at the same time the precision of 
+        This function may change at the same time the precision of
         other elements having the same parent.
 
         .. NOTE::
@@ -2569,7 +2582,8 @@ class PrecisionModule(UniqueRepresentation, DifferentialPrecisionGeneric):
             rows = rows_by_val[v]
             piv = max(rows)
             for i in rows:
-                if i == piv: continue
+                if i == piv:
+                    continue
                 # We clear the entry on the i-th row
                 scalar = (col[i]/col[piv]).reduce(prec-v)
                 for j in range(n):
@@ -2641,8 +2655,7 @@ class PrecisionModule(UniqueRepresentation, DifferentialPrecisionGeneric):
         col = self._matrix[ref]
         if len(col) == 0:
             return Infinity
-        else:
-            return min( [ c.valuation() for c in col ] )
+        return min( [ c.valuation() for c in col ] )
 
     def precision_lattice(self, elements=None):
         r"""
@@ -2651,41 +2664,41 @@ class PrecisionModule(UniqueRepresentation, DifferentialPrecisionGeneric):
 
         INPUT:
 
-        - ``elements`` -- a list of elements or ``None`` (default: ``None``)
+        - ``elements`` -- list of elements or ``None`` (default: ``None``)
 
         EXAMPLES::
 
             sage: R = ZpLF(2, label='preclattice')
             sage: prec = R.precision()
             sage: x = R(1, 10); y = R(1, 5)
-            sage: prec.precision_lattice()
+            sage: prec.precision_lattice()                                              # needs sage.geometry.polyhedron
             [1024    0]
             [   0   32]
 
             sage: u = x + y
             sage: v = x - y
-            sage: prec.precision_lattice([u, v])
+            sage: prec.precision_lattice([u, v])                                        # needs sage.geometry.polyhedron
             [  32 2016]
             [   0 2048]
 
         If the precision module does not project to a lattice,
-        an error is raised.
+        an error is raised. ::
 
-            sage: prec.precision_lattice([x, y, u, v])
+            sage: prec.precision_lattice([x, y, u, v])                                  # needs sage.geometry.polyhedron
             Traceback (most recent call last):
             ...
             PrecisionError: the differential is not surjective
 
         Here is another example with matrices::
 
-            sage: M = matrix(R, 2, 2, [R(3, 5), R(7, 5), R(1, 5), R(11, 1)])
-            sage: N = M^10
+            sage: M = matrix(R, 2, 2, [R(3, 5), R(7, 5), R(1, 5), R(11, 1)])            # needs sage.modules
+            sage: N = M^10                                                              # needs sage.modules
 
         The next syntax provides as easy way to select an interesting
         subset of variables (the selected subset consists of the four
         entries of the matrix ``N``)::
 
-            sage: prec.precision_lattice(N)
+            sage: prec.precision_lattice(N)                                             # needs sage.geometry.polyhedron sage.modules
             [  2048    512  28160 230400]
             [     0   2048  14336 258048]
             [     0      0  65536  65536]
@@ -2696,12 +2709,13 @@ class PrecisionModule(UniqueRepresentation, DifferentialPrecisionGeneric):
         else:
             elements = list_of_padics(elements)
         n = len(self._elements)
-        rows = [ ]; val = 0
+        rows = []
+        val = 0
         for ref in elements:
             col = self._matrix[ref]
-            row = [ x.value() for x in col ]
-            valcol = min([ x.valuation() for x in col ])
-            if valcol < val: val = valcol
+            row = [x.value() for x in col]
+            valcol = min([x.valuation() for x in col])
+            val = min(valcol, val)
             row += (n-len(row)) * [ZZ(0)]
             rows.append(row)
         from sage.matrix.constructor import matrix
@@ -2722,7 +2736,8 @@ class PrecisionModule(UniqueRepresentation, DifferentialPrecisionGeneric):
             M *= self._p ** val
         return M
 
-class pAdicLatticeElementWeakProxy(object):
+
+class pAdicLatticeElementWeakProxy:
     r"""
     The implementations of :class:`DifferentialPrecisionGeneric` hold
     weak references to :class:`pAdicLatticeElement`. They are stored in
@@ -2762,11 +2777,10 @@ class pAdicLatticeElementWeakProxy(object):
             True
             sage: pAdicLatticeElementWeakProxy(p) is pAdicLatticeElementWeakProxy(p)
             False
-
         """
         if not hasattr(element, '_proxy_id'):
             element._proxy_id = pAdicLatticeElementWeakProxy._next_id
-            pAdicLatticeElementWeakProxy._next_id +=1
+            pAdicLatticeElementWeakProxy._next_id += 1
         self._id = element._proxy_id
         from weakref import ref
         proxy_callback = callback
@@ -2785,7 +2799,6 @@ class pAdicLatticeElementWeakProxy(object):
             sage: p = R(2)
             sage: hash(pAdicLatticeElementWeakProxy(p)) == hash(pAdicLatticeElementWeakProxy(p))
             True
-
         """
         return self._id
 
@@ -2803,7 +2816,6 @@ class pAdicLatticeElementWeakProxy(object):
             True
             sage: pAdicLatticeElementWeakProxy(q) == pAdicLatticeElementWeakProxy(p)
             False
-
         """
         return isinstance(other, pAdicLatticeElementWeakProxy) and self._id == other._id
 
@@ -2819,7 +2831,6 @@ class pAdicLatticeElementWeakProxy(object):
             sage: p = R(2)
             sage: pAdicLatticeElementWeakProxy(p)()
             2 + O(2^21)
-
         """
         return self._weakref()
 
@@ -2832,16 +2843,16 @@ class pAdicLatticeElementWeakProxy(object):
             sage: from sage.rings.padics.lattice_precision import pAdicLatticeElementWeakProxy
             sage: R = ZpLF(2, label='proxy_repr')
             sage: p = R(2)
-            sage: R.precision()._elements # indirect doctest
+            sage: R.precision()._elements  # indirect doctest
             [WeakProxy#...]
-
         """
-        return "WeakProxy#%s"%(self._id,)
+        return "WeakProxy#%s" % (self._id,)
+
 
 def list_of_padics(elements):
     r"""
-    Convert a list of p-adic composed elements (such as polynomials, matrices)
-    to a list of weak references of their p-adic coefficients.
+    Convert a list of `p`-adic composed elements (such as polynomials, matrices)
+    to a list of weak references of their `p`-adic coefficients.
 
     This is a helper function for the method :meth:`precision_lattice`.
 
@@ -2849,8 +2860,8 @@ def list_of_padics(elements):
 
         sage: from sage.rings.padics.lattice_precision import list_of_padics
         sage: R = ZpLC(2)
-        sage: M = random_matrix(R, 2, 2)
-        sage: list_of_padics(M)
+        sage: M = random_matrix(R, 2, 2)                                                # needs sage.geometry.polyhedron
+        sage: list_of_padics(M)                                                         # needs sage.geometry.polyhedron
         [WeakProxy#...,
          WeakProxy#...,
          WeakProxy#...,
@@ -2858,7 +2869,7 @@ def list_of_padics(elements):
     """
     from sage.rings.padics.padic_lattice_element import pAdicLatticeElement
     if isinstance(elements, pAdicLatticeElement):
-        return [ pAdicLatticeElementWeakProxy(elements) ]
+        return [pAdicLatticeElementWeakProxy(elements)]
     try:
         if elements.parent().is_sparse():
             elements = elements.coefficients()
@@ -2866,7 +2877,7 @@ def list_of_padics(elements):
         pass
     if not isinstance(elements, list):
         elements = list(elements)
-    ans = [ ]
+    ans = []
     for x in elements:
         ans += list_of_padics(x)
     return ans

@@ -1,3 +1,4 @@
+# sage.doctest: needs sage.libs.singular
 r"""
 Helper Functions For Freeness Of Hyperplane Arrangements
 
@@ -24,6 +25,7 @@ for details.
 
 from sage.matrix.constructor import matrix
 import sage.libs.singular.function_factory as fun_fact
+
 
 def less_generators(X):
     """
@@ -61,6 +63,7 @@ def less_generators(X):
             return X
         Kd = set(range(X.nrows())).difference(K)
         X = X.matrix_from_rows(sorted(Kd))
+
 
 def construct_free_chain(A):
     """
@@ -120,7 +123,7 @@ def construct_free_chain(A):
             ret = next_step(I, Y, U)
             if ret is not None:
                 return [prev] + ret
-        return None                
+        return None
 
     T = matrix.identity(S, r)
     for i in indices:

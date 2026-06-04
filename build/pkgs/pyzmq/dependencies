@@ -1,5 +1,4 @@
-$(PYTHON) cython zeromq | $(PYTHON_TOOLCHAIN)
+numpy zeromq cffi | $(PYTHON_TOOLCHAIN) $(PYTHON) cython scikit_build_core
 
 ----------
 All lines of this file are ignored except the first.
-It is copied by SAGE_ROOT/build/make/install into SAGE_ROOT/build/make/Makefile.

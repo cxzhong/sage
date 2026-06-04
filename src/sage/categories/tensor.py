@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Tensor Product Functorial Construction
 
@@ -14,6 +13,7 @@ AUTHORS:
 # ****************************************************************************
 
 from sage.categories.covariant_functorial_construction import CovariantFunctorialConstruction, CovariantConstructionCategory
+from sage.typeset.unicode_characters import unicode_otimes
 
 
 class TensorProductFunctor(CovariantFunctorialConstruction):
@@ -50,12 +50,10 @@ class TensorProductFunctor(CovariantFunctorialConstruction):
     _functor_name = "tensor"
     _functor_category = "TensorProducts"
     symbol = " # "
-    unicode_symbol = " ⨂ "
+    unicode_symbol = f" {unicode_otimes} "
 
 
 tensor = TensorProductFunctor()
-
-
 """
 The tensor product functorial construction
 
@@ -70,7 +68,7 @@ EXAMPLES::
 
 class TensorProductsCategory(CovariantConstructionCategory):
     r"""
-    An abstract base class for all TensorProducts's categories
+    An abstract base class for all TensorProducts's categories.
 
     TESTS::
 
@@ -87,7 +85,7 @@ class TensorProductsCategory(CovariantConstructionCategory):
 
     def TensorProducts(self):
         """
-        Returns the category of tensor products of objects of ``self``
+        Return the category of tensor products of objects of ``self``.
 
         By associativity of tensor products, this is ``self`` (a tensor
         product of tensor products of `Cat`'s is a tensor product of `Cat`'s)

@@ -5,14 +5,15 @@
 # distutils: extra_link_args = NTL_LIBEXTRA
 # distutils: language = c++
 
-"""
-Wrapper for NTL's polynomials over finite ring extensions of $\Z / p\Z.$
+r"""
+Wrapper for NTL's polynomials over finite ring extensions of `\Z / p\Z.`
 
 AUTHORS:
-  -- David Roe (2007-10-10)
+
+- David Roe (2007-10-10)
 """
 
-#*****************************************************************************
+# ****************************************************************************
 #       Copyright (C) 2007 William Stein <wstein@gmail.com>
 #                          David Roe     <roed@math.harvard.edu>
 #
@@ -25,8 +26,8 @@ AUTHORS:
 #
 #  The full text of the GPL is available at:
 #
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
 from cysignals.signals cimport sig_on, sig_off
 from sage.ext.cplusplus cimport ccrepr
@@ -35,14 +36,10 @@ include 'misc.pxi'
 include 'decl.pxi'
 
 from cpython.object cimport Py_EQ, Py_NE
-from sage.libs.ntl.ntl_ZZ cimport ntl_ZZ
-from sage.libs.ntl.ntl_ZZ_p cimport ntl_ZZ_p
 from sage.libs.ntl.ntl_ZZ_pE cimport ntl_ZZ_pE
-from sage.libs.ntl.ntl_ZZ_pX cimport ntl_ZZ_pX
 from sage.libs.ntl.ntl_ZZ_pEContext cimport ntl_ZZ_pEContext_class
 from sage.libs.ntl.ntl_ZZ_pEContext import ntl_ZZ_pEContext
 from sage.libs.ntl.ntl_ZZ_pContext cimport ntl_ZZ_pContext_class
-from sage.libs.ntl.ntl_ZZ import unpickle_class_args
 from sage.arith.power cimport generic_power_pos
 
 ##############################################################################
@@ -51,11 +48,11 @@ from sage.arith.power cimport generic_power_pos
 #
 ##############################################################################
 
-cdef class ntl_ZZ_pEX(object):
+cdef class ntl_ZZ_pEX():
     r"""
-    The class \class{ZZ_pEX} implements polynomials over finite ring extensions of $\Z / p\Z$.
+    The class \class{ZZ_pEX} implements polynomials over finite ring extensions of `\Z / p\Z`.
 
-    It can be used, for example, for arithmetic in $GF(p^n)[X]$.
+    It can be used, for example, for arithmetic in `GF(p^n)[X]`.
     However, except where mathematically necessary (e.g., GCD computations),
     ZZ_pE need not be a field.
     """
@@ -87,11 +84,11 @@ cdef class ntl_ZZ_pEX(object):
 
         if v is None:
             return
-        elif isinstance(v, list) or isinstance(v, tuple):
+        elif isinstance(v, (list, tuple)):
             for i from 0 <= i < len(v):
                 x = v[i]
                 if not isinstance(x, ntl_ZZ_pE):
-                    cc = ntl_ZZ_pE(x,self.c)
+                    cc = ntl_ZZ_pE(x, self.c)
                     self.c.restore_c()
                 else:
                     if self.c is not (<ntl_ZZ_pE>x).c:
@@ -115,7 +112,7 @@ cdef class ntl_ZZ_pEX(object):
         ## way to short-circuit __init__ (or just call##
         ## _new in your own code).                    ##
         ################################################
-        if modulus is None and v is None: # we also check for v is None so that a user can specify the modulus by v.
+        if modulus is None and v is None:  # we also check for v is None so that a user can specify the modulus by v.
             return
         if isinstance(modulus, ntl_ZZ_pEContext_class):
             self.c = <ntl_ZZ_pEContext_class>modulus
@@ -158,7 +155,7 @@ cdef class ntl_ZZ_pEX(object):
 
     def __repr__(self):
         """
-        Returns a string representation of self.
+        Return a string representation of ``self``.
 
         TESTS::
 
@@ -174,7 +171,7 @@ cdef class ntl_ZZ_pEX(object):
 
     def __copy__(self):
         """
-        Return a copy of self.
+        Return a copy of ``self``.
 
         TESTS::
 
@@ -193,13 +190,13 @@ cdef class ntl_ZZ_pEX(object):
             [[3 2] [1 2] [1 2]]
         """
         cdef ntl_ZZ_pEX r = self._new()
-        #self.c.restore_c() ## _new() restores
+        # self.c.restore_c() ## _new() restores
         r.x = self.x
         return r
 
     def get_modulus_context(self):
         """
-        Returns the structure that holds the underlying NTL modulus.
+        Return the structure that holds the underlying NTL modulus.
 
         EXAMPLES::
 
@@ -214,7 +211,7 @@ cdef class ntl_ZZ_pEX(object):
 
     def __setitem__(self, long i, a):
         r"""
-        Sets the ith coefficient of self to be a.
+        Set the i-th coefficient of ``self`` to be a.
 
         EXAMPLES::
 
@@ -231,13 +228,13 @@ cdef class ntl_ZZ_pEX(object):
         if isinstance(a, ntl_ZZ_pE):
             _a = <ntl_ZZ_pE> a
         else:
-            _a = ntl_ZZ_pE(a,self.c)
+            _a = ntl_ZZ_pE(a, self.c)
         self.c.restore_c()
         ZZ_pEX_SetCoeff(self.x, i, _a.x)
 
     def __getitem__(self, long i):
         r"""
-        Returns the ith coefficient of self.
+        Return the i-th coefficient of ``self``.
 
         EXAMPLES::
 
@@ -257,7 +254,7 @@ cdef class ntl_ZZ_pEX(object):
         self.c.restore_c()
         r = ntl_ZZ_pE.__new__(ntl_ZZ_pE)
         r.c = self.c
-        r.x = ZZ_pEX_coeff( self.x, i)
+        r.x = ZZ_pEX_coeff(self.x, i)
         sig_off()
         return r
 
@@ -282,7 +279,7 @@ cdef class ntl_ZZ_pEX(object):
 
     def __add__(ntl_ZZ_pEX self, ntl_ZZ_pEX other):
         """
-        Adds self and other.
+        Add ``self`` and ``other``.
 
         EXAMPLES::
 
@@ -305,7 +302,7 @@ cdef class ntl_ZZ_pEX(object):
 
     def __sub__(ntl_ZZ_pEX self, ntl_ZZ_pEX other):
         """
-        Subtracts other from self.
+        Subtracts ``other`` from ``self``.
 
         EXAMPLES::
 
@@ -328,7 +325,7 @@ cdef class ntl_ZZ_pEX(object):
 
     def __mul__(ntl_ZZ_pEX self, ntl_ZZ_pEX other):
         """
-        Returns the product self * other.
+        Return the product ``self * other``.
 
         EXAMPLES::
 
@@ -357,7 +354,7 @@ cdef class ntl_ZZ_pEX(object):
 
     def __truediv__(ntl_ZZ_pEX self, ntl_ZZ_pEX other):
         """
-        Compute quotient self / other, if the quotient is a polynomial.
+        Compute quotient ``self / other``, if the quotient is a polynomial.
         Otherwise an Exception is raised.
 
         EXAMPLES::
@@ -379,7 +376,7 @@ cdef class ntl_ZZ_pEX(object):
         cdef int divisible
         cdef ntl_ZZ_pEX r = self._new()
         sig_on()
-        #self.c.restore_c() # _new restores context
+        # self.c.restore_c() # _new restores context
         divisible = ZZ_pEX_divide(r.x, self.x, other.x)
         sig_off()
         if not divisible:
@@ -392,8 +389,9 @@ cdef class ntl_ZZ_pEX(object):
         there exist polynomials q, r in ZZ_pE[X] such that a = b*q + r, deg(r) < deg(b).  This
         function returns r.
 
-        If p is not prime or the modulus is not irreducible, this function may raise a
-        RuntimeError due to division by a noninvertible element of ZZ_p.
+        If p is not prime or the modulus is not irreducible, this
+        function may raise a :exc:`RuntimeError` due to division by
+        a noninvertible element of ZZ_p.
 
         EXAMPLES::
 
@@ -423,7 +421,7 @@ cdef class ntl_ZZ_pEX(object):
         function returns (q, r).
 
         If p is not prime or the modulus is not irreducible, this function may raise a
-        RuntimeError due to division by a noninvertible element of ZZ_p.
+        :exc:`RuntimeError` due to division by a noninvertible element of ZZ_p.
 
         EXAMPLES::
 
@@ -445,11 +443,11 @@ cdef class ntl_ZZ_pEX(object):
         # self.c.restore_c() # _new() restores the context
         ZZ_pEX_DivRem(q.x, r.x, self.x, other.x)
         sig_off()
-        return q,r
+        return q, r
 
     def square(self):
         """
-        Return $f^2$.
+        Return `f^2`.
 
         EXAMPLES::
 
@@ -469,7 +467,7 @@ cdef class ntl_ZZ_pEX(object):
 
     def __pow__(ntl_ZZ_pEX self, long n, ignored):
         """
-        Return the n-th nonnegative power of self.
+        Return the `n`-th nonnegative power of ``self``.
 
         EXAMPLES::
 
@@ -497,7 +495,7 @@ cdef class ntl_ZZ_pEX(object):
 
     def __richcmp__(ntl_ZZ_pEX self, other, int op):
         """
-        Compare self to other.
+        Compare ``self`` to ``other``.
 
         EXAMPLES::
 
@@ -529,7 +527,7 @@ cdef class ntl_ZZ_pEX(object):
 
     def is_zero(self):
         """
-        Return True exactly if this polynomial is 0.
+        Return ``True`` exactly if this polynomial is 0.
 
         EXAMPLES::
 
@@ -548,7 +546,7 @@ cdef class ntl_ZZ_pEX(object):
 
     def is_one(self):
         """
-        Return True exactly if this polynomial is 1.
+        Return ``True`` exactly if this polynomial is 1.
 
         EXAMPLES::
 
@@ -567,7 +565,7 @@ cdef class ntl_ZZ_pEX(object):
 
     def is_monic(self):
         """
-        Return True exactly if this polynomial is monic.
+        Return ``True`` exactly if this polynomial is monic.
 
         EXAMPLES::
 
@@ -585,16 +583,16 @@ cdef class ntl_ZZ_pEX(object):
         # The following line is what we should have.  However, strangely this is *broken*
         # on PowerPC Intel in NTL, so we program around
         # the problem.  (William Stein)
-        #return bool(ZZ_pEX_is_monic(self.x))
+        # return bool(ZZ_pEX_is_monic(self.x))
 
         if ZZ_pEX_IsZero(self.x):
-             return False
+            return False
         cdef ZZ_pE_c x = ZZ_pEX_LeadCoeff(self.x)
         return bool(ZZ_pE_IsOne(x))
 
     def __neg__(self):
         """
-        Return the negative of self.
+        Return the negative of ``self``.
 
         EXAMPLES::
 
@@ -612,11 +610,11 @@ cdef class ntl_ZZ_pEX(object):
 
     def convert_to_modulus(self, ntl_ZZ_pContext_class c):
         """
-        Returns a new ntl_ZZ_pX which is the same as self, but considered modulo a different p (but the SAME polynomial).
+        Return a new ntl_ZZ_pX which is the same as self, but considered modulo a different p (but the SAME polynomial).
 
         In order for this to make mathematical sense, c.p should divide self.c.p
-        (in which case self is reduced modulo c.p) or self.c.p should divide c.p
-        (in which case self is lifted to something modulo c.p congruent to self modulo self.c.p)
+        (in which case ``self`` is reduced modulo c.p) or self.c.p should divide c.p
+        (in which case ``self`` is lifted to something modulo c.p congruent to ``self`` modulo self.c.p)
 
         EXAMPLES::
 
@@ -703,7 +701,7 @@ cdef class ntl_ZZ_pEX(object):
 
     def gcd(self, ntl_ZZ_pEX other, check=True):
         """
-        Returns gcd(self, other) if we are working over a field.
+        Return ``gcd(self, other)`` if we are working over a field.
 
         NOTE: Does not work if p is not prime or if the modulus is not irreducible.
 
@@ -723,7 +721,7 @@ cdef class ntl_ZZ_pEX(object):
             sage: f^2 / eight
             [[2 1] [8 1] [9 1] [2] [1]]
         """
-        #If check = True, need to check that ZZ_pE is a field.
+        # If check = True, need to check that ZZ_pE is a field.
         self.c.restore_c()
         cdef ntl_ZZ_pEX r = self._new()
         sig_on()
@@ -733,9 +731,9 @@ cdef class ntl_ZZ_pEX(object):
 
     def xgcd(self, ntl_ZZ_pEX other):
         """
-        Returns r,s,t such that r = s*self + t*other.
+        Return `r`, `s`, `t` such that ``r = s*self + t*other``.
 
-        Here r is the gcd of self and other.
+        Here `r` is the gcd of ``self`` and ``other``.
 
         EXAMPLES::
 
@@ -760,7 +758,7 @@ cdef class ntl_ZZ_pEX(object):
         sig_on()
         ZZ_pEX_XGCD(r.x, s.x, t.x, self.x, other.x)
         sig_off()
-        return (r,s,t)
+        return (r, s, t)
 
     def degree(self):
         """
@@ -835,7 +833,7 @@ cdef class ntl_ZZ_pEX(object):
 
     def is_x(self):
         """
-        True if this is the polynomial "x".
+        ``True`` if this is the polynomial "x".
 
         EXAMPLES::
 
@@ -869,7 +867,7 @@ cdef class ntl_ZZ_pEX(object):
         sig_off()
         return r
 
-    #def factor(self, verbose=False):
+    # def factor(self, verbose=False):
     #    cdef ZZ_pX_c** v
     #    cdef long* e
     #    cdef long i, n
@@ -883,7 +881,7 @@ cdef class ntl_ZZ_pEX(object):
     #    free(e)
     #    return F
 
-    #def linear_roots(self):
+    # def linear_roots(self):
     #    """
     #    Assumes that input is monic, and has deg(f) distinct roots.
     #    Returns the list of roots.
@@ -997,12 +995,13 @@ cdef class ntl_ZZ_pEX(object):
 
     def invert_and_truncate(self, long m):
         """
-        Compute and return the inverse of self modulo $x^m$.
-        The constant term of self must be invertible.
+        Compute and return the inverse of ``self`` modulo `x^m`.
+
+        The constant term of ``self`` must be invertible.
 
         EXAMPLES::
 
-            sage: c=ntl.ZZ_pEContext(ntl.ZZ_pX([1,1,1], 11))
+            sage: c = ntl.ZZ_pEContext(ntl.ZZ_pX([1,1,1], 11))
             sage: a = ntl.ZZ_pE([3,2], c)
             sage: b = ntl.ZZ_pE([1,2], c)
             sage: f = ntl.ZZ_pEX([a, b, b])
@@ -1014,7 +1013,7 @@ cdef class ntl_ZZ_pEX(object):
         """
         if m < 0:
             raise ArithmeticError("m (=%s) must be positive" % m)
-        #Need to check here if constant term is invertible
+        # Need to check here if constant term is invertible
         cdef ntl_ZZ_pEX r = self._new()
         if m > 0:
             sig_on()
@@ -1024,8 +1023,8 @@ cdef class ntl_ZZ_pEX(object):
 
     def multiply_mod(self, ntl_ZZ_pEX other, ntl_ZZ_pEX modulus):
         """
-        Return self*other % modulus.  The modulus must be monic with
-        deg(modulus) > 0, and self and other must have smaller degree.
+        Return ``self*other % modulus``.  The modulus must be monic with
+        ``deg(modulus) > 0``, and ``self`` and ``other`` must have smaller degree.
 
         EXAMPLES::
 
@@ -1048,8 +1047,8 @@ cdef class ntl_ZZ_pEX(object):
     def trace_mod(self, ntl_ZZ_pEX modulus):
         """
         Return the trace of this polynomial modulo the modulus.
-        The modulus must be monic, and of positive degree degree bigger
-        than the degree of self.
+        The modulus must be monic, and of positive degree bigger
+        than the degree of ``self``.
 
         EXAMPLES::
 
@@ -1062,13 +1061,13 @@ cdef class ntl_ZZ_pEX(object):
             [8 1]
         """
         self.c.restore_c()
-        cdef ntl_ZZ_pE r = ntl_ZZ_pE(modulus = self.c)
+        cdef ntl_ZZ_pE r = ntl_ZZ_pE(modulus=self.c)
         sig_on()
         ZZ_pEX_TraceMod(r.x, self.x, modulus.x)
         sig_off()
         return r
 
-    #def trace_list(self):
+    # def trace_list(self):
     #    """
     #    Return the list of traces of the powers $x^i$ of the
     #    monomial x modulo this polynomial for i = 0, ..., deg(f)-1.
@@ -1081,7 +1080,7 @@ cdef class ntl_ZZ_pEX(object):
     #        sage: f.trace_list()
     #        [5, 0, 14, 0, 10]
     #
-    #    The input polynomial must be monic or a ValueError is raised::
+    #    The input polynomial must be monic or a :exc:`ValueError` is raised::
     #
     #        sage: c=ntl.ZZ_pContext(ntl.ZZ(20))
     #        sage: f = c.ZZ_pX([1,2,0,3,0,2]
@@ -1102,7 +1101,7 @@ cdef class ntl_ZZ_pEX(object):
 
     def resultant(self, ntl_ZZ_pEX other):
         """
-        Return the resultant of self and other.
+        Return the resultant of ``self`` and ``other``.
 
         EXAMPLES::
 
@@ -1117,7 +1116,7 @@ cdef class ntl_ZZ_pEX(object):
             []
         """
         self.c.restore_c()
-        cdef ntl_ZZ_pE r = ntl_ZZ_pE(modulus = self.c)
+        cdef ntl_ZZ_pE r = ntl_ZZ_pE(modulus=self.c)
         sig_on()
         ZZ_pEX_resultant(r.x, self.x, other.x)
         sig_off()
@@ -1127,7 +1126,7 @@ cdef class ntl_ZZ_pEX(object):
         """
         Return the norm of this polynomial modulo the modulus.  The
         modulus must be monic, and of positive degree strictly greater
-        than the degree of self.
+        than the degree of ``self``.
 
         EXAMPLES::
 
@@ -1140,7 +1139,7 @@ cdef class ntl_ZZ_pEX(object):
             [9 2]
         """
         self.c.restore_c()
-        cdef ntl_ZZ_pE r = ntl_ZZ_pE(modulus = self.c)
+        cdef ntl_ZZ_pE r = ntl_ZZ_pE(modulus=self.c)
         sig_on()
         ZZ_pEX_NormMod(r.x, self.x, modulus.x)
         sig_off()
@@ -1176,7 +1175,7 @@ cdef class ntl_ZZ_pEX(object):
         """
         Return the minimal polynomial of this polynomial modulo the
         modulus.  The modulus must be monic of degree bigger than
-        self.
+        ``self``.
 
         EXAMPLES::
 
@@ -1251,6 +1250,6 @@ def make_ZZ_pEX(v, modulus):
         sage: sage.libs.ntl.ntl_ZZ_pEX.make_ZZ_pEX([a,b,b], c)
         [[3 2] [1 2] [1 2]]
         sage: type(sage.libs.ntl.ntl_ZZ_pEX.make_ZZ_pEX([a,b,b], c))
-        <type 'sage.libs.ntl.ntl_ZZ_pEX.ntl_ZZ_pEX'>
+        <class 'sage.libs.ntl.ntl_ZZ_pEX.ntl_ZZ_pEX'>
     """
     return ntl_ZZ_pEX(v, modulus)

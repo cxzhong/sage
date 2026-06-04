@@ -1,5 +1,6 @@
+# sage.doctest: needs sage.combinat sage.modules
 r"""
-Elementary Crystals
+Elementary crystals
 
 Let `\lambda` be a weight. The crystals `T_{\lambda}`, `R_{\lambda}`, `B_i`,
 and `C` are important objects in the tensor category of crystals.
@@ -53,7 +54,7 @@ REFERENCES:
 - [NZ1997]_
 """
 
-#*****************************************************************************
+# ****************************************************************************
 #  Copyright (C) 2013 Ben Salisbury <benjamin_salisbury at brown dot edu>
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
@@ -65,8 +66,8 @@ REFERENCES:
 #
 #  The full text of the GPL is available at:
 #
-#                  http://www.gnu.org/licenses/
-#****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ***************************************************************************
 
 from sage.categories.crystals import Crystals
 from sage.categories.finite_crystals import FiniteCrystals
@@ -88,7 +89,8 @@ class AbstractSingleCrystalElement(Element):
     r"""
     Abstract base class for elements in crystals with a single element.
     """
-    def __lt__(self,other):
+
+    def __lt__(self, other):
         r"""
         EXAMPLES::
 
@@ -113,7 +115,7 @@ class AbstractSingleCrystalElement(Element):
         """
         return hash(self.parent())
 
-    def __eq__(self,other):
+    def __eq__(self, other):
         r"""
         EXAMPLES::
 
@@ -141,7 +143,7 @@ class AbstractSingleCrystalElement(Element):
             return self.parent() is other.parent()
         return False
 
-    def __ne__(self,other):
+    def __ne__(self, other):
         r"""
         EXAMPLES::
 
@@ -154,13 +156,13 @@ class AbstractSingleCrystalElement(Element):
         """
         return not self == other
 
-    def e(self,i):
+    def e(self, i):
         r"""
         Return `e_i` of ``self``, which is ``None`` for all `i`.
 
         INPUT:
 
-        - ``i`` -- An element of the index set
+        - ``i`` -- an element of the index set
 
         EXAMPLES::
 
@@ -173,13 +175,13 @@ class AbstractSingleCrystalElement(Element):
         """
         return None
 
-    def f(self,i):
+    def f(self, i):
         r"""
         Return `f_i` of ``self``, which is ``None`` for all `i`.
 
         INPUT:
 
-        - ``i`` -- An element of the index set
+        - ``i`` -- an element of the index set
 
         EXAMPLES::
 
@@ -191,6 +193,7 @@ class AbstractSingleCrystalElement(Element):
             sage: t.f(2)
         """
         return None
+
 
 class TCrystal(UniqueRepresentation, Parent):
     r"""
@@ -213,9 +216,9 @@ class TCrystal(UniqueRepresentation, Parent):
 
     INPUT:
 
-    - ``cartan_type`` -- A Cartan type
+    - ``cartan_type`` -- a Cartan type
 
-    - ``weight`` -- An element of the weight lattice of type ``cartan_type``
+    - ``weight`` -- an element of the weight lattice of type ``cartan_type``
 
     EXAMPLES::
 
@@ -257,7 +260,7 @@ class TCrystal(UniqueRepresentation, Parent):
             weight = cartan_type
             cartan_type = weight.parent().cartan_type()
         cartan_type = CartanType(cartan_type)
-        return super(TCrystal, cls).__classcall__(cls, cartan_type, weight)
+        return super().__classcall__(cls, cartan_type, weight)
 
     def __init__(self, cartan_type, weight):
         r"""
@@ -289,7 +292,7 @@ class TCrystal(UniqueRepresentation, Parent):
             sage: B
             The T crystal of type ['E', 6] and weight Lambda[6]
         """
-        return "The T crystal of type {1!s} and weight {0!s}".format(self._weight,self._cartan_type)
+        return "The T crystal of type {1!s} and weight {0!s}".format(self._weight, self._cartan_type)
 
     def _element_constructor_(self, weight):
         r"""
@@ -297,7 +300,7 @@ class TCrystal(UniqueRepresentation, Parent):
 
         INPUT:
 
-        - ``weight`` -- An element of the weight lattice
+        - ``weight`` -- an element of the weight lattice
 
         EXAMPLES::
 
@@ -307,7 +310,7 @@ class TCrystal(UniqueRepresentation, Parent):
             Lambda[7] + Lambda[8]
         """
         if weight != self._weight:
-            raise ValueError("Only element is t(%s)"%self._weight)
+            raise ValueError("only element is t(%s)" % self._weight)
         return self.element_class(self)
 
     def cardinality(self):
@@ -349,6 +352,7 @@ class TCrystal(UniqueRepresentation, Parent):
         r"""
         Element of a `T_{\lambda}` crystal.
         """
+
         def _repr_(self):
             r"""
             EXAMPLES::
@@ -373,17 +377,17 @@ class TCrystal(UniqueRepresentation, Parent):
                 sage: T = crystals.elementary.T(ct, 2*la[1]-3*la[3]+la[0])
                 sage: t = T.highest_weight_vector()
                 sage: latex(t)
-                {t_{-e_{0} - 3e_{1} - 3e_{2} - 3e_{deltacheck}}}
+                {t_{-e_{0} - 3 e_{1} - 3 e_{2} - 3 e_{deltacheck}}}
             """
-            return "{t_{"+self.parent()._weight._latex_()+"}}"
+            return "{t_{" + self.parent()._weight._latex_() + "}}"
 
-        def epsilon(self,i):
+        def epsilon(self, i):
             r"""
             Return `\varepsilon_i` of ``self``, which is `-\infty` for all `i`.
 
             INPUT:
 
-            - ``i`` -- An element of the index set
+            - ``i`` -- an element of the index set
 
             EXAMPLES::
 
@@ -396,13 +400,13 @@ class TCrystal(UniqueRepresentation, Parent):
             """
             return float("-inf")
 
-        def phi(self,i):
+        def phi(self, i):
             r"""
             Return `\varphi_i` of ``self``, which is `-\infty` for all `i`.
 
             INPUT:
 
-            - ``i`` -- An element of the index set
+            - ``i`` -- an element of the index set
 
             EXAMPLES::
 
@@ -429,6 +433,7 @@ class TCrystal(UniqueRepresentation, Parent):
                 -Lambda[1] - Lambda[2] + Lambda[4] + Lambda[5]
             """
             return self.parent()._weight
+
 
 class RCrystal(UniqueRepresentation, Parent):
     r"""
@@ -469,7 +474,7 @@ class RCrystal(UniqueRepresentation, Parent):
 
     - ``cartan_type`` -- a Cartan type
     - ``weight`` -- an element of the weight lattice of type ``cartan_type``
-    - ``dual`` -- (default: ``False``) boolean
+    - ``dual`` -- boolean (default: ``False``)
 
     EXAMPLES:
 
@@ -512,7 +517,7 @@ class RCrystal(UniqueRepresentation, Parent):
             weight = cartan_type
             cartan_type = weight.parent().cartan_type()
         cartan_type = CartanType(cartan_type)
-        return super(RCrystal, cls).__classcall__(cls, cartan_type, weight, dual)
+        return super().__classcall__(cls, cartan_type, weight, dual)
 
     def __init__(self, cartan_type, weight, dual):
         r"""
@@ -558,7 +563,7 @@ class RCrystal(UniqueRepresentation, Parent):
 
         INPUT:
 
-        - ``weight`` -- An element of the weight lattice
+        - ``weight`` -- an element of the weight lattice
 
         EXAMPLES::
 
@@ -568,7 +573,7 @@ class RCrystal(UniqueRepresentation, Parent):
             Lambda[7] + Lambda[8]
         """
         if weight != self._weight:
-            raise ValueError("Only element is r(%s)"%self._weight)
+            raise ValueError("Only element is r(%s)" % self._weight)
         return self.element_class(self)
 
     def cardinality(self):
@@ -610,6 +615,7 @@ class RCrystal(UniqueRepresentation, Parent):
         r"""
         Element of a `R_{\lambda}` crystal.
         """
+
         def _repr_(self):
             r"""
             EXAMPLES::
@@ -640,8 +646,8 @@ class RCrystal(UniqueRepresentation, Parent):
                 {r^{\vee}_{\Lambda_{1}}}
             """
             if self.parent()._dual:
-                return r"{r^{\vee}_{"+self.parent()._weight._latex_()+"}}"
-            return "{r_{"+self.parent()._weight._latex_()+"}}"
+                return r"{r^{\vee}_{" + self.parent()._weight._latex_() + "}}"
+            return "{r_{" + self.parent()._weight._latex_() + "}}"
 
         def epsilon(self, i):
             r"""
@@ -652,7 +658,7 @@ class RCrystal(UniqueRepresentation, Parent):
 
             INPUT:
 
-            - ``i`` -- An element of the index set
+            - ``i`` -- an element of the index set
 
             EXAMPLES::
 
@@ -669,10 +675,9 @@ class RCrystal(UniqueRepresentation, Parent):
             """
             if self.parent()._dual:
                 return ZZ.zero()
-            else:
-                P = self.parent().weight_lattice_realization()
-                h = P.simple_coroots()
-                return -P(self.weight()).scalar(h[i])
+            P = self.parent().weight_lattice_realization()
+            h = P.simple_coroots()
+            return -P(self.weight()).scalar(h[i])
 
         def phi(self, i):
             r"""
@@ -680,7 +685,7 @@ class RCrystal(UniqueRepresentation, Parent):
 
             INPUT:
 
-            - ``i`` -- An element of the index set
+            - ``i`` -- an element of the index set
 
             EXAMPLES::
 
@@ -699,8 +704,7 @@ class RCrystal(UniqueRepresentation, Parent):
                 P = self.parent().weight_lattice_realization()
                 h = P.simple_coroots()
                 return P(self.weight()).scalar(h[i])
-            else:
-                return ZZ.zero()
+            return ZZ.zero()
 
         def weight(self):
             r"""
@@ -786,8 +790,8 @@ class ElementaryCrystal(UniqueRepresentation, Parent):
         """
         cartan_type = CartanType(cartan_type)
         if i not in cartan_type.index_set():
-            raise ValueError('i must an element of the index set.')
-        return super(ElementaryCrystal, cls).__classcall__(cls, cartan_type, i)
+            raise ValueError('i must an element of the index set')
+        return super().__classcall__(cls, cartan_type, i)
 
     def __init__(self, cartan_type, i):
         r"""
@@ -798,10 +802,10 @@ class ElementaryCrystal(UniqueRepresentation, Parent):
             sage: B = crystals.elementary.Elementary("D4",3)
             sage: TestSuite(B).run()
         """
-        Parent.__init__(self, category = (Crystals(), InfiniteEnumeratedSets()))
+        Parent.__init__(self, category=(Crystals(), InfiniteEnumeratedSets()))
         self._i = i
         self._cartan_type = cartan_type
-        self.module_generators = (self.element_class(self,0),)
+        self.module_generators = (self.element_class(self, 0),)
 
     def _repr_(self):
         r"""
@@ -813,7 +817,7 @@ class ElementaryCrystal(UniqueRepresentation, Parent):
             sage: B
             The 4-elementary crystal of type ['B', 5, 1]
         """
-        return "The {0!s}-elementary crystal of type {1!s}".format(self._i,self._cartan_type)
+        return "The {0!s}-elementary crystal of type {1!s}".format(self._i, self._cartan_type)
 
     def _element_constructor_(self, m):
         r"""
@@ -821,7 +825,7 @@ class ElementaryCrystal(UniqueRepresentation, Parent):
 
         INPUT:
 
-        - ``m`` -- An integer
+        - ``m`` -- integer
 
         EXAMPLES::
 
@@ -852,6 +856,7 @@ class ElementaryCrystal(UniqueRepresentation, Parent):
         r"""
         Element of a `B_i` crystal.
         """
+
         def __init__(self, parent, m):
             r"""
             EXAMPLES::
@@ -883,7 +888,7 @@ class ElementaryCrystal(UniqueRepresentation, Parent):
             """
             return repr(self._m)
 
-        def __lt__(self,other):
+        def __lt__(self, other):
             r"""
             EXAMPLES::
 
@@ -899,7 +904,7 @@ class ElementaryCrystal(UniqueRepresentation, Parent):
                 return False
             return Integer(self._m) < Integer(other._m)
 
-        def __eq__(self,other):
+        def __eq__(self, other):
             r"""
             EXAMPLES::
 
@@ -915,7 +920,7 @@ class ElementaryCrystal(UniqueRepresentation, Parent):
                 return self.parent() is other.parent() and self._m == other._m
             return False
 
-        def __ne__(self,other):
+        def __ne__(self, other):
             r"""
             EXAMPLES::
 
@@ -937,15 +942,15 @@ class ElementaryCrystal(UniqueRepresentation, Parent):
                 sage: latex(B(26))
                 {b_{6}(26)}
             """
-            return "{b_{%s}(%s)}"%(self.parent()._i, self._m)
+            return "{b_{%s}(%s)}" % (self.parent()._i, self._m)
 
-        def e(self,i):
+        def e(self, i):
             r"""
             Return the action of `e_i` on ``self``.
 
             INPUT:
 
-            - ``i`` -- An element of the index set
+            - ``i`` -- an element of the index set
 
             EXAMPLES::
 
@@ -957,9 +962,8 @@ class ElementaryCrystal(UniqueRepresentation, Parent):
                 sage: B(0).e(2)
             """
             if i == self.parent()._i:
-                return self.__class__(self.parent(), self._m+1)
-            else:
-                return None
+                return self.__class__(self.parent(), self._m + 1)
+            return None
 
         def f(self, i):
             r"""
@@ -967,7 +971,7 @@ class ElementaryCrystal(UniqueRepresentation, Parent):
 
             INPUT:
 
-            - ``i`` -- An element of the index set
+            - ``i`` -- an element of the index set
 
             EXAMPLES::
 
@@ -979,9 +983,8 @@ class ElementaryCrystal(UniqueRepresentation, Parent):
                 sage: B(0).e(2)
             """
             if i == self.parent()._i:
-                return self.__class__(self.parent(), self._m-1)
-            else:
-                return None
+                return self.__class__(self.parent(), self._m - 1)
+            return None
 
         def epsilon(self, i):
             r"""
@@ -989,7 +992,7 @@ class ElementaryCrystal(UniqueRepresentation, Parent):
 
             INPUT:
 
-            - ``i`` -- An element of the index set
+            - ``i`` -- an element of the index set
 
             EXAMPLES::
 
@@ -1003,8 +1006,7 @@ class ElementaryCrystal(UniqueRepresentation, Parent):
             """
             if i == self.parent()._i:
                 return -self._m
-            else:
-                return float("-inf")
+            return float("-inf")
 
         def phi(self, i):
             r"""
@@ -1012,7 +1014,7 @@ class ElementaryCrystal(UniqueRepresentation, Parent):
 
             INPUT:
 
-            - ``i`` -- An element of the index set
+            - ``i`` -- an element of the index set
 
             EXAMPLES::
 
@@ -1026,8 +1028,7 @@ class ElementaryCrystal(UniqueRepresentation, Parent):
             """
             if i == self.parent()._i:
                 return self._m
-            else:
-                return float("-inf")
+            return float("-inf")
 
         def weight(self):
             r"""
@@ -1041,6 +1042,7 @@ class ElementaryCrystal(UniqueRepresentation, Parent):
             """
             Q = self.parent().weight_lattice_realization()
             return self._m * Q.simple_root(self.parent()._i)
+
 
 class ComponentCrystal(UniqueRepresentation, Parent):
     r"""
@@ -1088,7 +1090,7 @@ class ComponentCrystal(UniqueRepresentation, Parent):
             P = cartan_type.root_system().ambient_space()
             if P is None:
                 P = cartan_type.root_system().weight_lattice()
-        return super(ComponentCrystal, cls).__classcall__(cls, cartan_type, P)
+        return super().__classcall__(cls, cartan_type, P)
 
     def __init__(self, cartan_type, P):
         r"""
@@ -1169,6 +1171,7 @@ class ComponentCrystal(UniqueRepresentation, Parent):
         r"""
         Element of a component crystal.
         """
+
         def _repr_(self):
             r"""
             EXAMPLES::
@@ -1193,13 +1196,13 @@ class ComponentCrystal(UniqueRepresentation, Parent):
             """
             return "{c}"
 
-        def epsilon(self,i):
+        def epsilon(self, i):
             r"""
             Return `\varepsilon_i` of ``self``, which is `0` for all `i`.
 
             INPUT:
 
-            - ``i`` -- An element of the index set
+            - ``i`` -- an element of the index set
 
             EXAMPLES::
 
@@ -1210,13 +1213,13 @@ class ComponentCrystal(UniqueRepresentation, Parent):
             """
             return 0
 
-        def phi(self,i):
+        def phi(self, i):
             r"""
             Return `\varphi_i` of ``self``, which is `0` for all `i`.
 
             INPUT:
 
-            - ``i`` -- An element of the index set
+            - ``i`` -- an element of the index set
 
             EXAMPLES::
 
@@ -1239,4 +1242,3 @@ class ComponentCrystal(UniqueRepresentation, Parent):
                 (0, 0, 0, 0)
             """
             return self.parent().weight_lattice_realization().zero()
-

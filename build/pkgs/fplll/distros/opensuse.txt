@@ -1,1 +1,3 @@
-"pkgconfig(fplll)"
+pkgconfig(fplll)
+fplll-devel
+fplll

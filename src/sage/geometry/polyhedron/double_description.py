@@ -28,10 +28,10 @@ The implementation works over any exact field that is embedded in
 `\RR`, for example::
 
     sage: from sage.geometry.polyhedron.double_description import StandardAlgorithm
-    sage: A = matrix(AA, [(1,0,1), (0,1,1), (-AA(2).sqrt(),-AA(3).sqrt(),1),
+    sage: A = matrix(AA, [(1,0,1), (0,1,1), (-AA(2).sqrt(),-AA(3).sqrt(),1),            # needs sage.rings.number_field
     ....:                 (-AA(3).sqrt(),-AA(2).sqrt(),1)])
     sage: alg = StandardAlgorithm(A)
-    sage: alg.run().R
+    sage: alg.run().R                                                                   # needs sage.rings.number_field
     [(-0.4177376677004119?, 0.5822623322995881?, 0.4177376677004119?),
      (-0.2411809548974793?, -0.2411809548974793?, 0.2411809548974793?),
      (0.07665629029830300?, 0.07665629029830300?, 0.2411809548974793?),
@@ -74,7 +74,7 @@ VERIFY_RESULT = True
 import itertools
 
 from sage.misc.cachefunc import cached_method
-from sage.rings.all import QQ
+from sage.rings.rational_field import QQ
 from sage.modules.free_module_element import vector
 from sage.matrix.matrix_space import MatrixSpace
 
@@ -85,13 +85,11 @@ def random_inequalities(d, n):
 
     INPUT:
 
-    - ``d`` -- integer. The dimension.
+    - ``d`` -- integer; the dimension
 
-    - ``n``  -- integer. The number of random inequalities to generate.
+    - ``n`` -- integer; the number of random inequalities to generate
 
-    OUTPUT:
-
-    A random set of inequalities as a :class:`StandardAlgorithm` instance.
+    OUTPUT: a random set of inequalities as a :class:`StandardAlgorithm` instance
 
     EXAMPLES::
 
@@ -111,7 +109,7 @@ class DoubleDescriptionPair:
 
     def __init__(self, problem, A_rows, R_cols):
         r"""
-        Base class for a double description pair `(A, R)`
+        Base class for a double description pair `(A, R)`.
 
         .. warning::
 
@@ -122,13 +120,13 @@ class DoubleDescriptionPair:
 
         INPUT:
 
-        - ``problem`` -- instance of :class:`Problem`.
+        - ``problem`` -- instance of :class:`Problem`
 
-        - ``A_rows`` -- list of row vectors of the matrix `A`. These
-          encode the inequalities.
+        - ``A_rows`` -- list of row vectors of the matrix `A`; these
+          encode the inequalities
 
         - ``R_cols`` -- list of column vectors of the matrix
-          `R`. These encode the rays.
+          `R`; these encode the rays
 
         TESTS::
 
@@ -147,7 +145,7 @@ class DoubleDescriptionPair:
         self.problem = problem
         self.A = list(A_rows)
         self.R = list(R_cols)
-        self.one  = problem._field.one()
+        self.one = problem._field.one()
         self.zero = problem._field.zero()
 
         # a cache for scalar products (see the method zero_set)
@@ -159,11 +157,11 @@ class DoubleDescriptionPair:
 
         INPUT:
 
-        - ``A_rows`` -- list of row vectors of the matrix `A`. These
-          encode the inequalities.
+        - ``A_rows`` -- list of row vectors of the matrix `A`; these
+          encode the inequalities
 
         - ``R_cols`` -- list of column vectors of the matrix
-          `R`. These encode the rays.
+          `R`; these encode the rays
 
         OUTPUT:
 
@@ -192,9 +190,7 @@ class DoubleDescriptionPair:
         r"""
         Return string representation.
 
-        OUTPUT:
-
-        String.
+        OUTPUT: string
 
         EXAMPLES::
 
@@ -273,9 +269,8 @@ class DoubleDescriptionPair:
 
         if not self.A:
             return Polyhedron(vertices=[[0] * self.problem.dim()], backend='ppl')
-        else:
-            ieqs = [[0] + list(a) for a in self.A]
-            return Polyhedron(ieqs=ieqs, base_ring=self.problem.base_ring(), backend='ppl')
+        ieqs = [[0] + list(a) for a in self.A]
+        return Polyhedron(ieqs=ieqs, base_ring=self.problem.base_ring(), backend='ppl')
 
     def verify(self):
         r"""
@@ -316,7 +311,7 @@ class DoubleDescriptionPair:
 
         INPUT:
 
-        - ``a`` -- vector. Coefficient vector of a homogeneous inequality.
+        - ``a`` -- vector; coefficient vector of a homogeneous inequality
 
         OUTPUT:
 
@@ -352,11 +347,9 @@ class DoubleDescriptionPair:
 
         INPUT:
 
-        - ``ray`` -- a ray vector.
+        - ``ray`` -- a ray vector
 
-        OUTPUT:
-
-        A set containing the inequality vectors that are zero on ``ray``.
+        OUTPUT: a set containing the inequality vectors that are zero on ``ray``
 
         EXAMPLES::
 
@@ -415,7 +408,8 @@ class DoubleDescriptionPair:
             sage: A = matrix([[1,sqrt2],[2,0]])
             sage: DD, _  = Problem(A).initial_pair()
             sage: DD.matrix_space(1,2)
-            Full MatrixSpace of 1 by 2 dense matrices over Number Field in sqrt2 with defining polynomial x^2 - 2 with sqrt2 = 1.414213562373095?
+            Full MatrixSpace of 1 by 2 dense matrices
+             over Number Field in sqrt2 with defining polynomial x^2 - 2 with sqrt2 = 1.414213562373095?
         """
         return MatrixSpace(self.problem.base_ring(), nrows, ncols)
 
@@ -425,11 +419,9 @@ class DoubleDescriptionPair:
 
         INPUT:
 
-        - ``r1``, ``r2`` -- two rays.
+        - ``r1``, ``r2`` -- two rays
 
-        OUTPUT:
-
-        Boolean. Whether the two rays are adjacent.
+        OUTPUT: boolean; whether the two rays are adjacent
 
         EXAMPLES::
 
@@ -521,14 +513,14 @@ class Problem:
 
     def __init__(self, A):
         r"""
-        Base class for implementations of the double description algorithm
+        Base class for implementations of the double description algorithm.
 
         It does not make sense to instantiate the base class directly,
         it just provides helpers for implementations.
 
         INPUT:
 
-        - ``A`` -- a matrix. The rows of the matrix are interpreted as
+        - ``A`` -- a matrix; the rows of the matrix are interpreted as
           homogeneous inequalities `A x \geq 0`. Must have maximal rank.
 
         TESTS::
@@ -552,9 +544,7 @@ class Problem:
         """
         Return the rows of the defining matrix `A`.
 
-        OUTPUT:
-
-        The matrix `A` whose rows are the inequalities.
+        OUTPUT: the matrix `A` whose rows are the inequalities
 
         EXAMPLES::
 
@@ -564,16 +554,15 @@ class Problem:
             ((1, 1), (-1, 1))
         """
         rows = [a.change_ring(self._field) for a in self._A.rows()]
-        for a in rows: a.set_immutable()
+        for a in rows:
+            a.set_immutable()
         return tuple(rows)
 
     def A_matrix(self):
         """
         Return the defining matrix `A`.
 
-        OUTPUT:
-
-        Matrix whose rows are the inequalities.
+        OUTPUT: matrix whose rows are the inequalities
 
         EXAMPLES::
 
@@ -589,15 +578,13 @@ class Problem:
         """
         Return the base field.
 
-        OUTPUT:
-
-        A field.
+        OUTPUT: a field
 
         EXAMPLES::
 
-            sage: A = matrix(AA, [(1, 1), (-1, 1)])
+            sage: A = matrix(AA, [(1, 1), (-1, 1)])                                     # needs sage.rings.number_field
             sage: from sage.geometry.polyhedron.double_description import Problem
-            sage: Problem(A).base_ring()
+            sage: Problem(A).base_ring()                                                # needs sage.rings.number_field
             Algebraic Real Field
         """
         return self._field
@@ -607,9 +594,7 @@ class Problem:
         """
         Return the ambient space dimension.
 
-        OUTPUT:
-
-        Integer. The ambient space dimension of the cone.
+        OUTPUT: integer; the ambient space dimension of the cone
 
         EXAMPLES::
 
@@ -624,9 +609,7 @@ class Problem:
         r"""
         Return a string representation.
 
-        OUTPUT:
-
-        String.
+        OUTPUT: string
 
         EXAMPLES::
 
@@ -647,7 +630,7 @@ class Problem:
         INPUT:
 
         - ``pair_class`` -- subclass of
-          :class:`DoubleDescriptionPair`.
+          :class:`DoubleDescriptionPair`
 
         OUTPUT:
 
@@ -691,7 +674,7 @@ class StandardDoubleDescriptionPair(DoubleDescriptionPair):
 
         INPUT:
 
-        - ``a`` -- vector. An inequality.
+        - ``a`` -- vector; an inequality
 
         EXAMPLES::
 
@@ -719,9 +702,10 @@ class StandardDoubleDescriptionPair(DoubleDescriptionPair):
         self.R = R_pos + R_nul + R_new
         self.A.append(a)
 
+
 class StandardAlgorithm(Problem):
     """
-    Standard implementation of the double description algorithm
+    Standard implementation of the double description algorithm.
 
     See [FP1996]_ for the definition of the "Standard
     Algorithm".

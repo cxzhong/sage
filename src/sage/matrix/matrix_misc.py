@@ -1,6 +1,5 @@
 """
 Miscellaneous matrix functions
-
 """
 
 # ****************************************************************************
@@ -15,11 +14,10 @@ Miscellaneous matrix functions
 #
 #  The full text of the GPL is available at:
 #
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
 from sage.categories.fields import Fields
-from sage.rings.polynomial.polynomial_ring_constructor import PolynomialRing
 _Fields = Fields()
 
 
@@ -40,10 +38,10 @@ def prm_mul(p1, p2, mask_free, prec):
 
     - `p1,p2` -- polynomials as dictionaries
 
-    - `mask_free` -- an integer mask that give the list of free variables
+    - ``mask_free`` -- integer mask that give the list of free variables
       (the `i`-th variable is free if the `i`-th bit of ``mask_free`` is `1`)
 
-    - `prec` -- if `prec` is not None, truncate the product at precision `prec`
+    - ``prec`` -- if ``prec`` is not ``None``, truncate the product at precision ``prec``
 
     EXAMPLES::
 
@@ -81,13 +79,13 @@ def permanental_minor_polynomial(A, permanent_only=False, var='t', prec=None):
 
     INPUT:
 
-    - `A` -- a matrix
+    - ``A`` -- a matrix
 
-    - `permanent_only` -- if True, return only the permanent of `A`
+    - ``permanent_only`` -- if ``True``, return only the permanent of `A`
 
-    - `var` -- name of the polynomial variable
+    - ``var`` -- name of the polynomial variable
 
-    - `prec` -- if prec is not None, truncate the polynomial at precision `prec`
+    - ``prec`` -- if prec is not None, truncate the polynomial at precision `prec`
 
 
     The polynomial of the sums of permanental minors is
@@ -111,8 +109,8 @@ def permanental_minor_polynomial(A, permanent_only=False, var='t', prec=None):
 
     - ``A`` -- matrix
 
-    - ``permanent_only`` -- optional boolean. If ``True``, only the permanent
-      is computed (might be faster).
+    - ``permanent_only`` -- boolean (default: ``False``); if ``True``, only the
+      permanent is computed (might be faster)
 
     - ``var`` -- a variable name
 
@@ -245,7 +243,7 @@ def permanental_minor_polynomial(A, permanent_only=False, var='t', prec=None):
             \right\rangle
 
         In fact the `t^k` coefficient of `g(t)` corresponds to choosing
-        `k` rows of `A`;  `\eta_i` is associated to the i-th column;
+        `k` rows of `A`;  `\eta_i` is associated to the `i`-th column;
         nilpotency avoids having twice the same column in a product of `A`'s.
 
         For more details, see the article [BP2015]_.
@@ -270,6 +268,8 @@ def permanental_minor_polynomial(A, permanent_only=False, var='t', prec=None):
         if prec == 0:
             raise ValueError('the argument `prec` must be a positive integer')
 
+    from sage.rings.polynomial.polynomial_ring_constructor import PolynomialRing
+
     K = PolynomialRing(A.base_ring(), var)
     nrows = A.nrows()
     ncols = A.ncols()
@@ -286,7 +286,7 @@ def permanental_minor_polynomial(A, permanent_only=False, var='t', prec=None):
         a = A[i]   # the i-th row of A
         for j in range(len(a)):
             if a[j]:
-                p1[1<<j] = a[j] * t
+                p1[1 << j] = a[j] * t
 
         # make the product with the preceding polynomials, taking care of
         # variables that can be integrated
@@ -309,4 +309,4 @@ def permanental_minor_polynomial(A, permanent_only=False, var='t', prec=None):
                            " algorithm... please contact sage-devel@googlegroups.com")
 
     p = p[0]
-    return p[min(nrows,ncols)] if permanent_only else p
+    return p[min(nrows, ncols)] if permanent_only else p

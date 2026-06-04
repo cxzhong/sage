@@ -70,6 +70,7 @@ computations for structural invariants are available.
    sage/coding/goppa_code
    sage/coding/kasami_codes
    sage/coding/ag_code
+   sage/coding/gabidulin_code
 
 .. toctree::
    :hidden:
@@ -95,7 +96,7 @@ is from a special code family, the derived codes inherit structural properties
 like decoding radius or minimum distance:
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    sage/coding/subfield_subcode
    sage/coding/punctured_code
@@ -127,7 +128,7 @@ Automorphism Groups of Linear Codes
 -----------------------------------
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    sage/coding/codecan/codecan
    sage/coding/codecan/autgroup_can_label
@@ -136,7 +137,7 @@ Bounds for Parameters of Linear Codes
 -------------------------------------
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    sage/coding/code_bounds
    sage/coding/delsarte_bounds
@@ -145,7 +146,7 @@ Databases for Coding Theory
 ---------------------------
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    sage/coding/databases
    sage/coding/two_weight_db
@@ -159,12 +160,5 @@ There is at least one module in Sage for source coding in communications theory:
    :maxdepth: 1
 
    sage/coding/source_coding/huffman
-
-Finally an experimental module used for code constructions:
-
-.. toctree::
-   :maxdepth: 1
-
-   sage/coding/relative_finite_field_extension
 
 .. include:: ../footer.txt

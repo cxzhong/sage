@@ -14,7 +14,7 @@ cdef class PowComputer_(PowComputer_flint_unram):
 
             sage: R.<a> = ZqCR(125)
             sage: type(R.prime_pow)
-            <type 'sage.rings.padics.qadic_flint_CR.PowComputer_'>
+            <class 'sage.rings.padics.qadic_flint_CR.PowComputer_'>
             sage: R.prime_pow._prec_type
             'capped-rel'
         """
@@ -27,8 +27,8 @@ cdef class qAdicCappedRelativeElement(CRElement):
     norm = norm_unram
 
     def matrix_mod_pn(self):
-        """
-        Returns the matrix of right multiplication by the element on
+        r"""
+        Return the matrix of right multiplication by the element on
         the power basis `1, x, x^2, \ldots, x^{d-1}` for this
         extension field.  Thus the *rows* of this matrix give the
         images of each of the `x^i`.  The entries of the matrices are
@@ -52,7 +52,7 @@ cdef class qAdicCappedRelativeElement(CRElement):
             sage: M.base_ring()
             Ring of integers modulo 125
 
-        Check that :trac:`13617` has been fixed::
+        Check that :issue:`13617` has been fixed::
 
             sage: R(0).matrix_mod_pn()
             [0 0 0 0 0]
@@ -64,7 +64,7 @@ cdef class qAdicCappedRelativeElement(CRElement):
         if self.ordp < 0:
             raise ValueError("self must be integral")
         if exactzero(self.ordp):
-            from sage.matrix.all import matrix
+            from sage.matrix.constructor import matrix
             return matrix(ZZ, self.prime_pow.deg, self.prime_pow.deg)
         else:
             return cmatrix_mod_pn(self.unit, self.ordp + self.relprec, self.ordp, self.prime_pow)
@@ -118,13 +118,13 @@ cdef class qAdicCappedRelativeElement(CRElement):
         Return the element with the same reduction mod p that can be expressed
         with coefficients between 0 and p-1.  The absolute precision will be maximal.
 
-        This method is used in printing and computing p-adic expansions.
+        This method is used in printing and computing `p`-adic expansions.
 
         INPUT:
 
-        - ``use_smallest_mode`` -- if True, use reps between -p/2 and p/2 instead.
-        - ``return_list`` -- if True, return a list of coefficients (as integers).
-            For use in printing.
+        - ``use_smallest_mode`` -- if ``True``, use reps between -p/2 and p/2 instead
+        - ``return_list`` -- if ``True``, return a list of coefficients (as integers);
+          for use in printing
 
         EXAMPLES::
 
@@ -152,8 +152,8 @@ cdef class qAdicCappedRelativeElement(CRElement):
 
     def __hash__(self):
         r"""
-        Raise a ``TypeError`` since this element is not hashable
-        (:trac:`11895`.)
+        Raise a :exc:`TypeError` since this element is not hashable
+        (:issue:`11895`).
 
         TESTS::
 
@@ -162,7 +162,6 @@ cdef class qAdicCappedRelativeElement(CRElement):
             Traceback (most recent call last):
             ...
             TypeError: unhashable type: 'sage.rings.padics.qadic_flint_CR.qAdicCappedRelativeElement'
-
         """
         # Eventually, hashing will be disabled for all (non-fixed-mod) p-adic
         # elements (#11895), until then, we only to this for types which did

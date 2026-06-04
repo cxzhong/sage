@@ -1,7 +1,8 @@
+# sage.doctest: needs sage.modules sage.rings.finite_rings
 r"""
 Hamming codes
 
-Given an integer `r` and a field `F`, such that `F=GF(q)`, the `[n, k, d]` code
+Given an integer `r` and a field `F`, such that `F=\GF{q}`, the `[n, k, d]` code
 with length `n=\frac{q^{r}-1}{q-1}`, dimension `k=\frac{q^{r}-1}{q-1} - r` and
 minimum distance `d=3` is called the Hamming Code of order `r`.
 
@@ -32,9 +33,9 @@ class HammingCode(AbstractLinearCode):
 
     INPUT:
 
-    - ``base_field`` -- the base field over which ``self`` is defined.
+    - ``base_field`` -- the base field over which ``self`` is defined
 
-    - ``order`` -- the order of ``self``.
+    - ``order`` -- the order of ``self``
 
     EXAMPLES::
 
@@ -70,7 +71,7 @@ class HammingCode(AbstractLinearCode):
 
         q = base_field.order()
         length = Integer((q ** order - 1) / (q - 1))
-        super(HammingCode, self).__init__(base_field, length, "Systematic", "Syndrome")
+        super().__init__(base_field, length, "Systematic", "Syndrome")
         self._dimension = length - order
 
     def __eq__(self, other):
@@ -146,7 +147,6 @@ class HammingCode(AbstractLinearCode):
             [1 0 1 1 0 1 0 1 1 1 0 1 1]
             [0 1 1 2 0 0 1 1 2 0 1 1 2]
             [0 0 0 0 1 1 1 1 1 2 2 2 2]
-
         """
         n = self.length()
         F = self.base_field()

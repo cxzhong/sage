@@ -8,83 +8,118 @@ which require certain external software installed on the system.
 Even though the functions in this module should also work when an external
 software is not present, most doctests in this module are only tested if
 testing of external software is explicitly enabled in order to avoid invoking
-external software otherwise. See :trac:`28819` for details.
+external software otherwise. See :issue:`28819` for details.
 
 AUTHORS:
 
 - Kwankyu Lee (2016-03-09) -- initial version, based on code by Robert Bradshaw and Nathann Cohen
 """
 
-#*****************************************************************************
-#       Copyright (C) 2016 KWANKYU LEE <ekwankyu@gmail.com>
+# ****************************************************************************
+#       Copyright (C) 2016      Kwankyu Lee <ekwankyu@gmail.com>
+#                     2018      Thierry Monteil
+#                     2018-2021 Sébastien Labbé
+#                     2019      Markus Wageringel
+#                     2020      John H. Palmieri
+#                     2021      Matthias Koeppe
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
 import multiprocessing
-import os
+import platform
 
 # With OS X, Python 3.8 defaults to use 'spawn' instead of 'fork' in
 # multiprocessing, and Sage doctesting doesn't work with 'spawn'. See
 # trac #27754.
-if os.uname().sysname == 'Darwin':
-    multiprocessing.set_start_method('fork', force=True)
+# With Python 3.14, the default changed to 'forkserver' on Linux as well.
+# Sage doctesting requires 'fork' method.
+multiprocessing.set_start_method('fork', force=True)
 Array = multiprocessing.Array
-
-import urllib.error
-from urllib.request import Request, urlopen
 
 # Functions in this module whose name is of the form 'has_xxx' tests if the
 # software xxx is available to Sage.
 prefix = 'has_'
 
-def has_internet():
+
+def has_internet() -> bool:
     """
     Test if Internet is available.
 
-    Failure of connecting to the site "http://www.sagemath.org" within a second
+    Failure of connecting to the site "https://www.sagemath.org" within a second
     is regarded as internet being not available.
 
     EXAMPLES::
 
         sage: from sage.doctest.external import has_internet
-        sage: has_internet() # random, optional -- internet
-        True
+        sage: has_internet()  # random, optional -- internet
+        FeatureTestResult('internet', True)
     """
-    req = Request("http://www.sagemath.org",headers={"User-Agent":"sage-doctest"})
-    try:
-        urlopen(req,timeout=1)
-        return True
-    except urllib.error.URLError:
-        return False
+    from sage.features.internet import Internet
+    return Internet().is_present()
 
-def has_latex():
+
+def has_latex() -> bool:
     """
     Test if Latex is available.
 
     EXAMPLES::
 
         sage: from sage.doctest.external import has_latex
-        sage: has_latex() # random, optional - latex
-        True
+        sage: has_latex() # optional - latex
+        FeatureTestResult('latex', True)
     """
-    from sage.misc.latex import _run_latex_, _latex_file_
-    from sage.misc.temporary_file import tmp_filename
-    try:
-        f = tmp_filename(ext='.tex')
-        O = open(f, 'w')
-        O.write(_latex_file_('2+3'))
-        O.close()
-        _run_latex_(f)
-        return True
-    except Exception:
-        return False
+    from sage.features.latex import latex
+    return latex().is_present()
 
-def has_magma():
+
+def has_xelatex() -> bool:
+    """
+    Test if xelatex is available.
+
+    EXAMPLES::
+
+        sage: from sage.doctest.external import has_xelatex
+        sage: has_xelatex()   # optional - xelatex
+        FeatureTestResult('xelatex', True)
+    """
+    from sage.features.latex import xelatex
+    return xelatex().is_present()
+
+
+def has_pdflatex() -> bool:
+    """
+    Test if pdflatex is available.
+
+    EXAMPLES::
+
+        sage: from sage.doctest.external import has_pdflatex
+        sage: has_pdflatex()   # optional - pdflatex
+        FeatureTestResult('pdflatex', True)
+    """
+    from sage.features.latex import pdflatex
+    return pdflatex().is_present()
+
+
+def has_lualatex() -> bool:
+    """
+    Test if lualatex is available.
+
+    EXAMPLES::
+
+        sage: from sage.doctest.external import has_lualatex
+        sage: has_lualatex()   # optional - lualatex
+        FeatureTestResult('lualatex', True)
+    """
+    from sage.features.latex import lualatex
+    return lualatex().is_present()
+
+
+def has_magma() -> bool:
     """
     Test if Magma is available.
 
@@ -94,14 +129,11 @@ def has_magma():
         sage: has_magma() # random, optional - magma
         True
     """
-    from sage.interfaces.magma import magma
-    try:
-        magma('2+3')
-        return True
-    except Exception:
-        return False
+    from sage.features.interfaces import Magma
+    return Magma().is_present()
 
-def has_matlab():
+
+def has_matlab() -> bool:
     """
     Test if Matlab is available.
 
@@ -111,14 +143,11 @@ def has_matlab():
         sage: has_matlab() # random, optional - matlab
         True
     """
-    from sage.interfaces.matlab import matlab
-    try:
-        matlab('2+3')
-        return True
-    except Exception:
-        return False
+    from sage.features.interfaces import Matlab
+    return Matlab().is_present()
 
-def has_mathematica():
+
+def has_mathematica() -> bool:
     """
     Test if Mathematica is available.
 
@@ -128,14 +157,11 @@ def has_mathematica():
         sage: has_mathematica() # random, optional - mathematica
         True
     """
-    from sage.interfaces.mathematica import mathematica
-    try:
-        mathematica('2+3')
-        return True
-    except Exception:
-        return False
+    from sage.features.interfaces import Mathematica
+    return Mathematica().is_present()
 
-def has_maple():
+
+def has_maple() -> bool:
     """
     Test if Maple is available.
 
@@ -145,14 +171,11 @@ def has_maple():
         sage: has_maple() # random, optional - maple
         True
     """
-    from sage.interfaces.maple import maple
-    try:
-        maple('2+3')
-        return True
-    except Exception:
-        return False
+    from sage.features.interfaces import Maple
+    return Maple().is_present()
 
-def has_macaulay2():
+
+def has_macaulay2() -> bool:
     """
     Test if Macaulay2 is available.
 
@@ -162,14 +185,11 @@ def has_macaulay2():
         sage: has_macaulay2() # random, optional - macaulay2
         True
     """
-    from sage.interfaces.macaulay2 import macaulay2
-    try:
-        macaulay2('2+3')
-        return True
-    except Exception:
-        return False
+    from sage.features.interfaces import Macaulay2
+    return Macaulay2().is_present()
 
-def has_octave():
+
+def has_octave() -> bool:
     """
     Test if Octave is available.
 
@@ -179,14 +199,11 @@ def has_octave():
         sage: has_octave() # random, optional - octave
         True
     """
-    from sage.interfaces.octave import octave
-    try:
-        octave('2+3')
-        return True
-    except Exception:
-        return False
+    from sage.features.interfaces import Octave
+    return Octave().is_present()
 
-def has_pandoc():
+
+def has_pandoc() -> bool:
     """
     Test if pandoc is available.
 
@@ -194,12 +211,13 @@ def has_pandoc():
 
         sage: from sage.doctest.external import has_pandoc
         sage: has_pandoc()      # optional -- pandoc
-        FeatureTestResult('Pandoc', True)
+        FeatureTestResult('pandoc', True)
     """
     from sage.features.pandoc import Pandoc
     return Pandoc().is_present()
 
-def has_scilab():
+
+def has_scilab() -> bool:
     """
     Test if Scilab is available.
 
@@ -216,7 +234,8 @@ def has_scilab():
     except Exception:
         return False
 
-def has_cplex():
+
+def has_cplex() -> bool:
     """
     Test if CPLEX is available.
 
@@ -224,16 +243,13 @@ def has_cplex():
 
         sage: from sage.doctest.external import has_cplex
         sage: has_cplex() # random, optional - CPLEX
-        True
+        FeatureTestResult('cplex', True)
     """
-    from sage.numerical.mip import MixedIntegerLinearProgram
-    try:
-        MixedIntegerLinearProgram(solver='cplex')
-        return True
-    except Exception:
-        return False
+    from sage.features.mip_backends import CPLEX
+    return CPLEX().is_present()
 
-def has_gurobi():
+
+def has_gurobi() -> bool:
     """
     Test if Gurobi is available.
 
@@ -241,16 +257,13 @@ def has_gurobi():
 
         sage: from sage.doctest.external import has_gurobi
         sage: has_gurobi() # random, optional - Gurobi
-        True
+        FeatureTestResult('gurobi', True)
     """
-    from sage.numerical.mip import MixedIntegerLinearProgram
-    try:
-        MixedIntegerLinearProgram(solver='gurobi')
-        return True
-    except Exception:
-        return False
+    from sage.features.mip_backends import Gurobi
+    return Gurobi().is_present()
 
-def has_graphviz():
+
+def has_graphviz() -> bool:
     """
     Test if graphviz (dot, twopi, neato) are available.
 
@@ -258,12 +271,13 @@ def has_graphviz():
 
         sage: from sage.doctest.external import has_graphviz
         sage: has_graphviz()   # optional -- graphviz
-        FeatureTestResult('Graphviz', True)
+        FeatureTestResult('graphviz', True)
     """
     from sage.features.graphviz import Graphviz
     return Graphviz().is_present()
 
-def has_ffmpeg():
+
+def has_ffmpeg() -> bool:
     """
     Test if ffmpeg is available.
 
@@ -271,25 +285,41 @@ def has_ffmpeg():
 
         sage: from sage.doctest.external import has_ffmpeg
         sage: has_ffmpeg()      # optional -- ffmpeg
-        FeatureTestResult('FFmpeg', True)
+        FeatureTestResult('ffmpeg', True)
     """
     from sage.features.ffmpeg import FFmpeg
     return FFmpeg().is_present()
 
-def has_imagemagick():
+
+def has_imagemagick() -> bool:
     """
-    Test if ImageMagick (command convert) is available.
+    Test if ImageMagick (command magick or convert) is available.
 
     EXAMPLES::
 
         sage: from sage.doctest.external import has_imagemagick
         sage: has_imagemagick() # optional -- imagemagick
-        FeatureTestResult('convert', True)
+        FeatureTestResult('imagemagick', True)
     """
     from sage.features.imagemagick import ImageMagick
     return ImageMagick().is_present()
 
-def has_rubiks():
+
+def has_dvipng() -> bool:
+    """
+    Test if dvipng is available.
+
+    EXAMPLES::
+
+        sage: from sage.doctest.external import has_dvipng
+        sage: has_dvipng() # optional -- dvipng
+        FeatureTestResult('dvipng', True)
+    """
+    from sage.features.dvipng import dvipng
+    return dvipng().is_present()
+
+
+def has_rubiks() -> bool:
     """
     Test if the rubiks package (``cu2``, ``cubex``, ``dikcube``,
     ``mcube``, ``optimal``, and ``size222``) is available.
@@ -298,12 +328,56 @@ def has_rubiks():
 
         sage: from sage.doctest.external import has_rubiks
         sage: has_rubiks()   # optional -- rubiks
-        FeatureTestResult('Rubiks', True)
+        FeatureTestResult('rubiks', True)
     """
     from sage.features.rubiks import Rubiks
     return Rubiks().is_present()
 
-def external_software():
+
+def has_4ti2() -> bool:
+    """
+    Test if the 4ti2 package is available.
+
+    EXAMPLES::
+
+        sage: from sage.doctest.external import has_4ti2
+        sage: has_4ti2()   # optional -- 4ti2
+        FeatureTestResult('4ti2', True)
+    """
+    from sage.features.four_ti_2 import FourTi2
+    return FourTi2().is_present()
+
+
+def external_features():
+    r"""
+    Generate the features that are only to be tested if ``--optional=external`` is used.
+
+    .. SEEALSO::
+
+        :func:`sage.features.all.all_features`
+
+    EXAMPLES::
+
+        sage: from sage.doctest.external import external_features
+        sage: next(external_features())
+        Feature('internet')
+    """
+    from sage.features.internet import Internet
+    yield Internet()
+    import sage.features.latex
+    yield from sage.features.latex.all_features()
+    import sage.features.ffmpeg
+    yield from sage.features.ffmpeg.all_features()
+    import sage.features.interfaces
+    for feature in sage.features.interfaces.all_features():
+        if feature.name not in ('mathics', 'regina'):
+            yield feature
+    from sage.features.mip_backends import CPLEX, Gurobi
+    yield CPLEX()
+    yield Gurobi()
+
+
+def _external_software() -> list[str]:
     """
     Return the alphabetical list of external software supported by this module.
 
@@ -313,30 +387,13 @@ def external_software():
         sage: sorted(external_software) == external_software
         True
     """
-    supported = list()
-    for func in globals():
-        if func.startswith(prefix):
-            supported.append(func[len(prefix):])
-    return sorted(supported)
+    return sorted(f.name for f in external_features())
 
-external_software = external_software()
 
-def _lookup(software):
-    """
-    Test if the software is available on the system.
+external_software: list[str] = _external_software()
 
-    EXAMPLES::
 
-        sage: sage.doctest.external._lookup('internet') # random, optional - internet
-        True
-    """
-    if software in external_software:
-        func = globals().get(prefix + software)
-        return func()
-    else:
-        return False
-
-class AvailableSoftware(object):
+class AvailableSoftware:
     """
     This class keeps the set of available software whose availability is detected lazily
     from the list of external software.
@@ -346,21 +403,22 @@ class AvailableSoftware(object):
         sage: from sage.doctest.external import external_software, available_software
         sage: external_software
         ['cplex',
+         'dvips',
          'ffmpeg',
-         'graphviz',
          'gurobi',
-         'imagemagick',
          'internet',
          'latex',
+         'latex_package_tkz_graph',
+         'lualatex',
          'macaulay2',
          'magma',
          'maple',
          'mathematica',
          'matlab',
          'octave',
-         'pandoc',
-         'rubiks',
-         'scilab']
+         'pdflatex',
+         'scilab',
+         'xelatex']
         sage: 'internet' in available_software # random, optional - internet
         True
         sage: available_software.issuperset(set(['internet','latex'])) # random, optional - internet latex
@@ -377,10 +435,18 @@ class AvailableSoftware(object):
             sage: S.seen() # random
             []
         """
+        self._allow_external = True
         # For multiprocessing of doctests, the data self._seen should be
         # shared among subprocesses. Thus we use Array class from the
         # multiprocessing module.
-        self._seen = Array('i', len(external_software)) # initialized to zeroes
+        from sage.features.all import all_features
+        self._external_features = set(external_features())
+        features = set(self._external_features)
+        features.update(all_features())
+        self._features = sorted(features, key=lambda feature: feature.name)
+        self._indices = {feature.name: idx for idx, feature in enumerate(self._features)}
+        self._seen = Array('i', len(self._features)) # initialized to zeroes
+        self._hidden = Array('i', len(self._features)) # initialized to zeroes
 
     def __contains__(self, item):
         """
@@ -393,20 +459,28 @@ class AvailableSoftware(object):
             True
         """
         try:
-            idx = external_software.index(item)
-        except Exception:
+            idx = self._indices[item]
+        except KeyError:
             return False
-        if not self._seen[idx]:
-            if _lookup(item):
-                self._seen[idx] = 1 # available
-            else:
-                self._seen[idx] = -1 # not available
-        if self._seen[idx] == 1:
-            return True
-        elif self._seen[idx] == -1:
-            return False
+        feature = self._features[idx]
+        if feature.is_hidden():
+            if not self._hidden[idx]:
+                self._hidden[idx] = 1
+            available = False  # a hidden feature is considered to be not available
         else:
-            raise AssertionError("Invalid value for self.seen")
+            if not self._allow_external and feature in self._external_features:
+                # an external feature is considered to be not available
+                # if this is not allowed
+                available = False
+            elif feature.is_present():
+                available = True
+            else:
+                available = False
+        if available:
+            if not self._seen[idx]:
+                self._seen[idx] = 1
+            return True
+        return False
 
     def issuperset(self, other):
         """
@@ -418,10 +492,26 @@ class AvailableSoftware(object):
             sage: available_software.issuperset(set(['internet','latex','magma'])) # random, optional - internet latex magma
             True
         """
-        for item in other:
-            if item not in self:
-                return False
-        return True
+        return all(item in self for item in other)
+
+    def detectable(self):
+        """
+        Return the list of names of those features for which testing their presence is allowed.
+        """
+        # Exclude build features that aren't runtime detectable from
+        # the list. Note that when defer_feature_checks is not set,
+        # *no* BuildFeatures are runtime-detectable.
+        from sage.features.build_feature import BuildFeature
+        def build_time_only(f):
+            return ( isinstance(f, BuildFeature)
+                     and
+                     not f.is_runtime_detectable() )
+
+        return [feature.name
+                for feature, seen in zip(self._features, self._seen)
+                if seen >= 0
+                and (self._allow_external or feature not in self._external_features)
+                and not build_time_only(feature)]
 
     def seen(self):
         """
@@ -433,6 +523,42 @@ class AvailableSoftware(object):
             sage: available_software.seen() # random
             ['internet', 'latex', 'magma']
         """
-        return [external_software[i] for i in range(len(external_software)) if self._seen[i] > 0]
+        # Exclude build features that aren't runtime detectable from
+        # the list. Note that when defer_feature_checks is not set,
+        # *no* BuildFeatures are runtime-detectable.
+        from sage.features.build_feature import BuildFeature
+        def build_time_only(f):
+            return ( isinstance(f, BuildFeature)
+                     and
+                     not f.is_runtime_detectable() )
+        return [feature.name
+                for feature, seen in zip(self._features, self._seen)
+                if seen > 0
+                and not build_time_only(feature)]
+
+    def hidden(self):
+        """
+        Return the list of detected hidden external software.
+
+        EXAMPLES::
+
+            sage: # needs conway_polynomials database_cremona_mini_ellcurve database_ellcurves database_graphs
+            sage: from sage.doctest.external import available_software
+            sage: from sage.features.databases import all_features
+            sage: for f in all_features():
+            ....:    f.hide()
+            ....:    if f._spkg_type() == 'standard':
+            ....:         test = f.name in available_software
+            ....:    f.unhide()
+            sage: sorted(available_software.hidden())
+            [...'conway_polynomials',...
+             'database_cremona_mini_ellcurve',...
+             'database_ellcurves',...
+             'database_graphs'...]
+        """
+        return [feature.name
+                for feature, hidden in zip(self._features, self._hidden)
+                if hidden > 0]
+
 
 available_software = AvailableSoftware()

@@ -18,19 +18,3 @@ Upstream Contact
 ----------------
 
 http://www.gnu.org/software/gdb/
-
-Dependencies
-------------
-
--  python
--  mpc
--  mpfr
--  ppl
--  gmp/mpir
--  makeinfo (external)
-
-
-Special Update/Build Instructions
----------------------------------
-
-Current version needs makeinfo installed to build successfully.

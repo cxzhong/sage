@@ -1,3 +1,4 @@
+# sage.doctest: needs sage.rings.finite_rings
 """
 Finite field morphisms
 
@@ -15,32 +16,35 @@ Construction of an embedding::
 
     sage: k.<t> = GF(3^7)
     sage: K.<T> = GF(3^21)
-    sage: f = FiniteFieldHomomorphism_generic(Hom(k, K)); f
+    sage: f = FiniteFieldHomomorphism_generic(Hom(k, K)); f # random
     Ring morphism:
       From: Finite Field in t of size 3^7
       To:   Finite Field in T of size 3^21
       Defn: t |--> T^20 + 2*T^18 + T^16 + 2*T^13 + T^9 + 2*T^8 + T^7 + T^6 + T^5 + T^3 + 2*T^2 + T
 
-    sage: f(t)
+    sage: f(t) # random
     T^20 + 2*T^18 + T^16 + 2*T^13 + T^9 + 2*T^8 + T^7 + T^6 + T^5 + T^3 + 2*T^2 + T
+    sage: f(t) == f.im_gens()[0]
+    True
 
 The map `f` has a method ``section`` which returns a partially defined
 map which is the inverse of `f` on the image of `f`::
 
-    sage: g = f.section(); g
+    sage: g = f.section(); g # random
     Section of Ring morphism:
       From: Finite Field in t of size 3^7
       To:   Finite Field in T of size 3^21
       Defn: t |--> T^20 + 2*T^18 + T^16 + 2*T^13 + T^9 + 2*T^8 + T^7 + T^6 + T^5 + T^3 + 2*T^2 + T
-    sage: g(f(t^3+t^2+1))
-    t^3 + t^2 + 1
+    sage: a = k.random_element()
+    sage: g(f(a)) == a
+    True
     sage: g(T)
     Traceback (most recent call last):
     ...
     ValueError: T is not in the image of Ring morphism:
       From: Finite Field in t of size 3^7
       To:   Finite Field in T of size 3^21
-      Defn: t |--> T^20 + 2*T^18 + T^16 + 2*T^13 + T^9 + 2*T^8 + T^7 + T^6 + T^5 + T^3 + 2*T^2 + T
+      Defn: ...
 
 There is no embedding of `GF(5^6)` into `GF(5^11)`::
 
@@ -106,7 +110,7 @@ from sage.rings.integer cimport Integer
 from sage.categories.homset import Hom
 from sage.structure.element cimport Element
 
-from sage.rings.finite_rings.finite_field_base import is_FiniteField
+from sage.rings.finite_rings.finite_field_base import FiniteField as FiniteField_base
 from sage.rings.morphism cimport RingHomomorphism, RingHomomorphism_im_gens, FrobeniusEndomorphism_generic
 from sage.rings.finite_rings.finite_field_constructor import FiniteField
 
@@ -129,8 +133,9 @@ cdef class SectionFiniteFieldHomomorphism_generic(Section):
             sage: K.<T> = GF(3^21)
             sage: f = FiniteFieldHomomorphism_generic(Hom(k, K))
             sage: g = f.section()
-            sage: g(f(t^3+t^2+1))
-            t^3 + t^2 + 1
+            sage: a = k.random_element()
+            sage: g(f(a)) == a
+            True
 
             sage: g(T)
             Traceback (most recent call last):
@@ -138,13 +143,12 @@ cdef class SectionFiniteFieldHomomorphism_generic(Section):
             ValueError: T is not in the image of Ring morphism:
               From: Finite Field in t of size 3^7
               To:   Finite Field in T of size 3^21
-              Defn: t |--> T^20 + 2*T^18 + T^16 + 2*T^13 + T^9 + 2*T^8 + T^7 + T^6 + T^5 + T^3 + 2*T^2 + T
+              Defn: t |--> ...
         """
         for root, _ in x.minimal_polynomial().roots(ring=self.codomain()):
             if self._inverse(root) == x:
                 return root
         raise ValueError("%s is not in the image of %s" % (x, self._inverse))
-
 
     def _repr_(self):
         """
@@ -157,11 +161,10 @@ cdef class SectionFiniteFieldHomomorphism_generic(Section):
             sage: K.<T> = GF(3^21)
             sage: f = FiniteFieldHomomorphism_generic(Hom(k, K))
             sage: g = f.section()
-            sage: g._repr_()
+            sage: g._repr_() # random
             'Section of Ring morphism:\n  From: Finite Field in t of size 3^7\n  To:   Finite Field in T of size 3^21\n  Defn: t |--> T^20 + 2*T^18 + T^16 + 2*T^13 + T^9 + 2*T^8 + T^7 + T^6 + T^5 + T^3 + 2*T^2 + T'
         """
         return "Section of %s" % self._inverse
-
 
     def _latex_(self):
         r"""
@@ -180,7 +183,6 @@ cdef class SectionFiniteFieldHomomorphism_generic(Section):
         return '\\verb"Section of "' + self._inverse._latex_()
 
 
-
 cdef class FiniteFieldHomomorphism_generic(RingHomomorphism_im_gens):
     """
     A class implementing embeddings between finite fields.
@@ -192,7 +194,6 @@ cdef class FiniteFieldHomomorphism_generic(RingHomomorphism_im_gens):
         sage: K.<T> = GF(3^21)
         sage: f = FiniteFieldHomomorphism_generic(Hom(k, K))
         sage: TestSuite(f).run()
-
     """
     def __init__(self, parent, im_gens=None, base_map=None, check=True, section_class=None):
         """
@@ -201,11 +202,15 @@ cdef class FiniteFieldHomomorphism_generic(RingHomomorphism_im_gens):
             sage: from sage.rings.finite_rings.hom_finite_field import FiniteFieldHomomorphism_generic
             sage: k.<t> = GF(3^7)
             sage: K.<T> = GF(3^21)
-            sage: f = FiniteFieldHomomorphism_generic(Hom(k, K)); f
+            sage: f = FiniteFieldHomomorphism_generic(Hom(k, K)); f # random
             Ring morphism:
               From: Finite Field in t of size 3^7
               To:   Finite Field in T of size 3^21
               Defn: t |--> T^20 + 2*T^18 + T^16 + 2*T^13 + T^9 + 2*T^8 + T^7 + T^6 + T^5 + T^3 + 2*T^2 + T
+            sage: a = k.random_element()
+            sage: b = k.random_element()
+            sage: f(a) + f(b) == f(a + b)
+            True
 
             sage: k.<t> = GF(3^6)
             sage: K.<t> = GF(3^9)
@@ -227,9 +232,9 @@ cdef class FiniteFieldHomomorphism_generic(RingHomomorphism_im_gens):
         """
         domain = parent.domain()
         codomain = parent.codomain()
-        if not is_FiniteField(domain):
+        if not isinstance(domain, FiniteField_base):
             raise TypeError("The domain is not a finite field or does not provide the required interface for finite fields")
-        if not is_FiniteField(codomain):
+        if not isinstance(codomain, FiniteField_base):
             raise TypeError("The codomain is not a finite field or does not provide the required interface for finite fields")
         if domain.characteristic() != codomain.characteristic() or codomain.degree() % domain.degree() != 0:
             raise ValueError("No embedding of %s into %s" % (domain, codomain))
@@ -271,7 +276,7 @@ cdef class FiniteFieldHomomorphism_generic(RingHomomorphism_im_gens):
               To:   Finite Field in z2 of size 2^2
               Defn: 1 |--> 1
         """
-        cdef FiniteFieldHomomorphism_generic out = super(FiniteFieldHomomorphism_generic, self).__copy__()
+        cdef FiniteFieldHomomorphism_generic out = super().__copy__()
         out._section_class = self._section_class
         return out
 
@@ -298,7 +303,7 @@ cdef class FiniteFieldHomomorphism_generic(RingHomomorphism_im_gens):
             sage: k.<t> = GF(3^3)
             sage: K.<T> = GF(3^9)
             sage: f = FiniteFieldHomomorphism_generic(Hom(k, K))
-            sage: f(t)
+            sage: f(t) # random
             2*T^6 + 2*T^4 + T^2 + T
 
             sage: a = k.random_element()
@@ -314,10 +319,9 @@ cdef class FiniteFieldHomomorphism_generic(RingHomomorphism_im_gens):
             f = f.map_coefficients(bm)
         return f(self.im_gens()[0])
 
-
     def is_injective(self):
         """
-        Return True since a embedding between finite fields is
+        Return ``True`` since a embedding between finite fields is
         always injective.
 
         EXAMPLES::
@@ -331,10 +335,9 @@ cdef class FiniteFieldHomomorphism_generic(RingHomomorphism_im_gens):
         """
         return True
 
-
     def is_surjective(self):
         """
-        Return true if this embedding is surjective (and hence an
+        Return ``True`` if this embedding is surjective (and hence an
         isomorphism.
 
         EXAMPLES::
@@ -351,7 +354,6 @@ cdef class FiniteFieldHomomorphism_generic(RingHomomorphism_im_gens):
         """
         return self.domain().cardinality() == self.codomain().cardinality()
 
-
     @cached_method
     def section(self):
         """
@@ -367,20 +369,22 @@ cdef class FiniteFieldHomomorphism_generic(RingHomomorphism_im_gens):
             sage: k.<t> = GF(3^7)
             sage: K.<T> = GF(3^21)
             sage: f = FiniteFieldHomomorphism_generic(Hom(k, K))
-            sage: g = f.section(); g
+            sage: g = f.section(); g # random
             Section of Ring morphism:
               From: Finite Field in t of size 3^7
               To:   Finite Field in T of size 3^21
               Defn: t |--> T^20 + 2*T^18 + T^16 + 2*T^13 + T^9 + 2*T^8 + T^7 + T^6 + T^5 + T^3 + 2*T^2 + T
-            sage: g(f(t^3+t^2+1))
-            t^3 + t^2 + 1
+            sage: a = k.random_element()
+            sage: b = k.random_element()
+            sage: g(f(a) + f(b)) == a + b
+            True
             sage: g(T)
             Traceback (most recent call last):
             ...
             ValueError: T is not in the image of Ring morphism:
               From: Finite Field in t of size 3^7
               To:   Finite Field in T of size 3^21
-              Defn: t |--> T^20 + 2*T^18 + T^16 + 2*T^13 + T^9 + 2*T^8 + T^7 + T^6 + T^5 + T^3 + 2*T^2 + T
+              Defn: ...
         """
         if self.base_map() is not None:
             raise NotImplementedError
@@ -413,21 +417,21 @@ cdef class FiniteFieldHomomorphism_generic(RingHomomorphism_im_gens):
 
     def __hash__(self):
         r"""
-        Return a hash of this morphism
+        Return a hash of this morphism.
 
         TESTS::
 
             sage: k.<t> = GF(5^3)
             sage: Frob = k.frobenius_endomorphism()
             sage: embed = Frob.fixed_field()[1]
-            sage: hash(embed)  # random
+            sage: hash(embed) # random
             -2441354824160407762
         """
         return Morphism.__hash__(self)
 
     cdef dict _extra_slots(self):
         r"""
-        Helper function for copying and pickling
+        Helper function for copying and pickling.
 
         TESTS::
 
@@ -435,7 +439,7 @@ cdef class FiniteFieldHomomorphism_generic(RingHomomorphism_im_gens):
             sage: Frob = k.frobenius_endomorphism()
             sage: embed = Frob.fixed_field()[1]
             sage: embed.__reduce__()  # indirect doctest
-            (<built-in function unpickle_map>,
+            (<cyfunction unpickle_map at ...>,
              (<class 'sage.rings.finite_rings.hom_prime_finite_field.FiniteFieldHomomorphism_prime'>,
               Set of field embeddings from Finite Field of size 5 to Finite Field in t of size 5^3,
               {},
@@ -455,7 +459,7 @@ cdef class FiniteFieldHomomorphism_generic(RingHomomorphism_im_gens):
 
     cdef _update_slots(self, dict slots):
         r"""
-        Helper function for copying and pickling
+        Helper function for copying and pickling.
 
         TESTS::
 
@@ -484,15 +488,14 @@ cdef class FrobeniusEndomorphism_finite_field(FrobeniusEndomorphism_generic):
         sage: k.<a> = GF(7^11)
         sage: Frob = k.frobenius_endomorphism(5)
         sage: TestSuite(Frob).run()
-
     """
     def __init__(self, domain, n=1):
         """
         INPUT:
 
-        -  ``domain`` -- a finite field
+        - ``domain`` -- a finite field
 
-        -  ``n`` -- an integer (default: 1)
+        - ``n`` -- integer (default: 1)
 
         .. NOTE::
 
@@ -522,7 +525,7 @@ cdef class FrobeniusEndomorphism_finite_field(FrobeniusEndomorphism_generic):
             ...
             TypeError: The domain is not a finite field or does not provide the required interface for finite fields
         """
-        if not is_FiniteField(domain):
+        if not isinstance(domain, FiniteField_base):
             raise TypeError("The domain is not a finite field or does not provide the required interface for finite fields")
         try:
             n = Integer(n)
@@ -535,7 +538,6 @@ cdef class FrobeniusEndomorphism_finite_field(FrobeniusEndomorphism_generic):
         self._order = self._degree / self._degree_fixed
         self._q = domain.characteristic() ** self._power
         RingHomomorphism.__init__(self, Hom(domain, domain))
-
 
     def _repr_(self):
         """
@@ -560,7 +562,6 @@ cdef class FrobeniusEndomorphism_finite_field(FrobeniusEndomorphism_generic):
         s += " %s" % self.domain()
         return s
 
-
     def _repr_short(self):
         """
         Return a short string representation of this endomorphism.
@@ -582,7 +583,6 @@ cdef class FrobeniusEndomorphism_finite_field(FrobeniusEndomorphism_generic):
         else:
             s = "%s |--> %s^(%s^%s)" % (name, name, self.domain().characteristic(), self._power)
         return s
-
 
     def _latex_(self):
         r"""
@@ -607,7 +607,6 @@ cdef class FrobeniusEndomorphism_finite_field(FrobeniusEndomorphism_generic):
             s = "%s \\mapsto %s^{%s^{%s}}" % (name, name, self.domain().characteristic(), self._power)
         return s
 
-
     cpdef Element _call_(self, x):
         """
         TESTS::
@@ -619,8 +618,10 @@ cdef class FrobeniusEndomorphism_finite_field(FrobeniusEndomorphism_generic):
             sage: Frob(t) == t^5
             True
         """
-        return x ** self._q
-
+        if self.is_identity():
+            return x
+        else:
+            return x.pth_power(self._power)
 
     def order(self):
         """
@@ -662,7 +663,6 @@ cdef class FrobeniusEndomorphism_finite_field(FrobeniusEndomorphism_generic):
         """
         return self._power
 
-
     def __pow__(self, n, modulus):
         """
         Return the `n`-th iterate of this endomorphism.
@@ -700,7 +700,7 @@ cdef class FrobeniusEndomorphism_finite_field(FrobeniusEndomorphism_generic):
 
     def _composition(self, right):
         """
-        Return self o right.
+        Return ``self`` o ``right``.
 
         EXAMPLES::
 
@@ -724,7 +724,6 @@ cdef class FrobeniusEndomorphism_finite_field(FrobeniusEndomorphism_generic):
         else:
             return RingHomomorphism._composition(self, right)
 
-
     def fixed_field(self):
         """
         Return the fixed field of ``self``.
@@ -747,19 +746,21 @@ cdef class FrobeniusEndomorphism_finite_field(FrobeniusEndomorphism_generic):
             sage: kfixed, embed = f.fixed_field()
             sage: kfixed
             Finite Field in t_fixed of size 5^2
-            sage: embed
+            sage: embed # random
             Ring morphism:
               From: Finite Field in t_fixed of size 5^2
               To:   Finite Field in t of size 5^6
               Defn: t_fixed |--> 4*t^5 + 2*t^4 + 4*t^2 + t
 
             sage: tfixed = kfixed.gen()
-            sage: embed(tfixed)
+            sage: embed(tfixed) # random
             4*t^5 + 2*t^4 + 4*t^2 + t
+            sage: embed(tfixed) == embed.im_gens()[0]
+            True
         """
         if self._degree_fixed == 1:
             k = FiniteField(self.domain().characteristic())
-            from .hom_prime_finite_field import FiniteFieldHomomorphism_prime
+            from sage.rings.finite_rings.hom_prime_finite_field import FiniteFieldHomomorphism_prime
             f = FiniteFieldHomomorphism_prime(Hom(k, self.domain()))
         else:
             k = FiniteField(self.domain().characteristic()**self._degree_fixed,
@@ -767,10 +768,9 @@ cdef class FrobeniusEndomorphism_finite_field(FrobeniusEndomorphism_generic):
             f = FiniteFieldHomomorphism_generic(Hom(k, self.domain()))
         return k, f
 
-
     def is_injective(self):
         """
-        Return true since any power of the Frobenius endomorphism
+        Return ``True`` since any power of the Frobenius endomorphism
         over a finite field is always injective.
 
         EXAMPLES::
@@ -782,10 +782,9 @@ cdef class FrobeniusEndomorphism_finite_field(FrobeniusEndomorphism_generic):
         """
         return True
 
-
     def is_surjective(self):
         """
-        Return true since any power of the Frobenius endomorphism
+        Return ``True`` since any power of the Frobenius endomorphism
         over a finite field is always surjective.
 
         EXAMPLES::
@@ -797,10 +796,9 @@ cdef class FrobeniusEndomorphism_finite_field(FrobeniusEndomorphism_generic):
         """
         return True
 
-
     def is_identity(self):
         """
-        Return true if this morphism is the identity morphism.
+        Return ``True`` if this morphism is the identity morphism.
 
         EXAMPLES::
 
@@ -815,7 +813,7 @@ cdef class FrobeniusEndomorphism_finite_field(FrobeniusEndomorphism_generic):
 
     def __hash__(self):
         r"""
-        Return a hash of this morphism
+        Return a hash of this morphism.
 
         EXAMPLES::
 
@@ -826,34 +824,9 @@ cdef class FrobeniusEndomorphism_finite_field(FrobeniusEndomorphism_generic):
         """
         return Morphism.__hash__(self)
 
-    cdef dict _extra_slots(self):
-        r"""
-        Helper function for copying and pickling
-
-        TESTS::
-
-            sage: k.<t> = GF(5^3)
-            sage: Frob = k.frobenius_endomorphism(2)
-            sage: Frob.__reduce__()  # indirect doctest
-            (<built-in function unpickle_map>,
-             (<class 'sage.rings.finite_rings.hom_finite_field_givaro.FrobeniusEndomorphism_givaro'>,
-              Automorphism group of Finite Field in t of size 5^3,
-              {},
-              {'_codomain': Finite Field in t of size 5^3,
-               '_domain': Finite Field in t of size 5^3,
-               '_is_coercion': False,
-               '_lift': None,
-               '_power': 2,
-               '_repr_type_str': None}))
-        """
-        cdef dict slots
-        slots = FrobeniusEndomorphism_generic._extra_slots(self)
-        slots['_power'] = self._power
-        return slots
-
     cdef _update_slots(self, dict slots):
         r"""
-        Helper function for copying and pickling
+        Helper function for copying and pickling.
 
         TESTS::
 
@@ -869,7 +842,6 @@ cdef class FrobeniusEndomorphism_finite_field(FrobeniusEndomorphism_generic):
             True
         """
         FrobeniusEndomorphism_generic._update_slots(self, slots)
-        self._power = slots['_power']
         domain = self.domain()
         self._degree = domain.degree()
         self._degree_fixed = domain.degree().gcd(self._power)
