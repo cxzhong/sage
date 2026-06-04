@@ -375,9 +375,9 @@ cdef class Matrix_generic_dense(matrix_dense.Matrix_dense):
         zero = R.zero()
         p = 0
         for i in range(nr):
+            m = i*snc
             for j in range(nc):
                 z = zero
-                m = i*snc
                 for k in range(snc):
                     z += self._entries[m+k] * (right._entries[k*nc+j])
                 v[p] = z
