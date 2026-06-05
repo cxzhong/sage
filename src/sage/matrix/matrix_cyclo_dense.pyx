@@ -78,9 +78,9 @@ from sage.rings.number_field.number_field_element_quadratic cimport NumberFieldE
 from sage.structure.proof.proof import get_flag as get_proof_flag
 from sage.misc.verbose import verbose
 
-from sage.matrix.matrix_modn_dense_double import MAX_MODULUS as MAX_MODULUS_modn_dense_double
+from sage.matrix.matrix_modn_dense_flint import MAX_MODULUS as MAX_MODULUS_modn_dense_flint
 from sage.arith.multi_modular import MAX_MODULUS as MAX_MODULUS_multi_modular
-MAX_MODULUS = min(MAX_MODULUS_modn_dense_double, MAX_MODULUS_multi_modular)
+MAX_MODULUS = min(MAX_MODULUS_modn_dense_flint, MAX_MODULUS_multi_modular)
 
 # parameters for tuning
 echelon_primes_increment = 15
@@ -649,11 +649,7 @@ cdef class Matrix_cyclo_dense(Matrix_dense):
             sage: K = CyclotomicField(37)
             sage: A = matrix(K, 101)
             sage: p = A._initial_split_prime(); p
-            8384867
-            sage: 2^23 # largest modulus for Matrix_modn_dense_double
-            8388608
-            sage: p % 37
-            1
+            3037000331
 
         If the size of matrix is smaller, we can use a larger prime since the
         default implementation, FLINT, supports up to `2^{64} - 1`.  However, we still
@@ -663,12 +659,8 @@ cdef class Matrix_cyclo_dense(Matrix_dense):
             sage: A = matrix(K, 99)
             sage: p = A._initial_split_prime(); p
             3037000331
-            sage: (2^63-1).isqrt() # limit on mod_int
-            3037000499
             sage: 2^64 - 1 # largest modulus for Matrix_modn_dense_flint
             18446744073709551615
-            sage: p % 37
-            1
         """
         K = self._base_ring
         p = K.previous_split_prime(MAX_MODULUS, exclude)

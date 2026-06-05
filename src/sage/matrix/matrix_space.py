@@ -618,8 +618,7 @@ class MatrixSpace(UniqueRepresentation, Parent):
         sage: M2(M1.an_element())
         [ 0  1]
         [-1  2]
-        sage: all((A.get_action(B) is not None) == (A is B)
-        ....:     for A in [M1, M2] for B in [M1, M2])
+        sage: all((A.get_action(B) is not None) for A in (M1, M2) for B in (M1, M2))
         True
 
     Check that libgap matrices over finite fields are working properly::

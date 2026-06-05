@@ -3175,11 +3175,12 @@ cdef class Matrix(Matrix1):
         if self.nrows() == self.ncols() and self.base_ring().is_exact():
             tester = self._tester(**options)
             # Check that the minimal polynomial kills the matrix
-            tester.assertTrue(self.minpoly().subs(x=self).is_zero())
+            m = self.minpoly()
+            tester.assertTrue(m.subs(x=self).is_zero())
             # Check that the minimal polynomial divides the characteristic polynomial.
             # This is a necessary but not sufficient condition for the minimal polynomial
             # to be minimal.
-            tester.assertTrue(self.minpoly().divides(self.charpoly()))
+            tester.assertTrue(m.divides(self.charpoly()))
 
     def charpoly(self, var='x', algorithm=None):
         r"""
@@ -4885,7 +4886,7 @@ cdef class Matrix(Matrix1):
         elif basis == 'LLL' and not isinstance(R, IntegerRing_class):
             raise ValueError('LLL-reduced basis only available over the integers, not over %s' % R)
         if basis == 'default':
-            basis = 'echelon' if R in _Fields else 'computed'
+            basis = 'echelon' if R in _Fields or isinstance(R, sage.rings.abc.IntegerModRing) else 'computed'
 
         # Determine proof keyword for integer matrices
         proof = kwds.pop('proof', None)
