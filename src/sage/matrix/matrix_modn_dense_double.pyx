@@ -79,31 +79,17 @@ cdef class Matrix_modn_dense_double(Matrix_modn_dense_template):
 
         EXAMPLES::
 
-            sage: A = random_matrix(GF(3016963), 4, 4, implementation='linbox'); A
-            [ 220081 2824836  765701 2282256]
-            [1795330  767112 2967421 1373921]
-            [2757699 1142917 2720973 2877160]
-            [1674049 1341486 2641133 2173280]
+            sage: A = random_matrix(GF(3016963), 4, 4, implementation='linbox')
             sage: A[0,0] = 220082r; A
-            [ 220082 2824836  765701 2282256]
-            [1795330  767112 2967421 1373921]
-            [2757699 1142917 2720973 2877160]
-            [1674049 1341486 2641133 2173280]
+            [ 220082 ...]
             sage: a = A[0,0]; a
             220082
             sage: ~a
             2859358
 
-            sage: A = random_matrix(Integers(5099106), 4, 4, implementation='linbox'); A
-            [2629491 1237101 2033003 3788106]
-            [4649912 1157595 4928315 4382585]
-            [4252686  978867 2601478 1759921]
-            [1303120 1860486 3405811 2203284]
+            sage: A = random_matrix(Integers(5099106), 4, 4, implementation='linbox')
             sage: A[0,0] = 220082r; A
-            [ 220082 1237101 2033003 3788106]
-            [4649912 1157595 4928315 4382585]
-            [4252686  978867 2601478 1759921]
-            [1303120 1860486 3405811 2203284]
+            [ 220082 ...]
             sage: a = A[0,0]; a
             220082
             sage: a*a
@@ -126,11 +112,7 @@ cdef class Matrix_modn_dense_double(Matrix_modn_dense_template):
 
         EXAMPLES::
 
-            sage: A = random_matrix(GF(3016963), 4, 4, implementation='linbox'); A
-            [ 220081 2824836  765701 2282256]
-            [1795330  767112 2967421 1373921]
-            [2757699 1142917 2720973 2877160]
-            [1674049 1341486 2641133 2173280]
+            sage: A = random_matrix(GF(3016963), 4, 4, implementation='linbox')
             sage: K = A.base_ring()
             sage: l = A.list()
             sage: A[0,0] = K(220082)
@@ -141,11 +123,7 @@ cdef class Matrix_modn_dense_double(Matrix_modn_dense_template):
             sage: ~a
             2859358
 
-            sage: A = random_matrix(Integers(5099106), 4, 4, implementation='linbox'); A
-            [2629491 1237101 2033003 3788106]
-            [4649912 1157595 4928315 4382585]
-            [4252686  978867 2601478 1759921]
-            [1303120 1860486 3405811 2203284]
+            sage: A = random_matrix(Integers(5099106), 4, 4, implementation='linbox')
             sage: K = A.base_ring()
             sage: l = A.list()
             sage: A[0,0] = K(220081)
@@ -174,11 +152,12 @@ cdef class Matrix_modn_dense_double(Matrix_modn_dense_template):
 
         EXAMPLES::
 
-            sage: A = random_matrix(GF(3016963), 4, 4, implementation='linbox'); A
-            [ 220081 2824836  765701 2282256]
-            [1795330  767112 2967421 1373921]
-            [2757699 1142917 2720973 2877160]
-            [1674049 1341486 2641133 2173280]
+            sage: A = matrix(GF(3016963),
+            ....:           [[220081, 2824836,  765701, 2282256],
+            ....:           [1795330,  767112, 2967421, 1373921],
+            ....:           [2757699, 1142917, 2720973, 2877160],
+            ....:           [1674049, 1341486, 2641133, 2173280]],
+            ....:           implementation='linbox')
             sage: a = A[0,0]; a
             220081
             sage: ~a
@@ -187,11 +166,12 @@ cdef class Matrix_modn_dense_double(Matrix_modn_dense_template):
             sage: ~K(220081)
             697224
 
-            sage: A = random_matrix(Integers(5099106), 4, 4, implementation='linbox'); A
-            [2629491 1237101 2033003 3788106]
-            [4649912 1157595 4928315 4382585]
-            [4252686  978867 2601478 1759921]
-            [1303120 1860486 3405811 2203284]
+            sage: A = matrix(Integers(5099106),
+            ....:            [[2629491, 1237101, 2033003, 3788106],
+            ....:            [4649912, 1157595, 4928315, 4382585],
+            ....:            [4252686,  978867, 2601478, 1759921],
+            ....:            [1303120, 1860486, 3405811, 2203284]],
+            ....:            implementation='linbox')
             sage: a = A[0,1]; a
             1237101
             sage: a*a
@@ -224,7 +204,7 @@ cdef class Matrix_modn_dense_double(Matrix_modn_dense_template):
 
         TESTS::
 
-            sage: m = matrix(GF(257),3,4,range(12))
+            sage: m = matrix(GF(257), 3, 4, range(12))
             sage: m
             [ 0  1  2  3]
             [ 4  5  6  7]
