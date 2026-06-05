@@ -113,8 +113,8 @@ cdef class Matrix_modn_dense_double(Matrix_modn_dense_template):
         EXAMPLES::
 
             sage: A = random_matrix(GF(3016963), 4, 4, implementation='linbox')
-            sage: K = A.base_ring()
             sage: l = A.list()
+            sage: K = A.base_ring()
             sage: A[0,0] = K(220082)
             sage: A.list()[1:] == l[1:]
             True
@@ -124,6 +124,7 @@ cdef class Matrix_modn_dense_double(Matrix_modn_dense_template):
             2859358
 
             sage: A = random_matrix(Integers(5099106), 4, 4, implementation='linbox')
+            sage: l = A.list()
             sage: K = A.base_ring()
             sage: l = A.list()
             sage: A[0,0] = K(220081)

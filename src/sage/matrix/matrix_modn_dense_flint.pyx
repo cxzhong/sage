@@ -2009,9 +2009,22 @@ cdef class Matrix_modn_dense_flint(Matrix_dense):
         - ``X`` - a nonempty list of matrices of the same size mod a
             single modulus `n`
 
+        OUTPUT: A single matrix mod ``p`` whose ``i``-th row is ``X[i].list()``.
+
         EXAMPLES::
 
-            sage: X = [random_matrix(GF(17), 4, 4) for _ in range(10)]; X
+            sage: X = []
+            sage: X.append(matrix(GF(17), [[1, 8, 0, 5], [8, 3, 11, 1], [15, 9, 15, 13], [2, 14, 14, 8]]))
+            sage: X.append(matrix(GF(17), [[12,  8,  6, 14], [ 7, 15, 10, 11], [11,  5,  9, 15], [13, 16, 10, 16]]))
+            sage: X.append(matrix(GF(17), [[ 4,  1,  4,  3], [13,  1, 10, 16], [15, 13, 15,  2], [13, 13, 14,  1]]))
+            sage: X.append(matrix(GF(17), [[11,  6,  1, 15], [ 3,  9, 14,  6], [ 9, 10,  3, 16], [ 7,  3,  8,  7]]))
+            sage: X.append(matrix(GF(17), [[12, 14,  7, 14], [ 6,  1,  7, 11], [16, 12,  5,  9], [ 0,  2, 14,  0]]))
+            sage: X.append(matrix(GF(17), [[ 1, 15, 11, 11], [ 2,  2, 11,  0], [ 7, 15,  0,  0], [13,  1, 15,  6]]))
+            sage: X.append(matrix(GF(17), [[13,  8,  8,  0], [ 5,  9,  6,  6], [12, 14,  2, 15], [ 1,  2,  5,  3]]))
+            sage: X.append(matrix(GF(17), [[ 2, 16, 14, 12], [ 7, 11, 15,  7], [ 3,  2, 14,  6], [ 7,  9, 11,  0]]))
+            sage: X.append(matrix(GF(17), [[ 5,  1,  6,  5], [15,  1,  9,  2], [ 0, 12,  2, 13], [ 1, 13,  8, 14]]))
+            sage: X.append(matrix(GF(17), [[15,  1, 15, 14], [ 6, 14,  9, 10], [ 9,  3,  5,  9], [ 6,  3,  1, 16]]))
+            sage: X
             [
             [ 1  8  0  5]  [12  8  6 14]  [ 4  1  4  3]  [11  6  1 15]
             [ 8  3 11  1]  [ 7 15 10 11]  [13  1 10 16]  [ 3  9 14  6]
@@ -2028,7 +2041,7 @@ cdef class Matrix_modn_dense_flint(Matrix_dense):
             [ 0 12  2 13]  [ 9  3  5  9]
             [ 1 13  8 14], [ 6  3  1 16]
             ]
-            sage: X[0]._matrix_from_rows_of_matrices(X) # indirect doctest
+            sage: X[0]._matrix_from_rows_of_matrices(X)
             [ 1  8  0  5  8  3 11  1 15  9 15 13  2 14 14  8]
             [12  8  6 14  7 15 10 11 11  5  9 15 13 16 10 16]
             [ 4  1  4  3 13  1 10 16 15 13 15  2 13 13 14  1]
@@ -2039,8 +2052,6 @@ cdef class Matrix_modn_dense_flint(Matrix_dense):
             [ 2 16 14 12  7 11 15  7  3  2 14  6  7  9 11  0]
             [ 5  1  6  5 15  1  9  2  0 12  2 13  1 13  8 14]
             [15  1 15 14  6 14  9 10  9  3  5  9  6  3  1 16]
-
-        OUTPUT: A single matrix mod ``p`` whose ``i``-th row is ``X[i].list()``.
         """
         # The code below is just a fast version of the following:
         ##     from constructor import matrix
