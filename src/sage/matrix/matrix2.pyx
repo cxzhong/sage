@@ -8574,6 +8574,8 @@ cdef class Matrix(Matrix1):
           - ``'strassen'``: use a Strassen divide and conquer
             algorithm (if available)
 
+          - ``'flint'``: use FLINT (if available)
+
         - ``cutoff`` -- integer; only used if the Strassen algorithm is selected
 
         - ``transformation`` -- boolean; whether to also return the

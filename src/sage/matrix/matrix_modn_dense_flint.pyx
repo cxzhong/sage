@@ -999,7 +999,6 @@ cdef class Matrix_modn_dense_flint(Matrix_dense):
             sig_on()
             nmod_mat_minpoly(&mpoly.x, C._matrix)
             sig_off()
-            print(mpoly)
             if e == 1:
                 ans = Rx.ideal(mpoly)
                 self.cache(key, ans)
@@ -1024,7 +1023,9 @@ cdef class Matrix_modn_dense_flint(Matrix_dense):
                 if C:
                     return False
             return True
-        while True:
+        # TODO: This was originally a ``while True`` loop, but it didn't always terminate
+        # n^2 iterations was an arbitrary choice that was enough for all the doctests to pass
+        for trial in range(n**2):
             for i in range(n):
                 c = randrange(N)
                 nmod_mat_set_entry(v._matrix, i, 0, c)
@@ -1060,6 +1061,7 @@ cdef class Matrix_modn_dense_flint(Matrix_dense):
                         if proof: self.cache(key, ans)
                         return ans
                     break
+        raise ValueError('failed to find minimal polynomial')
 
     def minpoly(self, var='x', proof=None, **kwds):
         """

@@ -2020,7 +2020,7 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
         self.cache('pivot_rows', tuple(range(r)))
         self.cache('in_echelon_form', True)
 
-    def pivots(self):
+    def pivots(self) -> tuple:
         """
         Return the column pivot positions for this matrix, which form the
         leftmost subset of the columns that span the column space and are
@@ -2046,11 +2046,11 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
 
         EXAMPLES::
 
-            sage: A = matrix(GF(7), 2, 2, range(4))
+            sage: A = matrix(GF(7), 2, 2, range(4), implementation='linbox')
             sage: A.pivots()
             (0, 1)
 
-            sage: A = matrix(GF(3), [[1,1,1,0],[0,0,0,1],[1,0,0,0]])
+            sage: A = matrix(GF(3), [[1,1,1,0],[0,0,0,1],[1,0,0,0]], implementation='linbox')
             sage: A
             [1 1 1 0]
             [0 0 0 1]
@@ -2063,7 +2063,7 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
             ....:             13996, 41988, 21387,
             ....:             39034, 51565, 40500,
             ....:             14660, 43980,  3899,
-            ....:             12016, 36048,  9308])
+            ....:             12016, 36048,  9308], implementation='linbox')
             sage: A[:,1] == 3 * A[:,0]
             True
             sage: A.pivots() == (0, 2)
@@ -2076,22 +2076,24 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
             sage: A.pivots() == (0, 1, 3)
             True
         """
-        if not self.base_ring().is_field():
-            raise NotImplementedError("Echelon form not implemented over '%s'." % self.base_ring())
-
         v = self.fetch('pivots')
         if v is not None:
-            return tuple(v)
+            return v
+
+        if not self.base_ring().is_field():
+            E = self.echelon_form(algorithm='flint')
+            return E.pivots()
 
         E = self.__copy__()
         rrp = E._echelonize_linbox(efd=False)
         E.set_immutable()
         v = E.pivots()
+
         self.cache('echelon_form', E)
         self.cache('rank', E._cache['rank'])
-        self.cache('pivots', tuple(v))
+        self.cache('pivots', v)
         self.cache('pivot_rows', rrp)
-        return tuple(v)
+        return v 
 
     def pivot_rows(self):
         """
@@ -2119,7 +2121,7 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
 
         EXAMPLES::
 
-            sage: A = matrix(GF(3), [[1,0,1,0],[1,0,0,0],[1,0,0,0],[0,1,0,0]])
+            sage: A = matrix(GF(3), [[1,0,1,0],[1,0,0,0],[1,0,0,0],[0,1,0,0]], implementation='linbox')
             sage: A
             [1 0 1 0]
             [1 0 0 0]
@@ -2131,7 +2133,7 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
             sage: A = matrix(GF(65537), 3, 5,
             ....:            [  223, 13996, 39034, 14660, 12016,
             ....:               669, 41988, 51565, 43980, 36048,
-            ....:             21130, 21387, 40500,  3899,  9308])
+            ....:             21130, 21387, 40500,  3899,  9308], implementation='linbox')
             sage: A[1,:] == 3 * A[0,:]
             True
             sage: A.pivot_rows() == (0, 2)
@@ -2140,7 +2142,7 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
             ....:                          2, 4, 2,
             ....:                          4, 1, 5,
             ....:                          1, 4, 6,
-            ....:                          4, 6, 6])
+            ....:                          4, 6, 6], implementation='linbox')
             sage: A[0,:] == 2 * A[1,:] + 3 * A[2,:]
             True
             sage: A.pivot_rows() == (0, 1, 3)
@@ -2277,7 +2279,7 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
 
         EXAMPLES::
 
-            sage: A = random_matrix(GF(17), 10, 10, density=0.1)
+            sage: A = random_matrix(GF(17), 10, 10, density=0.1, implementation='linbox')
             sage: B = copy(A)
             sage: A.hessenbergize()
             sage: all(A[i,j] == 0 for j in range(10) for i in range(j+2, 10))
@@ -2870,7 +2872,7 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
             sage: def add_sample(density):
             ....:     global density_sum, total_count
             ....:     total_count += 1.0
-            ....:     density_sum += random_matrix(GF(5), 1000, 1000, density=density).density()
+            ....:     density_sum += random_matrix(GF(5), 1000, 1000, density=density, implementation='linbox').density()
 
             sage: density_sum = 0.0
             sage: total_count = 0.0
@@ -2886,7 +2888,7 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
             sage: def add_sample(density):
             ....:     global density_sum, total_count
             ....:     total_count += 1.0
-            ....:     A = random_matrix(GF(5), 1000, 1000, density=density)
+            ....:     A = random_matrix(GF(5), 1000, 1000, density=density, implementation='linbox')
             ....:     A.randomize(density=density, nonzero=True)
             ....:     density_sum += A.density()
 
