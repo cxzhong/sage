@@ -14949,7 +14949,7 @@ cdef class Matrix(Matrix1):
             return result
 
         cdef Py_ssize_t i, j, k  # loop indices
-        cdef Py_ssize_t r        # another row/column index
+        cdef Py_ssize_t r = 0    # another row/column index (set before use)
 
         # We need to construct 1x1 and 2x2 matrices to stick in d.
         from sage.matrix.constructor import matrix
