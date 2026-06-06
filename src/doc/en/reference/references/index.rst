@@ -3081,6 +3081,10 @@ REFERENCES:
             submitted, 2012. Preprint:
             http://www.gerardsbase.nl/papers/geelen_gerards=testing-graphicness%5B2013%5D.pdf
 
+.. [GGK2000] Geelen, James F., Albertus MH Gerards, and Ajai Kapoor,
+             *The excluded minors for GF(4)-representable matroids.*,
+			 Journal of Combinatorial Theory, Series B 79.2 (2000): 247-299.
+
 .. [GGD2011] \E. Girondo, \G. Gonzalez-Diez, *Introduction to Compact
              Riemann surfaces and Dessins d'enfant*, (2011)
              London Mathematical Society, Student Text 79.
