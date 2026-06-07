@@ -904,6 +904,34 @@ cdef class LaurentPolynomial_univariate(LaurentPolynomial):
         """
         return [i + self.__n for i in self.__u.exponents()]
 
+    def gradient(self) -> list:
+        r"""
+        Return a list of partial derivatives of this Laurent polynomial,
+        ordered by the variables of ``self.parent()``.
+
+        EXAMPLES::
+
+           sage: P.<x> = LaurentPolynomialRing(ZZ)
+           sage: f = x + 1/x
+           sage: f.gradient()
+           [-x^-2 + 1]
+        """
+        return [self.derivative(var) for var in self.parent().gens()]
+
+    def jacobian_ideal(self):
+        r"""
+        Return the Jacobian ideal of the Laurent polynomial ``self``.
+
+        EXAMPLES::
+
+            sage: R.<x> = LaurentPolynomialRing(ZZ)
+            sage: f = x^3 + 1/x
+            sage: f.jacobian_ideal()
+            Ideal (-x^-2 + 3*x^2) of Univariate Laurent Polynomial Ring in x
+            over Integer Ring
+        """
+        return self.parent().ideal(self.gradient())
+
     def newton_polytope(self):
         r"""
         Return the Newton polytope of this Laurent polynomial.
