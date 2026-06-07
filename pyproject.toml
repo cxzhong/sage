@@ -270,15 +270,20 @@ test = ["coverage", "pytest"]
 # 254 no-matching-overload
 # 239 unknown-argument
 # 182 not-iterable
+# 100 possibly-missing-submodule
 # 155 too-many-positional-arguments
 # 84 invalid-return-type
+# 65 unused-type-ignore-comment
 # 43 parameter-already-assigned
 # 32 inconsistent-mro
+# 21 possibly-missing-submodule
 # 12 invalid-type-form
 # 7 index-out-of-bounds
 # 7 empty-body
 # 5 invalid-attribute-access
 # 4 invalid-type-arguments
+# 4 deprecated
+# 4 mismatched-type-name
 # 2 invalid-super-argument
 # 2 call-top-callable
 # 1 invalid-total-ordering
@@ -289,6 +294,7 @@ test = ["coverage", "pytest"]
 "call-non-callable" = "ignore"
 "call-top-callable" = "ignore"
 "conflicting-declarations" = "ignore"
+"deprecated" = "ignore"
 "empty-body" = "ignore"
 "inconsistent-mro" = "ignore"
 "index-out-of-bounds" = "ignore"
@@ -304,17 +310,21 @@ test = ["coverage", "pytest"]
 "invalid-total-ordering" = "ignore"
 "invalid-type-arguments" = "ignore"
 "invalid-type-form" = "ignore"
+"mismatched-type-name" = "ignore"
 "missing-argument" = "ignore"
 "no-matching-overload" = "ignore"
 "not-iterable" = "ignore"
 "not-subscriptable" = "ignore"
 "parameter-already-assigned" = "ignore"
+"possibly-missing-submodule" = "ignore"
 "too-many-positional-arguments" = "ignore"
 "unknown-argument" = "ignore"
 "unresolved-attribute" = "ignore"
+"unresolved-global" = "ignore"
 "unresolved-import" = "ignore"
 "unresolved-reference" = "ignore"
 "unsupported-operator" = "ignore"
+"unused-type-ignore-comment" = "ignore"
 
 [tool.ruff]
 # https://docs.astral.sh/ruff/configuration
