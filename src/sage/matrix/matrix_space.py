@@ -2137,11 +2137,25 @@ class MatrixSpace(UniqueRepresentation, Parent):
 
         Creating a zero matrix from scratch (``entries=None``) gives a correct
         mutable zero matrix without disturbing the cached immutable one, for
-        the dense types optimized in :issue:`36146`::
+        the dense and sparse types optimized in :issue:`36146`::
 
             sage: rings = [ZZ, QQ, GF(2), GF(3), GF(101),
-            ....:          GF(2^8, 'a'), Integers(2^16), Integers(10), CBF]
+            ....:          GF(2^8, 'a'), Integers(2^16), Integers(10)]
             sage: for R in rings:
+            ....:     for sparse in [False, True]:
+            ....:         for shape in [(3, 3), (2, 4), (0, 0), (0, 3), (3, 0)]:
+            ....:             MS = MatrixSpace(R, *shape, sparse=sparse)
+            ....:             m = MS.element_class(MS, None, False, False)
+            ....:             assert m.is_zero() and m.is_mutable()
+            ....:             assert m.list() == MS.zero_matrix().list()
+            ....:             if shape[0] and shape[1]:
+            ....:                 m[0, 0] = R(1)
+            ....:                 assert MS.zero_matrix().is_zero()
+
+        The same holds for the complex ball and NumPy-backed (``RDF``, ``CDF``)
+        dense matrix types::
+
+            sage: for R in [CBF, RDF, CDF]:
             ....:     for shape in [(3, 3), (2, 4), (0, 0), (0, 3), (3, 0)]:
             ....:         MS = MatrixSpace(R, *shape)
             ....:         m = MS.element_class(MS, None, False, False)
