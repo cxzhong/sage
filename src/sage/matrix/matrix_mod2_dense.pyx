@@ -272,6 +272,13 @@ cdef class Matrix_mod2_dense(matrix_dense.Matrix_dense):   # dense or sparse
             sage: n = 100
             sage: M = matrix(GF(2), np.random.randint(0, 2, (n, n)).astype(np.float32))
         """
+        if entries is None:
+            # ``__cinit__`` already initialized the matrix to zero
+            # (``mzd_init``). Returning here avoids building a ``MatrixArgs``
+            # object and iterating over an empty generator, which makes
+            # creating a zero matrix from scratch significantly faster
+            # (see :issue:`36146`).
+            return
         ma = MatrixArgs_init(parent, entries)
         if ma.get_type() == MA_ENTRIES_NDARRAY:
             from ..modules.numpy_util import set_matrix_mod2_from_numpy
