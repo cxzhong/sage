@@ -972,10 +972,11 @@ cdef class Matrix_polynomial_dense(Matrix_generic_dense):
             precA = 1+self.degree()
             if isinstance(B, Vector):
                 BB = B.row()
-                X = B.row().parent().zero().__copy__()
+                MS = BB.parent()
             else:
                 BB = B.__copy__()
-                X = B.parent().zero().__copy__()
+                MS = B.parent()
+            X = MS.element_class(MS, None, False, False)
             inv_self = self.inverse_series_trunc(precA)
             for k in range(0,(d/precA).ceil()):
                 # compute XX = BB * invA mod x^precA
@@ -3069,7 +3070,8 @@ cdef class Matrix_polynomial_dense(Matrix_generic_dense):
         cdeg = B.column_degrees()  # all nonnegative since column reduced
         d = -1 if B.nrows() == 0 else max([cdegA[i]-cdeg[i]+1 for i in range(B.nrows())])
         if d<=0: # A already reduced modulo B, quotient is zero
-            return (self.parent().zero().__copy__(), self)
+            MS = self.parent()
+            return (MS.element_class(MS, None, False, False), self)
         # Step 1: reverse input matrices
         # Brev = B(1/x) diag(x^(cdeg[i]))
         # Arev = A(1/x) diag(x^(d+cdeg[i]-1))
@@ -3356,7 +3358,8 @@ cdef class Matrix_polynomial_dense(Matrix_generic_dense):
                 # A_{*,J} = Q B_{*,J} + R0
                 Q,R0 = self[:,lpos]._right_quo_rem_reduced(B[:,lpos])
                 # other columns are given by A_{*,not J} - Q B_{*, not J}
-                R = self.parent().zero().__copy__()
+                MS = self.parent()
+                R = MS.element_class(MS, None, False, False)
                 R[:,lpos] = R0
                 R[:,non_lpos] = self[:,non_lpos] - Q * B[:,non_lpos]
                 return (Q,R) if return_quotient else R
@@ -3367,7 +3370,8 @@ cdef class Matrix_polynomial_dense(Matrix_generic_dense):
                 Q = Q.T
                 R0 = R0.T
                 # other columns are given by A_{not I,*} - B_{not I,*} Q
-                R = self.parent().zero().__copy__()
+                MS = self.parent()
+                R = MS.element_class(MS, None, False, False)
                 R[lpos,:] = R0
                 R[non_lpos,:] = self[non_lpos,:] - B[non_lpos,:] * Q
                 return (Q,R) if return_quotient else R

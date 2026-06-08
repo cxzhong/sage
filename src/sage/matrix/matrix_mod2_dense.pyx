@@ -981,7 +981,8 @@ cdef class Matrix_mod2_dense(matrix_dense.Matrix_dense):   # dense or sparse
         cdef Matrix_mod2_dense ans
         #ans = self.new_matrix(nrows = self._nrows, ncols = right._ncols)
         # The following is a little faster:
-        ans = self.matrix_space(self._nrows, right._ncols, sparse=False).zero_matrix().__copy__()
+        MS = self.matrix_space(self._nrows, right._ncols, sparse=False)
+        ans = MS.element_class(MS, None, False, False)
         if self._nrows == 0 or self._ncols == 0 or right._nrows == 0:
             # We know right._nrows == self._ncols because check_matrix_multiplication_sizes passed
             return ans

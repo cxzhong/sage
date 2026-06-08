@@ -2914,7 +2914,8 @@ cdef class Matrix_rational_dense(Matrix_dense):
             # We know right._nrows == self._ncols because check_matrix_multiplication_sizes passed
             # pari doesn't work in case of 0 rows or columns
             # This case is easy, since the answer must be the 0 matrix.
-            return self.matrix_space(self._nrows, right._ncols).zero_matrix().__copy__()
+            MS = self.matrix_space(self._nrows, right._ncols)
+            return MS.element_class(MS, None, False, False)
         sig_on()
         cdef GEN M = gmul(_new_GEN_from_fmpq_mat_t(self._matrix),
                           _new_GEN_from_fmpq_mat_t(right._matrix))
