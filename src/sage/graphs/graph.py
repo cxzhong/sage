@@ -5668,7 +5668,7 @@ class Graph(GenericGraph):
         G.add_edges(itertools.product(s, set(self).difference(s)))
         G.delete_edges(boundary)
         if not inplace:
-            return G.copy(immutable=False) if immutable else G
+            return G.copy(immutable=True) if immutable else G
 
     @doc_index("Leftovers")
     def twograph(self):
