@@ -198,8 +198,8 @@ class EllipticCurveFactory(UniqueFactory):
         sage: E.a_invariants()
         (0, 6, 0, 1, 0)
 
-        sage: E = EllipticCurve(A=GF(5)(1)); E
-        Elliptic Curve defined by y^2 = x^3 + x^2 + x over Finite Field of size 5       # needs sage.rings.finite_rings
+        sage: E = EllipticCurve(A=GF(5)(1)); E                                          # needs sage.rings.finite_rings
+        Elliptic Curve defined by y^2 = x^3 + x^2 + x over Finite Field of size 5
 
         sage: E = EllipticCurve(GF(144169), A=6); E                                     # needs sage.rings.finite_rings
         Elliptic Curve defined by y^2 = x^3 + 6*x^2 + x over Finite Field of size 144169
