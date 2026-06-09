@@ -13112,6 +13112,26 @@ cdef class Matrix(Matrix1):
             sage: p.degree() == E.dimension()
             True
 
+        When ``v`` is a cyclic vector the subspace is the whole space and the
+        polynomial has degree ``n`` (here ``A`` is the companion matrix of
+        `x^4 - 2`)::
+
+            sage: x = polygen(QQ, 'x')
+            sage: A = matrix.companion(x^4 - 2, 'right'); A
+            [0 0 0 2]
+            [1 0 0 0]
+            [0 1 0 0]
+            [0 0 1 0]
+            sage: v = vector(QQ, 4, [0, 1, 2, 3])
+            sage: A.cyclic_subspace(v, var='x', basis='iterates')
+            (x^4 - 2,
+             Vector space of degree 4 and dimension 4 over Rational Field
+             User basis matrix:
+             [0 1 2 3]
+             [6 0 1 2]
+             [4 6 0 1]
+             [2 4 6 0])
+
         The polynomial has coefficients that yield a non-trivial
         relation of linear dependence on the iterates.  Or,
         equivalently, evaluating the polynomial with the matrix
@@ -13284,9 +13304,10 @@ cdef class Matrix(Matrix1):
         # are the iterates ``v, self*v, ..., self^(k-1)*v``.
         Mt = self.transpose()
         E = self.new_matrix(nrows=1, ncols=n, entries=list(v))
-        # By Cayley-Hamilton, the `n`-th iterate is already dependent on the
-        # previous ones, so rows up to degree ``n - 1`` suffice.
-        B = E.krylov_basis(Mt, degrees=n - 1, output_rows=False)
+        # ``krylov_basis`` defaults to ``degrees=n`` for the single row, which is
+        # exactly the Cayley-Hamilton bound: the `n`-th iterate is dependent on
+        # the previous ones, so rows up to degree ``n - 1`` suffice.
+        B = E.krylov_basis(Mt, output_rows=False)
         k = B.nrows()
 
         if basis == 'echelon':
@@ -13308,13 +13329,13 @@ cdef class Matrix(Matrix1):
         # iterates ``v, self*v, ..., self^k*v``.  With ``c`` the coordinates of
         # ``self^k*v`` in the basis of iterates, this polynomial is
         # ``x^k - sum(c[i] x^i)``.
-        x = sage.rings.polynomial.polynomial_ring.polygen(R, var)
+        PolR = sage.rings.polynomial.polynomial_ring.polygen(R, var).parent()
         if k == 0:
-            poly = x.parent().one()
+            poly = PolR.one()
         else:
             w = B[k - 1] * Mt                 # equals self^k * v, as a row
             c = B.solve_left(w)
-            poly = x**k - sum(c[i] * x**i for i in range(k))
+            poly = PolR([-c[i] for i in range(k)] + [R.one()])
         return poly, subspace
 
     def _cholesky_extended_ff(self):
