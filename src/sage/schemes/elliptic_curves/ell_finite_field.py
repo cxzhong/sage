@@ -1269,6 +1269,16 @@ class EllipticCurve_finite_field(EllipticCurve_field, ProjectivePlaneCurve_finit
             sage: A3 = E.torsion_subgroup(n, algorithm='divpoly')
             sage: assert A1 == A2 == A3
 
+        ::
+
+            sage: p = 2^31 - 1
+            sage: n = 42
+            sage: E = EllipticCurve(GF(p), [1767054656, 143637714])
+            sage: A1 = E.torsion_subgroup(n, extend=true, algorithm='random')
+            sage: A2 = E.torsion_subgroup(n, extend=true, algorithm='structure')
+            sage: A3 = E.torsion_subgroup(n, extend=true, algorithm='divpoly')
+            sage: assert A1 == A2 == A3
+
         .. SEEALSO::
 
             Use :meth:`~sage.schemes.elliptic_curves.ell_field.EllipticCurve_field.division_field`
@@ -1380,7 +1390,7 @@ class EllipticCurve_finite_field(EllipticCurve_field, ProjectivePlaneCurve_finit
 
         if algorithm == 'divpoly':
             # NB: we already handled extend= above
-            return super().torsion_subgroup(n, extend=False, algorithm='divpoly')
+            return EllipticCurve_field.torsion_subgroup(E, n, extend=False, algorithm='divpoly')
 
         if algorithm == 'structure':
             return E.abelian_group().torsion_subgroup(n)
