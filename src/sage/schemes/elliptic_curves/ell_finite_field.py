@@ -1192,9 +1192,8 @@ class EllipticCurve_finite_field(EllipticCurve_field, ProjectivePlaneCurve_finit
               embedded in Abelian group of points on Elliptic Curve defined by y^2 = x^3 + 1767054656*x + 143637714
                 over Finite Field in t of size 2147483647^3
             sage: E.torsion_subgroup(42, extend=True, algorithm='divpoly')
-            Additive abelian group isomorphic to Z/42 + Z/14
-              embedded in Abelian group of points on Elliptic Curve defined by y^2 = x^3 + 1767054656*x + 143637714
-                over Finite Field of size 2147483647
+            Additive abelian group isomorphic to Z/42 + Z/42
+              embedded in Abelian group of points on Elliptic Curve defined by y^2 = x^3 + 1767054656*x + 143637714 over Finite Field in t of size 2147483647^3
             sage: E.torsion_subgroup(42, extend=True, algorithm='structure')
             Additive abelian group isomorphic to Z/42 + Z/42
               embedded in Abelian group of points on Elliptic Curve defined by y^2 = x^3 + 1767054656*x + 143637714
