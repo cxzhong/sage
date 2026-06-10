@@ -4886,7 +4886,7 @@ cdef class Matrix(Matrix1):
         elif basis == 'LLL' and not isinstance(R, IntegerRing_class):
             raise ValueError('LLL-reduced basis only available over the integers, not over %s' % R)
         if basis == 'default':
-            basis = 'echelon' if R in _Fields or isinstance(R, sage.rings.abc.IntegerModRing) else 'computed'
+            basis = 'echelon' if R in _Fields else 'computed'
 
         # Determine proof keyword for integer matrices
         proof = kwds.pop('proof', None)
