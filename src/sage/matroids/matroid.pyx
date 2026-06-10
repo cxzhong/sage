@@ -6657,9 +6657,7 @@ cdef class Matroid(SageObject):
         if not self.is_regular():  # U24, Fano, or FanoDual minor
             return False
         from sage.matroids.database_matroids import K5dual, K33dual
-        if self.has_minor(K5dual()) or self.has_minor(K33dual()):
-            return False
-        return True
+        return not (self.has_minor(K5dual()) or self.has_minor(K33dual()))
 
     cpdef bint is_regular(self) noexcept:
         r"""
@@ -6688,9 +6686,7 @@ cdef class Matroid(SageObject):
         if not self.is_binary():  # equivalent to checking for a U24 minor
             return False
         from sage.matroids.database_matroids import Fano, FanoDual
-        if self.has_minor(Fano()) or self.has_minor(FanoDual()):
-            return False
-        return True
+        return not (self.has_minor(Fano()) or self.has_minor(FanoDual()))
 
     # matroid k-closed
 
