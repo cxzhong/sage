@@ -449,6 +449,8 @@ class EllipticCurveFactory(UniqueFactory):
             R, x = (x, y)
 
         if j is not None:
+            if A is not None:
+                raise ValueError("only one of A and j may be specified")
             if R is not None:
                 try:
                     j = R(j)
@@ -459,10 +461,7 @@ class EllipticCurveFactory(UniqueFactory):
                     "First parameter (if present) must be a ring when j is specified"
                 )
             x = coefficients_from_j(j, minimal_twist)
-
-        if A is not None:
-            if j is not None:
-                raise ValueError("only one of A and j may be specified")
+        elif A is not None:
             if R is not None:
                 try:
                     A = R(A)
@@ -473,8 +472,19 @@ class EllipticCurveFactory(UniqueFactory):
                     "First parameter (if present) must be a ring when A is specified"
                 )
             x = coefficients_from_montgomery(A)
+        elif isinstance(x, str):
+            # Interpret x as a Cremona or LMFDB label.
+            from sage.databases.cremona import CremonaDatabase
 
-        if isinstance(x, Expression) and x.is_relational():
+            with CremonaDatabase() as D:
+                x, data = D.coefficients_and_data(x)
+            # data is only valid for elliptic curves over QQ.
+            if R not in (None, QQ):
+                data = {}
+            # User-provided keywords may override database entries.
+            data.update(kwds)
+            kwds = data
+        elif isinstance(x, Expression) and x.is_relational():
             import operator
 
             if x.operator() != operator.eq:
@@ -492,19 +502,6 @@ class EllipticCurveFactory(UniqueFactory):
             else:
                 # x is a cubic, y a rational point
                 x = EllipticCurve_from_cubic(x, y, morphism=False).ainvs()
-
-        if isinstance(x, str):
-            # Interpret x as a Cremona or LMFDB label.
-            from sage.databases.cremona import CremonaDatabase
-
-            with CremonaDatabase() as D:
-                x, data = D.coefficients_and_data(x)
-            # data is only valid for elliptic curves over QQ.
-            if R not in (None, QQ):
-                data = {}
-            # User-provided keywords may override database entries.
-            data.update(kwds)
-            kwds = data
 
         if not isinstance(x, (list, tuple)):
             raise TypeError("invalid input to EllipticCurve constructor")
