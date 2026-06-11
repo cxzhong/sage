@@ -334,28 +334,6 @@ class sage__libs__braiding(PythonModule):
                               spkg='sagemath_libbraiding', type='standard')
 
 
-class sage__libs__ecl(PythonModule):
-    r"""
-    A :class:`~sage.features.Feature` describing the presence of :mod:`sage.libs.ecl`.
-
-    EXAMPLES::
-
-        sage: from sage.features.sagemath import sage__libs__ecl
-        sage: sage__libs__ecl().is_present()                        # optional - sage.libs.ecl
-        FeatureTestResult('sage.libs.ecl', True)
-    """
-
-    def __init__(self):
-        r"""
-        TESTS::
-
-            sage: from sage.features.sagemath import sage__libs__ecl
-            sage: isinstance(sage__libs__ecl(), sage__libs__ecl)
-            True
-        """
-        PythonModule.__init__(self, 'sage.libs.ecl',
-                              spkg='sagemath_symbolics', type='standard')
-
 
 class sage__libs__flint(JoinFeature):
     r"""
@@ -1081,7 +1059,6 @@ def all_features():
         sage__graphs(),
         sage__groups(),
         sage__libs__braiding(),
-        sage__libs__ecl(),
         sage__libs__flint(),
         sage__libs__gap(),
         sage__libs__giac(),
