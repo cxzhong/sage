@@ -971,28 +971,6 @@ class sage__rings__real_mpfr(JoinFeature):
                              spkg='sagemath_modules', type='standard')
 
 
-class sage__sat(JoinFeature):
-    r"""
-    A :class:`~sage.features.Feature` describing the presence of :mod:`sage.sat`.
-
-    TESTS::
-
-        sage: from sage.features.sagemath import sage__sat
-        sage: sage__sat().is_present()                                                  # needs sage.sat
-        FeatureTestResult('sage.sat', True)
-    """
-    def __init__(self):
-        r"""
-        TESTS::
-
-            sage: from sage.features.sagemath import sage__sat
-            sage: isinstance(sage__sat(), sage__sat)
-            True
-        """
-        JoinFeature.__init__(self, 'sage.sat',
-                             [PythonModule('sage.sat.expression')],
-                             spkg='sagemath_combinat', type='standard')
-
 
 class sage__schemes(JoinFeature):
     r"""
@@ -1123,7 +1101,6 @@ def all_features():
         sage__rings__padics(),
         sage__rings__real_double(),
         sage__rings__real_mpfr(),
-        sage__sat(),
         sage__schemes(),
         sage__symbolic(),
     ]
