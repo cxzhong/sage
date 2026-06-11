@@ -2156,7 +2156,6 @@ def sage_getdoc(obj, obj_name='', embedded=False):
         return ''
     r = sage_getdoc_original(obj)
     s = sage.misc.sagedoc.format(r, embedded=embedded)
-    f = sage_getfile(obj)
 
     # Fix object naming
     if obj_name != '':
