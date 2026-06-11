@@ -1070,7 +1070,6 @@ class InfinitePolynomialRing_sparse(Ring):
         conversion semantics, for instance evaluation at the generator
         of a number field or quotient ring::
 
-            sage: # needs sage.rings.number_field
             sage: t = polygen(QQ)
             sage: K.<i> = NumberField(t^2 + 1)
             sage: NK = InfinitePolynomialRing(K, ['a'])
@@ -1081,7 +1080,6 @@ class InfinitePolynomialRing_sparse(Ring):
 
         ::
 
-            sage: # needs sage.symbolic
             sage: T = InfinitePolynomialRing(SR, ['a'])
             sage: T(polygen(QQ, 't'))
             t
