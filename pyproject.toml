@@ -76,6 +76,7 @@ dependencies = [
 description = "Sage: Open Source Mathematics Software: Standard Python Library"
 dynamic = ["version"]
 license = "GPL-2.0-or-later"
+license-files = ["COPYING.txt"]
 name = "sagemath"
 requires-python = ">=3.12, <3.15"
 urls = { Homepage = "https://www.sagemath.org" }
@@ -455,3 +456,5 @@ select = [
 [tool.uv]
 # Don't use build isolation for sage (it's incompatible with meson-python's editable install)
 no-build-isolation-package = ["sagemath"]
+# Build these packages from source instead of installing pre-built wheels.
+no-binary-package = ["cypari2", "pplpy", "primecountpy"]
