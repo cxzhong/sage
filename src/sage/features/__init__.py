@@ -889,8 +889,8 @@ class CythonFeature(Feature):
         TESTS::
 
             sage: from sage.features import CythonFeature
-            sage: from sage.features.bliss import BlissLibrary
-            sage: isinstance(BlissLibrary(), CythonFeature)  # indirect doctest
+            sage: f = CythonFeature("foo", test_code="")
+            sage: isinstance(f, CythonFeature)
             True
         """
         Feature.__init__(self, name, **kwds)
