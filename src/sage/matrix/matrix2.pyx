@@ -4861,7 +4861,8 @@ cdef class Matrix(Matrix1):
                                                          RationalField)):
             raise ValueError("'padic' matrix kernel algorithm only available over the rationals and the integers, not over %s" % R)
         elif algorithm == 'flint' and not isinstance(R, (IntegerRing_class,
-                                                         RationalField)):
+                                                         RationalField,
+                                                         sage.rings.abc.IntegerModRing)):
             raise ValueError("'flint' matrix kernel algorithm only available over the rationals and the integers, not over %s" % R)
         elif algorithm == 'linbox' and not isinstance(self, sage.matrix.matrix_rational_sparse.Matrix_rational_sparse):
             if isinstance(R, RationalField):
@@ -4945,7 +4946,7 @@ cdef class Matrix(Matrix1):
         #   zero columns as well. (eg PARI?)  This could be fixed at the source
         #   with a careful study of the phenomenon.  Start by commenting out
         #   the following and running doctests in sage/matrix
-        if M.nrows()==0 and M.ncols()!=self.ncols():
+        if M.nrows() == 0 and M.ncols() != self.ncols():
             M = M.new_matrix(nrows=0, ncols=self.ncols())
 
         # Convert basis to requested type and return the matrix
@@ -4967,7 +4968,7 @@ cdef class Matrix(Matrix1):
                 # this is the basis immediately obvious from echelon form
                 # so C is always invertible (when working over a field)
                 C = M.matrix_from_columns(self.nonpivots())
-                return C.inverse()*M
+                return C.inverse() * M
             else:
                 return M
         elif basis == 'LLL':

@@ -1756,7 +1756,7 @@ cdef class Matrix_modn_dense_flint(Matrix_dense):
             return "pivot-nmod-field", ans
         else:
             # We need to have a square matrix so that it's possible to echelonize.
-            ans = self._new(self._ncols, self._ncols)
+            ans = self._new(self._ncols - self.rank(), self._ncols)
             N = mpz_get_si(self._modulus.sageInteger.value)
             Ninv = n_preinvert_limb(N)
 
