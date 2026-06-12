@@ -89,6 +89,7 @@ py.install_sources(
   'permutation.py',
   'permutation_cython.pxd',
   'permutation_cython.pyx',
+  'plactic_monoid.py',
   'plane_partition.py',
   'positive_integer_semigroup_test.py',
   'q_analogues.py',
