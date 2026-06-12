@@ -1173,6 +1173,26 @@ cdef class Matrix_modn_dense_flint(Matrix_dense):
         if transformation:
             return trans
 
+    def _echelon_in_place_classical(self):
+        r"""
+        Puts ``self`` in row echelon form using FLINT.
+
+        EXAMPLES::
+
+            sage: A = random_matrix(GF(15), 10, 20, implementation='flint')
+            sage: B = copy(A)
+            sage: A._echelon_in_place_classical()
+            sage: A.row_space() == B.row_space()
+            True
+            sage: all(r[r.nonzero_positions()[0]] == 1 for r in A.rows() if r)
+            True
+        """
+        sig_on()
+        rank = nmod_mat_rref(self._matrix)
+        sig_off()
+        self.cache('rank', Integer(rank))
+        self.cache('in_echelon_form', True)
+
     def _echelon_copy(self):
         """
         Copies the matrix and adds zero rows at the bottom if necessary.
