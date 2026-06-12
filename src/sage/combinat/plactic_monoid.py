@@ -3,17 +3,7 @@ Plactic monoid
 
 AUTHORS:
 
-- Daniel Chen (2026): initial version
-
-- Junbok Lee (2026): initial version
-
-- Heather Ross (2026): initial version
-
-- Evuilynn Ngyen (2026) : initial version
-
-- Lisa Johnston (2026): initial version
-
-- Chenchen Zhao (2026): initial version
+- Daniel Chen, Lisa Johnston, Junbok Lee, Evuilynn Nguyen, Heather Ross, Chenchen Zhao (2026): initial version
 
 This file implements the plactic monoid on the alphabet
 `\{1, 2, \ldots, n\}`. Elements are represented by words, with equality
@@ -38,7 +28,7 @@ length.
 """
 
 # ****************************************************************************
-#       Copyright (C) 2026 Daniel Chen, Junbok Lee, Heather Ross
+#       Copyright (C) 2026 Daniel Chen, Lisa Johnston, Junbok Lee, Evuilynn Nguyen, Heather Ross, Chenchen Zhao
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
 #              https://www.gnu.org/licenses/
@@ -302,7 +292,7 @@ class PlacticMonoid(UniqueRepresentation, Parent):
 
             EXAMPLES::
 
-                sage: from sage.combinat.plactic_monoid import PlacticMonoid                
+                sage: from sage.combinat.plactic_monoid import PlacticMonoid
                 sage: M = PlacticMonoid(4)
                 sage: M([2, 1, 3]) == M([2, 3, 1])
                 True
@@ -363,7 +353,7 @@ class PlacticMonoid(UniqueRepresentation, Parent):
             # only need to check rearrangements of the current word. The ``set``
             # removes duplicates when letters repeat.
             words = sorted(set(permutations(self.value)))
-            
+
             # Keep exactly the rearrangements whose RSK insertion tableau agrees
             # with the original one.
             return [parent(w) for w in words if RSK(w)[0] == tableau]
