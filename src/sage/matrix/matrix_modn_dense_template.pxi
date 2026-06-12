@@ -1631,26 +1631,6 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
         self.cache('minpoly_%s_%s' % (algorithm, var), g)
         return g
 
-    def minpoly_ideal(self, var='x', proof=None, **kwds):
-        """
-        The ideal of polynomials over the base ring that vanish on this matrix.
-
-        When the base ring is not a field, this ideal is not necessarily principal.
-
-        INPUT:
-
-        - ``var`` -- the variable name for the polynomial ring
-
-        - ``proof`` -- boolean, whether to check that the answer computed by using a minimal polynomial is correct.  If not specified, uses the linear algebra default proof state.  Note that if the modulus is composite and divisible by small primes the probability of an incorrect result is substantial.  The result is not cached when proof is ``False``, so this function can be called multiple times to get a desired level of certainty.
-
-        EXAMPLES::
-
-            sage: A = matrix(Zmod(36), 2, [6, 0, 0, -6], implementation='linbox')
-            sage: A.minpoly_ideal()
-            Ideal (x^2, 3*x + 18) of Univariate Polynomial Ring in x over Ring of integers modulo 36
-        """
-        return self._change_implementation('flint').minpoly_ideal(var, proof=proof, **kwds)
-
     def _charpoly_linbox(self, var='x'):
         """
         Compute the characteristic polynomial using LinBox. No checks

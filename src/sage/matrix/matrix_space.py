@@ -351,7 +351,7 @@ def get_matrix_class(R, nrows, ncols, sparse, implementation):
             if R.order() < sys.maxsize:
                 from . import matrix_modn_dense_flint
                 return matrix_modn_dense_flint.Matrix_modn_dense_flint
-            raise ValueError("'flint' matrices are only available over the integers, the rationals and Z/N with N < 2^63")
+            raise ValueError("'flint' matrices are only available over the integers, the rationals and Z/N with N < 2^64")
 
         if implementation == 'm4ri':
             if R.is_field() and R.characteristic() == 2 and R.order() <= 65536:

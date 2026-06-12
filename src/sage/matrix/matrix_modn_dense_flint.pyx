@@ -3,13 +3,28 @@
 r"""
 FLINT nmod_mat class wrapper
 
-This file implements matrices over `\ZZ/N\ZZ` for `N < 2^{63}`.
-It adds some capabilities for composite `N` that are not present in FLINT.
+This file implements matrices over `\ZZ/N\ZZ` for `N < 2^{64}` (or `N < 2^{32}` on 32-bit systems).
+It also adds some capabilities for composite `N` that are not present in FLINT.
 
 AUTHORS:
 
 - Edgar Costa, David Roe (2021) Initial version.
+- Vincent Macri (2026) Cleaned up and updated old unmerged code.
 """
+
+# ****************************************************************************
+#       Copyright (C) 2021 David Roe <roed.math@gmail.com>
+#                     2021 Edgar Costa <edgarc@mit.edu>
+#                     2026 Vincent Macri <vincent.macri@ucalgary.ca>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 2 of the License, or
+# (at your option) any later version.
+#                  http://www.gnu.org/licenses/
+# ****************************************************************************
+
+import sys
 
 from cpython.sequence cimport *
 from cysignals.signals cimport sig_on, sig_str, sig_off
@@ -61,7 +76,7 @@ from sage.libs.flint.ulong_extras cimport (
 )
 from sage.libs.gmp.mpz cimport mpz_sgn,  mpz_fits_ulong_p, mpz_get_ui, mpz_get_si
 
-MAX_MODULUS = (1 << 64) - 1
+MAX_MODULUS = (sys.maxsize << 1) + 1
 
 cdef class Matrix_modn_dense_flint(Matrix_dense):
     r"""
@@ -927,200 +942,57 @@ cdef class Matrix_modn_dense_flint(Matrix_dense):
                 nmod_mat_set_entry(ans._matrix, i, j, x)
         return ans
 
-    def minpoly_ideal(self, var='x', proof=None, **kwds):
-        """
-        The ideal of polynomials over the base ring that vanish on this matrix.
-
-        When the base ring is not a field, this ideal is not necessarily principal.
-
-        INPUT:
-
-        - ``var`` -- the variable name for the polynomial ring
-
-        - ``proof`` -- boolean, whether to check that the answer computed by using a minimal polynomial is correct.  If not specified, uses the linear algebra default proof state.  Note that if the modulus is composite and divisible by small primes the probability of an incorrect result is substantial.  The result is not cached when proof is ``False``, so this function can be called multiple times to get a desired level of certainty.
-
-        EXAMPLES::
-
-            sage: A = matrix(Zmod(36), 2, [6, 0, 0, -6])
-            sage: A.minpoly_ideal()
-            Ideal (x^2, 3*x + 18) of Univariate Polynomial Ring in x over Ring of integers modulo 36
-
-            sage: A = matrix(Zmod(43^10), 6, [0, 5664461354126771, 12212357361910300, 15947020959157478, 0, 16792952041597449, 14690359073749623, 11237259451999884, 5117434014428142, 15157488677243483, 9004103062307752, 20761679499270441, 4620722392655416, 5445142895231681, 6605357538252496, 7608812697273777, 18542817615638637, 18194689690271501, 0, 20341333098836812, 12117922812876054, 1270149214447437, 0, 10999401748338075, 4620722392655416, 10891113386038365, 956055025271903, 2162842206467093, 18542817615638637, 1143972982339214, 13128267973348003, 15817056104759912, 20531311511260484, 13598045280630823, 7585782589268305, 14053895308766769])
-            sage: I = A.minpoly_ideal(); I
-            Ideal (x^4 + 3889828461*x^3 + 5524445805550*x^2 + 182758215997616*x, 6321363049*x^3 + 1630911666642*x^2 + 140258403331212*x, 11688200277601*x^2, 502592611936843*x) of Univariate Polynomial Ring in x over Ring of integers modulo 21611482313284249
-
-        We check that all generators vanish on A::
-
-            sage: all(f.subs(x=A) == 0 for f in I.gens())
-            True
-
-        We check that the ideal is preserved by conjugation::
-
-            sage: B = random_matrix(Zmod(43^10), 6)
-            sage: while not B.is_unit() or B.rank() != 6:
-            ....:     assert B.rank() == 6
-            ....:     B = random_matrix(Zmod(43^10), 6)
-            sage: J = (~B * A * B).minpoly_ideal()
-            sage: J == I
-            True
-        """
-        if not self.is_square():
-            raise ValueError("Minimal polynomial ideal not defined for non-square matrices")
-        if proof is None:
-            proof = linalg_proof()
-        R = self.base_ring()
-        Rx = PolynomialRing(R, var, implementation="FLINT")
-        key = "minpoly_ideal"
-        ans = self.fetch(key)
-        if ans is not None:
-            if ans.ring().variable_name() != var:
-                ans = Rx.ideal([Rx(g) for g in ans.gens()])
-            return ans
-        cdef Py_ssize_t n = self.nrows()
-        F = R.factored_order()
-        P = self.parent()
-        cdef mp_limb_t piv, N = self.base_ring().order()
-        cdef Matrix_modn_dense_flint C
-        cdef Polynomial_zmod_flint f, mpoly
-        cdef Py_ssize_t i, j, jj, k, d
-        if len(F) == 1:
-            p, e = F[0]
-            # We start with the minimal polynomial mod p
-            S = Zmod(p)
-            Sx = PolynomialRing(S, var, implementation="FLINT")
-            from sage.matrix.matrix_space import MatrixSpace
-            SM = MatrixSpace(S, self._nrows, self._ncols, implementation="flint")
-            C = SM(self)
-            mpoly = Sx()
-            sig_on()
-            nmod_mat_minpoly(&mpoly.x, C._matrix)
-            sig_off()
-            if e == 1:
-                ans = Rx.ideal(mpoly)
-                self.cache(key, ans)
-                return ans
-            d = mpoly.degree()
-            if d == n:
-                # The minimal polynomial is the same as the characteristic polynomial
-                ans = Rx.ideal(self.charpoly(var=var))
-                self.cache(key, ans)
-                return ans
-        # We pick a random vector and iteratively multiply by the matrix n times
-        cdef Matrix_modn_dense_flint v = self._new(n, 1), B = self._new(n+1, n+1)
-        pows = [self.parent().identity_matrix()]
-        def check(polys, pows):
-            d = polys[0].degree()
-            while d >= len(pows):
-                pows.append(pows[-1] * self)
-            for f in polys:
-                C = self._new(n, n)
-                for k in range(f.degree() + 1):
-                    C += f[k] * pows[k]
-                if C:
-                    return False
-            return True
-
-        # TODO: I do not understand what is happening here!
-        # TODO: The while loop may never terminate if the rank is too low
-        give_up = self.rank() < self._nrows - 1
-        cdef Py_ssize_t trials = 0
-        cdef Py_ssize_t max_trials = 100 + n**2
-
-        while True:
-            trials += 1
-            if trials > max_trials and give_up:  # 100 + n**2 is arbitrary
-                raise ValueError('failed to find minimal polynomial ideal')
-
-            for i in range(n):
-                c = randrange(0, N)
-                nmod_mat_set_entry(v._matrix, i, 0, c)
-                nmod_mat_set_entry(B._matrix, i, n, c)
-            # It would be nice to do the kernel computation in parallel with computing self*v so that we know if we can stop early
-            for j in range(n - 1, -1, -1):
-                v = self * v
-                for i in range(n):
-                    nmod_mat_set_entry(B._matrix, i, j, nmod_mat_get_entry(v._matrix, i, 0))
-            # _right_kernel_matrix caches echelon form, and we're changing B
-            B.clear_cache()
-            _, C = B._right_kernel_matrix()
-            C.howellize()
-            polys = []
-            # scan for last nonzero row
-            for i in range(n, -1, -1):
-                for j in range(n):
-                    piv = nmod_mat_get_entry(C._matrix, i, j)
-                    if piv:
-                        f = Rx()
-                        nmod_poly_fit_length(&f.x, n+1-j)
-                        for jj in range(n+1-j):
-                            nmod_poly_set_coeff_ui(&f.x, jj, nmod_mat_get_entry(C._matrix, i, n-jj))
-                        polys.append(f)
-                        break
-                if piv == 1:
-                    # reached the monic generator, so try to return an answer
-                    polys.reverse()
-                    # We only know that the polynomials vanish on a random vector.
-                    # We need to check that they actually vanish on the matrix
-                    if proof and check(polys, pows) or not proof:
-                        ans = Rx.ideal(polys)
-                        if proof:
-                            self.cache(key, ans)
-                        return ans
-                    break
-        raise ValueError('failed to find minimal polynomial ideal')
-
-    def minpoly(self, var='x', proof=None, **kwds):
+    def minpoly(self, var='x', algorithm='flint', proof=None):
         """
         Returns the minimal polynomial of this matrix.
 
         Note that, in general, the minimal polynomial of a matrix over a ring with composite modulus is not well defined.
 
-        .. SEEALSO::
-
-            :meth:`minpoly_ideal`
-
         INPUT:
 
         - ``var`` -- the variable name for the polynomial ring
 
-        - ``proof`` -- boolean, whether to check that the answer computed by using a minimal polynomial is correct.  If not specified, uses the linear algebra default proof state.  Note that if the modulus is composite and divisible by small primes the probability of an incorrect result is substantial.  The result is not cached when proof is ``False``, so this function can be called multiple times to get a desired level of certainty.
+        - ``algorithm`` -- ignored, always uses ``flint``
+
+        - ``proof`` -- boolean, whether to check that the answer computed by using a minimal polynomial is correct.  If not specified, uses the linear algebra default proof state. Currently ignored as we simply raise an error if a minimal polynomial cannot be found.
 
         EXAMPLES::
 
-            sage: A = matrix(Zmod(36), 6, 6, 1)
+            sage: A = matrix(Zmod(17), 6, 6, 1)
             sage: A.minpoly()
-            x + 35
-
-            sage: A = matrix(Zmod(43^4), 4, 4, [1547380, 1211593, 1900136, 2872531, 3010350, 3130824, 2590437, 420249, 1236104, 1628956, 1300526, 145927, 1817994, 1412525, 1305313, 2775020])
-            sage: f = A.minpoly(); f
-            x^4 + 1502653*x^3 + 2556099*x^2 + 595635*x + 865202
-            sage: f(A) == 0
+            x + 16
+            sage: A.minpoly('t')
+            t + 16
+            sage: B = random_matrix(Zmod(101), 10, 10)
+            sage: m = B.minpoly()
+            sage: m(B).is_zero()
             True
-
-            sage: A = matrix(Zmod(36), 2, [6, 0, 0, -6])
-            sage: A.minpoly()
-            Traceback (most recent call last):
-            ...
-            ValueError: Matrix does not have a minimal polynomial; try minpoly_ideal
-
-        We build matrices with a given minimal polynomial, then check that the correct result is returned::
-
-           sage: R.<x> = Zmod(2^63-1)[]
-           sage: f = x^3 + R.random_element(2)
-           sage: g = x^2 + R.random_element(1)
-           sage: A = block_diagonal_matrix([companion_matrix(f), companion_matrix(g), companion_matrix(f*g)])
-           sage: B = random_matrix(Zmod(2^63-1), 10, 10)
-           sage: while not B.is_unit():
-           ....:     B = random_matrix(Zmod(2^63-1), 10, 10)
-           sage: C = ~B * A * B
-           sage: C.minpoly() == f*g
-           True
         """
-        I = self.minpoly_ideal(var, proof=proof)
-        gens = I.gens()
-        if len(gens) != 1:
-            raise ValueError("Matrix does not have a minimal polynomial; try minpoly_ideal")
-        return gens[0]
+
+        if not self.is_square():
+            raise ValueError("minimal polynomial not defined for non-square matrices")
+
+        R = self.base_ring()
+        Rx = PolynomialRing(R, var, implementation="FLINT")
+        key = "minpoly"
+        ans = self.fetch(key)
+        if ans is not None:
+            if ans.variable_name() != var:
+                ans = Rx(ans)
+            return ans
+
+        if not self._base_ring.is_field():
+            raise ValueError('computing the minimal polynomial is only supported modulo primes')
+
+        cdef Polynomial_zmod_flint mpoly = Rx()
+
+        sig_on()
+        nmod_mat_minpoly(&mpoly.x, self._matrix)
+        sig_off()
+
+        ans = Rx(mpoly)
+        self.cache(key, ans)
+        return ans
 
     cdef swap_columns_c(self, Py_ssize_t c1, Py_ssize_t c2):
         """
@@ -1844,9 +1716,9 @@ cdef class Matrix_modn_dense_flint(Matrix_dense):
             sage: A * K0.T == 0
             True
 
-        The default is to echelonize the kernel::
+        We can choose to echelonize the kernel::
 
-            sage: K = A.right_kernel_matrix(); K
+            sage: K = A.right_kernel_matrix(basis='echelon'); K
             [              1               0               7  11391562385871 163874381071062   4349304245336]
             [              0               1              22    218579974005 169987310309906  32297642657385]
             [              0               0              43   3510762799844 121697346420828 148529822771001]
