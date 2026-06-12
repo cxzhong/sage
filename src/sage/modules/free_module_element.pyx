@@ -1470,6 +1470,22 @@ cdef class FreeModuleElement(Vector):   # abstract base class
             sage: all([d.is_dense(), dm.is_dense(), s.is_sparse(), sm.is_sparse()])     # needs sage.symbolic
             True
 
+        When different matrix implementations are available, we can specify which to use. ::
+
+            sage: v1 = vector(Zmod(17), [1, 2, 3]);
+            sage: type(v1.row())
+            <class 'sage.matrix.matrix_modn_dense_flint.Matrix_modn_dense_flint'>
+            sage: type(v1.row(implementation='flint'))
+            <class 'sage.matrix.matrix_modn_dense_flint.Matrix_modn_dense_flint'>
+            sage: type(v1.row(implementation='linbox'))
+            <class 'sage.matrix.matrix_modn_dense_float.Matrix_modn_dense_float'>
+            sage: v2 = vector(Zmod(1000), [1, 2, 3]);
+            sage: type(v2.row())
+            <class 'sage.matrix.matrix_modn_dense_flint.Matrix_modn_dense_flint'>
+            sage: type(v2.row(implementation='linbox'))
+            <class 'sage.matrix.matrix_modn_dense_double.Matrix_modn_dense_double'>
+
+
         TESTS:
 
         The :meth:`~sage.matrix.matrix1.Matrix.row` method will return
@@ -1541,6 +1557,21 @@ cdef class FreeModuleElement(Vector):   # abstract base class
             sage: sm = s.column()                                                       # needs sage.symbolic
             sage: all([d.is_dense(), dm.is_dense(), s.is_sparse(), sm.is_sparse()])     # needs sage.symbolic
             True
+
+        When different matrix implementations are available, we can specify which to use. ::
+
+            sage: v1 = vector(Zmod(17), [1, 2, 3]);
+            sage: type(v1.column())
+            <class 'sage.matrix.matrix_modn_dense_flint.Matrix_modn_dense_flint'>
+            sage: type(v1.column(implementation='flint'))
+            <class 'sage.matrix.matrix_modn_dense_flint.Matrix_modn_dense_flint'>
+            sage: type(v1.column(implementation='linbox'))
+            <class 'sage.matrix.matrix_modn_dense_float.Matrix_modn_dense_float'>
+            sage: v2 = vector(Zmod(1000), [1, 2, 3]);
+            sage: type(v2.column())
+            <class 'sage.matrix.matrix_modn_dense_flint.Matrix_modn_dense_flint'>
+            sage: type(v2.column(implementation='linbox'))
+            <class 'sage.matrix.matrix_modn_dense_double.Matrix_modn_dense_double'>
 
         TESTS:
 

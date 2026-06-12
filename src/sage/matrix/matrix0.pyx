@@ -4869,7 +4869,7 @@ cdef class Matrix(sage.structure.element.Matrix):
             sage: m.rank()
             2
 
-        Rank is defined for integers modulo a compute number in terms of the Howell form::
+        Rank is defined for integers modulo a composite number in terms of the Howell form::
 
             sage: m = matrix(Integers(4), 2, [2,2,2,2])
             sage: m.rank()

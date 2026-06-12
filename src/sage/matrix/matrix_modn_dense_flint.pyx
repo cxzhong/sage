@@ -32,12 +32,8 @@ from libc.string cimport memcpy
 
 from sage.structure.element cimport Element, Matrix
 from sage.structure.element import is_Vector
-from sage.categories.cartesian_product import cartesian_product
 from sage.structure.richcmp cimport rich_to_bool, Py_EQ, Py_NE
 from sage.structure.factorization import Factorization
-from sage.structure.proof.all import linear_algebra as linalg_proof
-from sage.misc.prandom import randrange
-from sage.arith.all import gcd
 from sage.arith.power cimport generic_power
 from sage.arith.long cimport integer_check_long_py
 from sage.rings.polynomial.polynomial_zmod_flint cimport Polynomial_zmod_flint
@@ -51,14 +47,10 @@ from sage.rings.finite_rings.integer_mod cimport (
 from sage.rings.finite_rings.integer_mod_ring import Zmod
 from sage.rings.polynomial.polynomial_ring_constructor import PolynomialRing
 from sage.matrix.args cimport SparseEntry, MatrixArgs_init
+from sage.matrix.matrix_utils cimport check_matrix_multiplication_sizes
 
 from sage.libs.flint.nmod_mat cimport *
-from sage.libs.flint.nmod_poly cimport (
-    nmod_poly_set,
-    nmod_poly_set_coeff_ui,
-    nmod_poly_get_coeff_ui,
-    nmod_poly_fit_length
-)
+from sage.libs.flint.nmod_poly cimport nmod_poly_set_coeff_ui
 from sage.libs.flint.ulong_extras cimport (
     n_precompute_inverse,
     n_preinvert_limb,
@@ -260,10 +252,8 @@ cdef class Matrix_modn_dense_flint(Matrix_dense):
             [10 13]
             [28  4]
         """
-        if left._ncols != _right._nrows:
-            raise IndexError("Number of columns of self must equal number of rows of right.")
+        check_matrix_multiplication_sizes(left, _right)
         cdef Matrix_modn_dense_flint right = _right
-        cdef Py_ssize_t i, j
         cdef Matrix_modn_dense_flint M = left._new(left._nrows, right._ncols)
         sig_on()
         nmod_mat_mul(M._matrix, left._matrix, right._matrix)
@@ -473,9 +463,9 @@ cdef class Matrix_modn_dense_flint(Matrix_dense):
         cdef Matrix_modn_dense_flint M
         R = self._parent._base
         cdef Py_ssize_t i, j, n = self._nrows
-        cdef long k, e, b, nlifts
+        cdef long k, e, nlifts
         cdef mp_limb_t p, N = 1
-        cdef nmod_mat_t inv, A, B, tmp
+        cdef nmod_mat_t inv, A, tmp
         cdef bint lift_required, ok
         if algorithm is None:
             if R.is_field():
@@ -634,7 +624,6 @@ cdef class Matrix_modn_dense_flint(Matrix_dense):
         cdef Py_ssize_t i, j, k, m, n, r
         n = self._nrows
 
-        cdef bint found_nonzero
         cdef mp_limb_t u, minu, inv, q, x, y, prepe, prepe1, preq, pe, p = pz
         cdef int v, minv, e = ez
         cdef double pinv = n_precompute_inverse(p)
@@ -1022,7 +1011,7 @@ cdef class Matrix_modn_dense_flint(Matrix_dense):
         """
         b_is_vec = is_Vector(B)
         cdef Py_ssize_t i, j, ii, jj, n, Cm, An = self.ncols()
-        cdef mp_limb_t piv, q, r, tmp, entry, N = self.base_ring().order(), Ninv = n_preinvert_limb(N)
+        cdef mp_limb_t piv, q, r, entry, N = self.base_ring().order(), Ninv = n_preinvert_limb(N)
         cdef double pivinv
         if b_is_vec:
             n = 1
@@ -1684,7 +1673,7 @@ cdef class Matrix_modn_dense_flint(Matrix_dense):
 
         - ``proof`` -- ignored, for compatibility with :meth:`sage.matrix.matrix2.Matrix.right_kernel_matrix`.
 
-        - ``zero_divisors_are_pivots`` -- 
+        - ``zero_divisors_are_pivots`` -- great zero divisors as pivots
 
         OUTPUT:
 
