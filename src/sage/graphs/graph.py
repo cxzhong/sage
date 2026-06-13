@@ -6414,14 +6414,30 @@ class Graph(GenericGraph):
             sage: N = BipartiteGraph(networkx.make_clique_bipartite(CG.networkx_graph()))
             sage: S.is_isomorphic(N)
             True
+
+        Check the behavior of parameter ``immutable``. By default (``None``),
+        ``self`` and its vertex-clique bipartite graph behave the same way::
+
+            sage: G = G = Graph([(0, 1)])
+            sage: G.cliques_get_clique_bipartite().is_immutable()
+            False
+            sage: G.cliques_get_clique_bipartite(immutable=True).is_immutable()
+            True
+            sage: G = G = Graph([(0, 1)], immutable=True)
+            sage: G.cliques_get_clique_bipartite().is_immutable()
+            True
+            sage: G.cliques_get_clique_bipartite(immutable=False).is_immutable()
+            False
         """
         G = Graph([self, []], format='vertices_and_edges')
         for i, clique in enumerate(IndependentSets(self, maximal=True, complement=True)):
             idx = - i - 1
             G.add_vertex(idx)
             G.add_edges((u, idx) for u in clique)
+        if 'immutable' not in kwds:
+            kwds['immutable'] = self.is_immutable()
         from sage.graphs.bipartite_graph import BipartiteGraph
-        return BipartiteGraph(G, check=False)
+        return BipartiteGraph(G, check=False, **kwds)
 
     @doc_index("Algorithmically hard stuff")
     def independent_set(self, algorithm='Cliquer', value_only=False, reduction_rules=True,
