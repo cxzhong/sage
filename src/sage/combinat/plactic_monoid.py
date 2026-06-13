@@ -37,6 +37,8 @@ length.
 from sage.structure.unique_representation import UniqueRepresentation
 from sage.structure.parent import Parent
 from sage.structure.element_wrapper import ElementWrapper
+from sage.categories.sets_with_grading import SetsWithGrading
+
 from sage.misc.cachefunc import cached_method
 from itertools import permutations, chain
 from sage.rings.integer import Integer
@@ -128,7 +130,7 @@ class PlacticMonoid(UniqueRepresentation, Parent):
         """
         from sage.categories.monoids import Monoids
         self._n = n
-        Parent.__init__(self, category=Monoids().FinitelyGenerated().Infinite())
+        Parent.__init__(self, category=(Monoids().FinitelyGenerated().Infinite(),SetsWithGrading().Infinite()))
 
     def _repr_(self):
         """
@@ -186,6 +188,20 @@ class PlacticMonoid(UniqueRepresentation, Parent):
             0
         """
         return self.element_class(self, ())
+
+    @cached_method
+    def an_element(self):
+        """
+        Return an element of ``self``.
+
+        EXAMPLES::
+
+            sage: from sage.combinat.plactic_monoid import PlacticMonoid
+            sage: M = PlacticMonoid(3)
+            sage: M.an_element()
+            1
+        """
+        return self.module_generators()[1]
 
     class Element(ElementWrapper):
         r"""
@@ -255,6 +271,19 @@ class PlacticMonoid(UniqueRepresentation, Parent):
                 3
             """
             return len(self.value)
+
+        def grade(self):
+            """
+            Return the grade of ``self``, which is the length as a word.
+
+            EXAMPLES::
+
+                sage: from sage.combinat.plactic_monoid import PlacticMonoid
+                sage: M = PlacticMonoid(4)
+                sage: len(M([3, 1, 2]))
+                3
+            """
+            return self.__len__()
 
         def __iter__(self):
             """
@@ -389,7 +418,7 @@ class PlacticMonoid(UniqueRepresentation, Parent):
             """
             return repr(self) == repr(self.to_word())
 
-    def elements_of_size(self, k):
+    def subset(self, k):
         r"""
         Return the plactic monoid elements represented by words of length ``k``.
 
@@ -400,9 +429,9 @@ class PlacticMonoid(UniqueRepresentation, Parent):
 
             sage: from sage.combinat.plactic_monoid import PlacticMonoid
             sage: M = PlacticMonoid(2)
-            sage: M.elements_of_size(1)
+            sage: M.subset(1)
             [1, 2]
-            sage: M.elements_of_size(2)
+            sage: M.subset(2)
             [11, 12, 21, 22]
         """
         if not isinstance(k, (int, Integer)):
