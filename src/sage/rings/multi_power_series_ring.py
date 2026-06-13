@@ -733,40 +733,12 @@ class MPowerSeriesRing_generic(PowerSeriesRing_generic, Nonexact):
 
     def _element_constructor_(self, f, prec=None):
         """
-        TESTS::
+        Construct a multivariate power series from ``f``.
 
-            sage: M = PowerSeriesRing(ZZ,5,'t')
-            sage: t = M.gens()
-            sage: m = -2*t[0]*t[3]^6*t[4] - 12*t[0]^2*t[3]*t[4]^6 + t[1]*t[2]*t[3]^4*t[4]^3 + M.O(10)
-            sage: M._element_constructor_(m)
-            -2*t0*t3^6*t4 - 12*t0^2*t3*t4^6 + t1*t2*t3^4*t4^3 +
-            O(t0, t1, t2, t3, t4)^10
-            sage: R = PolynomialRing(ZZ,5,'t')
-            sage: t = R.gens()
-            sage: p = -4*t[0]*t[4] + t[1]^2 + t[1]*t[2] - 6*t[2]*t[4] - t[3]*t[4]
-            sage: M._element_constructor_(p)
-            -4*t0*t4 + t1^2 + t1*t2 - 6*t2*t4 - t3*t4
-            sage: p.parent()
-            Multivariate Polynomial Ring in t0, t1, t2, t3, t4 over Integer Ring
-            sage: M._element_constructor_(p).parent()
-            Multivariate Power Series Ring in t0, t1, t2, t3, t4 over
-            Integer Ring
+        INPUT:
 
-            sage: L.<x,y> = LazyPowerSeriesRing(QQ)
-            sage: R = PowerSeriesRing(QQ, names=('x','y','z'))
-            sage: R(1/(1-x-y), prec=3)
-            1 + x + y + x^2 + 2*x*y + y^2 + O(x, y, z)^3
-            sage: R(x + y^2)
-            x + y^2
-
-        The rings that canonically coerce to this multivariate power series
-        ring are:
-
-            - this ring itself
-
-            - a polynomial or power series ring in the same variables or a
-              subset of these variables (possibly empty), over any base
-              ring that canonically coerces into the base ring of this ring
+        - ``f`` -- data used to the define a series
+        - ``prec`` -- the total-degree precision
 
         EXAMPLES::
 
@@ -792,6 +764,30 @@ class MPowerSeriesRing_generic(PowerSeriesRing_generic, Nonexact):
             u*v^2 + O(t, u, v)^6
 
         TESTS::
+
+            sage: M = PowerSeriesRing(ZZ,5,'t')
+            sage: t = M.gens()
+            sage: m = -2*t[0]*t[3]^6*t[4] - 12*t[0]^2*t[3]*t[4]^6 + t[1]*t[2]*t[3]^4*t[4]^3 + M.O(10)
+            sage: M._element_constructor_(m)
+            -2*t0*t3^6*t4 - 12*t0^2*t3*t4^6 + t1*t2*t3^4*t4^3 +
+            O(t0, t1, t2, t3, t4)^10
+            sage: R = PolynomialRing(ZZ,5,'t')
+            sage: t = R.gens()
+            sage: p = -4*t[0]*t[4] + t[1]^2 + t[1]*t[2] - 6*t[2]*t[4] - t[3]*t[4]
+            sage: M._element_constructor_(p)
+            -4*t0*t4 + t1^2 + t1*t2 - 6*t2*t4 - t3*t4
+            sage: p.parent()
+            Multivariate Polynomial Ring in t0, t1, t2, t3, t4 over Integer Ring
+            sage: M._element_constructor_(p).parent()
+            Multivariate Power Series Ring in t0, t1, t2, t3, t4 over
+            Integer Ring
+
+            sage: L.<x,y> = LazyPowerSeriesRing(QQ)
+            sage: R = PowerSeriesRing(QQ, names=('x','y','z'))
+            sage: R(1/(1-x-y), prec=3)
+            1 + x + y + x^2 + 2*x*y + y^2 + O(x, y, z)^3
+            sage: R(x + y^2)
+            x + y^2
 
             sage: R.<t,u,v> = PowerSeriesRing(QQ)
             sage: S1.<t,v> = PolynomialRing(ZZ)
