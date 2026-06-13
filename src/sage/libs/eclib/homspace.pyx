@@ -275,10 +275,10 @@ cdef class ModularSymbols:
         sig_off()
         for i in range(n):
             sv = M.row(i+1)
-            iter = sv.begin()
-            while iter != sv.end():
-                d[(i, deref(iter).first-1)] = deref(iter).second
-                inc(iter)
+            it = sv.begin()
+            while it != sv.end():
+                d[(i, deref(it).first-1)] = deref(it).second
+                inc(it)
         MS = MatrixSpace(base_ring, n, sparse=True)
         # The next step is the bottleneck.
         return MS(d)

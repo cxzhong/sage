@@ -75,7 +75,6 @@ def q_core_symmetrica(part, d):
     The result may be an empty object, if the whole
     partition disappears.
     """
-
     cdef OP cpart, cres, cd
     anfang()
     cpart = callocobject()
@@ -100,12 +99,11 @@ def q_core_symmetrica(part, d):
 def gupta_nm_symmetrica(n, m):
     """
     This routine computes the number of partitions
-    of n with maximal part m. The result is erg. The
-    input n,m must be INTEGER objects. The result is
+    of ``n`` with maximal part ``m``. The result is erg. The
+    input ``n``, ``m`` must be INTEGER objects. The result is
     freed first to an empty object. The result must
     be a different from m and n.
     """
-
     cdef OP cn, cm, cres
     anfang()
     cm = callocobject()
@@ -135,7 +133,6 @@ def gupta_tafel_symmetrica(max):
     weight for the partitions. max must be different from
     result.
     """
-
     cdef OP cmax, cres
     anfang()
 
@@ -157,13 +154,13 @@ def gupta_tafel_symmetrica(max):
 
 def random_partition_symmetrica(n):
     """
-    Return a random partition p of the entered weight w.
+    Return a random partition ``p`` of the entered weight ``n``.
 
-    w must be an INTEGER object, p becomes a PARTITION object.
+    ``n`` must be an INTEGER object, ``p`` becomes a PARTITION object.
+
     Type of partition is VECTOR . It uses the algorithm of
     Nijenhuis and Wilf, p.76
     """
-
     cdef OP cn, cres
     anfang()
 
