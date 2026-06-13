@@ -198,7 +198,6 @@ class PlacticMonoid(UniqueRepresentation, Parent):
             sage: M([2, 1, 3])
             213
         """
-
         def __init__(self, parent, value):
             """
             Initialize ``self``.
