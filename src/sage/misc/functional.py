@@ -602,7 +602,7 @@ def symbolic_prod(expression, *args, **kwds):
 
     - ``a`` -- lower endpoint of the product
 
-    - ``b`` -- upper endpoint of the prduct
+    - ``b`` -- upper endpoint of the product
 
     - ``algorithm`` -- (default: ``'maxima'``)  one of
 
@@ -613,6 +613,14 @@ def symbolic_prod(expression, *args, **kwds):
       - ``'sympy'`` -- use SymPy
 
     - ``hold`` -- boolean (default: ``False``); if ``True`` don't evaluate
+
+    This function is available as ``product`` in the Sage global namespace.
+
+
+    .. SEEALSO::
+
+        :func:`sage.misc.misc_c.prod` for multiplying elements of an
+        iterable.
 
     EXAMPLES::
 
