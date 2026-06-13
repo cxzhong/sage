@@ -434,9 +434,7 @@ class PlacticMonoid(UniqueRepresentation, Parent):
             sage: M.subset(2)
             [11, 12, 21, 22]
         """
-        if not isinstance(k, (int, Integer)):
-            raise ValueError("the size must be a nonnegative integer")
-        if k < 0:
+        if not isinstance(k, (int, Integer)) or k < 0:
             raise ValueError("the size must be a nonnegative integer")
 
         if k == 0:
