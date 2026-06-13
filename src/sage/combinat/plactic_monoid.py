@@ -219,11 +219,13 @@ class PlacticMonoid(UniqueRepresentation, Parent):
                 ...
                 ValueError: letters must be integers from 1 to 4
             """
-            value = tuple(value)
-            if any((not isinstance(i, (int, Integer)))
-                   or i not in range(1, parent.rank() + 1)
-                   for i in value):
-                raise ValueError("letters must be integers from 1 to %s" % parent.rank())
+            r = parent.rank()
+            try:
+                value = tuple(map(ZZ, value))
+            except TypeError:
+                raise ValueError("letters must be integers from 1 to %s" % r)
+            if not all(1 <= i <= r for i in value):
+                raise ValueError("letters must be integers from 1 to %s" % r)
             ElementWrapper.__init__(self, parent, value)
 
         def _repr_(self):
