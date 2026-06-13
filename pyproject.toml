@@ -251,6 +251,9 @@ docs = [
 lint = ["flake8-rst-docstrings", "pycodestyle", "relint", "ruff"]
 test = ["coverage", "pytest"]
 
+[tool.cython-lint]
+ignore = ["E501", "E741"]
+
 [tool.ruff]
 # https://docs.astral.sh/ruff/configuration
 
