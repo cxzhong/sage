@@ -92,8 +92,8 @@ class PlacticMonoid(UniqueRepresentation, Parent):
         Traceback (most recent call last):
         ...
         ValueError: letters must be integers from 1 to 4
+        sage: TestSuite(M).run()
     """
-
     @staticmethod
     def __classcall_private__(cls, n):
         """
