@@ -386,7 +386,7 @@ class PlacticMonoid(UniqueRepresentation, Parent):
 
             # Keep exactly the rearrangements whose RSK insertion tableau agrees
             # with the original one.
-            return [parent(w) for w in words if RSK(w)[0] == tableau]
+            return [m for w in words if (m := w.to_tableau()) == tableau]
 
         def shape(self):
             """
