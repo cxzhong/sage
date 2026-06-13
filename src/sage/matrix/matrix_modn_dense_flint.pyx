@@ -85,7 +85,7 @@ cdef class Matrix_modn_dense_flint(Matrix_dense):
     #   These function support the implementation of the level 1 functionality.
     ########################################################################
     def __cinit__(self, parent, *args, **kwds):
-        """
+        r"""
         Memory initialization
 
         EXAMPLES::
@@ -101,7 +101,7 @@ cdef class Matrix_modn_dense_flint(Matrix_dense):
         sig_off()
 
     def __init__(self, parent, entries=None, copy=None, bint coerce=True):
-        """
+        r"""
         Initialization
 
         EXAMPLES::
@@ -120,7 +120,7 @@ cdef class Matrix_modn_dense_flint(Matrix_dense):
             nmod_mat_set_entry(self._matrix, se.i, se.j, se.entry)
 
     def __dealloc__(self):
-        """
+        r"""
         Memory deallocation
 
         EXAMPLES::
@@ -142,7 +142,7 @@ cdef class Matrix_modn_dense_flint(Matrix_dense):
         return nmod_mat_get_entry(self._matrix, i, j)
 
     cdef set_unsafe(self, Py_ssize_t i, Py_ssize_t j, object x):
-        """
+        r"""
         Low level interface for setting entries, used by generic matrix code.
         """
         e = self._modulus.element_class()
@@ -156,7 +156,7 @@ cdef class Matrix_modn_dense_flint(Matrix_dense):
         nmod_mat_set_entry(self._matrix, i, j, ivalue)
 
     cdef get_unsafe(self, Py_ssize_t i, Py_ssize_t j):
-        """
+        r"""
         Low level interface for getting entries as an element of the base ring,
         used by generic matrix code.
         """
@@ -171,7 +171,7 @@ cdef class Matrix_modn_dense_flint(Matrix_dense):
         return not nmod_mat_get_entry(self._matrix, i, j)
 
     cdef Matrix_modn_dense_flint _new(self, Py_ssize_t nrows, Py_ssize_t ncols):
-        """
+        r"""
         Return a new matrix over the parent from given parent
         All memory is allocated for this matrix, but its
         entries have not yet been filled in.
@@ -186,7 +186,7 @@ cdef class Matrix_modn_dense_flint(Matrix_dense):
         return ans
 
     def _change_implementation(self, implementation):
-        """
+        r"""
         Return this matrix with a different underlying implementation.
 
         INPUT::
@@ -221,7 +221,7 @@ cdef class Matrix_modn_dense_flint(Matrix_dense):
     ########################################################################
 
     cpdef _add_(self, _right):
-        """
+        r"""
         Addition
 
         EXAMPLES::
@@ -241,7 +241,7 @@ cdef class Matrix_modn_dense_flint(Matrix_dense):
         return M
 
     cdef Matrix _matrix_times_matrix_(left, Matrix _right):
-        """
+        r"""
         Multiplication
 
         EXAMPLES::
@@ -261,7 +261,7 @@ cdef class Matrix_modn_dense_flint(Matrix_dense):
         return M
 
     cpdef _lmul_(self, Element right):
-        """
+        r"""
         Scalar multiplication
 
         EXAMPLES::
@@ -286,9 +286,8 @@ cdef class Matrix_modn_dense_flint(Matrix_dense):
         sig_off()
         return M
 
-
     def __copy__(self):
-        """
+        r"""
         Return a copy of this matrix. Changing the entries of the copy will
         not change the entries of this matrix.
 
@@ -355,7 +354,7 @@ cdef class Matrix_modn_dense_flint(Matrix_dense):
             sig_on()
             for i in range(self._nrows):
                 for j in range(self._ncols):
-                    k = nmod_mat_get_entry(self._matrix,i,j) - nmod_mat_get_entry((<Matrix_modn_dense_flint>right)._matrix,i,j)
+                    k = nmod_mat_get_entry(self._matrix, i, j) - nmod_mat_get_entry((<Matrix_modn_dense_flint>right)._matrix, i, j)
                     if k:
                         sig_off()
                         if k < 0:
@@ -371,7 +370,7 @@ cdef class Matrix_modn_dense_flint(Matrix_dense):
     ########################################################################
 
     def __bool__(self):
-        """
+        r"""
         EXAMPLES::
 
             sage: bool(matrix(Zmod(36), 2, 2, 1))
@@ -382,7 +381,7 @@ cdef class Matrix_modn_dense_flint(Matrix_dense):
         return not nmod_mat_is_zero(self._matrix)
 
     cpdef _sub_(self, _right):
-        """
+        r"""
         Subtraction
 
         EXAMPLES::
@@ -413,7 +412,7 @@ cdef class Matrix_modn_dense_flint(Matrix_dense):
         return self.inverse_of_unit()
 
     def inverse_of_unit(self, algorithm=None):
-        """
+        r"""
         Return the inverse of this matrix.
 
         Raises a ``ZeroDivisionError`` if the determinant is not a unit,
@@ -557,7 +556,7 @@ cdef class Matrix_modn_dense_flint(Matrix_dense):
         raise ValueError("Unrecognized algorithm '%s'" % algorithm)
 
     def hessenberg_form(self):
-        """
+        r"""
         The Hessenberg form of a matrix is almost upper triangular,
         and allows for efficient computation of the characteristic polynomial.
 
@@ -579,7 +578,7 @@ cdef class Matrix_modn_dense_flint(Matrix_dense):
         return B
 
     def hessenbergize(self):
-        """
+        r"""
         Transform this matrix into Hessenberg form.
 
         The hessenberg form of a matrix `A` is a matrix that is
@@ -689,7 +688,7 @@ cdef class Matrix_modn_dense_flint(Matrix_dense):
                             nmod_mat_set_entry(self._matrix, k, m, n_addmod(x, y, pe))
 
     def charpoly(self, var='x', algorithm=None):
-        """
+        r"""
         Return the characteristic polynomial of this matrix, as a polynomial over the base ring.
 
         INPUT:
@@ -736,7 +735,7 @@ cdef class Matrix_modn_dense_flint(Matrix_dense):
         R = self._parent._base
         F = R.factored_order()
         if algorithm is None:
-            if len(F) == 1 and F[0][1] == 1: # N prime
+            if len(F) == 1 and F[0][1] == 1:  # N prime
                 if self._nrows > 200:
                     from .matrix_modn_dense_double import MAX_MODULUS
                     if R.order() < MAX_MODULUS:
@@ -838,7 +837,7 @@ cdef class Matrix_modn_dense_flint(Matrix_dense):
         return ans
 
     cpdef _shift_mod(self, mp_limb_t modulus, mp_limb_t shift=1, bint mul=True, bint domod=True):
-        """
+        r"""
         A fast method for returning a copy of this matrix with
         different modulus or scaled by an integer.
 
@@ -932,7 +931,7 @@ cdef class Matrix_modn_dense_flint(Matrix_dense):
         return ans
 
     def minpoly(self, var='x', algorithm='flint', proof=None):
-        """
+        r"""
         Returns the minimal polynomial of this matrix.
 
         Note that, in general, the minimal polynomial of a matrix over a ring with composite modulus is not well defined.
@@ -984,19 +983,19 @@ cdef class Matrix_modn_dense_flint(Matrix_dense):
         return ans
 
     cdef swap_columns_c(self, Py_ssize_t c1, Py_ssize_t c2):
-        """
+        r"""
         Swap two columns using FLINT.
         """
         nmod_mat_swap_cols(self._matrix, NULL, c1, c2)
 
     cdef swap_rows_c(self, Py_ssize_t r1, Py_ssize_t r2):
-        """
+        r"""
         Swap two rows using FLINT.
         """
         nmod_mat_swap_rows(self._matrix, NULL, r1, r2)
 
     def _solve_right_modn(self, B, check=True):
-        """
+        r"""
         Solve the matrix equation `A X = B`.
 
         sage: for N in [5, 625, 36, 2^24, 2^6*3^9, 2^63-1]: # indirect doctest
@@ -1070,7 +1069,7 @@ cdef class Matrix_modn_dense_flint(Matrix_dense):
             return X
 
     def transpose(self):
-        """
+        r"""
         Return the transpose of this matrix, without changing this matrix.
 
         EXAMPLES::
@@ -1089,9 +1088,8 @@ cdef class Matrix_modn_dense_flint(Matrix_dense):
             M.subdivide(col_divs, row_divs)
         return M
 
-
     def echelonize(self, algorithm="default", **kwds):
-        """
+        r"""
         Transform this matrix into echelon form in place, over the same base ring.
 
         .. NOTE::
@@ -1174,7 +1172,7 @@ cdef class Matrix_modn_dense_flint(Matrix_dense):
             return trans
 
     def _echelon_copy(self):
-        """
+        r"""
         Copies the matrix and adds zero rows at the bottom if necessary.
 
         EXAMPLES::
@@ -1194,7 +1192,7 @@ cdef class Matrix_modn_dense_flint(Matrix_dense):
             return self.__copy__()
 
     def _pivots(self):
-        """
+        r"""
         When not over a field, it is possible to have leading entries
         that are zero divisors.  This function distinguishes
         between such pivots and pivots that are 1.
@@ -1235,7 +1233,7 @@ cdef class Matrix_modn_dense_flint(Matrix_dense):
                     if nmod_mat_get_entry(E._matrix, i, j) == 1:
                         p.append(j)
                     else:
-                        zdp.append(j) # is a zero divisor
+                        zdp.append(j)  # is a zero divisor
                     k = j+1  # so start at next position next time
                     break
         ans = (tuple(p), tuple(zdp))
@@ -1243,7 +1241,7 @@ cdef class Matrix_modn_dense_flint(Matrix_dense):
         return ans
 
     def pivots(self):
-        """
+        r"""
         Return the columns containing a leading 1 in the echelon form of this matrix.
 
         When the base ring is not a field, there may be other rows with leading entries
@@ -1263,7 +1261,7 @@ cdef class Matrix_modn_dense_flint(Matrix_dense):
         return self._pivots()[0]
 
     def rank(self):
-        """
+        r"""
         Return the rank of this matrix.
 
         When the base ring is not a field, this is defined as the number of leading 1 pivots.
@@ -1311,9 +1309,8 @@ cdef class Matrix_modn_dense_flint(Matrix_dense):
         self.cache(key, ans)
         return ans
 
-
     def determinant(self, algorithm=None):
-        """
+        r"""
         Return the determinant of this matrix.
 
         INPUT:
@@ -1392,7 +1389,7 @@ cdef class Matrix_modn_dense_flint(Matrix_dense):
         return d
 
     def trace(self):
-        """
+        r"""
         Return the trace of this matrix, which is the sum of the diagonal entries.
 
         The input must be square.
@@ -1430,7 +1427,7 @@ cdef class Matrix_modn_dense_flint(Matrix_dense):
         return ans
 
     def strong_echelonize(self):
-        """
+        r"""
         Transform this matrix in place into its strong echelon form.
 
         The strong echelon form obtained from the Howell form by permuting rows:
@@ -1462,7 +1459,7 @@ cdef class Matrix_modn_dense_flint(Matrix_dense):
         sig_off()
 
     def strong_echelon_form(self):
-        """
+        r"""
         Strong echelon form of this matrix.
 
         This is obtained from the Howell form (the form used
@@ -1542,7 +1539,7 @@ cdef class Matrix_modn_dense_flint(Matrix_dense):
             sig_off()
 
     def howell_form(self):
-        """
+        r"""
         Return the Howell form of this matrix.
 
         The Howell form is an echelon form with a few additional properties
@@ -1608,7 +1605,7 @@ cdef class Matrix_modn_dense_flint(Matrix_dense):
         return ans
 
     def __pow__(Matrix_modn_dense_flint self, n, dummy):
-        """
+        r"""
         Exponentiation.
 
         EXAMPLES::
@@ -1626,8 +1623,6 @@ cdef class Matrix_modn_dense_flint(Matrix_dense):
             sage: all((~B * A * B)^k == ~B * A^k * B for k in range(2, 10))
             True
         """
-        #cdef Matrix_modn_dense_flint self = <Matrix_modn_dense_flint?>sself
-
         if dummy is not None:
             raise ValueError
         if self._nrows != self._ncols:
@@ -1664,7 +1659,7 @@ cdef class Matrix_modn_dense_flint(Matrix_dense):
         return M
 
     def _right_kernel_matrix(self, algorithm=None, proof=None, zero_divisors_are_pivots=False):
-        """
+        r"""
         A matrix whose rows form a basis for the right kernel of this matrix.
 
         INPUT:
@@ -1739,7 +1734,7 @@ cdef class Matrix_modn_dense_flint(Matrix_dense):
             X = self._new(self._ncols, self._ncols - self.rank())
             ans = self._new(self._ncols - self.rank(), self._ncols)
             sig_on()
-            nmod_mat_nullspace(X._matrix, E._matrix) # columns of X form a basis
+            nmod_mat_nullspace(X._matrix, E._matrix)  # columns of X form a basis
             nmod_mat_transpose(ans._matrix, X._matrix)
             sig_off()
             return "pivot-nmod-field", ans
@@ -1766,10 +1761,10 @@ cdef class Matrix_modn_dense_flint(Matrix_dense):
                     k += 1
                     if zero_divisors_are_pivots:
                         continue
-                    #v[j] = N // E[i,j]
+                    # v[j] = N // E[i,j]
                     nmod_mat_set_entry(ans._matrix, cur_row, j, N // nmod_mat_get_entry(E._matrix, i, j))
                 else:
-                    #v[j] = 1
+                    # v[j] = 1
                     nmod_mat_set_entry(ans._matrix, cur_row, j, 1)
 
                 # figure out the remaining coefficients of v
@@ -1782,15 +1777,14 @@ cdef class Matrix_modn_dense_flint(Matrix_dense):
                     # solve for T
                     # v[pivot[l]] * E[l, pivot[l]] + T*sum(v[m] * E[l,m] for m in range(pivot[l] + 1, j + 1)) = 0
                     # Start by computing the sum
-                    #s = sum(v[m] * E[l, m] for m in range(pivot[l] + 1, j + 1))
+                    # s = sum(v[m] * E[l, m] for m in range(pivot[l] + 1, j + 1))
                     s = 0
                     for m in range(pivl + 1, j + 1):
                         y = n_mulmod2_preinv(nmod_mat_get_entry(ans._matrix, cur_row, m),
                                              nmod_mat_get_entry(E._matrix, l, m), N, Ninv)
                         s = n_addmod(s, y, N)
                     # Make s divisible by x by working mod N/x
-                    if n_mod2_preinv(s, x, xinv): # make sure we can work mod N/x
-                    #if s % x != 0: # make sure we can work mod N/x
+                    if n_mod2_preinv(s, x, xinv):  # make sure we can work mod N/x
                         # set y = x // gcd(s, x), then multiply s by y
                         y = n_gcd(s, x)
                         yinv = n_preinvert_limb(y)
@@ -1808,7 +1802,7 @@ cdef class Matrix_modn_dense_flint(Matrix_dense):
                         # assert v[j] % N != 0
                     # This is correct modulo N/x, and since the pivot is x
                     # the kernel is now well defined modulo N.
-                    #v[pivot[l]] = -s / x
+                    # v[pivot[l]] = -s / x
                     nmod_mat_set_entry(
                         ans._matrix, cur_row, pivl,
                         n_div2_preinv(n_submod(0, s, N), x, xinv))
@@ -1821,7 +1815,7 @@ cdef class Matrix_modn_dense_flint(Matrix_dense):
             to[j] = nmod_mat_get_entry(self._matrix, i, j)
 
     def _matrices_from_rows(self, Py_ssize_t nrows, Py_ssize_t ncols):
-        """
+        r"""
         Make a list of matrices from the rows of this matrix.  This is a
         fairly technical function which is used internally, e.g., by
         the cyclotomic field linear algebra code.
@@ -1867,7 +1861,7 @@ cdef class Matrix_modn_dense_flint(Matrix_dense):
 
     @staticmethod
     def _matrix_from_rows_of_matrices(X):
-        """
+        r"""
         Return a matrix whose row ``i`` is constructed from the entries of
         matrix ``X[i]``.
 
@@ -1921,10 +1915,10 @@ cdef class Matrix_modn_dense_flint(Matrix_dense):
             [15  1 15 14  6 14  9 10  9  3  5  9  6  3  1 16]
         """
         # The code below is just a fast version of the following:
-        ##     from constructor import matrix
-        ##     K = X[0].base_ring()
-        ##     v = sum([y.list() for y in X],[])
-        ##     return matrix(K, len(X), X[0].nrows()*X[0].ncols(), v)
+        #     from constructor import matrix
+        #     K = X[0].base_ring()
+        #     v = sum([y.list() for y in X],[])
+        #     return matrix(K, len(X), X[0].nrows()*X[0].ncols(), v)
 
         cdef Matrix_modn_dense_flint T = X[0]
         cdef Py_ssize_t i, j, copysize, n = len(X), m = T._nrows * T._ncols

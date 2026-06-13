@@ -2070,9 +2070,9 @@ class MatrixSpace(UniqueRepresentation, Parent):
 
         EXAMPLES::
 
-            sage: Mat(RDF,2,3).is_dense()
+            sage: Mat(RDF, 2, 3).is_dense()
             True
-            sage: Mat(RR,123456,22,sparse=True).is_dense()
+            sage: Mat(RR, 123456, 22, sparse=True).is_dense()
             False
         """
         return not self.__is_sparse
