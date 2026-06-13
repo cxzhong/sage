@@ -1742,7 +1742,7 @@ cdef class Matrix(sage.structure.element.Matrix):
             <class 'sage.matrix.matrix_modn_dense_double.Matrix_modn_dense_double'>
         """
         M = sage.matrix.matrix_space.MatrixSpace(self.base_ring(), self._nrows, self._ncols, sparse=self.is_sparse(), implementation=implementation)
-        mat = M(self.list(), coerce=False, copy=False)
+        mat = M(self.list(), coerce=True, copy=False)
         if self._subdivisions is not None:
             mat.subdivide(self.subdivisions())
         return mat

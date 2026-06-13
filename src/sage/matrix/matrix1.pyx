@@ -1552,6 +1552,25 @@ cdef class Matrix(Matrix0):
             [  8  10]
             [100 200]
 
+        Coercion works as expected when stacking. ::
+
+            sage: A = matrix(QQ, 2, 2)
+            sage: v = vector([-1, 1])
+            sage: A.stack(v)
+            [ 0  0]
+            [ 0  0]
+            [-1  1]
+
+            sage: B = matrix(Zmod(15), 2, 2, 1, implementation='flint')
+            sage: C = matrix(Zmod(15), 2, 2, 2, implementation='linbox')
+            sage: D1 = B.stack(C); D1
+            [1 0]
+            [0 1]
+            [2 0]
+            [0 2]
+            sage: type(D1)
+            <class 'sage.matrix.matrix_modn_dense_flint.Matrix_modn_dense_flint'>
+
         Errors are raised if the sizes are incompatible. ::
 
             sage: A = matrix(RR, [[1, 2],[3, 4]])
@@ -1722,7 +1741,7 @@ cdef class Matrix(Matrix0):
             other = <Matrix>bottom
         else:
             if hasattr(bottom, '_vector_'):
-                bottom = bottom.row(implementation=self.parent().Element)
+                bottom = bottom.row()
             else:
                 raise TypeError('a matrix must be stacked with '
                                 'another matrix or a vector')
@@ -1747,9 +1766,11 @@ cdef class Matrix(Matrix0):
                 other = other.sparse_matrix()
             elif other.is_sparse_c() and not self.is_sparse_c():
                 self = self.sparse_matrix()
-            if type(self) is not type(other):
-                # If still not the same type, try using _change_implementation
-                other = other._change_implementation(self.parent().Element)
+
+            # If self and other can both be dense/sparse and
+            # have different types even over the same parent
+            # (for example matrices over the integers mod N) then self must
+            # be able to handle a different type in _stack_impl
 
         Z = self._stack_impl(other)
         if subdivide:

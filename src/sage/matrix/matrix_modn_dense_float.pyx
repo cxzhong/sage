@@ -96,7 +96,7 @@ cdef class Matrix_modn_dense_float(Matrix_modn_dense_template):
     cdef void set_unsafe_ui(self, Py_ssize_t i, Py_ssize_t j, unsigned long value) noexcept:
         self._matrix[i][j] = <float>value
 
-    cdef set_unsafe(self, Py_ssize_t i, Py_ssize_t j, x):
+    cdef set_unsafe(self, Py_ssize_t i, Py_ssize_t j, object x):
         r"""
         Set the (i,j) entry with no bounds-checking, or any other checks.
 
@@ -128,6 +128,7 @@ cdef class Matrix_modn_dense_float(Matrix_modn_dense_template):
             sage: B[0, 0]
             111
         """
+        v = <float>(<IntegerMod_int>x).ivalue
         self._matrix[i][j] = <float>(<IntegerMod_int>x).ivalue
 
     cdef IntegerMod_int get_unsafe(self, Py_ssize_t i, Py_ssize_t j):

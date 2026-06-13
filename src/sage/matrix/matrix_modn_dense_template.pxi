@@ -3248,13 +3248,32 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
 
             sage: D.parent()
             Full MatrixSpace of 2 by 2 dense matrices over Finite Field of size 41
+
+        Different implementations are handled correctly::
+
+            sage: A = matrix(Zmod(15), 2, 2, 2, implementation='linbox')
+            sage: B = matrix(Zmod(15), 2, 2, 1, implementation='flint')
+            sage: C = A.stack(B); C
+            [2 0]
+            [0 2]
+            [1 0]
+            [0 1]
+            sage: type(C)
+            <class 'sage.matrix.matrix_modn_dense_float.Matrix_modn_dense_float'>
         """
-        cdef Matrix_modn_dense_template other = <Matrix_modn_dense_template> bottom
+        cdef Matrix_dense other = <Matrix_dense> bottom
         cdef Matrix_modn_dense_template M = self.new_matrix(nrows=self._nrows+other._nrows,
                                                             ncols=self._ncols)
         cdef Py_ssize_t selfsize = self._ncols * self._nrows
+        cdef Py_ssize_t r, r2, c
         memcpy(M._entries, self._entries, sizeof(celement)*selfsize)
-        memcpy(M._entries+selfsize, other._entries, sizeof(celement)*other._ncols*other._nrows)
+        if isinstance(bottom, Matrix_modn_dense_template):
+            memcpy(M._entries+selfsize, (<Matrix_modn_dense_template> bottom)._entries, sizeof(celement)*(<Matrix_modn_dense_template> bottom)._ncols*(<Matrix_modn_dense_template> bottom)._nrows)
+        else:
+            for r in range(0, other._nrows):
+                r2 = self._nrows + r
+                for c in range(self._ncols):
+                    M[r2, c] = other[r][c]
         return M
 
     def submatrix(self,

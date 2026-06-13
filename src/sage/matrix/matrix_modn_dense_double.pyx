@@ -104,7 +104,7 @@ cdef class Matrix_modn_dense_double(Matrix_modn_dense_template):
     cdef void set_unsafe_ui(self, Py_ssize_t i, Py_ssize_t j, unsigned long value) noexcept:
         self._matrix[i][j] = <double>value
 
-    cdef set_unsafe(self, Py_ssize_t i, Py_ssize_t j, x):
+    cdef set_unsafe(self, Py_ssize_t i, Py_ssize_t j, object x):
         r"""
         Set the (i,j) entry with no bounds-checking, or any other checks.
 
