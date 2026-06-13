@@ -9148,7 +9148,7 @@ class Graph(GenericGraph):
         return output
 
     @doc_index("Leftovers")
-    def arboricity(self, certificate=False):
+    def arboricity(self, certificate=False, immutable=None):
         r"""
         Return the arboricity of the graph and an optional certificate.
 
@@ -9161,6 +9161,10 @@ class Graph(GenericGraph):
 
         - ``certificate`` -- boolean (default: ``False``); whether to return
           a certificate
+
+        - ``immutable`` -- boolean (default: ``None``); whether to create a
+          mutable/immutable graph. ``immutable=None`` (default) means that the
+          graph and the certificates will behave the same way.
 
         OUTPUT:
 
@@ -9179,13 +9183,14 @@ class Graph(GenericGraph):
 
         EXAMPLES::
 
+            sage: # needs sage.modules
             sage: G = graphs.PetersenGraph()
-            sage: a, F = G.arboricity(True)                                             # needs sage.modules
-            sage: a                                                                     # needs sage.modules
+            sage: a, F = G.arboricity(True)
+            sage: a
             2
-            sage: all(f.is_forest() for f in F)                                       # needs sage.modules
+            sage: all(f.is_forest() for f in F)
             True
-            sage: len(set.union(*[set(f.edges(sort=False)) for f in F])) == G.size()    # needs sage.modules
+            sage: len(set.union(*[set(f.edges(sort=False)) for f in F])) == G.size()
             True
 
         TESTS::
@@ -9193,11 +9198,30 @@ class Graph(GenericGraph):
             sage: g = Graph()
             sage: g.arboricity(True)                                                    # needs sage.modules
             (0, [])
+
+        Check the behavior of parameter ``immutable``::
+
+            sage: # needs sage.modules
+            sage: G = graphs.PetersenGraph()
+            sage: F = G.arboricity(certificate=True)[1]
+            sage: any(f.is_immutable() for f in F)
+            False
+            sage: F = G.arboricity(certificate=True, immutable=True)[1]
+            sage: all(f.is_immutable() for f in F)
+            True
+            sage: G = graphs.PetersenGraph(immutable=True)
+            sage: F = G.arboricity(certificate=True)[1]
+            sage: all(f.is_immutable() for f in F)
+            True
+            sage: F = G.arboricity(certificate=True, immutable=False)[1]
+            sage: any(f.is_immutable() for f in F)
+            False
         """
         from sage.matroids.constructor import Matroid
         P = Matroid(self).partition()
         if certificate:
-            return (len(P), [self.subgraph(edges=forest) for forest in P])
+            return (len(P), [self.subgraph(edges=forest, immutable=immutable)
+                             for forest in P])
         return len(P)
 
     @doc_index("Graph properties")
