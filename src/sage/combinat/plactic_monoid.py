@@ -92,8 +92,8 @@ class PlacticMonoid(UniqueRepresentation, Parent):
         Traceback (most recent call last):
         ...
         ValueError: letters must be integers from 1 to 4
+        sage: TestSuite(M).run()
     """
-
     @staticmethod
     def __classcall_private__(cls, n):
         """
@@ -198,7 +198,6 @@ class PlacticMonoid(UniqueRepresentation, Parent):
             sage: M([2, 1, 3])
             213
         """
-
         def __init__(self, parent, value):
             """
             Initialize ``self``.
@@ -220,11 +219,13 @@ class PlacticMonoid(UniqueRepresentation, Parent):
                 ...
                 ValueError: letters must be integers from 1 to 4
             """
-            value = tuple(value)
-            if any((not isinstance(i, (int, Integer)))
-                   or i not in range(1, parent.rank() + 1)
-                   for i in value):
-                raise ValueError("letters must be integers from 1 to %s" % parent.rank())
+            r = parent.rank()
+            try:
+                value = tuple(map(ZZ, value))
+            except TypeError:
+                raise ValueError("letters must be integers from 1 to %s" % r)
+            if not all(1 <= i <= r for i in value):
+                raise ValueError("letters must be integers from 1 to %s" % r)
             ElementWrapper.__init__(self, parent, value)
 
         def _repr_(self):
@@ -406,28 +407,16 @@ class PlacticMonoid(UniqueRepresentation, Parent):
         """
         if not isinstance(k, (int, Integer)):
             raise ValueError("the size must be a nonnegative integer")
-        k = ZZ(k)
         if k < 0:
             raise ValueError("the size must be a nonnegative integer")
 
         if k == 0:
             return [self.one()]
 
-        elements = []
-
         # Plactic monoid elements correspond to semistandard tableaux.
         # For each partition shape of k, Sage generates all tableaux of that
         # shape with entries bounded by the rank.
-        for shape in Partitions(k):
-            tableaux = SemistandardTableaux(list(shape), max_entry=self.rank())
-
-            for t in tableaux:
-                # Convert the tableau to its row reading word representative:
-                # read rows from bottom to top, left to right within each row.
-                word = []
-                for row in reversed(t):
-                    word.extend(row)
-
-                elements.append(self(word))
+        tableaux = SemistandardTableaux(k, max_entry=self.rank())
+        elements = [self(t.to_word()) for t in tableaux]
 
         return sorted(elements, key=lambda x: x.value)
