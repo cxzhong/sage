@@ -3393,8 +3393,8 @@ class PolynomialRing_dense_mod_p(PolynomialRing_dense_finite_field,
             sage: type(P.gen())
             <class 'sage.rings.polynomial.polynomial_modn_dense_ntl.Polynomial_dense_mod_p'>
 
-            sage: P = PolynomialRing_dense_mod_p(GF(9223372036854775837), 'x'); P       # needs sage.libs.ntl sage.rings.finite_rings
-            Univariate Polynomial Ring in x over Finite Field of size 9223372036854775837 (using NTL)
+            sage: P = PolynomialRing_dense_mod_p(GF(18446744073709551629), 'x'); P       # needs sage.libs.ntl sage.rings.finite_rings
+            Univariate Polynomial Ring in x over Finite Field of size 18446744073709551629 (using NTL)
             sage: type(P.gen())                                                         # needs sage.libs.ntl sage.rings.finite_rings
             <class 'sage.rings.polynomial.polynomial_modn_dense_ntl.Polynomial_dense_mod_p'>
 

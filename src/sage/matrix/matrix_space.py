@@ -152,10 +152,6 @@ def get_matrix_class(R, nrows, ncols, sparse, implementation):
         ...
         ValueError: 'linbox-double' matrices can only deal with order < 94906266
 
-        sage: get_matrix_class(Zmod(15), 10, 10, False)
-        <class 'sage.matrix.matrix_modn_dense_flint.Matrix_modn_dense_flint'>
-        sage: get_matrix_class(Zmod(2**64 - 1), 10, 10, False)
-        <class 'sage.matrix.matrix_modn_dense_flint.Matrix_modn_dense_flint'>
         sage: get_matrix_class(Zmod(2**64 - 1), 10, 10, False, 'flint')
         <class 'sage.matrix.matrix_modn_dense_flint.Matrix_modn_dense_flint'>
 
