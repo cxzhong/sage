@@ -405,7 +405,6 @@ class PlacticMonoid(UniqueRepresentation, Parent):
         """
         if not isinstance(k, (int, Integer)):
             raise ValueError("the size must be a nonnegative integer")
-        k = ZZ(k)
         if k < 0:
             raise ValueError("the size must be a nonnegative integer")
 
