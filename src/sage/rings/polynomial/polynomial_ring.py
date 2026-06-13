@@ -3287,7 +3287,8 @@ class PolynomialRing_dense_mod_n(PolynomialRing_commutative):
         if sparse:
             return NotImplemented
         modulus = base_ring.order()
-        if modulus <= sys.maxsize:
+
+        if modulus <= (sys.maxsize << 1) + 1:
             defaults = ["FLINT", None]
         elif implementation == "FLINT":
             raise ValueError("FLINT does not support modulus %s" % modulus)
@@ -3478,7 +3479,7 @@ class PolynomialRing_dense_mod_p(PolynomialRing_dense_finite_field,
             defaults = ["GF2X", "NTL", None]
         elif implementation == "GF2X":
             raise ValueError("GF2X only supports modulus 2")
-        elif modulus <= sys.maxsize:
+        elif modulus <= (sys.maxsize << 1) + 1:
             defaults = ["FLINT", None]
         elif implementation == "FLINT":
             raise ValueError("FLINT does not support modulus %s" % modulus)
