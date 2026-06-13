@@ -6304,7 +6304,7 @@ class Graph(GenericGraph):
         return {v: count[v] for v in vertices or self}
 
     @doc_index("Clique-related methods")
-    def cliques_get_max_clique_graph(self):
+    def cliques_get_max_clique_graph(self, immutable=None):
         r"""
         Return the clique graph.
 
@@ -6318,6 +6318,12 @@ class Graph(GenericGraph):
 
             Currently only implemented for undirected graphs. Use to_undirected
             to convert a digraph to an undirected graph.
+
+        INPUT:
+
+        - ``immutable`` -- boolean (default: ``None``); whether to create a
+          mutable/immutable graph. ``immutable=None`` (default) means that the
+          graph and its max clique graph behave the same way.
 
         EXAMPLES::
 
@@ -6341,6 +6347,19 @@ class Graph(GenericGraph):
             ....:           multiedges=False)
             sage: S.is_isomorphic(N)
             True
+
+        Check the behavior of parameter ``immutable``::
+
+            sage: G = Graph([(0, 1)], immutable=False)
+            sage: G.cliques_get_max_clique_graph().is_immutable()
+            False
+            sage: G.cliques_get_max_clique_graph(immutable=True).is_immutable()
+            True
+            sage: G = Graph([(0, 1)], immutable=True)
+            sage: G.cliques_get_max_clique_graph().is_immutable()
+            True
+            sage: G.cliques_get_max_clique_graph(immutable=False).is_immutable()
+            False
         """
         # Associate each maximal clique an integer index and record for each
         # vertex of self the cliques it belongs to.
@@ -6353,10 +6372,12 @@ class Graph(GenericGraph):
 
         # Build a graph with one vertex per maximal clique and an edge between
         # cliques sharing a vertex of self
-        G = Graph(n, multiedges=False)
-        for block in cliques_of_vertex.values():
-            G.add_clique(block)
-        return G
+        edges = itertools.chain(*(itertools.combinations(block, 2)
+                                  for block in cliques_of_vertex.values()))
+        if immutable is None:
+            immutable = self.is_immutable()
+        return Graph([range(n), edges], format="vertices_and_edges",
+                     multiedges=False, immutable=immutable)
 
     @doc_index("Clique-related methods")
     def cliques_get_clique_bipartite(self, **kwds):
