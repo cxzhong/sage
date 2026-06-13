@@ -836,7 +836,7 @@ cdef class Matrix_modn_dense_flint(Matrix_dense):
         self.cache('charpoly', ans)
         return ans
 
-    cpdef _shift_mod(self, mp_limb_t modulus, mp_limb_t shift=1, bint mul=True, bint domod=True):
+    cpdef Matrix_modn_dense_flint _shift_mod(self, mp_limb_t modulus, mp_limb_t shift=1, bint mul=True, bint domod=True):
         r"""
         A fast method for returning a copy of this matrix with
         different modulus or scaled by an integer.
@@ -1297,14 +1297,14 @@ cdef class Matrix_modn_dense_flint(Matrix_dense):
         if ans is not None:
             return ans
         if not self._parent._base.is_field():
-            ans = len(self.pivots())
+            ans = Integer(len(self.pivots()))
         else:
             p = self.fetch('pivots')
             if ans is not None:
-                ans = len(p[0])
+                ans = Integer(len(p[0]))
             else:
                 sig_on()
-                ans = nmod_mat_rank(self._matrix)
+                ans = Integer(nmod_mat_rank(self._matrix))
                 sig_off()
         self.cache(key, ans)
         return ans

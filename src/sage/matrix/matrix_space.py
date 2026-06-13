@@ -152,6 +152,13 @@ def get_matrix_class(R, nrows, ncols, sparse, implementation):
         ...
         ValueError: 'linbox-double' matrices can only deal with order < 94906266
 
+        sage: get_matrix_class(Zmod(15), 10, 10, False)
+        <class 'sage.matrix.matrix_modn_dense_flint.Matrix_modn_dense_flint'>
+        sage: get_matrix_class(Zmod(2**64 - 1), 10, 10, False)
+        <class 'sage.matrix.matrix_modn_dense_flint.Matrix_modn_dense_flint'>
+        sage: get_matrix_class(Zmod(2**64 - 1), 10, 10, False, 'flint')
+        <class 'sage.matrix.matrix_modn_dense_flint.Matrix_modn_dense_flint'>
+
         sage: type(matrix(SR, 2, 2, 0))
         <class 'sage.matrix.matrix_symbolic_dense.Matrix_symbolic_dense'>
         sage: type(matrix(GF(7), 2, range(4)))
@@ -348,8 +355,9 @@ def get_matrix_class(R, nrows, ncols, sparse, implementation):
             if R is sage.rings.rational_field.QQ:
                 from . import matrix_rational_dense
                 return matrix_rational_dense.Matrix_rational_dense
-            if R.order() < sys.maxsize:
-                from . import matrix_modn_dense_flint
+
+            from . import matrix_modn_dense_flint
+            if R.order() <= matrix_modn_dense_flint.MAX_MODULUS:
                 return matrix_modn_dense_flint.Matrix_modn_dense_flint
             raise ValueError("'flint' matrices are only available over the integers, the rationals and Z/N with N < 2^64")
 
