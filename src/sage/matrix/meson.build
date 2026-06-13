@@ -62,6 +62,7 @@ py.install_sources(
   'matrix_modn_dense_double.pxd',
   'matrix_modn_dense_double.pyx',
   'matrix_modn_dense_flint.pxd',
+  'matrix_modn_dense_flint.pyi',
   'matrix_modn_dense_flint.pyx',
   'matrix_modn_dense_float.pxd',
   'matrix_modn_dense_float.pyx',
