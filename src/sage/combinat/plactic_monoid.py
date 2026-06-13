@@ -412,21 +412,10 @@ class PlacticMonoid(UniqueRepresentation, Parent):
         if k == 0:
             return [self.one()]
 
-        elements = []
-
         # Plactic monoid elements correspond to semistandard tableaux.
         # For each partition shape of k, Sage generates all tableaux of that
         # shape with entries bounded by the rank.
-        for shape in Partitions(k):
-            tableaux = SemistandardTableaux(list(shape), max_entry=self.rank())
-
-            for t in tableaux:
-                # Convert the tableau to its row reading word representative:
-                # read rows from bottom to top, left to right within each row.
-                word = []
-                for row in reversed(t):
-                    word.extend(row)
-
-                elements.append(self(word))
+        tableaux = SemistandardTableaux(k, max_entry=self.rank())
+        elements = [self(t.to_word()) for t in tableaux]
 
         return sorted(elements, key=lambda x: x.value)
