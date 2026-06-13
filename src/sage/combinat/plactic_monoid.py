@@ -371,7 +371,7 @@ class PlacticMonoid(UniqueRepresentation, Parent):
                 sage: M([]).shape()
                 []
             """
-            return [len(row) for row in self.to_tableau()]
+            return self.to_tableau().shape()
 
         def is_canonical(self):
             """
