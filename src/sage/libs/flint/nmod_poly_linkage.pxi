@@ -141,7 +141,7 @@ cdef inline int celement_set_ui(nmod_poly_t res, unsigned long i, unsigned long 
         sage: P(18446744073709551558)
         1
         sage: P(-4)
-        18446744073709551554
+        18446744073709551553
     """
     nmod_poly_zero(res)
     if i:
