@@ -13,8 +13,7 @@ def strict_to_odd_part_symmetrica(part):
     and partitions with odd parts. input is a VECTOR type partition, the
     result is a partition of the same weight with only odd parts.
     """
-
-    #Make sure that the partition is strict
+    # Make sure that the partition is strict
     cdef INT i
     for i from 0 <= i < len(part)-1:
         if part[i] == part[i+1]:
@@ -44,8 +43,7 @@ def odd_to_strict_part_symmetrica(part):
     and strict partitions. input is a VECTOR type partition, the
     result is a partition of the same weight with different parts.
     """
-
-    #Make sure that the partition is strict
+    # Make sure that the partition is strict
     cdef INT i
     for i from 0 <= i < len(part):
         if part[i] % 2 == 0:
@@ -78,7 +76,6 @@ def q_core_symmetrica(part, d):
     partition disappears.
     """
 
-
     cdef OP cpart, cres, cd
     anfang()
     cpart = callocobject()
@@ -109,13 +106,11 @@ def gupta_nm_symmetrica(n, m):
     be a different from m and n.
     """
 
-
     cdef OP cn, cm, cres
     anfang()
     cm = callocobject()
     cn = callocobject()
     cres = callocobject()
-
 
     _op_integer(n, cn)
     _op_integer(m, cm)
@@ -141,13 +136,11 @@ def gupta_tafel_symmetrica(max):
     result.
     """
 
-
     cdef OP cmax, cres
     anfang()
 
     cmax = callocobject()
     cres = callocobject()
-
 
     _op_integer(max, cmax)
 
@@ -171,13 +164,11 @@ def random_partition_symmetrica(n):
     Nijenhuis and Wilf, p.76
     """
 
-
     cdef OP cn, cres
     anfang()
 
     cn = callocobject()
     cres = callocobject()
-
 
     _op_integer(n, cn)
 
