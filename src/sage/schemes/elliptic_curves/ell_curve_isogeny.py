@@ -455,7 +455,7 @@ def compute_codomain_kohel(E, kernel):
 
         if psi_quo.degree() != 0:
             phi_even = EllipticCurveIsogeny(E, psi_2tor.monic())
-            psi_odd = _pushforward_kernel_polynomial(phi_even, psi_quo)
+            psi_odd = phi_even.push_subgroup(psi_quo)
             return compute_codomain_kohel(phi_even.codomain(), psi_odd)
 
         n = psi_2tor.degree()
@@ -534,60 +534,6 @@ def two_torsion_part(E, psi):
     return psi.gcd(psi_2)
 
 
-def _pushforward_kernel_polynomial(phi, psi):
-    r"""
-    Return the kernel polynomial obtained by pushing ``psi`` through ``phi``.
-
-    INPUT:
-
-    - ``phi`` -- an elliptic-curve isogeny
-
-    - ``psi`` -- a univariate polynomial over the base field of the domain
-      of ``phi``
-
-    OUTPUT: polynomial over the base field of the codomain of ``phi``
-
-    EXAMPLES::
-
-        sage: from sage.schemes.elliptic_curves.ell_curve_isogeny import _pushforward_kernel_polynomial
-        sage: F = GF(419)
-        sage: E = EllipticCurve(F, [1, 0])
-        sage: R.<x> = F[]
-        sage: phi = E.isogeny(x)
-        sage: _pushforward_kernel_polynomial(phi, x^2 - 25*x + 1)
-        x + 394
-
-    TESTS:
-
-    The image polynomial gives the second step in the factored isogeny
-    associated to the kernel polynomial from :issue:`42023`::
-
-        sage: psi = x^3 - 25*x^2 + x
-        sage: psi_odd = _pushforward_kernel_polynomial(phi, psi // x)
-        sage: (phi.codomain().isogeny(psi_odd) * phi).kernel_polynomial()
-        x^3 + 394*x^2 + x
-    """
-    domain_polynomial_ring = psi.parent()
-    base_field = phi.domain().base_ring()
-
-    x_map = phi.x_rational_map()
-    numerator = domain_polynomial_ring(x_map.numerator())
-    denominator = domain_polynomial_ring(x_map.denominator())
-
-    elimination_ring = PolynomialRing(base_field, ('x_', 'X_'))
-    domain_variable, image_variable = elimination_ring.gens()
-    resultant = elimination_ring(psi(domain_variable)).resultant(
-        elimination_ring(numerator(domain_variable)
-                         - image_variable * denominator(domain_variable)),
-        domain_variable)
-
-    image_polynomial = domain_polynomial_ring([
-        resultant.monomial_coefficient(image_variable**exponent)
-        for exponent in range(resultant.degree(image_variable) + 1)
-    ])
-    return image_polynomial.radical().monic()
-
-
 def _factored_isogeny_from_kernel_polynomial(E, kernel_polynomial,
                                              codomain=None, model=None,
                                              check=True):
@@ -638,7 +584,7 @@ def _factored_isogeny_from_kernel_polynomial(E, kernel_polynomial,
         raise NotImplementedError
 
     phi_even = EllipticCurveIsogeny(E, psi_even, check=check)
-    psi_odd = _pushforward_kernel_polynomial(phi_even, psi_odd_preimage)
+    psi_odd = phi_even.push_subgroup(psi_odd_preimage)
     phi_odd = EllipticCurveIsogeny(phi_even.codomain(), psi_odd, check=check)
 
     factors = [phi_even, phi_odd]
@@ -2358,9 +2304,8 @@ class EllipticCurveIsogeny(EllipticCurveHom):
             psi_quo = psi//psi_G
 
             if psi_quo.degree() != 0:
-                raise NotImplementedError("the direct Kohel implementation does "
-                                          "not support mixed even-degree "
-                                          "kernel polynomials")
+                raise NotImplementedError(
+                    "mixed even-degree kernel polynomials are not supported")
 
             phi, omega, v, w, _, d = self.__init_even_kernel_polynomial(E, psi_G)
 
@@ -3287,16 +3232,38 @@ class EllipticCurveIsogeny(EllipticCurveHom):
             sage: phi = E.isogeny(2 * E.gens()[0])
             sage: phi.dual() * phi == E.scalar_multiplication(phi.degree())
             True
+
+        The usual construction is attempted before falling back in
+        characteristics `2` and `3`::
+
+            sage: import sage.schemes.elliptic_curves.ell_curve_isogeny as isogeny_module
+            sage: calls = []
+            sage: old_compute = isogeny_module.compute_sequence_of_maps
+            sage: old_fallback = EllipticCurveIsogeny._dual_prime_to_characteristic
+            sage: def unavailable(*args, **kwds):
+            ....:     calls.append('standard')
+            ....:     raise NotImplementedError
+            sage: def fallback(self):
+            ....:     calls.append('fallback')
+            ....:     return old_fallback(self)
+            sage: isogeny_module.compute_sequence_of_maps = unavailable
+            sage: EllipticCurveIsogeny._dual_prime_to_characteristic = fallback
+            sage: try:
+            ....:     E = EllipticCurve(GF(3), [1, 2, 0, 1, 0])
+            ....:     phi = E.isogeny(E(2, 0))
+            ....:     phi.dual() * phi == E.scalar_multiplication(phi.degree())
+            ....: finally:
+            ....:     isogeny_module.compute_sequence_of_maps = old_compute
+            ....:     EllipticCurveIsogeny._dual_prime_to_characteristic = old_fallback
+            True
+            sage: calls
+            ['standard', 'fallback']
         """
         if self.__dual is not None:
             return self.__dual
 
         F = self.__base_field
         d = self._degree
-
-        if self.__base_field.characteristic() in (2, 3) and F(d) != 0:
-            self.__dual = self._dual_prime_to_characteristic()
-            return self.__dual
 
         if F(d) == 0:   # inseparable dual!
             p = F.characteristic()
@@ -3340,22 +3307,29 @@ class EllipticCurveIsogeny(EllipticCurveHom):
             self.__dual = corr * phi_hat
             return self.__dual
 
-        u = self.scaling_factor()
-        E1 = self._codomain
-        E2 = self._domain.change_weierstrass_model(u/F(d), 0, 0, 0)
+        try:
+            u = self.scaling_factor()
+            E1 = self._codomain
+            E2 = self._domain.change_weierstrass_model(u/F(d), 0, 0, 0)
 
-        phi_hat = EllipticCurveIsogeny(E1, None, E2, d)
-        assert phi_hat.scaling_factor().is_one()
+            phi_hat = EllipticCurveIsogeny(E1, None, E2, d)
+            assert phi_hat.scaling_factor().is_one()
 
-        for post_iso in E2.isomorphisms(self._domain):
-            if d == u * post_iso.scaling_factor():
-                break
-        else:
-            raise RuntimeError("bug in dual()")
+            for post_iso in E2.isomorphisms(self._domain):
+                if d == u * post_iso.scaling_factor():
+                    break
+            else:
+                raise RuntimeError("bug in dual()")
 
-        phi_hat._set_post_isomorphism(post_iso)
-        phi_hat.__perform_inheritance_housekeeping()
-        return phi_hat
+            phi_hat._set_post_isomorphism(post_iso)
+            phi_hat.__perform_inheritance_housekeeping()
+            return phi_hat
+        except NotImplementedError:
+            if F.characteristic() not in (2, 3):
+                raise
+
+        self.__dual = self._dual_prime_to_characteristic()
+        return self.__dual
 
     def _dual_prime_to_characteristic(self):
         r"""
@@ -3398,6 +3372,29 @@ class EllipticCurveIsogeny(EllipticCurveHom):
             True
             sage: phi * phihat == phi.codomain().scalar_multiplication(phi.degree())
             True
+
+        The post-isomorphism correction is computed from the constructed
+        composite to the scalar multiplication map, as required by
+        :func:`~sage.schemes.elliptic_curves.hom.find_post_isomorphism`::
+
+            sage: import sage.schemes.elliptic_curves.hom as hom_module
+            sage: F.<a> = GF(2^2)
+            sage: E = EllipticCurve(F, [0, 0, a, 0, 0])
+            sage: phi = E.isogeny(E(0, a))
+            sage: mult = E.scalar_multiplication(phi.degree())
+            sage: old_find = hom_module.find_post_isomorphism
+            sage: calls = []
+            sage: def checked_find(actual, target):
+            ....:     calls.append(actual == mult)
+            ....:     return old_find(actual, target)
+            sage: hom_module.find_post_isomorphism = checked_find
+            sage: try:
+            ....:     phi._dual_prime_to_characteristic() * phi == mult
+            ....: finally:
+            ....:     hom_module.find_post_isomorphism = old_find
+            True
+            sage: calls
+            [False]
         """
         d = self._degree
         division_polynomial = self.__poly_ring(
@@ -3407,24 +3404,21 @@ class EllipticCurveIsogeny(EllipticCurveHom):
         if remainder:
             raise RuntimeError("kernel polynomial does not divide the division polynomial")
 
-        dual_kernel = _pushforward_kernel_polynomial(self, quotient)
+        dual_kernel = self.push_subgroup(quotient)
         phi_hat = self._codomain.isogeny(dual_kernel, codomain=self._domain)
 
         from sage.schemes.elliptic_curves.hom import find_post_isomorphism
         mult = self._domain.scalar_multiplication(d)
-        corr = find_post_isomorphism(mult, phi_hat * self)
+        corr = find_post_isomorphism(phi_hat * self, mult)
         phi_hat = corr * phi_hat
-        if hasattr(phi_hat.dual, 'set_cache'):
-            phi_hat.dual.set_cache(self)
-        elif hasattr(phi_hat, '_set_dual'):
+        assert phi_hat * self == mult
+        if hasattr(phi_hat, '_set_dual'):
             phi_hat._set_dual(self)
         return phi_hat
 
     def _set_dual(self, dual):
         """
         Set the cached dual of this isogeny.
-
-        For internal use only.
         """
         self.__dual = dual
 

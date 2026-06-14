@@ -334,9 +334,7 @@ class EllipticCurveHom_frobenius(EllipticCurveHom):
             return NotImplemented
         if not isinstance(right, EllipticCurveHom_frobenius):
             return NotImplemented
-        return (left.domain() == right.domain()
-                and left.codomain() == right.codomain()
-                and left.degree() == right.degree())
+        return left.domain() == right.domain() and left._n == right._n
 
     def rational_maps(self):
         """
@@ -535,9 +533,7 @@ class EllipticCurveHom_frobenius(EllipticCurveHom):
         scalar_mul = EllipticCurveHom_scalar(self._domain, self._degree)
         iso = find_post_isomorphism(Phi * self, scalar_mul)
         Phi = iso * Phi
-        if hasattr(Phi.dual, 'set_cache'):
-            Phi.dual.set_cache(self)
-        elif hasattr(Phi, '_set_dual'):
+        if hasattr(Phi, '_set_dual'):
             Phi._set_dual(self)
         return Phi
 

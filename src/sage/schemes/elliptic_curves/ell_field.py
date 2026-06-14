@@ -25,9 +25,7 @@ from sage.schemes.elliptic_curves.ell_point import EllipticCurvePoint_field
 from sage.schemes.curves.projective_curve import ProjectivePlaneCurve_field
 
 from .constructor import EllipticCurve
-from .ell_curve_isogeny import (EllipticCurveIsogeny,
-                                _factored_isogeny_from_kernel_polynomial,
-                                isogeny_codomain_from_kernel)
+from .ell_curve_isogeny import EllipticCurveIsogeny, isogeny_codomain_from_kernel
 from . import ell_generic
 
 
@@ -1897,6 +1895,7 @@ class EllipticCurve_field(ell_generic.EllipticCurve_generic, ProjectivePlaneCurv
             if kernel is None:
                 raise err
             try:
+                from .ell_curve_isogeny import _factored_isogeny_from_kernel_polynomial
                 return _factored_isogeny_from_kernel_polynomial(self, kernel,
                                                                codomain=codomain,
                                                                model=model,
