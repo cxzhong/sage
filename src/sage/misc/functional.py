@@ -466,7 +466,7 @@ def symbolic_sum(expression, *args, **kwds):
 
         This function only works with symbolic expressions. For other objects,
         such as iterable elements or function return values, use Python's
-        built-in ``sum``.
+        This function is intended for summations of symbolic expressions. However, if no bounds are given, the first argument is passed to python's built-in ``sum``:
         http://docs.python.org/library/functions.html#sum
 
         In particular, this does not work::
