@@ -43,6 +43,7 @@ from sage.misc.cachefunc import cached_method
 from itertools import permutations, chain
 from sage.rings.integer import Integer
 from sage.rings.integer_ring import ZZ
+from sage.sets.family import Family
 from sage.combinat.rsk import RSK
 from sage.combinat.tableau import SemistandardTableaux
 from sage.combinat.partition import Partitions
@@ -94,7 +95,7 @@ class PlacticMonoid(UniqueRepresentation, Parent):
         Traceback (most recent call last):
         ...
         ValueError: letters must be integers from 1 to 4
-        sage: TestSuite(M).run(skip='_test_graded_components')
+        sage: TestSuite(M).run()
     """
     @staticmethod
     def __classcall_private__(cls, n):
@@ -215,23 +216,24 @@ class PlacticMonoid(UniqueRepresentation, Parent):
             sage: from sage.monoids.plactic_monoid import PlacticMonoid
             sage: M = PlacticMonoid(2)
             sage: M.subset(1)
+            Lazy family (to_word(i))_{i in Semistandard tableaux of size 1 and maximum entry 2}
+            sage: list(M.subset(1))
             [1, 2]
             sage: M.subset(2)
-            [11, 12, 21, 22]
+            Lazy family (to_word(i))_{i in Semistandard tableaux of size 2 and maximum entry 2}
+            sage: list(M.subset(2))
+            [11, 12, 22, 21]
         """
         if not isinstance(k, (int, Integer)) or k < 0:
             raise ValueError("the size must be a nonnegative integer")
 
-        if k == 0:
-            return [self.one()]
-
         # Plactic monoid elements correspond to semistandard tableaux.
         # For each partition shape of k, Sage generates all tableaux of that
         # shape with entries bounded by the rank.
+        def to_word(t):
+            return self(t.to_word())
         tableaux = SemistandardTableaux(k, max_entry=self.rank())
-        elements = [self(t.to_word()) for t in tableaux]
-
-        return sorted(elements, key=lambda x: x.value)
+        return Family(tableaux, to_word, lazy=True)
 
     class Element(ElementWrapper):
         r"""
@@ -293,6 +295,8 @@ class PlacticMonoid(UniqueRepresentation, Parent):
             """
             Return the length of ``self`` as a word.
 
+            This is also grade of ``self``.
+
             EXAMPLES::
 
                 sage: from sage.monoids.plactic_monoid import PlacticMonoid
@@ -301,6 +305,8 @@ class PlacticMonoid(UniqueRepresentation, Parent):
                 3
             """
             return len(self.value)
+
+        grade = __len__
 
         def __hash__(self):
             """
@@ -313,19 +319,6 @@ class PlacticMonoid(UniqueRepresentation, Parent):
                 True
             """
             return hash(self.to_tableau())
-
-        def grade(self):
-            """
-            Return the grade of ``self``, which is the length as a word.
-
-            EXAMPLES::
-
-                sage: from sage.monoids.plactic_monoid import PlacticMonoid
-                sage: M = PlacticMonoid(4)
-                sage: len(M([3, 1, 2]))
-                3
-            """
-            return self.__len__()
 
         def __iter__(self):
             """
@@ -428,7 +421,7 @@ class PlacticMonoid(UniqueRepresentation, Parent):
 
             # Keep exactly the rearrangements whose RSK insertion tableau agrees
             # with the original one.
-            return [parent(w) for w in words if RSK(w)[0] == tableau]
+            return [parent(w) for w in words if parent(w).to_tableau() == tableau]
 
         def shape(self):
             """
@@ -458,4 +451,4 @@ class PlacticMonoid(UniqueRepresentation, Parent):
                 sage: M([1, 3, 2]).is_canonical()
                 False
             """
-            return repr(self) == repr(self.to_word())
+            return self.value == self.to_word().value
