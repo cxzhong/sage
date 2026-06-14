@@ -439,7 +439,7 @@ def symbolic_sum(expression, *args, **kwds):
     .. SEEALSO::
 
         :func:`symbolic_prod` for symbolic products and
-        :func:`sage.misc.misc_c.prod` for products of iterable elements.
+        :func:`sage.misc.misc_c.prod` for products of iterables.
 
     .. NOTE::
 
