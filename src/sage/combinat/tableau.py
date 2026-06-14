@@ -93,7 +93,7 @@ from sage.categories.infinite_enumerated_sets import InfiniteEnumeratedSets
 from sage.categories.sets_cat import Sets
 from sage.combinat import permutation
 from sage.combinat.combinatorial_map import combinatorial_map
-from sage.combinat.composition import Composition, Compositions
+from sage.combinat.composition import Compositions
 from sage.combinat.integer_vector import IntegerVectors, integer_vectors_nk_fast_iter
 from sage.combinat.subset import powerset
 from sage.misc.inherit_comparison import InheritComparisonClasscallMetaclass
@@ -4151,7 +4151,7 @@ class Tableau(ClonableList, metaclass=InheritComparisonClasscallMetaclass):
         Return the lexicographically minimal reduced expression for the
         permutation that maps the :meth:`initial_tableau` to ``self``.
 
-        Ths reduced expression is a minimal length coset representative for the
+        This reduced expression is a minimal length coset representative for the
         corresponding Young subgroup.  In one line notation, the permutation is
         obtained by concatenating the rows of the tableau in order from top to
         bottom.
@@ -4177,7 +4177,7 @@ class Tableau(ClonableList, metaclass=InheritComparisonClasscallMetaclass):
         permutation that maps the conjugate of the :meth:`initial_tableau`
         to ``self``.
 
-        Ths reduced expression is a minimal length coset representative for
+        This reduced expression is a minimal length coset representative for
         the corresponding Young subgroup.  In one line notation, the
         permutation is obtained by concatenating the columns of the
         tableau in order from top to bottom.
@@ -6657,7 +6657,7 @@ class SemistandardTableaux_size(SemistandardTableaux):
         TESTS:
 
         Check that we can compute large cardinalities::
-        
+
             sage: SemistandardTableaux(50, max_entry=100).cardinality()
             9680859464176053556183499527252114760388193143191787221809144649430208
         """
