@@ -6650,15 +6650,25 @@ class SemistandardTableaux_size(SemistandardTableaux):
             sage: SemistandardTableaux(4, max_entry=10).cardinality()
             4225
             sage: ns = list(range(1, 6))
-            sage: ssts = [ SemistandardTableaux(n) for n in ns ]
-            sage: all(sst.cardinality() == len(sst.list()) for sst in ssts)             # needs sage.modules
+            sage: ssts = [SemistandardTableaux(n) for n in ns]
+            sage: all(sst.cardinality() == len(sst.list()) for sst in ssts)
             True
+
+        TESTS:
+
+        Check that we can compute large cardinalities::
+        
+            sage: SemistandardTableaux(50, max_entry=100).cardinality()
+            9680859464176053556183499527252114760388193143191787221809144649430208
         """
-        from sage.combinat.partition import Partitions
-        c = 0
-        for part in Partitions(self.size):
-            c += SemistandardTableaux_shape(part, self.max_entry).cardinality()
-        return c
+        # this is the coefficient of t^n in the generating function
+        # \sum_\mu s_\mu(t,...,t), which evaluates by the Cauchy
+        # identity to (1-t)^m (1-t^2)^{\binom{m}{2}}
+        m = self.max_entry
+        n = self.size
+        return sum(binomial(binomial(m, 2) + k - 1, k)
+                   * binomial(m + n - 2*k - 1, m - 1)
+                   for k in range(n // 2 + 1))
 
     def __iter__(self):
         """
