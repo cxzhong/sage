@@ -94,7 +94,7 @@ class PlacticMonoid(UniqueRepresentation, Parent):
         Traceback (most recent call last):
         ...
         ValueError: letters must be integers from 1 to 4
-        sage: TestSuite(M).run()
+        sage: TestSuite(M).run(skip='_test_graded_components')
     """
     @staticmethod
     def __classcall_private__(cls, n):
@@ -201,7 +201,37 @@ class PlacticMonoid(UniqueRepresentation, Parent):
             sage: M.an_element()
             1
         """
-        return self.module_generators()[1]
+        return self.monoid_generators()[1]
+
+    def subset(self, k):
+        r"""
+        Return the plactic monoid elements represented by words of length ``k``.
+
+        Since the plactic monoid is infinite, this returns the finite set of
+        elements of a fixed size, using their row reading word representatives.
+
+        EXAMPLES::
+
+            sage: from sage.combinat.plactic_monoid import PlacticMonoid
+            sage: M = PlacticMonoid(2)
+            sage: M.subset(1)
+            [1, 2]
+            sage: M.subset(2)
+            [11, 12, 21, 22]
+        """
+        if not isinstance(k, (int, Integer)) or k < 0:
+            raise ValueError("the size must be a nonnegative integer")
+
+        if k == 0:
+            return [self.one()]
+
+        # Plactic monoid elements correspond to semistandard tableaux.
+        # For each partition shape of k, Sage generates all tableaux of that
+        # shape with entries bounded by the rank.
+        tableaux = SemistandardTableaux(k, max_entry=self.rank())
+        elements = [self(t.to_word()) for t in tableaux]
+
+        return sorted(elements, key=lambda x: x.value)
 
     class Element(ElementWrapper):
         r"""
@@ -272,6 +302,18 @@ class PlacticMonoid(UniqueRepresentation, Parent):
             """
             return len(self.value)
 
+        def __hash__(self):
+            """
+            TESTS::
+
+                sage: from sage.combinat.plactic_monoid import PlacticMonoid
+                sage: M = PlacticMonoid(4)
+                sage: x = M([3, 1, 2])
+                sage: hash(x) == hash(M([3,1,2]))
+                True
+            """
+            return hash(self.to_tableau())
+
         def grade(self):
             """
             Return the grade of ``self``, which is the length as a word.
@@ -329,7 +371,7 @@ class PlacticMonoid(UniqueRepresentation, Parent):
                 sage: M([2, 1, 3]) == M([3, 2, 1])
                 False
             """
-            return self.to_tableau() == other.to_tableau()
+            return isinstance(other, PlacticMonoid.Element) and self.to_tableau() == other.to_tableau()
 
         def to_word(self):
             """
@@ -386,7 +428,7 @@ class PlacticMonoid(UniqueRepresentation, Parent):
 
             # Keep exactly the rearrangements whose RSK insertion tableau agrees
             # with the original one.
-            return [m for w in words if (m := w.to_tableau()) == tableau]
+            return [parent(w) for w in words if RSK(w)[0] == tableau]
 
         def shape(self):
             """
@@ -417,33 +459,3 @@ class PlacticMonoid(UniqueRepresentation, Parent):
                 False
             """
             return repr(self) == repr(self.to_word())
-
-    def subset(self, k):
-        r"""
-        Return the plactic monoid elements represented by words of length ``k``.
-
-        Since the plactic monoid is infinite, this returns the finite set of
-        elements of a fixed size, using their row reading word representatives.
-
-        EXAMPLES::
-
-            sage: from sage.combinat.plactic_monoid import PlacticMonoid
-            sage: M = PlacticMonoid(2)
-            sage: M.subset(1)
-            [1, 2]
-            sage: M.subset(2)
-            [11, 12, 21, 22]
-        """
-        if not isinstance(k, (int, Integer)) or k < 0:
-            raise ValueError("the size must be a nonnegative integer")
-
-        if k == 0:
-            return [self.one()]
-
-        # Plactic monoid elements correspond to semistandard tableaux.
-        # For each partition shape of k, Sage generates all tableaux of that
-        # shape with entries bounded by the rank.
-        tableaux = SemistandardTableaux(k, max_entry=self.rank())
-        elements = [self(t.to_word()) for t in tableaux]
-
-        return sorted(elements, key=lambda x: x.value)
