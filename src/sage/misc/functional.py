@@ -443,9 +443,8 @@ def symbolic_sum(expression, *args, **kwds):
 
     .. NOTE::
 
-        Although this function is named ``symbolic_sum``, it is available as
-        ``sum`` in the Sage global namespace. Without symbolic bounds, it
-        delegates to Python's built-in ``sum``.
+        This function is available as ``sum`` in the global namespace.
+        In the absence of bounds it delegates to Python's built-in ``sum``.
 
     EXAMPLES::
 
