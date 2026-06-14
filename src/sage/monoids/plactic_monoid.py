@@ -61,7 +61,7 @@ class PlacticMonoid(UniqueRepresentation, Parent):
 
     EXAMPLES::
 
-        sage: from sage.combinat.plactic_monoid import PlacticMonoid
+        sage: from sage.monoids.plactic_monoid import PlacticMonoid
         sage: M = PlacticMonoid(4)
         sage: M
         Plactic monoid of rank 4
@@ -78,7 +78,7 @@ class PlacticMonoid(UniqueRepresentation, Parent):
 
     TESTS::
 
-        sage: from sage.combinat.plactic_monoid import PlacticMonoid
+        sage: from sage.monoids.plactic_monoid import PlacticMonoid
         sage: M = PlacticMonoid(4)
         sage: M([]) == M.one()
         True
@@ -103,7 +103,7 @@ class PlacticMonoid(UniqueRepresentation, Parent):
 
         TESTS::
 
-            sage: from sage.combinat.plactic_monoid import PlacticMonoid
+            sage: from sage.monoids.plactic_monoid import PlacticMonoid
             sage: PlacticMonoid(4) is PlacticMonoid(ZZ(4))
             True
             sage: PlacticMonoid(-1)
@@ -124,7 +124,7 @@ class PlacticMonoid(UniqueRepresentation, Parent):
 
         EXAMPLES::
 
-            sage: from sage.combinat.plactic_monoid import PlacticMonoid
+            sage: from sage.monoids.plactic_monoid import PlacticMonoid
             sage: PlacticMonoid(4).rank()
             4
         """
@@ -138,7 +138,7 @@ class PlacticMonoid(UniqueRepresentation, Parent):
 
         EXAMPLES::
 
-            sage: from sage.combinat.plactic_monoid import PlacticMonoid
+            sage: from sage.monoids.plactic_monoid import PlacticMonoid
             sage: PlacticMonoid(4)
             Plactic monoid of rank 4
         """
@@ -150,7 +150,7 @@ class PlacticMonoid(UniqueRepresentation, Parent):
 
         EXAMPLES::
 
-            sage: from sage.combinat.plactic_monoid import PlacticMonoid
+            sage: from sage.monoids.plactic_monoid import PlacticMonoid
             sage: PlacticMonoid(4).rank()
             4
         """
@@ -163,7 +163,7 @@ class PlacticMonoid(UniqueRepresentation, Parent):
 
         EXAMPLES::
 
-            sage: from sage.combinat.plactic_monoid import PlacticMonoid
+            sage: from sage.monoids.plactic_monoid import PlacticMonoid
             sage: M = PlacticMonoid(4)
             sage: G = M.monoid_generators()
             sage: G[1], G[2], G[3], G[4]
@@ -180,7 +180,7 @@ class PlacticMonoid(UniqueRepresentation, Parent):
 
         EXAMPLES::
 
-            sage: from sage.combinat.plactic_monoid import PlacticMonoid
+            sage: from sage.monoids.plactic_monoid import PlacticMonoid
             sage: M = PlacticMonoid(3)
             sage: M.one() == M([])
             True
@@ -196,7 +196,7 @@ class PlacticMonoid(UniqueRepresentation, Parent):
 
         EXAMPLES::
 
-            sage: from sage.combinat.plactic_monoid import PlacticMonoid
+            sage: from sage.monoids.plactic_monoid import PlacticMonoid
             sage: M = PlacticMonoid(3)
             sage: M.an_element()
             1
@@ -212,7 +212,7 @@ class PlacticMonoid(UniqueRepresentation, Parent):
 
         EXAMPLES::
 
-            sage: from sage.combinat.plactic_monoid import PlacticMonoid
+            sage: from sage.monoids.plactic_monoid import PlacticMonoid
             sage: M = PlacticMonoid(2)
             sage: M.subset(1)
             [1, 2]
@@ -239,7 +239,7 @@ class PlacticMonoid(UniqueRepresentation, Parent):
 
         EXAMPLES::
 
-            sage: from sage.combinat.plactic_monoid import PlacticMonoid
+            sage: from sage.monoids.plactic_monoid import PlacticMonoid
             sage: M = PlacticMonoid(4)
             sage: M([2, 1, 3])
             213
@@ -256,7 +256,7 @@ class PlacticMonoid(UniqueRepresentation, Parent):
 
             TESTS::
 
-                sage: from sage.combinat.plactic_monoid import PlacticMonoid
+                sage: from sage.monoids.plactic_monoid import PlacticMonoid
                 sage: M = PlacticMonoid(4)
                 sage: M([1, 2, 4])
                 124
@@ -280,7 +280,7 @@ class PlacticMonoid(UniqueRepresentation, Parent):
 
             EXAMPLES::
 
-                sage: from sage.combinat.plactic_monoid import PlacticMonoid
+                sage: from sage.monoids.plactic_monoid import PlacticMonoid
                 sage: M = PlacticMonoid(4)
                 sage: M([2, 1, 3])
                 213
@@ -295,7 +295,7 @@ class PlacticMonoid(UniqueRepresentation, Parent):
 
             EXAMPLES::
 
-                sage: from sage.combinat.plactic_monoid import PlacticMonoid
+                sage: from sage.monoids.plactic_monoid import PlacticMonoid
                 sage: M = PlacticMonoid(4)
                 sage: len(M([3, 1, 2]))
                 3
@@ -306,7 +306,7 @@ class PlacticMonoid(UniqueRepresentation, Parent):
             """
             TESTS::
 
-                sage: from sage.combinat.plactic_monoid import PlacticMonoid
+                sage: from sage.monoids.plactic_monoid import PlacticMonoid
                 sage: M = PlacticMonoid(4)
                 sage: x = M([3, 1, 2])
                 sage: hash(x) == hash(M([3,1,2]))
@@ -320,7 +320,7 @@ class PlacticMonoid(UniqueRepresentation, Parent):
 
             EXAMPLES::
 
-                sage: from sage.combinat.plactic_monoid import PlacticMonoid
+                sage: from sage.monoids.plactic_monoid import PlacticMonoid
                 sage: M = PlacticMonoid(4)
                 sage: len(M([3, 1, 2]))
                 3
@@ -333,7 +333,7 @@ class PlacticMonoid(UniqueRepresentation, Parent):
 
             EXAMPLES::
 
-                sage: from sage.combinat.plactic_monoid import PlacticMonoid
+                sage: from sage.monoids.plactic_monoid import PlacticMonoid
                 sage: M = PlacticMonoid(4)
                 sage: list(M([3, 1, 2]))
                 [3, 1, 2]
@@ -346,7 +346,7 @@ class PlacticMonoid(UniqueRepresentation, Parent):
 
             EXAMPLES::
 
-                sage: from sage.combinat.plactic_monoid import PlacticMonoid
+                sage: from sage.monoids.plactic_monoid import PlacticMonoid
                 sage: M = PlacticMonoid(4)
                 sage: a = M([2, 1]); b = M([3, 2])
                 sage: a * b
@@ -364,7 +364,7 @@ class PlacticMonoid(UniqueRepresentation, Parent):
 
             EXAMPLES::
 
-                sage: from sage.combinat.plactic_monoid import PlacticMonoid
+                sage: from sage.monoids.plactic_monoid import PlacticMonoid
                 sage: M = PlacticMonoid(4)
                 sage: M([2, 1, 3]) == M([2, 3, 1])
                 True
@@ -379,7 +379,7 @@ class PlacticMonoid(UniqueRepresentation, Parent):
 
             EXAMPLES::
 
-                sage: from sage.combinat.plactic_monoid import PlacticMonoid
+                sage: from sage.monoids.plactic_monoid import PlacticMonoid
                 sage: M = PlacticMonoid(4)
                 sage: M([2, 3, 1]).to_word()
                 213
@@ -395,7 +395,7 @@ class PlacticMonoid(UniqueRepresentation, Parent):
 
             EXAMPLES::
 
-                sage: from sage.combinat.plactic_monoid import PlacticMonoid
+                sage: from sage.monoids.plactic_monoid import PlacticMonoid
                 sage: M = PlacticMonoid(4)
                 sage: M([1, 3, 2]).to_tableau()
                 [[1, 2], [3]]
@@ -413,7 +413,7 @@ class PlacticMonoid(UniqueRepresentation, Parent):
 
             EXAMPLES::
 
-                sage: from sage.combinat.plactic_monoid import PlacticMonoid
+                sage: from sage.monoids.plactic_monoid import PlacticMonoid
                 sage: M = PlacticMonoid(3)
                 sage: M([2, 1, 3]).equivalence_class()
                 [213, 231]
@@ -436,7 +436,7 @@ class PlacticMonoid(UniqueRepresentation, Parent):
 
             EXAMPLES::
 
-                sage: from sage.combinat.plactic_monoid import PlacticMonoid
+                sage: from sage.monoids.plactic_monoid import PlacticMonoid
                 sage: M = PlacticMonoid(4)
                 sage: M([2, 1, 3]).shape()
                 [2, 1]
@@ -451,7 +451,7 @@ class PlacticMonoid(UniqueRepresentation, Parent):
 
             EXAMPLES::
 
-                sage: from sage.combinat.plactic_monoid import PlacticMonoid
+                sage: from sage.monoids.plactic_monoid import PlacticMonoid
                 sage: M = PlacticMonoid(3)
                 sage: M([3, 2, 1]).is_canonical()
                 True

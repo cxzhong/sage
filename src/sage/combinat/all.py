@@ -159,9 +159,6 @@ lazy_import('sage.combinat.shifted_primed_tableau', ['ShiftedPrimedTableaux',
 lazy_import('sage.combinat.super_tableau',
             ["StandardSuperTableau", "SemistandardSuperTableau", "StandardSuperTableaux", "SemistandardSuperTableaux"])
 
-# Plactic monoid
-from sage.combinat.plactic_monoid import PlacticMonoid
-
 # Words
 from sage.combinat.words.all import *
 
