@@ -295,10 +295,10 @@ class Polyhedron_ppl(Polyhedron_mutable):
             sage: p._ppl_polyhedron.minimized_generators()
             Generator_System {point(0/2, 1/2), point(2/1, 0/1), point(24/6, 5/6)}
 
-        PPL may choose a non-integral point to represent an integral
-        affine space modulo its lineality.  In the ``ZZ`` backend, we
-        replace it by an integral representative when one exists
-        (:issue:`42142`)::
+        PPL may choose a non-integral point generator even when its
+        class modulo the lineality has an integral representative.  In
+        the ``ZZ`` backend, we replace it by such a representative when
+        one exists (:issue:`42142`)::
 
             sage: P = Polyhedron(eqns=[(-1, 1, 1, 1, -2)], base_ring=ZZ)
             sage: P.Vrepresentation()
@@ -350,9 +350,9 @@ class Polyhedron_ppl(Polyhedron_mutable):
         r"""
         Return an integral point equivalent to ``point`` modulo ``lines``.
 
-        PPL represents a polyhedron with lineality by a point modulo the
-        line space.  Even when the corresponding ``ZZ`` polyhedron has
-        integral vertices, PPL may choose a non-integral representative.
+        This helper only changes the representative of the affine flat
+        ``point + span(lines)``.  Even when this flat contains integral
+        points, PPL may choose a non-integral point generator.
         """
         line_matrix = matrix(ZZ, lines)
         equations = line_matrix.right_kernel_matrix()

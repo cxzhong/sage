@@ -550,8 +550,9 @@ def Polyhedron(vertices=None, rays=None, lines=None,
         sage: Q.base_ring()
         Rational Field
 
-    Enforcing base ring ``ZZ`` for this example succeeds because an integral
-    representative of the affine hull exists (see :issue:`42142`)::
+    Enforcing base ring ``ZZ`` for this example succeeds because the PPL
+    point generator can be replaced by an integral representative modulo
+    the lineality (see :issue:`42142`)::
 
         sage: Q = Polyhedron(vertices=[(1, 2, 3), (1, 3, 2), (2, 1, 3),
         ....:                          (2, 3, 1), (3, 1, 2), (3, 2, 1)],
