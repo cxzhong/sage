@@ -436,6 +436,17 @@ def symbolic_sum(expression, *args, **kwds):
 
       - ``'sympy'`` -- use SymPy
 
+    .. SEEALSO::
+
+        :func:`symbolic_prod` for symbolic products and
+        :func:`sage.misc.misc_c.prod` for products of iterable elements.
+
+    .. NOTE::
+
+        Although this function is named ``symbolic_sum``, it is available as
+        ``sum`` in the Sage global namespace. Without symbolic bounds, it
+        delegates to Python's built-in ``sum``.
+
     EXAMPLES::
 
         sage: k, n = var('k,n')                                                         # needs sage.symbolic
@@ -454,9 +465,9 @@ def symbolic_sum(expression, *args, **kwds):
 
     .. WARNING::
 
-        This function only works with symbolic expressions. To sum any
-        other objects like list elements or function return values,
-        please use python summation, see
+        This function only works with symbolic expressions. For other objects,
+        such as iterable elements or function return values, use Python's
+        built-in ``sum``.
         http://docs.python.org/library/functions.html#sum
 
         In particular, this does not work::
@@ -614,13 +625,42 @@ def symbolic_prod(expression, *args, **kwds):
 
     - ``hold`` -- boolean (default: ``False``); if ``True`` don't evaluate
 
-    This function is available as ``product`` in the Sage global namespace.
+
 
 
     .. SEEALSO::
 
+        :func:`symbolic_sum` for symbolic sums and
         :func:`sage.misc.misc_c.prod` for multiplying elements of an
         iterable.
+
+    .. NOTE::
+
+
+        Although this function is named ``symbolic_prod``, it is available as
+        ``product`` in the Sage global namespace.
+
+    .. WARNING::
+
+        This function only works with symbolic expressions. For products of
+        iterable elements or function return values, use
+        :func:`sage.misc.misc_c.prod`.
+
+        For example, this does not work::
+
+            sage: n = var('n')
+            sage: mylist = [1, 2, 3, 4, 5]
+            sage: product(mylist[n], n, 0, 3)
+            Traceback (most recent call last):
+            ...
+            TypeError: unable to convert n to an integer
+
+        Use ``prod`` instead::
+
+            sage: prod(mylist[n] for n in range(4))
+            24
+
+
 
     EXAMPLES::
 
