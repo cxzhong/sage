@@ -152,7 +152,7 @@ foreach name, pyx : extension_data
     deps += [mpfr]
   elif name == 'matrix_complex_ball_dense'
     deps += [flint, mpfi]
-  elif name == 'misc_flint' or name == 'matrix_rational_sparse' or name == 'change_ring'
+  elif name == 'misc_flint' or name == 'matrix_rational_sparse' or name == 'change_ring' or name == 'matrix_modn_dense_flint'
     deps += [flint]
   elif name == 'matrix_gf2e_dense'
     deps += [m4rie]
