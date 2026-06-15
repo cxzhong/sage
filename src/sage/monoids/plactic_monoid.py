@@ -363,8 +363,11 @@ class PlacticMonoid(UniqueRepresentation, Parent):
                 True
                 sage: M([2, 1, 3]) == M([3, 2, 1])
                 False
+                sage: M3 = PlacticMonoid(3)
+                sage: M([2, 1, 3]) == M3([2, 1, 3])
+                False
             """
-            return isinstance(other, PlacticMonoid.Element) and self.to_tableau() == other.to_tableau()
+            return isinstance(other, PlacticMonoid.Element) and self.parent() == other.parent() and self.to_tableau() == other.to_tableau()
 
         def to_word(self):
             """
@@ -412,7 +415,7 @@ class PlacticMonoid(UniqueRepresentation, Parent):
                 [213, 231]
             """
             parent = self.parent()
-            tableau = self.to_tableau()
+            P = self.to_tableau()
             shape = P.shape()
             return [parent(RSK_inverse(P, Q)[1]) for Q in StandardTableaux(shape)]
 
