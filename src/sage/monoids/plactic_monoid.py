@@ -44,8 +44,8 @@ from itertools import permutations, chain
 from sage.rings.integer import Integer
 from sage.rings.integer_ring import ZZ
 from sage.sets.family import Family
-from sage.combinat.rsk import RSK
-from sage.combinat.tableau import SemistandardTableaux
+from sage.combinat.rsk import RSK, RSK_inverse
+from sage.combinat.tableau import StandardTableaux, SemistandardTableaux
 from sage.combinat.partition import Partitions
 
 class PlacticMonoid(UniqueRepresentation, Parent):
