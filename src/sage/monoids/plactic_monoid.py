@@ -295,7 +295,7 @@ class PlacticMonoid(UniqueRepresentation, Parent):
             """
             Return the length of ``self`` as a word.
 
-            This is also grade of ``self``.
+            This is also the grade of ``self``.
 
             EXAMPLES::
 
