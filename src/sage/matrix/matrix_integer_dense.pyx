@@ -126,6 +126,7 @@ from sage.rings.finite_rings.finite_field_constructor import GF
 from sage.matrix.matrix2 import decomp_seq
 
 from sage.matrix.matrix cimport Matrix
+from sage.matrix.matrix0 cimport Matrix as Matrix0
 
 cimport sage.structure.element
 
@@ -867,16 +868,24 @@ cdef class Matrix_integer_dense(Matrix_dense):
         fmpz_clear(s)
         return M
 
-    cdef sage.structure.element.Matrix _matrix_times_matrix_(self, sage.structure.element.Matrix right):
-        cdef Matrix_integer_dense M
-
-        check_matrix_multiplication_sizes(self, right)
-
-        M = self._new(self._nrows, right._ncols)
+    cdef int _set_to_product_c_impl(self, Matrix0 left, Matrix0 right) except -1:
+        cdef Matrix_integer_dense _left = <Matrix_integer_dense>left
+        cdef Matrix_integer_dense _right = <Matrix_integer_dense>right
 
         sig_on()
-        fmpz_mat_mul(M._matrix, self._matrix, (<Matrix_integer_dense>right)._matrix)
+        fmpz_mat_mul(self._matrix, _left._matrix, _right._matrix)
         sig_off()
+        return 0
+
+    cdef sage.structure.element.Matrix _matrix_times_matrix_(self, sage.structure.element.Matrix right):
+        cdef Matrix_integer_dense M
+        cdef Matrix_integer_dense _right = <Matrix_integer_dense>right
+
+        check_matrix_multiplication_sizes(self, _right)
+
+        M = self._new(self._nrows, _right._ncols)
+
+        M._set_to_product_c_impl(self, _right)
         return M
 
     cpdef _lmul_(self, Element right):

@@ -1,5 +1,6 @@
 from sage.libs.flint.types cimport fmpz_t, fmpq_mat_t
 from sage.matrix.matrix_dense cimport Matrix_dense
+from sage.matrix.matrix0 cimport Matrix
 
 cdef class Matrix_rational_dense(Matrix_dense):
     cdef fmpq_mat_t _matrix
@@ -16,6 +17,7 @@ cdef class Matrix_rational_dense(Matrix_dense):
     cdef _sub_ui_unsafe_assuming_int(self, Py_ssize_t i, Py_ssize_t j, unsigned long int n)
 
     cdef inline Matrix_rational_dense _new_matrix(self, Py_ssize_t nrows, Py_ssize_t ncols)
+    cdef int _set_to_product_c_impl(self, Matrix left, Matrix right) except -1
 
 cdef class MatrixWindow:
     cdef Matrix_rational_dense _matrix

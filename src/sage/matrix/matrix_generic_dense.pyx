@@ -12,6 +12,7 @@ from sage.matrix import matrix_dense
 from sage.matrix.args cimport MatrixArgs_init
 
 cimport sage.matrix.matrix as matrix
+cimport sage.matrix.matrix0 as matrix0
 from sage.matrix.matrix_utils cimport check_matrix_multiplication_sizes
 
 
@@ -296,6 +297,30 @@ cdef class Matrix_generic_dense(matrix_dense.Matrix_dense):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.overflowcheck(False)
+    cdef int _set_to_product_classical_impl(self, matrix0.Matrix _left, matrix0.Matrix _right) except -1:
+        cdef Py_ssize_t i, j, k, m, nr, nc, snc, p
+        cdef Matrix_generic_dense left = <Matrix_generic_dense>_left
+        cdef Matrix_generic_dense right = <Matrix_generic_dense>_right
+
+        nr = left._nrows
+        nc = right._ncols
+        snc = left._ncols
+
+        R = left.base_ring()
+        if self._entries is None or len(self._entries) != nr * nc:
+            self._entries = [None] * (nr * nc)
+        zero = R.zero()
+        p = 0
+        for i in range(nr):
+            m = i * snc
+            for j in range(nc):
+                z = zero
+                for k in range(snc):
+                    z += left._entries[m + k] * right._entries[k * nc + j]
+                self._entries[p] = z
+                p += 1
+        return 0
+
     def _multiply_classical(self, matrix.Matrix _right):
         """
         Multiply the matrices self and right using the classical
@@ -361,30 +386,12 @@ cdef class Matrix_generic_dense(matrix_dense.Matrix_dense):
             [22  0]
             [ 0 22]
         """
-        cdef Py_ssize_t i, j, k, m, nr, nc, snc, p
         cdef Matrix_generic_dense right = _right
 
         check_matrix_multiplication_sizes(self, right)
 
-        nr = self._nrows
-        nc = right._ncols
-        snc = self._ncols
-
-        R = self.base_ring()
-        cdef list v = [None] * (self._nrows * right._ncols)
-        zero = R.zero()
-        p = 0
-        for i in range(nr):
-            m = i*snc
-            for j in range(nc):
-                z = zero
-                for k in range(snc):
-                    z += self._entries[m+k] * (right._entries[k*nc+j])
-                v[p] = z
-                p += 1
-
-        cdef Matrix_generic_dense A = self._new(nr, nc)
-        A._entries = v
+        cdef Matrix_generic_dense A = self._new(self._nrows, right._ncols)
+        A._set_to_product_classical_impl(self, right)
         return A
 
     def _list(self):

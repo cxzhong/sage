@@ -107,6 +107,7 @@ cimport sage.structure.element
 from sage.structure.richcmp cimport rich_to_bool
 from sage.rings.rational cimport Rational
 from sage.matrix.matrix cimport Matrix
+from sage.matrix.matrix0 cimport Matrix as Matrix0
 from sage.matrix.args cimport SparseEntry, MatrixArgs_init
 from sage.matrix.matrix_integer_dense cimport Matrix_integer_dense, _lift_crt
 from sage.matrix.matrix_utils cimport check_matrix_multiplication_sizes
@@ -1192,6 +1193,15 @@ cdef class Matrix_rational_dense(Matrix_dense):
         """
         return self._multiply_flint(right)
 
+    cdef int _set_to_product_c_impl(self, Matrix0 left, Matrix0 right) except -1:
+        cdef Matrix_rational_dense _left = <Matrix_rational_dense>left
+        cdef Matrix_rational_dense _right = <Matrix_rational_dense>right
+
+        sig_on()
+        fmpq_mat_mul(self._matrix, _left._matrix, _right._matrix)
+        sig_off()
+        return 0
+
     def _multiply_flint(self, Matrix_rational_dense right):
         r"""
         Multiply this matrix by ``right`` using the flint library.
@@ -1218,9 +1228,7 @@ cdef class Matrix_rational_dense(Matrix_dense):
         cdef Matrix_rational_dense ans
         ans = Matrix_rational_dense.__new__(Matrix_rational_dense, parent, None, None, None)
 
-        sig_on()
-        fmpq_mat_mul(ans._matrix, self._matrix, (<Matrix_rational_dense> right)._matrix)
-        sig_off()
+        ans._set_to_product_c_impl(self, right)
         return ans
 
     def _multiply_over_integers(self, Matrix_rational_dense right, algorithm='default'):

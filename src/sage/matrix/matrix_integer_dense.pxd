@@ -2,6 +2,7 @@ from sage.libs.gmp.types cimport *
 from sage.libs.flint.types cimport fmpz_mat_t
 
 from sage.matrix.matrix_dense cimport Matrix_dense
+from sage.matrix.matrix0 cimport Matrix
 from sage.rings.integer cimport Integer
 from sage.ext.mod_int cimport *
 
@@ -29,6 +30,7 @@ cdef class Matrix_integer_dense(Matrix_dense):
                              Py_ssize_t nrows, Py_ssize_t ncols) except NULL
 
     cdef Matrix_integer_dense _new(self, Py_ssize_t nrows, Py_ssize_t ncols)
+    cdef int _set_to_product_c_impl(self, Matrix left, Matrix right) except -1
 
 
 cpdef _lift_crt(Matrix_integer_dense M, residues, moduli=*)

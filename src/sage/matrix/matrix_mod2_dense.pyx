@@ -112,6 +112,7 @@ from sage.matrix.args cimport SparseEntry, MatrixArgs_init, MA_ENTRIES_NDARRAY
 from sage.matrix.matrix_utils cimport check_matrix_multiplication_sizes
 from libc.stdio cimport *
 from sage.structure.element cimport (Matrix, Vector)
+from sage.matrix.matrix0 cimport Matrix as Matrix0
 from sage.modules.free_module_element cimport FreeModuleElement
 from sage.libs.gmp.random cimport *
 from sage.misc.randstate cimport randstate, current_randstate
@@ -780,6 +781,21 @@ cdef class Matrix_mod2_dense(matrix_dense.Matrix_dense):   # dense or sparse
                 self._nrows, self._ncols, right._nrows, right._ncols))
 
         return self._multiply_strassen(right, 0)
+
+    cdef int _set_to_product_c_impl(self, Matrix0 left, Matrix0 right) except -1:
+        cdef Matrix_mod2_dense _left = <Matrix_mod2_dense>left
+        cdef Matrix_mod2_dense _right = <Matrix_mod2_dense>right
+
+        if _left._nrows == 0 or _left._ncols == 0 or _right._ncols == 0:
+            sig_on()
+            mzd_set_ui(self._entries, 0)
+            sig_off()
+            return 0
+
+        sig_on()
+        self._entries = mzd_mul(self._entries, _left._entries, _right._entries, 0)
+        sig_off()
+        return 0
 
     cpdef Matrix_mod2_dense _multiply_m4rm(Matrix_mod2_dense self, Matrix_mod2_dense right, int k):
         """

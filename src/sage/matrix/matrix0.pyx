@@ -35,6 +35,7 @@ from sage.structure.parent cimport Parent
 cimport sage.structure.element
 from sage.structure.element cimport Element, Vector
 from sage.misc.misc_c cimport normalize_index
+from sage.matrix.matrix_utils cimport check_matrix_multiplication_sizes
 
 from sage.categories.fields import Fields
 from sage.categories.integral_domains import IntegralDomains
@@ -94,7 +95,110 @@ cdef class Matrix(sage.structure.element.Matrix):
         sage: matrix(Q,2,1,[1,2])
         [1]
         [2]
+
+    The :meth:`set_to_product` method stores a matrix product in an
+    already allocated mutable matrix::
+
+        sage: A = matrix(ZZ, 2, 3, range(6))
+        sage: B = matrix(ZZ, 3, 2, range(6))
+        sage: C = matrix(ZZ, 2, 2)
+        sage: C.set_to_product(A, B)
+        sage: C == A * B
+        True
+        sage: C.set_to_product(2*A, B)
+        sage: C == (2*A) * B
+        True
+
+    This also works for several core dense backends::
+
+        sage: for R in (QQ, GF(2), RDF, CDF):                                            # needs sage.rings.finite_rings
+        ....:     A = matrix(R, 2, 3, range(6))
+        ....:     B = matrix(R, 3, 2, range(6))
+        ....:     C = matrix(R, 2, 2)
+        ....:     C.set_to_product(A, B)
+        ....:     assert C == A * B
+
+    Generic dense matrices and degenerate dimensions are supported::
+
+        sage: R.<x> = QQ[]
+        sage: A = matrix(R, 2, 3, [x^i for i in range(6)], implementation='generic')
+        sage: B = matrix(R, 3, 1, [1, x, x^2], implementation='generic')
+        sage: C = matrix(R, 2, 1, implementation='generic')
+        sage: C.set_to_product(A, B)
+        sage: C == A * B
+        True
+        sage: Z = matrix(ZZ, 3, 3, 1)
+        sage: Z.set_to_product(matrix(ZZ, 3, 0), matrix(ZZ, 0, 3))
+        sage: Z.is_zero()
+        True
+
+    TESTS:
+
+    The destination must be mutable, distinct from both inputs, and have the
+    product shape::
+
+        sage: A = matrix(ZZ, 2, [1, 2, 3, 4])
+        sage: B = matrix(ZZ, 2, [5, 6, 7, 8])
+        sage: C = matrix(ZZ, 2, 2)
+        sage: C.set_immutable()
+        sage: C.set_to_product(A, B)
+        Traceback (most recent call last):
+        ...
+        ValueError: matrix is immutable; please change a copy instead...
+        sage: A.set_to_product(A, B)
+        Traceback (most recent call last):
+        ...
+        ValueError: destination matrix must be distinct from both input matrices
+        sage: C = matrix(ZZ, 3, 3)
+        sage: C.set_to_product(A, B)
+        Traceback (most recent call last):
+        ...
+        ArithmeticError: destination matrix has wrong dimensions for the product
+
+    The destination cache is cleared and existing subdivisions are dropped,
+    matching ordinary multiplication::
+
+        sage: A = matrix(ZZ, 2, [1, 2, 3, 4])
+        sage: B = matrix(ZZ, 2, [5, 6, 7, 8])
+        sage: A.subdivide([1], [1])
+        sage: B.subdivide([1], [1])
+        sage: C = matrix(ZZ, 2, 2, 1)
+        sage: C._get_cache()['sentinel'] = 1
+        sage: C.subdivide([1], [1])
+        sage: C.set_to_product(A, B)
+        sage: 'sentinel' in C._get_cache()
+        False
+        sage: C.subdivisions()
+        ([], [])
+        sage: (A * B).subdivisions()
+        ([], [])
     """
+    cpdef set_to_product(self, Matrix left, Matrix right):
+        r"""
+        Set ``self`` to the matrix product ``left * right``.
+
+        This method writes the product into an already allocated mutable
+        destination matrix. The destination must not alias either input.
+
+        See the class-level examples for typical use.
+        """
+        if self._is_immutable:
+            raise ValueError("matrix is immutable; please change a copy instead (i.e., use copy(M) to change a copy of M).")
+        if self is left or self is right:
+            raise ValueError("destination matrix must be distinct from both input matrices")
+        check_matrix_multiplication_sizes(left, right)
+        if self._nrows != left._nrows or self._ncols != right._ncols:
+            raise ArithmeticError("destination matrix has wrong dimensions for the product")
+        if type(self) is not type(left) or type(self) is not type(right):
+            raise TypeError("destination and input matrices must have the same implementation")
+        if self._base_ring is not left._base_ring or self._base_ring is not right._base_ring:
+            raise TypeError("destination and input matrices must have the same base ring")
+
+        self.clear_cache()
+        self._subdivisions = None
+        self._set_to_product_c_impl(left, right)
+        return None
+
     def __cinit__(self, parent, *args, **kwds):
         """
         The initialization routine of the ``Matrix`` base class ensures
@@ -965,7 +1069,7 @@ cdef class Matrix(sage.structure.element.Matrix):
         cdef list row_list
         cdef list col_list
         cdef Py_ssize_t i
-        cdef int row, col
+        cdef int row = 0, col = 0
         cdef int nrows = self._nrows
         cdef int ncols = self._ncols
         cdef tuple key_tuple
@@ -1442,7 +1546,7 @@ cdef class Matrix(sage.structure.element.Matrix):
         cdef list value_list
         cdef bint value_list_one_dimensional = 0
         cdef Py_ssize_t i
-        cdef Py_ssize_t row, col
+        cdef Py_ssize_t row = 0, col = 0
         cdef Py_ssize_t nrows = self._nrows
         cdef Py_ssize_t ncols = self._ncols
         cdef tuple key_tuple
@@ -5566,6 +5670,49 @@ cdef class Matrix(sage.structure.element.Matrix):
                 ans.set_unsafe(r, c, self.get_unsafe(r, c) * x)
         return ans
 
+    cdef int _set_to_product_c_impl(self, Matrix left, Matrix right) except -1:
+        """
+        Set ``self`` to ``left * right`` after public validation.
+        """
+        cdef int cutoff = left._strassen_default_cutoff(right)
+        if cutoff > 0 and left._nrows > cutoff and left._ncols > cutoff and \
+                right._nrows > cutoff and right._ncols > cutoff:
+            return self._set_to_product_strassen_impl(left, right)
+        return self._set_to_product_classical_impl(left, right)
+
+    cdef int _set_to_product_classical_impl(self, Matrix left, Matrix right) except -1:
+        """
+        Set ``self`` to ``left * right`` using classical multiplication.
+        """
+        cdef Py_ssize_t i, j, k
+        cdef Py_ssize_t nr = left._nrows
+        cdef Py_ssize_t nc = right._ncols
+        cdef Py_ssize_t snc = left._ncols
+
+        zero = self._base_ring.zero()
+        for i in range(nr):
+            for j in range(nc):
+                dotp = zero
+                for k in range(snc):
+                    dotp += left.get_unsafe(i, k) * right.get_unsafe(k, j)
+                self.set_unsafe(i, j, dotp)
+        return 0
+
+    cdef int _set_to_product_strassen_impl(self, Matrix left, Matrix right) except -1:
+        """
+        Set ``self`` to ``left * right`` using the generic Strassen routine.
+        """
+        cdef int cutoff = left._strassen_default_cutoff(right)
+        if cutoff <= 0:
+            raise ValueError("cutoff must be at least 1")
+
+        from sage.matrix import strassen
+        strassen.strassen_window_multiply((<object>self).matrix_window(),
+                                          (<object>left).matrix_window(),
+                                          (<object>right).matrix_window(),
+                                          cutoff)
+        return 0
+
     cdef sage.structure.element.Matrix _matrix_times_matrix_(self, sage.structure.element.Matrix right):
         r"""
         Return the product of two matrices.
@@ -5735,10 +5882,11 @@ cdef class Matrix(sage.structure.element.Matrix):
             [             0 -x*y^2 + y^2*x]
         """
         # Both self and right are matrices with compatible dimensions and base ring.
-        if self._will_use_strassen(right):
-            return self._multiply_strassen(right)
+        cdef Matrix _right = <Matrix>right
+        if self._will_use_strassen(_right):
+            return self._multiply_strassen(_right)
         else:
-            return self._multiply_classical(right)
+            return self._multiply_classical(_right)
 
     cdef bint _will_use_strassen(self, Matrix right) except -2:
         """
