@@ -641,8 +641,8 @@ def symbolic_prod(expression, *args, **kwds):
 
     .. WARNING::
 
-        This function only works with symbolic expressions. For products of
-        iterable elements or function return values, use
+        This function is intended for products of symbolic expressions.
+        However, if no bounds are given, the first argument is passed to
         :func:`sage.misc.misc_c.prod`.
 
         For example, this does not work::
