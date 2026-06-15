@@ -413,15 +413,8 @@ class PlacticMonoid(UniqueRepresentation, Parent):
             """
             parent = self.parent()
             tableau = self.to_tableau()
-
-            # Any equivalent word must have the same letters as ``self``, so we
-            # only need to check rearrangements of the current word. The ``set``
-            # removes duplicates when letters repeat.
-            words = sorted(set(permutations(self.value)))
-
-            # Keep exactly the rearrangements whose RSK insertion tableau agrees
-            # with the original one.
-            return [parent(w) for w in words if parent(w).to_tableau() == tableau]
+            shape = P.shape()
+            return [parent(RSK_inverse(P, Q)[1]) for Q in StandardTableaux(shape)]
 
         def shape(self):
             """
