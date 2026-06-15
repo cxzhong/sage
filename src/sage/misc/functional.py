@@ -636,8 +636,8 @@ def symbolic_prod(expression, *args, **kwds):
     .. NOTE::
 
 
-        Although this function is named ``symbolic_prod``, it is available as
-        ``product`` in the Sage global namespace.
+        This function is available as ``product`` in the global namespace.
+        In the absence of bounds it delegates to :func:`sage.misc.misc_c.prod`.
 
     .. WARNING::
 
