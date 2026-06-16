@@ -31,6 +31,7 @@ The following diagram shows the list of child classes of SymmetricKeyCryptosyste
 from sage.sets.set import Set_generic
 from sage.structure.sage_object import SageObject
 
+
 class SymmetricKeyCryptosystem(Set_generic):
     r"""
     A base symmetric cryptosystem class. This is meant to be extended by other
