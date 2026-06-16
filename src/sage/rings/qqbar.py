@@ -1086,8 +1086,7 @@ class AlgebraicRealField(Singleton, AlgebraicField_common, sage.rings.abc.Algebr
 
         """
         from sage.categories.fields import Fields
-        AlgebraicField_common.__init__(self, self, normalize=False, category=Fields().Infinite())
-        self._assign_names(())
+        AlgebraicField_common.__init__(self, self, names=(), normalize=False, category=Fields().Infinite())
         self._populate_coercion_lists_([ZZ, QQ])
 
     def _element_constructor_(self, x):
