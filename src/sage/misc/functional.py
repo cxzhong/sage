@@ -624,9 +624,6 @@ def symbolic_prod(expression, *args, **kwds):
 
     - ``hold`` -- boolean (default: ``False``); if ``True`` don't evaluate
 
-
-
-
     .. SEEALSO::
 
         :func:`symbolic_sum` for symbolic sums and
@@ -634,7 +631,6 @@ def symbolic_prod(expression, *args, **kwds):
         iterable.
 
     .. NOTE::
-
 
         This function is available as ``product`` in the global namespace.
         In the absence of bounds it delegates to :func:`sage.misc.misc_c.prod`.
@@ -658,8 +654,6 @@ def symbolic_prod(expression, *args, **kwds):
 
             sage: prod(mylist[n] for n in range(4))
             24
-
-
 
     EXAMPLES::
 
