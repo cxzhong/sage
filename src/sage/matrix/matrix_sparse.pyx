@@ -251,6 +251,18 @@ cdef class Matrix_sparse(matrix.Matrix):
             [ 0  0 10]
             [ 0  0  0]
             [ 0  0  0]
+
+        Writing the product must not leave the destination's cached sparsity
+        pattern describing its previous contents::
+
+            sage: C = matrix(ZZ, 3, 3, {(0, 0): 7}, sparse=True)
+            sage: A = matrix(ZZ, 3, 3, {(0, 1): 2}, sparse=True)
+            sage: B = matrix(ZZ, 3, 3, {(1, 2): 5}, sparse=True)
+            sage: C.set_to_product(A, B)
+            sage: C.nonzero_positions()
+            [(0, 2)]
+            sage: C.rows()
+            [(0, 0, 10), (0, 0, 0), (0, 0, 0)]
         """
         cdef dict e = left._multiply_classical_entries(right)
         return left.new_matrix(left._nrows, right._ncols, entries=e, coerce=False, copy=False)

@@ -154,6 +154,10 @@ cdef class Matrix(sage.structure.element.Matrix):
         Traceback (most recent call last):
         ...
         ArithmeticError: destination matrix has wrong dimensions for the product
+        sage: matrix(ZZ, 2, 2).set_to_product(None, B)
+        Traceback (most recent call last):
+        ...
+        TypeError: input matrices must not be None
 
     The destination cache is cleared and existing subdivisions are dropped,
     matching ordinary multiplication::
@@ -186,6 +190,8 @@ cdef class Matrix(sage.structure.element.Matrix):
             raise ValueError("matrix is immutable; please change a copy instead (i.e., use copy(M) to change a copy of M).")
         if self is left or self is right:
             raise ValueError("destination matrix must be distinct from both input matrices")
+        if left is None or right is None:
+            raise TypeError("input matrices must not be None")
         check_matrix_multiplication_sizes(left, right)
         if self._nrows != left._nrows or self._ncols != right._ncols:
             raise ArithmeticError("destination matrix has wrong dimensions for the product")
@@ -197,6 +203,10 @@ cdef class Matrix(sage.structure.element.Matrix):
         self.clear_cache()
         self._subdivisions = None
         self._set_to_product(left, right)
+        # Drop any cache the backend may have populated from the destination's
+        # previous contents while writing the product (e.g. the sparse
+        # algorithm queries ``nonzero_positions``); the result is a fresh value.
+        self.clear_cache()
         return None
 
     def __cinit__(self, parent, *args, **kwds):
