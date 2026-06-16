@@ -1753,7 +1753,6 @@ class ArithmeticProductSpeciesElement(LazyCombinatorialSpeciesElement):
         self._other = G
 
     def generating_series(self):
-
         r"""
         Return the (exponential) generating series of ``self``.
 
@@ -1763,7 +1762,15 @@ class ArithmeticProductSpeciesElement(LazyCombinatorialSpeciesElement):
             sage: E = L.Sets()
             sage: Ep = E.restrict(1)
             sage: Ep.arithmetic_product(Ep).generating_series()
-            X + X^2 + 1/3*X^3 + 1/3*X^4 + 1/60*X^5 + 61/360*X^6 
+            X + X^2 + 1/3*X^3 + 1/3*X^4 + 1/60*X^5 + 61/360*X^6 + O(X^7)
+
+        We check Example 2.2 from [MM2008]_::
+
+            sage: L.<X> = LazyCombinatorialSpecies(QQ)
+            sage: C = L.Cycles()
+            sage: Lp = X/(1 - X)
+            sage: C.arithmetic_product(Lp).generating_series()
+            X + 3/2*X^2 + 4/3*X^3 + 7/4*X^4 + 6/5*X^5 + 2*X^6 + O(X^7)
         """
         f = self._left.generating_series()
         g = self._other.generating_series()
@@ -1816,8 +1823,8 @@ class HadamardProductSpeciesElement(LazyCombinatorialSpeciesElement):
             1 + X + 1/2*X^2 + 1/6*X^3 + 1/24*X^4 + 1/120*X^5 + 1/720*X^6 + O(X^7)
 
             sage: C = L.Cycles()
-            sage: C.hadamard_product(C).generating_series().truncate(7)
-            X + 1/2*X^2 + 2/3*X^3 + 3/2*X^4 + 24/5*X^5 + 20*X^6
+            sage: C.hadamard_product(C).generating_series()
+            X + 1/2*X^2 + 2/3*X^3 + 3/2*X^4 + 24/5*X^5 + 20*X^6 + O(X^7)
         """
         f = self._left.generating_series()
         g = self._other.generating_series()
