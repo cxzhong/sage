@@ -231,7 +231,7 @@ class RationalField(Singleton, number_field_base.NumberField):
         """
         from sage.categories.number_fields import NumberFields
         from sage.categories.quotient_fields import QuotientFields
-        Parent.__init__(self, base=self, names=(),
+        Parent.__init__(self, base=self, names=(), normalize=False,
                         category=[QuotientFields().Metric(),
                                   NumberFields()])
         self._populate_coercion_lists_(init_no_parent=True)
