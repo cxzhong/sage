@@ -1762,7 +1762,7 @@ class ArithmeticProductSpeciesElement(LazyCombinatorialSpeciesElement):
             sage: L = LazyCombinatorialSpecies(QQ, "X")
             sage: E = L.Sets()
             sage: Ep = E.restrict(1)
-            sage: Ep.arithmetic_product(Ep).generating_series().truncate(7)
+            sage: Ep.arithmetic_product(Ep).generating_series()
             X + X^2 + 1/3*X^3 + 1/3*X^4 + 1/60*X^5 + 61/360*X^6 
         """
         f = self._left.generating_series()
