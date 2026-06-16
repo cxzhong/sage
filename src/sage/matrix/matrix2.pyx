@@ -933,7 +933,7 @@ cdef class Matrix(Matrix1):
                     return (K ** self.ncols())(ret)
             raise TypeError("base ring must be an integral domain or a ring of integers mod n")
 
-        C = B.column() if b_is_vec else B
+        C = B.column(implementation=self.parent().Element) if b_is_vec else B
 
         if P not in _Fields and not extend:
             if self.rank() == self.ncols():
@@ -963,6 +963,50 @@ cdef class Matrix(Matrix1):
                 X = self._solve_right_general(C, check=check)
 
         return X.column(0) if b_is_vec else X
+
+    def _solve_right_modn(self, B):
+        """
+        If this matrix `A` has entries in ``Zmod(N)``, return a matrix `X`
+        such that `A X = B`.  This is intended for use when N is composite
+
+        .. SEEALSO::
+
+            :meth:`solve_right` and :meth:`solve_left`
+
+        INPUT:
+
+        - ``B`` -- a matrix or vector with entries modulo `N`
+
+        EXAMPLES::
+
+            sage: N = 2^35*3^35
+            sage: A = random_matrix(Zmod(N), 4, 5)
+            sage: X = random_matrix(Zmod(N), 5, 3)
+            sage: B = A * X
+            sage: Y = A._solve_right_modn(B)
+            sage: A * Y == B
+            True
+        """
+        from sage.libs.pari import pari
+        K = self.base_ring()
+        A = pari(self.lift())
+        b = pari(B).lift()
+        cdef Py_ssize_t n
+        if b.type() == "t_MAT":
+            X = []
+            for n in range(B.ncols()):
+                ret = A.matsolvemod(K.cardinality(), b[n])
+                if ret.type() == 't_INT':
+                    raise ValueError("matrix equation has no solutions")
+                X.append(ret.sage())
+            return self.matrix_space(B.ncols(), self.ncols())(X).T
+        elif b.type() == "t_VEC":
+            b = b.Col()
+            ret = A.matsolvemod(K.cardinality(), b)
+            if ret.type() == 't_INT':
+                raise ValueError("matrix equation has no solutions")
+            ret = ret.Vec().sage()
+            return (K ** self.ncols())(ret)
 
     def _solve_right_nonsingular_square(self, B, check_rank=True):
         r"""
@@ -2218,7 +2262,7 @@ cdef class Matrix(Matrix1):
 
     def determinant(self, algorithm=None):
         r"""
-        Return the determinant of ``self``.
+        Return the determinant of this matrix.
 
         ALGORITHM:
 
@@ -3130,8 +3174,13 @@ cdef class Matrix(Matrix1):
         """
         if self.nrows() == self.ncols() and self.base_ring().is_exact():
             tester = self._tester(**options)
-            # At least check that the minimal polynomial kills the matrix
-            tester.assertTrue(self.minpoly().subs(x=self).is_zero())
+            # Check that the minimal polynomial kills the matrix
+            m = self.minpoly()
+            tester.assertTrue(m.subs(x=self).is_zero())
+            # Check that the minimal polynomial divides the characteristic polynomial.
+            # This is a necessary but not sufficient condition for the minimal polynomial
+            # to be minimal.
+            tester.assertTrue(m.divides(self.charpoly()))
 
     def charpoly(self, var='x', algorithm=None):
         r"""
@@ -3799,7 +3848,7 @@ cdef class Matrix(Matrix1):
             [    0  25/4  15/2   5/2]
             [    0     0  58/5     3]
 
-        You can't Hessenbergize an immutable matrix::
+        You cannot Hessenbergize an immutable matrix::
 
             sage: A = matrix(QQ, 3, [1..9])
             sage: A.set_immutable()
@@ -4806,13 +4855,14 @@ cdef class Matrix(Matrix1):
         algorithm = kwds.pop('algorithm', None)
         if algorithm is None:
             algorithm = 'default'
-        elif algorithm not in ['default', 'generic', 'flint', 'linbox', 'pari', 'padic', 'pluq']:
-            raise ValueError("matrix kernel algorithm '%s' not recognized" % algorithm)
+        elif algorithm not in ['default', 'generic', 'flint', 'pari', 'padic', 'pluq', 'linbox', 'linbox-noefd']:
+            raise ValueError("matrix kernel algorithm '%s' not recognized" % algorithm )
         elif algorithm == 'padic' and not isinstance(R, (IntegerRing_class,
                                                          RationalField)):
             raise ValueError("'padic' matrix kernel algorithm only available over the rationals and the integers, not over %s" % R)
         elif algorithm == 'flint' and not isinstance(R, (IntegerRing_class,
-                                                         RationalField)):
+                                                         RationalField,
+                                                         sage.rings.abc.IntegerModRing)):
             raise ValueError("'flint' matrix kernel algorithm only available over the rationals and the integers, not over %s" % R)
         elif algorithm == 'linbox' and not isinstance(self, sage.matrix.matrix_rational_sparse.Matrix_rational_sparse):
             if isinstance(R, RationalField):
@@ -4896,7 +4946,7 @@ cdef class Matrix(Matrix1):
         #   zero columns as well. (eg PARI?)  This could be fixed at the source
         #   with a careful study of the phenomenon.  Start by commenting out
         #   the following and running doctests in sage/matrix
-        if M.nrows()==0 and M.ncols()!=self.ncols():
+        if M.nrows() == 0 and M.ncols() != self.ncols():
             M = M.new_matrix(nrows=0, ncols=self.ncols())
 
         # Convert basis to requested type and return the matrix
@@ -4918,7 +4968,7 @@ cdef class Matrix(Matrix1):
                 # this is the basis immediately obvious from echelon form
                 # so C is always invertible (when working over a field)
                 C = M.matrix_from_columns(self.nonpivots())
-                return C.inverse()*M
+                return C.inverse() * M
             else:
                 return M
         elif basis == 'LLL':
@@ -8411,11 +8461,12 @@ cdef class Matrix(Matrix1):
 
         Echelon form is not defined over arbitrary rings::
 
-            sage: a = matrix(Integers(9), 3,3, range(9))
+            sage: a = matrix(Integers(9)['x'], 3, 3, range(9))
             sage: a.echelon_form()
             Traceback (most recent call last):
             ...
-            NotImplementedError: Echelon form not implemented over 'Ring of integers modulo 9'.
+            NotImplementedError: Generic echelon form only defined over integral domains
+            echelon form over Univariate Polynomial Ring in x over Ring of integers modulo 9 not yet implemented
 
         Involving a sparse matrix::
 
@@ -8501,6 +8552,10 @@ cdef class Matrix(Matrix1):
             the matrix entries are in a field (specifically, the field
             of fractions of the base ring of the matrix).
 
+            If the base ring is a principal ideal ring with zero divisors,
+            such as ``Zmod(N)``, then the echelon form returned is the
+            Howell form, which may have more more rows than the input.
+
         INPUT:
 
         - ``algorithm`` -- string. Which algorithm to use. Choices are
@@ -8520,6 +8575,8 @@ cdef class Matrix(Matrix1):
 
           - ``'strassen'``: use a Strassen divide and conquer
             algorithm (if available)
+
+          - ``'flint'``: use FLINT (if available)
 
         - ``cutoff`` -- integer; only used if the Strassen algorithm is selected
 
@@ -8550,13 +8607,13 @@ cdef class Matrix(Matrix1):
             [ 1  0 18]
             [ 0  1  2]
 
-        The matrix library used for `\ZZ/p`-matrices does not return
-        the transformation matrix, so the ``transformation`` option is
-        ignored::
-
-            sage: C.echelon_form(transformation=True)
-            [ 1  0 18]
-            [ 0  1  2]
+            sage: E, T = C.echelon_form(transformation=True); E, T
+            (
+            [ 1  0 18]  [11  7]
+            [ 0  1  2], [14  6]
+            )
+            sage: T*C == E
+            True
 
             sage: D = matrix(ZZ, 2, 3, [1,2,3,4,5,6])
             sage: D.echelon_form(transformation=True)
@@ -8566,6 +8623,20 @@ cdef class Matrix(Matrix1):
             )
             sage: E, T = D.echelon_form(transformation=True)
             sage: T*D == E
+            True
+
+            sage: A = matrix(Zmod(625), 4, 3, [[404, 355, 133], [375, 482, 448], [506, 115,  77], [370, 384, 66]])
+            sage: A.echelon_form()
+            [1 0 2]
+            [0 1 4]
+            [0 0 5]
+            [0 0 0]
+            sage: E, T = A.echelon_form(transformation=True); T
+            [  2  17  23 564]
+            [  4  22 429 488]
+            [  3   4 188 543]
+            [  5   8 510 316]
+            sage: E == T * A
             True
         """
         cdef bint transformation = ('transformation' in kwds and kwds['transformation'])
@@ -8577,7 +8648,7 @@ cdef class Matrix(Matrix1):
             if y:
                 return (x, y)
 
-        E = self.__copy__()
+        E = self._echelon_copy()
         if algorithm == 'default':
             v = E.echelonize(cutoff=cutoff, **kwds)
         else:
@@ -8592,6 +8663,24 @@ cdef class Matrix(Matrix1):
             return (E, v)
         else:
             return E
+
+    def _echelon_copy(self):
+        """
+        Return a copy of this matrix in preparation for echelonizing.
+
+        Usually this will just return a copy, but over some rings,
+        such as integers modulo composite `N`, extra zero rows need
+        to be added at the bottom.
+
+        EXAMPLES::
+
+            sage: matrix(ZZ, 1, 2)._echelon_copy()
+            [0 0]
+            sage: matrix(Zmod(6), 1, 2)._echelon_copy()
+            [0 0]
+            [0 0]
+        """
+        return self.__copy__()
 
     cpdef _echelon(self, str algorithm):
         """
@@ -18274,7 +18363,7 @@ cdef class Matrix(Matrix1):
           is a positive operator.
         - ``False`` will be returned if it can be proven that this matrix
           is not a positive operator.
-        - ``False`` will also be returned if we can't decide; specifically
+        - ``False`` will also be returned if we cannot decide; specifically
           if we arrive at a symbolic inequality that cannot be resolved.
 
         .. SEEALSO::
@@ -18362,7 +18451,7 @@ cdef class Matrix(Matrix1):
             ...
             TypeError: K1 and K2 must be cones.
 
-        We can't give reliable answers over inexact rings::
+        We cannot give reliable answers over inexact rings::
 
             sage: K = Cone([(1,2,3), (4,5,6)])                                          # needs sage.geometry.polyhedron
             sage: L = identity_matrix(RR, 3)
@@ -18437,7 +18526,7 @@ cdef class Matrix(Matrix1):
           is cross-positive on ``K``.
         - ``False`` will be returned if it can be proven that this matrix
           is not cross-positive on ``K``.
-        - ``False`` will also be returned if we can't decide; specifically
+        - ``False`` will also be returned if we cannot decide; specifically
           if we arrive at a symbolic inequality that cannot be resolved.
 
         .. SEEALSO::
@@ -18511,7 +18600,7 @@ cdef class Matrix(Matrix1):
             ...
             TypeError: K must be a cone.
 
-        We can't give reliable answers over inexact rings::
+        We cannot give reliable answers over inexact rings::
 
             sage: K = Cone([(1,2,3), (4,5,6)])                                          # needs sage.geometry.polyhedron
             sage: L = identity_matrix(RR, 3)
@@ -18576,7 +18665,7 @@ cdef class Matrix(Matrix1):
           is a Z-operator on ``K``.
         - ``False`` will be returned if it can be proven that this matrix
           is not a Z-operator on ``K``.
-        - ``False`` will also be returned if we can't decide; specifically
+        - ``False`` will also be returned if we cannot decide; specifically
           if we arrive at a symbolic inequality that cannot be resolved.
 
         .. SEEALSO::
@@ -18647,7 +18736,7 @@ cdef class Matrix(Matrix1):
             ...
             TypeError: K must be a cone.
 
-        We can't give reliable answers over inexact rings::
+        We cannot give reliable answers over inexact rings::
 
             sage: K = Cone([(1,2,3), (4,5,6)])                                          # needs sage.geometry.polyhedron
             sage: L = identity_matrix(RR, 3)
@@ -18694,7 +18783,7 @@ cdef class Matrix(Matrix1):
           is Lyapunov-like on ``K``.
         - ``False`` will be returned if it can be proven that this matrix
           is not Lyapunov-like on ``K``.
-        - ``False`` will also be returned if we can't decide; specifically
+        - ``False`` will also be returned if we cannot decide; specifically
           if we arrive at a symbolic inequality that cannot be resolved.
 
         .. SEEALSO::
@@ -18764,7 +18853,7 @@ cdef class Matrix(Matrix1):
             ...
             TypeError: K must be a cone.
 
-        We can't give reliable answers over inexact rings::
+        We cannot give reliable answers over inexact rings::
 
             sage: K = Cone([(1,2,3), (4,5,6)])                                          # needs sage.geometry.polyhedron
             sage: L = identity_matrix(RR, 3)
