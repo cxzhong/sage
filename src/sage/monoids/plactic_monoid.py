@@ -132,7 +132,8 @@ class PlacticMonoid(UniqueRepresentation, Parent):
         """
         from sage.categories.monoids import Monoids
         self._n = n
-        Parent.__init__(self, category=(Monoids().FinitelyGenerated().Infinite(),SetsWithGrading().Infinite()))
+        Parent.__init__(self, category=(Monoids().FinitelyGenerated().Infinite(),
+                                        SetsWithGrading().Infinite()))
 
     def _repr_(self):
         """
