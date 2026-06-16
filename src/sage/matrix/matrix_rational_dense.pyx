@@ -1193,14 +1193,13 @@ cdef class Matrix_rational_dense(Matrix_dense):
         """
         return self._multiply_flint(right)
 
-    cdef int _set_to_product_c_impl(self, Matrix0 left, Matrix0 right) except -1:
+    cdef void _set_to_product(self, Matrix0 left, Matrix0 right) except *:
         cdef Matrix_rational_dense _left = <Matrix_rational_dense>left
         cdef Matrix_rational_dense _right = <Matrix_rational_dense>right
 
         sig_on()
         fmpq_mat_mul(self._matrix, _left._matrix, _right._matrix)
         sig_off()
-        return 0
 
     def _multiply_flint(self, Matrix_rational_dense right):
         r"""
@@ -1228,7 +1227,7 @@ cdef class Matrix_rational_dense(Matrix_dense):
         cdef Matrix_rational_dense ans
         ans = Matrix_rational_dense.__new__(Matrix_rational_dense, parent, None, None, None)
 
-        ans._set_to_product_c_impl(self, right)
+        ans._set_to_product(self, right)
         return ans
 
     def _multiply_over_integers(self, Matrix_rational_dense right, algorithm='default'):

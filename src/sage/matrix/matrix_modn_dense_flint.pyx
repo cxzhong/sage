@@ -47,6 +47,7 @@ from sage.rings.finite_rings.integer_mod cimport (
 from sage.rings.finite_rings.integer_mod_ring import Zmod
 from sage.rings.polynomial.polynomial_ring_constructor import PolynomialRing
 from sage.matrix.args cimport SparseEntry, MatrixArgs_init
+from sage.matrix.matrix0 cimport Matrix as Matrix0
 from sage.matrix.matrix_utils cimport check_matrix_multiplication_sizes
 
 from sage.libs.flint.nmod_mat cimport *
@@ -251,6 +252,11 @@ cdef class Matrix_modn_dense_flint(Matrix_dense):
             sage: A * B
             [10 13]
             [28  4]
+
+            sage: C = matrix(Zmod(36), 2, 2, implementation='flint')
+            sage: C.set_to_product(A, B)
+            sage: C == A * B
+            True
         """
         check_matrix_multiplication_sizes(left, _right)
         cdef Matrix_modn_dense_flint right = _right
@@ -259,6 +265,16 @@ cdef class Matrix_modn_dense_flint(Matrix_dense):
         nmod_mat_mul(M._matrix, left._matrix, right._matrix)
         sig_off()
         return M
+
+    cdef void _set_to_product(self, Matrix0 left, Matrix0 right) except *:
+        r"""
+        Set ``self`` to ``left * right`` using FLINT.
+        """
+        cdef Matrix_modn_dense_flint _left = <Matrix_modn_dense_flint>left
+        cdef Matrix_modn_dense_flint _right = <Matrix_modn_dense_flint>right
+        sig_on()
+        nmod_mat_mul(self._matrix, _left._matrix, _right._matrix)
+        sig_off()
 
     cpdef _lmul_(self, Element right):
         r"""

@@ -872,14 +872,13 @@ cdef class Matrix_integer_dense(Matrix_dense):
         fmpz_clear(s)
         return M
 
-    cdef int _set_to_product_c_impl(self, Matrix0 left, Matrix0 right) except -1:
+    cdef void _set_to_product(self, Matrix0 left, Matrix0 right) except *:
         cdef Matrix_integer_dense _left = <Matrix_integer_dense>left
         cdef Matrix_integer_dense _right = <Matrix_integer_dense>right
 
         sig_on()
         fmpz_mat_mul(self._matrix, _left._matrix, _right._matrix)
         sig_off()
-        return 0
 
     cdef sage.structure.element.Matrix _matrix_times_matrix_(self, sage.structure.element.Matrix right):
         cdef Matrix_integer_dense M
@@ -889,7 +888,7 @@ cdef class Matrix_integer_dense(Matrix_dense):
 
         M = self._new(self._nrows, _right._ncols)
 
-        M._set_to_product_c_impl(self, _right)
+        M._set_to_product(self, _right)
         return M
 
     cpdef _lmul_(self, Element right):

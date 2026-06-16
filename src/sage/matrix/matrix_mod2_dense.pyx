@@ -782,7 +782,7 @@ cdef class Matrix_mod2_dense(matrix_dense.Matrix_dense):   # dense or sparse
 
         return self._multiply_strassen(right, 0)
 
-    cdef int _set_to_product_c_impl(self, Matrix0 left, Matrix0 right) except -1:
+    cdef void _set_to_product(self, Matrix0 left, Matrix0 right) except *:
         cdef Matrix_mod2_dense _left = <Matrix_mod2_dense>left
         cdef Matrix_mod2_dense _right = <Matrix_mod2_dense>right
 
@@ -790,12 +790,11 @@ cdef class Matrix_mod2_dense(matrix_dense.Matrix_dense):   # dense or sparse
             sig_on()
             mzd_set_ui(self._entries, 0)
             sig_off()
-            return 0
+            return
 
         sig_on()
         self._entries = mzd_mul(self._entries, _left._entries, _right._entries, 0)
         sig_off()
-        return 0
 
     cpdef Matrix_mod2_dense _multiply_m4rm(Matrix_mod2_dense self, Matrix_mod2_dense right, int k):
         """

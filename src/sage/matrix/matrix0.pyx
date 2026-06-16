@@ -196,7 +196,7 @@ cdef class Matrix(sage.structure.element.Matrix):
 
         self.clear_cache()
         self._subdivisions = None
-        self._set_to_product_c_impl(left, right)
+        self._set_to_product(left, right)
         return None
 
     def __cinit__(self, parent, *args, **kwds):
@@ -5694,17 +5694,18 @@ cdef class Matrix(sage.structure.element.Matrix):
                 ans.set_unsafe(r, c, self.get_unsafe(r, c) * x)
         return ans
 
-    cdef int _set_to_product_c_impl(self, Matrix left, Matrix right) except -1:
+    cdef void _set_to_product(self, Matrix left, Matrix right) except *:
         """
         Set ``self`` to ``left * right`` after public validation.
         """
         cdef int cutoff = left._strassen_default_cutoff(right)
         if cutoff > 0 and left._nrows > cutoff and left._ncols > cutoff and \
                 right._nrows > cutoff and right._ncols > cutoff:
-            return self._set_to_product_strassen_impl(left, right)
-        return self._set_to_product_classical_impl(left, right)
+            self._set_to_product_strassen(left, right)
+        else:
+            self._set_to_product_classical(left, right)
 
-    cdef int _set_to_product_classical_impl(self, Matrix left, Matrix right) except -1:
+    cdef void _set_to_product_classical(self, Matrix left, Matrix right) except *:
         """
         Set ``self`` to ``left * right`` using classical multiplication.
         """
@@ -5720,9 +5721,8 @@ cdef class Matrix(sage.structure.element.Matrix):
                 for k in range(snc):
                     dotp += left.get_unsafe(i, k) * right.get_unsafe(k, j)
                 self.set_unsafe(i, j, dotp)
-        return 0
 
-    cdef int _set_to_product_strassen_impl(self, Matrix left, Matrix right) except -1:
+    cdef void _set_to_product_strassen(self, Matrix left, Matrix right) except *:
         """
         Set ``self`` to ``left * right`` using the generic Strassen routine.
         """
@@ -5735,7 +5735,6 @@ cdef class Matrix(sage.structure.element.Matrix):
                                           (<object>left).matrix_window(),
                                           (<object>right).matrix_window(),
                                           cutoff)
-        return 0
 
     cdef sage.structure.element.Matrix _matrix_times_matrix_(self, sage.structure.element.Matrix right):
         r"""

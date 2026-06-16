@@ -9,7 +9,7 @@ cdef class Matrix_mod2_dense(Matrix_dense):
 
     cpdef Matrix_mod2_dense _multiply_m4rm(Matrix_mod2_dense self, Matrix_mod2_dense right, int k)
     cpdef Matrix_mod2_dense _multiply_strassen(Matrix_mod2_dense self, Matrix_mod2_dense right, int cutoff)
-    cdef int _set_to_product_c_impl(self, Matrix left, Matrix right) except -1
+    cdef void _set_to_product(self, Matrix left, Matrix right) except *
 
     # For conversion to other systems
     cpdef _export_as_string(self)

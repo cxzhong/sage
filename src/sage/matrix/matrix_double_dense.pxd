@@ -3,4 +3,4 @@ from sage.matrix.matrix0 cimport Matrix
 
 
 cdef class Matrix_double_dense(Matrix_numpy_dense):
-    cdef int _set_to_product_c_impl(self, Matrix left, Matrix right) except -1
+    cdef void _set_to_product(self, Matrix left, Matrix right) except *

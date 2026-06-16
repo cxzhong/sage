@@ -297,7 +297,7 @@ cdef class Matrix_generic_dense(matrix_dense.Matrix_dense):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.overflowcheck(False)
-    cdef int _set_to_product_classical_impl(self, matrix0.Matrix _left, matrix0.Matrix _right) except -1:
+    cdef void _set_to_product_classical(self, matrix0.Matrix _left, matrix0.Matrix _right) except *:
         cdef Py_ssize_t i, j, k, m, nr, nc, snc, p
         cdef Matrix_generic_dense left = <Matrix_generic_dense>_left
         cdef Matrix_generic_dense right = <Matrix_generic_dense>_right
@@ -319,7 +319,6 @@ cdef class Matrix_generic_dense(matrix_dense.Matrix_dense):
                     z += left._entries[m + k] * right._entries[k * nc + j]
                 self._entries[p] = z
                 p += 1
-        return 0
 
     def _multiply_classical(self, matrix.Matrix _right):
         """
@@ -391,7 +390,7 @@ cdef class Matrix_generic_dense(matrix_dense.Matrix_dense):
         check_matrix_multiplication_sizes(self, right)
 
         cdef Matrix_generic_dense A = self._new(self._nrows, right._ncols)
-        A._set_to_product_classical_impl(self, right)
+        A._set_to_product_classical(self, right)
         return A
 
     def _list(self):

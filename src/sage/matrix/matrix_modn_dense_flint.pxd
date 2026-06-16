@@ -3,6 +3,7 @@ from sage.libs.flint.types cimport nmod_mat_t
 from sage.ext.mod_int cimport mod_int
 
 from .matrix_dense cimport Matrix_dense
+from sage.matrix.matrix0 cimport Matrix
 from  sage.rings.finite_rings.integer_mod cimport NativeIntStruct
 
 cdef class Matrix_modn_dense_flint(Matrix_dense):
@@ -10,5 +11,6 @@ cdef class Matrix_modn_dense_flint(Matrix_dense):
     cdef NativeIntStruct _modulus
 
     cdef Matrix_modn_dense_flint _new(self, Py_ssize_t nrows, Py_ssize_t ncols)
+    cdef void _set_to_product(self, Matrix left, Matrix right) except *
     cpdef Matrix_modn_dense_flint _shift_mod(self, mp_limb_t modulus, mp_limb_t shift=*, bint mul=*, bint domod=*)
     cdef int _copy_row_to_mod_int_array(self, mod_int *to, Py_ssize_t i) noexcept

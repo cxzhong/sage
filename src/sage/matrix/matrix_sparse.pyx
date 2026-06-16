@@ -261,7 +261,7 @@ cdef class Matrix_sparse(matrix.Matrix):
         product ``self * right``.
 
         This is the shared core of :meth:`_multiply_classical` and
-        :meth:`_set_to_product_classical_impl`; keeping it separate lets
+        :meth:`_set_to_product_classical`; keeping it separate lets
         :meth:`set_to_product` write the product directly into its
         destination without allocating an intermediate matrix.
         """
@@ -307,7 +307,7 @@ cdef class Matrix_sparse(matrix.Matrix):
                 k1 += 1
         return e
 
-    cdef int _set_to_product_classical_impl(self, matrix0.Matrix left, matrix0.Matrix right) except -1:
+    cdef void _set_to_product_classical(self, matrix0.Matrix left, matrix0.Matrix right) except *:
         """
         Set ``self`` to ``left * right`` using the sparse classical algorithm.
 
@@ -326,7 +326,6 @@ cdef class Matrix_sparse(matrix.Matrix):
             self.set_unsafe(i, j, zero)
         for (i, j), x in e.items():
             self.set_unsafe(i, j, x)
-        return 0
 
     def _multiply_classical_with_cache(Matrix_sparse left, Matrix_sparse right):
         """

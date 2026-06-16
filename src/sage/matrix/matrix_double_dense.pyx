@@ -256,22 +256,22 @@ cdef class Matrix_double_dense(Matrix_numpy_dense):
 
         if self._nrows == 0 or self._ncols == 0 or right._nrows == 0 or right._ncols == 0:
             M = self._new(self._nrows, right._ncols)
-            M._set_to_product_c_impl(self, <Matrix0>right)
+            M._set_to_product(self, <Matrix0>right)
             return M
 
         M = self._new(self._nrows, right._ncols)
         _right = right
         _left = self
-        M._set_to_product_c_impl(_left, _right)
+        M._set_to_product(_left, _right)
         return M
 
-    cdef int _set_to_product_c_impl(self, Matrix0 left, Matrix0 right) except -1:
+    cdef void _set_to_product(self, Matrix0 left, Matrix0 right) except *:
         cdef Matrix_double_dense _left = <Matrix_double_dense>left
         cdef Matrix_double_dense _right = <Matrix_double_dense>right
 
         if _left._nrows == 0 or _left._ncols == 0 or _right._ncols == 0:
             self._matrix_numpy.fill(0)
-            return 0
+            return
 
         global numpy
         if numpy is None:
@@ -279,7 +279,6 @@ cdef class Matrix_double_dense(Matrix_numpy_dense):
 
         numpy.dot(_left._matrix_numpy, _right._matrix_numpy,
                   out=self._matrix_numpy)
-        return 0
 
     def __invert__(self):
         """
