@@ -1765,7 +1765,6 @@ class ArithmeticProductSpeciesElement(LazyCombinatorialSpeciesElement):
             sage: Ep.arithmetic_product(Ep).generating_series().truncate(7)
             X + X^2 + 1/3*X^3 + 1/3*X^4 + 1/60*X^5 + 61/360*X^6 
         """
-
         f = self._left.generating_series()
         g = self._other.generating_series()
         zero = f.parent().base_ring().zero()
