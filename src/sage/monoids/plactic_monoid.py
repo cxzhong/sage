@@ -369,7 +369,9 @@ class PlacticMonoid(UniqueRepresentation, Parent):
                 sage: M([2, 1, 3]) == M3([2, 1, 3])
                 False
             """
-            return isinstance(other, PlacticMonoid.Element) and self.parent() == other.parent() and self.to_tableau() == other.to_tableau()
+            return (isinstance(other, PlacticMonoid.Element) 
+                    and self.parent() == other.parent()
+                    and self.to_tableau() == other.to_tableau())
 
         def to_word(self):
             """
