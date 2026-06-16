@@ -1847,6 +1847,11 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
             sage: A.pivot_rows()
             (0, 1)
 
+            sage: A = matrix(GF(7), 2, 3, [1, 1, 0, 0, 1, 1], implementation='linbox')
+            sage: A.echelonize(algorithm='flint'); A
+            [1 0 6]
+            [0 1 1]
+
             sage: for p in (3,17,97,127,1048573):
             ....:    for i in range(10):
             ....:        A = random_matrix(GF(3), 100, 100, implementation='linbox')
@@ -1875,7 +1880,7 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
                 T = T._change_implementation(self.parent().Element)
             assert E.nrows() == self.nrows()
             for i in range(self._nrows):
-                for j in range(self._nrows):
+                for j in range(self._ncols):
                     self.set_unsafe_ui(i, j, E.get_unsafe_ui(i, j))
             self.cache('pivots', E.pivots())
             self.cache('in_echelon_form', True)
@@ -2080,7 +2085,7 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
         self.cache('rank', E._cache['rank'])
         self.cache('pivots', v)
         self.cache('pivot_rows', rrp)
-        return v 
+        return v
 
     def pivot_rows(self):
         """

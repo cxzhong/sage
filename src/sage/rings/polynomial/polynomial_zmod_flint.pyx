@@ -154,6 +154,8 @@ cdef class Polynomial_zmod_flint(Polynomial_template):
             sage: R.<x> = GF(3)[]
             sage: x._new_constant_poly(4,R)
             1
+            sage: x._new_constant_poly(-4,R)
+            2
             sage: x._new_constant_poly('4',R)
             1
             sage: x._new_constant_poly('4.1',R)
@@ -163,10 +165,14 @@ cdef class Polynomial_zmod_flint(Polynomial_template):
         """
         cdef type t = type(self)
         cdef Polynomial_template r = <Polynomial_template>t.__new__(t)
+        cdef object ix = int(x)
         r._parent = P
         r._cparent = get_cparent(P)
         nmod_poly_init(&r.x, nmod_poly_modulus(&self.x))
-        celement_set_ui(&r.x, int(x), (<Polynomial_template>self)._cparent)
+        if ix < 0:
+            celement_set_si(&r.x, ix, (<Polynomial_template>self)._cparent)
+        else:
+            celement_set_ui(&r.x, ix, (<Polynomial_template>self)._cparent)
         return r
 
     cdef int _set_list(self, x) except -1:

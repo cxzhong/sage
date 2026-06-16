@@ -93,6 +93,12 @@ def gen_lattice(type='modular', n=4, m=8, q=11, seed=None,
         [-5 -5  3  3  0  0  0  0  1  0]
         [-4 -3  2 -5  0  0  0  0  0  1]
 
+    Modular bases also work over `\ZZ/2\ZZ`::
+
+        sage: A = sage.crypto.gen_lattice(m=8, q=2, seed=42)
+        sage: A.nrows(), A.ncols()
+        (8, 8)
+
     Random basis::
 
         sage: sage.crypto.gen_lattice(type='random', n=1, m=10, q=11^4, seed=42)
@@ -244,7 +250,7 @@ def gen_lattice(type='modular', n=4, m=8, q=11, seed=None,
 
     if type == 'random' or type == 'modular':
         from sage.matrix.matrix_modn_dense_double import MAX_MODULUS
-        if mat_impl is None and q < MAX_MODULUS:
+        if mat_impl is None and q != 2 and q < MAX_MODULUS:
             mat_impl = 'linbox'
         R = MatrixSpace(ZZ_q, m-n, n, implementation=mat_impl)
         A = A.stack(R.random_element())

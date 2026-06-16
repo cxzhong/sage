@@ -11835,10 +11835,15 @@ class NumberField_cyclotomic(NumberField_absolute, sage.rings.abc.NumberField_cy
 
             sage: CyclotomicField(1).previous_split_prime(3)
             2
+            sage: CyclotomicField(1).previous_split_prime(5, [3])
+            2
         """
         n = self._n()
         if n == 1:
-            return previous_prime(p)
+            while True:
+                p = previous_prime(p)
+                if exclude is None or all(d % p != 0 for d in exclude):
+                    return p
         while True:
             p = previous_prime(p)
             if p % n == 1 and (exclude is None or all(d % p != 0 for d in exclude)):
@@ -11902,6 +11907,9 @@ class NumberField_cyclotomic(NumberField_absolute, sage.rings.abc.NumberField_cy
 
             sage: K._reduction_matrix(31) is K._reduction_matrix(31)
             True
+            sage: T, S = K._reduction_matrix(31)
+            sage: T.is_immutable(), S.is_immutable()
+            (True, True)
         """
         phi = self.defining_polynomial()
         from sage.rings.finite_rings.finite_field_constructor import FiniteField as GF
@@ -11919,7 +11927,9 @@ class NumberField_cyclotomic(NumberField_absolute, sage.rings.abc.NumberField_cy
                 T[i,j] = b
                 b *= a
         T.set_immutable()
-        return T, T**(-1)
+        S = T**(-1)
+        S.set_immutable()
+        return T, S
 
     def _pari_integral_basis(self, v=None, important=True):
         """

@@ -154,6 +154,10 @@ def get_matrix_class(R, nrows, ncols, sparse, implementation):
 
         sage: get_matrix_class(Zmod(2**64 - 1), 10, 10, False, 'flint')
         <class 'sage.matrix.matrix_modn_dense_flint.Matrix_modn_dense_flint'>
+        sage: get_matrix_class(GF(25, 'x'), 2, 2, False, 'flint')                      # needs sage.rings.finite_rings
+        Traceback (most recent call last):
+        ...
+        ValueError: 'flint' matrices are only available over the integers, the rationals and Z/N with N < 2^64
 
         sage: type(matrix(SR, 2, 2, 0))
         <class 'sage.matrix.matrix_symbolic_dense.Matrix_symbolic_dense'>
@@ -353,7 +357,7 @@ def get_matrix_class(R, nrows, ncols, sparse, implementation):
                 return matrix_rational_dense.Matrix_rational_dense
 
             from . import matrix_modn_dense_flint
-            if R.order() <= matrix_modn_dense_flint.MAX_MODULUS:
+            if hasattr(R, '_pyx_order') and R.order() <= matrix_modn_dense_flint.MAX_MODULUS:
                 return matrix_modn_dense_flint.Matrix_modn_dense_flint
             raise ValueError("'flint' matrices are only available over the integers, the rationals and Z/N with N < 2^64")
 

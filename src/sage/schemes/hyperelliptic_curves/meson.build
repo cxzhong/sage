@@ -51,7 +51,6 @@ foreach name, pyx : extension_data_cpp
       inc_rings_finite,
       inc_hypellfrob,
     ],
-    dependencies: [py_dep, cysignals, gmp, ntl],
+    dependencies: [py_dep, cysignals, flint, gmp, ntl],
   )
 endforeach
-
