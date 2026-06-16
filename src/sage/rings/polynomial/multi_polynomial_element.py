@@ -186,9 +186,9 @@ class MPolynomial_element(MPolynomial):
             y += c * prod((v ** e for v, e in zip(x, m) if e), one)
         return y
 
-    def _richcmp_(self, right, op):
+    def _richcmp_(self, other, op) -> bool:
         """
-        Compare ``self`` to ``right`` with respect to the term order of
+        Compare ``self`` to ``other`` with respect to the term order of
         self.parent().
 
         EXAMPLES::
@@ -215,7 +215,7 @@ class MPolynomial_element(MPolynomial):
             sage: x^4*y^7*z^1 < x^4*y^2*z^3                                             # needs sage.rings.number_field
             False
         """
-        return self.__element.rich_compare(right.__element, op,
+        return self.__element.rich_compare(other.__element, op,
                                            self.parent().term_order().sortkey)
 
     def _im_gens_(self, codomain, im_gens, base_map=None):
@@ -244,8 +244,8 @@ class MPolynomial_element(MPolynomial):
         if base_map is None:
             # Just use conversion
             base_map = codomain
-        for (m,c) in self.element().dict().items():
-            y += base_map(c)*prod([ im_gens[i]**m[i] for i in range(n) if m[i] ])
+        for m, c in self.element().dict().items():
+            y += base_map(c)*prod([im_gens[i]**m[i] for i in range(n) if m[i]])
         return y
 
     def number_of_terms(self):
