@@ -48,6 +48,7 @@ from sage.combinat.rsk import RSK, RSK_inverse
 from sage.combinat.tableau import StandardTableaux, SemistandardTableaux
 from sage.combinat.partition import Partitions
 
+
 class PlacticMonoid(UniqueRepresentation, Parent):
     r"""
     The plactic monoid on the alphabet `\{1, 2, \ldots, n\}`.
