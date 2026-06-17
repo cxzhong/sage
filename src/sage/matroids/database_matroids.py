@@ -1660,7 +1660,8 @@ def ExtendedTernaryGolayCode(groundset='abcdefghijkl'):
         type 6+
         sage: C = LinearCode(M.representation())
         sage: G = codes.GolayCode(GF(3))
-        sage: C.canonical_representative('linear')[0] == G.canonical_representative('linear')[0]
+        sage: C.canonical_representative('semilinear')[0] == \
+        ....:  G.canonical_representative('semilinear')[0]
         True
         sage: M.is_valid()
         True
