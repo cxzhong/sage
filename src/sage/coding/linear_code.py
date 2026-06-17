@@ -1281,9 +1281,15 @@ class AbstractLinearCode(AbstractLinearCodeNoMetric):
             sage: C2 = codes.random_linear_code(GF(3), 10, 5)
             sage: C1.is_permutation_equivalent(C2)
             False
+            sage: C1 = LinearCode(matrix(GF(3), [[1, 0, 1], [0, 1, 2]]))
+            sage: C2 = LinearCode(matrix(GF(3), [[0, 1, 1], [1, 0, 2]]))
+            sage: C1.is_permutation_equivalent(C2)
+            True
+            sage: C1.is_permutation_equivalent(C2, algorithm='verbose')
+            (True, (1,2))
 
-        Column scalings over a non-binary field do not define a
-        permutation equivalence (see :issue:`40503`)::
+        Column scalings do not define a permutation equivalence (see
+        :issue:`40503`)::
 
             sage: C1 = LinearCode(matrix(GF(3), [1, 1]))
             sage: C2 = LinearCode(matrix(GF(3), [1, 2]))
@@ -1291,15 +1297,6 @@ class AbstractLinearCode(AbstractLinearCodeNoMetric):
             False
             sage: C1.is_permutation_equivalent(C2, algorithm='verbose')
             False
-
-        Genuine non-binary permutation equivalences are still detected::
-
-            sage: C1 = LinearCode(matrix(GF(3), [[1, 0, 1], [0, 1, 2]]))
-            sage: C2 = LinearCode(matrix(GF(3), [[0, 1, 1], [1, 0, 2]]))
-            sage: C1.is_permutation_equivalent(C2)
-            True
-            sage: C1.is_permutation_equivalent(C2, algorithm='verbose')
-            (True, (1,2))
         """
         F = self.base_ring()
         F_o = other.base_ring()
