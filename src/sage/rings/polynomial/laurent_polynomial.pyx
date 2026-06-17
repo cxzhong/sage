@@ -891,7 +891,7 @@ cdef class LaurentPolynomial_univariate(LaurentPolynomial):
         """
         return self.__u.coefficients()
 
-    def exponents(self):
+    def exponents(self) -> list:
         """
         Return the exponents appearing in ``self`` with nonzero coefficients.
 
@@ -916,7 +916,7 @@ cdef class LaurentPolynomial_univariate(LaurentPolynomial):
            sage: f.gradient()
            [-x^-2 + 1]
         """
-        return [self.derivative(var) for var in self.parent().gens()]
+        return [self.derivative()]
 
     def jacobian_ideal(self):
         r"""
@@ -930,7 +930,7 @@ cdef class LaurentPolynomial_univariate(LaurentPolynomial):
             Ideal (-x^-2 + 3*x^2) of Univariate Laurent Polynomial Ring in x
             over Integer Ring
         """
-        return self.parent().ideal(self.gradient())
+        return self.parent().ideal(self.derivative())
 
     def newton_polytope(self):
         r"""
