@@ -168,7 +168,7 @@ from sage.rings.polynomial.ore_function_element import (
 from sage.rings.polynomial.ore_polynomial_ring import OrePolynomialRing
 from sage.structure.category_object import normalize_names
 from sage.structure.parent import Parent
-from sage.structure.richcmp import op_EQ
+from sage.structure.richcmp import op_EQ, op_NE
 from sage.structure.unique_representation import UniqueRepresentation
 
 WORKING_CENTER_MAX_TRIES = 1000
