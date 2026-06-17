@@ -55,11 +55,8 @@ cdef bitset_string(fused_bitset_t bits):
 
 cdef bitset_bytes(fused_bitset_t bits):
     """
-    Return a python bytes string representing the bitset.
-
-    On Python 2 this is equivalent to bitset_string.
+    Return a python bytes object representing the bitset.
     """
-
     cdef char* s = bitset_chars(NULL, bits)
     cdef object py_s
     py_s = s
