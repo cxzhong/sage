@@ -1781,17 +1781,16 @@ class InfinitePolynomial_sparse(InfinitePolynomial):
             or (hasattr(R2, 'has_coerce_map_from')
                 and R2.has_coerce_map_from(R1))):
             return richcmp(self._p, other._p, op)
+
         R = self._common_polynomial_ring(other)
-        P = self._p.parent()
-        if P is self._p.base_ring() or not P.gens():
+        if R1 is self._p.base_ring() or not R1.gens():
             fs = self._p.base_ring()
         else:
-            fs = P.hom(P.variable_names(), R)
-        O = other._p.parent()
-        if O is other._p.base_ring() or not O.gens():
+            fs = R1.hom(R1.variable_names(), R)
+        if R2 is other._p.base_ring() or not R2.gens():
             fo = other._p.base_ring()
         else:
-            fo = O.hom(O.variable_names(), R)
+            fo = R2.hom(R2.variable_names(), R)
         return richcmp(fs(self._p), fo(other._p), op)
 
     def gcd(self, x):
