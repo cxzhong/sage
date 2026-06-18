@@ -1240,6 +1240,16 @@ cdef class CoercionModel:
             Traceback (most recent call last):
             ...
             TypeError: unsupported operand parent(s) for ^...
+
+        Errors from ``_pow_int`` should not be masked by the conversion
+        fallback::
+
+            sage: S.<y> = QQ[]
+            sage: psi = R.hom([y^2])
+            sage: psi^(2/1)
+            Traceback (most recent call last):
+            ...
+            TypeError: self must be an endomorphism
         """
         self._exceptions_cleared = False
 
@@ -1309,7 +1319,11 @@ cdef class CoercionModel:
                 from sage.rings.integer_ring import ZZ
                 try:
                     y_int = Integer(y)
-                    if y_int == y:
+                    is_integer_value = (y_int == y)
+                except (TypeError, ValueError):
+                    pass
+                else:
+                    if is_integer_value:
                         # The exponent is an integer in disguise (e.g., 2/1 in QQ)
                         # Try to use the integer power action
                         try:
@@ -1321,8 +1335,6 @@ cdef class CoercionModel:
                                 return (<Action>action)._act_(x, y_int)
                             else:
                                 return (<Action>action)._act_(y_int, x)
-                except (TypeError, ValueError):
-                    pass
 
         if not isinstance(y, Element):
             op_name = op.__name__
