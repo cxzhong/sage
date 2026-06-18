@@ -119,8 +119,7 @@ line::
     sage: from sage.repl.interpreter import get_test_shell
     sage: shell = get_test_shell()
     sage: shell.run_cell('sage: a = 123')              # single line
-    sage: shell.run_cell('sage: a = [\n... 123]')      # old-style multi-line
-    sage: shell.run_cell('sage: a = [\n....: 123]')    # new-style multi-line
+    sage: shell.run_cell('sage: a = [\n....: 123]')    # multi-line
 
 We test that :issue:`16196` is resolved::
 
@@ -470,7 +469,7 @@ def SagePreparseTransformer(lines):
     return lines
 
 
-SagePromptTransformer = PromptStripper(prompt_re=re.compile(r'^(\s*(:?sage: |\.\.\.\.: ))+'))
+SagePromptTransformer = PromptStripper(prompt_re=re.compile(r'^(\s*(:?sage: |\.\.\. |\.\.\.\.: ))+'))
 
 
 ###################
@@ -724,7 +723,7 @@ def get_test_shell():
 
         sage: from sage.tests import check_executable
         sage: cmd = 'from sage.repl.interpreter import get_test_shell; shell = get_test_shell()'
-        sage: (out, err, ret) = check_executable(["sage", "-c", cmd])
+        sage: (out, err, ret) = check_executable(["python3", "-m", "sage.cli", "-c", cmd])
         sage: out + err
         ''
     """

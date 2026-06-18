@@ -95,7 +95,6 @@ cdef class Matrix(Matrix0):
 
         EXAMPLES::
 
-            sage: # needs sage.libs.gap
             sage: A = MatrixSpace(QQ,3,3)([0,1,2,3,4,5,6,7,8])
             sage: g = gap(A)  # indirect doctest
             sage: g
@@ -110,7 +109,6 @@ cdef class Matrix(Matrix0):
         Particularly difficult is the case of matrices over cyclotomic
         fields and general number fields. See :issue:`5618` and :issue:`8909`::
 
-            sage: # needs sage.libs.gap sage.rings.number_field
             sage: K.<zeta> = CyclotomicField(8)
             sage: A = MatrixSpace(K, 2, 2)([0, 1+zeta, 2*zeta, 3])
             sage: g = gap(A); g
@@ -120,7 +118,6 @@ cdef class Matrix(Matrix0):
             sage: g.IsMatrix()
             true
 
-            sage: # needs sage.libs.gap sage.rings.number_field
             sage: x = polygen(ZZ, 'x')
             sage: L.<tau> = NumberField(x^3 - 2)
             sage: A = MatrixSpace(L, 2, 2)([0, 1+tau, 2*tau, 3])
@@ -2143,7 +2140,7 @@ cdef class Matrix(Matrix0):
             [ 3  4  5]
             [ 9 10 11]
 
-        The default is to check whether the any index in ``drows`` is out of range. ::
+        The default is to check whether any index in ``drows`` is out of range. ::
 
             sage: A.delete_rows([-1,2,4])
             Traceback (most recent call last):
@@ -2504,7 +2501,6 @@ cdef class Matrix(Matrix0):
 
         ::
 
-            sage: # needs sage.rings.finite_rings
             sage: K.<a> = GF(2^4)
             sage: l = [a^2 + 1, a^3 + 1, 0, 0, a, a^3 + a + 1, a + 1,
             ....:      a + 1, a^2, a^3 + a + 1, a^3 + a, a^3 + a]
@@ -2519,7 +2515,6 @@ cdef class Matrix(Matrix0):
 
         ::
 
-            sage: # needs sage.rings.finite_rings
             sage: K.<a> = GF(25)
             sage: M = Matrix(K, 2, 3, [0, 2, 3, 5, a, a^2])
             sage: M

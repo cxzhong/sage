@@ -125,6 +125,7 @@ from sage.structure.richcmp cimport rich_to_bool
 from sage.misc.randstate cimport randstate, current_randstate
 import sage.matrix.matrix_space as matrix_space
 from sage.matrix.args cimport SparseEntry, MatrixArgs_init
+from sage.matrix.matrix_utils cimport check_matrix_multiplication_sizes
 
 
 from sage.cpython.string cimport char_to_str
@@ -573,6 +574,13 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
             sage: Matrix(IntegerModRing(200), [[int(2**128+1), int(2**256+1), int(2**1024+1)]])        # needs sage.rings.finite_rings
             [ 57 137  17]
         """
+        if entries is None:
+            # ``__cinit__`` already initialized the matrix to zero
+            # (``check_calloc`` with ``zeroed_alloc``). Returning here avoids
+            # building a ``MatrixArgs`` object and iterating over an empty
+            # generator, which makes creating a zero matrix from scratch
+            # significantly faster (see :issue:`36146`).
+            return
         ma = MatrixArgs_init(parent, entries)
         cdef long i, j
         it = ma.iter(convert=False, sparse=True)
@@ -595,7 +603,7 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
             else:
                 v[se.j] = <celement>x
 
-    cdef long _hash_(self) except -1:
+    cdef Py_hash_t _hash_(self) except -1:
         """
         EXAMPLES::
 
@@ -629,7 +637,8 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
         cdef long C[5]
         self.get_hash_constants(C)
 
-        cdef long h = 0, k, l
+        cdef Py_hash_t h = 0
+        cdef long k, l
         cdef Py_ssize_t i, j
         cdef celement* row
         sig_on()
@@ -723,7 +732,6 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
 
         And for larger modulus::
 
-            sage: # needs sage.rings.finite_rings
             sage: A = random_matrix(GF(1009), 51, 5)
             sage: data, version = A._pickle()
             sage: B = A.parent()(0)
@@ -1131,7 +1139,6 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
 
         ::
 
-            sage: # needs sage.rings.finite_rings
             sage: A = random_matrix(GF(15991), 201, 117)
             sage: B = random_matrix(GF(15991), 117, 195)
             sage: C = random_matrix(GF(15991), 201, 117)
@@ -1184,8 +1191,7 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
             verbose('mod-p multiply of %s x %s matrix by %s x %s matrix modulo %s' % (
                     self._nrows, self._ncols, right._nrows, right._ncols, self.p))
 
-        if self._ncols != right._nrows:
-            raise ArithmeticError("right's number of rows must match self's number of columns")
+        check_matrix_multiplication_sizes(self, right)
 
         cdef int e
         cdef Matrix_modn_dense_template ans, B
@@ -1708,7 +1714,6 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
 
         ::
 
-            sage: # needs sage.rings.finite_rings
             sage: A = random_matrix(GF(16007), 10, 20)
             sage: E = A.echelon_form()
             sage: A.row_space() == E.row_space()
@@ -1726,7 +1731,6 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
 
         Parallel computation::
 
-            sage: # needs sage.rings.finite_rings
             sage: A = random_matrix(GF(65521),100,200)
             sage: Parallelism().set('linbox', nproc=2)
             sage: E = A.echelon_form()
@@ -1759,7 +1763,6 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
             [0 0 0 0 0 0 0 0 0 0]
             [0 0 0 0 0 0 0 0 0 0]
 
-            sage: # needs sage.rings.finite_rings
             sage: A = random_matrix(GF(16007),  0, 10)
             sage: A.echelon_form()
             []
@@ -2353,7 +2356,6 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
 
         ::
 
-            sage: # needs sage.rings.finite_rings
             sage: while True:
             ....:     A = random_matrix(GF(16007), 100, 100)
             ....:     if A.rank() == 100:
@@ -2379,7 +2381,6 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
             sage: A.rank()
             0
 
-            sage: # needs sage.rings.finite_rings
             sage: A = random_matrix(GF(16007), 0, 0)
             sage: A.rank()
             0
@@ -2426,14 +2427,12 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
 
         ::
 
-            sage: # needs sage.rings.finite_rings
             sage: A = random_matrix(GF(16007), 10, 10)
             sage: A.determinant().parent() is GF(16007)
             True
 
         ::
 
-            sage: # needs sage.rings.finite_rings
             sage: A = random_matrix(GF(16007), 100, 100)
             sage: A.determinant().parent() is GF(16007)
             True
@@ -2445,7 +2444,6 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
 
         Parallel computation::
 
-            sage: # needs sage.rings.finite_rings
             sage: A = random_matrix(GF(65521),200)
             sage: B = copy(A)
             sage: Parallelism().set('linbox', nproc=2)
@@ -2473,7 +2471,6 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
             sage: A = matrix(GF(7), 5, 5); A.det()                                      # needs sage.libs.pari
             0
 
-            sage: # needs sage.rings.finite_rings
             sage: A = random_matrix(GF(16007), 0, 0); A.det()
             1
             sage: A = random_matrix(GF(16007), 0, 1); A.det()
@@ -2966,7 +2963,6 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
             sage: A.lift().parent()
             Full MatrixSpace of 2 by 3 dense matrices over Integer Ring
 
-            sage: # needs sage.rings.finite_rings
             sage: A = matrix(GF(16007),2,3,[1..6])
             sage: A.lift()
             [1 2 3]
@@ -3433,7 +3429,6 @@ cdef class Matrix_modn_dense_template(Matrix_dense):
             sage: bool(A)
             False
 
-            sage: # needs sage.rings.finite_rings
             sage: A = matrix(GF(16007), 0, 0)
             sage: A.is_zero()
             True
