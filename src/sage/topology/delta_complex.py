@@ -1018,11 +1018,10 @@ class DeltaComplex(GenericCellComplex):
                                     else:
                                         # face of this n-simplex
                                         n_face_idx = n_cell[path[i][1]]
-                                        n_face_dim = n-1
-                                        tail = []
-                                        for j in range(i, d):
-                                            tail.append((face_path[j][0],
-                                                         face_path[j][1]-1))
+                                        n_face_dim = n - 1
+                                        tail = [(face_path[j][0],
+                                                 face_path[j][1] - 1)
+                                                for j in range(i, d)]
                                         face_path = face_path[:i] + tuple(tail)
                                     bdry_list.append(bdries[(k_face_dim, k_face_idx,
                                                              n_face_dim, n_face_idx,
