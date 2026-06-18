@@ -85,6 +85,15 @@ jobs:
           activate-environment: sage-dev
           environment-file: environment-${{ matrix.python }}-linux.yml
 
+      # Build without the packages whose support we are disabling, to
+      # be on the safe side. The -Dfoo=disabled option is an off switch
+      # for sage.features.foo, but it's possible that some parts of the
+      # code are bypassing the feature framework and e.g. attempting
+      # to detect an optional package with an import statement. We want
+      # those to fail as well.
+      - name: Remove optional packages from Conda environment
+        shell: bash -l {0}
+        run: conda remove bliss libhomfly rw sirocco
 
       - name: Print Conda environment
         shell: bash -l {0}
