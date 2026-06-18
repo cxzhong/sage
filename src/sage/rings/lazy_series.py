@@ -6952,6 +6952,26 @@ class LazySymmetricFunction(LazyCompletionGradedAlgebraElement):
             0
             sage: (3+f)(0, 0)                                                           # needs sage.modules
             3
+
+        Check composition of a lazy symmetric function with more than
+        one alphabet::
+
+            sage: p = SymmetricFunctions(QQ).p()
+            sage: T = tensor([p, p])
+            sage: L = LazySymmetricFunctions(T)
+            sage: X = tensor([p[1], p[[]]])
+            sage: Y = tensor([p[[]], p[1]])
+            sage: L(X + Y)(L(X), L(Y))
+            (p[]#p[1]+p[1]#p[]) + O^7
+            sage: L(X + Y)(2, 3)
+            5
+            sage: L(tensor([p[2], p[1]]))(2, 3)
+            6
+            sage: f = 1 / (1 - L(X))
+            sage: f(1, L(Y))
+            Traceback (most recent call last):
+            ...
+            ValueError: can only compose with a positive valuation series
         """
         fP = parent(self)
         if len(args) != fP._arity:
@@ -6977,6 +6997,7 @@ class LazySymmetricFunction(LazyCompletionGradedAlgebraElement):
                 return P(f.leading_coefficient())
             return P.zero()
 
+        from sage.rings.lazy_series_ring import LazySymmetricFunctions
         if len(args) == 1:
             g = args[0]
             if (isinstance(self._coeff_stream, Stream_exact)
@@ -6995,7 +7016,6 @@ class LazySymmetricFunction(LazyCompletionGradedAlgebraElement):
             if isinstance(g, LazySymmetricFunction):
                 R = P._laurent_poly_ring
             else:
-                from sage.rings.lazy_series_ring import LazySymmetricFunctions
                 R = g.parent()
                 P = LazySymmetricFunctions(R)
                 g = P(g)
@@ -7015,7 +7035,93 @@ class LazySymmetricFunction(LazyCompletionGradedAlgebraElement):
                                            P.is_sparse(), ps, R)
             return P.element_class(P, coeff_stream)
 
-        raise NotImplementedError("only implemented for arity 1")
+        f_is_polynomial = (isinstance(self._coeff_stream, Stream_exact)
+                           and not self._coeff_stream._constant)
+        fR = fP._laurent_poly_ring
+        ps = tensor([B.realization_of().p() for B in fR.tensor_factors()])
+        ps_factors = ps.tensor_factors()
+        if not isinstance(P, LazySymmetricFunctions):
+            try:
+                P = LazySymmetricFunctions(P)
+            except ValueError:
+                if not f_is_polynomial:
+                    raise ValueError("can only compose with a positive "
+                                     "valuation series") from None
+                args = [P(g) for g in args]
+                ret = P.zero()
+                for k in range(self._coeff_stream._approximate_order,
+                               self._coeff_stream._degree):
+                    fk = self[k]
+                    if not fk:
+                        continue
+                    for la, c in ps(fk):
+                        ret += P(c) * prod((ps_factors[i][mu](args[i])
+                                            for i, mu in enumerate(la)),
+                                           P.one())
+                return ret
+        args = [P(g) for g in args]
+        R = P._laurent_poly_ring
+
+        if not f_is_polynomial:
+            for g in args:
+                if isinstance(g._coeff_stream, Stream_zero):
+                    continue
+                if g._coeff_stream._approximate_order == 0:
+                    if not g._coeff_stream.is_uninitialized() and g[0]:
+                        raise ValueError("can only compose with a positive "
+                                         "valuation series")
+                    g._coeff_stream._approximate_order = 1
+
+        one = P.one()
+        ps_cache = {}
+        plethysm_cache = {}
+        product_cache = {}
+
+        def coefficient_in_powersum(k):
+            try:
+                return ps_cache[k]
+            except KeyError:
+                ret = ps(self[k])
+                ps_cache[k] = ret
+                return ret
+
+        def plethysm_factor(i, la):
+            key = (i, la)
+            try:
+                return plethysm_cache[key]
+            except KeyError:
+                ret = P(ps_factors[i][la](args[i]))
+                plethysm_cache[key] = ret
+                return ret
+
+        def plethysm_product(la):
+            key = tuple(la)
+            try:
+                return product_cache[key]
+            except KeyError:
+                ret = prod((plethysm_factor(i, mu)
+                            for i, mu in enumerate(key)), one)
+                product_cache[key] = ret
+                return ret
+
+        def coefficient(n):
+            if f_is_polynomial and any(g._coeff_stream._approximate_order == 0 and g[0]
+                                       for g in args):
+                stop = self._coeff_stream._degree
+            else:
+                stop = n + 1
+
+            ret = R.zero()
+            for k in range(self._coeff_stream._approximate_order, stop):
+                fk = self[k]
+                if not fk:
+                    continue
+                for la, c in coefficient_in_powersum(k):
+                    ret += c * plethysm_product(la)[n]
+            return ret
+
+        coeff_stream = Stream_function(coefficient, P.is_sparse(), 0)
+        return P.element_class(P, coeff_stream)
 
     plethysm = __call__
 
