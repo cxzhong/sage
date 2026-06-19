@@ -407,10 +407,7 @@ class HyperellipticJacobianHomset(SchemeHomset_points):
             args = tuple(args[0])
 
         if len(args) > self._max_constructor_args:
-            word = {2: "two", 3: "three"}.get(
-                self._max_constructor_args, self._max_constructor_args
-            )
-            raise ValueError(f"at most {word} arguments are allowed as input")
+            raise ValueError(f"at most {self._max_constructor_args} arguments are allowed as input")
 
         if len(args) == 1:
             P1 = args[0]
