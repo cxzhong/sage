@@ -3066,11 +3066,18 @@ def special_supersingular_curve(F, q=None, *, endomorphism=False, maximal_order=
         Order of Quaternion Algebra (-1, -1051) with base ring Rational Field
           with basis (1, i, 1/2*i + 1/2*j, 1/2 + 1/2*k)
 
-    ...also when `q` is given::
+    The maximal order is also returned when `q` is supplied explicitly::
 
         sage: special_supersingular_curve(GF(1019^2), q=99, endomorphism=True, maximal_order=True)[2]
         Order of Quaternion Algebra (-99, -1019) with base ring Rational Field
           with basis (1, 1/2 + 1/6*i, j, 1/2 + 3/22*i + 1/2*j + 1/66*k)
+
+    This works in characteristic two as well, where the usual order basis
+    fails to be integral (:issue:`42407`)::
+
+        sage: special_supersingular_curve(GF(2^2), endomorphism=True, maximal_order=True)[2]
+        Order of Quaternion Algebra (-1, -2) with base ring Rational Field
+          with basis (1, i, 1/2 + 1/2*i + 1/2*j, 1/2 + 1/2*i + 1/2*k)
 
 
     TESTS::
@@ -3281,7 +3288,14 @@ def special_supersingular_curve(F, q=None, *, endomorphism=False, maximal_order=
     Quat, (i,j,k) = QuaternionAlgebra(-q, -p).objgens()
     assert Quat.discriminant() == p
 
-    if q == 1:
+    if q == 1 and p == 2:
+        # In characteristic 2 the standard q == 1 basis [1, i, (i+j)/2,
+        # (1+k)/2] is not integral, and the generic saturation below does
+        # not apply either (the curve has no rational 2-torsion).  Use the
+        # maximal order of the quaternion algebra (-1, -2) directly.
+        O = Quat.quaternion_order([1, i, (1+i+j)/2, (1+i+k)/2])
+
+    elif q == 1:
         O = Quat.quaternion_order([1, i, (i+j)/2, (1+k)/2])
 
     elif q == 3:
