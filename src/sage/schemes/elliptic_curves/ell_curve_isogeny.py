@@ -3213,7 +3213,9 @@ def compute_isogeny_bmss(E1, E2, l):
 
         This implementation uses the odd-degree shortcut described in
         [BMSS2006]_, where the denominator is a square. For even degrees,
-        it falls back to :func:`compute_isogeny_stark`.
+        it falls back to :func:`compute_isogeny_stark`, except in the
+        small range ``4*l + 4 <= char < 4*l + 6`` not supported by the
+        Weierstrass `\wp`-function, where a direct search is used instead.
 
     EXAMPLES::
 
@@ -3288,6 +3290,15 @@ def compute_isogeny_bmss(E1, E2, l):
         sage: E2 = EllipticCurve(F, [11, 29])
         sage: compute_isogeny_bmss(E1, E2, 2)
         x + 11
+
+    For even degrees in the small characteristic range ``4*l + 4 <= char
+    < 4*l + 6``, where Stark's algorithm is unavailable, a direct search
+    is used as fallback (see :issue:`42407`)::
+
+        sage: E1 = EllipticCurve(GF(13), [1, 0])
+        sage: E2 = EllipticCurve(GF(13), [9, 0])
+        sage: compute_isogeny_bmss(E1, E2, 2)
+        x
     """
     # Original author of this function: Rémy Oudompheng.
     # https://github.com/remyoudompheng/isogeny_weber/blob/64289127a337ac1bf258b711e02fea02b7df5275/isogeny_weber/isogenies.py#L272-L332
@@ -3300,10 +3311,18 @@ def compute_isogeny_bmss(E1, E2, l):
     char = E1.base_ring().characteristic()
     if char != 0 and char < 4*l + 4:
         raise ValueError('characteristic must be at least 4*degree+4')
+
     if l % 2 == 0:
         # The reconstruction below uses the odd-degree shortcut from
-        # [BMSS2006], where the denominator D(x) is a square g(x)^2.
-        return compute_isogeny_stark(E1, E2, l)
+        # [BMSS2006], where the denominator D(x) is a square g(x)^2, so we
+        # delegate even degrees to Stark's algorithm.  Stark relies on the
+        # Weierstrass `\wp`-function, which is currently only available for
+        # ``char == 0`` or ``char >= 4*l + 6``; in the small range still
+        # allowed by the precondition above we instead fall back to a direct
+        # search, mirroring the selection in :func:`compute_isogeny_kernel_polynomial`.
+        if char == 0 or char >= 4 * l + 6:
+            return compute_isogeny_stark(E1, E2, l)
+        return compute_isogeny_kernel_polynomial(E1, E2, l, algorithm='bruteforce')
     Rx, x = E1.base_ring()["x"].objgen()
     # Compute C = 1/(1 + Ax^4 + Bx^6) mod x^4l
     A, B = E1.a4(), E1.a6()
