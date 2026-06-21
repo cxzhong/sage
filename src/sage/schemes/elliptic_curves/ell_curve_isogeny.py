@@ -3528,9 +3528,11 @@ def compute_isogeny_kernel_polynomial(E1, E2, ell, algorithm=None):
 
     - ``ell`` -- the degree of an isogeny from ``E1`` to ``E2``
 
-    - ``algorithm`` -- ``None`` (default, choose automatically) or
-      ``'bmss'`` (:func:`compute_isogeny_bmss`) or
-      ``'stark'`` (:func:`compute_isogeny_stark`)
+    - ``algorithm`` -- ``None`` (default, choose automatically),
+      ``'bmss'`` (:func:`compute_isogeny_bmss`),
+      ``'stark'`` (:func:`compute_isogeny_stark`), or ``'bruteforce'``
+      (enumerate candidates via
+      :meth:`~EllipticCurve_field.isogenies_degree`)
 
     OUTPUT: the kernel polynomial of an isogeny from ``E1`` to ``E2``
 
