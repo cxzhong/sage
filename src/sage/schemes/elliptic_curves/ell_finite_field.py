@@ -3121,6 +3121,22 @@ def special_supersingular_curve(F, q=None, *, endomorphism=False, maximal_order=
         ....:     numer = sum(ZZ(c) * gen for c,gen in zip(vec, [1, iota, pi, iota*pi]))
         ....:     _ = EllipticCurveHom_fractional(numer, denom, check=True)  # fails if not divisible
 
+    The same maximal-order embedding check, but deterministically in
+    characteristic two, where the usual ``q == 1`` basis is not integral
+    (:issue:`42407`)::
+
+        sage: E, iota, O = special_supersingular_curve(GF(2^2), endomorphism=True, maximal_order=True)
+        sage: pi = E.frobenius_isogeny()
+        sage: O.discriminant()
+        2
+        sage: O.quaternion_algebra().invariants() == (-iota.degree(), -2)
+        True
+        sage: for vec in map(vector, O.basis()):
+        ....:     denom = vec.denominator()
+        ....:     vec *= denom
+        ....:     numer = sum(ZZ(c) * gen for c,gen in zip(vec, [1, iota, pi, iota*pi]))
+        ....:     _ = EllipticCurveHom_fractional(numer, denom, check=True)  # fails if not divisible
+
     Also try it for larger-degree fields::
 
         sage: k = ZZ(randrange(3, 10, 2))
