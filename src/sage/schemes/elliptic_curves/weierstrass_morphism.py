@@ -23,14 +23,14 @@ AUTHORS:
 #                  https://www.gnu.org/licenses/
 # ****************************************************************************
 
-from sage.structure.element import get_coercion_model
-
-from .constructor import EllipticCurve
-from sage.schemes.elliptic_curves.hom import EllipticCurveHom
-from sage.structure.richcmp import (richcmp, richcmp_not_equal, op_EQ, op_NE)
-from sage.structure.sequence import Sequence
 from sage.rings.integer import Integer
 from sage.rings.polynomial.polynomial_ring_constructor import PolynomialRing
+from sage.schemes.elliptic_curves.hom import EllipticCurveHom
+from sage.structure.element import get_coercion_model
+from sage.structure.richcmp import op_EQ, op_NE, richcmp, richcmp_not_equal
+from sage.structure.sequence import Sequence
+
+from .constructor import EllipticCurve
 
 
 class baseWI:
@@ -894,6 +894,30 @@ class WeierstrassIsomorphism(EllipticCurveHom, baseWI):
             sage: E2 = E1.short_weierstrass_model()
             sage: iso = E1.isomorphism_to(E2)
             sage: iso.dual() == ~iso
+            True
+        """
+        return ~self
+
+    def inverse(self):
+        """
+        Return the inverse of this isomorphism.
+
+        EXAMPLES::
+
+            sage: from sage.schemes.elliptic_curves.weierstrass_morphism import WeierstrassIsomorphism
+            sage: E = EllipticCurve(QuadraticField(-3), [0,1])                          # needs sage.rings.number_field
+            sage: w = WeierstrassIsomorphism(E, (CyclotomicField(3).gen(),0,0,0))       # needs sage.rings.number_field
+            sage: (w.inverse() * w).rational_maps()                                        # needs sage.rings.number_field
+            (x, y)
+
+        ::
+
+            sage: E1 = EllipticCurve([11,22,33,44,55])
+            sage: E2 = E1.short_weierstrass_model()
+            sage: iso = E1.isomorphism_to(E2)
+            sage: iso.inverse() == ~iso
+            True
+            sage: iso.inverse() == iso.dual()
             True
         """
         return ~self
