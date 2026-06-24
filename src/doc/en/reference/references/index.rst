@@ -3085,6 +3085,10 @@ REFERENCES:
              Riemann surfaces and Dessins d'enfant*, (2011)
              London Mathematical Society, Student Text 79.
 
+.. [GGK2000] Geelen, James F., Albertus MH Gerards, and Ajai Kapoor,
+             *The excluded minors for GF(4)-representable matroids.*,
+             Journal of Combinatorial Theory, Series B 79.2 (2000): 247-299.
+
 .. [GGMM2020] \A. Garver, S. Grosser, J. Matherne, and A. Morales.
               *Counting linear extensions of posets with determinants of hook
               lengths*. Preprint, :arxiv:`2001.08822` (2020).
