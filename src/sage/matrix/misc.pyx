@@ -205,6 +205,16 @@ def matrix_rational_echelon_form_multimodular(Matrix self, height_guess=None, pr
         sage: A.pivots()
         (0, 1, 2)
 
+    Check that the correctness bound accounts for the integer matrix obtained
+    after clearing denominators (:issue:`42411`)::
+
+        sage: entries = [[1000001000, -1/501000500, 3], [1, -1, 1]]
+        sage: expected = matrix(QQ, entries).echelon_form(algorithm='flint')
+        sage: matrix(QQ, entries).echelon_form(algorithm='multimodular') == expected
+        True
+        sage: matrix(QQ, entries, sparse=True).echelon_form() == expected
+        True
+
     A small benchmark, showing that flint fraction-free multimodular algorithm
     is always faster than the fraction-free multimodular algorithm implemented in Python::
 
@@ -259,14 +269,17 @@ def matrix_rational_echelon_form_multimodular(Matrix self, height_guess=None, pr
 
     B, _ = self._clear_denom()
 
-    height = self.height()
     if height_guess is None:
-        height_guess = 10000000*(height+100)
+        input_height = self.height()
+        height_guess = 10000000*(input_height+100)
     tm = verbose("height_guess = %s" % height_guess, level=2, caller_name="multimod echelon")
 
     cdef Integer M
     from sage.arith.misc import integer_floor as floor
     if proof:
+        # The modular computation is done with denominators cleared, so H(A) in
+        # the reconstruction bound is the height of this integer matrix.
+        height = B.height()
         M = floor(max(1, self._ncols * height_guess * height + 1))
     else:
         M = floor(max(1, height_guess + 1))

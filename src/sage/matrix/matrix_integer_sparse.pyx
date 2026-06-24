@@ -124,6 +124,54 @@ cdef class Matrix_integer_sparse(Matrix_sparse):
         mpz_vector_get_entry(x.value, &self._matrix[i], j)
         return x
 
+    def height(self):
+        """
+        Return the height of this matrix, i.e. the maximum absolute value
+        of the entries of the matrix.
+
+        OUTPUT: nonnegative integer
+
+        EXAMPLES::
+
+            sage: a = matrix(ZZ, 2, 3, [-17, 0, -389, 15, -1, 0], sparse=True); a
+            [ -17    0 -389]
+            [  15   -1    0]
+            sage: a.height()
+            389
+            sage: matrix(ZZ, 2, 3, sparse=True).height()
+            0
+        """
+        cdef Integer x = Integer.__new__(Integer)
+        self.mpz_height(x.value)
+        return x
+
+    cdef int mpz_height(self, mpz_t height) except -1:
+        """
+        Used to compute the height of this matrix.
+
+        INPUT:
+
+        - ``height`` -- a GMP mpz_t which has been initialized
+
+        OUTPUT: sets the value of height to the height of this matrix,
+        i.e., the max absolute value of the entries of the matrix.
+        """
+        cdef mpz_t x, h
+        mpz_init(x)
+        mpz_init_set_si(h, 0)
+        cdef Py_ssize_t i, j
+        sig_on()
+        for i from 0 <= i < self._nrows:
+            for j from 0 <= j < self._matrix[i].num_nonzero:
+                mpz_abs(x, self._matrix[i].entries[j])
+                if mpz_cmp(h, x) < 0:
+                    mpz_set(h, x)
+        sig_off()
+        mpz_set(height, h)
+        mpz_clear(h)
+        mpz_clear(x)
+        return 0
+
     cdef copy_from_unsafe(self, Py_ssize_t iDst, Py_ssize_t jDst, src, Py_ssize_t iSrc, Py_ssize_t jSrc):
         """
         Copy position iSrc,jSrc of ``src`` to position iDst,jDst of ``self``.
