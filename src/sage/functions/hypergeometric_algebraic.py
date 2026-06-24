@@ -2495,7 +2495,7 @@ class HypergeometricFunctions(Parent, UniqueRepresentation):
             True
         """
         if (isinstance(other, HypergeometricFunctions)
-        and self.base_ring().has_coerce_map_from(other.base_ring())):
+                and self.base_ring().has_coerce_map_from(other.base_ring())):
             if self._symbolic_equality:
                 return True
             return other._symbolic_equality
