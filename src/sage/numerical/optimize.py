@@ -174,6 +174,204 @@ def find_root(f, a, b, xtol=10e-13, rtol=2.0**-50, maxiter=100, full_output=Fals
     return brentqRes
 
 
+def find_root_modab(f, a, b, xtol=10e-13, rtol=2.0**-50, maxiter=100, full_output=False):
+    r"""
+    Numerically find a root of ``f`` on the closed interval `[a,b]`
+    (or `[b,a]`) using the modified Anderson-Bjork bracketing method of
+    [GSRTT2026]_.
+
+    The function values at the interval endpoints must have opposite signs,
+    unless one endpoint is already a root.  Like :func:`find_root`, this
+    routine works in fixed (machine) precision.
+
+    Unlike :func:`find_root`, this routine only accepts callables; symbolic
+    expressions and symbolic equalities are not dispatched to symbolic root
+    finding.
+
+    INPUT:
+
+    - ``f`` -- a function of one variable
+
+    - ``a``, ``b`` -- endpoints of the interval
+
+    - ``xtol``, ``rtol`` -- the routine converges when the enclosing
+      interval has width at most ``xtol + rtol*abs(x)``, where ``x`` is the
+      current root estimate.  Both tolerances must be nonnegative.
+
+    - ``maxiter`` -- integer; if convergence is not achieved in
+      ``maxiter`` iterations, an error is raised.  Must be nonnegative.
+
+    - ``full_output`` -- boolean (default: ``False``); if ``True``, also
+      return an object that contains information about convergence
+
+    EXAMPLES::
+
+        sage: from sage.numerical.optimize import find_root_modab
+        sage: find_root_modab(lambda x: x*x - 2, 0, 2)  # abs tol 1e-12
+        1.414213562373...
+        sage: find_root_modab(lambda x: x - 3, 5, -1)
+        3.0
+        sage: find_root_modab(lambda x: x + 1, -1, 4)
+        -1.0
+
+    With ``full_output=True`` a SciPy-style result object is returned::
+
+        sage: root, result = find_root_modab(lambda x: x^3 - 2, 0, 2, full_output=True)
+        sage: root  # abs tol 1e-12
+        1.259921049894...
+        sage: result.converged
+        True
+        sage: result.flag
+        'converged'
+        sage: result.method
+        'modAB'
+
+    The method is a bracketing method, so the endpoints must bracket a
+    root::
+
+        sage: find_root_modab(lambda x: x*x + 1, -1, 1)
+        Traceback (most recent call last):
+        ...
+        RuntimeError: f appears to have no zero on the interval
+
+    TESTS::
+
+        sage: find_root_modab(lambda x: x*x - 2, 2, 0)  # abs tol 1e-12
+        1.414213562373...
+        sage: find_root_modab(lambda x: (x - 1)^3, 0, 2)
+        1.0
+        sage: root, result = find_root_modab(lambda x: x^3 - 2, 0, 2, full_output=True)
+        sage: result.function_calls >= 3
+        True
+        sage: result.iterations >= 1
+        True
+        sage: from sage.numerical.all import find_root_modab as lazy_modab
+        sage: lazy_modab(lambda x: x - 1, 0, 2)
+        1.0
+        sage: find_root_modab(lambda x: x*x - 2, 0, 2, maxiter=0)
+        Traceback (most recent call last):
+        ...
+        RuntimeError: failed to converge after 0 iterations
+
+    Check that convergence to a discontinuity is rejected, as in
+    :func:`find_root`::
+
+        sage: find_root_modab(lambda x: 1/(x - 1) + 1, 0.00001, 2)
+        Traceback (most recent call last):
+        ...
+        NotImplementedError: ModAB failed to find a zero for f on the interval
+    """
+    if xtol < 0:
+        raise ValueError("xtol must be nonnegative")
+    if rtol < 0:
+        raise ValueError("rtol must be nonnegative")
+    if maxiter < 0:
+        raise ValueError("maxiter must be nonnegative")
+
+    a = float(a)
+    b = float(b)
+    if a > b:
+        a, b = b, a
+
+    function_calls = 0
+
+    def g(x):
+        nonlocal function_calls
+        function_calls += 1
+        return float(f(x))
+
+    def same_sign(y, z):
+        return (y > 0) == (z > 0)
+
+    def result(root, iterations, check=False):
+        if check:
+            residual = float(f(root))
+            tolerance = max(abs(root * rtol * (initial_y2 - initial_y1)
+                                / (b - a)), 1e-6)
+            if (isnan(residual)
+                    or abs(residual) > tolerance):
+                raise NotImplementedError("ModAB failed to find a zero for f on the interval")
+        if full_output:
+            from scipy.optimize import RootResults
+            return root, RootResults(root, iterations, function_calls, 0, 'modAB')
+        return root
+
+    y1 = g(a)
+    if y1 == 0.0:
+        return result(a, 0)
+
+    y2 = g(b)
+    if y2 == 0.0:
+        return result(b, 0)
+
+    if isnan(y1) or isnan(y2) or same_sign(y1, y2):
+        raise RuntimeError("f appears to have no zero on the interval")
+
+    initial_y1 = y1
+    initial_y2 = y2
+
+    x1 = a
+    x2 = b
+    bisection = True
+    side = 0
+    threshold = x2 - x1
+
+    for iteration in range(1, int(maxiter) + 1):
+        if bisection:
+            x3 = 0.5 * (x1 + x2)
+        else:
+            x3 = (x1 * y2 - y1 * x2) / (y2 - y1)
+
+        if x2 - x1 <= xtol + rtol * abs(x3):
+            return result(x3, iteration, check=True)
+
+        if bisection:
+            y3 = g(x3)
+            if isnan(y3):
+                raise RuntimeError("f appears to have no zero on the interval")
+            ym = 0.5 * (y1 + y2)
+            r = 1 - abs(ym / (y2 - y1))
+            k = r * r
+            if abs(ym - y3) < k * (abs(y3) + abs(ym)):
+                bisection = False
+                threshold = (x2 - x1) * 16
+        elif x3 <= x1:
+            x3, y3 = x1, y1
+            threshold *= 0.5
+        elif x3 >= x2:
+            x3, y3 = x2, y2
+            threshold *= 0.5
+        else:
+            y3 = g(x3)
+            if isnan(y3):
+                raise RuntimeError("f appears to have no zero on the interval")
+            threshold *= 0.5
+
+        if y3 == 0.0:
+            return result(x3, iteration, check=True)
+
+        if same_sign(y1, y3):
+            if side == 1:
+                m = 1 - y3 / y1
+                y2 *= m if m > 0 else 0.5
+            elif not bisection:
+                side = 1
+            x1, y1 = x3, y3
+        else:
+            if side == -1:
+                m = 1 - y3 / y2
+                y1 *= m if m > 0 else 0.5
+            elif not bisection:
+                side = -1
+            x2, y2 = x3, y3
+
+        if x2 - x1 > threshold:
+            bisection = True
+            side = 0
+
+    raise RuntimeError("failed to converge after %s iterations" % maxiter)
+
+
 def find_local_maximum(f, a, b, tol=1.48e-08, maxfun=500):
     """
     Numerically find a local maximum of the expression `f` on the interval
