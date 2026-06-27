@@ -86,7 +86,7 @@ cdef class Matrix(Matrix0):
             sage: b = pari(a); b                                                        # needs sage.libs.pari
             [1.000000000..., 2.000000000...; 3.000000000..., 1.000000000...]
 
-        Conversion of a matrix over a number field (:issue:`39615`)::
+        Conversion of a matrix over a number field::
 
             sage: # needs sage.rings.number_field
             sage: x = polygen(ZZ)
