@@ -1071,7 +1071,179 @@ def parse_ellipsis(code, preparse_step=True):
     return code
 
 
-def extract_numeric_literals(code):
+def _case_pattern_ranges(code):
+    r"""
+    Return ranges occupied by structural pattern matching patterns.
+
+    Sage numeric preparsing must not wrap literals in ``case`` patterns:
+    Python interprets ``case 1`` as a literal pattern, but
+    ``case Integer(1)`` as a class pattern.
+
+    INPUT:
+
+    - ``code`` -- string
+
+    OUTPUT:
+
+    A list of ``(start, stop)`` pairs.  For each ``case pattern:`` clause,
+    the range covers only ``pattern``.  If there is a guard, it stops before
+    the top-level ``if`` so that guard expressions are still preparsed.
+
+    A clause is only recognized when its terminating colon is reached on its
+    logical line (possibly continued inside brackets or by backslash).  This
+    avoids mistaking the soft keyword ``case`` used as an ordinary identifier
+    for a pattern, which would otherwise suppress preparsing of the following
+    code.
+
+    TESTS::
+
+        sage: from sage.repl.preparse import _case_pattern_ranges
+        sage: code = 'match [1]:\n    case [1]if 1/2 < x: pass'
+        sage: [code[a:b] for a, b in _case_pattern_ranges(code)]
+        [' [1]']
+        sage: _case_pattern_ranges('case = lambda x=1: x + 2')
+        []
+    """
+    if 'case' not in code:
+        return []
+
+    ranges = []
+    n = len(code)
+    line_start = 0
+
+    def at_word(pos, word):
+        end = pos + len(word)
+        return (code.startswith(word, pos) and
+                (pos == 0 or not re.match(r'\w', code[pos - 1])) and
+                (end == n or not re.match(r'\w', code[end])))
+
+    while line_start < n:
+        line_end = code.find('\n', line_start)
+        if line_end == -1:
+            line_end = n
+
+        i = line_start
+        while i < line_end and code[i] in ' \t\f':
+            i += 1
+
+        if at_word(i, 'case'):
+            pattern_start = i + 4
+            guard_start = None
+            colon = None
+            assignment_before_colon = False
+            depth = 0
+            j = pattern_start
+            while j < n:
+                c = code[j]
+                if c in '([{':
+                    depth += 1
+                elif c in ')]}':
+                    depth -= 1
+                elif depth == 0:
+                    if c == '\n':
+                        if j > 0 and code[j - 1] == '\\':
+                            j += 1
+                            continue
+                        # A genuine ``case`` clause keeps its colon on the same
+                        # logical line, except for explicit backslash
+                        # continuation.  Bracketed patterns span lines at
+                        # ``depth > 0``.  Stopping here prevents an ordinary
+                        # identifier named ``case`` from swallowing the numeric
+                        # literals of the following code.
+                        break
+                    if c == ':':
+                        colon = j
+                        break
+                    if (guard_start is None and code.startswith('if', j) and
+                            j > pattern_start and
+                            (j + 2 == n or not re.match(r'\w', code[j + 2]))):
+                        # The first top-level ``if`` is the guard keyword; only
+                        # the pattern before it is a pattern.  Python allows
+                        # guards to be glued to closing brackets and literals
+                        # (for example ``case [1]if ...`` or ``case 1if ...``),
+                        # so this cannot require preceding whitespace.
+                        prev = code[j - 1]
+                        literal_before_if = re.search(r'%\(L\d+\)s$',
+                                                      code[pattern_start:j])
+                        if (prev.isspace() or prev in ')]}\'"' or prev.isdigit()
+                                or (prev in 'jJ' and j > pattern_start + 1
+                                    and code[j - 2].isdigit())
+                                or literal_before_if):
+                            # Later ``if`` tokens (e.g. a conditional
+                            # expression in the guard) must not move this
+                            # boundary.
+                            guard_start = j
+                    elif guard_start is None and c == '=':
+                        assignment_before_colon = True
+                j += 1
+
+            # Only a terminating colon confirms a genuine ``case`` clause.
+            # Without one, or with a top-level assignment operator before one
+            # (e.g. ``case = lambda x=1: x``), ``case`` is an ordinary
+            # identifier and the line is preparsed normally.
+            if colon is not None and not assignment_before_colon:
+                pattern_end = colon if guard_start is None else guard_start
+                ranges.append((pattern_start, pattern_end))
+                line_start = colon + 1
+                continue
+
+        line_start = line_end + 1
+
+    return ranges
+
+
+def _in_ranges(pos, ranges):
+    """
+    Return whether ``pos`` is in one of the sorted ranges.
+
+    TESTS::
+
+        sage: from sage.repl.preparse import _in_ranges
+        sage: [_in_ranges(i, [(2, 4), (7, 9)]) for i in range(5)]
+        [False, False, True, True, False]
+    """
+    for start, stop in ranges:
+        if pos < start:
+            return False
+        if start <= pos < stop:
+            return True
+    return False
+
+
+def _python_numeric_literal(num, postfix):
+    """
+    Return the Python numeric literal corresponding to Sage input.
+
+    ``postfix`` is already upper-cased by :func:`preparse_numeric_literals`.
+
+    TESTS::
+
+        sage: from sage.repl.preparse import _python_numeric_literal
+        sage: _python_numeric_literal('00e3', '')
+        '00e3'
+        sage: _python_numeric_literal('00042', '')
+        '42'
+        sage: _python_numeric_literal('0_1', '')
+        '1'
+        sage: _python_numeric_literal('5', 'R')
+        '5'
+    """
+    if 'R' in postfix:
+        postfix = postfix.replace('R', '')
+    if 'L' in postfix:
+        postfix = postfix.replace('L', '')
+
+    if 'J' in postfix:
+        return num + 'J'
+
+    if (not postfix and len(num) >= 2 and num[1] not in 'oObBxX'
+            and '.' not in num and 'e' not in num and 'E' not in num):
+        num = re.sub(r'^(?:0_?)+', '', num) or '0'
+
+    return num
+
+
+def extract_numeric_literals(code, ignore_ranges=()):
     """
     Pulls out numeric literals and assigns them to global variables.
     This eliminates the need to re-parse and create the literals,
@@ -1080,6 +1252,9 @@ def extract_numeric_literals(code):
     INPUT:
 
     - ``code`` -- string; a block of code
+
+    - ``ignore_ranges`` -- iterable of pairs of integers (default: ``()``);
+      ranges in ``code`` where numeric literals are kept as Python literals
 
     OUTPUT:
 
@@ -1102,13 +1277,13 @@ def extract_numeric_literals(code):
         sage: extract_numeric_literals("[1.sqrt(), 1.2.sqrt(), 1r, 1.2r, R.1, R0.1, (1..5)]")[0]
         '[_sage_const_1 .sqrt(), _sage_const_1p2 .sqrt(), 1 , 1.2 , R.1, R0.1, (_sage_const_1 .._sage_const_5 )]'
     """
-    return preparse_numeric_literals(code, True)
+    return preparse_numeric_literals(code, True, ignore_ranges=ignore_ranges)
 
 
 all_num_regex = None
 
 
-def preparse_numeric_literals(code, extract=False, quotes="'"):
+def preparse_numeric_literals(code, extract=False, quotes="'", ignore_ranges=()):
     """
     Preparse numerical literals into their Sage counterparts,
     e.g. Integer, RealNumber, and ComplexNumber.
@@ -1125,6 +1300,9 @@ def preparse_numeric_literals(code, extract=False, quotes="'"):
       arguments to RealNumber and ComplexNumber, and Integer when the
       number is longer than 4300 digits. If ``None``, will rebuild the
       string using a list of its Unicode code-points.
+
+    - ``ignore_ranges`` -- iterable of pairs of integers (default: ``()``);
+      ranges in ``code`` where numeric literals are kept as Python literals
 
     OUTPUT:
 
@@ -1263,6 +1441,7 @@ def preparse_numeric_literals(code, extract=False, quotes="'"):
         'ComplexNumber(0, str().join(map(chr, [53])))'
     """
     literals = {}
+    ignore_ranges = sorted(ignore_ranges)
     last = 0
     new_code = []
 
@@ -1281,6 +1460,12 @@ def preparse_numeric_literals(code, extract=False, quotes="'"):
         start, end = m.start(), m.end()
         num = m.group(1)
         postfix = m.groups()[-1].upper()
+
+        if ignore_ranges and _in_ranges(start, ignore_ranges):
+            new_code.append(code[last:start])
+            new_code.append(_python_numeric_literal(num, postfix))
+            last = end
+            continue
 
         if 'R' in postfix:
             postfix = postfix.replace('L', '')
@@ -1770,6 +1955,85 @@ def preparse(line, reset=True, do_time=False, ignore_prompts=False,
         sage: _ = preparse(lots_of_numbers)
         sage: print(preparse("type(100r), type(100)"))
         type(100), type(Integer(100))
+
+    Check numeric literals in structural pattern matching
+    (:issue:`40454`)::
+
+        sage: print(preparse('''match 1:
+        ....:     case 1: print("hit")'''))
+        match Integer(1):
+            case 1: print("hit")
+        sage: exec(preparse('''match 1:
+        ....:     case 1: answer = True'''))
+        sage: answer
+        True
+        sage: print(preparse('''match [1, 2]:
+        ....:     case [1, x] if x == 2: print(x)
+        ....:     case [3, _]: pass'''))
+        match [Integer(1), Integer(2)]:
+            case [1, x] if x == Integer(2): print(x)
+            case [3, _]: pass
+        sage: t = tmp_filename(ext='.sage')
+        sage: with open(t, 'w') as f:
+        ....:     _ = f.write('match 1:\n    case 1: match_answer = 2\n')
+        sage: load(t)
+        sage: match_answer
+        2
+        sage: exec(preparse('''match 1r:
+        ....:     case 1r: raw_answer = True'''))
+        sage: raw_answer
+        True
+        sage: exponential_pattern_answer = True
+        sage: exec(preparse('''match 1:
+        ....:     case 00e3: exponential_pattern_answer = False'''))
+        sage: exponential_pattern_answer
+        True
+        sage: print(preparse('''match 1:
+        ....:     case 0_1: print("hit")'''))
+        match Integer(1):
+            case 1: print("hit")
+        sage: print(preparse('''match 1:
+        ....:     case 1 \\
+        ....:         : print("hit")'''))
+        match Integer(1):
+            case 1         : print("hit")
+
+    ``case`` and ``match`` are soft keywords, so when they are used as
+    ordinary identifiers the following literals are still preparsed.  In
+    particular a conditional expression on a line beginning with ``case`` is
+    not a guard, because the line has no terminating colon::
+
+        sage: print(preparse('''case = 0
+        ....: for i in range(10):
+        ....:     pass'''))
+        case = Integer(0)
+        for i in range(Integer(10)):
+            pass
+        sage: print(preparse('case = 1 if cond else 2'))
+        case = Integer(1) if cond else Integer(2)
+        sage: print(preparse('case = lambda x=1: x + 2'))
+        case = lambda x=Integer(1): x + Integer(2)
+
+    A guard's expression is preparsed even when it is written without a
+    space before its bracket, and a conditional expression inside the guard
+    is preparsed in full::
+
+        sage: print(preparse('''match v:
+        ....:     case _ if(x == 2): pass'''))
+        match v:
+            case _ if(x == Integer(2)): pass
+        sage: print(preparse('''match v:
+        ....:     case _ if[1, 2]: pass'''))
+        match v:
+            case _ if[Integer(1), Integer(2)]: pass
+        sage: print(preparse('''match v:
+        ....:     case [1]if 1/2 < x: pass'''))
+        match v:
+            case [1]if Integer(1)/Integer(2) < x: pass
+        sage: print(preparse('''match v:
+        ....:     case x if 1 if b else 2: pass'''))
+        match v:
+            case x if Integer(1) if b else Integer(2): pass
     """
     global quote_state
     if reset:
@@ -1807,7 +2071,9 @@ def preparse(line, reset=True, do_time=False, ignore_prompts=False,
     if numeric_literals:
         # Wrapping
         # 1 + 0.5 -> Integer(1) + RealNumber('0.5')
-        L = preparse_numeric_literals(L, quotes=quote_state.safe_delimiter())
+        ignore_ranges = _case_pattern_ranges(L)
+        L = preparse_numeric_literals(L, quotes=quote_state.safe_delimiter(),
+                                      ignore_ranges=ignore_ranges)
 
     # Generators
     # R.0 -> R.gen(0)
@@ -1925,7 +2191,9 @@ def preparse_file(contents, globals=None, numeric_literals=True):
 
     if numeric_literals:
         contents, literals, state = strip_string_literals(contents)
-        contents, nums = extract_numeric_literals(contents)
+        ignore_ranges = _case_pattern_ranges(contents)
+        contents, nums = extract_numeric_literals(contents,
+                                                  ignore_ranges=ignore_ranges)
         contents = contents % literals
         if nums:
             # Stick the assignments at the top, trying not to shift
