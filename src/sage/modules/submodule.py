@@ -318,12 +318,12 @@ class Submodule_free_ambient(Module_free_ambient):
         # inexact coefficient rings (e.g. ``CC[x, y]``).
         has_module_relations = (isinstance(ambient, QuotientModule_free_ambient)
                                 and bool(ambient.relations().gens()))
-        has_ring_relations = isinstance(R, QuotientRing_generic) and \
-            bool(R.defining_ideal().gens())
+        has_ring_relations = (isinstance(R, QuotientRing_generic)
+                              and bool(R.defining_ideal().gens()))
         if not self.gens() and not has_module_relations and not has_ring_relations:
             if isinstance(v, (list, tuple, Vector)):
-                return all(c == 0 for c in v)
-            return v == 0
+                return all(not c for c in v)
+            return not v
 
         def _singular_wrap(ring):
             """
@@ -368,8 +368,7 @@ class Submodule_free_ambient(Module_free_ambient):
             poly_ring = _singular_wrap(R)
             ideal_gens = []
 
-            def to_poly(c):
-                return poly_ring(c)
+            to_poly = poly_ring.__call__
         else:
             raise NotImplementedError(
                 "Gröbner basis membership test is not implemented for "
