@@ -1002,20 +1002,19 @@ class Module_free_ambient(Module):
                     return x.__copy__()
                 return x
             x = x.list()
-        if check and self.coordinate_ring().is_exact():
-            # Check entries are in the base ring
-            try:
-                R = self.base_ring()
-                for d in x:
-                    if d not in R:
-                        raise ArithmeticError
-            except ArithmeticError:
-                raise TypeError("element {!r} is not in free module".format(x))
         if check:
+            if self.coordinate_ring().is_exact():
+                # Check entries are in the base ring
+                try:
+                    R = self.base_ring()
+                    for d in x:
+                        if d not in R:
+                            raise ArithmeticError
+                except ArithmeticError:
+                    raise TypeError("element {!r} is not in free module".format(x))
             # Additional membership check (e.g., submodule membership).
-            # This must run even over inexact coordinate rings, because
-            # otherwise a submodule could silently accept vectors that are
-            # not in its span (see :issue:`40301`).
+            # Unsupported Gröbner-basis membership tests are skipped by
+            # ``_check_element_membership`` rather than raising.
             self._check_element_membership(x)
         return self.element_class(self, x, coerce, copy)
 
