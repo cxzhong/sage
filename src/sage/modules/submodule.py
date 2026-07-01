@@ -279,11 +279,8 @@ class Submodule_free_ambient(Module_free_ambient):
 
         When no Gröbner-basis membership test is available, this low-level
         method raises :class:`NotImplementedError`. The higher-level check
-        :meth:`_check_element_membership` catches this and skips the test
-        (see :issue:`40301`), keeping ``in`` and element construction usable
-        at the cost of possible false positives. This includes inexact
-        coefficient rings, where numerical imprecision could otherwise
-        turn a true member into a spurious non-member::
+        :meth:`_check_element_membership` treats this as failed membership
+        unless membership is known for a trivial reason::
 
             sage: R.<x, y> = CC[]
             sage: F = FreeModule(R, 1)
@@ -298,7 +295,8 @@ class Submodule_free_ambient(Module_free_ambient):
             ...
             NotImplementedError: Gröbner basis membership test is not implemented for modules over ...
 
-        It also includes exact rings that Singular does not support::
+        Exact rings that Singular does not support also raise
+        :class:`NotImplementedError` at this low-level boundary::
 
             sage: A.<t> = ZZ[]
             sage: B.<w> = A[]
@@ -466,12 +464,11 @@ class Submodule_free_ambient(Module_free_ambient):
         Check that ``x`` belongs to this submodule using Gröbner bases.
 
         This overrides the no-op in the base class to verify actual
-        submodule membership. When no Gröbner-basis membership test is
-        available for the base ring, the check is skipped rather than
-        raising. This preserves the historical permissive behavior for
-        rings beyond the implemented test, and in particular avoids false
-        negatives over inexact coefficient rings, where numerical
-        imprecision could turn a true member into a spurious non-member.
+        submodule membership. Membership known for a trivial reason (the
+        zero vector or one of the listed generators) is accepted directly.
+        Otherwise, when no Gröbner-basis membership test is available, the
+        check raises :class:`TypeError` so containment cannot report
+        ``True`` for membership that cannot be verified.
         See :issue:`40301`.
 
         EXAMPLES::
@@ -487,29 +484,53 @@ class Submodule_free_ambient(Module_free_ambient):
             TypeError: element (0, 1, 0, 0, 0, 0, 0, 0, 0, 0) is not in this submodule
 
         Over rings for which no Gröbner-basis membership test is available,
-        the check is skipped and no error is raised, even for elements that
-        are not in the submodule::
+        trivially known members are still accepted::
 
             sage: R.<x, y> = CC[]
             sage: F = FreeModule(R, 1)
             sage: G = F.submodule([F([0])])
-            sage: G._check_element_membership(F([1]).list())  # no error
+            sage: G._check_element_membership(F([0]).list())  # no error
+            sage: H = F.submodule([F([1])])
+            sage: H._check_element_membership(F([1]).list())  # no error
+
+        Other elements are rejected rather than accepted as possible false
+        positives, even over inexact rings::
+
+            sage: G._check_element_membership(F([1]).list())
+            Traceback (most recent call last):
+            ...
+            TypeError: element (1.00000000000000,) is not in this submodule
+            sage: F([1]) in G
+            False
+
+        The same conservative fallback is used for exact rings whose
+        Gröbner-basis membership test is unavailable::
+
             sage: A.<t> = ZZ[]
             sage: B.<w> = A[]
             sage: F = FreeModule(B, 2)
             sage: G = F.submodule([F.gen(0)])
-            sage: G._check_element_membership(F.gen(1).list())  # no error
+            sage: F.gen(0) in G
+            True
+            sage: F.gen(1) in G
+            False
+            sage: G._check_element_membership(F.gen(1).list())
+            Traceback (most recent call last):
+            ...
+            TypeError: element (0, 1) is not in this submodule
         """
+        x_tuple = tuple(x)
+        if all(not c for c in x_tuple):
+            return
+        if any(x_tuple == tuple(g) for g in self.gens()):
+            return
         try:
             contained = self._groebner_basis_contains(x)
         except NotImplementedError:
-            # No Gröbner-basis membership test is available over this ring.
-            # Keep the historical permissive fallback rather than rejecting
-            # elements whose membership we cannot decide with this method.
-            return
+            contained = False
         if not contained:
             raise TypeError(
-                "element {} is not in this submodule".format(tuple(x)))
+                "element {} is not in this submodule".format(x_tuple))
 
     def _repr_(self):
         """

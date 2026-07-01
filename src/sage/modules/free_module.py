@@ -1013,8 +1013,7 @@ class Module_free_ambient(Module):
                 except ArithmeticError:
                     raise TypeError("element {!r} is not in free module".format(x))
             # Additional membership check (e.g., submodule membership).
-            # Unsupported Gröbner-basis membership tests are skipped by
-            # ``_check_element_membership`` rather than raising.
+            # Subclasses decide how to handle unavailable membership tests.
             self._check_element_membership(x)
         return self.element_class(self, x, coerce, copy)
 
