@@ -490,6 +490,18 @@ def is_rationally_isometric(self, other, return_matrix=False) -> bool | Any:
         True
         True
         True
+
+    Forms are distinguished by their Hasse invariants even when the primes
+    involved cancel out of the determinant (see :issue:`42466`)::
+
+        sage: q = DiagonalQuadraticForm(QQ, [3, 1/3])
+        sage: r = DiagonalQuadraticForm(QQ, [1, 1])
+        sage: q.hasse_invariant(3) != r.hasse_invariant(3)
+        True
+        sage: q.is_rationally_isometric(r)
+        False
+        sage: q.is_rationally_isometric(r, True)
+        False
     """
     if self.Gram_det() == 0 or other.Gram_det() == 0:
         raise NotImplementedError("this only tests regular forms")
@@ -503,10 +515,24 @@ def is_rationally_isometric(self, other, return_matrix=False) -> bool | Any:
     if not (self.Gram_det() * other.Gram_det()).is_square():
         return False
 
-    L1 = self.Gram_det().support()
-    L2 = other.Gram_det().support()
+    # By the Hasse--Minkowski theorem the forms are isometric iff their
+    # signatures agree at every real place and their Hasse invariants agree
+    # at every finite place. The Hasse invariant can only be nontrivial at
+    # the prime(s) above 2 and at primes dividing a diagonal entry of a
+    # rational diagonalization. Using the support of the determinant alone is
+    # not enough, since primes may cancel there while still contributing to a
+    # diagonalization (see :issue:`42466`).
+    R = self.base_ring()
+    diagonal = (self.rational_diagonal_form().Gram_matrix().diagonal()
+                + other.rational_diagonal_form().Gram_matrix().diagonal())
+    if R == QQ:
+        relevant_primes = set([ZZ(2)])
+    else:
+        relevant_primes = set(R.primes_above(2))
+    for a in diagonal:
+        relevant_primes.update(a.support())
 
-    for p in set().union(L1, L2):
+    for p in relevant_primes:
         if self.hasse_invariant(p) != other.hasse_invariant(p):
             return False
 
