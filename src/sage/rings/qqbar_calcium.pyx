@@ -686,3 +686,123 @@ def ca_from_minpoly_root(coeffs, enclosure):
         raise ValueError('enclosure does not isolate a single root')
     finally:
         _qqbar_vec_clear(vec, d)
+
+
+class ANCalciumBase:
+    """
+    Placeholder base marker for :class:`ANCalcium` (defined after the
+    descriptor machinery); only used for ``isinstance`` in
+    :func:`ca_from_descr`.
+
+    TESTS::
+
+        sage: from sage.rings.qqbar_calcium import ANCalciumBase
+        sage: ANCalciumBase
+        <class 'sage.rings.qqbar_calcium.ANCalciumBase'>
+    """
+    pass
+
+
+def ca_from_descr(descr):
+    """
+    Convert a ``qqbar.py`` descriptor to a :class:`Ca`, or return ``None``
+    when the descriptor is of a kind this backend cannot handle (the caller
+    then falls back to the classical path).
+
+    EXAMPLES::
+
+        sage: from sage.rings.qqbar_calcium import ca_from_descr, ca_from_rational
+        sage: ca_from_descr(QQbar(7/3)._descr).get_rational()
+        7/3
+        sage: rt2 = QQbar(2).sqrt()
+        sage: ca_from_descr(rt2._descr).mul(ca_from_descr(rt2._descr)).get_rational()
+        2
+        sage: s = QQbar(2).sqrt() + QQbar(3).sqrt()
+        sage: ca_from_descr(s._descr).equal(
+        ....:     ca_from_rational(2).sqrt().add(ca_from_rational(3).sqrt()))
+        True
+        sage: rt2.exactify()
+        sage: type(rt2._descr).__name__
+        'ANExtensionElement'
+        sage: ca_from_descr(rt2._descr).mul(ca_from_descr(rt2._descr)).get_rational()
+        2
+
+    Roots of polynomials with non-rational algebraic coefficients are
+    unsupported (the caller falls back to the classical path)::
+
+        sage: x = polygen(QQbar)
+        sage: r = (x^2 - QQbar(2).sqrt()).roots(QQbar, multiplicities=False)[0]
+        sage: ca_from_descr(r._descr) is None
+        True
+    """
+    from sage.rings.qqbar import (ANRational, ANRoot, ANExtensionElement,
+                                  ANUnaryExpr, ANBinaryExpr)
+    if isinstance(descr, ANCalciumBase):
+        return descr._ca
+    if isinstance(descr, ANRational):
+        return ca_from_rational(descr._value)
+    if isinstance(descr, ANRoot):
+        cached = getattr(descr, '_calcium_cache', None)
+        if cached is not None:
+            return cached
+        p = descr._poly._poly
+        if p.base_ring() is not QQ:
+            # Rational powering constructs its polynomial over QQbar even
+            # when all coefficients are rational.
+            try:
+                p = p.change_ring(QQ)
+            except (TypeError, ValueError):
+                return None
+        try:
+            res = ca_from_minpoly_root(p, descr._interval)
+        except ValueError:
+            return None
+        descr._calcium_cache = res
+        return res
+    if isinstance(descr, ANExtensionElement):
+        gen = descr._generator
+        ca_gen = getattr(gen, '_calcium_cache', None)
+        if ca_gen is None:
+            ca_gen = ca_from_descr(gen._root)
+            if ca_gen is None:
+                return None
+            gen._calcium_cache = ca_gen
+        res = ca_from_rational(0)
+        for c in reversed(descr._value.polynomial().list()):
+            res = res.mul(ca_gen).add(ca_from_rational(c))
+        return res
+    if isinstance(descr, ANUnaryExpr):
+        arg = ca_from_descr(descr._arg._descr)
+        if arg is None:
+            return None
+        op = descr._op
+        try:
+            if op == '-':
+                return arg.neg()
+            if op == '~':
+                return arg.invert()
+            if op == 'conjugate':
+                return arg.conjugate()
+            if op == 'abs':
+                return arg.abs()
+            if op == 'real':
+                return arg.real()
+            if op == 'imag':
+                return arg.imag()
+            if op == 'norm':
+                return arg.mul(arg.conjugate())
+        except (ZeroDivisionError, ValueError):
+            return None
+        return None
+    if isinstance(descr, ANBinaryExpr):
+        left = ca_from_descr(descr._left._descr)
+        if left is None:
+            return None
+        right = ca_from_descr(descr._right._descr)
+        if right is None:
+            return None
+        try:
+            return left._binop(right, descr._op)
+        except (ZeroDivisionError, ValueError):
+            return None
+    return None
