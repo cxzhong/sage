@@ -489,10 +489,16 @@ class EllipticCurveHom_frobenius(EllipticCurveHom):
             True
             sage: f * f.dual() == EllipticCurveHom_scalar(f.codomain(), p**n)
             True
-            sage: f.dual().dual() == f  # known bug -- broken in characteristic 2,3
+            sage: f.dual().dual() == f
             True
-            sage: p in (2,3) or f.dual().dual() == f
-            True
+
+        The dual of a Frobenius dual is known in characteristics
+        `2` and `3`::
+
+            sage: for E in (EllipticCurve(GF(2), [1, 0, 1, 1, 1]),
+            ....:           EllipticCurve(GF(3), [0, 1, 0, 0, 1])):
+            ....:     f = EllipticCurveHom_frobenius(E)
+            ....:     assert f.dual().dual() == f
 
         ALGORITHM:
 
@@ -526,7 +532,10 @@ class EllipticCurveHom_frobenius(EllipticCurveHom):
 
         scalar_mul = EllipticCurveHom_scalar(self._domain, self._degree)
         iso = find_post_isomorphism(Phi * self, scalar_mul)
-        return iso * Phi
+        Phi = iso * Phi
+        if hasattr(Phi, '_set_dual'):
+            Phi._set_dual(self)
+        return Phi
 
     def inseparable_degree(self):
         """
