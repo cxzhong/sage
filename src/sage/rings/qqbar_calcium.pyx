@@ -37,22 +37,35 @@ from sage.libs.flint.types cimport (
     T_TRUE, T_FALSE, T_UNKNOWN)
 from sage.libs.flint.ca cimport (
     ca_ctx_init, ca_ctx_clear, ca_init, ca_clear,
-    ca_set_fmpq, ca_get_fmpq, ca_get_acb,
+    ca_set_fmpq, ca_set_qqbar, ca_get_fmpq, ca_get_qqbar, ca_get_acb,
     ca_add, ca_sub, ca_mul, ca_div, ca_neg, ca_inv, ca_sqrt, ca_abs, ca_re,
     ca_im, ca_conj, ca_pow_fmpq, ca_pow_si, ca_check_is_zero, ca_check_equal,
     ca_check_is_real, ca_check_lt)
 from sage.libs.flint.fmpq cimport (
     fmpq_init, fmpq_clear, fmpq_set_mpq, fmpq_get_mpq)
+from sage.libs.flint.fmpz cimport fmpz_init, fmpz_clear, fmpz_get_mpz
+from sage.libs.flint.qqbar cimport (
+    qqbar_init, qqbar_clear, _qqbar_vec_init, _qqbar_vec_clear,
+    qqbar_get_acb, qqbar_roots_fmpz_poly, qqbar_equal)
 from sage.libs.flint.acb cimport acb_init, acb_clear
 from sage.libs.gmp.mpz cimport mpz_fits_slong_p, mpz_get_si
 from sage.rings.complex_arb cimport acb_to_ComplexIntervalFieldElement
 from sage.rings.complex_interval cimport ComplexIntervalFieldElement
 from sage.rings.integer cimport Integer
+from sage.rings.polynomial.polynomial_integer_dense_flint cimport Polynomial_integer_dense_flint
 from sage.rings.rational cimport Rational
 
 from sage.rings.complex_interval_field import ComplexIntervalField
 from sage.rings.integer_ring import ZZ
 from sage.rings.rational_field import QQ
+
+
+cdef extern from "flint/qqbar.h":
+    const fmpz_poly_struct* QQBAR_POLY(const qqbar_t x)
+
+cdef extern from "flint/fmpz_poly.h":
+    slong _minpoly_degree "fmpz_poly_degree"(const fmpz_poly_struct* poly)
+    void _minpoly_coeff "fmpz_poly_get_coeff_fmpz"(fmpz_t x, const fmpz_poly_struct* poly, slong n)
 
 
 cdef class CalciumContext:
@@ -143,6 +156,62 @@ cdef class Ca:
         acb_to_ComplexIntervalFieldElement(res, z)
         acb_clear(z)
         return res
+
+    def to_qqbar_data(self, long prec=64):
+        """
+        Return ``(coeffs, enclosure)`` where ``coeffs`` are the integer
+        coefficients (constant first) of the minimal polynomial of this
+        (necessarily algebraic) value and ``enclosure`` is a complex
+        interval isolating it among the roots.
+
+        EXAMPLES::
+
+            sage: from sage.rings.qqbar_calcium import ca_from_rational
+            sage: s = ca_from_rational(2).sqrt()
+            sage: coeffs, e = s.to_qqbar_data()
+            sage: coeffs
+            [-2, 0, 1]
+            sage: e.real() in RIF(1.414, 1.415)
+            True
+        """
+        cdef qqbar_t q
+        cdef acb_t z
+        cdef fmpz_t c
+        cdef ComplexIntervalFieldElement enc
+        cdef Integer zc
+        cdef const fmpz_poly_struct* p
+        cdef slong i, d
+        qqbar_init(q)
+        try:
+            sig_on()
+            ok = ca_get_qqbar(q, self.x, _ctx.ctx)
+            sig_off()
+            if not ok:
+                raise ValueError('unable to express this value as an algebraic number')
+            p = QQBAR_POLY(q)
+            d = _minpoly_degree(p)
+            coeffs = []
+            fmpz_init(c)
+            try:
+                for i in range(d + 1):
+                    _minpoly_coeff(c, p, i)
+                    zc = Integer.__new__(Integer)
+                    fmpz_get_mpz(zc.value, c)
+                    coeffs.append(zc)
+            finally:
+                fmpz_clear(c)
+            acb_init(z)
+            try:
+                sig_on()
+                qqbar_get_acb(z, q, prec)
+                sig_off()
+                enc = ComplexIntervalField(prec)(0)
+                acb_to_ComplexIntervalFieldElement(enc, z)
+            finally:
+                acb_clear(z)
+            return coeffs, enc
+        finally:
+            qqbar_clear(q)
 
     cdef inline int _guard_zero(self, str what) except -1:
         # raise if self is (possibly) zero; used before division-like ops
@@ -543,3 +612,77 @@ def ca_from_rational(x):
     ca_set_fmpq(z.x, t, _ctx.ctx)
     fmpq_clear(t)
     return z
+
+
+def ca_from_minpoly_root(coeffs, enclosure):
+    """
+    Return the :class:`Ca` root of the integer polynomial with coefficient
+    list ``coeffs`` (constant first; a ZZ or QQ polynomial is also accepted)
+    isolated by the complex interval ``enclosure``.
+
+    EXAMPLES::
+
+        sage: from sage.rings.qqbar_calcium import ca_from_minpoly_root, ca_from_rational
+        sage: r = ca_from_minpoly_root([-2, 0, 1], CIF(1.4142135623730951))
+        sage: r.equal(ca_from_rational(2).sqrt())
+        True
+
+    A non-isolating enclosure is rejected::
+
+        sage: ca_from_minpoly_root([-2, 0, 1], CIF(RIF(-2, 2)))
+        Traceback (most recent call last):
+        ...
+        ValueError: enclosure does not isolate a single root
+    """
+    from sage.rings.polynomial.polynomial_ring_constructor import PolynomialRing
+    from sage.rings.polynomial.polynomial_element import Polynomial
+    R = PolynomialRing(ZZ, 'y')
+    if isinstance(coeffs, Polynomial):
+        p = coeffs
+        p = p * p.denominator() if p.base_ring() is QQ else p
+        zp_sage = R(p)
+    else:
+        zp_sage = R([ZZ(c) for c in coeffs])
+    if zp_sage.degree() <= 0:
+        raise ValueError('polynomial must be nonconstant')
+    # squarefree part, so every root appears exactly once below
+    zp_sage = zp_sage // zp_sage.gcd(zp_sage.derivative())
+    cdef Polynomial_integer_dense_flint zp = <Polynomial_integer_dense_flint> zp_sage
+    cdef slong d = zp_sage.degree()
+    cdef qqbar_ptr vec
+    cdef acb_t z
+    cdef ComplexIntervalFieldElement re
+    cdef slong i
+    cdef long prec = 64
+    cdef Ca res
+    from sage.rings.complex_interval_field import ComplexIntervalField as _CIF
+    vec = _qqbar_vec_init(d)
+    try:
+        sig_on()
+        qqbar_roots_fmpz_poly(vec, zp._poly, 0)
+        sig_off()
+        target = _CIF(53)(enclosure)
+        while prec <= (1 << 20):
+            hits = []
+            for i in range(d):
+                acb_init(z)
+                try:
+                    qqbar_get_acb(z, &vec[i], prec)
+                    re = _CIF(prec)(0)
+                    acb_to_ComplexIntervalFieldElement(re, z)
+                finally:
+                    acb_clear(z)
+                if re.overlaps(_CIF(prec)(target)):
+                    hits.append(i)
+            if len(hits) == 1:
+                res = _new_ca()
+                sig_on()
+                ca_set_qqbar(res.x, &vec[hits[0]], _ctx.ctx)
+                sig_off()
+                return res
+            if not hits:
+                raise ValueError('enclosure does not isolate a single root')
+            prec *= 2
+        raise ValueError('enclosure does not isolate a single root')
+    finally:
+        _qqbar_vec_clear(vec, d)
