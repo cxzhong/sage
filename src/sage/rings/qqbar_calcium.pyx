@@ -57,6 +57,7 @@ from sage.rings.rational cimport Rational
 
 from sage.rings.complex_interval_field import ComplexIntervalField
 from sage.rings.integer_ring import ZZ
+from sage.rings.qqbar import ANDescr
 from sage.rings.rational_field import QQ
 
 
@@ -806,3 +807,235 @@ def ca_from_descr(descr):
         except (ZeroDivisionError, ValueError):
             return None
     return None
+
+
+class ANCalcium(ANCalciumBase, ANDescr):
+    """
+    Algebraic-number descriptor whose value is tracked by FLINT/Calcium.
+
+    Slots into the machinery of :mod:`sage.rings.qqbar` exactly like the
+    other ``ANDescr`` subclasses; created by arithmetic when the Calcium
+    backend is enabled.
+
+    EXAMPLES::
+
+        sage: from sage.rings.qqbar_calcium import ANCalcium, ca_from_descr
+        sage: d = ANCalcium(ca_from_descr((QQbar(2).sqrt() + 1)._descr), True)
+        sage: a = QQbar(d)   # wrap in an element
+        sage: a
+        2.414213562373095?
+        sage: a.minpoly()
+        x^2 - 2*x - 1
+    """
+    def __init__(self, ca, complex):
+        """
+        TESTS::
+
+            sage: from sage.rings.qqbar_calcium import ANCalcium, ca_from_rational
+            sage: d = ANCalcium(ca_from_rational(1/2), False)
+            sage: d._complex
+            False
+        """
+        self._ca = ca
+        self._complex = complex
+        self._exact = None
+
+    def is_complex(self):
+        """
+        TESTS::
+
+            sage: from sage.rings.qqbar_calcium import ANCalcium, ca_from_rational
+            sage: ANCalcium(ca_from_rational(1), True).is_complex()
+            True
+        """
+        return self._complex
+
+    def _interval_fast(self, prec):
+        """
+        TESTS::
+
+            sage: from sage.rings.qqbar_calcium import ANCalcium, ca_from_rational
+            sage: ANCalcium(ca_from_rational(1/3), False)._interval_fast(64).parent()
+            Real Interval Field with 64 bits of precision
+            sage: ANCalcium(ca_from_rational(1/3), True)._interval_fast(64).parent()
+            Complex Interval Field with 64 bits of precision
+        """
+        e = self._ca.enclosure(prec)
+        if self._complex:
+            return e
+        return e.real()
+
+    def exactify(self):
+        """
+        Return an exact descriptor (``ANRational`` or ``ANExtensionElement``)
+        for this value, computing the minimal polynomial via Calcium.
+
+        EXAMPLES::
+
+            sage: from sage.rings.qqbar_calcium import ANCalcium, ca_from_descr
+            sage: s = QQbar(2).sqrt() + QQbar(3).sqrt()
+            sage: d = ANCalcium(ca_from_descr(s._descr), True)
+            sage: e = d.exactify()
+            sage: type(e).__name__
+            'ANExtensionElement'
+            sage: QQbar(e).minpoly()
+            x^4 - 10*x^2 + 1
+        """
+        from sage.rings.qqbar import ANRational, ANRoot, QQy
+        if self._exact is not None:
+            return self._exact
+        r = self._ca.get_rational()
+        if r is not None:
+            self._exact = ANRational(r)
+            return self._exact
+        prec = 64
+        while True:
+            coeffs, enc = self._ca.to_qqbar_data(prec)
+            interval = enc if self._complex else enc.real()
+            try:
+                root = ANRoot(QQy(coeffs), interval)
+                break
+            except (ValueError, ArithmeticError):
+                if prec > (1 << 20):
+                    raise
+                prec *= 2
+        self._exact = root.exactify()
+        return self._exact
+
+    def __reduce__(self):
+        """
+        Pickle via the exactified form.
+
+        TESTS::
+
+            sage: from sage.rings.qqbar_calcium import ANCalcium, ca_from_descr
+            sage: s = QQbar(2).sqrt() + QQbar(3).sqrt()
+            sage: a = QQbar(ANCalcium(ca_from_descr(s._descr), True))
+            sage: loads(dumps(a)) == a
+            True
+        """
+        return self.exactify().__reduce__()
+
+    def handle_sage_input(self, sib, coerce, is_qqbar):
+        """
+        TESTS::
+
+            sage: from sage.rings.qqbar_calcium import ANCalcium, ca_from_descr
+            sage: s = QQbar(2).sqrt() + 1
+            sage: a = QQbar(ANCalcium(ca_from_descr(s._descr), True))
+            sage: sage_input(a, verify=True)
+            # Verified
+            ...
+        """
+        return self.exactify().handle_sage_input(sib, coerce, is_qqbar)
+
+    def neg(self, n):
+        """
+        TESTS::
+
+            sage: from sage.rings.qqbar_calcium import ANCalcium, ca_from_rational
+            sage: d = ANCalcium(ca_from_rational(2), False)
+            sage: type(d.neg(None)).__name__
+            'ANCalcium'
+        """
+        return ANCalcium(self._ca.neg(), self._complex)
+
+    def invert(self, n):
+        """
+        TESTS::
+
+            sage: from sage.rings.qqbar_calcium import ANCalcium, ca_from_rational
+            sage: d = ANCalcium(ca_from_rational(2), False)
+            sage: QQbar(d.invert(None))
+            0.50000000000000000?
+        """
+        try:
+            return ANCalcium(self._ca.invert(), self._complex)
+        except ValueError:
+            return ANDescr.invert(self, n)
+
+    def conjugate(self, n):
+        """
+        TESTS::
+
+            sage: from sage.rings.qqbar_calcium import ANCalcium, ca_from_descr
+            sage: d = ANCalcium(ca_from_descr(QQbar.zeta(3)._descr), True)
+            sage: QQbar(d.conjugate(None)) == QQbar.zeta(3).conjugate()
+            True
+        """
+        return ANCalcium(self._ca.conjugate(), self._complex)
+
+    def abs(self, n):
+        """
+        TESTS::
+
+            sage: from sage.rings.qqbar_calcium import ANCalcium, ca_from_rational
+            sage: AA(ANCalcium(ca_from_rational(-2), False).abs(None))
+            2
+        """
+        return ANCalcium(self._ca.abs(), False)
+
+    def norm(self, n):
+        """
+        TESTS::
+
+            sage: from sage.rings.qqbar_calcium import ANCalcium, ca_from_descr
+            sage: d = ANCalcium(ca_from_descr(QQbar.zeta(3)._descr), True)
+            sage: AA(d.norm(None))
+            1
+        """
+        return ANCalcium(self._ca.mul(self._ca.conjugate()), False)
+
+    def real(self, n):
+        """
+        TESTS::
+
+            sage: from sage.rings.qqbar_calcium import ANCalcium, ca_from_descr
+            sage: d = ANCalcium(ca_from_descr(QQbar.zeta(3)._descr), True)
+            sage: AA(d.real(None))
+            -0.500000000000000?
+        """
+        return ANCalcium(self._ca.real(), False)
+
+    def imag(self, n):
+        """
+        TESTS::
+
+            sage: from sage.rings.qqbar_calcium import ANCalcium, ca_from_descr
+            sage: d = ANCalcium(ca_from_descr(QQbar(I)._descr), True)
+            sage: AA(d.imag(None))
+            1
+        """
+        return ANCalcium(self._ca.imag(), False)
+
+
+def an_binop_calcium(a, b, op):
+    """
+    Add, subtract, multiply or divide two algebraic numbers through Calcium.
+
+    Falls back to :func:`sage.rings.qqbar.an_binop_expr` whenever any operand
+    cannot be represented in Calcium or the operation is undecidable.
+
+    EXAMPLES::
+
+        sage: from sage.rings.qqbar_calcium import an_binop_calcium
+        sage: import operator
+        sage: d = an_binop_calcium(QQbar(2).sqrt(), QQbar(3).sqrt(), operator.add)
+        sage: type(d).__name__
+        'ANCalcium'
+        sage: q = QQbar(d); q.exactify()
+        sage: q^2 - 5 - 2*QQbar(6).sqrt() == 0
+        True
+    """
+    from sage.rings.qqbar import QQbar as _QQbar, an_binop_expr
+    left = ca_from_descr(a._descr)
+    if left is None:
+        return an_binop_expr(a, b, op)
+    right = ca_from_descr(b._descr)
+    if right is None:
+        return an_binop_expr(a, b, op)
+    try:
+        c = left._binop(right, op)
+    except (ZeroDivisionError, ValueError):
+        return an_binop_expr(a, b, op)
+    return ANCalcium(c, a.parent() is _QQbar)
