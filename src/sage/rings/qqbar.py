@@ -8767,6 +8767,158 @@ for t1 in (ANRational, ANRoot, ANExtensionElement, ANUnaryExpr, ANBinaryExpr):
     for t2 in (ANUnaryExpr, ANBinaryExpr, ANRoot):
         _binop_algo[t1, t2] = _binop_algo[t2, t1] = an_binop_expr
 
+_algebraic_backend = 'native'
+_ANCalcium = None
+_ca_from_descr = None
+
+
+def algebraic_backend():
+    """
+    Return the name of the active algebraic-number engine, ``'native'``
+    or ``'calcium'``.
+
+    EXAMPLES::
+
+        sage: from sage.rings.qqbar import algebraic_backend
+        sage: algebraic_backend()
+        'native'
+    """
+    return _algebraic_backend
+
+
+def set_algebraic_backend(name):
+    r"""
+    Select the engine used for arithmetic on ``QQbar`` and ``AA``.
+
+    INPUT:
+
+    - ``name`` -- ``'native'`` (the default classical implementation) or
+      ``'calcium'`` (FLINT/Calcium ``ca_t``; experimental)
+
+    With the Calcium backend, sums/differences/products/quotients of
+    algebraic numbers are tracked by FLINT's exact ``ca_t`` type instead of
+    lazy expression trees, and equality, comparison and sign tests are
+    decided by Calcium, falling back to the classical algorithm only when
+    Calcium reports "Unknown". Values already created keep working after
+    switching in either direction.
+
+    EXAMPLES::
+
+        sage: from sage.rings.qqbar import set_algebraic_backend, algebraic_backend
+        sage: set_algebraic_backend('calcium')
+        sage: a = QQbar(2).sqrt() + QQbar(3).sqrt()
+        sage: type(a._descr).__name__
+        'ANCalcium'
+        sage: a^2 == 5 + 2*QQbar(6).sqrt()
+        True
+        sage: set_algebraic_backend('native')
+        sage: b = QQbar(2).sqrt() + QQbar(3).sqrt()
+        sage: type(b._descr).__name__
+        'ANBinaryExpr'
+
+    Elements created under the Calcium backend continue to work after
+    switching back (and can mix with native ones)::
+
+        sage: a + b == 2*a
+        True
+        sage: a.minpoly()
+        x^4 - 10*x^2 + 1
+
+    TESTS::
+
+        sage: set_algebraic_backend('pari')
+        Traceback (most recent call last):
+        ...
+        ValueError: unknown algebraic backend 'pari'
+        sage: algebraic_backend()
+        'native'
+    """
+    global _algebraic_backend, _ANCalcium, _ca_from_descr
+    if name == _algebraic_backend:
+        return
+    if name == 'calcium':
+        from sage.rings.qqbar_calcium import ANCalcium, an_binop_calcium, ca_from_descr
+        _ANCalcium = ANCalcium
+        _ca_from_descr = ca_from_descr
+        # pairs involving ANCalcium stay registered forever (live elements
+        # must keep working after a switch back to 'native')
+        for t in (ANRational, ANRoot, ANExtensionElement, ANUnaryExpr,
+                  ANBinaryExpr, ANCalcium):
+            _binop_algo[t, ANCalcium] = _binop_algo[ANCalcium, t] = an_binop_calcium
+        # replace the lazy-expression path (exactly the entries populated
+        # with an_binop_expr above)
+        for t1 in (ANRational, ANRoot, ANExtensionElement, ANUnaryExpr, ANBinaryExpr):
+            for t2 in (ANUnaryExpr, ANBinaryExpr, ANRoot):
+                _binop_algo[t1, t2] = _binop_algo[t2, t1] = an_binop_calcium
+        _algebraic_backend = 'calcium'
+    elif name == 'native':
+        for t1 in (ANRational, ANRoot, ANExtensionElement, ANUnaryExpr, ANBinaryExpr):
+            for t2 in (ANUnaryExpr, ANBinaryExpr, ANRoot):
+                _binop_algo[t1, t2] = _binop_algo[t2, t1] = an_binop_expr
+        _algebraic_backend = 'native'
+    else:
+        raise ValueError("unknown algebraic backend '%s'" % (name,))
+
+
+class algebraic_backend_context:
+    """
+    Context manager that temporarily selects an algebraic-number engine.
+
+    EXAMPLES::
+
+        sage: from sage.rings.qqbar import algebraic_backend_context, algebraic_backend
+        sage: with algebraic_backend_context('calcium'):
+        ....:     t = type((QQbar(2).sqrt() + 1)._descr).__name__
+        sage: t
+        'ANCalcium'
+        sage: algebraic_backend()
+        'native'
+    """
+    def __init__(self, name):
+        self._name = name
+
+    def __enter__(self):
+        self._old = algebraic_backend()
+        set_algebraic_backend(self._name)
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        set_algebraic_backend(self._old)
+        return False
+
+
+def _calcium_ca_of(d):
+    """
+    Return the ``Ca`` value of a descriptor for the comparison fast paths:
+    the wrapped value for :class:`~sage.rings.qqbar_calcium.ANCalcium`
+    descriptors, a cheap conversion for :class:`ANRational`, and ``None``
+    for everything else.
+
+    TESTS::
+
+        sage: from sage.rings.qqbar import _calcium_ca_of, set_algebraic_backend
+        sage: import sage.rings.qqbar as qqbar_module
+        sage: ANCalcium = qqbar_module._ANCalcium
+        sage: qqbar_module._ANCalcium = None
+        sage: _calcium_ca_of(QQbar(2)._descr) is None   # backend never enabled -> None
+        True
+        sage: qqbar_module._ANCalcium = ANCalcium
+        sage: set_algebraic_backend('calcium')
+        sage: a = QQbar(2).sqrt() + 1
+        sage: _calcium_ca_of(a._descr)
+        Ca(2.414213562373095?)
+        sage: _calcium_ca_of(QQbar(1/2)._descr)
+        Ca(0.50000000000000000?)
+        sage: set_algebraic_backend('native')
+    """
+    if _ANCalcium is None:
+        return None
+    if type(d) is _ANCalcium:
+        return d._ca
+    if isinstance(d, ANRational):
+        return _ca_from_descr(d)
+    return None
+
+
 qq_generator = AlgebraicGenerator(QQ, ANRoot(AAPoly([1, -1]), RIF.one()))
 
 
@@ -8801,6 +8953,10 @@ def _init_qqbar():
     QQbar_hash_offset = AlgebraicNumber(ANExtensionElement(QQbar_I_generator, ~ZZ(123456789) + QQbar_I_nf.gen() / ZZ(987654321)))
 
     ZZX_x = ZZ['x'].gen()
+
+    import os
+    if os.environ.get('SAGE_ALGEBRAIC_BACKEND') == 'calcium':
+        set_algebraic_backend('calcium')
 
 
 # This is used in the _algebraic_ method of the golden_ratio constant,
