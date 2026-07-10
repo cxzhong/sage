@@ -4122,6 +4122,13 @@ class AlgebraicNumber_base(sage.structure.element.FieldElement):
 
         # case 1: cheap tests
         sd = self._descr
+        if type(sd) is _ANCalcium:
+            z = sd._ca.is_zero()
+            if z is not None:
+                if z:
+                    self._set_descr(ANRational(QQ.zero()))
+                    return False
+                return True
         if isinstance(sd, ANExtensionElement):
             # The ANExtensionElement returns an ANRational
             # instead, if the number is zero.
@@ -5061,6 +5068,21 @@ class AlgebraicNumber(AlgebraicNumber_base):
             # https://github.com/sagemath/sage/issues/29220
             return ri1._richcmp_(ri2, op)
 
+        # Calcium backend: decide exactly when both sides are available
+        if _ANCalcium is not None:
+            ca_s = _calcium_ca_of(sd)
+            ca_o = _calcium_ca_of(od)
+            if (ca_s is not None and ca_o is not None
+                    and (type(sd) is _ANCalcium or type(od) is _ANCalcium)):
+                if op == op_EQ or op == op_NE:
+                    eq = ca_s.equal(ca_o)
+                    if eq is not None:
+                        return eq == (op == op_EQ)
+                else:
+                    c = ca_s.cmp_lex(ca_o)
+                    if c is not None:
+                        return rich_to_bool(op, c)
+
         if op == op_EQ or op == op_NE:
             # some cheap and quite common tests where we can decide
             # equality or difference
@@ -5599,6 +5621,21 @@ class AlgebraicReal(AlgebraicNumber_base):
             # https://github.com/sagemath/sage/issues/29220
             return self._value._richcmp_(other._value, op)
 
+        # Calcium backend: decide exactly when both sides are available
+        if _ANCalcium is not None:
+            ca_s = _calcium_ca_of(sd)
+            ca_o = _calcium_ca_of(od)
+            if (ca_s is not None and ca_o is not None
+                    and (type(sd) is _ANCalcium or type(od) is _ANCalcium)):
+                if op == op_EQ or op == op_NE:
+                    eq = ca_s.equal(ca_o)
+                    if eq is not None:
+                        return eq == (op == op_EQ)
+                else:
+                    c = ca_s.cmp_lex(ca_o)
+                    if c is not None:
+                        return rich_to_bool(op, c)
+
         if op == op_EQ or op == op_NE:
             # some cheap and quite common tests where we can decide equality or difference
             if type(sd) is ANRational and not sd._value:
@@ -5943,6 +5980,12 @@ class AlgebraicReal(AlgebraicNumber_base):
             return self._value.unique_sign()
 
         sd = self._descr
+        if type(sd) is _ANCalcium:
+            s = sd._ca.sign_real()
+            if s is not None:
+                if s == 0:
+                    self._set_descr(ANRational(QQ.zero()))
+                return s
         if isinstance(self._descr, ANRational):
             return sd._value.sign()
         if isinstance(self._descr, ANExtensionElement):
@@ -8823,6 +8866,24 @@ def set_algebraic_backend(name):
         True
         sage: a.minpoly()
         x^4 - 10*x^2 + 1
+
+    Comparisons, sign and zero tests are decided by Calcium (and QQbar's
+    lexicographic order on complex values is preserved)::
+
+        sage: set_algebraic_backend('calcium')
+        sage: rt = [QQbar(p).sqrt() for p in [2, 3, 5, 7, 11, 13]]
+        sage: bool(sum(rt) - sum(reversed(rt)))
+        False
+        sage: (sum(rt) - sum(reversed(rt))).real().sign()
+        0
+        sage: one = QQbar(2).sqrt() * QQbar(1/2).sqrt()
+        sage: QQbar(I) * one < one
+        True
+        sage: (QQbar.zeta(3) + QQbar.zeta(4) - QQbar.zeta(3)) == QQbar.zeta(4)
+        True
+        sage: AA(2).sqrt() + AA(3).sqrt() > AA(10).sqrt() * (AA(1)/2)
+        True
+        sage: set_algebraic_backend('native')
 
     TESTS::
 
