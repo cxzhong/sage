@@ -29,12 +29,14 @@ AUTHORS:
 
 import operator
 
+cimport cython
+
 from cysignals.signals cimport sig_on, sig_off
 
 from sage.libs.flint.types cimport (
     ca_t, ca_ctx_t, qqbar_t, qqbar_ptr, acb_t, truth_t,
     fmpz_t, fmpq_t, fmpz_poly_struct, slong,
-    T_TRUE, T_FALSE, T_UNKNOWN)
+    T_TRUE, T_FALSE, T_UNKNOWN, CA_OPT_QQBAR_DEG_LIMIT)
 from sage.libs.flint.ca cimport (
     ca_ctx_init, ca_ctx_clear, ca_init, ca_clear,
     ca_set_fmpq, ca_set_qqbar, ca_get_fmpq, ca_get_qqbar, ca_get_acb,
@@ -63,6 +65,10 @@ from sage.rings.rational_field import QQ
 
 cdef extern from "flint/qqbar.h":
     const fmpz_poly_struct* QQBAR_POLY(const qqbar_t x)
+
+cdef extern from "flint/ca.h":
+    void ca_ctx_set_option(ca_ctx_t ctx, slong i, slong value)
+    slong ca_ctx_get_option(ca_ctx_t ctx, slong i)
 
 cdef extern from "flint/fmpz_poly.h":
     slong _minpoly_degree "fmpz_poly_degree"(const fmpz_poly_struct* poly)
@@ -103,6 +109,11 @@ cdef Ca _new_ca():
     return Ca.__new__(Ca)
 
 
+# ``__dealloc__`` needs ``_ctxref``, so the cyclic GC must not clear it
+# first.  This is safe: a ``Ca`` never lies on a reference cycle (its only
+# Python reference is the context, which holds no Python references), so
+# skipping the clearing pass cannot keep a cycle alive.
+@cython.no_gc_clear
 cdef class Ca:
     """
     A wrapper around one Calcium ``ca_t`` value.
@@ -114,6 +125,16 @@ cdef class Ca:
         sage: from sage.rings.qqbar_calcium import ca_from_rational
         sage: a = ca_from_rational(2); a
         Ca(2)
+
+    A value reachable only through a reference cycle must survive the
+    cyclic garbage collector's clearing pass (this used to segfault)::
+
+        sage: import gc
+        sage: from sage.rings.qqbar import algebraic_backend_context
+        sage: with algebraic_backend_context('calcium'):
+        ....:     b = QQbar(2).sqrt() + QQbar(3).sqrt()
+        sage: d = b._descr; d.loop = d
+        sage: del b, d; _ = gc.collect()
     """
     cdef ca_t x
     cdef CalciumContext _ctxref
@@ -174,6 +195,18 @@ cdef class Ca:
             [-2, 0, 1]
             sage: e.real() in RIF(1.414, 1.415)
             True
+
+        Values whose a-priori degree bound (the product of the extension
+        degrees, here `2^7 = 128`) exceeds Calcium's default limit are
+        retried with a raised limit instead of failing::
+
+            sage: from sage.rings.qqbar import algebraic_backend_context
+            sage: with algebraic_backend_context('calcium'):
+            ....:     u = QQbar(2).sqrt()
+            ....:     for p in [3, 5, 7, 11, 13, 17]:
+            ....:         u = u + QQbar(p).sqrt()
+            sage: u.exactify(); u.minpoly().degree()
+            128
         """
         cdef qqbar_t q
         cdef acb_t z
@@ -182,11 +215,27 @@ cdef class Ca:
         cdef Integer zc
         cdef const fmpz_poly_struct* p
         cdef slong i, d
+        cdef slong deg_limit
         qqbar_init(q)
         try:
             sig_on()
             ok = ca_get_qqbar(q, self.x, _ctx.ctx)
             sig_off()
+            if not ok:
+                # Calcium refuses when the product of the extension degrees
+                # exceeds CA_OPT_QQBAR_DEG_LIMIT (default 120), a bound that
+                # grossly overestimates the actual degree.  Retry once with a
+                # larger limit before giving up.
+                deg_limit = ca_ctx_get_option(_ctx.ctx, CA_OPT_QQBAR_DEG_LIMIT)
+                ca_ctx_set_option(_ctx.ctx, CA_OPT_QQBAR_DEG_LIMIT,
+                                  max(4096, deg_limit))
+                try:
+                    sig_on()
+                    ok = ca_get_qqbar(q, self.x, _ctx.ctx)
+                    sig_off()
+                finally:
+                    ca_ctx_set_option(_ctx.ctx, CA_OPT_QQBAR_DEG_LIMIT,
+                                      deg_limit)
             if not ok:
                 raise ValueError('unable to express this value as an algebraic number')
             p = QQBAR_POLY(q)
