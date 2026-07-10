@@ -12,6 +12,29 @@ EXAMPLES::
     sage: ca_from_rational(QQ(1/3))
     Ca(0.3333333333333334?)
 
+TESTS:
+
+Elements backed by Calcium descriptors pass the test suite.
+(``_test_category`` is skipped: it fails for *all* composite ``QQbar``/``AA``
+elements, native ones included, because ``qqbar`` constructs plain
+``AlgebraicNumber``/``AlgebraicReal`` instances rather than the category
+``element_class`` -- a pre-existing property unrelated to this backend.)
+
+::
+
+    sage: from sage.rings.qqbar import algebraic_backend_context
+    sage: with algebraic_backend_context('calcium'):
+    ....:     a = QQbar(2).sqrt() + QQbar(3).sqrt()
+    ....:     b = AA(2).sqrt() + AA(3).sqrt()
+    sage: type(a._descr).__name__, type(b._descr).__name__
+    ('ANCalcium', 'ANCalcium')
+    sage: TestSuite(a).run(skip=['_test_category'])
+    sage: TestSuite(b).run(skip=['_test_category'])
+    sage: a.minpoly() == b.minpoly()
+    True
+    sage: hash(a) == hash(QQbar(b))
+    True
+
 AUTHORS:
 
 - Chenxin Zhong (2026-07-10): initial version (:issue:`42261`)
