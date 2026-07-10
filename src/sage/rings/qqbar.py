@@ -8888,7 +8888,17 @@ def set_algebraic_backend(name):
         True
         sage: AA(2).sqrt() + AA(3).sqrt() > AA(10).sqrt() * (AA(1)/2)
         True
+
+    Independently exactified elements use Calcium when the native fields
+    have not already been combined::
+
+        sage: e2 = AA(2).sqrt(); e3 = AA(3).sqrt()
+        sage: e2.exactify(); e3.exactify()
+        sage: type((e2 + e3)._descr).__name__
+        'ANCalcium'
         sage: set_algebraic_backend('native')
+        sage: type((e2 + e3)._descr).__name__
+        'ANBinaryExpr'
 
     TESTS::
 
@@ -8903,7 +8913,9 @@ def set_algebraic_backend(name):
     if name == _algebraic_backend:
         return
     if name == 'calcium':
-        from sage.rings.qqbar_calcium import ANCalcium, an_binop_calcium, ca_from_descr
+        from sage.rings.qqbar_calcium import (ANCalcium, an_binop_calcium,
+                                              an_binop_element_calcium,
+                                              ca_from_descr)
         _ANCalcium = ANCalcium
         _ca_from_descr = ca_from_descr
         # pairs involving ANCalcium stay registered forever (live elements
@@ -8915,11 +8927,13 @@ def set_algebraic_backend(name):
         for t1 in _an_descr_types:
             for t2 in _an_inexact_types:
                 _binop_algo[t1, t2] = _binop_algo[t2, t1] = an_binop_calcium
+        _binop_algo[ANExtensionElement, ANExtensionElement] = an_binop_element_calcium
         _algebraic_backend = 'calcium'
     elif name == 'native':
         for t1 in _an_descr_types:
             for t2 in _an_inexact_types:
                 _binop_algo[t1, t2] = _binop_algo[t2, t1] = an_binop_expr
+        _binop_algo[ANExtensionElement, ANExtensionElement] = an_binop_element
         _algebraic_backend = 'native'
     else:
         raise ValueError("unknown algebraic backend '%s'" % (name,))

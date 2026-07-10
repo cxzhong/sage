@@ -84,7 +84,7 @@ from sage.rings.complex_interval_field import ComplexIntervalField
 from sage.rings.integer_ring import ZZ
 from sage.rings.qqbar import (QQbar, ANDescr, ANRational, ANRoot,
                               ANExtensionElement, ANUnaryExpr, ANBinaryExpr,
-                              an_binop_expr, QQy)
+                              an_binop_expr, an_binop_element, QQy)
 from sage.rings.rational_field import QQ
 
 
@@ -292,7 +292,11 @@ cdef class Ca:
 
     cdef inline int _guard_zero(self, str what) except -1:
         # raise if self is (possibly) zero; used before division-like ops
-        z = _truth(ca_check_is_zero(self.x, _ctx.ctx))
+        cdef truth_t t
+        sig_on()
+        t = ca_check_is_zero(self.x, _ctx.ctx)
+        sig_off()
+        z = _truth(t)
         if z is True:
             raise ZeroDivisionError(what)
         if z is None:
@@ -542,7 +546,11 @@ cdef class Ca:
             sage: s.mul(s).sub(ca_from_rational(2)).is_zero()
             True
         """
-        return _truth(ca_check_is_zero(self.x, _ctx.ctx))
+        cdef truth_t t
+        sig_on()
+        t = ca_check_is_zero(self.x, _ctx.ctx)
+        sig_off()
+        return _truth(t)
 
     def equal(self, Ca o):
         """
@@ -556,7 +564,11 @@ cdef class Ca:
             sage: a.equal(ca_from_rational(2))
             False
         """
-        return _truth(ca_check_equal(self.x, o.x, _ctx.ctx))
+        cdef truth_t t
+        sig_on()
+        t = ca_check_equal(self.x, o.x, _ctx.ctx)
+        sig_off()
+        return _truth(t)
 
     def is_real(self):
         """
@@ -568,7 +580,11 @@ cdef class Ca:
             sage: ca_from_rational(-2).sqrt().is_real()
             False
         """
-        return _truth(ca_check_is_real(self.x, _ctx.ctx))
+        cdef truth_t t
+        sig_on()
+        t = ca_check_is_real(self.x, _ctx.ctx)
+        sig_off()
+        return _truth(t)
 
     def sign_real(self):
         """
@@ -602,13 +618,20 @@ cdef class Ca:
 
     def _sign_of_real_value(self):
         # sign of self, which the caller promises is real-valued
-        z = _truth(ca_check_is_zero(self.x, _ctx.ctx))
+        cdef truth_t t
+        sig_on()
+        t = ca_check_is_zero(self.x, _ctx.ctx)
+        sig_off()
+        z = _truth(t)
         if z is True:
             return 0
         if z is None:
             return None
         cdef Ca zero = ca_from_rational(0)
-        lt = _truth(ca_check_lt(self.x, zero.x, _ctx.ctx))
+        sig_on()
+        t = ca_check_lt(self.x, zero.x, _ctx.ctx)
+        sig_off()
+        lt = _truth(t)
         if lt is True:
             return -1
         if lt is False:
@@ -713,6 +736,16 @@ def ca_from_minpoly_root(coeffs, enclosure):
         Traceback (most recent call last):
         ...
         ValueError: enclosure does not isolate a single root
+
+    The precision of the isolating enclosure is preserved, which matters
+    when distinct roots are closer than double precision::
+
+        sage: y = polygen(QQ, 'y')
+        sage: eps = QQ(1) / 2^100
+        sage: F = RealIntervalField(200)
+        sage: r = ca_from_minpoly_root((y - 1) * (y - (1 + eps)), F(1 + eps))
+        sage: r.equal(ca_from_rational(1 + eps))
+        True
     """
     from sage.rings.polynomial.polynomial_ring_constructor import PolynomialRing
     from sage.rings.polynomial.polynomial_element import Polynomial
@@ -733,16 +766,19 @@ def ca_from_minpoly_root(coeffs, enclosure):
     cdef acb_t z
     cdef ComplexIntervalFieldElement re
     cdef slong i
-    cdef long prec = 64
+    cdef long prec, target_prec, max_prec
     cdef Ca res
     _CIF = ComplexIntervalField
+    target_prec = enclosure.prec()
+    prec = 64
+    max_prec = max(1 << 20, target_prec)
     vec = _qqbar_vec_init(d)
     try:
         sig_on()
         qqbar_roots_fmpz_poly(vec, zp._poly, 0)
         sig_off()
-        target = _CIF(53)(enclosure)
-        while prec <= (1 << 20):
+        target = _CIF(target_prec)(enclosure)
+        while prec <= max_prec:
             hits = []
             for i in range(d):
                 acb_init(z)
@@ -1114,3 +1150,29 @@ def an_binop_calcium(a, b, op):
     except (ZeroDivisionError, ValueError):
         return an_binop_expr(a, b, op)
     return ANCalcium(c, a.parent() is QQbar)
+
+
+def an_binop_element_calcium(a, b, op):
+    """
+    Apply the native same-field fast paths to two exact descriptors, then
+    use Calcium instead of a lazy expression when their fields have not
+    already been combined.
+
+    EXAMPLES::
+
+        sage: from sage.rings.qqbar_calcium import an_binop_element_calcium
+        sage: a = AA(2).sqrt(); b = AA(3).sqrt()
+        sage: a.exactify(); b.exactify()
+        sage: type(an_binop_element_calcium(a, b, operator.add)).__name__
+        'ANCalcium'
+
+    Elements already represented in the same field retain the native exact
+    arithmetic path::
+
+        sage: type(an_binop_element_calcium(a, a, operator.add)).__name__
+        'ANExtensionElement'
+    """
+    res = an_binop_element(a, b, op)
+    if type(res) is ANBinaryExpr:
+        return an_binop_calcium(a, b, op)
+    return res
