@@ -59,7 +59,7 @@ from cysignals.signals cimport sig_on, sig_off
 from sage.libs.flint.types cimport (
     ca_t, ca_ctx_t, qqbar_t, qqbar_ptr, acb_t, truth_t,
     fmpz_t, fmpq_t, fmpz_poly_struct, slong,
-    T_TRUE, T_FALSE, T_UNKNOWN, CA_OPT_QQBAR_DEG_LIMIT)
+    T_TRUE, T_FALSE, CA_OPT_QQBAR_DEG_LIMIT)
 from sage.libs.flint.ca cimport (
     ca_ctx_init, ca_ctx_clear, ca_init, ca_clear,
     ca_set_fmpq, ca_set_qqbar, ca_get_fmpq, ca_get_qqbar, ca_get_acb,
@@ -71,7 +71,7 @@ from sage.libs.flint.fmpq cimport (
 from sage.libs.flint.fmpz cimport fmpz_init, fmpz_clear, fmpz_get_mpz
 from sage.libs.flint.qqbar cimport (
     qqbar_init, qqbar_clear, _qqbar_vec_init, _qqbar_vec_clear,
-    qqbar_get_acb, qqbar_roots_fmpz_poly, qqbar_equal)
+    qqbar_get_acb, qqbar_roots_fmpz_poly)
 from sage.libs.flint.acb cimport acb_init, acb_clear
 from sage.libs.gmp.mpz cimport mpz_fits_slong_p, mpz_get_si
 from sage.rings.complex_arb cimport acb_to_ComplexIntervalFieldElement
@@ -82,7 +82,9 @@ from sage.rings.rational cimport Rational
 
 from sage.rings.complex_interval_field import ComplexIntervalField
 from sage.rings.integer_ring import ZZ
-from sage.rings.qqbar import ANDescr
+from sage.rings.qqbar import (QQbar, ANDescr, ANRational, ANRoot,
+                              ANExtensionElement, ANUnaryExpr, ANBinaryExpr,
+                              an_binop_expr, QQy)
 from sage.rings.rational_field import QQ
 
 
@@ -194,12 +196,14 @@ cdef class Ca:
         cdef acb_t z
         cdef ComplexIntervalFieldElement res
         acb_init(z)
-        sig_on()
-        ca_get_acb(z, self.x, prec, _ctx.ctx)
-        sig_off()
-        res = ComplexIntervalField(prec)(0)
-        acb_to_ComplexIntervalFieldElement(res, z)
-        acb_clear(z)
+        try:
+            sig_on()
+            ca_get_acb(z, self.x, prec, _ctx.ctx)
+            sig_off()
+            res = ComplexIntervalField(prec)(0)
+            acb_to_ComplexIntervalFieldElement(res, z)
+        finally:
+            acb_clear(z)
         return res
 
     def to_qqbar_data(self, long prec=64):
@@ -495,11 +499,13 @@ cdef class Ca:
             sig_off()
             return z
         fmpq_init(t)
-        fmpq_set_mpq(t, q.value)
-        sig_on()
-        ca_pow_fmpq(z.x, self.x, t, _ctx.ctx)
-        sig_off()
-        fmpq_clear(t)
+        try:
+            fmpq_set_mpq(t, q.value)
+            sig_on()
+            ca_pow_fmpq(z.x, self.x, t, _ctx.ctx)
+            sig_off()
+        finally:
+            fmpq_clear(t)
         return z
 
     def _binop(self, Ca o, op):
@@ -649,15 +655,16 @@ cdef class Ca:
         cdef fmpq_t t
         cdef Rational res
         fmpq_init(t)
-        sig_on()
-        ok = ca_get_fmpq(t, self.x, _ctx.ctx)
-        sig_off()
-        if not ok:
+        try:
+            sig_on()
+            ok = ca_get_fmpq(t, self.x, _ctx.ctx)
+            sig_off()
+            if not ok:
+                return None
+            res = Rational.__new__(Rational)
+            fmpq_get_mpq(res.value, t)
+        finally:
             fmpq_clear(t)
-            return None
-        res = Rational.__new__(Rational)
-        fmpq_get_mpq(res.value, t)
-        fmpq_clear(t)
         return res
 
 
@@ -728,7 +735,7 @@ def ca_from_minpoly_root(coeffs, enclosure):
     cdef slong i
     cdef long prec = 64
     cdef Ca res
-    from sage.rings.complex_interval_field import ComplexIntervalField as _CIF
+    _CIF = ComplexIntervalField
     vec = _qqbar_vec_init(d)
     try:
         sig_on()
@@ -808,8 +815,6 @@ def ca_from_descr(descr):
         sage: ca_from_descr(r._descr) is None
         True
     """
-    from sage.rings.qqbar import (ANRational, ANRoot, ANExtensionElement,
-                                  ANUnaryExpr, ANBinaryExpr)
     if isinstance(descr, ANCalciumBase):
         return descr._ca
     if isinstance(descr, ANRational):
@@ -953,7 +958,6 @@ class ANCalcium(ANCalciumBase, ANDescr):
             sage: QQbar(e).minpoly()
             x^4 - 10*x^2 + 1
         """
-        from sage.rings.qqbar import ANRational, ANRoot, QQy
         if self._exact is not None:
             return self._exact
         r = self._ca.get_rational()
@@ -1099,7 +1103,6 @@ def an_binop_calcium(a, b, op):
         sage: q^2 - 5 - 2*QQbar(6).sqrt() == 0
         True
     """
-    from sage.rings.qqbar import QQbar as _QQbar, an_binop_expr
     left = ca_from_descr(a._descr)
     if left is None:
         return an_binop_expr(a, b, op)
@@ -1110,4 +1113,4 @@ def an_binop_calcium(a, b, op):
         c = left._binop(right, op)
     except (ZeroDivisionError, ValueError):
         return an_binop_expr(a, b, op)
-    return ANCalcium(c, a.parent() is _QQbar)
+    return ANCalcium(c, a.parent() is QQbar)

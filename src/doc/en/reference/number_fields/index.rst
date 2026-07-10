@@ -59,6 +59,7 @@ Algebraic Numbers
    :maxdepth: 1
 
    sage/rings/qqbar
+   sage/rings/qqbar_calcium
    sage/rings/universal_cyclotomic_field
 
 Enumeration of Totally Real Fields

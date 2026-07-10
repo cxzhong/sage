@@ -8806,8 +8806,13 @@ _binop_algo[ANRational, ANExtensionElement] = \
     _binop_algo[ANExtensionElement, ANRational] = \
         _binop_algo[ANExtensionElement, ANExtensionElement] = an_binop_element
 
-for t1 in (ANRational, ANRoot, ANExtensionElement, ANUnaryExpr, ANBinaryExpr):
-    for t2 in (ANUnaryExpr, ANBinaryExpr, ANRoot):
+# the pairs (re)assigned when switching backends: at least one operand
+# has no exact representation of its own
+_an_descr_types = (ANRational, ANRoot, ANExtensionElement, ANUnaryExpr, ANBinaryExpr)
+_an_inexact_types = (ANUnaryExpr, ANBinaryExpr, ANRoot)
+
+for t1 in _an_descr_types:
+    for t2 in _an_inexact_types:
         _binop_algo[t1, t2] = _binop_algo[t2, t1] = an_binop_expr
 
 _algebraic_backend = 'native'
@@ -8903,18 +8908,17 @@ def set_algebraic_backend(name):
         _ca_from_descr = ca_from_descr
         # pairs involving ANCalcium stay registered forever (live elements
         # must keep working after a switch back to 'native')
-        for t in (ANRational, ANRoot, ANExtensionElement, ANUnaryExpr,
-                  ANBinaryExpr, ANCalcium):
+        for t in _an_descr_types + (ANCalcium,):
             _binop_algo[t, ANCalcium] = _binop_algo[ANCalcium, t] = an_binop_calcium
         # replace the lazy-expression path (exactly the entries populated
         # with an_binop_expr above)
-        for t1 in (ANRational, ANRoot, ANExtensionElement, ANUnaryExpr, ANBinaryExpr):
-            for t2 in (ANUnaryExpr, ANBinaryExpr, ANRoot):
+        for t1 in _an_descr_types:
+            for t2 in _an_inexact_types:
                 _binop_algo[t1, t2] = _binop_algo[t2, t1] = an_binop_calcium
         _algebraic_backend = 'calcium'
     elif name == 'native':
-        for t1 in (ANRational, ANRoot, ANExtensionElement, ANUnaryExpr, ANBinaryExpr):
-            for t2 in (ANUnaryExpr, ANBinaryExpr, ANRoot):
+        for t1 in _an_descr_types:
+            for t2 in _an_inexact_types:
                 _binop_algo[t1, t2] = _binop_algo[t2, t1] = an_binop_expr
         _algebraic_backend = 'native'
     else:
