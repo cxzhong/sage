@@ -1709,13 +1709,16 @@ cdef class Matrix_rational_dense(Matrix_dense):
 
           - ``'classical'``: just clear each column using Gauss elimination.
 
-        - ``height_guess``, ``**kwds`` -- all passed to the
-          ``'multimodular'`` algorithm; ignored by other algorithms
+        - ``height_guess`` -- passed to the ``'multimodular'`` algorithm;
+          ignored by other algorithms
 
         - ``proof`` -- boolean or ``None`` (default: None, see
           proof.linear_algebra or sage.structure.proof). Passed to the
           ``'multimodular'`` algorithm. Note that the Sage global default is
           ``proof=True``.
+
+        - ``**kwds`` -- ignored; accepted for compatibility with the generic
+          :meth:`~sage.matrix.matrix2.Matrix.echelonize`
 
         EXAMPLES::
 
@@ -1801,7 +1804,7 @@ cdef class Matrix_rational_dense(Matrix_dense):
         if algorithm in ('flint', 'flint:classical', 'flint:multimodular', 'flint:fflu'):
             pivots = self._echelonize_flint(algorithm)
         elif algorithm == 'multimodular':
-            pivots = self._echelonize_multimodular(height_guess, proof, **kwds)
+            pivots = self._echelonize_multimodular(height_guess, proof)
         elif algorithm == 'classical':
             pivots = self._echelon_in_place_classical()
         elif algorithm == 'padic':
@@ -1896,6 +1899,14 @@ cdef class Matrix_rational_dense(Matrix_dense):
             sage: received
             [(37, False)]
 
+        Keyword arguments that the multimodular algorithm does not understand
+        are ignored, as they are by the other algorithms::
+
+            sage: matrix(QQ, [[1, 2], [3, 4]]).echelon_form(
+            ....:     algorithm='multimodular', cutoff=0)
+            [1 0]
+            [0 1]
+
         In-place echelonization must still produce an immutable result from
         this method, while preserving cache-corruption detection::
 
@@ -1906,6 +1917,17 @@ cdef class Matrix_rational_dense(Matrix_dense):
             (True, False, False, True)
             sage: E is A.echelon_form(algorithm='flint')
             True
+
+        An immutable matrix that is already in echelon form is its own echelon
+        form, and is not copied::
+
+            sage: E.echelon_form(algorithm='flint') is E
+            True
+            sage: E.echelon_form(algorithm='multimodular') is E
+            True
+
+        ::
+
             sage: B = matrix(QQ, [[1, 2], [3, 4]])
             sage: B.echelonize(algorithm='flint')
             sage: _ = B.echelon_form(algorithm='flint')
@@ -1935,6 +1957,12 @@ cdef class Matrix_rational_dense(Matrix_dense):
         x = self.fetch(label)
         if x is not None:
             return x
+
+        if in_echelon_form and self.is_immutable():
+            # ``self`` is its own echelon form and cannot drift away from it.
+            self.cache(label, self)
+            self.cache('rank', len(pivots))
+            return self
 
         E = self.__copy__()
         if in_echelon_form:
