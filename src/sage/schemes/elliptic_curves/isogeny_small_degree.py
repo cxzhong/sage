@@ -2609,9 +2609,10 @@ def isogenies_prime_degree_general(E, l, minimal_models=True):
         [(0, 0, 0, 840*i + 1081, 0),
          (0, 0, 0, -840*i + 1081, 0)]
 
-    Over a finite field, factoring the full `l`-division polynomial via PARI
-    can hit a slow path; we use a distinct-degree shortcut instead. The
-    following example used to hang for several minutes::
+    Over a finite field of characteristic different from `l`, first using a
+    distinct-degree step to discard irrelevant factors can make the
+    factorization much faster. The following example used to hang for several
+    minutes::
 
         sage: F.<a> = GF(8)
         sage: E = EllipticCurve(F, [1, 0, 0, 0, a^2 + a])
@@ -2631,43 +2632,18 @@ def isogenies_prime_degree_general(E, l, minimal_models=True):
     psi_l = E.division_polynomial(l)
 
     K = E.base_ring()
-    if K.is_finite():
-        # Over a finite field, factoring ``psi_l`` directly can be very slow
-        # (PARI's generic factor over `GF(q)` has worst-case behaviour for
-        # division polynomials). Only the factors whose
-        # degree divides ``(l-1)/2`` matter, and they can be obtained
-        # cheaply by a single distinct-degree step:
-        # ``gcd(psi_l, x^(q^((l-1)/2)) - x)`` is the product of all
+    if K.is_finite() and l != K.characteristic():
+        # Factoring ``psi_l`` directly can be very slow. Only the factors
+        # whose degree divides ``(l-1)/2`` matter, and they can be obtained
+        # first by a single distinct-degree step:
+        # ``gcd(psi_l, x^(q^((l-1)/2)) - x)`` is the product of all distinct
         # irreducible factors of ``psi_l`` whose degree divides ``(l-1)/2``.
-        # In odd characteristic, factoring this smaller polynomial is fast.
-        R = psi_l.parent()
-        x = R.gen()
+        x = psi_l.parent().gen()
         q = K.cardinality()
-        half = l // 2
-        # Remove repeated factors when possible. If the derivative vanishes
-        # identically (as can happen in characteristic ``l``), the gcd below
-        # with ``x^(q^half) - x`` still removes multiplicities, since that
-        # polynomial is squarefree.
-        dpsi = psi_l.derivative()
-        g = psi_l if dpsi.is_zero() else psi_l // psi_l.gcd(dpsi)
-        # Compute ``x^(q^half) mod g`` by repeated Frobenius.
-        h = x
-        for _ in range(half):
-            h = pow(h, q, g)
-        big = g.gcd(h - x)
-        if K.characteristic() == 2:
-            # Avoid PARI's binary-field factorization, which can hit a slow
-            # path here.  Since ``big`` is squarefree and already contains
-            # only factors of degrees dividing ``half``, repeated extraction
-            # of such irreducible factors gives exactly the required list.
-            factors = []
-            while big.degree() > 0:
-                f = big.any_irreducible_factor(assume_squarefree=True, ext_degree=half)
-                factors.append(f)
-                big //= f
-            factors.sort(key=lambda f: (f.degree(), [str(c) for c in f.list()]))
-        else:
-            factors = [f for f, _ in big.factor() if f.degree().divides(half)]
+        half = l // 2  # equals (l-1)/2 since l is odd here
+        # Here ``psi_l`` is squarefree because multiplication by ``l`` is separable.
+        big = psi_l.gcd(pow(x, q**half, psi_l) - x)
+        factors = [f for f, _ in big.factor()]
     else:
         factors = [h for h, _ in psi_l.factor() if h.degree().divides(l // 2)]
 
