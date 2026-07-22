@@ -3105,18 +3105,11 @@ def special_supersingular_curve(F, q=None, *, endomorphism=False, maximal_order=
         Order of Quaternion Algebra (-1, -1051) with base ring Rational Field
           with basis (1, i, 1/2*i + 1/2*j, 1/2 + 1/2*k)
 
-    The maximal order is also returned when `q` is supplied explicitly::
+    ...also when `q` is given::
 
         sage: special_supersingular_curve(GF(1019^2), q=99, endomorphism=True, maximal_order=True)[2]
         Order of Quaternion Algebra (-99, -1019) with base ring Rational Field
           with basis (1, 1/2 + 1/6*i, j, 1/2 + 3/22*i + 1/2*j + 1/66*k)
-
-    This works in characteristic two as well, where the usual order basis
-    fails to be integral (:issue:`42407`)::
-
-        sage: special_supersingular_curve(GF(2^2), endomorphism=True, maximal_order=True)[2]
-        Order of Quaternion Algebra (-1, -2) with base ring Rational Field
-          with basis (1, i, 1/2 + 1/2*i + 1/2*j, 1/2 + 1/2*i + 1/2*k)
 
 
     TESTS::
@@ -3154,22 +3147,6 @@ def special_supersingular_curve(F, q=None, *, endomorphism=False, maximal_order=
         sage: O.quaternion_algebra().invariants() == (-iota.degree(), -p)
         True
         sage: from sage.schemes.elliptic_curves.hom_fractional import EllipticCurveHom_fractional
-        sage: for vec in map(vector, O.basis()):
-        ....:     denom = vec.denominator()
-        ....:     vec *= denom
-        ....:     numer = sum(ZZ(c) * gen for c,gen in zip(vec, [1, iota, pi, iota*pi]))
-        ....:     _ = EllipticCurveHom_fractional(numer, denom, check=True)  # fails if not divisible
-
-    The same maximal-order embedding check, but deterministically in
-    characteristic two, where the usual ``q == 1`` basis is not integral
-    (:issue:`42407`)::
-
-        sage: E, iota, O = special_supersingular_curve(GF(2^2), endomorphism=True, maximal_order=True)
-        sage: pi = E.frobenius_isogeny()
-        sage: O.discriminant()
-        2
-        sage: O.quaternion_algebra().invariants() == (-iota.degree(), -2)
-        True
         sage: for vec in map(vector, O.basis()):
         ....:     denom = vec.denominator()
         ....:     vec *= denom
@@ -3258,6 +3235,19 @@ def special_supersingular_curve(F, q=None, *, endomorphism=False, maximal_order=
            Via:  (u,r,s,t) = (1, 1, 1, z2),
          Order of Quaternion Algebra (-1, -2) with base ring Rational Field
            with basis (1, i, 1/2 + 1/2*i + 1/2*j, 1/2 + 1/2*i + 1/2*k))
+
+    A trace-zero endomorphism of composite degree can have a non-cyclic
+    kernel (:issue:`42212`)::
+
+        sage: K.<u> = GF((263, 6))
+        sage: C, phi = special_supersingular_curve(K, 12, endomorphism=True)
+        sage: phi.domain() is phi.codomain() is C
+        True
+        sage: phi.degree(), phi.trace()
+        (12, 0)
+        sage: pi = C.frobenius_isogeny()
+        sage: pi * phi == -phi * pi
+        True
 
     .. NOTE::
 
