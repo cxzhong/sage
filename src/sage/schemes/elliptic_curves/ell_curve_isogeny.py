@@ -3386,13 +3386,13 @@ def compute_isogeny_bmss(E1, E2, l):
 
     .. NOTE::
 
-        This implementation uses the odd-degree shortcut described in
-        [BMSS2006]_, where the denominator is a square. Therefore, even
-        degrees are not implemented by this function; use
-        :func:`compute_isogeny_kernel_polynomial` to select another
-        algorithm automatically.  For supported odd degrees, a
-        :exc:`ValueError` is raised if the requested normalized isogeny
-        does not exist.
+        For odd degrees, this implementation uses the shortcut described
+        in [BMSS2006]_, where the denominator is the square of the kernel
+        polynomial.  For even degrees, it reconstructs the full
+        denominator; its numerator and denominator have respective
+        degrees at most ``l`` and ``l - 1``, so ``2*l`` terms determine
+        the rational function.  A :exc:`ValueError` is raised if the
+        requested normalized isogeny does not exist.
 
     EXAMPLES::
 
@@ -3404,19 +3404,14 @@ def compute_isogeny_bmss(E1, E2, l):
 
     TESTS:
 
-    Even degrees are handled by the high-level algorithm selector instead
-    of this explicit BMSS entry point (see :issue:`42043`)::
+    The full denominator reconstruction is needed in even degree (see
+    :issue:`42043`)::
 
-        sage: from sage.schemes.elliptic_curves.ell_curve_isogeny import compute_isogeny_kernel_polynomial
         sage: from sage.schemes.elliptic_curves.ell_curve_isogeny import compute_isogeny_stark
         sage: F = GF(53)
         sage: E1 = EllipticCurve(F, [0, 1])
         sage: E2 = EllipticCurve(F, [38, 22])
         sage: compute_isogeny_bmss(E1, E2, 2)
-        Traceback (most recent call last):
-        ...
-        NotImplementedError: BMSS is currently only implemented for odd degrees
-        sage: compute_isogeny_kernel_polynomial(E1, E2, 2)
         x + 1
 
     An isomorphic codomain is not enough: the isomorphism must preserve
@@ -3470,7 +3465,7 @@ def compute_isogeny_bmss(E1, E2, l):
         sage: F = GF(53)
         sage: E1 = EllipticCurve(F, [0, 1])
         sage: E2 = EllipticCurve(F, [24, 42])
-        sage: compute_isogeny_kernel_polynomial(E1, E2, 6)
+        sage: compute_isogeny_bmss(E1, E2, 6)
         x^3 + 52*x^2 + 51*x
 
     ::
@@ -3478,7 +3473,7 @@ def compute_isogeny_bmss(E1, E2, l):
         sage: F = GF(53)
         sage: E1 = EllipticCurve(F, [0, 26])
         sage: E2 = EllipticCurve(F, [24, 42])
-        sage: compute_isogeny_kernel_polynomial(E1, E2, 2)
+        sage: compute_isogeny_bmss(E1, E2, 2)
         x + 50
 
     ::
@@ -3486,7 +3481,7 @@ def compute_isogeny_bmss(E1, E2, l):
         sage: F = GF(53)
         sage: E1 = EllipticCurve(F, [40, 39])
         sage: E2 = EllipticCurve(F, [8, 29])
-        sage: compute_isogeny_kernel_polynomial(E1, E2, 2)
+        sage: compute_isogeny_bmss(E1, E2, 2)
         x + 40
 
     ::
@@ -3494,7 +3489,7 @@ def compute_isogeny_bmss(E1, E2, l):
         sage: F = GF(53)
         sage: E1 = EllipticCurve(F, [40, 39])
         sage: E2 = EllipticCurve(F, [20, 40])
-        sage: compute_isogeny_kernel_polynomial(E1, E2, 4)
+        sage: compute_isogeny_bmss(E1, E2, 4)
         x^2 + 48*x + 2
 
     ::
@@ -3502,7 +3497,7 @@ def compute_isogeny_bmss(E1, E2, l):
         sage: F = GF(53)
         sage: E1 = EllipticCurve(F, [13, 49])
         sage: E2 = EllipticCurve(F, [45, 31])
-        sage: compute_isogeny_kernel_polynomial(E1, E2, 2)
+        sage: compute_isogeny_bmss(E1, E2, 2)
         x + 34
 
     ::
@@ -3510,7 +3505,7 @@ def compute_isogeny_bmss(E1, E2, l):
         sage: F = GF(53)
         sage: E1 = EllipticCurve(F, [20, 8])
         sage: E2 = EllipticCurve(F, [30, 41])
-        sage: compute_isogeny_kernel_polynomial(E1, E2, 2)
+        sage: compute_isogeny_bmss(E1, E2, 2)
         x + 9
 
     ::
@@ -3518,17 +3513,25 @@ def compute_isogeny_bmss(E1, E2, l):
         sage: F = GF(61)
         sage: E1 = EllipticCurve(F, [1, 0])
         sage: E2 = EllipticCurve(F, [11, 29])
-        sage: compute_isogeny_kernel_polynomial(E1, E2, 2)
+        sage: compute_isogeny_bmss(E1, E2, 2)
         x + 11
 
-    In the small characteristic range ``4*l + 4 <= char < 4*l + 6``,
-    where Stark's algorithm is unavailable, the high-level selector uses
-    a direct search::
+    The even-degree reconstruction also works over the smallest supported
+    prime characteristic::
 
         sage: E1 = EllipticCurve(GF(13), [1, 0])
         sage: E2 = EllipticCurve(GF(13), [9, 0])
-        sage: compute_isogeny_kernel_polynomial(E1, E2, 2)
+        sage: compute_isogeny_bmss(E1, E2, 2)
         x
+
+    Using only the ``2*l`` coefficients required by the degree bounds is
+    important in finite characteristic::
+
+        sage: F = GF(53)
+        sage: E1 = EllipticCurve(F, [40, 39])
+        sage: E2 = EllipticCurve(F, [41, 6])
+        sage: compute_isogeny_bmss(E1, E2, 8)
+        x^4 + 38*x^3 + 30*x^2 + 37*x + 9
     """
     # Original author of this function: Rémy Oudompheng.
     # https://github.com/remyoudompheng/isogeny_weber/blob/64289127a337ac1bf258b711e02fea02b7df5275/isogeny_weber/isogenies.py#L272-L332
@@ -3542,10 +3545,8 @@ def compute_isogeny_bmss(E1, E2, l):
     if char != 0 and char < 4*l + 4:
         raise ValueError('characteristic must be at least 4*degree+4')
 
-    if l % 2 == 0:
-        raise NotImplementedError('BMSS is currently only implemented for odd degrees')
     Rx, x = E1.base_ring()["x"].objgen()
-    # Compute C = 1/(1 + Ax^4 + Bx^6) mod x^4l
+    # Compute C = 1/(1 + Ax^4 + Bx^6) mod x^4l.
     A, B = E1.a4(), E1.a6()
     C = (1 + A * x**4 + B * x**6).inverse_series_trunc(4 * l)
     # Solve differential equation
@@ -3578,20 +3579,35 @@ def compute_isogeny_bmss(E1, E2, l):
     # S = x * T(x^2)
     # Compute U = 1/T^2
     # Reconstruct N(1/x) / D(1/x) = U
-    T = Rx([S[2 * i + 1] for i in range(2 * l)])
-    U = T._mul_trunc_(T, 2 * l).inverse_series_trunc(2 * l)
-    _, Q = Rx(U).rational_reconstruction(x ** (2 * l), l, l)
-    Q = Q.add_bigoh((l + 1) // 2)
-    # For odd l, the nonzero kernel points occur in opposite pairs and the
-    # reconstructed denominator is a square.  This is false for even
-    # degrees, where 2-torsion factors need not be paired; those degrees are
-    # rejected above.  Even when Q is a square, finite-precision rational
-    # reconstruction can produce a candidate for curves not linked by a
-    # normalized degree-l isogeny, so validate it before returning.
-    if not Q.is_square():
-        raise ValueError(f"the two curves are not linked by a separable normalized isogeny of degree {l}")
+    # The numerator and denominator degree bounds l and l-1 make U unique
+    # modulo x^(2*l).
+    reconstruction_precision = 2 * l
+    T = Rx([S[2 * i + 1] for i in range(reconstruction_precision)])
+    U = T._mul_trunc_(T, reconstruction_precision).inverse_series_trunc(
+        reconstruction_precision
+    )
 
-    ker = Rx(Q.sqrt()).reverse(degree=l//2).monic().radical()
+    if l % 2:
+        _, Q = Rx(U).rational_reconstruction(
+            x**reconstruction_precision, l, l
+        )
+        Q = Q.add_bigoh((l + 1) // 2)
+        if not Q.is_square():
+            raise ValueError(f"the two curves are not linked by a separable normalized isogeny of degree {l}")
+        ker = Rx(Q.sqrt()).reverse(degree=l // 2).monic().radical()
+    else:
+        # In general D has one factor for every nonzero 2-torsion point
+        # in the kernel and a squared factor for every other pair {P, -P}.
+        # Thus its radical, rather than its square root, is the kernel
+        # polynomial.  Reversing to degree l-1 preserves zero roots of D.
+        _, Q = Rx(U).rational_reconstruction(
+            x**reconstruction_precision, l, l - 1
+        )
+        D = Q.reverse(degree=l - 1)
+        ker = D.monic().radical()
+
+    # Finite-precision rational reconstruction can produce a candidate for
+    # curves not linked by a normalized degree-l isogeny, so validate it.
     if not _is_valid_isogeny_kernel(E1, E2, l, ker):
         raise ValueError(f"the two curves are not linked by a separable normalized isogeny of degree {l}")
     return ker
@@ -3826,14 +3842,16 @@ def compute_isogeny_kernel_polynomial(E1, E2, ell, algorithm=None):
         sage: compute_isogeny_kernel_polynomial(E1, E2, 11)
         x^5 + 4*x^4 + 4*x^2 + 3*x + 4
 
-    Check an even-degree case with a non-cyclic kernel, for which the
-    odd-degree BMSS shortcut does not apply (see :issue:`42212`)::
+    Check an even-degree case with a non-cyclic kernel using the full
+    BMSS denominator reconstruction (see :issue:`42212`)::
 
         sage: from sage.schemes.elliptic_curves.ell_curve_isogeny import compute_isogeny_kernel_polynomial
         sage: K.<u> = GF((263, 6))
         sage: E1 = EllipticCurve(K, [0, 1])
         sage: E2 = E1.isomorphism(K(-12).sqrt(), is_codomain=True).domain()
-        sage: ker = compute_isogeny_kernel_polynomial(E1, E2, 12); ker
+        sage: ker = compute_isogeny_kernel_polynomial(
+        ....:     E1, E2, 12, algorithm='bmss')
+        sage: ker
         x^7 + 256*x^4 + 255*x
         sage: E1.isogeny(ker).kernel_subgroup(extend=True).invariants()
         (2, 6)
@@ -3876,8 +3894,10 @@ def compute_isogeny_kernel_polynomial(E1, E2, ell, algorithm=None):
         if char != 0 and char < 4*ell + 6:
             # No good algorithm available... See :issue:`38481`.
             algorithm = 'bruteforce'
+        elif ell < 10:
+            algorithm = 'stark'
         else:
-            algorithm = 'stark' if ell < 10 or ell % 2 == 0 else 'bmss'
+            algorithm = 'bmss'
 
     if algorithm == 'bruteforce':
         # This is also the general fallback for characteristic-degree pairs
