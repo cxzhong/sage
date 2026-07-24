@@ -73,6 +73,9 @@ AUTHORS:
 - Lorenz Panny (2022): inseparable duals
 
 - Rémy Oudompheng (2023): implementation of the BMSS algorithm
+
+- William E. Mahaney (2026): computing duals of prime degree separable isogenies via pushforward.
+
 """
 
 # ****************************************************************************
@@ -539,11 +542,12 @@ def _factored_isogeny_from_kernel_polynomial(E, kernel_polynomial,
                                              check=True):
     r"""
     Construct an isogeny from a kernel polynomial with both a nontrivial
-    2-torsion part and a nontrivial odd part, as a composite of an
-    even-degree and an odd-degree isogeny.
+    2-torsion part and another component, recursively extracting
+    2-torsion factors.
 
     This handles the case where the direct Kohel implementation can compute
-    the even part and the odd quotient, but not both in a single step.
+    each 2-torsion factor and the final residual kernel, but not the full
+    kernel polynomial in a single step.
 
     EXAMPLES::
 
@@ -556,6 +560,17 @@ def _factored_isogeny_from_kernel_polynomial(E, kernel_polynomial,
         [2, 3]
         sage: phi.codomain()
         Elliptic Curve defined by y^2 = x^3 + 141*x + 269 over Finite Field of size 419
+
+    The pushed-forward quotient can still have a nontrivial 2-torsion
+    part, in which case the construction recurses::
+
+        sage: h = (x^6 + 336*x^5 + 252*x^4 + 167*x^3
+        ....:      + 83*x^2 + 418*x)
+        sage: phi = E.isogeny(h)
+        sage: [f.degree() for f in phi.factors()]
+        [2, 2, 3]
+        sage: phi.kernel_polynomial() == h
+        True
 
     TESTS:
 
@@ -574,24 +589,22 @@ def _factored_isogeny_from_kernel_polynomial(E, kernel_polynomial,
     if not psi.is_monic():
         raise ValueError("given kernel polynomial is not monic")
 
-    psi_even = two_torsion_part(E, psi)
-    if psi_even.degree() == 0:
+    psi_2tor = two_torsion_part(E, psi)
+    if psi_2tor.degree() == 0:
         return EllipticCurveIsogeny(E, psi, codomain=codomain, model=model,
                                     check=check)
 
-    psi_odd_preimage = psi // psi_even
-    if psi_odd_preimage.degree() == 0:
-        return EllipticCurveIsogeny(E, psi_even, codomain=codomain,
+    psi_quotient = psi // psi_2tor
+    if psi_quotient.degree() == 0:
+        return EllipticCurveIsogeny(E, psi_2tor, codomain=codomain,
                                     model=model, check=check)
 
-    phi_even = EllipticCurveIsogeny(E, psi_even, check=check)
-    psi_odd = phi_even.push_subgroup(psi_odd_preimage)
-    phi_odd = EllipticCurveIsogeny(phi_even.codomain(), psi_odd,
-                                   codomain=codomain, model=model,
-                                   check=check)
-
-    from sage.schemes.elliptic_curves.hom_composite import EllipticCurveHom_composite
-    factored_isogeny = EllipticCurveHom_composite.from_factors([phi_even, phi_odd])
+    phi_2tor = EllipticCurveIsogeny(E, psi_2tor, check=check)
+    psi_image = phi_2tor.push_subgroup(psi_quotient)
+    phi_quotient = _factored_isogeny_from_kernel_polynomial(
+        phi_2tor.codomain(), psi_image, codomain=codomain, model=model,
+        check=check)
+    factored_isogeny = phi_quotient * phi_2tor
 
     if check and factored_isogeny.kernel_polynomial() != psi:
         raise ValueError(f"the polynomial {psi} does not define a finite subgroup of {E}")
@@ -1899,6 +1912,8 @@ class EllipticCurveIsogeny(EllipticCurveHom):
         self.__kernel_mod_sign = {}
         self.__v = self.__w = 0
 
+        self._kernel_gens = tuple(kernel_gens)  # cache for .kernel_gens()
+
         # Fast path: The kernel is given by a single generating point.
         if len(kernel_gens) == 1 and kernel_gens[0]:
             self.__init_from_kernel_point(kernel_gens[0])
@@ -3018,7 +3033,7 @@ class EllipticCurveIsogeny(EllipticCurveHom):
 
         self.__set_post_isomorphism(codomain, isom)
 
-    def dual(self):
+    def dual(self, algorithm=None):
         r"""
         Return the isogeny dual to this isogeny.
 
@@ -3253,6 +3268,40 @@ class EllipticCurveIsogeny(EllipticCurveHom):
         F = self.__base_field
         d = self._degree
 
+        if algorithm == 'pushforward':
+        #TODO:
+            #Extra Features:
+                #Implement inseparable case.
+                #Implement composite degree cyclic case.
+                #Implement non-cyclic case.
+            if F(d) == 0:
+                raise NotImplementedError("``pushforward`` method not implemented for inseparable isogenies")
+            if not d.is_prime():
+                raise NotImplementedError("``pushforward`` method not implemented for composite degree isogenies")
+            """
+            Construct the dual isogeny of a prime-degree separable isogeny phi: E -> E' by generating the kernel with a pushforward of a torsion point.
+            """
+            E = self.domain()
+            E_prime = self.codomain()
+
+            kernel_poly = self.kernel_polynomial()
+            division_poly = E.division_polynomial(d)
+            quotient_poly = division_poly // kernel_poly
+
+            roots = quotient_poly.roots(multiplicities=False)
+            if not roots:
+                raise ValueError("the dual isogeny is not defined over the current ground field")
+
+            x0 = roots[0]
+            Qx0 = EllipticCurveHom.xEVAL(self, x0)
+            R = kernel_poly.parent()
+            x = R.gens()[0]
+            from sage.schemes.elliptic_curves.ell_field import EllipticCurve_field
+            pushforward_kernel_poly = EllipticCurve_field.kernel_polynomial_from_divisor(E_prime, x-Qx0, d)
+
+            return E_prime.isogeny(pushforward_kernel_poly)
+
+        #General case:
         if F(d) == 0:   # inseparable dual!
             p = F.characteristic()
             k = d.valuation(p)
