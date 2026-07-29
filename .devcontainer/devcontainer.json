@@ -1,8 +1,9 @@
-// For format details, see https://aka.ms/devcontainer.json. For config options, see the README at:
-// https://github.com/microsoft/vscode-dev-containers/tree/v0.245.2/containers/debian
+// For format details, see https://aka.ms/devcontainer.json. For image variants, see:
+// https://github.com/devcontainers/images/tree/main/src/base-debian
 {
 	"name": "Conda",
-	"image": "mcr.microsoft.com/vscode/devcontainers/base:0-bullseye",
+	// The generated Linux environment currently requires glibc 2.39 or newer.
+	"image": "mcr.microsoft.com/devcontainers/base:2-trixie",
 
 	// Comment out to connect as root instead. More info: https://aka.ms/vscode-remote/containers/non-root.
 	"remoteUser": "vscode",
