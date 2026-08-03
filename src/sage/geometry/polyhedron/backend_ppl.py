@@ -320,7 +320,7 @@ class Polyhedron_ppl(Polyhedron_mutable):
             sage: all(v.vector() in ZZ^2 for v in P.vertices())
             True
 
-        If no integral representative exists, construction still fails::
+        If no integral representative exists, construction fails::
 
             sage: Polyhedron(eqns=[(-1, 2)], base_ring=ZZ)
             Traceback (most recent call last):
