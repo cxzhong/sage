@@ -307,6 +307,19 @@ class Polyhedron_ppl(Polyhedron_mutable):
              A line in the direction (0, 2, 0, 1),
              A vertex at (1, 0, 0, 0))
 
+        Point generators are treated independently.  Here PPL produces
+        two non-integral point generators, both of which have integral
+        representatives modulo the lineality::
+
+            sage: P = Polyhedron(ieqs=[(-1, 1, -2), (3, -1, 2)],
+            ....:                base_ring=ZZ, backend='ppl')
+            sage: P._ppl_polyhedron.minimized_generators()
+            Generator_System {line(2, 1), point(0/2, -3/2), point(0/2, -1/2)}
+            sage: P.n_vertices()
+            2
+            sage: all(v.vector() in ZZ^2 for v in P.vertices())
+            True
+
         If no integral representative exists, construction still fails::
 
             sage: Polyhedron(eqns=[(-1, 2)], base_ring=ZZ)
@@ -314,6 +327,21 @@ class Polyhedron_ppl(Polyhedron_mutable):
             ...
             TypeError: no conversion of this rational to integer
             sage: Polyhedron(eqns=[(-1, 2, 2)], base_ring=ZZ)
+            Traceback (most recent call last):
+            ...
+            TypeError: no conversion of this rational to integer
+
+        Merely containing an integral point is not sufficient.  Every
+        point-generator class modulo the lineality must have an integral
+        representative.  The following strip contains ``(1, 0)`` in its
+        interior, but neither boundary class has an integral representative::
+
+            sage: P = Polyhedron(ieqs=[(-1, 2, 0), (3, -2, 0)],
+            ....:                base_ring=QQ, backend='ppl')
+            sage: P.interior_contains((1, 0))
+            True
+            sage: Polyhedron(ieqs=[(-1, 2, 0), (3, -2, 0)],
+            ....:            base_ring=ZZ, backend='ppl')
             Traceback (most recent call last):
             ...
             TypeError: no conversion of this rational to integer
@@ -350,9 +378,16 @@ class Polyhedron_ppl(Polyhedron_mutable):
         r"""
         Return an integral point equivalent to ``point`` modulo ``lines``.
 
-        This helper only changes the representative of the affine flat
-        ``point + span(lines)``.  Even when this flat contains integral
-        points, PPL may choose a non-integral point generator.
+        A minimized PPL generator system represents a polyhedron as
+        ``conv(points) + cone(rays) + span(lines)``.  Replacing any point
+        generator ``p`` independently by a point in ``p + span(lines)``
+        leaves the represented polyhedron unchanged.
+
+        Modulo the lineality, the point generators are the vertices of the
+        quotient polyhedron.  Consequently, an integral V-representation
+        exists only if every one of these classes has an integral
+        representative; an integral point elsewhere in the polyhedron is
+        not sufficient.
         """
         line_matrix = matrix(ZZ, lines)
         equations = line_matrix.right_kernel_matrix()
