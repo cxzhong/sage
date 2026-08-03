@@ -6986,6 +6986,11 @@ class LazySymmetricFunction(LazyCompletionGradedAlgebraElement):
             sage: Y = tensor([p[[]], p[1]])
             sage: L(X + Y)(L(X), L(Y))
             (p[]#p[1]+p[1]#p[]) + O^7
+            sage: r = L(X + Y)(p[1], p[1])
+            sage: r
+            2*p[1]
+            sage: r.parent() is p
+            True
             sage: L(X + Y)(2, 3)
             5
             sage: L(tensor([p[2], p[1]]))(2, 3)
@@ -7074,24 +7079,28 @@ class LazySymmetricFunction(LazyCompletionGradedAlgebraElement):
         ps = tensor([B.realization_of().p() for B in fR.tensor_factors()])
         ps_factors = ps.tensor_factors()
         if not isinstance(P, LazySymmetricFunctions):
-            try:
-                P = LazySymmetricFunctions(P)
-            except ValueError:
-                if not f_is_polynomial:
-                    raise ValueError("can only compose with a positive "
-                                     "valuation series") from None
+            if f_is_polynomial:
                 args = [P(g) for g in args]
                 ret = P.zero()
                 for k in range(self._coeff_stream._approximate_order,
-                               self._coeff_stream._degree):
+                    self._coeff_stream._degree):
                     fk = self[k]
                     if not fk:
                         continue
                     for la, c in ps(fk):
-                        ret += P(c) * prod((ps_factors[i][mu](args[i])
-                                            for i, mu in enumerate(la)),
-                                           P.one())
+                        ret += P(c) * prod(
+                           (ps_factors[i][mu](args[i])
+                            for i, mu in enumerate(la)),
+                            P.one(),
+                        )
                 return ret
+
+            try:
+                P = LazySymmetricFunctions(P)
+            except ValueError:
+                raise ValueError(
+                    "can only compose with a positive valuation series"
+                ) from None
         args = [P(g) for g in args]
         R = P._laurent_poly_ring
 
