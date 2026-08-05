@@ -1779,12 +1779,6 @@ def is_2isomorphic(G, H, certificate=False):
     every twist explicitly lists one edge side, a deeply nested decomposition
     can produce a witness of quadratic total serialized size.
 
-    REFERENCES:
-
-    .. [RS2008] Raghavendra Rao B. V. and Jayalal M. N. Sarma,
-       *On the complexity of the matroid isomorphism problem*,
-       `arXiv:0811.3859 <https://arxiv.org/abs/0811.3859>`_.
-
     EXAMPLES:
 
     A Whitney twist can change the graph isomorphism type without changing its
