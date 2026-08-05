@@ -1492,7 +1492,8 @@ def _two_isomorphism_replay_certificate(G, H, witness):
 
 def verify_2isomorphism_certificate(G, H, witness):
     """
-    Verify and replay a certificate returned by :func:`is_2isomorphic`.
+    Verify and replay a certificate returned by
+    :func:`~sage.graphs.morphisms.is_2isomorphic`.
 
     INPUT:
 
