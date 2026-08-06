@@ -1663,7 +1663,7 @@ cdef class PowerSeries(AlgebraElement):
         """
         val = self.valuation()
         for e, c in self.monomial_coefficients().items():
-            if (e - val) % 2:
+            if (e - val).is_odd():
                 return False
             if not c.is_square():
                 return False
