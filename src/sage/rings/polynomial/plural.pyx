@@ -2031,7 +2031,7 @@ cdef class NCPolynomial_plural(RingElement):
         cdef ring *r = (<NCPolynomialRing_plural>self._parent)._ring
         return singular_polynomial_deg(p, NULL, r)
 
-    def degrees(self, as_ETuples=True):
+    def degrees(self, as_ETuples=False):
         r"""
         Return the maximal degree of each variable in this polynomial.
 
@@ -2039,7 +2039,7 @@ cdef class NCPolynomial_plural(RingElement):
 
         INPUT:
 
-        - ``as_ETuples`` -- boolean (default: ``True``); if ``True``, return
+        - ``as_ETuples`` -- boolean (default: ``False``); if ``True``, return
           the result as an :class:`~sage.rings.polynomial.polydict.ETuple`,
           otherwise return a plain :class:`tuple`
 
@@ -2057,11 +2057,11 @@ cdef class NCPolynomial_plural(RingElement):
             sage: q.degrees()
             (1, 2, 1)
             sage: type(q.degrees())
-            <class 'sage.rings.polynomial.polydict.ETuple'>
-            sage: q.degrees(as_ETuples=False)
-            (1, 2, 1)
-            sage: type(q.degrees(as_ETuples=False))
             <class 'tuple'>
+            sage: q.degrees(as_ETuples=True)
+            (1, 2, 1)
+            sage: type(q.degrees(as_ETuples=True))
+            <class 'sage.rings.polynomial.polydict.ETuple'>
             sage: (q + y0^5).degrees()
             (5, 2, 1)
         """
