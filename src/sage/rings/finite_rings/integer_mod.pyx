@@ -1057,6 +1057,17 @@ cdef class IntegerMod_abstract(FiniteRingElement):
             sage: Mod(1/25, 2^40).is_square()                                           # needs sage.libs.pari
             True
 
+            sage: for n in (2, 3, 5, 7, 8, 9, 11, 15):
+            ....:     R = Zmod(n)
+            ....:     squares = {x*x for x in R}
+            ....:     assert all(a.is_square() == (a in squares) for a in R)
+            sage: p = next_prime(2^40)
+            sage: R = Zmod(p)
+            sage: values = [R(i) for i in range(40)]
+            sage: all(a.is_square() == (a == 0 or a^((p - 1)//2) == 1)
+            ....:     for a in values)
+            True
+
             sage: for p,q,r in cartesian_product_iterator([[3,5],[11,13],[17,19]]):  # long time, needs sage.libs.pari
             ....:     for ep,eq,er in cartesian_product_iterator([[0,1,2,3],[0,1,2,3],[0,1,2,3]]):
             ....:         for e2 in [0, 1, 2, 3, 4]:
@@ -1102,9 +1113,12 @@ cdef class IntegerMod_abstract(FiniteRingElement):
             return 0
         # We need to factor the modulus.  We do it here instead of
         # letting PARI do it, so that we can cache the factorisation.
-        return lift.__pari__().Zn_issquare(self._parent.factored_order())
+        factorization = self._parent.factored_order()
+        if len(factorization) == 1 and factorization[0][1] == 1:
+            return 1
+        return lift.__pari__().Zn_issquare(factorization)
 
-    def sqrt(self, extend=True, all=False):
+    def sqrt(self, *, extend=True, all=False, algorithm=None, name=None):
         r"""
         Return square root or square roots of ``self`` modulo `n`.
 
@@ -1115,7 +1129,14 @@ cdef class IntegerMod_abstract(FiniteRingElement):
           :exc:`ValueError` if the square root is not in the base ring.
 
         - ``all`` -- boolean (default: ``False``); if ``True``, return {all}
-          square roots of self, instead of just one
+          square roots of self
+
+        - ``algorithm`` -- optional algorithm hint (default: ``None``);
+          accepted for the common finite-ring interface; the modular backend
+          always uses its own default
+
+        - ``name`` -- string (default: ``None``); name of the generator when
+          an extension is created
 
         ALGORITHM: Calculates the square roots mod `p` for each of
         the primes `p` dividing the order of the ring, then lifts
@@ -1222,6 +1243,24 @@ cdef class IntegerMod_abstract(FiniteRingElement):
             [23, 41, 87, 105]
             sage: [x for x in R if x^2==17]
             [23, 41, 87, 105]
+
+        Check the common finite-ring square-root interface on the GMP
+        implementation (:issue:`40796`)::
+
+            sage: K = GF(next_prime(2^40))
+            sage: q = K(4)
+            sage: for method in (q.sqrt, q.square_root):
+            ....:     for algorithm in (None, 'tonelli', 'cipolla'):
+            ....:         roots = method(extend=False, all=True,
+            ....:                        algorithm=algorithm, name='w')
+            ....:         assert isinstance(roots, list) and len(roots) == 2
+            ....:         assert all(r.parent() is K and r^2 == q for r in roots)
+            ....:     assert method(algorithm='backend-default')^2 == q
+            sage: nonsquare = K.quadratic_nonresidue()
+            sage: for method in (nonsquare.sqrt, nonsquare.square_root):
+            ....:     roots = method(extend=True, all=True, name='w')
+            ....:     assert len(roots) == 2
+            ....:     assert all(root^2 == nonsquare for root in roots)
         """
         if self.is_one():
             if all:
@@ -1230,7 +1269,7 @@ cdef class IntegerMod_abstract(FiniteRingElement):
 
         if not self.is_square_c():
             if extend:
-                y = 'sqrt%s' % self
+                y = name if name is not None else 'sqrt%s' % self
                 R = self.parent()['x']
                 modulus = R.gen()**2 - R(self)
                 if self._parent.is_field():
@@ -1241,7 +1280,8 @@ cdef class IntegerMod_abstract(FiniteRingElement):
                     Q = R.quotient(modulus, names=(y,))
                 z = Q.gen()
                 if all:
-                    # TODO
+                    if self._parent.is_field():
+                        return [z, -z] if z != -z else [z]
                     raise NotImplementedError("Finding all square roots in extensions is not implemented; try extend=False to find only roots in the base ring Zmod(n).")
                 return z
             if all:
@@ -2897,22 +2937,30 @@ cdef class IntegerMod_int(IntegerMod_abstract):
             return 0
         # We need to factor the modulus.  We do it here instead of
         # letting PARI do it, so that we can cache the factorisation.
-        return lift.__pari__().Zn_issquare(self._parent.factored_order())
+        factorization = self._parent.factored_order()
+        if len(factorization) == 1 and factorization[0][1] == 1:
+            return 1
+        return lift.__pari__().Zn_issquare(factorization)
 
-    def sqrt(self, extend=True, all=False):
+    def sqrt(self, *, extend=True, all=False, algorithm=None, name=None):
         r"""
         Return square root or square roots of ``self`` modulo `n`.
 
         INPUT:
 
-        - ``extend`` -- boolean (default: ``True``);
-          if ``True``, return a square root in an extension ring,
-          if necessary. Otherwise, raise a :exc:`ValueError` if the
-          square root is not in the base ring.
+        - ``extend`` -- boolean (default: ``True``); if ``True``, return a
+          square root in an extension ring, if necessary. Otherwise, raise a
+          :exc:`ValueError` if the square root is not in the base ring.
 
-        - ``all`` -- boolean (default: ``False``); if
-          ``True``, return {all} square roots of self, instead of
-          just one.
+        - ``all`` -- boolean (default: ``False``); if ``True``, return {all}
+          square roots of self.
+
+        - ``algorithm`` -- optional algorithm hint (default: ``None``);
+          accepted for the common finite-ring interface; the modular backend
+          always uses its own default
+
+        - ``name`` -- string (default: ``None``); name of the generator when
+          an extension is created
 
         ALGORITHM: Calculates the square roots mod `p` for each of
         the primes `p` dividing the order of the ring, then lifts
@@ -3000,6 +3048,34 @@ cdef class IntegerMod_int(IntegerMod_abstract):
             sage: [x for x in R if x^2==17]
             [23, 41, 87, 105]
 
+        Check the common finite-ring square-root interface on the native
+        implementation (:issue:`40796`)::
+
+            sage: K = Zmod(15)
+            sage: q = K(4)
+            sage: for method in (q.sqrt, q.square_root):
+            ....:     for algorithm in (None, 'tonelli', 'cipolla'):
+            ....:         roots = method(extend=False, all=True,
+            ....:                        algorithm=algorithm, name='w')
+            ....:         assert isinstance(roots, list) and len(roots) == 4
+            ....:         assert all(r.parent() is K and r^2 == q for r in roots)
+            ....:     assert method(algorithm='backend-default')^2 == q
+            sage: nonsquare = GF(7)(3)
+            sage: for method in (nonsquare.sqrt, nonsquare.square_root):
+            ....:     root = method(name='w')
+            ....:     assert root^2 == nonsquare
+            ....:     roots = method(extend=True, all=True, name='w')
+            ....:     assert len(roots) == 2
+            ....:     assert all(r^2 == nonsquare for r in roots)
+            sage: for method in (Zmod(15)(2).sqrt, Zmod(15)(2).square_root):
+            ....:     try:
+            ....:         method(extend=True, all=True, name='w')
+            ....:     except NotImplementedError as error:
+            ....:         assert str(error).startswith(
+            ....:             "Finding all square roots in extensions")
+            ....:     else:
+            ....:         raise AssertionError("all extension roots were incomplete")
+
         TESTS:
 
         Check for :issue:`30797`::
@@ -3032,7 +3108,10 @@ cdef class IntegerMod_int(IntegerMod_abstract):
         # TODO: more tuning?
         elif n <= 100 or n / (1 << len(moduli)) < 5000:
             if all:
-                return [self._new_c(i) for i from 0 <= i < n if (i*i) % n == self.ivalue]
+                roots = [self._new_c(i) for i from 0 <= i < n
+                         if (i*i) % n == self.ivalue]
+                if roots or not extend:
+                    return roots
             for i from 0 <= i <= n/2:
                 if (i*i) % n == self.ivalue:
                     return self._new_c(i)
@@ -3041,7 +3120,10 @@ cdef class IntegerMod_int(IntegerMod_abstract):
                     return []
                 raise ValueError("self must be a square")
         # Either it failed but extend was True, or the generic algorithm is better
-        return IntegerMod_abstract.sqrt(self, extend=extend, all=all)
+        return IntegerMod_abstract.sqrt(self, extend=extend, all=all,
+                                        algorithm=algorithm, name=name)
+
+    square_root = sqrt
 
     def _balanced_abs(self):
         r"""

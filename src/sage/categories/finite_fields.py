@@ -14,8 +14,42 @@ Finite fields
 
 from sage.categories.category_with_axiom import CategoryWithAxiom
 from sage.categories.enumerated_sets import EnumeratedSets
-from sage.rings.integer import Integer
 from sage.misc.cachefunc import cached_method
+from sage.rings.integer import Integer
+
+
+def _sqrt_in_extension(element, all, name):
+    r"""
+    Return square roots of ``element`` in a quadratic extension.
+
+    Repeated calls reuse the polynomial quotient parent::
+
+        sage: R.<x> = GF(5)[]
+        sage: K.<a> = R.quotient(x^2 + 2)
+        sage: u = K.quadratic_nonresidue()
+        sage: from sage.categories.finite_fields import _sqrt_in_extension
+        sage: r = _sqrt_in_extension(u, False, 'w')
+        sage: s = _sqrt_in_extension(u, False, 'w')
+        sage: r.parent() is s.parent() and r^2 == u
+        True
+    """
+    from sage.rings.polynomial.polynomial_ring_constructor import PolynomialRing
+    from sage.rings.polynomial.polynomial_quotient_ring import PolynomialQuotientRing
+
+    parent = element.parent()
+    if name is None:
+        name = 'sqrt'
+    polynomial_ring = PolynomialRing(parent, 'x')
+    x = polynomial_ring.gen()
+    extension = PolynomialQuotientRing(
+        polynomial_ring, x**2 - polynomial_ring(element), names=name
+    )
+    square_root = extension.gen()
+    if all:
+        if parent.characteristic() == 2:
+            return [square_root]
+        return [square_root, -square_root]
+    return square_root
 
 
 class FiniteFields(CategoryWithAxiom):
@@ -304,7 +338,7 @@ class FiniteFields(CategoryWithAxiom):
             is_square = character == self.parent().one()
             return is_square
 
-        def _tonelli(self):
+        def _tonelli(self, check=True):
             r"""
             Return a square root of the element if it exists
             using Tonelli's algorithm, only works for finite fields
@@ -326,23 +360,44 @@ class FiniteFields(CategoryWithAxiom):
                 ...
                 ValueError: element is not a square
             """
-            q = self.parent().cardinality()
-            if not self.is_square():
-                raise ValueError("element is not a square")
-            g = self.parent().quadratic_nonresidue()
-            even_exp, odd_order = (q - Integer(1)).val_unit(2)
-            e = 0
-            for i in range(2, even_exp+1):
-                tmp = self * (pow(g, -e))
+            parent = self.parent()
+            if parent.characteristic() == 2:
+                raise ValueError("Tonelli's algorithm requires odd characteristic")
+            if self.is_zero():
+                return self
+            q = parent.cardinality()
+            even_exp, odd_order = (q - 1).val_unit(2)
+            one = parent.one()
+            residue = self**odd_order
+            if check:
+                character = residue
+                for _ in range(even_exp - 1):
+                    character *= character
+                if character != one:
+                    raise ValueError("element is not a square")
+            generator = parent.quadratic_nonresidue()
+            correction = generator**odd_order
+            square_root = self**((odd_order + 1) // 2)
+            exponent = even_exp
 
-                condition = tmp**((q-1)//(2**i)) != self.parent().one()
-                if condition:
-                    e = 2**(i-1) + e
-            h = self * (g**(-e))
-            b = g**(e//2) * h**((odd_order+1)//2)
-            return b
+            while residue != one:
+                i = 1
+                power = residue * residue
+                while i < exponent and power != one:
+                    power *= power
+                    i += 1
+                if i == exponent:
+                    raise ValueError("element is not a square")
+                factor = correction**(2**(exponent - i - 1))
+                square_root *= factor
+                factor *= factor
+                residue *= factor
+                correction = factor
+                exponent = i
 
-        def _cipolla(self):
+            return square_root
+
+        def _cipolla(self, check=True):
             r"""
             Return a square root of the element if it exists
             using Cipolla's algorithm, more suited if order - 1
@@ -366,8 +421,12 @@ class FiniteFields(CategoryWithAxiom):
                 ValueError: element is not a square
             """
             parent = self.parent()
+            if parent.characteristic() == 2:
+                raise ValueError("Cipolla's algorithm requires odd characteristic")
+            if self.is_zero():
+                return self
             q = parent.cardinality()
-            if not self.is_square():
+            if check and not self.is_square():
                 raise ValueError("element is not a square")
             t = parent.random_element()
             root = t**2 - 4 * self
@@ -378,31 +437,40 @@ class FiniteFields(CategoryWithAxiom):
             X = polygen(parent)
             f = X**2 - t*X + self
             b = pow(X, (q+1)//2, f)
-            return b
+            return b[0]
 
-        def sqrt(self, all: bool = False, algorithm: str = 'tonelli'):
+        def sqrt(self, *, extend=True, all=False, algorithm=None, name=None):
             r"""
             Return the square root of the element if it exists.
 
             INPUT:
 
-            - ``all`` -- boolean (default: ``False``); whether to return a list of
-              all square roots or just a square root
+            - ``extend`` -- boolean (default: ``True``); if ``True``, return
+              roots in a quadratic extension when necessary
 
-            - ``algorithm`` -- string (default: 'tonelli'); the algorithm to use
-              among ``'tonelli'``, ``'cipolla'``. Tonelli is typically faster but has
-              a worse worst-case complexity than Cipolla. In particular, if the
-              field cardinality minus 1 is highly divisible by 2 and has a large
-              odd factor then Cipolla may perform better.
+            - ``all`` -- boolean (default: ``False``); whether to return all
+              square roots or just one
+
+            - ``algorithm`` -- optional algorithm hint (default: ``None``).
+              ``'cipolla'`` selects Cipolla's algorithm; ``'tonelli'``,
+              ``None``, and unsupported hints select the backend default,
+              Tonelli's algorithm. Tonelli is typically faster but has a worse
+              worst-case complexity than Cipolla. In particular, if the field
+              cardinality minus 1 is highly divisible by 2 and has a large odd
+              factor then Cipolla may perform better.
+
+            - ``name`` -- string (default: ``None``); name of the generator when
+              a quadratic extension is created
 
             OUTPUT:
 
-            - if ``all=False``, a square root; raises an error if the element is not
-              a square
+            - if ``all=False``, a square root in the parent or, when
+              ``extend=True``, in a quadratic extension; raises an error if no
+              root exists and extension is disabled
 
-            - if ``all=True``, a tuple of all distinct square roots. This tuple can have
-              length 0, 1, or 2 depending on how many distinct square roots the
-              element has.
+            - if ``all=True``, a list of all distinct square roots in the
+              selected parent.  This list can have length 0, 1, or 2 depending
+              on how many distinct square roots the element has.
 
             EXAMPLES::
 
@@ -422,12 +490,107 @@ class FiniteFields(CategoryWithAxiom):
                 True
                 sage: 3 in my_sqrts
                 True
-                sage: k.quadratic_nonresidue().sqrt()
+                sage: k.quadratic_nonresidue().sqrt(extend=False)
                 Traceback (most recent call last):
                 ...
                 ValueError: element is not a square
-                sage: k.quadratic_nonresidue().sqrt(all=True)
-                ()
+                sage: k.quadratic_nonresidue().sqrt(extend=False, all=True)
+                []
+
+            The common finite-field keyword interface is accepted, and roots
+            returned by Cipolla's algorithm belong to the original field::
+
+                sage: for method in ((y^2).sqrt, (y^2).square_root):
+                ....:     r = method(extend=False, algorithm='cipolla')
+                ....:     assert r.parent() is k and r^2 == y^2
+                sage: for method in (k(0).sqrt, k(0).square_root):
+                ....:     for algorithm in ('tonelli', 'cipolla'):
+                ....:         assert method(algorithm=algorithm) == 0
+                ....:         assert method(all=True,
+                ....:                       algorithm=algorithm) == [k(0)]
+                sage: for method in (k(1).sqrt, k(1).square_root):
+                ....:     assert method(algorithm='backend-default')^2 == 1
+
+            A nonsquare can be lifted to a quadratic extension::
+
+                sage: a = k.quadratic_nonresidue()
+                sage: for method in (a.sqrt, a.square_root):
+                ....:     s = method(name='s')
+                ....:     assert s^2 == a and s.parent() in FiniteFields()
+
+            Both method names implement the same keyword contract::
+
+                sage: q = k(4)
+                sage: for method in (q.sqrt, q.square_root):
+                ....:     for algorithm in (None, 'tonelli', 'cipolla'):
+                ....:         roots = method(extend=False, all=True,
+                ....:                        algorithm=algorithm, name='s')
+                ....:         assert isinstance(roots, list)
+                ....:         assert len(roots) == 2
+                ....:         assert all(r.parent() is k and r^2 == q
+                ....:                    for r in roots)
+
+            The contract is uniform across the concrete finite-field
+            implementations::
+
+                sage: from inspect import signature
+                sage: fields = [GF(7),
+                ....:           GF(next_prime(2^40)),
+                ....:           GF(9, 'g', implementation='givaro'),
+                ....:           GF(2^8, 'n', implementation='ntl'),
+                ....:           GF(3^3, 'p', implementation='pari_ffelt')]
+                sage: R.<u> = GF(5)[]
+                sage: fields.append(R.quotient(u^2 + 2, 'q'))
+                sage: signatures = {str(signature(method))
+                ....:               for field in fields
+                ....:               for method in (field.one().sqrt,
+                ....:                              field.one().square_root)}
+                sage: signatures
+                {'(*, extend=True, all=False, algorithm=None, name=None)'}
+                sage: for field in fields:
+                ....:     value = field.gen()^2
+                ....:     for method in (value.sqrt, value.square_root):
+                ....:         roots = method(all=True,
+                ....:                        algorithm='backend-default')
+                ....:         assert isinstance(roots, list)
+                ....:         assert roots and all(root^2 == value
+                ....:                              for root in roots)
+
+            Optional arguments are keyword-only, so old backend-specific
+            positional orders cannot be confused with the common interface::
+
+                sage: for method in (q.sqrt, q.square_root):
+                ....:     try:
+                ....:         method(True)
+                ....:     except TypeError:
+                ....:         pass
+                ....:     else:
+                ....:         raise AssertionError("optional argument was positional")
+
+            The category implementation also handles characteristic two and
+            the exponent shortcut for fields of order congruent to three
+            modulo four::
+
+                sage: R2.<z> = GF(2)[]
+                sage: K2.<b> = R2.quotient(z^3 + z + 1)
+                sage: b._cipolla()
+                Traceback (most recent call last):
+                ...
+                ValueError: Cipolla's algorithm requires odd characteristic
+                sage: for method in (b.sqrt, b.square_root):
+                ....:     roots = method(extend=True, all=True,
+                ....:                    algorithm='cipolla', name='w')
+                ....:     assert isinstance(roots, list) and len(roots) == 1
+                ....:     assert roots[0].parent() is K2 and roots[0]^2 == b
+                sage: R3.<z> = GF(3)[]
+                sage: K3.<b> = R3.quotient(z^3 - z + 1)
+                sage: q3 = b^2
+                sage: for method in (q3.sqrt, q3.square_root):
+                ....:     roots = method(extend=False, all=True,
+                ....:                    algorithm='cipolla')
+                ....:     assert isinstance(roots, list) and len(roots) == 2
+                ....:     assert all(r.parent() is K3 and r^2 == q3
+                ....:                for r in roots)
 
             Here is an example where changing the algorithm results
             in a faster square root::
@@ -452,25 +615,37 @@ class FiniteFields(CategoryWithAxiom):
             - For all other cases we use the algorithm given by the ``algorithm`` parameter.
             """
             cardinality = self.parent().order()
+            if self.is_zero():
+                if all:
+                    return [self]
+                return self
             if self.parent().characteristic() == 2:
                 exponent = cardinality // 2
                 square_root = self**exponent
                 if all:
-                    # we return a 1-tuple because the GF implementation does it
-                    return (square_root,)
+                    return [square_root]
                 return square_root
-            if not self.is_square():
-                if all:
-                    return ()
-                raise ValueError("element is not a square")
+            is_square = True
             if cardinality % 4 == 3:
                 square_root = self**((cardinality+1)//4)
-            elif algorithm == 'tonelli':
-                square_root = self._tonelli()
+                is_square = square_root * square_root == self
+            elif algorithm == 'cipolla':
+                is_square = self.is_square()
+                if is_square:
+                    square_root = self._cipolla(check=False)
             else:
-                square_root = self._cipolla()
+                try:
+                    square_root = self._tonelli()
+                except ValueError:
+                    is_square = False
+            if not is_square:
+                if extend:
+                    return _sqrt_in_extension(self, all, name)
+                if all:
+                    return []
+                raise ValueError("element is not a square")
             if all:
-                return (square_root, -square_root)
+                return [square_root, -square_root]
             return square_root
 
         square_root = sqrt

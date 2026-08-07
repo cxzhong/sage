@@ -872,6 +872,160 @@ class CommutativeRings(CategoryWithAxiom):
             from sage.categories.noetherian_rings import NoetherianRings
             return [NoetherianRings()]
 
+        class CartesianProducts(CartesianProductsCategory):
+            def extra_super_categories(self):
+                r"""
+                Declare a finite Cartesian product of finite commutative
+                rings to be a finite commutative ring.
+
+                This does not require the factors to implement the stronger
+                finite-enumerated-set contract.
+
+                EXAMPLES::
+
+                    sage: R.<x> = GF(3)[]
+                    sage: A = R.quotient((x + 1)^2 * (x^2 + 1), 'a')
+                    sage: P = cartesian_product([A, Zmod(8)])
+                    sage: P in CommutativeRings().Finite()
+                    True
+                    sage: q = P((A.one(), 1))
+                    sage: roots = q.sqrt(extend=False, all=True,
+                    ....:                algorithm='backend-default')
+                    sage: len(roots), len(set(roots))
+                    (16, 16)
+                    sage: all(root^2 == q for root in roots)
+                    True
+                """
+                return [CommutativeRings().Finite()]
+
+        class ElementMethods:
+            def sqrt(self, *, extend=True, all=False, algorithm=None,
+                     name=None):
+                r"""
+                Return square roots using the common finite-ring interface.
+
+                The optional ``algorithm`` is a hint.  Optimized
+                decompositions forward it to their components; the generic
+                enumeration fallback ignores unsupported hints.
+
+                EXAMPLES::
+
+                    sage: from inspect import signature
+                    sage: R.<x> = GF(5)[]
+                    sage: A.<a> = R.quotient(x^2)
+                    sage: signatures = {str(signature(method))
+                    ....:               for method in (a.sqrt, a.square_root)}
+                    sage: signatures
+                    {'(*, extend=True, all=False, algorithm=None, name=None)'}
+                    sage: roots = A.zero().sqrt(extend=False, all=True,
+                    ....:                       algorithm='backend-default')
+                    sage: isinstance(roots, list), set(roots) == {i*a for i in GF(5)}
+                    (True, True)
+                    sage: a.square_root(extend=False, all=True)
+                    []
+                    sage: a.sqrt(extend=False)
+                    Traceback (most recent call last):
+                    ...
+                    ValueError: element is not a square
+                    sage: root = a.sqrt(name='w'); root^2 == a
+                    True
+
+                A finite integral domain that still uses this generic
+                fallback has two roots in its quadratic extension::
+
+                    sage: from sage.categories.integral_domains import IntegralDomains
+                    sage: from sage.rings.polynomial.polynomial_quotient_ring import PolynomialQuotientRing_generic
+                    sage: B = PolynomialQuotientRing_generic(
+                    ....:     R, x^2 + 2, 'b', category=IntegralDomains())
+                    sage: b = B.gen()
+                    sage: [root^2 == b for root in b.sqrt(all=True, name='w')]
+                    [True, True]
+
+                Cartesian products use the same interface and enumerate all
+                roots in the original ring.  Their factors are searched
+                separately, avoiding enumeration of the full product::
+
+                    sage: P = cartesian_product([Zmod(4), GF(5)])
+                    sage: q = P((1, 4))
+                    sage: for method in (q.sqrt, q.square_root):
+                    ....:     roots = method(extend=False, all=True,
+                    ....:                    algorithm='backend-default')
+                    ....:     assert isinstance(roots, list) and len(roots) == 4
+                    ....:     assert all(root^2 == q for root in roots)
+                    ....:     try:
+                    ....:         method(True)
+                    ....:     except TypeError:
+                    ....:         pass
+                    ....:     else:
+                    ....:         raise AssertionError("optional argument was positional")
+                    sage: roots = q.sqrt(extend=False, all=True)
+                    sage: expected = [r for r in P if r^2 == q]
+                    sage: len(roots) == len(expected) and all(r in expected for r in roots)
+                    True
+
+                This also applies recursively to nested products::
+
+                    sage: Q = cartesian_product([P, Zmod(9)])
+                    sage: v = Q((q, 1))
+                    sage: roots = v.sqrt(extend=False, all=True)
+                    sage: expected = [r for r in Q if r^2 == v]
+                    sage: len(roots) == len(expected) and all(r in expected for r in roots)
+                    True
+
+                A product can be very large even when its factors are small;
+                only the factors and the resulting roots are enumerated::
+
+                    sage: L = cartesian_product([Zmod(2^8), GF(1009), GF(1013)])
+                    sage: z = L((1, 4, 4))
+                    sage: roots = z.sqrt(extend=False, all=True)
+                    sage: len(roots), all(r^2 == z for r in roots)
+                    (16, True)
+                """
+                parent = self.parent()
+                if all:
+                    from sage.categories.integral_domains import IntegralDomains
+                    is_domain = parent in IntegralDomains()
+                    if is_domain:
+                        for root in parent:
+                            if root * root == self:
+                                negative = -root
+                                if negative == root:
+                                    return [root]
+                                return [root, negative]
+                    else:
+                        if parent in CommutativeRings().CartesianProducts():
+                            roots = self._sqrt_all_finite(algorithm=algorithm)
+                        else:
+                            helper = getattr(
+                                self, '_sqrt_all_finite_decomposition', None)
+                            if helper is not None:
+                                roots = helper(algorithm=algorithm)
+                            else:
+                                roots = None
+                            if roots is None:
+                                roots = [root for root in parent
+                                         if root * root == self]
+                        if roots:
+                            return roots
+                else:
+                    for root in parent:
+                        if root * root == self:
+                            return root
+                if not extend:
+                    if all:
+                        return []
+                    raise ValueError("element is not a square")
+                if all:
+                    if not is_domain:
+                        raise NotImplementedError(
+                            "finding all square roots in extensions of finite "
+                            "non-domains is not implemented"
+                        )
+                from sage.categories.finite_fields import _sqrt_in_extension
+                return _sqrt_in_extension(self, all, name)
+
+            square_root = sqrt
+
         class ParentMethods:
             def cyclotomic_cosets(self, q, cosets=None):
                 r"""
@@ -1026,3 +1180,25 @@ class CommutativeRings(CategoryWithAxiom):
                 True
             """
             return [CommutativeRings()]
+
+        class ElementMethods:
+            def _sqrt_all_finite(self, algorithm=None):
+                r"""
+                Return all square roots in this finite Cartesian product.
+
+                The roots are computed by each factor's square-root method,
+                then combined componentwise.  Nested Cartesian products are
+                handled recursively.
+                """
+                roots_by_factor = []
+                parent = self.parent()
+                for component in self.cartesian_factors():
+                    roots = component.sqrt(extend=False, all=True,
+                                           algorithm=algorithm)
+                    if not roots:
+                        return []
+                    roots_by_factor.append(roots)
+
+                from itertools import product
+                return [parent._cartesian_product_of_elements(roots)
+                        for roots in product(*roots_by_factor)]

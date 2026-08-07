@@ -616,6 +616,64 @@ class PolynomialQuotientRingElement(polynomial_singular_interface.Polynomial_sin
         """
         return self._polynomial
 
+    def _sqrt_all_finite_decomposition(self, algorithm=None):
+        r"""
+        Return all square roots using primary decomposition, if available.
+
+        This is an internal fast path for finite polynomial quotient rings.
+        It returns ``None`` when the parent has no useful decomposition, so
+        the generic finite-ring implementation can fall back to enumeration.
+
+        EXAMPLES::
+
+            sage: R.<x> = GF(3)[]
+            sage: A.<a> = R.quotient((x + 1)^2 * (x^2 + 1))
+            sage: roots = A.one().sqrt(extend=False, all=True,
+            ....:                      algorithm='backend-default')
+            sage: len(roots), len(set(roots))
+            (4, 4)
+            sage: all(root^2 == 1 for root in roots)
+            True
+
+        The work depends on the primary components and the output, rather
+        than on the cardinality of their full Cartesian product::
+
+            sage: S.<y> = GF(101)[]
+            sage: B = S.quotient(prod(y - i for i in range(6)))
+            sage: B.cardinality()
+            1061520150601
+            sage: roots = B.one().sqrt(extend=False, all=True)
+            sage: len(roots), all(root^2 == 1 for root in roots)
+            (64, True)
+
+        If any component has no root, no CRT combinations are constructed::
+
+            sage: T.<z> = GF(5)[]
+            sage: C.<c> = T.quotient((z - 1) * (z + 1))
+            sage: C(z + 2).sqrt(extend=False, all=True)
+            []
+        """
+        parent = self.parent()
+        decomposition = parent._sqrt_primary_decomposition()
+        if decomposition is None:
+            return None
+
+        moduli, components, basis = decomposition
+        lift = self.lift()
+        roots_by_component = []
+        for component in components:
+            roots = component(lift).sqrt(extend=False, all=True,
+                                         algorithm=algorithm)
+            if not roots:
+                return []
+            roots_by_component.append(roots)
+
+        from itertools import product
+        zero = parent.polynomial_ring().zero()
+        return [parent(sum((root.lift() * multiplier
+                           for root, multiplier in zip(roots, basis)), zero))
+                for roots in product(*roots_by_component)]
+
     def __iter__(self):
         return iter(self.list())
 

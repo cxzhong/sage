@@ -476,18 +476,30 @@ class RingExtensionFactory(UniqueFactory):
             sage: key, extra_args = RingExtension.create_key_and_extra_args(QQ, ZZ)
             sage: RingExtension.create_object((8,9,0), key, **extra_args)
             Rational Field over its base
+
+        Existing constructor-specific names are not overwritten::
+
+            sage: E = RingExtension(QQ, QQ, gens=(QQ.one(),), names=('a',))
         """
         defining_morphism = key[0]
         constructors = extra_args['constructors']
         if len(constructors) == 0:
             raise NotImplementedError("no constructor available for this extension")
+        extension = None
         for constructor, kwargs in constructors[:-1]:
             try:
-                return constructor(defining_morphism, **kwargs)
+                extension = constructor(defining_morphism, **kwargs)
             except (NotImplementedError, ValueError, TypeError):
                 pass
-        constructor, kwargs = constructors[-1]
-        return constructor(defining_morphism, **kwargs)
+            else:
+                break
+        if extension is None:
+            constructor, kwargs = constructors[-1]
+            extension = constructor(defining_morphism, **kwargs)
+        names = key[2]
+        if names is not None and extension._names is None:
+            extension._assign_names(names, normalize=False)
+        return extension
 
 
 RingExtension = RingExtensionFactory("sage.rings.ring_extension.RingExtension")
