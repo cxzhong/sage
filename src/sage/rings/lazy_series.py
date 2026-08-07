@@ -262,6 +262,7 @@ from sage.data_structures.stream import (
     Stream_dirichlet_convolve,
     Stream_dirichlet_invert,
     Stream_plethysm,
+    Stream_plethysm_multi,
     Stream_pseudo_diff_mul
 )
 
@@ -6985,7 +6986,7 @@ class LazySymmetricFunction(LazyCompletionGradedAlgebraElement):
             sage: X = tensor([p[1], p[[]]])
             sage: Y = tensor([p[[]], p[1]])
             sage: L(X + Y)(L(X), L(Y))
-            (p[]#p[1]+p[1]#p[]) + O^7
+            (p[]#p[1]+p[1]#p[]) + O^8
             sage: r = L(X + Y)(p[1], p[1])
             sage: r
             2*p[1]
@@ -7000,6 +7001,51 @@ class LazySymmetricFunction(LazyCompletionGradedAlgebraElement):
             Traceback (most recent call last):
             ...
             ValueError: can only compose with a positive valuation series
+
+        Check that argument streams remain visible to implicit definitions::
+
+            sage: S = LazySymmetricFunctions(p)
+            sage: H = L(tensor([p[1], p[1]]))
+            sage: z = S(p[1])
+            sage: A = S.undefined(valuation=1)
+            sage: S.define_implicitly([A], [A - z - H(A, z)])
+            sage: A[:5]
+            [p[1], p[1, 1], p[1, 1, 1], p[1, 1, 1, 1]]
+
+        Undetermined coefficients in the outer stream and in arguments with
+        nonzero constant term remain in the solver's temporary base ring::
+
+            sage: A = S.undefined(valuation=1)
+            sage: S.define_implicitly([A], [A - z - A(z) / 2])
+            sage: A[:4]
+            [2*p[1], 0, 0]
+            sage: F = S(p[1, 1])
+            sage: A = S.undefined(valuation=0)
+            sage: S.define_implicitly([(A, [p[[]]])],
+            ....:     [A - S(QQ(3)/4) - z - F(A) / 4])
+            sage: A[:5]
+            [p[], 2*p[1], 2*p[1, 1], 4*p[1, 1, 1], 10*p[1, 1, 1, 1]]
+
+        All homogeneous parts of an exact outer function can contribute when
+        the argument has a nonzero constant term::
+
+            sage: g = S(lambda n: p[[]] if n == 0 else
+            ....:       (p[1] if n == 1 else 0), valuation=0)
+            sage: S(p[[1]*5])(g)[:3]
+            [p[], 5*p[1], 10*p[1, 1]]
+
+        The same temporary-base-ring handling applies in the multisort case::
+
+            sage: F = L(tensor([p[[1]*8], p[[]]]))
+            sage: A = S.undefined(valuation=0)
+            sage: S.define_implicitly([(A, [p[[]]])],
+            ....:     [A - S(QQ(15)/16) - z - F(A, z) / 16])
+            sage: A[:5]
+            [p[], 2*p[1], 14*p[1, 1], 252*p[1, 1, 1], 5530*p[1, 1, 1, 1]]
+            sage: A = L.undefined(valuation=1)
+            sage: L.define_implicitly([A], [A - L(X) - A(L(Y), L(X)) / 2])
+            sage: A[:3]
+            [2/3*p[] # p[1] + 4/3*p[1] # p[], 0]
         """
         fP = parent(self)
         if len(args) != fP._arity:
@@ -7083,7 +7129,7 @@ class LazySymmetricFunction(LazyCompletionGradedAlgebraElement):
                 args = [P(g) for g in args]
                 ret = P.zero()
                 for k in range(self._coeff_stream._approximate_order,
-                    self._coeff_stream._degree):
+                               self._coeff_stream._degree):
                     fk = self[k]
                     if not fk:
                         continue
@@ -7114,55 +7160,19 @@ class LazySymmetricFunction(LazyCompletionGradedAlgebraElement):
                                          "valuation series")
                     g._coeff_stream._approximate_order = 1
 
-        one = P.one()
-        ps_cache = {}
-        plethysm_cache = {}
-        product_cache = {}
-
-        def coefficient_in_powersum(k):
-            try:
-                return ps_cache[k]
-            except KeyError:
-                ret = ps(self[k])
-                ps_cache[k] = ret
-                return ret
-
-        def plethysm_factor(i, la):
-            key = (i, la)
-            try:
-                return plethysm_cache[key]
-            except KeyError:
-                ret = P(ps_factors[i][la](args[i]))
-                plethysm_cache[key] = ret
-                return ret
-
-        def plethysm_product(la):
-            key = tuple(la)
-            try:
-                return product_cache[key]
-            except KeyError:
-                ret = prod((plethysm_factor(i, mu)
-                            for i, mu in enumerate(key)), one)
-                product_cache[key] = ret
-                return ret
-
-        def coefficient(n):
-            if f_is_polynomial and any(g._coeff_stream._approximate_order == 0 and g[0]
-                                       for g in args):
-                stop = self._coeff_stream._degree
-            else:
-                stop = n + 1
-
-            ret = R.zero()
-            for k in range(self._coeff_stream._approximate_order, stop):
-                fk = self[k]
-                if not fk:
-                    continue
-                for la, c in coefficient_in_powersum(k):
-                    ret += c * plethysm_product(la)[n]
-            return ret
-
-        coeff_stream = Stream_function(coefficient, P.is_sparse(), 0)
+        if P._arity == 1:
+            target_ps = R.realization_of().p()
+        else:
+            target_ps = tensor([B.realization_of().p()
+                                for B in R.tensor_factors()])
+        coeff_stream = Stream_plethysm_multi(
+            self._coeff_stream,
+            tuple(g._coeff_stream for g in args),
+            P.is_sparse(),
+            target_ps,
+            R,
+            p_outer=ps,
+        )
         return P.element_class(P, coeff_stream)
 
     plethysm = __call__
