@@ -860,7 +860,7 @@ cdef class FinitePolyExtElement(FiniteRingElement):
         EXAMPLES::
 
             sage: F = FiniteField(7^2, 'a')
-            sage: F(2).square_root()^2
+            sage: F(2).square_root()**2
             2
             sage: F(3).square_root()
             2*a + 6
