@@ -3648,7 +3648,9 @@ class Stream_plethysm(Stream_binary):
 
     Coefficients created outside the Sage preparser can be Python scalars::
 
-        sage: # needs sage.modules
+        sage: from sage.data_structures.stream import Stream_exact, Stream_plethysm
+        sage: p = SymmetricFunctions(QQ).p()
+        sage: f1 = Stream_exact([p[1]], order=1)
         sage: f0 = Stream_exact([int(1)])
         sage: r = Stream_plethysm(f0, f1, True, p); r[0]
         p[]
@@ -4053,7 +4055,6 @@ class Stream_plethysm_multi(Stream_inexact):
 
     EXAMPLES::
 
-        sage: # needs sage.modules
         sage: from sage.data_structures.stream import (Stream_exact,
         ....:     Stream_plethysm_multi)
         sage: p = SymmetricFunctions(QQ).p()
@@ -4076,7 +4077,6 @@ class Stream_plethysm_multi(Stream_inexact):
 
         TESTS::
 
-            sage: # needs sage.modules
             sage: from sage.data_structures.stream import (Stream_exact,
             ....:     Stream_function, Stream_plethysm_multi)
             sage: p = SymmetricFunctions(QQ).p()
@@ -4087,7 +4087,6 @@ class Stream_plethysm_multi(Stream_inexact):
             ....:                            p_outer=p2)
             sage: TestSuite(h).run(skip='_test_pickling')
 
-            sage: # needs sage.modules
             sage: f = Stream_function(
             ....:     lambda n: tensor([p[n], p[[]]]), True, 0)
             sage: g0 = Stream_exact([p[[]]])
