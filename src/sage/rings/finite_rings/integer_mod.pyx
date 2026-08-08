@@ -1194,11 +1194,11 @@ cdef class IntegerMod_abstract(FiniteRingElement):
             ...
             ValueError: element is not a square
             sage: y = x.sqrt(extend=True); y
-            sqrt_ext
+            sqrt359
             sage: y.parent()
-            Univariate Quotient Polynomial Ring in sqrt_ext over
+            Univariate Quotient Polynomial Ring in sqrt359 over
              Ring of integers modulo 360 with modulus x^2 + 1
-            sage: y^2
+            sage: y**2
             359
 
         We compute all square roots in several cases::
@@ -1280,7 +1280,10 @@ cdef class IntegerMod_abstract(FiniteRingElement):
                     return _sqrt_in_extension(
                         self, all_roots=all, name=name, algorithm=algorithm
                     )
-                y = name if name is not None else 'sqrt_ext'
+                # Keep the traditional element-dependent name for extensions
+                # of nonfields.  Finite fields use the shared ``sqrt_ext``
+                # parent in ``_sqrt_in_extension`` instead.
+                y = name if name is not None else 'sqrt%s' % self
                 R = self.parent()['x']
                 modulus = R.gen()**2 - R(self)
                 Q = R.quotient(modulus, names=(y,))
@@ -3009,11 +3012,11 @@ cdef class IntegerMod_int(IntegerMod_abstract):
             ...
             ValueError: element is not a square
             sage: y = x.sqrt(extend=True); y
-            sqrt_ext
+            sqrt359
             sage: y.parent()
-            Univariate Quotient Polynomial Ring in sqrt_ext
+            Univariate Quotient Polynomial Ring in sqrt359
              over Ring of integers modulo 360 with modulus x^2 + 1
-            sage: y^2
+            sage: y**2
             359
 
         We compute all square roots in several cases::
