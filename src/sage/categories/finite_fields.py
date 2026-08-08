@@ -112,6 +112,44 @@ def _sqrt_extension(parent, name):
     return None
 
 
+@lru_cache(maxsize=256)
+def _sqrt_extension_nonresidue(parent, name):
+    r"""
+    Return a fixed nonsquare and its square root in a quadratic extension.
+
+    Reusing this root reduces later square roots of nonsquares in ``parent``
+    to a square root in ``parent`` and one multiplication in the extension::
+
+        sage: from sage.categories.finite_fields import (
+        ....:     _sqrt_extension, _sqrt_extension_nonresidue)
+        sage: K = GF(1009)
+        sage: nonsquare, radical = _sqrt_extension_nonresidue(K, 'sqrt_ext')
+        sage: extension, embedding = _sqrt_extension(K, 'sqrt_ext')
+        sage: radical**2 == embedding(nonsquare)
+        True
+
+    Return ``None`` when this reduction is not profitable.  In particular,
+    Givaro computes the root directly faster, while polynomial quotient
+    fields may have a comparatively expensive square-root implementation in
+    the source parent.
+    """
+    extension_data = _sqrt_extension(parent, name)
+    if extension_data is None:
+        return None
+    extension, embedding = extension_data
+    from sage.rings.finite_rings.finite_field_base import (
+        FiniteField as FiniteField_base,
+    )
+    from sage.rings.finite_rings.finite_field_givaro import FiniteField_givaro
+    if (not isinstance(parent, FiniteField_base)
+            or isinstance(extension, FiniteField_givaro)
+            or parent.characteristic() == 2):
+        return None
+    nonsquare = parent.quadratic_nonresidue()
+    radical = embedding(nonsquare).sqrt(extend=False)
+    return nonsquare, radical
+
+
 def _sqrt_in_extension(element, *, all_roots, name, algorithm=None):
     r"""
     Return square roots of ``element`` in a quadratic extension.
@@ -154,6 +192,20 @@ def _sqrt_in_extension(element, *, all_roots, name, algorithm=None):
     extension_data = _sqrt_extension(parent, name)
     if extension_data is not None:
         extension, embedding = extension_data
+        nonresidue_data = _sqrt_extension_nonresidue(parent, name)
+        if nonresidue_data is not None and not element.is_square():
+            nonsquare, radical = nonresidue_data
+            # The quotient of two nonsquares in a finite field is a square.
+            if element == nonsquare:
+                square_root = radical
+            else:
+                ratio_root = (element / nonsquare).sqrt(
+                    extend=False, algorithm=algorithm
+                )
+                square_root = embedding(ratio_root) * radical
+            if all_roots:
+                return [square_root, -square_root]
+            return square_root
         return embedding(element).sqrt(extend=False, all=all_roots,
                                        algorithm=algorithm)
 

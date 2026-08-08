@@ -1018,8 +1018,7 @@ class CommutativeRings(CategoryWithAxiom):
                     NotImplementedError: square-root computation requires an enumeration or a specialized decomposition
                 """
                 parent = self.parent()
-                from sage.categories.integral_domains import IntegralDomains
-                is_domain = all and parent in IntegralDomains()
+                is_domain = None
 
                 helper = getattr(self, '_sqrt_finite_decomposition', None)
                 if helper is None:
@@ -1034,6 +1033,9 @@ class CommutativeRings(CategoryWithAxiom):
                     elif result is not None:
                         return result
                 else:
+                    if all:
+                        from sage.categories.integral_domains import IntegralDomains
+                        is_domain = parent in IntegralDomains()
                     if getattr(type(parent), '__iter__', None) is None:
                         raise NotImplementedError(
                             "square-root computation requires an enumeration "
@@ -1068,6 +1070,9 @@ class CommutativeRings(CategoryWithAxiom):
                         return []
                     raise ValueError("element is not a square")
                 if all:
+                    if is_domain is None:
+                        from sage.categories.integral_domains import IntegralDomains
+                        is_domain = parent in IntegralDomains()
                     if not is_domain:
                         raise NotImplementedError(
                             "finding all square roots in extensions of finite "

@@ -681,11 +681,14 @@ class PolynomialQuotientRingElement(polynomial_singular_interface.Polynomial_sin
         if decomposition is None:
             return NotImplemented
 
-        _, components, basis = decomposition
+        _, components, evaluations, basis = decomposition
         lift = self.lift()
         roots_by_component = []
-        for component in components:
-            value = component(lift)
+        for component, evaluation in zip(components, evaluations):
+            if evaluation is None:
+                value = component(lift)
+            else:
+                value = lift(evaluation)
             if all:
                 roots = value.sqrt(extend=False, all=True,
                                    algorithm=algorithm)
@@ -703,11 +706,16 @@ class PolynomialQuotientRingElement(polynomial_singular_interface.Polynomial_sin
                 roots_by_component.append((root,))
 
         from itertools import product
-        zero = parent.polynomial_ring().zero()
+        polynomial_ring = parent.polynomial_ring()
+        zero = polynomial_ring.zero()
         def combine(roots):
-            return parent(sum((root.lift() * multiplier
-                               for root, multiplier in zip(roots, basis)),
-                              zero))
+            return parent(sum(
+                ((root.lift() if evaluation is None else
+                  polynomial_ring(root)) * multiplier
+                 for root, evaluation, multiplier in
+                 zip(roots, evaluations, basis)),
+                zero,
+            ))
 
         if not all:
             return combine(tuple(roots[0] for roots in roots_by_component))
