@@ -616,13 +616,15 @@ class PolynomialQuotientRingElement(polynomial_singular_interface.Polynomial_sin
         """
         return self._polynomial
 
-    def _sqrt_all_finite_decomposition(self, algorithm=None):
+    def _sqrt_finite_decomposition(self, *, all, algorithm=None):
         r"""
-        Return all square roots using primary decomposition, if available.
+        Return square roots using primary decomposition, if available.
 
         This is an internal fast path for finite polynomial quotient rings.
-        It returns ``None`` when the parent has no useful decomposition, so
-        the generic finite-ring implementation can fall back to enumeration.
+        It returns ``NotImplemented`` when the parent has no useful
+        decomposition, so the generic finite-ring implementation can fall
+        back to enumeration.  With ``all=False``, ``None`` means that the
+        decomposition proved that no root exists.
 
         EXAMPLES::
 
@@ -633,6 +635,10 @@ class PolynomialQuotientRingElement(polynomial_singular_interface.Polynomial_sin
             sage: len(roots), len(set(roots))
             (4, 4)
             sage: all(root^2 == 1 for root in roots)
+            True
+            sage: root = A.one()._sqrt_finite_decomposition(
+            ....:     all=False, algorithm='backend-default')
+            sage: root**2 == 1
             True
 
         The work depends on the primary components and the output, rather
@@ -652,27 +658,58 @@ class PolynomialQuotientRingElement(polynomial_singular_interface.Polynomial_sin
             sage: C.<c> = T.quotient((z - 1) * (z + 1))
             sage: C(z + 2).sqrt(extend=False, all=True)
             []
+
+        Neither the one-root nor the all-roots path enumerates the full
+        quotient when a decomposition is available::
+
+            sage: from unittest.mock import patch
+            sage: square = C((z + 2)**2)
+            sage: with patch.object(type(C), '__iter__',
+            ....:                   side_effect=AssertionError("full enumeration")):
+            ....:     assert square.sqrt(extend=False)**2 == square
+            sage: with patch.object(type(C), '__iter__',
+            ....:                   side_effect=AssertionError("full enumeration")):
+            ....:     C(z + 2).sqrt(extend=False)
+            Traceback (most recent call last):
+            ...
+            ValueError: element is not a square
         """
         parent = self.parent()
         decomposition = parent._sqrt_primary_decomposition()
         if decomposition is None:
-            return None
+            return NotImplemented
 
-        moduli, components, basis = decomposition
+        _, components, basis = decomposition
         lift = self.lift()
         roots_by_component = []
         for component in components:
-            roots = component(lift).sqrt(extend=False, all=True,
-                                         algorithm=algorithm)
-            if not roots:
-                return []
-            roots_by_component.append(roots)
+            value = component(lift)
+            if all:
+                roots = value.sqrt(extend=False, all=True,
+                                   algorithm=algorithm)
+                if not roots:
+                    return []
+                roots_by_component.append(roots)
+            else:
+                try:
+                    root = value.sqrt(extend=False, all=False,
+                                      algorithm=algorithm)
+                except ValueError as error:
+                    if str(error) != "element is not a square":
+                        raise
+                    return None
+                roots_by_component.append((root,))
 
         from itertools import product
         zero = parent.polynomial_ring().zero()
-        return [parent(sum((root.lift() * multiplier
-                           for root, multiplier in zip(roots, basis)), zero))
-                for roots in product(*roots_by_component)]
+        def combine(roots):
+            return parent(sum((root.lift() * multiplier
+                               for root, multiplier in zip(roots, basis)),
+                              zero))
+
+        if not all:
+            return combine(tuple(roots[0] for roots in roots_by_component))
+        return [combine(roots) for roots in product(*roots_by_component)]
 
     def __iter__(self):
         return iter(self.list())

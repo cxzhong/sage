@@ -927,7 +927,18 @@ class CommutativeRings(CategoryWithAxiom):
                     Traceback (most recent call last):
                     ...
                     ValueError: element is not a square
-                    sage: root = a.sqrt(name='w'); root^2 == a
+                    sage: root = a.sqrt(name='w'); root**2 == a
+                    True
+
+                A concrete parent may provide an iterator without claiming
+                the finite-enumerated-set category; that capability remains a
+                valid fallback when no decomposition is available::
+
+                    sage: from sage.categories.finite_enumerated_sets import FiniteEnumeratedSets
+                    sage: A in FiniteEnumeratedSets(), hasattr(A, '__iter__')
+                    (False, True)
+                    sage: q = (a + 2)**2
+                    sage: q.sqrt(extend=False)**2 == q
                     True
 
                 A finite integral domain that still uses this generic
@@ -980,37 +991,77 @@ class CommutativeRings(CategoryWithAxiom):
                     sage: roots = z.sqrt(extend=False, all=True)
                     sage: len(roots), all(r^2 == z for r in roots)
                     (16, True)
+                    sage: z.sqrt(extend=False)**2 == z
+                    True
+
+                The structured fast paths do not enumerate the full parent,
+                even when only one root is requested::
+
+                    sage: from unittest.mock import patch
+                    sage: with patch.object(type(L), '__iter__',
+                    ....:                   side_effect=AssertionError("full enumeration")):
+                    ....:     assert z.sqrt(extend=False)**2 == z
+
+                The category of finite commutative rings does not itself
+                promise an enumeration.  An unstructured parent must provide
+                a real iterator before the generic fallback can be used::
+
+                    sage: from sage.structure.parent import Parent
+                    sage: U = Parent(category=CommutativeRings().Finite())
+                    sage: class FakeElement:
+                    ....:     def parent(self): return U
+                    sage: CommutativeRings.Finite.ElementMethods.sqrt(
+                    ....:     FakeElement(), extend=False)
+                    Traceback (most recent call last):
+                    ...
+                    NotImplementedError: square-root computation requires an enumeration or a specialized decomposition
                 """
                 parent = self.parent()
-                if all:
-                    from sage.categories.integral_domains import IntegralDomains
-                    is_domain = parent in IntegralDomains()
-                    if is_domain:
-                        for root in parent:
+                from sage.categories.integral_domains import IntegralDomains
+                is_domain = all and parent in IntegralDomains()
+
+                helper = getattr(self, '_sqrt_finite_decomposition', None)
+                if helper is None:
+                    result = NotImplemented
+                else:
+                    result = helper(all=all, algorithm=algorithm)
+
+                if result is not NotImplemented:
+                    if all:
+                        if result:
+                            return result
+                    elif result is not None:
+                        return result
+                else:
+                    if getattr(type(parent), '__iter__', None) is None:
+                        raise NotImplementedError(
+                            "square-root computation requires an enumeration "
+                            "or a specialized decomposition"
+                        )
+                    try:
+                        elements = iter(parent)
+                    except (TypeError, NotImplementedError) as error:
+                        raise NotImplementedError(
+                            "square-root computation requires an enumeration "
+                            "or a specialized decomposition"
+                        ) from error
+
+                    if all and is_domain:
+                        for root in elements:
                             if root * root == self:
                                 negative = -root
                                 if negative == root:
                                     return [root]
                                 return [root, negative]
-                    else:
-                        if parent in CommutativeRings().CartesianProducts():
-                            roots = self._sqrt_all_finite(algorithm=algorithm)
-                        else:
-                            helper = getattr(
-                                self, '_sqrt_all_finite_decomposition', None)
-                            if helper is not None:
-                                roots = helper(algorithm=algorithm)
-                            else:
-                                roots = None
-                            if roots is None:
-                                roots = [root for root in parent
-                                         if root * root == self]
+                    elif all:
+                        roots = [root for root in elements
+                                 if root * root == self]
                         if roots:
                             return roots
-                else:
-                    for root in parent:
-                        if root * root == self:
-                            return root
+                    else:
+                        for root in elements:
+                            if root * root == self:
+                                return root
                 if not extend:
                     if all:
                         return []
@@ -1022,7 +1073,7 @@ class CommutativeRings(CategoryWithAxiom):
                             "non-domains is not implemented"
                         )
                 from sage.categories.finite_fields import _sqrt_in_extension
-                return _sqrt_in_extension(self, all, name)
+                return _sqrt_in_extension(self, all, name, algorithm)
 
             square_root = sqrt
 
@@ -1182,23 +1233,47 @@ class CommutativeRings(CategoryWithAxiom):
             return [CommutativeRings()]
 
         class ElementMethods:
-            def _sqrt_all_finite(self, algorithm=None):
+            def _sqrt_finite_decomposition(self, *, all, algorithm=None):
                 r"""
-                Return all square roots in this finite Cartesian product.
+                Return square roots in this finite Cartesian product.
 
                 The roots are computed by each factor's square-root method,
                 then combined componentwise.  Nested Cartesian products are
                 handled recursively.
+
+                EXAMPLES::
+
+                    sage: P = cartesian_product([Zmod(8), GF(5)])
+                    sage: q = P((1, 4))
+                    sage: roots = q._sqrt_finite_decomposition(all=True)
+                    sage: len(roots), all(root**2 == q for root in roots)
+                    (8, True)
+                    sage: q._sqrt_finite_decomposition(all=False)**2 == q
+                    True
                 """
                 roots_by_factor = []
                 parent = self.parent()
                 for component in self.cartesian_factors():
-                    roots = component.sqrt(extend=False, all=True,
-                                           algorithm=algorithm)
-                    if not roots:
-                        return []
-                    roots_by_factor.append(roots)
+                    if all:
+                        roots = component.sqrt(extend=False, all=True,
+                                               algorithm=algorithm)
+                        if not roots:
+                            return []
+                        roots_by_factor.append(roots)
+                    else:
+                        try:
+                            root = component.sqrt(extend=False, all=False,
+                                                  algorithm=algorithm)
+                        except ValueError as error:
+                            if str(error) != "element is not a square":
+                                raise
+                            return None
+                        roots_by_factor.append((root,))
 
                 from itertools import product
+                combinations = product(*roots_by_factor)
+                if not all:
+                    return parent._cartesian_product_of_elements(
+                        next(combinations))
                 return [parent._cartesian_product_of_elements(roots)
-                        for roots in product(*roots_by_factor)]
+                        for roots in combinations]

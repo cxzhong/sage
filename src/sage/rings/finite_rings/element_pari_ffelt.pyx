@@ -1114,7 +1114,7 @@ cdef class FiniteFieldElement_pari_ffelt(FinitePolyExtElement):
             sig_off()
             if extend:
                 from sage.categories.finite_fields import _sqrt_in_extension
-                return _sqrt_in_extension(self, all, name)
+                return _sqrt_in_extension(self, all, name, algorithm)
             if all:
                 return []
             else:

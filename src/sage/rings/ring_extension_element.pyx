@@ -37,7 +37,7 @@ from sage.rings.ring_extension_conversion cimport backend_parent, backend_elemen
 from sage.rings.ring_extension_conversion cimport to_backend, from_backend
 
 
-def _inspect_keyword_parameters(method):
+def _inspect_keyword_parameters(method, skip_first=False):
     r"""
     Return the keyword parameters accepted by ``method``.
 
@@ -53,22 +53,55 @@ def _inspect_keyword_parameters(method):
     try:
         parameters = signature(method).parameters
     except (TypeError, ValueError):
-        return False, frozenset()
+        return None
+    parameters = tuple(parameters.items())
+    if skip_first and parameters:
+        parameters = parameters[1:]
     return (any(parameter.kind == Parameter.VAR_KEYWORD
-                for parameter in parameters.values()),
-            frozenset(name for name, parameter in parameters.items()
+                for _, parameter in parameters),
+            frozenset(name for name, parameter in parameters
                       if parameter.kind in (Parameter.POSITIONAL_OR_KEYWORD,
                                             Parameter.KEYWORD_ONLY)))
 
 
 @lru_cache(maxsize=256)
 def _cached_keyword_parameters(function):
-    r"""Return cached keyword parameters for a stable function object."""
-    return _inspect_keyword_parameters(function)
+    r"""
+    Return cached keyword parameters for a stable function object.
+
+    The first parameter of an unbound function is supplied by its bound
+    instance and is therefore not a forwarded keyword::
+
+        sage: from sage.rings.ring_extension_element import _cached_keyword_parameters
+        sage: class C:
+        ....:     def f(instance, *, name=None): pass
+        sage: _cached_keyword_parameters(C.f)
+        (False, frozenset({'name'}))
+    """
+    return _inspect_keyword_parameters(function, skip_first=True)
 
 
 def _keyword_parameters(method):
-    r"""Return keyword parameters, caching bound methods by function."""
+    r"""
+    Return keyword parameters, caching bound methods by function.
+
+    EXAMPLES::
+
+        sage: from sage.rings.ring_extension_element import _keyword_parameters
+        sage: class C:
+        ....:     def f(self, *, algorithm=None): pass
+        sage: _keyword_parameters(C().f)
+        (False, frozenset({'algorithm'}))
+
+    A callable whose signature cannot be inspected is reported explicitly,
+    so callers do not silently discard requested keywords::
+
+        sage: class D:
+        ....:     def f(self): pass
+        sage: D.f.__signature__ = 'invalid'
+        sage: _keyword_parameters(D().f) is None
+        True
+    """
     function = getattr(method, '__func__', None)
     if function is None:
         return _inspect_keyword_parameters(method)
@@ -726,6 +759,33 @@ cdef class RingExtensionElement(CommutativeAlgebraElement):
             ....:     assert len(roots) == 2
             ....:     assert all(r^2 == a for r in roots)
 
+        Different nonsquares use the same wrapped finite-field parent::
+
+            sage: F = GF(7**3, 'a')
+            sage: E = F.over()
+            sage: r = E(F(3)).sqrt(name='w')
+            sage: s = E(F(5)).sqrt(name='w')
+            sage: r.parent() is s.parent()
+            True
+            sage: (r + s).parent() is r.parent()
+            True
+            sage: r**2 == E(F(3)) and s**2 == E(F(5))
+            True
+            sage: rr, ss = loads(dumps((r, s)))
+            sage: rr.parent() is ss.parent() and (rr + ss).parent() is rr.parent()
+            True
+
+        The defining morphism of a polynomial quotient field is pickleable::
+
+            sage: R.<x> = GF(5)[]
+            sage: L.<b> = R.quotient(x**2 + 2)
+            sage: W = L.over()
+            sage: u = L.quadratic_nonresidue()
+            sage: r = W(u).sqrt(name='w')
+            sage: rr = loads(dumps(r))
+            sage: rr**2 == rr.parent()(W(u))
+            True
+
         Names are part of the reconstructed parent's factory data::
 
             sage: P = a.sqrt(name='wfresh').parent()
@@ -747,19 +807,39 @@ cdef class RingExtensionElement(CommutativeAlgebraElement):
         options = {'extend': extend, 'all': all}
         method = self._backend.sqrt
         if algorithm is not None or name is not None:
-            accepts_all, parameters = _keyword_parameters(method)
-            if (algorithm is not None
-                    and (accepts_all or 'algorithm' in parameters)):
-                options['algorithm'] = algorithm
-            if name is not None and (accepts_all or 'name' in parameters):
-                options['name'] = name
+            keyword_parameters = _keyword_parameters(method)
+            if keyword_parameters is None:
+                if algorithm is not None:
+                    options['algorithm'] = algorithm
+                if name is not None:
+                    options['name'] = name
+            else:
+                accepts_all, parameters = keyword_parameters
+                if (algorithm is not None
+                        and (accepts_all or 'algorithm' in parameters)):
+                    options['algorithm'] = algorithm
+                if name is not None and (accepts_all or 'name' in parameters):
+                    options['name'] = name
         sq = method(**options)
         return self._wrap_sqrt_output(sq, all, name)
 
     square_root = sqrt
 
     def _wrap_sqrt_output(self, sq, all, name):
-        r"""Wrap backend square roots as elements of a ring extension."""
+        r"""
+        Wrap backend square roots as elements of a ring extension.
+
+        EXAMPLES::
+
+            sage: K = GF(5).over()
+            sage: q = K(4)
+            sage: roots = q._wrap_sqrt_output([GF(5)(2), GF(5)(3)],
+            ....:                             True, None)
+            sage: roots == [K(2), K(3)] and all(root**2 == q for root in roots)
+            True
+            sage: q._wrap_sqrt_output([], True, None)
+            []
+        """
         if all:
             if not sq:
                 return []
@@ -774,12 +854,19 @@ cdef class RingExtensionElement(CommutativeAlgebraElement):
                 raise ValueError("you must specify a variable name")
             from sage.structure.category_object import normalize_names
             names = normalize_names(1, name)
+            from sage.categories.finite_fields import FiniteFields
+            if backend_parent in FiniteFields():
+                extension_gen = backend_parent.gen()
+            else:
+                extension_gen = gen
             constructors = [
                 (RingExtensionWithGen,
-                 {'gen': gen, 'names': names, 'is_backend_exposed': True}),
+                 {'gen': extension_gen, 'names': names,
+                  'is_backend_exposed': True}),
                 (RingExtension_generic, {'is_backend_exposed': True}),
             ]
-            parent = RingExtension(backend_parent, parent, gens=(gen,),
+            parent = RingExtension(backend_parent, parent,
+                                   gens=(extension_gen,),
                                    names=names, constructors=constructors)
         if all:
             return [ parent(s) for s in sq ]

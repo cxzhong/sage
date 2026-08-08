@@ -12,33 +12,151 @@ Finite fields
 #                  https://www.gnu.org/licenses/
 # *****************************************************************************
 
+from functools import lru_cache
+
 from sage.categories.category_with_axiom import CategoryWithAxiom
 from sage.categories.enumerated_sets import EnumeratedSets
 from sage.misc.cachefunc import cached_method
 from sage.rings.integer import Integer
 
 
-def _sqrt_in_extension(element, all, name):
+def _pickleable_quotient_field_morphism(parent, mapping, codomain):
+    r"""
+    Rebuild ``mapping`` as a pickleable morphism defined by generator images.
+
+    The isomorphism returned by polynomial quotient fields can contain local
+    callables.  Rebuilding it from generator images also handles towers of
+    quotient fields and makes the resulting map safe to store in extension
+    parents::
+
+        sage: from sage.categories.finite_fields import _pickleable_quotient_field_morphism
+        sage: R.<x> = GF(5)[]
+        sage: K.<a> = R.quotient(x**2 + 2)
+        sage: _, mapping, F = K._isomorphic_ring()
+        sage: morphism = _pickleable_quotient_field_morphism(K, mapping, F)
+        sage: loads(dumps(morphism))(a) == morphism(a)
+        True
+    """
+    from sage.rings.polynomial.polynomial_quotient_ring import (
+        PolynomialQuotientRing_generic,
+    )
+
+    base = parent.base_ring()
+    if isinstance(base, PolynomialQuotientRing_generic):
+        base_map = _pickleable_quotient_field_morphism(base, mapping,
+                                                       codomain)
+    else:
+        base_map = base.hom([mapping(gen) for gen in base.gens()], codomain,
+                            check=False)
+    return parent.hom([mapping(parent.gen())], codomain, base_map=base_map,
+                      check=False)
+
+
+@lru_cache(maxsize=256)
+def _sqrt_extension(parent, name):
+    r"""
+    Return a reusable quadratic finite-field extension of ``parent``.
+
+    The returned parent is a genuine finite field whenever Sage can construct
+    an embedding of ``parent`` into its absolute representation.  This makes
+    roots of different elements compatible with each other::
+
+        sage: from sage.categories.finite_fields import _sqrt_extension
+        sage: K.<a> = GF(7**3)
+        sage: E, embedding = _sqrt_extension(K, 'sqrt_ext')
+        sage: E in FiniteFields() and E.has_coerce_map_from(K)
+        True
+        sage: embedding(K.gen()).parent() is E
+        True
+
+    Polynomial quotient fields are connected to an isomorphic absolute
+    finite field before the quadratic extension is formed::
+
+        sage: R.<x> = GF(5)[]
+        sage: L.<b> = R.quotient(x**2 + 2)
+        sage: E, embedding = _sqrt_extension(L, 'sqrt_ext')
+        sage: E in FiniteFields() and embedding(L.gen()).parent() is E
+        True
+    """
+    from sage.rings.finite_rings.finite_field_base import (
+        FiniteField as FiniteField_base,
+    )
+
+    if isinstance(parent, FiniteField_base):
+        return parent.extension(2, name, map=True)
+
+    from sage.rings.polynomial.polynomial_quotient_ring import (
+        PolynomialQuotientRing_generic,
+    )
+    if (isinstance(parent, PolynomialQuotientRing_generic)
+            and parent in FiniteFields()):
+        try:
+            _, to_field, field = parent._isomorphic_ring()
+        except NotImplementedError:
+            return None
+        extension, embedding = field.extension(2, name, map=True)
+        mapping = _pickleable_quotient_field_morphism(
+            parent, embedding * to_field, extension
+        )
+        if not extension.has_coerce_map_from(parent):
+            extension.register_coercion(mapping)
+        return extension, extension.coerce_map_from(parent)
+
+    if parent in FiniteFields():
+        from sage.rings.finite_rings.finite_field_constructor import GF
+        extension = GF(parent.order()**2, name)
+        embedding = extension.coerce_map_from(parent)
+        if embedding is not None:
+            return extension, embedding
+
+    return None
+
+
+def _sqrt_in_extension(element, all, name, algorithm=None):
     r"""
     Return square roots of ``element`` in a quadratic extension.
 
-    Repeated calls reuse the polynomial quotient parent::
+    Standard finite fields use a common genuine finite-field parent, so roots
+    of different nonsquares can be combined::
 
-        sage: R.<x> = GF(5)[]
-        sage: K.<a> = R.quotient(x^2 + 2)
-        sage: u = K.quadratic_nonresidue()
+        sage: K.<a> = GF(7**3)
         sage: from sage.categories.finite_fields import _sqrt_in_extension
-        sage: r = _sqrt_in_extension(u, False, 'w')
-        sage: s = _sqrt_in_extension(u, False, 'w')
-        sage: r.parent() is s.parent() and r^2 == u
+        sage: r = _sqrt_in_extension(K(3), False, None)
+        sage: s = _sqrt_in_extension(K(5), False, None)
+        sage: r.parent() is s.parent() and (r + s).parent() is r.parent()
+        True
+        sage: from sage.rings.finite_rings.finite_field_base import FiniteField
+        sage: isinstance(r.parent(), FiniteField)
+        True
+        sage: r.parent().variable_names()
+        ('sqrt_ext',)
+        sage: r.parent().multiplicative_generator().parent() is r.parent()
+        True
+        sage: r**2 == K(3) and s**2 == K(5)
+        True
+
+    For finite non-domains, repeated fallback calls reuse the polynomial
+    quotient parent::
+
+        sage: R.<x> = Zmod(4)[]
+        sage: A.<a> = R.quotient(x**2)
+        sage: r = _sqrt_in_extension(a, False, 'w')
+        sage: s = _sqrt_in_extension(a, False, 'w')
+        sage: r.parent() is s.parent() and r**2 == a
         True
     """
-    from sage.rings.polynomial.polynomial_ring_constructor import PolynomialRing
     from sage.rings.polynomial.polynomial_quotient_ring import PolynomialQuotientRing
+    from sage.rings.polynomial.polynomial_ring_constructor import PolynomialRing
 
     parent = element.parent()
     if name is None:
-        name = 'sqrt'
+        name = 'sqrt_ext'
+    extension_data = _sqrt_extension(parent, name)
+    if extension_data is not None:
+        extension, embedding = extension_data
+        return embedding(element).sqrt(extend=False, all=all,
+                                       algorithm=algorithm)
+
     polynomial_ring = PolynomialRing(parent, 'x')
     x = polynomial_ring.gen()
     extension = PolynomialQuotientRing(
@@ -338,7 +456,7 @@ class FiniteFields(CategoryWithAxiom):
             is_square = character == self.parent().one()
             return is_square
 
-        def _tonelli(self, check=True):
+        def _tonelli(self, raise_on_failure=True):
             r"""
             Return a square root of the element if it exists
             using Tonelli's algorithm, only works for finite fields
@@ -353,12 +471,15 @@ class FiniteFields(CategoryWithAxiom):
                 sage: k.<a> = GF((5, 10))
                 sage: k(2).is_square()
                 True
-                sage: k(2)._tonelli()^2 == k(2)
+                sage: k(2)._tonelli()**2 == k(2)
                 True
                 sage: k.quadratic_nonresidue()._tonelli()
                 Traceback (most recent call last):
                 ...
                 ValueError: element is not a square
+                sage: k.quadratic_nonresidue()._tonelli(
+                ....:     raise_on_failure=False) is None
+                True
             """
             parent = self.parent()
             if parent.characteristic() == 2:
@@ -369,12 +490,13 @@ class FiniteFields(CategoryWithAxiom):
             even_exp, odd_order = (q - 1).val_unit(2)
             one = parent.one()
             residue = self**odd_order
-            if check:
-                character = residue
-                for _ in range(even_exp - 1):
-                    character *= character
-                if character != one:
+            character = residue
+            for _ in range(even_exp - 1):
+                character *= character
+            if character != one:
+                if raise_on_failure:
                     raise ValueError("element is not a square")
+                return None
             generator = parent.quadratic_nonresidue()
             correction = generator**odd_order
             square_root = self**((odd_order + 1) // 2)
@@ -387,7 +509,7 @@ class FiniteFields(CategoryWithAxiom):
                     power *= power
                     i += 1
                 if i == exponent:
-                    raise ValueError("element is not a square")
+                    raise ArithmeticError("Tonelli's algorithm failed")
                 factor = correction**(2**(exponent - i - 1))
                 square_root *= factor
                 factor *= factor
@@ -413,9 +535,13 @@ class FiniteFields(CategoryWithAxiom):
                 sage: k.<a> = GF((5, 10))
                 sage: k(2).is_square()
                 True
-                sage: k(2)._cipolla()^2 == k(2)
+                sage: k(2)._cipolla()**2 == k(2)
                 True
                 sage: k.quadratic_nonresidue()._cipolla()
+                Traceback (most recent call last):
+                ...
+                ValueError: element is not a square
+                sage: k.quadratic_nonresidue()._cipolla(check=False)
                 Traceback (most recent call last):
                 ...
                 ValueError: element is not a square
@@ -437,7 +563,10 @@ class FiniteFields(CategoryWithAxiom):
             X = polygen(parent)
             f = X**2 - t*X + self
             b = pow(X, (q+1)//2, f)
-            return b[0]
+            square_root = b[0]
+            if square_root * square_root != self:
+                raise ValueError("element is not a square")
+            return square_root
 
         def sqrt(self, *, extend=True, all=False, algorithm=None, name=None):
             r"""
@@ -634,13 +763,11 @@ class FiniteFields(CategoryWithAxiom):
                 if is_square:
                     square_root = self._cipolla(check=False)
             else:
-                try:
-                    square_root = self._tonelli()
-                except ValueError:
-                    is_square = False
+                square_root = self._tonelli(raise_on_failure=False)
+                is_square = square_root is not None
             if not is_square:
                 if extend:
-                    return _sqrt_in_extension(self, all, name)
+                    return _sqrt_in_extension(self, all, name, algorithm)
                 if all:
                     return []
                 raise ValueError("element is not a square")

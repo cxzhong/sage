@@ -1161,7 +1161,7 @@ cdef class IntegerMod_abstract(FiniteRingElement):
             sage: mod(15, 389).sqrt(extend=False)
             Traceback (most recent call last):
             ...
-            ValueError: self must be a square
+            ValueError: element is not a square
             sage: Mod(1/9, next_prime(2^40)).sqrt()^(-2)
             9
             sage: Mod(1/25, next_prime(2^90)).sqrt()^(-2)
@@ -1188,11 +1188,11 @@ cdef class IntegerMod_abstract(FiniteRingElement):
             sage: x.sqrt(extend=False)
             Traceback (most recent call last):
             ...
-            ValueError: self must be a square
+            ValueError: element is not a square
             sage: y = x.sqrt(); y
-            sqrt359
+            sqrt_ext
             sage: y.parent()
-            Univariate Quotient Polynomial Ring in sqrt359 over
+            Univariate Quotient Polynomial Ring in sqrt_ext over
              Ring of integers modulo 360 with modulus x^2 + 1
             sage: y^2
             359
@@ -1269,24 +1269,20 @@ cdef class IntegerMod_abstract(FiniteRingElement):
 
         if not self.is_square_c():
             if extend:
-                y = name if name is not None else 'sqrt%s' % self
+                if self._parent.is_field():
+                    from sage.categories.finite_fields import _sqrt_in_extension
+                    return _sqrt_in_extension(self, all, name, algorithm)
+                y = name if name is not None else 'sqrt_ext'
                 R = self.parent()['x']
                 modulus = R.gen()**2 - R(self)
-                if self._parent.is_field():
-                    from sage.rings.finite_rings.finite_field_constructor import FiniteField
-                    Q = FiniteField(self._modulus.sageInteger**2, y, modulus)
-                else:
-                    R = self.parent()['x']
-                    Q = R.quotient(modulus, names=(y,))
+                Q = R.quotient(modulus, names=(y,))
                 z = Q.gen()
                 if all:
-                    if self._parent.is_field():
-                        return [z, -z] if z != -z else [z]
                     raise NotImplementedError("Finding all square roots in extensions is not implemented; try extend=False to find only roots in the base ring Zmod(n).")
                 return z
             if all:
                 return []
-            raise ValueError("self must be a square")
+            raise ValueError("element is not a square")
 
         F = self._parent.factored_order()
         cdef long e, exp, val
@@ -2985,7 +2981,7 @@ cdef class IntegerMod_int(IntegerMod_abstract):
             sage: mod(15, 389).sqrt(extend=False)
             Traceback (most recent call last):
             ...
-            ValueError: self must be a square
+            ValueError: element is not a square
             sage: Mod(1/9, next_prime(2^40)).sqrt()^(-2)
             9
             sage: Mod(1/25, next_prime(2^90)).sqrt()^(-2)
@@ -2999,11 +2995,11 @@ cdef class IntegerMod_int(IntegerMod_abstract):
             sage: x.sqrt(extend=False)
             Traceback (most recent call last):
             ...
-            ValueError: self must be a square
+            ValueError: element is not a square
             sage: y = x.sqrt(); y
-            sqrt359
+            sqrt_ext
             sage: y.parent()
-            Univariate Quotient Polynomial Ring in sqrt359
+            Univariate Quotient Polynomial Ring in sqrt_ext
              over Ring of integers modulo 360 with modulus x^2 + 1
             sage: y^2
             359
@@ -3102,7 +3098,7 @@ cdef class IntegerMod_int(IntegerMod_abstract):
             if not extend:
                 if all:
                     return []
-                raise ValueError("self must be a square")
+                raise ValueError("element is not a square")
         # Now we use a heuristic to guess whether or not it will
         # be faster to just brute-force search for squares in a c loop...
         # TODO: more tuning?
@@ -3118,7 +3114,7 @@ cdef class IntegerMod_int(IntegerMod_abstract):
             if not extend:
                 if all:
                     return []
-                raise ValueError("self must be a square")
+                raise ValueError("element is not a square")
         # Either it failed but extend was True, or the generic algorithm is better
         return IntegerMod_abstract.sqrt(self, extend=extend, all=all,
                                         algorithm=algorithm, name=name)
@@ -4030,7 +4026,7 @@ def square_root_mod_prime_power(IntegerMod_abstract a, p, e):
     # strip off even powers of p
     cdef int i, val = a.lift().valuation(p)
     if val % 2 == 1:
-        raise ValueError("self must be a square")
+        raise ValueError("element is not a square")
     if val > 0:
         unit = a._parent(a.lift() // p**val)
     else:
@@ -4041,7 +4037,7 @@ def square_root_mod_prime_power(IntegerMod_abstract a, p, e):
     if p == 2:
         # squares in Z/2^e are of the form 4^n*(1+8*m)
         if unit.lift() % 8 != 1:
-            raise ValueError("self must be a square")
+            raise ValueError("element is not a square")
 
         u = unit.lift()
         x = next(i for i in range(1,8,2) if i*i & 31 == u & 31)
