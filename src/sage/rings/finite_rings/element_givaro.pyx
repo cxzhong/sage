@@ -1036,7 +1036,7 @@ cdef class FiniteField_givaroElement(FinitePolyExtElement):
             return True
         return self.element % 2 == 0
 
-    def sqrt(FiniteField_givaroElement self, *, extend=True, all=False,
+    def sqrt(FiniteField_givaroElement self, *, extend=False, all=False,
              algorithm=None, name=None):
         """
         Return a square root of this finite field element, extending its
@@ -1044,7 +1044,7 @@ cdef class FiniteField_givaroElement(FinitePolyExtElement):
 
         INPUT:
 
-        - ``extend`` -- boolean (default: ``True``); if ``True``, return a
+        - ``extend`` -- boolean (default: ``False``); if ``True``, return a
           square root in an extension ring when necessary
 
         - ``all`` -- boolean (default: ``False``); if ``True``, return all
@@ -1074,7 +1074,7 @@ cdef class FiniteField_givaroElement(FinitePolyExtElement):
             sage: k(4).sqrt()
             2
             sage: k.<a> = GF(7^3)
-            sage: k(3).sqrt(extend=False)
+            sage: k(3).sqrt()
             Traceback (most recent call last):
             ...
             ValueError: element is not a square
@@ -1106,7 +1106,7 @@ cdef class FiniteField_givaroElement(FinitePolyExtElement):
             ....:         assert all(r.parent() is K and r^2 == q for r in roots)
             ....:     assert method(algorithm='backend-default')^2 == q
             sage: for method in (a.sqrt, a.square_root):
-            ....:     root = method(name='w')
+            ....:     root = method(extend=True, name='w')
             ....:     assert root^2 == a
         """
         cdef Cache_givaro cache = <Cache_givaro>self._cache

@@ -703,13 +703,13 @@ cdef class RingExtensionElement(CommutativeAlgebraElement):
             return is_sq, sq
         return is_sq
 
-    def sqrt(self, *, extend=True, all=False, algorithm=None, name=None):
+    def sqrt(self, *, extend=False, all=False, algorithm=None, name=None):
         r"""
         Return a square root or all square roots of this element.
 
         INPUT:
 
-        - ``extend`` -- boolean (default: ``True``); if ``True``, return a
+        - ``extend`` -- boolean (default: ``False``); if ``True``, return a
           square root in an extension ring, if necessary. Otherwise, raise a
           :exc:`ValueError` if the root is not in the ring.
 
@@ -743,15 +743,20 @@ cdef class RingExtensionElement(CommutativeAlgebraElement):
 
         A nonsquare has no roots in the unextended ring::
 
-            sage: a.sqrt(extend=False, all=True)
+            sage: a.sqrt(all=True)
             []
-            sage: a.square_root(extend=False, all=True)
+            sage: a.square_root(all=True)
             []
+            sage: a.sqrt()
+            Traceback (most recent call last):
+            ...
+            ValueError: element is not a square
 
         Both method names wrap roots from a backend quadratic extension::
 
             sage: for method in (a.sqrt, a.square_root):
-            ....:     root = method(name='w', algorithm='cipolla')
+            ....:     root = method(extend=True, name='w',
+            ....:                   algorithm='cipolla')
             ....:     assert root^2 == a
             ....:     assert root.parent().variable_names() == ('w',)
             ....:     roots = method(extend=True, all=True, name='w',
@@ -763,8 +768,8 @@ cdef class RingExtensionElement(CommutativeAlgebraElement):
 
             sage: F = GF(7**3, 'a')
             sage: E = F.over()
-            sage: r = E(F(3)).sqrt(name='w')
-            sage: s = E(F(5)).sqrt(name='w')
+            sage: r = E(F(3)).sqrt(extend=True, name='w')
+            sage: s = E(F(5)).sqrt(extend=True, name='w')
             sage: r.parent() is s.parent()
             True
             sage: (r + s).parent() is r.parent()
@@ -781,14 +786,14 @@ cdef class RingExtensionElement(CommutativeAlgebraElement):
             sage: L.<b> = R.quotient(x**2 + 2)
             sage: W = L.over()
             sage: u = L.quadratic_nonresidue()
-            sage: r = W(u).sqrt(name='w')
+            sage: r = W(u).sqrt(extend=True, name='w')
             sage: rr = loads(dumps(r))
             sage: rr**2 == rr.parent()(W(u))
             True
 
         Names are part of the reconstructed parent's factory data::
 
-            sage: P = a.sqrt(name='wfresh').parent()
+            sage: P = a.sqrt(extend=True, name='wfresh').parent()
             sage: factory, version, key, extra = P._factory_data
             sage: Q = factory.create_object(version, key, **extra)
             sage: Q.variable_names()

@@ -838,13 +838,13 @@ cdef class FinitePolyExtElement(FiniteRingElement):
         a = self**(n // 2)
         return a == 1 or a == 0
 
-    def sqrt(self, *, extend=True, all=False, algorithm=None, name=None):
+    def sqrt(self, *, extend=False, all=False, algorithm=None, name=None):
         """
         The square root function.
 
         INPUT:
 
-        - ``extend`` -- boolean (default: ``True``); if ``True``, return a
+        - ``extend`` -- boolean (default: ``False``); if ``True``, return a
           square root in an extension ring when necessary
 
         - ``all`` -- boolean (default: ``False``); if ``True``, return all
@@ -860,6 +860,8 @@ cdef class FinitePolyExtElement(FiniteRingElement):
         EXAMPLES::
 
             sage: F = FiniteField(7^2, 'a')
+            sage: F(2).square_root()
+            3
             sage: F(2).square_root()**2
             2
             sage: F(3).square_root()
@@ -869,7 +871,7 @@ cdef class FinitePolyExtElement(FiniteRingElement):
             sage: F(4).square_root()
             2
             sage: K = FiniteField(7^3, 'alpha', implementation='pari_ffelt')
-            sage: K(3).square_root(extend=False)
+            sage: K(3).square_root()
             Traceback (most recent call last):
             ...
             ValueError: element is not a square

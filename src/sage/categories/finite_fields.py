@@ -568,13 +568,13 @@ class FiniteFields(CategoryWithAxiom):
                 raise ValueError("element is not a square")
             return square_root
 
-        def sqrt(self, *, extend=True, all=False, algorithm=None, name=None):
+        def sqrt(self, *, extend=False, all=False, algorithm=None, name=None):
             r"""
             Return the square root of the element if it exists.
 
             INPUT:
 
-            - ``extend`` -- boolean (default: ``True``); if ``True``, return
+            - ``extend`` -- boolean (default: ``False``); if ``True``, return
               roots in a quadratic extension when necessary
 
             - ``all`` -- boolean (default: ``False``); whether to return all
@@ -619,11 +619,11 @@ class FiniteFields(CategoryWithAxiom):
                 True
                 sage: 3 in my_sqrts
                 True
-                sage: k.quadratic_nonresidue().sqrt(extend=False)
+                sage: k.quadratic_nonresidue().sqrt()
                 Traceback (most recent call last):
                 ...
                 ValueError: element is not a square
-                sage: k.quadratic_nonresidue().sqrt(extend=False, all=True)
+                sage: k.quadratic_nonresidue().sqrt(all=True)
                 []
 
             The common finite-field keyword interface is accepted, and roots
@@ -644,7 +644,7 @@ class FiniteFields(CategoryWithAxiom):
 
                 sage: a = k.quadratic_nonresidue()
                 sage: for method in (a.sqrt, a.square_root):
-                ....:     s = method(name='s')
+                ....:     s = method(extend=True, name='s')
                 ....:     assert s^2 == a and s.parent() in FiniteFields()
 
             Both method names implement the same keyword contract::
@@ -675,7 +675,7 @@ class FiniteFields(CategoryWithAxiom):
                 ....:               for method in (field.one().sqrt,
                 ....:                              field.one().square_root)}
                 sage: signatures
-                {'(*, extend=True, all=False, algorithm=None, name=None)'}
+                {'(*, extend=False, all=False, algorithm=None, name=None)'}
                 sage: for field in fields:
                 ....:     value = field.gen()^2
                 ....:     for method in (value.sqrt, value.square_root):

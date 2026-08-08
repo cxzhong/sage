@@ -899,7 +899,7 @@ class CommutativeRings(CategoryWithAxiom):
                 return [CommutativeRings().Finite()]
 
         class ElementMethods:
-            def sqrt(self, *, extend=True, all=False, algorithm=None,
+            def sqrt(self, *, extend=False, all=False, algorithm=None,
                      name=None):
                 r"""
                 Return square roots using the common finite-ring interface.
@@ -916,18 +916,18 @@ class CommutativeRings(CategoryWithAxiom):
                     sage: signatures = {str(signature(method))
                     ....:               for method in (a.sqrt, a.square_root)}
                     sage: signatures
-                    {'(*, extend=True, all=False, algorithm=None, name=None)'}
+                    {'(*, extend=False, all=False, algorithm=None, name=None)'}
                     sage: roots = A.zero().sqrt(extend=False, all=True,
                     ....:                       algorithm='backend-default')
                     sage: isinstance(roots, list), set(roots) == {i*a for i in GF(5)}
                     (True, True)
                     sage: a.square_root(extend=False, all=True)
                     []
-                    sage: a.sqrt(extend=False)
+                    sage: a.sqrt()
                     Traceback (most recent call last):
                     ...
                     ValueError: element is not a square
-                    sage: root = a.sqrt(name='w'); root**2 == a
+                    sage: root = a.sqrt(extend=True, name='w'); root**2 == a
                     True
 
                 A concrete parent may provide an iterator without claiming
@@ -949,7 +949,8 @@ class CommutativeRings(CategoryWithAxiom):
                     sage: B = PolynomialQuotientRing_generic(
                     ....:     R, x^2 + 2, 'b', category=IntegralDomains())
                     sage: b = B.gen()
-                    sage: [root^2 == b for root in b.sqrt(all=True, name='w')]
+                    sage: [root^2 == b for root in b.sqrt(
+                    ....:     extend=True, all=True, name='w')]
                     [True, True]
 
                 Cartesian products use the same interface and enumerate all

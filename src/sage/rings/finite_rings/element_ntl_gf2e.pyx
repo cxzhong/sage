@@ -638,7 +638,7 @@ cdef class FiniteField_ntl_gf2eElement(FinitePolyExtElement):
         """
         return True
 
-    def sqrt(FiniteField_ntl_gf2eElement self, *, extend=True, all=False,
+    def sqrt(FiniteField_ntl_gf2eElement self, *, extend=False, all=False,
              algorithm=None, name=None):
         """
         Return a square root of this finite field element in its parent.

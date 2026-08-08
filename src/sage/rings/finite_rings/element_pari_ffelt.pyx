@@ -1026,13 +1026,13 @@ cdef class FiniteFieldElement_pari_ffelt(FinitePolyExtElement):
         sig_off()
         return bool(i)
 
-    def sqrt(self, *, extend=True, all=False, algorithm=None, name=None):
+    def sqrt(self, *, extend=False, all=False, algorithm=None, name=None):
         """
         Return a square root of ``self``, if it exists.
 
         INPUT:
 
-        - ``extend`` -- boolean (default: ``True``); if ``True``, return a
+        - ``extend`` -- boolean (default: ``False``); if ``True``, return a
           square root in an extension field when necessary
 
         - ``all`` -- boolean (default: ``False``)
@@ -1068,7 +1068,7 @@ cdef class FiniteFieldElement_pari_ffelt(FinitePolyExtElement):
             [2, 5]
 
             sage: K = FiniteField(7^3, 'alpha', implementation='pari_ffelt')
-            sage: K(3).sqrt(extend=False)
+            sage: K(3).sqrt()
             Traceback (most recent call last):
             ...
             ValueError: element is not a square
@@ -1092,7 +1092,7 @@ cdef class FiniteFieldElement_pari_ffelt(FinitePolyExtElement):
             ....:     assert method(algorithm='backend-default')^2 == q
             sage: nonsquare = K.quadratic_nonresidue()
             sage: for method in (nonsquare.sqrt, nonsquare.square_root):
-            ....:     root = method(name='w')
+            ....:     root = method(extend=True, name='w')
             ....:     assert root^2 == nonsquare
         """
         cdef GEN s

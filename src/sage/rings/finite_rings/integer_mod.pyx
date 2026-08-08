@@ -1118,13 +1118,13 @@ cdef class IntegerMod_abstract(FiniteRingElement):
             return 1
         return lift.__pari__().Zn_issquare(factorization)
 
-    def sqrt(self, *, extend=True, all=False, algorithm=None, name=None):
+    def sqrt(self, *, extend=False, all=False, algorithm=None, name=None):
         r"""
         Return square root or square roots of ``self`` modulo `n`.
 
         INPUT:
 
-        - ``extend`` -- boolean (default: ``True``); if ``True``, return a
+        - ``extend`` -- boolean (default: ``False``); if ``True``, return a
           square root in an extension ring, if necessary. Otherwise, raise a
           :exc:`ValueError` if the square root is not in the base ring.
 
@@ -1169,7 +1169,7 @@ cdef class IntegerMod_abstract(FiniteRingElement):
 
         Error message as requested in :issue:`38802`::
 
-            sage: sqrt(Mod(2, 101010), all=True)
+            sage: sqrt(Mod(2, 101010), extend=True, all=True)
             Traceback (most recent call last):
             ...
             NotImplementedError: Finding all square roots in extensions is not implemented; try extend=False to find only roots in the base ring Zmod(n).
@@ -1189,7 +1189,7 @@ cdef class IntegerMod_abstract(FiniteRingElement):
             Traceback (most recent call last):
             ...
             ValueError: element is not a square
-            sage: y = x.sqrt(); y
+            sage: y = x.sqrt(extend=True); y
             sqrt_ext
             sage: y.parent()
             Univariate Quotient Polynomial Ring in sqrt_ext over
@@ -2938,13 +2938,13 @@ cdef class IntegerMod_int(IntegerMod_abstract):
             return 1
         return lift.__pari__().Zn_issquare(factorization)
 
-    def sqrt(self, *, extend=True, all=False, algorithm=None, name=None):
+    def sqrt(self, *, extend=False, all=False, algorithm=None, name=None):
         r"""
         Return square root or square roots of ``self`` modulo `n`.
 
         INPUT:
 
-        - ``extend`` -- boolean (default: ``True``); if ``True``, return a
+        - ``extend`` -- boolean (default: ``False``); if ``True``, return a
           square root in an extension ring, if necessary. Otherwise, raise a
           :exc:`ValueError` if the square root is not in the base ring.
 
@@ -2996,7 +2996,7 @@ cdef class IntegerMod_int(IntegerMod_abstract):
             Traceback (most recent call last):
             ...
             ValueError: element is not a square
-            sage: y = x.sqrt(); y
+            sage: y = x.sqrt(extend=True); y
             sqrt_ext
             sage: y.parent()
             Univariate Quotient Polynomial Ring in sqrt_ext
@@ -3058,7 +3058,7 @@ cdef class IntegerMod_int(IntegerMod_abstract):
             ....:     assert method(algorithm='backend-default')^2 == q
             sage: nonsquare = GF(7)(3)
             sage: for method in (nonsquare.sqrt, nonsquare.square_root):
-            ....:     root = method(name='w')
+            ....:     root = method(extend=True, name='w')
             ....:     assert root^2 == nonsquare
             ....:     roots = method(extend=True, all=True, name='w')
             ....:     assert len(roots) == 2
