@@ -1114,6 +1114,10 @@ cdef class IntegerMod_abstract(FiniteRingElement):
         # We need to factor the modulus.  We do it here instead of
         # letting PARI do it, so that we can cache the factorisation.
         factorization = self._parent.factored_order()
+        # A single factor of exponent one means that the modulus is prime.
+        # The zero/one guards above cover characteristic two, and otherwise
+        # the Jacobi symbol just computed is the Legendre symbol.  Since it
+        # was not -1, the element is therefore a square.
         if len(factorization) == 1 and factorization[0][1] == 1:
             return 1
         return lift.__pari__().Zn_issquare(factorization)
@@ -1244,6 +1248,8 @@ cdef class IntegerMod_abstract(FiniteRingElement):
             sage: [x for x in R if x^2==17]
             [23, 41, 87, 105]
 
+        TESTS:
+
         Check the common finite-ring square-root interface on the GMP
         implementation (:issue:`40796`)::
 
@@ -1254,13 +1260,13 @@ cdef class IntegerMod_abstract(FiniteRingElement):
             ....:         roots = method(extend=False, all=True,
             ....:                        algorithm=algorithm, name='w')
             ....:         assert isinstance(roots, list) and len(roots) == 2
-            ....:         assert all(r.parent() is K and r^2 == q for r in roots)
-            ....:     assert method(algorithm='backend-default')^2 == q
+            ....:         assert all(r.parent() is K and r**2 == q for r in roots)
+            ....:     assert method(algorithm='backend-default')**2 == q
             sage: nonsquare = K.quadratic_nonresidue()
             sage: for method in (nonsquare.sqrt, nonsquare.square_root):
             ....:     roots = method(extend=True, all=True, name='w')
             ....:     assert len(roots) == 2
-            ....:     assert all(root^2 == nonsquare for root in roots)
+            ....:     assert all(root**2 == nonsquare for root in roots)
         """
         if self.is_one():
             if all:
@@ -1271,7 +1277,9 @@ cdef class IntegerMod_abstract(FiniteRingElement):
             if extend:
                 if self._parent.is_field():
                     from sage.categories.finite_fields import _sqrt_in_extension
-                    return _sqrt_in_extension(self, all, name, algorithm)
+                    return _sqrt_in_extension(
+                        self, all_roots=all, name=name, algorithm=algorithm
+                    )
                 y = name if name is not None else 'sqrt_ext'
                 R = self.parent()['x']
                 modulus = R.gen()**2 - R(self)
@@ -2934,6 +2942,10 @@ cdef class IntegerMod_int(IntegerMod_abstract):
         # We need to factor the modulus.  We do it here instead of
         # letting PARI do it, so that we can cache the factorisation.
         factorization = self._parent.factored_order()
+        # A single factor of exponent one means that the modulus is prime.
+        # The zero/one guards above cover characteristic two, and otherwise
+        # the Jacobi symbol just computed is the Legendre symbol.  Since it
+        # was not -1, the element is therefore a square.
         if len(factorization) == 1 and factorization[0][1] == 1:
             return 1
         return lift.__pari__().Zn_issquare(factorization)
@@ -3044,6 +3056,8 @@ cdef class IntegerMod_int(IntegerMod_abstract):
             sage: [x for x in R if x^2==17]
             [23, 41, 87, 105]
 
+        TESTS:
+
         Check the common finite-ring square-root interface on the native
         implementation (:issue:`40796`)::
 
@@ -3054,15 +3068,15 @@ cdef class IntegerMod_int(IntegerMod_abstract):
             ....:         roots = method(extend=False, all=True,
             ....:                        algorithm=algorithm, name='w')
             ....:         assert isinstance(roots, list) and len(roots) == 4
-            ....:         assert all(r.parent() is K and r^2 == q for r in roots)
-            ....:     assert method(algorithm='backend-default')^2 == q
+            ....:         assert all(r.parent() is K and r**2 == q for r in roots)
+            ....:     assert method(algorithm='backend-default')**2 == q
             sage: nonsquare = GF(7)(3)
             sage: for method in (nonsquare.sqrt, nonsquare.square_root):
             ....:     root = method(extend=True, name='w')
-            ....:     assert root^2 == nonsquare
+            ....:     assert root**2 == nonsquare
             ....:     roots = method(extend=True, all=True, name='w')
             ....:     assert len(roots) == 2
-            ....:     assert all(r^2 == nonsquare for r in roots)
+            ....:     assert all(r**2 == nonsquare for r in roots)
             sage: for method in (Zmod(15)(2).sqrt, Zmod(15)(2).square_root):
             ....:     try:
             ....:         method(extend=True, all=True, name='w')

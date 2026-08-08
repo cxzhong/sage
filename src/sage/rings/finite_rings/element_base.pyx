@@ -889,7 +889,9 @@ cdef class FinitePolyExtElement(FiniteRingElement):
 
         if extend:
             from sage.categories.finite_fields import _sqrt_in_extension
-            return _sqrt_in_extension(self, all, name, algorithm)
+            return _sqrt_in_extension(
+                self, all_roots=all, name=name, algorithm=algorithm
+            )
         if all:
             return []
         raise ValueError("element is not a square")

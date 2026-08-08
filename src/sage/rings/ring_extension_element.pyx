@@ -735,11 +735,13 @@ cdef class RingExtensionElement(CommutativeAlgebraElement):
             sage: b.sqrt(all=True)
             [2 + 3*a + a^2, 3 + 2*a - a^2]
 
+        TESTS::
+
             sage: for method in (b.sqrt, b.square_root):
             ....:     roots = method(extend=False, all=True,
             ....:                    algorithm='cipolla')
             ....:     assert len(roots) == 2
-            ....:     assert all(r.parent() is K and r^2 == b for r in roots)
+            ....:     assert all(r.parent() is K and r**2 == b for r in roots)
 
         A nonsquare has no roots in the unextended ring::
 
@@ -757,12 +759,12 @@ cdef class RingExtensionElement(CommutativeAlgebraElement):
             sage: for method in (a.sqrt, a.square_root):
             ....:     root = method(extend=True, name='w',
             ....:                   algorithm='cipolla')
-            ....:     assert root^2 == a
+            ....:     assert root**2 == a
             ....:     assert root.parent().variable_names() == ('w',)
             ....:     roots = method(extend=True, all=True, name='w',
             ....:                    algorithm='cipolla')
             ....:     assert len(roots) == 2
-            ....:     assert all(r^2 == a for r in roots)
+            ....:     assert all(r**2 == a for r in roots)
 
         Different nonsquares use the same wrapped finite-field parent::
 
@@ -787,6 +789,8 @@ cdef class RingExtensionElement(CommutativeAlgebraElement):
             sage: W = L.over()
             sage: u = L.quadratic_nonresidue()
             sage: r = W(u).sqrt(extend=True, name='w')
+            sage: r.parent()
+            Finite Field in w of size 5^4 over its base
             sage: rr = loads(dumps(r))
             sage: rr**2 == rr.parent()(W(u))
             True
@@ -804,7 +808,7 @@ cdef class RingExtensionElement(CommutativeAlgebraElement):
             sage: Z = QQ.over()
             sage: Z(4).sqrt(name='s'), Z(4).square_root(name='s')
             (2, 2)
-            sage: Z(4).sqrt(algorithm='backend-default')^2
+            sage: Z(4).sqrt(algorithm='backend-default')**2
             4
             sage: Z(4).square_root(extend=False, all=True)
             [2, -2]
@@ -826,11 +830,11 @@ cdef class RingExtensionElement(CommutativeAlgebraElement):
                 if name is not None and (accepts_all or 'name' in parameters):
                     options['name'] = name
         sq = method(**options)
-        return self._wrap_sqrt_output(sq, all, name)
+        return self._wrap_sqrt_output(sq, all_roots=all, name=name)
 
     square_root = sqrt
 
-    def _wrap_sqrt_output(self, sq, all, name):
+    def _wrap_sqrt_output(self, sq, *, all_roots, name):
         r"""
         Wrap backend square roots as elements of a ring extension.
 
@@ -838,14 +842,14 @@ cdef class RingExtensionElement(CommutativeAlgebraElement):
 
             sage: K = GF(5).over()
             sage: q = K(4)
-            sage: roots = q._wrap_sqrt_output([GF(5)(2), GF(5)(3)],
-            ....:                             True, None)
+            sage: roots = q._wrap_sqrt_output(
+            ....:     [GF(5)(2), GF(5)(3)], all_roots=True, name=None)
             sage: roots == [K(2), K(3)] and all(root**2 == q for root in roots)
             True
-            sage: q._wrap_sqrt_output([], True, None)
+            sage: q._wrap_sqrt_output([], all_roots=True, name=None)
             []
         """
-        if all:
+        if all_roots:
             if not sq:
                 return []
             gen = sq[0]
@@ -864,6 +868,10 @@ cdef class RingExtensionElement(CommutativeAlgebraElement):
                 extension_gen = backend_parent.gen()
             else:
                 extension_gen = gen
+            # ``RingExtensionWithGen`` can reject a backend/base pair and
+            # fall through to ``RingExtension_generic``.  The generic class
+            # has no relative presentation to print, so expose its backend;
+            # the requested name remains part of the factory key.
             constructors = [
                 (RingExtensionWithGen,
                  {'gen': extension_gen, 'names': names,
@@ -873,7 +881,7 @@ cdef class RingExtensionElement(CommutativeAlgebraElement):
             parent = RingExtension(backend_parent, parent,
                                    gens=(extension_gen,),
                                    names=names, constructors=constructors)
-        if all:
+        if all_roots:
             return [ parent(s) for s in sq ]
         return parent(sq)
 

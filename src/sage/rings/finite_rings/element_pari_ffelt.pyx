@@ -1079,21 +1079,23 @@ cdef class FiniteFieldElement_pari_ffelt(FinitePolyExtElement):
             sage: (a^3 - a - 1).sqrt()
             a^16 + 2*a^15 + a^13 + 2*a^12 + a^10 + 2*a^9 + 2*a^8 + a^7 + a^6 + 2*a^5 + a^4 + 2*a^2 + 2*a + 2
 
+        TESTS:
+
         Check the common finite-field square-root interface
         (:issue:`40796`)::
 
-            sage: q = a^2
+            sage: q = a**2
             sage: for method in (q.sqrt, q.square_root):
             ....:     for algorithm in (None, 'tonelli', 'cipolla'):
             ....:         roots = method(extend=True, all=True,
             ....:                        algorithm=algorithm, name='w')
             ....:         assert isinstance(roots, list) and len(roots) == 2
-            ....:         assert all(r.parent() is K and r^2 == q for r in roots)
-            ....:     assert method(algorithm='backend-default')^2 == q
+            ....:         assert all(r.parent() is K and r**2 == q for r in roots)
+            ....:     assert method(algorithm='backend-default')**2 == q
             sage: nonsquare = K.quadratic_nonresidue()
             sage: for method in (nonsquare.sqrt, nonsquare.square_root):
             ....:     root = method(extend=True, name='w')
-            ....:     assert root^2 == nonsquare
+            ....:     assert root**2 == nonsquare
         """
         cdef GEN s
         cdef FiniteFieldElement_pari_ffelt x, mx
@@ -1114,7 +1116,9 @@ cdef class FiniteFieldElement_pari_ffelt(FinitePolyExtElement):
             sig_off()
             if extend:
                 from sage.categories.finite_fields import _sqrt_in_extension
-                return _sqrt_in_extension(self, all, name, algorithm)
+                return _sqrt_in_extension(
+                    self, all_roots=all, name=name, algorithm=algorithm
+                )
             if all:
                 return []
             else:

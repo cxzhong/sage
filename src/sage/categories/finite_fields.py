@@ -112,7 +112,7 @@ def _sqrt_extension(parent, name):
     return None
 
 
-def _sqrt_in_extension(element, all, name, algorithm=None):
+def _sqrt_in_extension(element, *, all_roots, name, algorithm=None):
     r"""
     Return square roots of ``element`` in a quadratic extension.
 
@@ -121,8 +121,8 @@ def _sqrt_in_extension(element, all, name, algorithm=None):
 
         sage: K.<a> = GF(7**3)
         sage: from sage.categories.finite_fields import _sqrt_in_extension
-        sage: r = _sqrt_in_extension(K(3), False, None)
-        sage: s = _sqrt_in_extension(K(5), False, None)
+        sage: r = _sqrt_in_extension(K(3), all_roots=False, name=None)
+        sage: s = _sqrt_in_extension(K(5), all_roots=False, name=None)
         sage: r.parent() is s.parent() and (r + s).parent() is r.parent()
         True
         sage: from sage.rings.finite_rings.finite_field_base import FiniteField
@@ -140,8 +140,8 @@ def _sqrt_in_extension(element, all, name, algorithm=None):
 
         sage: R.<x> = Zmod(4)[]
         sage: A.<a> = R.quotient(x**2)
-        sage: r = _sqrt_in_extension(a, False, 'w')
-        sage: s = _sqrt_in_extension(a, False, 'w')
+        sage: r = _sqrt_in_extension(a, all_roots=False, name='w')
+        sage: s = _sqrt_in_extension(a, all_roots=False, name='w')
         sage: r.parent() is s.parent() and r**2 == a
         True
     """
@@ -154,7 +154,7 @@ def _sqrt_in_extension(element, all, name, algorithm=None):
     extension_data = _sqrt_extension(parent, name)
     if extension_data is not None:
         extension, embedding = extension_data
-        return embedding(element).sqrt(extend=False, all=all,
+        return embedding(element).sqrt(extend=False, all=all_roots,
                                        algorithm=algorithm)
 
     polynomial_ring = PolynomialRing(parent, 'x')
@@ -163,7 +163,7 @@ def _sqrt_in_extension(element, all, name, algorithm=None):
         polynomial_ring, x**2 - polynomial_ring(element), names=name
     )
     square_root = extension.gen()
-    if all:
+    if all_roots:
         if parent.characteristic() == 2:
             return [square_root]
         return [square_root, -square_root]
@@ -626,26 +626,28 @@ class FiniteFields(CategoryWithAxiom):
                 sage: k.quadratic_nonresidue().sqrt(all=True)
                 []
 
+            TESTS:
+
             The common finite-field keyword interface is accepted, and roots
             returned by Cipolla's algorithm belong to the original field::
 
-                sage: for method in ((y^2).sqrt, (y^2).square_root):
+                sage: for method in ((y**2).sqrt, (y**2).square_root):
                 ....:     r = method(extend=False, algorithm='cipolla')
-                ....:     assert r.parent() is k and r^2 == y^2
+                ....:     assert r.parent() is k and r**2 == y**2
                 sage: for method in (k(0).sqrt, k(0).square_root):
                 ....:     for algorithm in ('tonelli', 'cipolla'):
                 ....:         assert method(algorithm=algorithm) == 0
                 ....:         assert method(all=True,
                 ....:                       algorithm=algorithm) == [k(0)]
                 sage: for method in (k(1).sqrt, k(1).square_root):
-                ....:     assert method(algorithm='backend-default')^2 == 1
+                ....:     assert method(algorithm='backend-default')**2 == 1
 
             A nonsquare can be lifted to a quadratic extension::
 
                 sage: a = k.quadratic_nonresidue()
                 sage: for method in (a.sqrt, a.square_root):
                 ....:     s = method(extend=True, name='s')
-                ....:     assert s^2 == a and s.parent() in FiniteFields()
+                ....:     assert s**2 == a and s.parent() in FiniteFields()
 
             Both method names implement the same keyword contract::
 
@@ -656,7 +658,7 @@ class FiniteFields(CategoryWithAxiom):
                 ....:                        algorithm=algorithm, name='s')
                 ....:         assert isinstance(roots, list)
                 ....:         assert len(roots) == 2
-                ....:         assert all(r.parent() is k and r^2 == q
+                ....:         assert all(r.parent() is k and r**2 == q
                 ....:                    for r in roots)
 
             The contract is uniform across the concrete finite-field
@@ -677,12 +679,12 @@ class FiniteFields(CategoryWithAxiom):
                 sage: signatures
                 {'(*, extend=False, all=False, algorithm=None, name=None)'}
                 sage: for field in fields:
-                ....:     value = field.gen()^2
+                ....:     value = field.gen()**2
                 ....:     for method in (value.sqrt, value.square_root):
                 ....:         roots = method(all=True,
                 ....:                        algorithm='backend-default')
                 ....:         assert isinstance(roots, list)
-                ....:         assert roots and all(root^2 == value
+                ....:         assert roots and all(root**2 == value
                 ....:                              for root in roots)
 
             Optional arguments are keyword-only, so old backend-specific
@@ -710,16 +712,18 @@ class FiniteFields(CategoryWithAxiom):
                 ....:     roots = method(extend=True, all=True,
                 ....:                    algorithm='cipolla', name='w')
                 ....:     assert isinstance(roots, list) and len(roots) == 1
-                ....:     assert roots[0].parent() is K2 and roots[0]^2 == b
+                ....:     assert roots[0].parent() is K2 and roots[0]**2 == b
                 sage: R3.<z> = GF(3)[]
                 sage: K3.<b> = R3.quotient(z^3 - z + 1)
-                sage: q3 = b^2
+                sage: q3 = b**2
                 sage: for method in (q3.sqrt, q3.square_root):
                 ....:     roots = method(extend=False, all=True,
                 ....:                    algorithm='cipolla')
                 ....:     assert isinstance(roots, list) and len(roots) == 2
-                ....:     assert all(r.parent() is K3 and r^2 == q3
+                ....:     assert all(r.parent() is K3 and r**2 == q3
                 ....:                for r in roots)
+
+            EXAMPLES:
 
             Here is an example where changing the algorithm results
             in a faster square root::
@@ -767,7 +771,9 @@ class FiniteFields(CategoryWithAxiom):
                 is_square = square_root is not None
             if not is_square:
                 if extend:
-                    return _sqrt_in_extension(self, all, name, algorithm)
+                    return _sqrt_in_extension(
+                        self, all_roots=all, name=name, algorithm=algorithm
+                    )
                 if all:
                     return []
                 raise ValueError("element is not a square")

@@ -662,24 +662,26 @@ cdef class FiniteField_ntl_gf2eElement(FinitePolyExtElement):
             sage: GF(2^16,'a')(1).sqrt()
             1
 
+        TESTS:
+
         Check the common finite-field square-root interface
         (:issue:`40796`)::
 
-            sage: q = a^2
+            sage: q = a**2
             sage: for method in (q.sqrt, q.square_root):
             ....:     for algorithm in (None, 'tonelli', 'cipolla'):
             ....:         roots = method(extend=True, all=True,
             ....:                        algorithm=algorithm, name='w')
             ....:         assert isinstance(roots, list) and len(roots) == 1
-            ....:         assert roots[0].parent() is k and roots[0]^2 == q
-            ....:     assert method(algorithm='backend-default')^2 == q
+            ....:         assert roots[0].parent() is k and roots[0]**2 == q
+            ....:     assert method(algorithm='backend-default')**2 == q
 
         The NTL context is restored when calls from different fields are
         interleaved::
 
             sage: K.<b> = GF(2^17)
             sage: values = (a, b, k.zero(), K.one(), a + 1, b + 1)
-            sage: all(value.sqrt()^2 == value for value in values)
+            sage: all(value.sqrt()**2 == value for value in values)
             True
         """
         cdef FiniteField_ntl_gf2eElement a = self._new()

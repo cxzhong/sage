@@ -883,17 +883,15 @@ class CommutativeRings(CategoryWithAxiom):
 
                 EXAMPLES::
 
+                    sage: CommutativeRings().Finite().CartesianProducts().extra_super_categories()
+                    [Category of finite commutative rings]
                     sage: R.<x> = GF(3)[]
                     sage: A = R.quotient((x + 1)^2 * (x^2 + 1), 'a')
                     sage: P = cartesian_product([A, Zmod(8)])
                     sage: P in CommutativeRings().Finite()
                     True
-                    sage: q = P((A.one(), 1))
-                    sage: roots = q.sqrt(extend=False, all=True,
-                    ....:                algorithm='backend-default')
-                    sage: len(roots), len(set(roots))
-                    (16, 16)
-                    sage: all(root^2 == q for root in roots)
+                    sage: Q = cartesian_product([P, Zmod(9)])
+                    sage: Q in CommutativeRings().Finite()
                     True
                 """
                 return [CommutativeRings().Finite()]
@@ -949,9 +947,11 @@ class CommutativeRings(CategoryWithAxiom):
                     sage: B = PolynomialQuotientRing_generic(
                     ....:     R, x^2 + 2, 'b', category=IntegralDomains())
                     sage: b = B.gen()
-                    sage: [root^2 == b for root in b.sqrt(
+                    sage: [root**2 == b for root in b.sqrt(
                     ....:     extend=True, all=True, name='w')]
                     [True, True]
+
+                TESTS:
 
                 Cartesian products use the same interface and enumerate all
                 roots in the original ring.  Their factors are searched
@@ -963,7 +963,7 @@ class CommutativeRings(CategoryWithAxiom):
                     ....:     roots = method(extend=False, all=True,
                     ....:                    algorithm='backend-default')
                     ....:     assert isinstance(roots, list) and len(roots) == 4
-                    ....:     assert all(root^2 == q for root in roots)
+                    ....:     assert all(root**2 == q for root in roots)
                     ....:     try:
                     ....:         method(True)
                     ....:     except TypeError:
@@ -971,7 +971,7 @@ class CommutativeRings(CategoryWithAxiom):
                     ....:     else:
                     ....:         raise AssertionError("optional argument was positional")
                     sage: roots = q.sqrt(extend=False, all=True)
-                    sage: expected = [r for r in P if r^2 == q]
+                    sage: expected = [r for r in P if r**2 == q]
                     sage: len(roots) == len(expected) and all(r in expected for r in roots)
                     True
 
@@ -980,7 +980,7 @@ class CommutativeRings(CategoryWithAxiom):
                     sage: Q = cartesian_product([P, Zmod(9)])
                     sage: v = Q((q, 1))
                     sage: roots = v.sqrt(extend=False, all=True)
-                    sage: expected = [r for r in Q if r^2 == v]
+                    sage: expected = [r for r in Q if r**2 == v]
                     sage: len(roots) == len(expected) and all(r in expected for r in roots)
                     True
 
@@ -990,7 +990,7 @@ class CommutativeRings(CategoryWithAxiom):
                     sage: L = cartesian_product([Zmod(2^8), GF(1009), GF(1013)])
                     sage: z = L((1, 4, 4))
                     sage: roots = z.sqrt(extend=False, all=True)
-                    sage: len(roots), all(r^2 == z for r in roots)
+                    sage: len(roots), all(r**2 == z for r in roots)
                     (16, True)
                     sage: z.sqrt(extend=False)**2 == z
                     True
@@ -1074,7 +1074,9 @@ class CommutativeRings(CategoryWithAxiom):
                             "non-domains is not implemented"
                         )
                 from sage.categories.finite_fields import _sqrt_in_extension
-                return _sqrt_in_extension(self, all, name, algorithm)
+                return _sqrt_in_extension(
+                    self, all_roots=all, name=name, algorithm=algorithm
+                )
 
             square_root = sqrt
 

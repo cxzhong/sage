@@ -1097,17 +1097,17 @@ cdef class FiniteField_givaroElement(FinitePolyExtElement):
         Check the common finite-field square-root interface
         (:issue:`40796`)::
 
-            sage: q = a^2
+            sage: q = a**2
             sage: for method in (q.sqrt, q.square_root):
             ....:     for algorithm in (None, 'tonelli', 'cipolla'):
             ....:         roots = method(extend=False, all=True,
             ....:                        algorithm=algorithm, name='w')
             ....:         assert isinstance(roots, list) and len(roots) == 2
-            ....:         assert all(r.parent() is K and r^2 == q for r in roots)
-            ....:     assert method(algorithm='backend-default')^2 == q
+            ....:         assert all(r.parent() is K and r**2 == q for r in roots)
+            ....:     assert method(algorithm='backend-default')**2 == q
             sage: for method in (a.sqrt, a.square_root):
             ....:     root = method(extend=True, name='w')
-            ....:     assert root^2 == a
+            ....:     assert root**2 == a
         """
         cdef Cache_givaro cache = <Cache_givaro>self._cache
         cdef FiniteField_givaroElement root
@@ -1123,7 +1123,9 @@ cdef class FiniteField_givaroElement(FinitePolyExtElement):
         else:
             if extend:
                 from sage.categories.finite_fields import _sqrt_in_extension
-                return _sqrt_in_extension(self, all, name, algorithm)
+                return _sqrt_in_extension(
+                    self, all_roots=all, name=name, algorithm=algorithm
+                )
             if all:
                 return []
             raise ValueError("element is not a square")

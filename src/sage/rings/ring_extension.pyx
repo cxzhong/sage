@@ -480,6 +480,23 @@ class RingExtensionFactory(UniqueFactory):
         Existing constructor-specific names are not overwritten::
 
             sage: E = RingExtension(QQ, QQ, gens=(QQ.one(),), names=('a',))
+            sage: E.variable_names()
+            (None,)
+
+        A generic fallback does not accept ``names`` in its constructor, but
+        the names stored in the factory key are restored afterwards::
+
+            sage: from sage.rings.ring_extension import RingExtension_generic
+            sage: K.<z> = GF(5^2)
+            sage: key, extra = RingExtension.create_key_and_extra_args(
+            ....:     K, GF(5), names=('w',),
+            ....:     constructors=[(RingExtension_generic,
+            ....:                    {'is_backend_exposed': True})])
+            sage: Q = RingExtension.create_object((8, 9, 0), key, **extra)
+            sage: Q.variable_names()
+            ('w',)
+            sage: Q(Q.backend().gen()).parent() is Q
+            True
         """
         defining_morphism = key[0]
         constructors = extra_args['constructors']
@@ -497,6 +514,9 @@ class RingExtensionFactory(UniqueFactory):
             constructor, kwargs = constructors[-1]
             extension = constructor(defining_morphism, **kwargs)
         names = key[2]
+        # A generic fallback cannot receive ``names`` in its constructor.
+        # Restore the names from the factory key, but leave names chosen by a
+        # more specialized constructor untouched.
         if names is not None and extension._names is None:
             extension._assign_names(names, normalize=False)
         return extension

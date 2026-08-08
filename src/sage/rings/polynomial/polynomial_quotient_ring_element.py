@@ -634,7 +634,7 @@ class PolynomialQuotientRingElement(polynomial_singular_interface.Polynomial_sin
             ....:                      algorithm='backend-default')
             sage: len(roots), len(set(roots))
             (4, 4)
-            sage: all(root^2 == 1 for root in roots)
+            sage: all(root**2 == 1 for root in roots)
             True
             sage: root = A.one()._sqrt_finite_decomposition(
             ....:     all=False, algorithm='backend-default')
@@ -649,7 +649,7 @@ class PolynomialQuotientRingElement(polynomial_singular_interface.Polynomial_sin
             sage: B.cardinality()
             1061520150601
             sage: roots = B.one().sqrt(extend=False, all=True)
-            sage: len(roots), all(root^2 == 1 for root in roots)
+            sage: len(roots), all(root**2 == 1 for root in roots)
             (64, True)
 
         If any component has no root, no CRT combinations are constructed::
@@ -658,6 +658,8 @@ class PolynomialQuotientRingElement(polynomial_singular_interface.Polynomial_sin
             sage: C.<c> = T.quotient((z - 1) * (z + 1))
             sage: C(z + 2).sqrt(extend=False, all=True)
             []
+
+        TESTS:
 
         Neither the one-root nor the all-roots path enumerates the full
         quotient when a decomposition is available::

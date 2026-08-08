@@ -2436,7 +2436,7 @@ class PolynomialQuotientRing_field(PolynomialQuotientRing_domain, Field):
             ....:         roots = method(extend=False, all=True,
             ....:                        algorithm=algorithm, name='w')
             ....:         assert isinstance(roots, list) and len(roots) == 2
-            ....:         assert all(r.parent() is S and r^2 == q for r in roots)
+            ....:         assert all(r.parent() is S and r**2 == q for r in roots)
             sage: S.category().is_subcategory(FiniteFields())
             True
         """
