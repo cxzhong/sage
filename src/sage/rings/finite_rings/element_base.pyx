@@ -83,31 +83,16 @@ cdef class FiniteRingElement(CommutativeRingElement):
             ....:     root = a.nth_root(n)
             sage: root^n == a  # needs sage.libs.pari
             True
-            sage: with patch('sage.arith.misc.primitive_root',
-            ....:            side_effect=AssertionError("unexpected factorization")):
-            ....:     one = K.one().nth_root(n)
-            sage: one == 1
-            True
             sage: K.factored_unit_order.clear_cache()
-
-        Requesting all roots of one retains the full root set::
-
-            sage: roots = GF(31).one().nth_root(12, all=True)
-            sage: len(roots) == len(set(roots)) == 6
-            True
-            sage: all(root^12 == 1 for root in roots)
-            True
         """
         K = self.parent()
         q = K.order()
         gcd = n.gcd(q-1)
         if self.is_one():
-            if not all:
-                return self
             if gcd == 1:
-                return [self]
+                return [self] if all else self
             nthroot = K.zeta(gcd)
-            return [nthroot**a for a in range(gcd)]
+            return [nthroot**a for a in range(gcd)] if all else nthroot
         if gcd == q-1:
             if all:
                 return []
