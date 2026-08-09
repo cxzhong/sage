@@ -3785,7 +3785,7 @@ def compute_isogeny_kernel_polynomial(E1, E2, ell, algorithm=None):
       ``'bmss'`` (:func:`compute_isogeny_bmss`),
       ``'stark'`` (:func:`compute_isogeny_stark`), or ``'bruteforce'``
       (enumerate candidates via
-      :meth:`~EllipticCurve_field.isogenies_degree`)
+      :meth:`~sage.schemes.elliptic_curves.ell_field.EllipticCurve_field.isogenies_degree`)
 
     OUTPUT: the kernel polynomial of a separable normalized isogeny from
     ``E1`` to ``E2``
