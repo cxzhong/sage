@@ -496,22 +496,22 @@ def is_rationally_isometric(self, other, return_matrix=False) -> bool | Any:
 
         sage: q = DiagonalQuadraticForm(QQ, [3, 1/3])
         sage: r = DiagonalQuadraticForm(QQ, [1, 1])
-        sage: q.hasse_invariant(3) != r.hasse_invariant(3)                 # needs sage.libs.pari
+        sage: q.hasse_invariant(3) != r.hasse_invariant(3)
         True
-        sage: q.is_rationally_isometric(r)                                # needs sage.libs.pari
+        sage: q.is_rationally_isometric(r)
         False
-        sage: q.is_rationally_isometric(r, return_matrix=True)            # needs sage.libs.pari
+        sage: q.is_rationally_isometric(r, return_matrix=True)
         False
 
     The following example agrees at the dyadic place, so merely checking 2
     would not be sufficient::
 
         sage: q = DiagonalQuadraticForm(QQ, [21, 1/21])
-        sage: (q.Gram_det().support(), r.Gram_det().support())             # needs sage.libs.pari
+        sage: (q.Gram_det().support(), r.Gram_det().support())
         ([], [])
-        sage: [q.hasse_invariant(p) == r.hasse_invariant(p) for p in (2, 3, 7)]  # needs sage.libs.pari
+        sage: [q.hasse_invariant(p) == r.hasse_invariant(p) for p in (2, 3, 7)]
         [True, False, False]
-        sage: q.is_rationally_isometric(r)                                # needs sage.libs.pari
+        sage: q.is_rationally_isometric(r)
         False
     """
     if self.Gram_det() == 0 or other.Gram_det() == 0:
