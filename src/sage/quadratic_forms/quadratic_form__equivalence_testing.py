@@ -496,11 +496,22 @@ def is_rationally_isometric(self, other, return_matrix=False) -> bool | Any:
 
         sage: q = DiagonalQuadraticForm(QQ, [3, 1/3])
         sage: r = DiagonalQuadraticForm(QQ, [1, 1])
-        sage: q.hasse_invariant(3) != r.hasse_invariant(3)
+        sage: q.hasse_invariant(3) != r.hasse_invariant(3)                 # needs sage.libs.pari
         True
-        sage: q.is_rationally_isometric(r)
+        sage: q.is_rationally_isometric(r)                                # needs sage.libs.pari
         False
-        sage: q.is_rationally_isometric(r, True)
+        sage: q.is_rationally_isometric(r, return_matrix=True)            # needs sage.libs.pari
+        False
+
+    The following example agrees at the dyadic place, so merely checking 2
+    would not be sufficient::
+
+        sage: q = DiagonalQuadraticForm(QQ, [21, 1/21])
+        sage: (q.Gram_det().support(), r.Gram_det().support())             # needs sage.libs.pari
+        ([], [])
+        sage: [q.hasse_invariant(p) == r.hasse_invariant(p) for p in (2, 3, 7)]  # needs sage.libs.pari
+        [True, False, False]
+        sage: q.is_rationally_isometric(r)                                # needs sage.libs.pari
         False
     """
     if self.Gram_det() == 0 or other.Gram_det() == 0:
@@ -523,14 +534,20 @@ def is_rationally_isometric(self, other, return_matrix=False) -> bool | Any:
     # not enough, since primes may cancel there while still contributing to a
     # diagonalization (see :issue:`42466`).
     R = self.base_ring()
-    diagonal = (self.rational_diagonal_form().Gram_matrix().diagonal()
-                + other.rational_diagonal_form().Gram_matrix().diagonal())
+    diagonal_entries = []
+    for form in (self, other):
+        diagonal = form.rational_diagonal_form()
+        diagonal_entries.extend(diagonal[i, i]
+                                for i in range(diagonal.dim()))
+
     if R == QQ:
-        relevant_primes = set([ZZ(2)])
+        relevant_primes = {ZZ(2)}
+        for a in diagonal_entries:
+            relevant_primes.update(p for p, e in a.factor() if e % 2)
     else:
         relevant_primes = set(R.primes_above(2))
-    for a in diagonal:
-        relevant_primes.update(a.support())
+        for a in diagonal_entries:
+            relevant_primes.update(a.support())
 
     for p in relevant_primes:
         if self.hasse_invariant(p) != other.hasse_invariant(p):
