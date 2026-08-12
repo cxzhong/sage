@@ -650,14 +650,12 @@ cdef class GLPKBackend(GenericBackend):
             n = <char *> glp_get_prob_name(self._lp())
             if n == NULL:
                 return ""
-            else:
-                return char_to_str(n)
+            return char_to_str(n)
 
-        else:
-            name = str_to_bytes(name)
-            if len(name) > 255:
-                raise ValueError("Problem name for GLPK must not be longer than 255 characters.")
-            glp_set_prob_name(self._lp(), name)
+        name = str_to_bytes(name)
+        if len(name) > 255:
+            raise ValueError("Problem name for GLPK must not be longer than 255 characters.")
+        glp_set_prob_name(self._lp(), name)
 
     cpdef set_objective(self, list coeff, d=0.0):
         """
@@ -1712,8 +1710,7 @@ cdef class GLPKBackend(GenericBackend):
 
         if s != NULL:
             return char_to_str(s)
-        else:
-            return ""
+        return ""
 
     cpdef row_name(self, int index):
         """
@@ -1753,8 +1750,7 @@ cdef class GLPKBackend(GenericBackend):
 
         if s != NULL:
             return char_to_str(s)
-        else:
-            return ""
+        return ""
 
     cpdef bint is_variable_binary(self, int index) except? -1:
         """
@@ -1951,10 +1947,9 @@ cdef class GLPKBackend(GenericBackend):
             sig_off()
             if x == DBL_MAX:
                 return None
-            else:
-                return x
-        else:
-            self._set_variable_upper_bound(lp, index, value)
+            return x
+
+        self._set_variable_upper_bound(lp, index, value)
 
     cpdef variable_lower_bound(self, int index, value=False):
         """
@@ -2028,10 +2023,9 @@ cdef class GLPKBackend(GenericBackend):
             sig_off()
             if x == -DBL_MAX:
                 return None
-            else:
-                return x
-        else:
-            self._set_variable_lower_bound(lp, index, value)
+            return x
+
+        self._set_variable_lower_bound(lp, index, value)
 
     cpdef write_lp(self, filename):
         """
@@ -2896,8 +2890,7 @@ cdef class GLPKBackend(GenericBackend):
             raise ValueError("invalid row index %d" % variable)
         if self.simplex_or_intopt == simplex_only:
             return glp_get_row_dual(lp, variable+1)
-        else:
-            return 0.0
+        return 0.0
 
     cpdef double get_col_dual(self, int variable) except? -1:
         """
@@ -2951,8 +2944,7 @@ cdef class GLPKBackend(GenericBackend):
 
         if self.simplex_or_intopt == simplex_only:
             return glp_get_col_dual(lp, variable+1)
-        else:
-            return 0.0
+        return 0.0
 
     cpdef int get_row_stat(self, int i) except? -1:
         """
