@@ -2391,7 +2391,7 @@ class Partition(CombinatorialElement):
         half of an `n \times n`-square. The region to the northeast of
         this Dyck path can be regarded as a partition. It is called the
         partition corresponding to the Dyck word `w`. (See
-        :meth:`~sage.combinat.dyck_word.DyckWord.to_partition`.)
+        :meth:`~sage.combinat.dyck_word.DyckWord_complete.to_partition`.)
 
         For every partition `\lambda` and every nonnegative integer `n`,
         there exists at most one `n`-Dyck word `w` such that the
@@ -6901,11 +6901,22 @@ class Partitions_all_constrained(Partitions):
 
             sage: [pi for n in range(10) for pi in Partitions(n, max_part=4, max_slope=-3)]
             [[], [1], [2], [3], [4], [4, 1]]
+
+        Check that :issue:`42418` is fixed::
+
+            sage: list(Partitions(inner=[], outer=[]))
+            [[]]
+
+            sage: list(Partitions(inner=[1], outer=[]))
+            []
         """
         self._constraints = kwargs
         self._max_sum = infinity
-        if 'outer' in kwargs and kwargs['outer'] and kwargs['outer'][0] is not infinity:
-            self._max_sum = kwargs['outer'][0] * len(kwargs['outer'])
+        if 'outer' in kwargs:
+            if not kwargs['outer']:
+                self._max_sum = 0
+            elif kwargs['outer'][0] is not infinity:
+                self._max_sum = kwargs['outer'][0] * len(kwargs['outer'])
         else:
             if 'length' in kwargs:
                 max_length = kwargs['length']
