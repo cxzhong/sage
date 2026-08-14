@@ -25,7 +25,6 @@ interpreters = custom_target(
   ],
   input: '../../../sage_setup/autogen/interpreters/internal/__init__.py',
   depend_files: [
-    'generate.py',
     '../../../sage_setup/autogen/interpreters/internal/generator.py',
     '../../../sage_setup/autogen/interpreters/internal/instructions.py',
     '../../../sage_setup/autogen/interpreters/internal/memory.py',
@@ -42,7 +41,6 @@ interpreters = custom_target(
   ],
   command: [
     py,
-    files('generate.py'),
     files('../../../sage_setup/autogen/interpreters/__main__.py'),
     '@OUTDIR@',
   ],
