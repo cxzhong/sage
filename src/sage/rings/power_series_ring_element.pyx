@@ -1684,9 +1684,9 @@ cdef class PowerSeries(AlgebraElement):
         if base in _Fields:
             if base.characteristic() == 2:
                 return self._is_square_field_char2()
-            return not val.is_odd() and self[val].is_square()
+            return val % 2 == 0 and self[val].is_square()
 
-        if val.is_odd():
+        if val % 2 == 1:
             if base in _IntegralDomains:
                 return False
             try:
@@ -1770,7 +1770,7 @@ cdef class PowerSeries(AlgebraElement):
         modulus = base.order()
         val = self.valuation()
         if modulus.is_odd() and self[val].is_unit():
-            return not val.is_odd() and self[val].is_square()
+            return val % 2 == 0 and self[val].is_square()
 
         poly = self.polynomial()
         sparse = self.is_sparse()
