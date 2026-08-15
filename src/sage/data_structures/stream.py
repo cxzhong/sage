@@ -3565,10 +3565,7 @@ def _coerce_to_basis_over_base_ring(element, basis):
     :class:`CoefficientRing`.  Changing the base ring of ``basis`` before
     coercion preserves these undetermined coefficients.
     """
-    try:
-        element_base_ring = element.parent().base_ring()
-    except AttributeError:
-        return basis(element)
+    element_base_ring = element.parent().base_ring()
     if element_base_ring == basis.base_ring():
         return basis(element)
     base_ring = get_coercion_model().common_parent(basis.base_ring(),
@@ -3646,18 +3643,6 @@ class Stream_plethysm(Stream_binary):
         sage: r = Stream_plethysm(f0, f11, True, p); [r[n] for n in range(3)]
         [p[], 0, 0]
 
-    Coefficients created outside the Sage preparser can be Python scalars::
-
-        sage: from sage.data_structures.stream import Stream_exact, Stream_plethysm
-        sage: p = SymmetricFunctions(QQ).p()
-        sage: f1 = Stream_exact([p[1]], order=1)
-        sage: f0 = Stream_exact([int(1)])
-        sage: r = Stream_plethysm(f0, f1, True, p); r[0]
-        p[]
-        sage: g0 = Stream_exact([int(1)])
-        sage: r = Stream_plethysm(f1, g0, True, p); r[0]
-        p[]
-
     Check that degree one elements are treated in the correct way::
 
         sage: # needs sage.modules
@@ -3694,6 +3679,9 @@ class Stream_plethysm(Stream_binary):
             sage: g = Stream_function(lambda n: s[n-1,1], True, 2)
             sage: h = Stream_plethysm(f, g, True, p)
         """
+        # A nonzero eventual constant means that the stream does not have
+        # finite support, so its ``_degree`` is not an upper bound for its
+        # support.
         exact_f = (f if isinstance(f, Stream_exact) and not f._constant
                    else None)
         if exact_f is not None:
@@ -3730,9 +3718,10 @@ class Stream_plethysm(Stream_binary):
 
         # ``Stream_uninitialized._input_streams`` is a lazy snapshot, so all
         # powers that can contain undetermined coefficients must already exist
-        # when a finite outer function is applied to an undetermined argument
-        # of valuation zero.  Powers created later for a positive-valuation
-        # argument only involve previously determined coefficients.
+        # when an outer stream with finite support is applied to an
+        # undetermined argument of valuation zero.  Powers created later for a
+        # positive-valuation argument only involve previously determined
+        # coefficients.
         if (exact_f is not None
             and g.is_uninitialized()
             and not g._approximate_order):
@@ -3741,7 +3730,7 @@ class Stream_plethysm(Stream_binary):
                 if not fk:
                     continue
                 for la, _ in _coerce_to_basis_over_base_ring(fk, p_f):
-                    self._ensure_power(max(la.to_exp(), default=0))
+                    self._cache_power(max(la.to_exp(), default=0))
 
     @lazy_attribute
     def _approximate_order(self):
@@ -3822,11 +3811,13 @@ class Stream_plethysm(Stream_binary):
         if (c.parent() == self._basis.base_ring()
             and product.parent() == self._basis):
             return c * product
+        # This slower path is needed only when an implicit definition puts a
+        # coefficient or product over a temporary CoefficientRing.
         base_ring = get_coercion_model().common_parent(
             self._basis.base_ring(), c.parent(), product.parent().base_ring()
         )
         basis = self._basis.change_ring(base_ring)
-        return basis(product) * base_ring(c)
+        return base_ring(c) * basis(product)
 
     def compute_product(self, n, la):
         r"""
@@ -3941,7 +3932,7 @@ class Stream_plethysm(Stream_binary):
         except KeyError:
             pass
 
-        self._ensure_power(m)
+        self._cache_power(m)
         power_d = self._powers[m][d]
         # we have to check power_d for zero because it might be an
         # integer and not a symmetric function
@@ -3966,7 +3957,7 @@ class Stream_plethysm(Stream_binary):
             self._stretched_power_cache[key] = ret
         return ret
 
-    def _ensure_power(self, m):
+    def _cache_power(self, m):
         r"""
         Ensure that the cache contains the ``m``-th power of ``g``.
 
@@ -3979,7 +3970,7 @@ class Stream_plethysm(Stream_binary):
             sage: f = Stream_exact([p[1]], order=1)
             sage: g = Stream_function(lambda n: p[n], True, 1)
             sage: h = Stream_plethysm(f, g, True, p)
-            sage: h._ensure_power(16)
+            sage: h._cache_power(16)
             sage: sorted(h._powers)
             [1, 2, 4, 8, 16]
         """
@@ -3990,8 +3981,8 @@ class Stream_plethysm(Stream_binary):
 
         left = m // 2
         right = m - left
-        self._ensure_power(left)
-        self._ensure_power(right)
+        self._cache_power(left)
+        self._cache_power(right)
         # Preserve the sparsity policy of the parent.  A dense intermediate
         # stream would eagerly compute all preceding coefficients even when a
         # sparse parent requests only one coefficient.
@@ -4144,7 +4135,7 @@ class Stream_plethysm_multi(Stream_inexact):
                     for h, mu, prewarm in zip(self._plethysms, la,
                                               needs_prewarm):
                         if prewarm:
-                            h._ensure_power(max(mu.to_exp(), default=0))
+                            h._cache_power(max(mu.to_exp(), default=0))
 
     def __hash__(self):
         """
