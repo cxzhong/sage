@@ -1629,16 +1629,20 @@ cdef class PowerSeries(AlgebraElement):
             sage: (1 + 2*x^2).is_square()
             False
 
-        A singular root can depend on terms hidden by finite precision.  The
-        regular finite-precision cases are implemented, while the remaining
-        singular cases are reported instead of returning a potentially wrong
-        answer::
+        A root can depend on terms hidden by finite precision.  Unsupported
+        higher prime-power components report the precise component and the
+        condition that prevents the implemented lift::
 
             sage: R.<x> = PowerSeriesRing(Zmod(16))
             sage: (4 + 4*x + 5*x^2 + O(x^3)).is_square()
             Traceback (most recent call last):
             ...
-            NotImplementedError: is_square() not implemented for singular finite-precision power series over Zmod(p^k)
+            NotImplementedError: is_square() not implemented at finite precision 3: the component modulo 16 has leading coefficient divisible by 2
+            sage: R.<x> = PowerSeriesRing(Zmod(27))
+            sage: (9*x^2 + O(x^3)).is_square()
+            Traceback (most recent call last):
+            ...
+            NotImplementedError: is_square() not implemented at finite precision 3: the component modulo 27 reduces to zero modulo 3
 
         TESTS:
 
@@ -1823,8 +1827,9 @@ cdef class PowerSeries(AlgebraElement):
                         return False
                     else:
                         raise NotImplementedError(
-                            "is_square() not implemented for singular "
-                            "finite-precision power series over Zmod(p^k)"
+                            f"is_square() not implemented at finite precision "
+                            f"{prec}: the component modulo {prime_power} has "
+                            "leading coefficient divisible by 2"
                         )
             else:
                 if not exact and not any(c % p for c in component.values()):
@@ -1836,8 +1841,9 @@ cdef class PowerSeries(AlgebraElement):
                             return False
                         continue
                     raise NotImplementedError(
-                        "is_square() not implemented for singular "
-                        "finite-precision power series over Zmod(p^k)"
+                        f"is_square() not implemented at finite precision "
+                        f"{prec}: the component modulo {prime_power} reduces "
+                        f"to zero modulo {p}"
                     )
                 is_square = self._is_square_odd_prime_power(
                     f, p, exponent, exact, prec)
