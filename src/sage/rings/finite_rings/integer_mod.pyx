@@ -1171,12 +1171,16 @@ cdef class IntegerMod_abstract(FiniteRingElement):
             sage: Mod(1/25, next_prime(2^90)).sqrt()^(-2)
             25
 
-        Error message as requested in :issue:`38802`::
+        All roots in the quadratic extension are computed without enumerating
+        that extension (:issue:`38802`)::
 
-            sage: sqrt(Mod(2, 101010), extend=True, all=True)
-            Traceback (most recent call last):
-            ...
-            NotImplementedError: Finding all square roots in extensions is not implemented; try extend=False to find only roots in the base ring Zmod(n).
+            sage: roots = sqrt(Mod(2, 101010), extend=True, all=True)
+            sage: len(roots)
+            128
+            sage: len(set(roots)) == len(roots)
+            True
+            sage: all(root**2 == 2 for root in roots)
+            True
 
         Using the suggested ``extend=False`` works and returns an empty list
         as expected::
@@ -1289,7 +1293,7 @@ cdef class IntegerMod_abstract(FiniteRingElement):
                 Q = R.quotient(modulus, names=(y,))
                 z = Q.gen()
                 if all:
-                    raise NotImplementedError("Finding all square roots in extensions is not implemented; try extend=False to find only roots in the base ring Zmod(n).")
+                    return _square_roots_in_quadratic_extension(self, Q)
                 return z
             if all:
                 return []
@@ -3081,13 +3085,10 @@ cdef class IntegerMod_int(IntegerMod_abstract):
             ....:     assert len(roots) == 2
             ....:     assert all(r**2 == nonsquare for r in roots)
             sage: for method in (Zmod(15)(2).sqrt, Zmod(15)(2).square_root):
-            ....:     try:
-            ....:         method(extend=True, all=True, name='w')
-            ....:     except NotImplementedError as error:
-            ....:         assert str(error).startswith(
-            ....:             "Finding all square roots in extensions")
-            ....:     else:
-            ....:         raise AssertionError("all extension roots were incomplete")
+            ....:     roots = method(extend=True, all=True, name='w')
+            ....:     assert len(roots) == 4
+            ....:     assert len(set(roots)) == len(roots)
+            ....:     assert all(root**2 == 2 for root in roots)
 
         TESTS:
 
@@ -3989,6 +3990,148 @@ cdef int jacobi_int64(int_fast64_t a, int_fast64_t m) except -2:
 ########################
 # Square root functions
 ########################
+
+def _square_roots_in_quadratic_extension(IntegerMod_abstract a, quotient):
+    r"""
+    Return all square roots of ``a`` in its quadratic quotient extension.
+
+    The input ``quotient`` must be
+    `(\ZZ/n\ZZ)[z]/(z^2-a)`.  Every element of this ring is uniquely of the
+    form `u + vz`, and it squares to ``a`` precisely when
+
+    .. MATH::
+
+        2uv = 0, \qquad u^2 + av^2 = a \pmod n.
+
+    The equations are solved modulo every prime-power factor of `n`.  Starting
+    with all solutions modulo `p`, each lift from `p^k` to `p^{k+1}` is a
+    two-variable linear system over `\GF{p}`.  The local answers are then
+    combined by the Chinese remainder theorem.
+
+    EXAMPLES::
+
+        sage: from sage.rings.finite_rings.integer_mod import _square_roots_in_quadratic_extension
+        sage: R = Zmod(8)
+        sage: P.<x> = R[]
+        sage: Q.<z> = P.quotient(x^2 - 2)
+        sage: roots = _square_roots_in_quadratic_extension(R(2), Q)
+        sage: len(roots), len(set(roots))
+        (8, 8)
+        sage: set(roots) == {root for root in Q if root^2 == 2}
+        True
+    """
+    value = a.lift()
+
+    def linear_solutions(a11, a12, a21, a22, b1, b2, p):
+        """
+        Solve a two-by-two linear system modulo the prime ``p``.
+        """
+        a11 = Integer(a11) % p
+        a12 = Integer(a12) % p
+        a21 = Integer(a21) % p
+        a22 = Integer(a22) % p
+        b1 = Integer(b1) % p
+        b2 = Integer(b2) % p
+
+        determinant = (a11 * a22 - a12 * a21) % p
+        if determinant:
+            inverse = determinant.inverse_mod(p)
+            return [((b1 * a22 - a12 * b2) * inverse % p,
+                     (a11 * b2 - b1 * a21) * inverse % p)]
+
+        if a11 or a12:
+            ax, ay, b = a11, a12, b1
+            cx, cy, d = a21, a22, b2
+        elif a21 or a22:
+            ax, ay, b = a21, a22, b2
+            cx, cy, d = a11, a12, b1
+        else:
+            if b1 or b2:
+                return []
+            return [(s, t) for s in range(p) for t in range(p)]
+
+        if ax:
+            inverse = ax.inverse_mod(p)
+            x0 = b * inverse % p
+            if cx * x0 % p != d:
+                return []
+            kernel_x = -ay * inverse % p
+            return [((x0 + kernel_x * t) % p, t) for t in range(p)]
+
+        inverse = ay.inverse_mod(p)
+        y0 = b * inverse % p
+        if cy * y0 % p != d:
+            return []
+        return [(s, y0) for s in range(p)]
+
+    def roots_mod_prime_power(p, exponent):
+        """
+        Return coefficient pairs for roots modulo ``p^exponent``.
+        """
+        residue_mod_p = value % p
+        if p == 2:
+            solutions = [
+                (u, v) for u in range(2) for v in range(2)
+                if (u * u + residue_mod_p * v * v - residue_mod_p) % 2 == 0
+            ]
+        elif not residue_mod_p:
+            solutions = [(0, v) for v in range(p)]
+        else:
+            solutions = [(0, 1), (0, p - 1)]
+            if residue_mod_p.jacobi(p) == 1:
+                root = square_root_mod_prime(
+                    Mod(residue_mod_p, p), p
+                ).lift()
+                solutions.extend([(root, 0), ((-root) % p, 0)])
+
+        modulus = p
+        for _ in range(1, exponent):
+            lifted_solutions = []
+            for u, v in solutions:
+                # Linearize (2*u*v, u^2 + a*v^2 - a) after replacing
+                # (u, v) by (u, v) + modulus*(du, dv).  All quadratic
+                # correction terms vanish modulo modulus*p.
+                first_error = 2 * u * v // modulus
+                second_error = (
+                    u * u + value * v * v - value
+                ) // modulus
+                corrections = linear_solutions(
+                    2 * v, 2 * u,
+                    2 * u, 2 * residue_mod_p * v,
+                    -first_error, -second_error, p,
+                )
+                lifted_solutions.extend(
+                    (u + modulus * du, v + modulus * dv)
+                    for du, dv in corrections
+                )
+            solutions = lifted_solutions
+            modulus *= p
+        return solutions
+
+    factorization = list(a.parent().factored_order())
+    moduli = [p**exponent for p, exponent in factorization]
+    local_roots = [roots_mod_prime_power(p, exponent)
+                   for p, exponent in factorization]
+
+    if len(local_roots) == 1:
+        coefficient_pairs = local_roots[0]
+    else:
+        from itertools import product
+        from sage.arith.misc import CRT_basis
+
+        basis = CRT_basis(moduli)
+        modulus = a.modulus()
+        coefficient_pairs = []
+        for local_choice in product(*local_roots):
+            constant = sum(b * root[0]
+                           for b, root in zip(basis, local_choice)) % modulus
+            linear = sum(b * root[1]
+                         for b, root in zip(basis, local_choice)) % modulus
+            coefficient_pairs.append((constant, linear))
+
+    return [quotient([constant, linear])
+            for constant, linear in coefficient_pairs]
+
 
 def square_root_mod_prime_power(IntegerMod_abstract a, p, e):
     r"""
