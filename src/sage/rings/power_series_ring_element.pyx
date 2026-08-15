@@ -106,10 +106,14 @@ import sage.arith.all as arith
 import sage.misc.latex
 from sage.structure.element import parent
 from sage.rings.integer import Integer
+from sage.rings.integer_ring import ZZ
 from sage.rings.finite_rings.integer_mod_ring import IntegerModRing
+import sage.rings.abc
 
 from sage.categories.fields import Fields
 _Fields = Fields()
+from sage.categories.integral_domains import IntegralDomains
+_IntegralDomains = IntegralDomains()
 
 from sage.misc.derivative import multi_derivative
 from sage.structure.element cimport AlgebraElement, RingElement
@@ -1527,9 +1531,16 @@ cdef class PowerSeries(AlgebraElement):
         there is an element `y` in ``self.parent()``
         such that `y^2` equals ``self``.
 
-        ALGORITHM: If the base ring is a field, this is true whenever the
-        power series has even valuation and the leading coefficient is a
-        perfect square.
+        ALGORITHM: Over a field of characteristic different from `2`, this is
+        true whenever the power series has even valuation and square leading
+        coefficient.  In characteristic `2`, the odd-degree coefficients
+        must vanish as well.
+
+        Over `\ZZ/n\ZZ`, the problem is split into prime-power components.
+        Regular components are decided immediately; singular components over
+        odd prime powers are lifted one `p`-adic digit at a time.  Exact
+        series over powers of `2` use an Artin--Schreier equation for the
+        first nontrivial lift.
 
         For an integral domain, it attempts the square root in the
         fraction field and tests whether or not the result lies in the
@@ -1553,17 +1564,16 @@ cdef class PowerSeries(AlgebraElement):
             sage: f.is_square()
             True
 
-        Over a ring with nilpotent elements, odd valuation is possible for squares::
+        Over a ring with nilpotent elements, odd valuation and a nonsquare
+        leading coefficient are both possible for squares::
 
             sage: R.<x> = PowerSeriesRing(Zmod(9))
-            sage: f = (3 + x)^2; f
-            6*x + x^2
-            sage: f.valuation()
-            1
-            sage: f.is_square()
-            Traceback (most recent call last):
-            ...
-            NotImplementedError: is_square() not implemented for power series over rings with nonzero nilradical
+            sage: ((3 + x)^2).is_square()
+            True
+            sage: ((3 + x^2)^2).is_square()
+            True
+            sage: (9 + x).is_square()
+            False
 
         In characteristic `2`, a square has no odd-degree terms::
 
@@ -1572,6 +1582,8 @@ cdef class PowerSeries(AlgebraElement):
             False
             sage: (1 + x^2).is_square()
             True
+            sage: x.is_square()
+            False
 
         Power series over `\Zmod{n}` where `n` is squarefree::
 
@@ -1592,30 +1604,91 @@ cdef class PowerSeries(AlgebraElement):
             sage: (5 + x).is_square()
             False
 
-        For prime power moduli with exponent `e > 1`, a :exc:`NotImplementedError` is raised::
+        Prime-power moduli are handled directly::
 
             sage: R.<x> = PowerSeriesRing(Zmod(8))
             sage: ((x + 1)^2).is_square()
+            True
+            sage: (1 + x).is_square()
+            False
+            sage: R.<x> = PowerSeriesRing(Zmod(16))
+            sage: ((4 + x)^2).is_square()
+            True
+
+        Finite precision can hide terms of a square root.  In particular,
+        finite and exact inputs need not have the same answer::
+
+            sage: R.<x> = PowerSeriesRing(Zmod(9))
+            sage: (6*x^2 + O(x^3)).is_square()
+            True
+            sage: (6*x^2).is_square()
+            False
+            sage: R.<x> = PowerSeriesRing(Zmod(16))
+            sage: (1 + 2*x^2 + O(x^3)).is_square()
+            True
+            sage: (1 + 2*x^2).is_square()
+            False
+
+        A singular root can depend on terms hidden by finite precision.  The
+        regular finite-precision cases are implemented, while the remaining
+        singular cases are reported instead of returning a potentially wrong
+        answer::
+
+            sage: R.<x> = PowerSeriesRing(Zmod(16))
+            sage: (4 + 4*x + 5*x^2 + O(x^3)).is_square()
             Traceback (most recent call last):
             ...
-            NotImplementedError: is_square() not implemented for power series over rings with nonzero nilradical
-        """
-        import sage.rings.abc
+            NotImplementedError: is_square() not implemented for singular finite-precision power series over Zmod(p^k)
 
-        # Zero is always a square
+        TESTS:
+
+        Multiple singular lifts need more coefficients than the first lift::
+
+            sage: R.<x> = PowerSeriesRing(Zmod(27))
+            sage: (9*x^2).is_square()
+            True
+            sage: R.<x> = PowerSeriesRing(Zmod(81))
+            sage: ((3 + x^2 + 3*x^3)^2).is_square()
+            True
+            sage: R.<x> = PowerSeriesRing(Zmod(32))
+            sage: ((2 + x^2 + 2*x^3)^2).is_square()
+            True
+            sage: R.<x> = PowerSeriesRing(Zmod(81))
+            sage: (9 + 6*x^2 + x^4 + 6*x^5).is_square()
+            False
+            sage: R.<x> = PowerSeriesRing(Zmod(32))
+            sage: (4 + 4*x^2 + x^4 + 4*x^5 + 4*x^6).is_square()
+            False
+
+        Sparse inputs keep sparse intermediate polynomials::
+
+            sage: R.<x> = PowerSeriesRing(Zmod(27), sparse=True)
+            sage: ((3 + x^1000)^2).is_square()
+            True
+            sage: R.<x> = PowerSeriesRing(Zmod(8), sparse=True)
+            sage: (x^2000).is_square()
+            True
+        """
         if self.is_zero():
             return True
 
+        base = self.base_ring()
+        if isinstance(base, sage.rings.abc.IntegerModRing):
+            return self._is_square_integer_mod()
+
         val = self.valuation()
-        if val is not infinity and val % 2 == 1:
-            # Odd valuation can only happen for a square if the leading coefficient
-            # squares to zero, i.e., the base ring has nonzero nilradical.
-            # Check if the base ring has zero nilradical.
+        if base in _Fields:
+            if base.characteristic() == 2:
+                return self._is_square_field_char2()
+            return not val.is_odd() and self[val].is_square()
+
+        if val.is_odd():
+            if base in _IntegralDomains:
+                return False
             try:
-                nilrad = self.base_ring().nilradical()
-                if nilrad.is_zero():
+                if base.nilradical().is_zero():
                     return False
-            except (AttributeError, NotImplementedError, ArithmeticError):
+            except (AttributeError, TypeError, NotImplementedError, ArithmeticError):
                 raise NotImplementedError(
                     "is_square() not implemented for power series over rings "
                     "where the nilradical cannot be determined"
@@ -1623,30 +1696,24 @@ cdef class PowerSeries(AlgebraElement):
             raise NotImplementedError(
                 "is_square() not implemented for power series over rings with nonzero nilradical"
             )
-        elif not self[val].is_square():
+
+        if not self[val].is_square():
             return False
-        elif self.base_ring() in _Fields:
-            if self.base_ring().characteristic() == 2:
-                return self._is_square_field_char2()
+
+        try:
+            self.parent()(self.sqrt())
             return True
-        # Check if base ring is IntegerModRing - use CRT for squarefree moduli
-        elif isinstance(self.base_ring(), sage.rings.abc.IntegerModRing):
-            return self._is_square_crt()
-        else:
-            try:
-                self.parent()(self.sqrt())
-                return True
-            except TypeError:
-                return False
+        except TypeError:
+            return False
 
     def _is_square_field_char2(self):
         r"""
         Check if this power series is a square over a field of characteristic `2`.
 
         In characteristic `2`, the square of `\sum_i a_i x^i` is
-        `\sum_i a_i^2 x^{2i}`. Hence all nonzero terms must have exponent
-        congruent to the valuation modulo `2`, and each remaining coefficient
-        must be a square in the base field.
+        `\sum_i a_i^2 x^{2i}`. Hence all nonzero terms must have even
+        exponent, and each remaining coefficient must be a square in the base
+        field.
 
         EXAMPLES::
 
@@ -1655,98 +1722,376 @@ cdef class PowerSeries(AlgebraElement):
             False
             sage: (1 + x^2)._is_square_field_char2()
             True
+            sage: x._is_square_field_char2()
+            False
             sage: A.<a> = PolynomialRing(GF(2))
             sage: K = FractionField(A)
             sage: R.<x> = PowerSeriesRing(K)
             sage: (1 + a*x^2)._is_square_field_char2()
             False
         """
-        val = self.valuation()
-        for e, c in self.monomial_coefficients().items():
-            if (e - val).is_odd():
-                return False
-            if not c.is_square():
+        poly = self.polynomial()
+        if self.is_sparse():
+            terms = poly.monomial_coefficients(copy=False).items()
+        else:
+            terms = enumerate(poly.list(copy=False))
+        for e, c in terms:
+            if c and (e & 1 or not c.is_square()):
                 return False
         return True
 
-    def _is_square_crt(self):
+    def _is_square_integer_mod(self):
         r"""
-        Check if this power series is a square over `\Zmod{n}` using CRT.
+        Check if this power series is a square over `\Zmod{n}`.
 
-        This method works for squarefree moduli (products of distinct primes).
-        This includes squarefree even moduli: the reduction modulo `2` is
-        checked as a power series over the field `\Zmod{2}`, where squares
-        have only terms of the correct parity.
-        For prime power moduli with exponent `e > 1`, it raises ``NotImplementedError``.
+        The coefficient ring is decomposed into prime-power components.  No
+        power series are copied for the Chinese remainder decomposition.
 
         EXAMPLES::
 
             sage: R.<x> = PowerSeriesRing(Zmod(6))
-            sage: ((x + 1)^2)._is_square_crt()
+            sage: ((x + 1)^2)._is_square_integer_mod()
             True
-            sage: (1 + x^2)._is_square_crt()
+            sage: (1 + x^2)._is_square_integer_mod()
             True
-            sage: (5 + x)._is_square_crt()
+            sage: (5 + x)._is_square_integer_mod()
             False
-            sage: (1 + x)._is_square_crt()
+            sage: (1 + x)._is_square_integer_mod()
             False
             sage: R.<x> = PowerSeriesRing(Zmod(15))
-            sage: ((2*x + 3)^2)._is_square_crt()
+            sage: ((2*x + 3)^2)._is_square_integer_mod()
             True
-
-        Elements with even valuation::
-
-            sage: R.<x> = PowerSeriesRing(Zmod(6))
-            sage: (x^2)._is_square_crt()
-            True
-            sage: (4*x^2)._is_square_crt()
-            True
-
-        The zero element is always a square::
-
-            sage: R.<x> = PowerSeriesRing(Zmod(6))
-            sage: R(0)._is_square_crt()
-            True
-
-        Constant elements::
-
-            sage: R.<x> = PowerSeriesRing(Zmod(6))
-            sage: R(4)._is_square_crt()
-            True
-            sage: R(3)._is_square_crt()
-            True
-            sage: R(2)._is_square_crt()
-            False
         """
+        base = self.base_ring()
+        modulus = base.order()
+        val = self.valuation()
+        if modulus.is_odd() and self[val].is_unit():
+            return not val.is_odd() and self[val].is_square()
 
-        # Zero is always a square
-        if self.is_zero():
+        poly = self.polynomial()
+        sparse = self.is_sparse()
+        if sparse:
+            terms = [(i, ZZ(c)) for i, c in
+                     poly.monomial_coefficients(copy=False).items()]
+        else:
+            coefficients = [ZZ(c) for c in poly.list(copy=False)]
+            terms = [(i, c) for i, c in enumerate(coefficients) if c]
+        exact = self.prec() is infinity
+        prec = None if exact else int(self.prec())
+        PZ = poly.parent().change_ring(ZZ)
+
+        for p, exponent in base.factored_order():
+            prime_power = p**exponent
+            component = {}
+            for i, c in terms:
+                c %= prime_power
+                if c:
+                    component[i] = c
+            if not component:
+                continue
+
+            if exponent == 1:
+                if p == 2:
+                    if any((i & 1) and (c & 1)
+                           for i, c in component.items()):
+                        return False
+                else:
+                    i, c = min((i, c) for i, c in component.items()
+                               if c % p)
+                    if i & 1 or not IntegerModRing(p)(c).is_square():
+                        return False
+                continue
+
+            if sparse:
+                f = PZ(component)
+            else:
+                f = PZ([c % prime_power for c in coefficients])
+            if p == 2:
+                if exact:
+                    is_square = self._is_square_two_power_exact(f, exponent)
+                else:
+                    i = min(component)
+                    if component[i] & 1:
+                        if i & 1:
+                            return False
+                        is_square = self._is_square_two_power_unit(
+                            f >> i, exponent, prec - i)
+                    elif exponent == 2:
+                        # A root modulo 2 lies in x^ceil(prec/2), so its
+                        # square vanishes; higher binary digits have no
+                        # effect on a square modulo 4.
+                        return False
+                    else:
+                        raise NotImplementedError(
+                            "is_square() not implemented for singular "
+                            "finite-precision power series over Zmod(p^k)"
+                        )
+            else:
+                if not exact and not any(c % p for c in component.values()):
+                    if exponent == 2:
+                        # Modulo p^2, f/p = 2*a*b over F_p, where the
+                        # invisible mod-p root a is divisible by
+                        # x^ceil(prec/2).
+                        if min(component) < (prec + 1) // 2:
+                            return False
+                        continue
+                    raise NotImplementedError(
+                        "is_square() not implemented for singular "
+                        "finite-precision power series over Zmod(p^k)"
+                    )
+                is_square = self._is_square_odd_prime_power(
+                    f, p, exponent, exact, prec)
+
+            if not is_square:
+                return False
+        return True
+
+    def _is_square_odd_prime_power(self, f, p, exponent, exact, prec):
+        r"""
+        Check one odd prime-power component using singular Hensel lifting.
+
+        The inverse of the unit part of the root modulo `p` is computed only
+        once.  Each lift then uses truncated polynomial multiplication.
+        """
+        PZ = f.parent()
+        Pp = PZ.change_ring(IntegerModRing(p))
+
+        while True:
+            fp = Pp(f)
+            if fp:
+                break
+            if exponent == 1:
+                return True
+            if any(ZZ(c) % (p * p) for c in
+                   f.monomial_coefficients(copy=False).values()):
+                return False
+            if PZ.is_sparse():
+                f = PZ({i: ZZ(c) // (p * p) for i, c in
+                        f.monomial_coefficients(copy=False).items()})
+            else:
+                f = PZ([ZZ(c) // (p * p) for c in f.list(copy=False)])
+            exponent -= 2
+            if exponent <= 0 or not f:
+                return True
+
+        val = int(fp.valuation())
+        if val & 1 or not fp[val].is_square():
+            return False
+        if exponent == 1:
+            return True
+        root_val = val // 2
+        if not root_val:
             return True
 
-        base = self.base_ring()
-        n = base.order()
+        length = (exponent + 1) * root_val + 1
+        if not exact:
+            length = min(prec, length)
+        fp = fp.truncate(length)
+        root = fp._nth_root_series(2, length)
+        inverse = (2 * (root >> root_val)).inverse_series_trunc(
+            length - root_val)
+        lifted_root = PZ(root)
 
-        # Factor n
-        factorization = n.factor()
-
-        # Check if any prime power has exponent > 1
-        for p, e in factorization:
-            if e > 1:
-                raise NotImplementedError(
-                    "is_square() not implemented for power series over rings with nonzero nilradical"
-                )
-
-        # n is squarefree - use CRT
-        # For each prime p, reduce mod p and check if square
-        primes = [p for p, e in factorization]
-
-        for p in primes:
-            Zp = IntegerModRing(p)
-            fp = self.change_ring(Zp)
-            # Check if square over the prime field
-            if not fp.is_square():
+        p_power = p
+        for digit in range(1, exponent):
+            square = lifted_root._mul_trunc_(lifted_root, length)
+            difference = (f - square).truncate(length)
+            if Pp.is_sparse():
+                error = Pp({i: ZZ(c) // p_power for i, c in
+                            difference.monomial_coefficients(
+                                copy=False).items()})
+            else:
+                error = Pp([ZZ(c) // p_power
+                            for c in difference.list(copy=False)])
+            if error.truncate(root_val):
                 return False
+            if digit == exponent - 1:
+                return True
+            correction = (error >> root_val)._mul_trunc_(
+                inverse, length - root_val)
+            lifted_root += p_power * PZ(correction)
+            p_power *= p
 
+    def _is_square_two_power_exact(self, f, exponent):
+        r"""
+        Check an exact power series over `\Zmod{2^e}`.
+
+        After removing even `2`-adic content, the first nontrivial lift is
+        the additive equation `b^2 + a b = q` over `\GF{2}`.  Subsequent
+        lifts are linear because their derivative reduces to `a`.
+        """
+        PZ = f.parent()
+        P2 = PZ.change_ring(IntegerModRing(2))
+
+        while True:
+            fp = P2(f)
+            if fp:
+                break
+            if exponent == 1:
+                return True
+            if any(ZZ(c) % 4 for c in
+                   f.monomial_coefficients(copy=False).values()):
+                return False
+            if PZ.is_sparse():
+                f = PZ({i: ZZ(c) // 4 for i, c in
+                        f.monomial_coefficients(copy=False).items()})
+            else:
+                f = PZ([ZZ(c) // 4 for c in f.list(copy=False)])
+            exponent -= 2
+            if exponent <= 0 or not f:
+                return True
+
+        if P2.is_sparse():
+            fp_terms = fp.monomial_coefficients(copy=False)
+            if any(i & 1 for i in fp_terms):
+                return False
+            root = P2({i // 2: c for i, c in fp_terms.items()})
+        else:
+            fp_coeffs = fp.list(copy=False)
+            if any(c for i, c in enumerate(fp_coeffs) if i & 1):
+                return False
+            root = P2(fp_coeffs[::2])
+        if exponent == 1:
+            return True
+
+        lifted_root = PZ(root)
+        difference = f - lifted_root * lifted_root
+        if any(ZZ(c) % 4 for c in
+               difference.monomial_coefficients(copy=False).values()):
+            return False
+        if exponent == 2:
+            return True
+
+        if PZ.is_sparse():
+            target = PZ({i: ZZ(c) // 4 for i, c in
+                         difference.monomial_coefficients(copy=False).items()})
+        else:
+            target = PZ([ZZ(c) // 4 for c in difference.list(copy=False)])
+        root_val = int(root.valuation())
+        length = (exponent + 1) * root_val + 1
+        root = root.truncate(length)
+        target_mod2 = P2(target.truncate(length))
+
+        unit = root >> root_val
+        if P2.is_sparse():
+            even_target = P2({i // 2: c for i, c in
+                              target_mod2.monomial_coefficients(
+                                  copy=False).items()
+                              if not (i & 1) and i < 2 * root_val})
+        else:
+            even_target = P2([target_mod2[2 * i]
+                              for i in range(root_val)])
+        b_low = P2.zero()
+        term = even_target
+        while term:
+            b_low += term
+            product = unit._mul_trunc_(term, root_val)
+            if P2.is_sparse():
+                next_term = {
+                    (root_val + i) // 2: c for i, c in
+                    product.monomial_coefficients(copy=False).items()
+                    if not ((root_val + i) & 1)
+                    and root_val + i < 2 * root_val
+                }
+            else:
+                next_term = [P2.base_ring().zero()] * root_val
+                for i, c in enumerate(product.list(copy=False)):
+                    if not ((root_val + i) & 1):
+                        j = (root_val + i) // 2
+                        if j < root_val:
+                            next_term[j] = c
+            term = P2(next_term)
+
+        residual = (target_mod2
+                    - b_low._mul_trunc_(b_low, length)
+                    - root._mul_trunc_(b_low, length))
+        if residual.truncate(2 * root_val + 1):
+            return False
+
+        high_length = length - 2 * root_val
+        inverse = unit.inverse_series_trunc(length - root_val)
+        inverse_square = inverse._mul_trunc_(inverse, high_length)
+        rhs = (residual >> (2 * root_val))._mul_trunc_(
+            inverse_square, high_length)
+        if P2.is_sparse():
+            z_coeffs = {}
+            for i, c in rhs.monomial_coefficients(copy=False).items():
+                while i and i < high_length:
+                    if i in z_coeffs:
+                        del z_coeffs[i]
+                    else:
+                        z_coeffs[i] = c
+                    i *= 2
+        else:
+            z_coeffs = [0] * high_length
+            for i in range(1, high_length):
+                z_coeffs[i] = int(rhs[i])
+                if not (i & 1):
+                    z_coeffs[i] ^= z_coeffs[i // 2]
+        high = unit._mul_trunc_(P2(z_coeffs), high_length)
+        b_mod2 = b_low + (high << root_val)
+        value = (b_mod2._mul_trunc_(b_mod2, length)
+                 + root._mul_trunc_(b_mod2, length))
+        if value != target_mod2:
+            return False
+
+        b = PZ(b_mod2)
+        two_power = 2
+        for digit in range(1, exponent - 2):
+            value = (b._mul_trunc_(b, length)
+                     + lifted_root._mul_trunc_(b, length))
+            difference = (target - value).truncate(length)
+            if P2.is_sparse():
+                error = P2({i: ZZ(c) // two_power for i, c in
+                            difference.monomial_coefficients(
+                                copy=False).items()})
+            else:
+                error = P2([ZZ(c) // two_power
+                            for c in difference.list(copy=False)])
+            if error.truncate(root_val):
+                return False
+            if digit == exponent - 3:
+                return True
+            correction = (error >> root_val)._mul_trunc_(
+                inverse, length - root_val)
+            b += two_power * PZ(correction)
+            two_power *= 2
+        return True
+
+    def _is_square_two_power_unit(self, f, exponent, prec):
+        r"""
+        Check a finite-precision unit series over `\Zmod{2^e}`.
+
+        The precision is doubled at every step.  Division by `2` is exact;
+        the remaining unit-series division uses Newton inversion modulo
+        `2^{e-1}`.
+        """
+        modulus = 2**exponent
+        PZ = f.parent()
+        constant = IntegerModRing(modulus)(f[0])
+        if not constant.is_square():
+            return False
+
+        root = PZ(ZZ(constant.sqrt(extend=False)))
+        half_modulus = modulus // 2
+        Phalf = PZ.change_ring(IntegerModRing(half_modulus))
+        known = 1
+        while known < prec:
+            length = min(2 * known, prec)
+            square = root._mul_trunc_(root, length)
+            half_error = []
+            for i in range(known, length):
+                error = ZZ(f[i]) - ZZ(square[i])
+                if error & 1:
+                    return False
+                half_error.append(error // 2)
+            rhs = Phalf(half_error)
+            root_mod_half = Phalf(root).truncate(length - known)
+            correction = rhs._mul_trunc_(
+                root_mod_half.inverse_series_trunc(length - known),
+                length - known)
+            root += PZ(correction) << known
+            known = length
         return True
 
     def sqrt(self, prec=None, extend=False, all=False, name=None):
