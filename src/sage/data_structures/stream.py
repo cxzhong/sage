@@ -3679,11 +3679,7 @@ class Stream_plethysm(Stream_binary):
             sage: g = Stream_function(lambda n: s[n-1,1], True, 2)
             sage: h = Stream_plethysm(f, g, True, p)
         """
-        # A nonzero eventual constant means that the stream does not have
-        # finite support, so its ``_degree`` is not an upper bound for its
-        # support.
-        exact_f = (f if isinstance(f, Stream_exact) and not f._constant
-                   else None)
+        exact_f = f if isinstance(f, Stream_exact) else None
         if exact_f is not None:
             self._degree_f = f._degree
         else:
@@ -4094,8 +4090,7 @@ class Stream_plethysm_multi(Stream_inexact):
         if len(gs) != len(p_outer.tensor_factors()):
             raise ValueError("the number of arguments must match the outer tensor power")
 
-        exact_f = (f if isinstance(f, Stream_exact) and not f._constant
-                   else None)
+        exact_f = f if isinstance(f, Stream_exact) else None
         needs_prewarm = [g.is_uninitialized() and not g._approximate_order
                          for g in gs]
         if exact_f is not None:
