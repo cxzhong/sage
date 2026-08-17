@@ -3679,9 +3679,10 @@ class Stream_plethysm(Stream_binary):
             sage: g = Stream_function(lambda n: s[n-1,1], True, 2)
             sage: h = Stream_plethysm(f, g, True, p)
 
-            sage: # needs sage.modules
             sage: from sage.data_structures.stream import (Stream_exact,
+            ....:     Stream_plethysm,
             ....:     Stream_uninitialized)
+            sage: p = SymmetricFunctions(QQ).p()
             sage: la = Partition([2]*8 + [1]*3)
             sage: f = Stream_exact([p[la]], order=la.size())
             sage: h = Stream_plethysm(f, Stream_uninitialized(0), True, p)
