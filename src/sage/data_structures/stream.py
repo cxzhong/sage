@@ -3678,6 +3678,15 @@ class Stream_plethysm(Stream_binary):
             sage: f = Stream_function(lambda n: s[n], True, 1)
             sage: g = Stream_function(lambda n: s[n-1,1], True, 2)
             sage: h = Stream_plethysm(f, g, True, p)
+
+            sage: # needs sage.modules
+            sage: from sage.data_structures.stream import (Stream_exact,
+            ....:     Stream_uninitialized)
+            sage: la = Partition([2]*8 + [1]*3)
+            sage: f = Stream_exact([p[la]], order=la.size())
+            sage: h = Stream_plethysm(f, Stream_uninitialized(0), True, p)
+            sage: sorted(h._powers)
+            [1, 2, 3, 4, 8]
         """
         exact_f = f if isinstance(f, Stream_exact) else None
         if exact_f is not None:
@@ -3726,7 +3735,8 @@ class Stream_plethysm(Stream_binary):
                 if not fk:
                     continue
                 for la, _ in _coerce_to_basis_over_base_ring(fk, p_f):
-                    self._cache_power(max(la.to_exp(), default=0))
+                    for m in la.to_exp():
+                        self._cache_power(m)
 
     @lazy_attribute
     def _approximate_order(self):
@@ -4065,7 +4075,8 @@ class Stream_plethysm_multi(Stream_inexact):
         TESTS::
 
             sage: from sage.data_structures.stream import (Stream_exact,
-            ....:     Stream_function, Stream_plethysm_multi)
+            ....:     Stream_function, Stream_plethysm_multi,
+            ....:     Stream_uninitialized)
             sage: p = SymmetricFunctions(QQ).p()
             sage: p2 = tensor([p, p])
             sage: f = Stream_exact([tensor([p[1], p[1]])], order=2)
@@ -4082,6 +4093,15 @@ class Stream_plethysm_multi(Stream_inexact):
             Traceback (most recent call last):
             ...
             ValueError: can only compute plethysm with a series of valuation 0 for symmetric functions of finite support
+
+            sage: la = Partition([2]*8 + [1]*3)
+            sage: f = Stream_exact([tensor([p[la], p[[]]])],
+            ....:                  order=la.size())
+            sage: u = Stream_uninitialized(0)
+            sage: h = Stream_plethysm_multi(f, (u, g), True, p,
+            ....:                            p_outer=p2)
+            sage: sorted(h._plethysms[0]._powers)
+            [1, 2, 3, 4, 8]
         """
         if p_outer is None:
             raise ValueError("the outer tensor powersum basis is required")
@@ -4130,7 +4150,8 @@ class Stream_plethysm_multi(Stream_inexact):
                     for h, mu, prewarm in zip(self._plethysms, la,
                                               needs_prewarm):
                         if prewarm:
-                            h._cache_power(max(mu.to_exp(), default=0))
+                            for m in mu.to_exp():
+                                h._cache_power(m)
 
     def __hash__(self):
         """

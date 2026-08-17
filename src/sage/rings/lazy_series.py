@@ -7026,6 +7026,18 @@ class LazySymmetricFunction(LazyCompletionGradedAlgebraElement):
             sage: A[:5]
             [p[], 2*p[1], 2*p[1, 1], 4*p[1, 1, 1], 10*p[1, 1, 1, 1]]
 
+        Every multiplicity used by an exact outer function is registered
+        before an implicit-definition dependency snapshot is taken::
+
+            sage: la = Partition([2]*8 + [1]*3)
+            sage: F = S(p[la])
+            sage: A = S.undefined(valuation=0)
+            sage: equation = A - S(QQ(15)/16) - z - F(A) / 16
+            sage: S.define_implicitly([(A, [p[[]]])], [equation])
+            sage: _ = A[:6]
+            sage: (A - S(QQ(15)/16) - z - F(A) / 16)[:6]
+            []
+
         All homogeneous parts of an exact outer function can contribute when
         the argument has a nonzero constant term::
 
