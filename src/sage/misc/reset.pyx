@@ -155,6 +155,10 @@ def restore(vars=None):
             import sage.all
             D = sage.all.__dict__
     _restore(G, D, vars)
+    # The restored LazyImport objects still point at the namespace they came
+    # from.  Relink them before user code gets a chance to resolve them.
+    from sage.misc.lazy_import import clean_namespace
+    clean_namespace(G)
     import sage.calculus.calculus
     _restore(sage.calculus.calculus.syms_cur, sage.calculus.calculus.syms_default, vars)
 
