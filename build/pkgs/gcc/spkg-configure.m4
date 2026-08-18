@@ -159,19 +159,19 @@ SAGE_SPKG_CONFIGURE_BASE([gcc], [
 
         if test $IS_REALLY_GCC = yes ; then
             GXX_FULL_VERSION="`$CXX -dumpfullversion -dumpversion 2>/dev/null`"
-            AS_IF([test -n "$GXX_FULL_VERSION"], [GXX_VERSION="$GXX_FULL_VERSION"])
-            GXX_MAJOR="`echo \"$GXX_VERSION\" | sed -e 's/\..*//'`"
-            GXX_MINOR="`echo \"$GXX_VERSION\" | sed -e 's/^[^.]*$/0/' -e 's/^[^.]*\\.//' -e 's/\..*//'`"
+            AS_IF([test -z "$GXX_FULL_VERSION"], [GXX_FULL_VERSION="$GXX_VERSION"])
+            GXX_MAJOR="`echo \"$GXX_FULL_VERSION\" | sed -e 's/\..*//'`"
+            GXX_MINOR="`echo \"$GXX_FULL_VERSION\" | sed -e 's/^[^.]*$/0/' -e 's/^[^.]*\\.//' -e 's/\..*//'`"
 
             AS_IF([test "$GXX_MAJOR" -lt 10 -o "$GXX_MAJOR" = 10 -a "$GXX_MINOR" -lt 3], [
                     # Install our own GCC if the system-provided one is older than gcc 10.3
-                    SAGE_SHOULD_INSTALL_GCC([you have $CXX version $GXX_VERSION, which is quite old])
+                    SAGE_SHOULD_INSTALL_GCC([you have $CXX version $GXX_FULL_VERSION, which is quite old])
             ], [
-                AS_CASE(["$GXX_VERSION.0"],
+                AS_CASE(["$GXX_FULL_VERSION.0"],
                     [1[[7-9]].*], [
                         # Install our own GCC if the system-provided one is newer than 16.x.
                         # See https://github.com/sagemath/sage/issues/29456
-                        SAGE_SHOULD_INSTALL_GCC([$CXX is g++ version $GXX_VERSION, which is too recent for this version of Sage])
+                        SAGE_SHOULD_INSTALL_GCC([$CXX is g++ version $GXX_FULL_VERSION, which is too recent for this version of Sage])
                     ])
             ])
             fi
