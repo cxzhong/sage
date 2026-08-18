@@ -28,11 +28,11 @@ Vendor and versions of the C and C++ compilers should match.
 
 Users of older Linux distributions should upgrade their systems before
 attempting to install Sage from source.  In particular, users on
-``ubuntu`` should use ``ubuntu-noble`` (24.04) or a newer release.
+``ubuntu`` should use ``ubuntu-jammy`` (22.04) or a newer release.
 
 The minimum supported GCC version is 10.3.  The following example uses
 matching version ``15`` C, C++, and Fortran compilers.  On
-``ubuntu-noble``, these packages are available from
+``ubuntu-jammy``, these packages are available from
 ``ppa:ubuntu-toolchain-r/test``:
 
 .. code-block:: bash
