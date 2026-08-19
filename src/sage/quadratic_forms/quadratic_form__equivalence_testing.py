@@ -464,6 +464,12 @@ def is_rationally_isometric(self, other, return_matrix=False) -> bool | Any:
         sage: V.is_rationally_isometric(W)
         False
 
+    The zero-dimensional form is isometric to itself::
+
+        sage: V = DiagonalQuadraticForm(QQ, [])
+        sage: V.is_rationally_isometric(V)
+        True
+
     Forms whose determinants do not differ by a square in the base field are not isometric::
 
         sage: # needs sage.rings.number_field
@@ -494,7 +500,6 @@ def is_rationally_isometric(self, other, return_matrix=False) -> bool | Any:
     Forms are distinguished by their Hasse invariants even when the primes
     involved cancel out of the determinant (see :issue:`42466`)::
 
-        sage: # needs sage.libs.pari
         sage: q = DiagonalQuadraticForm(QQ, [3, 1/3])
         sage: r = DiagonalQuadraticForm(QQ, [1, 1])
         sage: q.hasse_invariant(3) != r.hasse_invariant(3)
@@ -507,7 +512,6 @@ def is_rationally_isometric(self, other, return_matrix=False) -> bool | Any:
     The following example agrees at the dyadic place, so merely checking 2
     would not be sufficient::
 
-        sage: # needs sage.libs.pari
         sage: q = DiagonalQuadraticForm(QQ, [21, 1/21])
         sage: (q.Gram_det().support(), r.Gram_det().support())
         ([], [])
@@ -520,7 +524,6 @@ def is_rationally_isometric(self, other, return_matrix=False) -> bool | Any:
 
     The same determinant cancellation can occur over a number field::
 
-        sage: # needs sage.libs.pari sage.rings.number_field
         sage: K.<a> = QuadraticField(13)
         sage: q = DiagonalQuadraticForm(K, [3, K(1)/3])
         sage: r = DiagonalQuadraticForm(K, [1, 1])
@@ -538,7 +541,6 @@ def is_rationally_isometric(self, other, return_matrix=False) -> bool | Any:
     Relative number fields are handled through an isomorphic absolute
     presentation::
 
-        sage: # needs sage.libs.pari sage.rings.number_field
         sage: K.<a> = QuadraticField(5)
         sage: x = polygen(K)
         sage: L.<b> = K.extension(x^2 - 2)
@@ -553,7 +555,6 @@ def is_rationally_isometric(self, other, return_matrix=False) -> bool | Any:
     Real places are determined exactly, even for a badly scaled defining
     polynomial::
 
-        sage: # needs sage.libs.pari sage.rings.number_field
         sage: x = polygen(QQ)
         sage: N = 10^30
         sage: K.<a> = NumberField(x^2 + 2*N*x + N^2 + 1)
@@ -629,27 +630,42 @@ def is_rationally_isometric(self, other, return_matrix=False) -> bool | Any:
                     != sum(emb(a) >= 0 for a in diagonal_entries[1])):
                 return False
 
-    all_diagonal_entries = diagonal_entries[0] + diagonal_entries[1]
-
-    if R == QQ:
-        relevant_primes = {ZZ(2)}
-        for a in all_diagonal_entries:
-            relevant_primes.update(p for p, e in a.factor() if e % 2)
-    else:
-        relevant_primes = set(R.primes_above(2))
-        for a in all_diagonal_entries:
-            relevant_primes.update(P for P, e in R.fractional_ideal(a).factor()
-                                   if e % 2)
-
     local_hilbert_symbol = hilbert_symbol if R == QQ else R.hilbert_symbol
 
     def _hasse_invariant(entries, p):
+        if not entries:
+            return 1
+
+        # Hilbert symbols are multiplicative in each argument, so
+        # prod_{j < k} (a_j, a_k) equals
+        # prod_k (a_0 * ... * a_{k - 1}, a_k).
         invariant = 1
-        for j in range(len(entries) - 1):
-            for k in range(j + 1, len(entries)):
-                invariant *= local_hilbert_symbol(entries[j], entries[k], p)
+        prefix_product = entries[0]
+        for a in entries[1:]:
+            invariant *= local_hilbert_symbol(prefix_product, a, p)
+            prefix_product *= a
         return invariant
 
+    # The dyadic places are known without factoring any diagonal entries, so
+    # check them first.  This can avoid an arbitrarily expensive factorization
+    # when they already distinguish the forms.
+    dyadic_primes = {ZZ(2)} if R == QQ else set(R.primes_above(2))
+    for p in dyadic_primes:
+        if (_hasse_invariant(diagonal_entries[0], p)
+                != _hasse_invariant(diagonal_entries[1], p)):
+            return False
+
+    unique_diagonal_entries = set(diagonal_entries[0] + diagonal_entries[1])
+    relevant_primes = set()
+    if R == QQ:
+        for a in unique_diagonal_entries:
+            relevant_primes.update(p for p, e in a.factor() if e % 2)
+    else:
+        for a in unique_diagonal_entries:
+            relevant_primes.update(P for P, e in R.fractional_ideal(a).factor()
+                                   if e % 2)
+
+    relevant_primes.difference_update(dyadic_primes)
     for p in relevant_primes:
         if (_hasse_invariant(diagonal_entries[0], p)
                 != _hasse_invariant(diagonal_entries[1], p)):
