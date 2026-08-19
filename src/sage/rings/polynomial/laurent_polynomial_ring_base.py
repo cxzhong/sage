@@ -80,13 +80,9 @@ class LaurentPolynomialRing_generic(Parent):
         included among the generators.  Laurent monomial factors, which are
         units, are removed to keep exponents in the cover as small as possible.
         """
-        try:
-            from sage.rings.polynomial.multi_polynomial_libsingular import (
-                MPolynomialRing_libsingular,
-            )
-        except ImportError:
-            raise NotImplementedError("ideal membership in the polynomial cover "
-                                      "is not implemented over this base ring") from None
+        from sage.rings.polynomial.multi_polynomial_libsingular import (
+            MPolynomialRing_libsingular,
+        )
 
         if not isinstance(self._extended_ring, MPolynomialRing_libsingular):
             raise NotImplementedError("ideal membership in the polynomial cover "
