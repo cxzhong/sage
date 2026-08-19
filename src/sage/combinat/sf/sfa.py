@@ -3505,9 +3505,9 @@ class SymmetricFunctionAlgebra_generic_Element(CombinatorialFreeModule.Element):
             sage: s[2](5)
             15*B[] # B[]
 
-        Infinite polynomial rings use generators that represent entire
-        variable families.  Only the finitely many variables occurring in
-        a coefficient need to be raised (:issue:`42687`)::
+        For infinite polynomial rings, the variables are determined from
+        each coefficient, so only finitely many need to be raised
+        (:issue:`42687`)::
 
             sage: R.<a> = InfinitePolynomialRing(QQ)
             sage: p = SymmetricFunctions(R).p()
@@ -6844,7 +6844,8 @@ def _variables_recursive(R, include=None, exclude=None):
     If ``include`` is specified, only these variables are returned
     as elements of ``R``.  Otherwise, all variables in ``R``
     (recursively) with the exception of those in ``exclude`` are
-    returned.
+    returned.  For an infinite polynomial ring, return ``None`` so that
+    the variables can be determined from each coefficient instead.
 
     EXAMPLES::
 
@@ -6860,6 +6861,10 @@ def _variables_recursive(R, include=None, exclude=None):
         sage: _variables_recursive(S, include=[b])
         [b]
 
+        sage: A.<x> = InfinitePolynomialRing(QQ)
+        sage: _variables_recursive(A) is None
+        True
+
     TESTS::
 
         sage: _variables_recursive(R.fraction_field(), exclude=[b])
@@ -6874,6 +6879,9 @@ def _variables_recursive(R, include=None, exclude=None):
     if include is not None:
         degree_one = [R(g) for g in include]
     else:
+        from sage.rings.polynomial.infinite_polynomial_ring import InfinitePolynomialRing_sparse
+        if isinstance(R, InfinitePolynomialRing_sparse):
+            return None
         try:
             degree_one = [R(g) for g in R.variable_names_recursive()]
         except AttributeError:
@@ -6896,10 +6904,10 @@ def _raise_variables(c, n, variables, exclude=None):
 
     - ``c`` -- an element of a ring
     - ``n`` -- the power to raise the given variables to
-    - ``variables`` -- the variables to raise; generators of infinite
-      polynomial rings stand for the corresponding variable families
-    - ``exclude`` -- (optional) variables to omit when expanding a family
-      generator
+    - ``variables`` -- the variables to raise, or ``None`` to use the
+      variables occurring in ``c``
+    - ``exclude`` -- (optional) variables to omit when ``variables`` is
+      ``None``
 
     EXAMPLES::
 
@@ -6909,27 +6917,16 @@ def _raise_variables(c, n, variables, exclude=None):
         sage: _raise_variables(2*a + 3*b*t, 2, [a, t])
         3*b*t^2 + 2*a^2
 
-    Generators of infinite polynomial rings are expanded to the finitely
-    many variables that occur in ``c``::
+    The variables can be determined directly from ``c``::
 
         sage: A.<a> = InfinitePolynomialRing(QQ)
-        sage: _raise_variables(a[0] + a[3], 2, [a])
+        sage: _raise_variables(a[0] + a[3], 2, None)
         a_3^2 + a_0^2
-        sage: _raise_variables(a[0] + a[3], 2, [a], exclude=[a[3]])
+        sage: _raise_variables(a[0] + a[3], 2, None, exclude=[a[3]])
         a_3 + a_0^2
     """
-    from sage.rings.polynomial.infinite_polynomial_ring import InfinitePolynomialGen
-
-    family_generators = [g for g in variables
-                         if isinstance(g, InfinitePolynomialGen)]
-    if family_generators:
-        variables = [g for g in variables
-                     if not isinstance(g, InfinitePolynomialGen)]
-        if hasattr(c, 'variables'):
-            variables.extend(v for v in c.variables()
-                             if any(v.parent() is g._parent
-                                    and str(v).rsplit('_', 1)[0] == g._name
-                                    for g in family_generators))
+    if variables is None:
+        variables = c.variables() if hasattr(c, 'variables') else ()
         if exclude is not None:
             variables = [g for g in variables if g not in exclude]
 
