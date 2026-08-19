@@ -494,6 +494,7 @@ def is_rationally_isometric(self, other, return_matrix=False) -> bool | Any:
     Forms are distinguished by their Hasse invariants even when the primes
     involved cancel out of the determinant (see :issue:`42466`)::
 
+        sage: # needs sage.libs.pari
         sage: q = DiagonalQuadraticForm(QQ, [3, 1/3])
         sage: r = DiagonalQuadraticForm(QQ, [1, 1])
         sage: q.hasse_invariant(3) != r.hasse_invariant(3)
@@ -506,6 +507,7 @@ def is_rationally_isometric(self, other, return_matrix=False) -> bool | Any:
     The following example agrees at the dyadic place, so merely checking 2
     would not be sufficient::
 
+        sage: # needs sage.libs.pari
         sage: q = DiagonalQuadraticForm(QQ, [21, 1/21])
         sage: (q.Gram_det().support(), r.Gram_det().support())
         ([], [])
@@ -513,6 +515,56 @@ def is_rationally_isometric(self, other, return_matrix=False) -> bool | Any:
         [True, False, False]
         sage: q.is_rationally_isometric(r)
         False
+        sage: r.is_rationally_isometric(q)
+        False
+
+    The same determinant cancellation can occur over a number field::
+
+        sage: # needs sage.libs.pari sage.rings.number_field
+        sage: K.<a> = QuadraticField(13)
+        sage: q = DiagonalQuadraticForm(K, [3, K(1)/3])
+        sage: r = DiagonalQuadraticForm(K, [1, 1])
+        sage: (q.Gram_det().support(), r.Gram_det().support())
+        ([], [])
+        sage: [q.hasse_invariant(P) == r.hasse_invariant(P)
+        ....:  for P in K.primes_above(2)]
+        [True]
+        sage: [q.hasse_invariant(P) == r.hasse_invariant(P)
+        ....:  for P in K.primes_above(3)]
+        [False, False]
+        sage: q.is_rationally_isometric(r)
+        False
+
+    Relative number fields are handled through an isomorphic absolute
+    presentation::
+
+        sage: # needs sage.libs.pari sage.rings.number_field
+        sage: K.<a> = QuadraticField(5)
+        sage: x = polygen(K)
+        sage: L.<b> = K.extension(x^2 - 2)
+        sage: q = DiagonalQuadraticForm(L, [1, 1])
+        sage: q.is_rationally_isometric(q)
+        True
+        sage: q = DiagonalQuadraticForm(L, [31, L(1)/31])
+        sage: r = DiagonalQuadraticForm(L, [1, 1])
+        sage: q.is_rationally_isometric(r)
+        False
+
+    Real places are determined exactly, even for a badly scaled defining
+    polynomial::
+
+        sage: # needs sage.libs.pari sage.rings.number_field
+        sage: x = polygen(QQ)
+        sage: N = 10^30
+        sage: K.<a> = NumberField(x^2 + 2*N*x + N^2 + 1)
+        sage: K.signature()
+        (0, 1)
+        sage: K(-1).is_square()
+        True
+        sage: q = DiagonalQuadraticForm(K, [1])
+        sage: r = DiagonalQuadraticForm(K, [-1])
+        sage: q.is_rationally_isometric(r)
+        True
     """
     if self.Gram_det() == 0 or other.Gram_det() == 0:
         raise NotImplementedError("this only tests regular forms")
@@ -526,64 +578,89 @@ def is_rationally_isometric(self, other, return_matrix=False) -> bool | Any:
     if not (self.Gram_det() * other.Gram_det()).is_square():
         return False
 
+    R = self.base_ring()
+
+    # Relative number fields do not implement Hilbert symbols.  Transport the
+    # forms through an exact isomorphism to one common absolute presentation,
+    # perform all local computations there, and transport a matrix back if the
+    # currently QQ-only matrix construction is extended to number fields.
+    if R != QQ and R.is_relative():
+        from sage.quadratic_forms.quadratic_form import QuadraticForm
+
+        A = R.absolute_field('z')
+        from_A, to_A = A.structure()
+
+        def to_absolute(form):
+            return QuadraticForm(A, form.dim(),
+                                 [to_A(a) for a in form.coefficients()])
+
+        result = is_rationally_isometric(to_absolute(self),
+                                         to_absolute(other),
+                                         return_matrix=return_matrix)
+        if return_matrix and result is not False:
+            return result.apply_map(from_A, R=R)
+        return result
+
     # By the Hasse--Minkowski theorem the forms are isometric iff their
     # signatures agree at every real place and their Hasse invariants agree
     # at every finite place. The Hasse invariant can only be nontrivial at
-    # the prime(s) above 2 and at primes dividing a diagonal entry of a
-    # rational diagonalization. Using the support of the determinant alone is
-    # not enough, since primes may cancel there while still contributing to a
-    # diagonalization (see :issue:`42466`).
-    R = self.base_ring()
-    diagonal_entries = []
-    for form in (self, other):
-        diagonal = form.rational_diagonal_form()
-        diagonal_entries.extend(diagonal[i, i]
-                                for i in range(diagonal.dim()))
+    # the prime(s) above 2 and at odd primes where some diagonal entry has odd
+    # valuation. Hilbert symbols depend only on square classes, so primes with
+    # only even valuations may be omitted. Using the support of the determinant
+    # alone is not enough, since primes may cancel there while still
+    # contributing to a diagonalization (see :issue:`42466`).
+    diagonal_data = tuple(form.rational_diagonal_form(return_matrix=True)
+                          for form in (self, other))
+    diagonal_forms = tuple(data[0] for data in diagonal_data)
+    diagonal_transforms = tuple(data[1] for data in diagonal_data)
+    diagonal_entries = tuple(tuple(form[i, i] for i in range(form.dim()))
+                             for form in diagonal_forms)
+
+    # Check the cheap archimedean obstruction before factoring any entries.
+    if R == QQ:
+        if (sum(a >= 0 for a in diagonal_entries[0])
+                != sum(a >= 0 for a in diagonal_entries[1])):
+            return False
+    elif R.signature()[0]:
+        from sage.rings.qqbar import AA
+
+        for emb in R.embeddings(AA):
+            if (sum(emb(a) >= 0 for a in diagonal_entries[0])
+                    != sum(emb(a) >= 0 for a in diagonal_entries[1])):
+                return False
+
+    all_diagonal_entries = diagonal_entries[0] + diagonal_entries[1]
 
     if R == QQ:
         relevant_primes = {ZZ(2)}
-        for a in diagonal_entries:
+        for a in all_diagonal_entries:
             relevant_primes.update(p for p, e in a.factor() if e % 2)
     else:
         relevant_primes = set(R.primes_above(2))
-        for a in diagonal_entries:
-            relevant_primes.update(a.support())
+        for a in all_diagonal_entries:
+            relevant_primes.update(P for P, e in R.fractional_ideal(a).factor()
+                                   if e % 2)
+
+    local_hilbert_symbol = hilbert_symbol if R == QQ else R.hilbert_symbol
+
+    def _hasse_invariant(entries, p):
+        invariant = 1
+        for j in range(len(entries) - 1):
+            for k in range(j + 1, len(entries)):
+                invariant *= local_hilbert_symbol(entries[j], entries[k], p)
+        return invariant
 
     for p in relevant_primes:
-        if self.hasse_invariant(p) != other.hasse_invariant(p):
+        if (_hasse_invariant(diagonal_entries[0], p)
+                != _hasse_invariant(diagonal_entries[1], p)):
             return False
-
-    if self.base_ring() == QQ:
-        if self.signature() != other.signature():
-            return False
-    else:
-
-        M = self.rational_diagonal_form().Gram_matrix_rational()
-        N = other.rational_diagonal_form().Gram_matrix_rational()
-        K = self.base_ring()
-
-        Mentries = M.diagonal()
-        Nentries = N.diagonal()
-
-        for emb in K.real_embeddings():
-
-            Mpos = 0
-            for x in Mentries:
-                Mpos += emb(x) >= 0
-
-            Npos = 0
-            for x in Nentries:
-                Npos += emb(x) >= 0
-
-            if Npos != Mpos:
-                return False
 
     if not return_matrix:
         return True
 
     # Ensure that both quadratic forms are diagonal.
-    Q, q_diagonal_transform = self.rational_diagonal_form(True)
-    F, f_diagonal_transform = other.rational_diagonal_form(True)
+    Q, F = diagonal_forms
+    q_diagonal_transform, f_diagonal_transform = diagonal_transforms
 
     # Call the method that does all the work to compute the transformation.
     transform = _diagonal_isometry(Q, F)
