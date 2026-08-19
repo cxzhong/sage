@@ -3505,11 +3505,41 @@ class SymmetricFunctionAlgebra_generic_Element(CombinatorialFreeModule.Element):
             sage: s[2](5)
             15*B[] # B[]
 
-        .. TODO::
+        Infinite polynomial rings use generators that represent entire
+        variable families.  Only the finitely many variables occurring in
+        a coefficient need to be raised (:issue:`42687`)::
 
-            The implementation of plethysm in
-            :class:`sage.data_structures.stream.Stream_plethysm` seems
-            to be faster.  This should be investigated.
+            sage: R.<a> = InfinitePolynomialRing(QQ)
+            sage: p = SymmetricFunctions(R).p()
+            sage: s = SymmetricFunctions(QQ).s()
+            sage: (a[0] * p[2])(s[2])
+            a_0*s[2, 2] - a_0*s[3, 1] + a_0*s[4]
+            sage: p[2]((a[0] + a[7]) * p[1])
+            (a_7^2+a_0^2)*p[2]
+            sage: p[2].plethysm((a[0] + a[7]) * p[1], exclude=[a[7]])
+            (a_7+a_0^2)*p[2]
+            sage: p[2].plethysm((a[0] + a[7]) * p[1], exclude=iter([a[7]]))
+            (a_7+a_0^2)*p[2]
+
+        This also works for the sparse implementation::
+
+            sage: R.<a> = InfinitePolynomialRing(QQ, implementation='sparse')
+            sage: p = SymmetricFunctions(R).p()
+            sage: p[2]((a[0] + a[7]) * p[1])
+            (a_7^2+a_0^2)*p[2]
+
+        Tensor and infinite polynomial coefficients can be combined::
+
+            sage: X = tensor([p[1], p[[]]])
+            sage: p[2](a[0] * X)
+            a_0^2*p[2] # p[]
+
+        .. NOTE::
+
+            :class:`sage.data_structures.stream.Stream_plethysm` computes
+            homogeneous components on demand.  Using it here would require
+            converting both finite inputs to exact streams and recombining
+            all components, so this method keeps its direct implementation.
         """
         from sage.structure.element import parent as get_parent
         Px = get_parent(x)
@@ -3544,6 +3574,8 @@ class SymmetricFunctionAlgebra_generic_Element(CombinatorialFreeModule.Element):
 
         p = parent.realization_of().power()
 
+        if exclude is not None:
+            exclude = tuple(exclude)
         degree_one = _variables_recursive(R, include=include, exclude=exclude)
 
         if tensorflag:
@@ -3551,7 +3583,7 @@ class SymmetricFunctionAlgebra_generic_Element(CombinatorialFreeModule.Element):
             lincomb = Px.linear_combination
             elt = lincomb((prod((lincomb((tensor([p[r].plethysm(base(la))
                                                  for base, la in zip(tparents, trm)]),
-                                         _raise_variables(c, r, degree_one))
+                                         _raise_variables(c, r, degree_one, exclude))
                                         for trm, c in x)
                                 for r in mu), tensor([base.one() for base in tparents])),
                            d)
@@ -3568,7 +3600,8 @@ class SymmetricFunctionAlgebra_generic_Element(CombinatorialFreeModule.Element):
         p_x = p(x)
 
         def f(part):
-            return p.prod(pn_pleth(p_x.map_coefficients(lambda c: _raise_variables(c, i, degree_one)), i)
+            return p.prod(pn_pleth(p_x.map_coefficients(
+                lambda c: _raise_variables(c, i, degree_one, exclude)), i)
                           for i in part)
         ret = p._apply_module_morphism(p(self), f, codomain=p)
         if Px is R:
@@ -6854,7 +6887,7 @@ def _variables_recursive(R, include=None, exclude=None):
     return [g for g in degree_one if g != R.one()]
 
 
-def _raise_variables(c, n, variables):
+def _raise_variables(c, n, variables, exclude=None):
     r"""
     Replace the given variables in the ring element ``c`` with their
     ``n``-th power.
@@ -6863,7 +6896,10 @@ def _raise_variables(c, n, variables):
 
     - ``c`` -- an element of a ring
     - ``n`` -- the power to raise the given variables to
-    - ``variables`` -- the variables to raise
+    - ``variables`` -- the variables to raise; generators of infinite
+      polynomial rings stand for the corresponding variable families
+    - ``exclude`` -- (optional) variables to omit when expanding a family
+      generator
 
     EXAMPLES::
 
@@ -6872,7 +6908,31 @@ def _raise_variables(c, n, variables):
         sage: S.<t> = R[]
         sage: _raise_variables(2*a + 3*b*t, 2, [a, t])
         3*b*t^2 + 2*a^2
+
+    Generators of infinite polynomial rings are expanded to the finitely
+    many variables that occur in ``c``::
+
+        sage: A.<a> = InfinitePolynomialRing(QQ)
+        sage: _raise_variables(a[0] + a[3], 2, [a])
+        a_3^2 + a_0^2
+        sage: _raise_variables(a[0] + a[3], 2, [a], exclude=[a[3]])
+        a_3 + a_0^2
     """
+    from sage.rings.polynomial.infinite_polynomial_ring import InfinitePolynomialGen
+
+    family_generators = [g for g in variables
+                         if isinstance(g, InfinitePolynomialGen)]
+    if family_generators:
+        variables = [g for g in variables
+                     if not isinstance(g, InfinitePolynomialGen)]
+        if hasattr(c, 'variables'):
+            variables.extend(v for v in c.variables()
+                             if any(v.parent() is g._parent
+                                    and str(v).rsplit('_', 1)[0] == g._name
+                                    for g in family_generators))
+        if exclude is not None:
+            variables = [g for g in variables if g not in exclude]
+
     try:
         return c.subs(**{str(g): g ** n for g in variables})
     except AttributeError:

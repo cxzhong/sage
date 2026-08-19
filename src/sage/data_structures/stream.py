@@ -3611,6 +3611,26 @@ class Stream_plethysm(Stream_binary):
         sage: r2 = Stream_plethysm(f, g, True, p, include=[])                           # needs sage.modules
         sage: r_s - sum(r2[n] for n in range(2*(r_s.degree()+1)))                       # needs sage.modules
         (a2*b1^2-a2*b1)*p[2] + (a2*b111^2-a2*b111)*p[2, 2, 2] + (a2*b21^2-a2*b21)*p[4, 2]
+
+    Infinite polynomial variables are resolved one coefficient at a time,
+    which also works for lazy streams (:issue:`42687`)::
+
+        sage: # needs sage.modules
+        sage: R.<a> = InfinitePolynomialRing(QQ)
+        sage: p = SymmetricFunctions(R).p()
+        sage: L = LazySymmetricFunctions(p)
+        sage: f = L(lambda n: p[n])
+        sage: g = L((a[0] + a[2]) * p[1])
+        sage: f(g)[2]
+        (a_2^2+a_0^2)*p[2]
+        sage: excluded = [a[2]]
+        sage: f = Stream_exact([p[2]], order=2)
+        sage: g = Stream_exact([(a[0] + a[2]) * p[1]], order=1)
+        sage: h = Stream_plethysm(f, g, True, p, exclude=excluded)
+        sage: excluded.clear()
+        sage: h[2]
+        (a_2+a_0^2)*p[2]
+
     """
     def __init__(self, f, g, is_sparse, p, ring=None, include=None, exclude=None):
         r"""
@@ -3642,7 +3662,10 @@ class Stream_plethysm(Stream_binary):
         g = Stream_map_coefficients(g, lambda x: p(x), is_sparse)
         self._powers = [g]  # a cache for the powers of g in the powersum basis
         R = self._basis.base_ring()
+        if exclude is not None:
+            exclude = tuple(exclude)
         self._degree_one = _variables_recursive(R, include=include, exclude=exclude)
+        self._exclude = exclude
 
         if HopfAlgebrasWithBasis(R).TensorProducts() in p.categories():
             self._tensor_power = len(p._sets)
@@ -3837,15 +3860,15 @@ class Stream_plethysm(Stream_binary):
         # we have to check power_d for zero because it might be an
         # integer and not a symmetric function
         if power_d:
-            # _raise_variables(c, i, self._degree_one) cannot vanish
+            # _raise_variables(...) cannot vanish
             # because i is positive and c is nonzero
             if self._tensor_power is None:
                 terms = {mon.stretch(i):
-                         _raise_variables(c, i, self._degree_one)
+                         _raise_variables(c, i, self._degree_one, self._exclude)
                          for mon, c in power_d}
             else:
                 terms = {tuple(mu.stretch(i) for mu in mon):
-                         _raise_variables(c, i, self._degree_one)
+                         _raise_variables(c, i, self._degree_one, self._exclude)
                          for mon, c in power_d}
             return self._basis(self._p.element_class(self._p, terms))
 
