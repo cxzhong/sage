@@ -77,22 +77,20 @@ SAGE_SPKG_CONFIGURE([gfortran], [
         AS_CASE(["$FC"],
             [*gfortran*], [
                 AC_MSG_CHECKING([the version of $FC])
-                GFORTRAN_VERSION="`$FC -dumpfullversion -dumpversion 2>/dev/null`"
-                AS_IF([test -z "$GFORTRAN_VERSION"], [GFORTRAN_VERSION="`$FC -dumpversion`"])
+                GFORTRAN_VERSION="`$FC -dumpfullversion -dumpversion 2>/dev/null || $FC -dumpversion`"
                 AC_MSG_RESULT([$GFORTRAN_VERSION])
-                GFORTRAN_MAJOR="`echo \"$GFORTRAN_VERSION\" | sed -e 's/\..*//'`"
-                GFORTRAN_MINOR="`echo \"$GFORTRAN_VERSION\" | sed -e 's/^[^.]*$/0/' -e 's/^[^.]*\\.//' -e 's/\..*//'`"
-                AS_IF([test "$GFORTRAN_MAJOR" -lt 10 -o "$GFORTRAN_MAJOR" = 10 -a "$GFORTRAN_MINOR" -lt 3], [
+                # Add the .0 because Debian/Ubuntu gives version numbers like
+                # 4.6 instead of 4.6.4 (Issue #18885)
+                AS_CASE(["$GFORTRAN_VERSION.0"],
+                    [[[0-9]].*|10.[[0-2]].*], [
                         # Install our own gfortran if the system-provided one is older than gcc-10.3.
                         SAGE_SHOULD_INSTALL_GFORTRAN([$FC is version $GFORTRAN_VERSION, which is quite old])
-                ], [
-                    AS_CASE(["$GFORTRAN_VERSION.0"],
-                        [1[[7-9]].*], [
+                    ],
+                    [1[[7-9]].*], [
                         # Install our own gfortran if the system-provided one is newer than 16.x.
                         # See https://github.com/sagemath/sage/issues/29456, https://github.com/sagemath/sage/issues/31838
                         SAGE_MUST_INSTALL_GFORTRAN([$FC is version $GFORTRAN_VERSION, which is too recent for this version of Sage])
                     ])
-                ])
             ])
     fi
 ])
