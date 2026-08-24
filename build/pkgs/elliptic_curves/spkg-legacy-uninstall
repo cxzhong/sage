@@ -1,0 +1,8 @@
+#! /usr/bin/env bash
+set -e
+
+# Remove only the data now supplied by sage-data-elliptic-curves.  The full
+# Cremona database, if installed, remains in the same parent directory.
+: "${SAGE_SHARE:?SAGE_SHARE must be set}"
+rm -f "${SAGE_SHARE}/cremona/cremona_mini.db"
+rm -rf "${SAGE_SHARE}/ellcurves"

@@ -365,9 +365,6 @@ dependencies:
   - ruamel.yaml.jinja2=0.2.7=pyhd8ed1ab_1
   - ruff=0.15.11=h16586dd_0
   - rw=0.7=1
-  - sagemath-db-elliptic-curves=0.8.1=hecc5488_0
-  - sagemath-db-graphs=20210214=hd8ed1ab_0
-  - sagemath-db-polytopes=20170220=1
   - scipy=1.17.1=py314h5727af0_0
   - sdkroot_env_osx-64=26.0=h62b880e_7
   - semver=3.0.4=pyhcf101f3_1

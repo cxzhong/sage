@@ -11,9 +11,14 @@ Includes two databases:
 
 -  William Stein's database of interesting curves
 
+The data and its Python resource API are distributed as the
+``sage-data-elliptic-curves`` package on PyPI.
+
 
 Upstream Contact
 ----------------
+
+-  https://github.com/cxzhong/sage-data-elliptic-curves
 
 cremona_mini
 ~~~~~~~~~~~~
@@ -27,4 +32,3 @@ ellcurves
 
 -  Author: William Stein
 -  Email: wstein@gmail.com
-

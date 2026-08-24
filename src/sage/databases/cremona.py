@@ -658,9 +658,16 @@ class MiniCremonaDatabase(SQLDatabase):
             sage: c = CremonaDatabase('cremona')    # optional - database_cremona_ellcurve
             sage: c.name                            # optional - database_cremona_ellcurve
             'cremona'
+            sage: from sage.databases.cremona import MiniCremonaDatabase
+            sage: MiniCremonaDatabase('cremona mini', read_only=False)
+            Traceback (most recent call last):
+            ...
+            ValueError: the packaged mini Cremona database is read-only
         """
         self.name = name
         name = name.replace(' ', '_')
+        if name == 'cremona_mini' and (not read_only or build):
+            raise ValueError('the packaged mini Cremona database is read-only')
         db_path = DatabaseCremona(name=name).absolute_filename()
         if build:
             if read_only:
@@ -668,7 +675,12 @@ class MiniCremonaDatabase(SQLDatabase):
             SQLDatabase.__init__(self, db_path, read_only=read_only,
                     skeleton=self._expected_skeleton)
             return
-        SQLDatabase.__init__(self, db_path, read_only=read_only)
+        SQLDatabase.__init__(
+            self,
+            db_path,
+            read_only=read_only,
+            enforce_read_only=read_only,
+        )
         if self.get_skeleton() != self._expected_skeleton:
             raise RuntimeError('Database at %s does ' % (self.__dblocation__)
               + 'not appear to be a valid SQL Cremona database.')

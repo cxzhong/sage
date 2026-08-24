@@ -7,15 +7,6 @@ conf_data.set('EDITABLE_BUILD', root_build)
 conf_data.set('PACKAGE_VERSION', '1.2.3')
 # We use Python's prefix here to make it work with conda
 prefix = fs.as_posix(py.get_variable('prefix', ''))
-datadir = fs.expanduser(get_option('datadir'))
-if not fs.is_absolute(datadir)
-  datadir = prefix / datadir
-endif
-if not fs.exists(datadir / 'cremona')
-  message(
-    'Warning: The specified datadir does not contain the necessary Cremona database. Either specify a different datadir or specify the correct path via the environment variable SAGE_SHARE during runtime.',
-  )
-endif
 sage_local = get_option('SAGE_LOCAL')
 if sage_local == ''
   # Pure Meson builds rely on ECL's search path to find Kenzo.

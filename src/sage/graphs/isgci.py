@@ -375,16 +375,24 @@ Methods
 -------
 """
 
-from sage.structure.sage_object import SageObject
-from sage.structure.unique_representation import CachedRepresentation, UniqueRepresentation
-from sage.misc.unknown import Unknown
-from sage.features.databases import DatabaseGraphs
-from sage.misc.cachefunc import cached_method
-
 import os
 import zipfile
-from urllib.request import urlopen
+from pathlib import Path
 from ssl import create_default_context as default_context
+from urllib.request import urlopen
+
+from sage_data_graphs import open_resource
+
+# This order avoids a circular import through ``sage.misc.unknown``.
+# isort: off
+from sage.structure.sage_object import SageObject
+from sage.structure.unique_representation import (
+    CachedRepresentation,
+    UniqueRepresentation,
+)
+from sage.misc.unknown import Unknown
+from sage.misc.cachefunc import cached_method
+# isort: on
 
 # ****************************************************************************
 #      Copyright (C) 2011 Nathann Cohen <nathann.cohen@gmail.com>
@@ -395,6 +403,15 @@ from ssl import create_default_context as default_context
 
 _XML_FILE = "isgci_sage.xml"
 _SMALLGRAPHS_FILE = "smallgraphs.txt"
+
+
+def _isgci_cache_file():
+    """Return the user cache file, or ``None`` when no cache is configured."""
+    from sage.env import DOT_SAGE
+
+    if not DOT_SAGE:
+        return None
+    return Path(DOT_SAGE) / "db" / "graphs" / "isgci.zip"
 
 
 class GraphClass(SageObject, CachedRepresentation):
@@ -785,82 +802,141 @@ class GraphClasses(UniqueRepresentation):
 
         EXAMPLES::
 
-            sage: graph_classes._download_db()  # optional - internet
+            sage: _ = graph_classes._download_db()  # optional - internet
         """
+        import shutil
         import tempfile
-        data_dir = os.path.dirname(DatabaseGraphs().absolute_filename())
-        u = urlopen('https://www.graphclasses.org/data.zip',
-                    context=default_context())
-        with tempfile.NamedTemporaryFile(suffix='.zip') as f:
-            f.write(u.read())
-            z = zipfile.ZipFile(f.name)
 
-            # Save a systemwide updated copy whenever possible
-            try:
-                z.extract(_XML_FILE, data_dir)
-                z.extract(_SMALLGRAPHS_FILE, data_dir)
-            except OSError:
-                pass
+        cache_file = _isgci_cache_file()
+        if cache_file is None:
+            raise RuntimeError("DOT_SAGE must be configured to update ISGCI data")
+        cache_file.parent.mkdir(parents=True, exist_ok=True)
+        temporary = None
+        try:
+            with tempfile.NamedTemporaryFile(
+                dir=cache_file.parent,
+                prefix="isgci-",
+                suffix=".zip.tmp",
+                delete=False,
+            ) as output:
+                temporary = Path(output.name)
+                with urlopen(
+                    'https://www.graphclasses.org/data.zip',
+                    context=default_context(),
+                ) as source:
+                    shutil.copyfileobj(source, output)
+                output.flush()
+                os.fsync(output.fileno())
 
-    def _parse_db(self):
+            data = self._parse_db(temporary, set_cache=False)
+            if os.name == "nt":
+                import time
+
+                for attempt in range(5):
+                    try:
+                        os.replace(temporary, cache_file)
+                        break
+                    except PermissionError:
+                        if attempt == 4:
+                            raise
+                        time.sleep(0.05 * 2**attempt)
+            else:
+                os.replace(temporary, cache_file)
+            temporary = None
+        finally:
+            if temporary is not None:
+                temporary.unlink(missing_ok=True)
+        return data
+
+    def _parse_db(self, archive_file=None, *, set_cache=True):
         r"""
         Parse the ISGCI database and stores its content in ``self``.
 
         EXAMPLES::
 
-            sage: graph_classes._parse_db()
+            sage: _ = graph_classes._parse_db()
         """
+        import io
+        import warnings
         import xml.etree.ElementTree as ET
+
         from sage.graphs.graph import Graph
 
-        data_dir = os.path.dirname(DatabaseGraphs().absolute_filename())
-        xml_file = os.path.join(data_dir, _XML_FILE)
-        tree = ET.ElementTree(file=xml_file)
-        root = tree.getroot()
-        DB = _XML_to_dict(root)
+        def parse_sources(xml_source, smallgraph_source):
+            tree = ET.ElementTree(file=xml_source)
+            DB = _XML_to_dict(tree.getroot())
 
-        classes = {c['id']: c for c in DB['GraphClasses']["GraphClass"]}
-        for c in classes.values():
-            c["problem"] = {pb.pop("name"): pb for pb in c["problem"]}
+            classes = {c['id']: c for c in DB['GraphClasses']["GraphClass"]}
+            for c in classes.values():
+                c["problem"] = {pb.pop("name"): pb for pb in c["problem"]}
 
-        inclusions = DB['Inclusions']['incl']
+            inclusions = DB['Inclusions']['incl']
+            smallgraphs = {}
+            for line in smallgraph_source:
+                key, string = line.split("\t")
+                smallgraphs[key] = Graph(string)
+            return classes, inclusions, smallgraphs
 
-        # Parses the list of ISGCI small graphs
-        smallgraph_file = open(os.path.join(data_dir, _SMALLGRAPHS_FILE))
-        smallgraphs = {}
+        def parse_archive(filename):
+            archive_data = Path(filename).read_bytes()
+            with zipfile.ZipFile(io.BytesIO(archive_data)) as archive:
+                with archive.open(_XML_FILE) as xml_source:
+                    with archive.open(_SMALLGRAPHS_FILE) as smallgraph_bytes:
+                        with io.TextIOWrapper(
+                            smallgraph_bytes, encoding="utf-8"
+                        ) as smallgraph_source:
+                            return parse_sources(xml_source, smallgraph_source)
 
-        for line in smallgraph_file.readlines():
-            key, string = line.split("\t")
-            smallgraphs[key] = Graph(string)
+        data = None
+        if archive_file is not None:
+            data = parse_archive(archive_file)
+        else:
+            cache_file = _isgci_cache_file()
+            if cache_file is not None and cache_file.is_file():
+                try:
+                    data = parse_archive(cache_file)
+                except Exception as error:
+                    warnings.warn(
+                        f"ignoring unusable ISGCI cache {cache_file}: {error}",
+                        RuntimeWarning,
+                    )
 
-        smallgraph_file.close()
+            if data is None:
+                with open_resource(_XML_FILE) as xml_source:
+                    with open_resource(
+                        _SMALLGRAPHS_FILE, "r"
+                    ) as smallgraph_source:
+                        data = parse_sources(xml_source, smallgraph_source)
 
-        self.inclusions.set_cache(inclusions)
-        self.classes.set_cache(classes)
-        self.smallgraphs.set_cache(smallgraphs)
+        classes, inclusions, smallgraphs = data
+        if set_cache:
+            self.inclusions.set_cache(inclusions)
+            self.classes.set_cache(classes)
+            self.smallgraphs.set_cache(smallgraphs)
+        return data
 
     def update_db(self):
         r"""
         Update the ISGCI database by downloading the latest version from
         internet.
 
-        This method downloads the ISGCI database from the website
-        `GraphClasses.org <http://www.graphclasses.org/>`_. It then extracts the
-        zip file and parses its XML content. The XML file is saved in the directory
-        controlled by the :class:`DatabaseGraphs` class (usually, ``$HOME/.sage/db``).
+        This method downloads and parses the ISGCI archive from the website
+        `GraphClasses.org <http://www.graphclasses.org/>`_. The archive is
+        atomically stored in the user cache below ``$DOT_SAGE/db/graphs``;
+        installed package resources are never modified.
 
         EXAMPLES::
 
             sage: graph_classes.update_db()  # optional - internet
             Database downloaded
         """
-        self._download_db()
+        classes, inclusions, smallgraphs = self._download_db()
+        self.classes.set_cache(classes)
+        self.inclusions.set_cache(inclusions)
+        self.smallgraphs.set_cache(smallgraphs)
+        self.inclusion_digraph.clear_cache()
 
         print("Database downloaded")
-
-        self.classes.clear_cache()
-        self.inclusions.clear_cache()
-        self.inclusion_digraph.clear_cache()
 
     def _get_ISGCI(self):
         r"""

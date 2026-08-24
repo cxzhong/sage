@@ -1,0 +1,6 @@
+#! /usr/bin/env bash
+set -e
+
+# All files formerly installed here are now supplied by sage-data-graphs.
+: "${SAGE_SHARE:?SAGE_SHARE must be set}"
+rm -rf "${SAGE_SHARE}/graphs"

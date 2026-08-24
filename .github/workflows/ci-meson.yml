@@ -141,7 +141,15 @@ jobs:
             export INCLUDE="$INCLUDE;$CONDA_PREFIX\\Library\\include"
           fi
 
-          # Use --no-deps and pip check below to verify that all necessary dependencies are installed via conda
+          # Database resources are Python-only dependencies and are therefore
+          # installed from their universal PyPI wheels, not from conda.
+          pip install --no-deps --only-binary=:all: \
+            'sage-data-elliptic-curves==0.8.1' \
+            'sage-data-graphs==20210214.0' \
+            'sage-data-polytopes==20170220.0'
+
+          # Use --no-deps and pip check below to verify the remaining
+          # dependencies supplied by conda.
           pip install --no-build-isolation --no-deps --config-settings=builddir=builddir ${{ matrix.editable && '--editable' || '' }} . -v
 
       - name: Check update-meson

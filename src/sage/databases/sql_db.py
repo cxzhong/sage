@@ -75,9 +75,11 @@ AUTHORS:
 #                  https://www.gnu.org/licenses/
 # ****************************************************************************
 
-import sqlite3 as sqlite
 import os
 import re
+import sqlite3 as sqlite
+from pathlib import Path
+
 from sage.misc.temporary_file import tmp_filename
 from sage.structure.sage_object import SageObject
 
@@ -895,13 +897,25 @@ class SQLQuery(SageObject):
 
 
 class SQLDatabase(SageObject):
-    def __init__(self, filename=None, read_only=None, skeleton=None):
+    def __init__(
+        self,
+        filename=None,
+        read_only=None,
+        skeleton=None,
+        enforce_read_only=False,
+    ):
         r"""
         A SQL Database object corresponding to a database file.
 
         INPUT:
 
         - ``filename`` -- string
+
+        - ``enforce_read_only`` -- boolean (default: ``False``); if set,
+          require ``read_only=True`` and ask SQLite to open the file in
+          read-only mode.  This also prevents SQLite from creating a missing
+          database or modifying it through :meth:`get_connection`.
+
         - ``skeleton`` -- a triple-indexed dictionary::
 
             | - outer key -- table name
@@ -915,6 +929,25 @@ class SQLDatabase(SageObject):
                       unique
             |       - ``sql`` -- one of ``'TEXT'``, ``'BOOLEAN'``,
                       ``'INTEGER'``, ``'REAL'``, or other user defined type
+
+        TESTS:
+
+        The opt-in enforced read-only mode also applies to a raw SQLite
+        connection returned by :meth:`get_connection`::
+
+            sage: from sage.databases.sql_db import SQLDatabase
+            sage: from sage.misc.temporary_file import tmp_filename
+            sage: dbpath = tmp_filename() + '.db'
+            sage: writable = SQLDatabase(dbpath, read_only=False)
+            sage: writable.create_table('data', {'value': {'sql': 'INTEGER'}})
+            sage: writable.commit()
+            sage: writable.__exit__(None, None, None)
+            sage: readonly = SQLDatabase(dbpath, enforce_read_only=True)
+            sage: readonly.get_connection(True).execute('DELETE FROM data')
+            Traceback (most recent call last):
+            ...
+            sqlite3.OperationalError: attempt to write a readonly database
+            sage: readonly.__exit__(None, None, None)
 
         TUTORIAL:
 
@@ -1077,12 +1110,22 @@ class SQLDatabase(SageObject):
                 + '%s does not end in .db).' % filename)
         if read_only is None:
             read_only = True
+        if enforce_read_only and not read_only:
+            raise ValueError("enforce_read_only requires read_only=True")
 
         self.__read_only__ = read_only
         self.ignore_warnings = False
         self.__dblocation__ = filename
-        self.__connection__ = sqlite.connect(self.__dblocation__,
-            check_same_thread=False)
+        if enforce_read_only:
+            database_uri = f"{Path(filename).resolve().as_uri()}?mode=ro"
+            self.__connection__ = sqlite.connect(
+                database_uri, uri=True, check_same_thread=False
+            )
+            self.__connection__.execute("PRAGMA query_only = ON")
+        else:
+            self.__connection__ = sqlite.connect(
+                self.__dblocation__, check_same_thread=False
+            )
         # this is to avoid the multiple thread problem with dsage:
         # pysqlite does not trust multiple threads for the same connection
         self.__connection__.create_function("regexp", 2, regexp)

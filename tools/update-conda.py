@@ -169,12 +169,9 @@ def get_dependencies(pyproject_toml: Path, python: str, platform: str) -> set[st
         .replace("memory_allocator", "memory-allocator")
         .replace("pkg:generic/r-lattice", "r-lattice")
         .replace("pkg:generic/latexmk", "latexmk")
-        .replace("pkg:generic/sagemath-elliptic-curves", "sagemath-db-elliptic-curves")
-        .replace("pkg:generic/sagemath-graphs", "sagemath-db-graphs")
-        .replace("pkg:generic/sagemath-polytopes-db", "sagemath-db-polytopes")
         .replace("pkg:generic/tachyon", "tachyon")
         .replace("pkg:generic/highs", "highs")
-        .replace("brial", "libbrial") # on Conda, 'brial' refers to the Python package
+        .replace("brial", "libbrial")  # on Conda, 'brial' refers to the Python package
         for req in all_requirements
     }
     # Exclude requirements not available on conda (for a given platform)
@@ -182,6 +179,10 @@ def get_dependencies(pyproject_toml: Path, python: str, platform: str) -> set[st
         "p_group_cohomology",
         "sage_numerical_backends_coin",
         "sagemath_giac",
+        # These are installed as PyPI wheels by the CI workflows, not from conda.
+        "sage-data-elliptic-curves",
+        "sage-data-graphs",
+        "sage-data-polytopes",
         "pynormaliz",  # due to https://github.com/sagemath/sage/issues/40214
         "latte-integrale",  # due to https://github.com/sagemath/sage/issues/40216
         "cibuildwheel",  # fails pip check since it claims to require the PyPI package patchelf which is not available on conda-forge yet (however, it just needs a patchelf which is installed from conda-forge already.)

@@ -192,9 +192,6 @@ SAGE_DATA_PATH = var("SAGE_DATA_PATH")
 
 # database directories, the default is to search in SAGE_DATA_PATH
 CREMONA_LARGE_DATA_DIR = var("CREMONA_LARGE_DATA_DIR")
-CREMONA_MINI_DATA_DIR = var("CREMONA_MINI_DATA_DIR")
-ELLCURVE_DATA_DIR = var("ELLCURVE_DATA_DIR")
-GRAPHS_DATA_DIR = var("GRAPHS_DATA_DIR")
 POLYTOPE_DATA_DIR = var("POLYTOPE_DATA_DIR")
 
 # installation directories for various packages

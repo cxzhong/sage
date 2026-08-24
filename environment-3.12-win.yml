@@ -320,9 +320,6 @@ dependencies:
   - ruamel.yaml.clib=0.2.15=py312he5662c2_1
   - ruamel.yaml.jinja2=0.2.7=pyhd8ed1ab_1
   - ruff=0.15.11=h02f8532_0
-  - sagemath-db-elliptic-curves=0.8.1=hecc5488_0
-  - sagemath-db-graphs=20210214=hd8ed1ab_0
-  - sagemath-db-polytopes=20170220=1
   - scipy=1.17.1=py312h9b3c559_0
   - semver=3.0.4=pyhcf101f3_1
   - setuptools=82.0.1=pyh332efcf_0

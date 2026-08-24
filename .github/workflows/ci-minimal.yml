@@ -108,6 +108,13 @@ jobs:
           export CC="ccache $CC"
           export CXX="ccache $CXX"
 
+          # These standard database resources are distributed only as
+          # universal Python wheels, not as legacy conda data packages.
+          pip install --no-deps --only-binary=:all: \
+            'sage-data-elliptic-curves==0.8.1' \
+            'sage-data-graphs==20210214.0' \
+            'sage-data-polytopes==20170220.0'
+
           meson setup --python.install-env=prefix --prefix="${HOME}/.local" --wrap-mode=nodownload -Dbuild-docs=false -Dbliss=disabled -Dcoxeter3=disabled -Dlibbraiding=disabled -Dlibhomfly=disabled -Dmcqd=disabled -Dmeataxe=disabled -Drankwidth=disabled -Dsirocco=disabled -Dtdlib=disabled builddir
           meson install -C builddir
 

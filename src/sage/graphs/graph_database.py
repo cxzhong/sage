@@ -994,7 +994,7 @@ class GraphDatabase(SQLDatabase):
         """
         from sage.features.databases import DatabaseGraphs
         dblocation = DatabaseGraphs().absolute_filename()
-        SQLDatabase.__init__(self, dblocation)
+        SQLDatabase.__init__(self, dblocation, enforce_read_only=True)
 
     def _gen_interact_func(self, display, **kwds):
         """

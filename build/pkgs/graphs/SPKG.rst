@@ -7,9 +7,14 @@ Description
 A database of graphs. Created by Emily Kirkman based on the work of
 Jason Grout. Since April 2012 it also contains the ISGCI graph database.
 
+The data and its Python resource API are distributed as the
+``sage-data-graphs`` package on PyPI.
+
 
 Upstream Contact
 ----------------
+
+-  https://github.com/cxzhong/sage-data-graphs
 
 -  https://jasongrout.org/graph_database
 
@@ -27,4 +32,3 @@ Upstream Contact
    The code used to parse the data and create the .json file is
    available at
    https://github.com/nathanncohen/strongly_regular_graphs_database.
-
