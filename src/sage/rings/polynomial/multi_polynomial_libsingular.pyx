@@ -2942,6 +2942,10 @@ cdef class MPolynomial_libsingular(MPolynomial_libsingular_base):
             <class 'sage.rings.polynomial.polydict.ETuple'>
             sage: (q + y0^5).degrees()
             (5, 2, 1)
+            sage: R(0).degrees(as_ETuples=True)
+            (0, 0, 0)
+            sage: type(R(0).degrees(as_ETuples=True))
+            <class 'sage.rings.polynomial.polydict.ETuple'>
 
         TESTS:
 
@@ -2954,7 +2958,6 @@ cdef class MPolynomial_libsingular(MPolynomial_libsingular_base):
             sage: type(f.degrees()[0])
             <class 'sage.rings.integer.Integer'>
         """
-        from sage.rings.polynomial.polydict import ETuple
         cdef poly *p = self._poly
         cdef ring *r = self._parent_ring
         cdef int i
@@ -2967,7 +2970,6 @@ cdef class MPolynomial_libsingular(MPolynomial_libsingular_base):
         if as_ETuples:
             return ETuple(d)
         return tuple(d)
-
 
     def coefficient(self, degrees):
         """

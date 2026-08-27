@@ -2064,8 +2064,11 @@ cdef class NCPolynomial_plural(RingElement):
             <class 'sage.rings.polynomial.polydict.ETuple'>
             sage: (q + y0^5).degrees()
             (5, 2, 1)
+            sage: R(0).degrees(as_ETuples=True)
+            (0, 0, 0)
+            sage: type(R(0).degrees(as_ETuples=True))
+            <class 'sage.rings.polynomial.polydict.ETuple'>
         """
-        from sage.rings.polynomial.polydict import ETuple
         cdef poly *p = self._poly
         cdef ring *r = (<NCPolynomialRing_plural>self._parent)._ring
         cdef int i
@@ -2077,7 +2080,6 @@ cdef class NCPolynomial_plural(RingElement):
         if as_ETuples:
             return ETuple(d)
         return tuple(d)
-
 
     def coefficient(self, degrees):
         """

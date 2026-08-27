@@ -537,7 +537,7 @@ class MPolynomial_polydict(Polynomial_singular_repr, MPolynomial_element):
         macaulay2.use(m2_parent)
         return macaulay2('substitute(%s,%s)' % (repr(self), m2_parent._name))
 
-    def degrees(self, as_ETuples=False):
+    def degrees(self, as_ETuples=True):
         r"""
         Return the maximal degree of each variable in this polynomial.
 
@@ -546,7 +546,7 @@ class MPolynomial_polydict(Polynomial_singular_repr, MPolynomial_element):
 
         INPUT:
 
-        - ``as_ETuples`` -- boolean (default: ``False``); if ``True``, return
+        - ``as_ETuples`` -- boolean (default: ``True``); if ``True``, return
           the result as an :class:`~sage.rings.polynomial.polydict.ETuple`,
           otherwise return a plain :class:`tuple`
 
@@ -555,27 +555,30 @@ class MPolynomial_polydict(Polynomial_singular_repr, MPolynomial_element):
 
         EXAMPLES::
 
-            sage: R.<x,y,z> = PolynomialRing(QQbar)                                     # needs sage.rings.number_field
-            sage: f = 3*x^2 - 2*y + 7*x^2*y^2 + 5                                      # needs sage.rings.number_field
-            sage: f.degrees()                                                            # needs sage.rings.number_field
+            sage: # needs sage.rings.number_field
+            sage: R.<x,y,z> = PolynomialRing(QQbar)
+            sage: f = 3*x^2 - 2*y + 7*x^2*y^2 + 5
+            sage: f.degrees()
             (2, 2, 0)
-            sage: type(f.degrees())                                                      # needs sage.rings.number_field
-            <class 'tuple'>
-            sage: f.degrees(as_ETuples=True)                                             # needs sage.rings.number_field
-            (2, 2, 0)
-            sage: type(f.degrees(as_ETuples=True))                                      # needs sage.rings.number_field
+            sage: type(f.degrees())
             <class 'sage.rings.polynomial.polydict.ETuple'>
-            sage: f = x^2 + z^2                                                          # needs sage.rings.number_field
-            sage: f.degrees()                                                            # needs sage.rings.number_field
+            sage: f.degrees(as_ETuples=False)
+            (2, 2, 0)
+            sage: type(f.degrees(as_ETuples=False))
+            <class 'tuple'>
+            sage: f = x^2 + z^2
+            sage: f.degrees()
             (2, 0, 2)
-            sage: f.total_degree()  # this simply illustrates that total degree is not the sum of the degrees  # needs sage.rings.number_field
+            sage: f.total_degree()  # total degree is not the sum of the degrees
             2
-            sage: R.<x,y,z,u> = PolynomialRing(QQbar)                                   # needs sage.rings.number_field
-            sage: f = (1-x) * (1+y+z+x^3)^5                                             # needs sage.rings.number_field
-            sage: f.degrees()                                                            # needs sage.rings.number_field
+            sage: R.<x,y,z,u> = PolynomialRing(QQbar)
+            sage: f = (1-x) * (1+y+z+x^3)^5
+            sage: f.degrees()
             (16, 5, 5, 0)
-            sage: R(0).degrees()                                                         # needs sage.rings.number_field
+            sage: R(0).degrees()
             (0, 0, 0, 0)
+            sage: type(R(0).degrees(as_ETuples=False))
+            <class 'tuple'>
         """
         if not self:
             e = polydict.ETuple({}, self.parent().ngens())
