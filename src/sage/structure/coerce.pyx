@@ -100,6 +100,31 @@ import traceback
 from fractions import Fraction
 cdef type FractionType = <type>Fraction
 
+
+cdef object _no_integer_power = object()
+
+
+cdef _try_integer_power(CoercionModel model, xp, x, yp, y):
+    """Apply the integer power action if the exponent is integer-valued."""
+    if parent_is_integers(yp):
+        return _no_integer_power
+
+    from sage.rings.integer import Integer
+    from sage.rings.integer_ring import ZZ
+    try:
+        y_int = Integer(y)
+        if not (y_int == y):
+            return _no_integer_power
+    except (TypeError, ValueError, OverflowError):
+        return _no_integer_power
+
+    action = model.get_action(xp, ZZ, pow, x, y_int)
+    if action is None:
+        return _no_integer_power
+    if (<Action>action)._is_left:
+        return (<Action>action)._act_(x, y_int)
+    return (<Action>action)._act_(y_int, x)
+
 cpdef py_scalar_parent(py_type):
     """
     Return the Sage equivalent of the given python type, if one exists.
@@ -1241,6 +1266,38 @@ cdef class CoercionModel:
             ...
             TypeError: unsupported operand parent(s) for ^...
 
+        The fallback is also tried if coercion to a common parent succeeds,
+        but powering in that parent rejects the exponent::
+
+            sage: cm.canonical_coercion(x, QQ(2))[0].parent()
+            Univariate Polynomial Ring in x over Rational Field
+            sage: x ^ QQ(2)
+            x^2
+
+        A successful power operation still takes precedence over the fallback::
+
+            sage: (QQ(2) ^ RR(2)).parent() is RR                                      # needs sage.rings.real_mpfr
+            True
+
+        An exception raised while checking whether an exponent is integer-valued
+        is treated as a failed conversion::
+
+            sage: class BadExponent:
+            ....:     def _integer_(self, ring):
+            ....:         return ring(2)
+            ....:     def __eq__(self, other):
+            ....:         return self
+            ....:     def __bool__(self):
+            ....:         raise ValueError('truthiness exploded')
+            sage: cm.bin_op(phi, BadExponent(), operator.pow)
+            Traceback (most recent call last):
+            ...
+            TypeError: unsupported operand parent(s) for ^...
+            sage: cm.bin_op(phi, float('inf'), operator.pow)
+            Traceback (most recent call last):
+            ...
+            TypeError: unsupported operand parent(s) for ^...
+
         Errors from ``_pow_int`` should not be masked by the conversion
         fallback::
 
@@ -1250,6 +1307,20 @@ cdef class CoercionModel:
             Traceback (most recent call last):
             ...
             TypeError: self must be an endomorphism
+
+        Errors raised while discovering the integer power action should not be
+        masked either::
+
+            sage: from sage.structure.element import Element
+            sage: from sage.structure.parent import Parent
+            sage: class BrokenActionParent(Parent):
+            ....:     def _get_action_(self, other, op, self_on_left):
+            ....:         if other is ZZ and op is operator.pow:
+            ....:             raise KeyError('integer power discovery failed')
+            sage: cm.bin_op(Element(BrokenActionParent()), QQ(2), operator.pow)
+            Traceback (most recent call last):
+            ...
+            KeyError: 'integer power discovery failed'
         """
         self._exceptions_cleared = False
 
@@ -1275,7 +1346,15 @@ cdef class CoercionModel:
         except TypeError:
             self._record_exception()
         else:
-            return PyObject_CallObject(op, xy)
+            try:
+                return PyObject_CallObject(op, xy)
+            except TypeError:
+                if op is not pow:
+                    raise
+                result = _try_integer_power(self, xp, x, yp, y)
+                if result is not _no_integer_power:
+                    return result
+                raise
 
         if op is mul:
             # elements may also act on non-elements
@@ -1310,31 +1389,9 @@ cdef class CoercionModel:
                     self._record_exception()
 
         elif op is pow:
-            # Special case for powering: if the exponent is not from an
-            # integer parent but can be converted to an integer, try using
-            # the integer power action.
-            # See Issue #40712
-            if not parent_is_integers(yp):
-                from sage.rings.integer import Integer
-                from sage.rings.integer_ring import ZZ
-                try:
-                    y_int = Integer(y)
-                    is_integer_value = (y_int == y)
-                except (TypeError, ValueError):
-                    pass
-                else:
-                    if is_integer_value:
-                        # The exponent is an integer in disguise (e.g., 2/1 in QQ)
-                        # Try to use the integer power action
-                        try:
-                            action = self.get_action(xp, ZZ, op, x, y_int)
-                        except KeyError:
-                            action = None
-                        if action is not None:
-                            if (<Action>action)._is_left:
-                                return (<Action>action)._act_(x, y_int)
-                            else:
-                                return (<Action>action)._act_(y_int, x)
+            result = _try_integer_power(self, xp, x, yp, y)
+            if result is not _no_integer_power:
+                return result
 
         if not isinstance(y, Element):
             op_name = op.__name__
